@@ -1,0 +1,30 @@
+module ExternCalls
+
+resource Buffer {
+  acquire rent
+  release give
+}
+
+// Host (C#) calls must declare what they do with ownership. The checker
+// trusts these effect annotations and nothing else: an undeclared call that
+// is handed an owned value is a hard OWN040. Borrow params are noescape, so
+// the value cannot leak out through them.
+extern fn Fill(borrow_mut Buffer);   // writes through the buffer, hands it back
+extern fn Hash(borrow Buffer);       // reads only, hands it back
+extern fn Store(consume Buffer);     // takes ownership; caller must not reuse
+
+// Happy path: lend the buffer to the host mutably, then immutably, then hand
+// it back ourselves. Both extern calls borrow, so 'b' is still owned after.
+fn read_write(size: int) {
+  let b = acquire Buffer(size);
+  Fill(b);
+  Hash(b);
+  release b;
+}
+
+// Happy path: give the buffer to the host for good. Store consumes it, so we
+// neither release nor use 'b' afterwards — either of those would be OWN002.
+fn hand_off(size: int) {
+  let b = acquire Buffer(size);
+  Store(b);
+}

@@ -60,7 +60,10 @@ python tests/run_tests.py                                    # 42 кейса + c
 
 ```bash
 cd examples/golden_arraypool
-dotnet run          # требует .NET SDK; в песочнице PoC его нет
+# Здесь лежат buffer.own (источник) и Program.cs (сгенерённый process + host).
+# Своего .csproj PoC не возит; чтобы запустить — заверни Program.cs в console-проект:
+dotnet new console -o demo && cp Program.cs demo/ && cd demo && dotnet run
+# (требует .NET SDK; в песочнице PoC его нет — проверено по построению, не запуском)
 ```
 
 `buffer.own` объявляет ресурс `Buffer` с шаблонами `emit_*`, отображающими его на
@@ -389,6 +392,6 @@ ownlang/
   examples/
     ok_*.own                  # проходят
     bad_*.own                 # падают с конкретным кодом
-    golden_arraypool/         # buffer.own + Program.cs + demo.csproj (dotnet run)
+    golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
   tests/run_tests.py          # 42 кейса анализа + codegen smoke + golden smoke
 ```
