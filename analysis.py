@@ -1,0 +1,420 @@
+"""
+Flow-sensitive ownership analysis on an explicit loans + permissions model.
+
+This revision formalises what the previous version did implicitly. The reviewer
+was right that "owner becomes SharedBorrowed" is the wrong mental model — but
+note the *code* already kept the owner's variable-state separate from its borrow
+counts. Here that separation is made explicit and given names:
+
+* **VariableState** (per owned symbol): a *set* drawn from
+  {OWNED, MOVED, RELEASED, ESCAPED}. The set is "what could be true here across
+  all paths"; merges take the union. The owner stays OWNED for the whole time it
+  is borrowed — a borrow never overwrites the owner's state.
+
+* **ActiveLoans**: a borrow is a first-class Loan(owner, binding, kind) that is
+  *added* when the borrow opens and *removed* when it closes. Loans live beside
+  the variable-states, not inside them.
+
+* **Permissions** are derived on demand from (variable-state + active loans):
+
+      Owned, no loans      -> Own + Read + Write + Drop
+      Owned, shared loan   -> Read                  (Own/Write/Drop suspended)
+      Owned, mutable loan  -> (nothing)             (exclusive: owner unusable)
+      Moved/Released/Escaped -> (nothing)
+
+  Each operation checks the permission it needs and reports the specific code:
+  a move needs Own (suspended by *any* loan -> OWN007), a release needs Drop
+  (-> OWN008), `use` needs Read (suspended by a mutable loan -> OWN013), and so on.
+
+The traversal is a single topological pass over the loop-free DAG. Because every
+borrow is block-scoped, the set of active loans is identical on all predecessors
+of a merge, so joining loans is trivial; this invariant is asserted, not assumed.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from enum import Enum, auto
+
+from .cfg import (
+    CFG, Block, Symbol, Kind,
+    Acquire, MoveInto, Release, Use, Invoke, BorrowStart, BorrowEnd, Return,
+)
+from .ast_nodes import Effect
+from .diagnostics import Diagnostic
+
+
+class VarState(Enum):
+    OWNED = auto()
+    MOVED = auto()
+    RELEASED = auto()
+    ESCAPED = auto()   # ownership left the function: returned, or consumed by a call
+
+
+class LoanKind(Enum):
+    SHARED = auto()
+    MUT = auto()
+
+
+@dataclass(frozen=True)
+class Loan:
+    loan_id: int      # we use id(binding_symbol): unique per borrow scope
+    owner: int        # id(owner_symbol)
+    binding: int      # id(binding_symbol)
+    kind: LoanKind
+
+
+@dataclass
+class State:
+    var: dict[int, set[VarState]] = field(default_factory=dict)
+    loans: dict[int, Loan] = field(default_factory=dict)
+
+    def copy(self) -> "State":
+        return State(
+            var={k: set(v) for k, v in self.var.items()},
+            loans=dict(self.loans),
+        )
+
+
+def join(a: State, b: State) -> State:
+    out = State()
+    for k in set(a.var) | set(b.var):
+        out.var[k] = set(a.var.get(k, set())) | set(b.var.get(k, set()))
+    # Block-scoped borrows => identical active loans on both predecessors.
+    # Assert the invariant rather than silently papering over a builder bug.
+    assert set(a.loans) == set(b.loans), (
+        "active loans differ at a control-flow merge; this should be impossible "
+        "for block-scoped borrows in a loop-free language"
+    )
+    out.loans = dict(a.loans)
+    return out
+
+
+class _Analyzer:
+    def __init__(self, cfg: CFG):
+        self.cfg = cfg
+        self.diags: list[Diagnostic] = []
+        self.blocks = {b.id: b for b in cfg.blocks}
+
+    def initial_state(self) -> State:
+        s = State()
+        for p in self.cfg.params:
+            if p.kind == Kind.OWNED:
+                s.var[id(p)] = {VarState.OWNED}
+        return s
+
+    def err(self, code: str, msg: str, line: int) -> None:
+        self.diags.append(Diagnostic(code, msg, line))
+
+    # -- loan / permission helpers -----------------------------------------
+
+    def loans_on(self, st: State, owner: Symbol) -> tuple[int, bool]:
+        shared = 0
+        mut = False
+        for ln in st.loans.values():
+            if ln.owner == id(owner):
+                if ln.kind == LoanKind.SHARED:
+                    shared += 1
+                else:
+                    mut = True
+        return shared, mut
+
+    def binding_live(self, st: State, sym: Symbol) -> bool:
+        if sym.is_param_borrow:
+            return True
+        return any(ln.binding == id(sym) for ln in st.loans.values())
+
+    # Common state classification, returning a code to emit (or None) when an
+    # operation `verb` is attempted on owned symbol `sym`. Handles the
+    # gone / maybe-gone cases shared by use/move/release/borrow/consume.
+    def _state_problem(self, st: State, sym: Symbol, verb: str, line: int) -> bool:
+        S = st.var.get(id(sym), {VarState.OWNED})
+        if VarState.OWNED not in S:
+            if VarState.MOVED in S:
+                self.err("OWN005", f"{verb} '{sym.name}' after it was moved", line)
+            elif VarState.ESCAPED in S and VarState.RELEASED not in S:
+                self.err("OWN002",
+                         f"{verb} '{sym.name}' after it was consumed", line)
+            else:
+                self.err("OWN002", f"{verb} '{sym.name}' after it was released", line)
+            return True
+        if S & {VarState.RELEASED, VarState.ESCAPED}:
+            self.err("OWN009",
+                     f"{verb} '{sym.name}', which may have been released on some "
+                     f"path", line)
+            return True
+        if VarState.MOVED in S:
+            self.err("OWN010",
+                     f"{verb} '{sym.name}', which may have been moved on some "
+                     f"path", line)
+            return True
+        return False
+
+    # -- topological order over the DAG ------------------------------------
+
+    def topo_order(self) -> list[int]:
+        reachable: set[int] = set()
+        stack = [self.cfg.entry]
+        while stack:
+            x = stack.pop()
+            if x in reachable:
+                continue
+            reachable.add(x)
+            stack.extend(self.blocks[x].succ)
+        local_indeg = {b: 0 for b in reachable}
+        for b in reachable:
+            for s in self.blocks[b].succ:
+                if s in reachable:
+                    local_indeg[s] += 1
+        ready = [b for b in reachable if local_indeg[b] == 0]
+        order: list[int] = []
+        while ready:
+            b = ready.pop()
+            order.append(b)
+            for s in self.blocks[b].succ:
+                if s in reachable:
+                    local_indeg[s] -= 1
+                    if local_indeg[s] == 0:
+                        ready.append(s)
+        return order
+
+    # -- main --------------------------------------------------------------
+
+    def run(self) -> list[Diagnostic]:
+        order = self.topo_order()
+        preds = self.cfg.preds()
+        out_states: dict[int, State] = {}
+        reachable = set(order)
+
+        for bid in order:
+            ps = [p for p in preds[bid] if p in reachable and p in out_states]
+            if bid == self.cfg.entry:
+                in_state = self.initial_state()
+            elif ps:
+                in_state = out_states[ps[0]].copy()
+                for p in ps[1:]:
+                    in_state = join(in_state, out_states[p])
+            else:
+                in_state = State()
+            out_states[bid] = self.transfer(self.blocks[bid], in_state)
+
+        for bid in order:
+            blk = self.blocks[bid]
+            if blk.succ:
+                continue
+            if blk.instrs and isinstance(blk.instrs[-1], Return):
+                continue
+            self.leak_check(out_states[bid], at_line=self.last_line(blk),
+                            context="at end of function")
+        return self.diags
+
+    def last_line(self, blk: Block) -> int:
+        if blk.instrs:
+            return getattr(blk.instrs[-1], "line", self.first_line())
+        return self.first_line()
+
+    def first_line(self) -> int:
+        for b in self.cfg.blocks:
+            if b.instrs:
+                return getattr(b.instrs[0], "line", 0)
+        return 0
+
+    def leak_check(self, st: State, at_line: int, context: str,
+                   exclude: Symbol | None = None) -> None:
+        excl = id(exclude) if exclude is not None else None
+        for symid, states in st.var.items():
+            if symid == excl:
+                continue
+            if VarState.OWNED in states:
+                sym = self._sym_by_id(symid)
+                name = sym.name if sym else f"#{symid}"
+                self.err("OWN001",
+                         f"'{name}' is owned but not released {context} "
+                         f"(leaks on at least one path)", at_line)
+
+    def _sym_by_id(self, symid: int) -> Symbol | None:
+        if not hasattr(self, "_symindex"):
+            idx: dict[int, Symbol] = {}
+            for p in self.cfg.params:
+                idx[id(p)] = p
+            for b in self.cfg.blocks:
+                for ins in b.instrs:
+                    for attr in ("sym", "dst", "src", "owner", "binding"):
+                        s = getattr(ins, attr, None)
+                        if isinstance(s, Symbol):
+                            idx[id(s)] = s
+                    if isinstance(ins, Invoke):
+                        for s, _ in ins.args:
+                            if isinstance(s, Symbol):
+                                idx[id(s)] = s
+            self._symindex = idx
+        return self._symindex.get(symid)
+
+    # -- transfer -----------------------------------------------------------
+
+    def transfer(self, blk: Block, st: State) -> State:
+        st = st.copy()
+        for ins in blk.instrs:
+            self.step(ins, st)
+        return st
+
+    def step(self, ins, st: State) -> None:
+        if isinstance(ins, Acquire):
+            st.var[id(ins.sym)] = {VarState.OWNED}
+            return
+
+        if isinstance(ins, MoveInto):
+            self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
+            st.var[id(ins.src)] = {VarState.MOVED}
+            st.var[id(ins.dst)] = {VarState.OWNED}
+            return
+
+        if isinstance(ins, Release):
+            S = st.var.get(id(ins.sym), {VarState.OWNED})
+            if S == {VarState.RELEASED}:
+                self.err("OWN003", f"'{ins.sym.name}' is released twice", ins.line)
+            elif VarState.RELEASED in S:
+                self.err("OWN003",
+                         f"'{ins.sym.name}' may already be released on some path "
+                         f"before this release", ins.line)
+            elif not self._state_problem(st, ins.sym, "release", ins.line):
+                shared, mut = self.loans_on(st, ins.sym)
+                if shared or mut:
+                    self.err("OWN008",
+                             f"cannot release '{ins.sym.name}' while it is borrowed",
+                             ins.line)
+            st.var[id(ins.sym)] = {VarState.RELEASED}
+            return
+
+        if isinstance(ins, Use):
+            if ins.sym.kind == Kind.OWNED:
+                if not self._state_problem(st, ins.sym, "use", ins.line):
+                    _, mut = self.loans_on(st, ins.sym)
+                    if mut:
+                        self.err("OWN013",
+                                 f"cannot use '{ins.sym.name}' directly while it "
+                                 f"is mutably borrowed", ins.line)
+            elif ins.sym.kind == Kind.BORROW:
+                if not self.binding_live(st, ins.sym):
+                    self.err("OWN004",
+                             f"borrow '{ins.sym.name}' used outside its live "
+                             f"region", ins.line)
+            return
+
+        if isinstance(ins, Invoke):
+            for sym, eff in ins.args:
+                if sym is not None:
+                    self._apply_effect(st, sym, eff, ins.callee, ins.line)
+            return
+
+        if isinstance(ins, BorrowStart):
+            if ins.mut:
+                self._check_mut_borrowable(st, ins.owner, ins.line)
+                kind = LoanKind.MUT
+            else:
+                self._check_shared_borrowable(st, ins.owner, ins.line)
+                kind = LoanKind.SHARED
+            st.loans[id(ins.binding)] = Loan(
+                loan_id=id(ins.binding), owner=id(ins.owner),
+                binding=id(ins.binding), kind=kind)
+            return
+
+        if isinstance(ins, BorrowEnd):
+            st.loans.pop(id(ins.binding), None)
+            return
+
+        if isinstance(ins, Return):
+            self.leak_check(st, at_line=ins.line, context="before return",
+                            exclude=ins.sym)
+            if ins.sym is not None:
+                S = st.var.get(id(ins.sym), {VarState.OWNED})
+                if VarState.OWNED not in S:
+                    if VarState.MOVED in S:
+                        self.err("OWN005",
+                                 f"'{ins.sym.name}' returned after it was moved",
+                                 ins.line)
+                    else:
+                        self.err("OWN002",
+                                 f"'{ins.sym.name}' returned after it was released",
+                                 ins.line)
+                st.var[id(ins.sym)] = {VarState.ESCAPED}
+            return
+
+        raise AssertionError(f"unknown instr {ins!r}")
+
+    # -- permission checks --------------------------------------------------
+
+    def _consume_like(self, st: State, sym: Symbol, verb: str, line: int,
+                      code_borrowed: str) -> None:
+        """move / consume: needs Own permission (no loans)."""
+        if self._state_problem(st, sym, verb, line):
+            return
+        shared, mut = self.loans_on(st, sym)
+        if shared or mut:
+            self.err(code_borrowed,
+                     f"cannot {verb} '{sym.name}' while it is borrowed", line)
+
+    def _check_mut_borrowable(self, st: State, owner: Symbol, line: int) -> None:
+        if self._state_problem(st, owner, "mutably borrow", line):
+            return
+        shared, mut = self.loans_on(st, owner)
+        if shared:
+            self.err("OWN006",
+                     f"cannot mutably borrow '{owner.name}': a shared borrow is "
+                     f"live", line)
+        elif mut:
+            self.err("OWN011",
+                     f"cannot mutably borrow '{owner.name}': it is already "
+                     f"mutably borrowed", line)
+
+    def _check_shared_borrowable(self, st: State, owner: Symbol, line: int) -> None:
+        if self._state_problem(st, owner, "borrow", line):
+            return
+        _, mut = self.loans_on(st, owner)
+        if mut:
+            self.err("OWN012",
+                     f"cannot share-borrow '{owner.name}': it is mutably "
+                     f"borrowed", line)
+
+    def _apply_effect(self, st: State, sym: Symbol, eff: Effect,
+                      callee: str, line: int) -> None:
+        if sym.kind == Kind.OWNED:
+            if eff == Effect.CONSUME:
+                self._consume_like(st, sym, "consume", line, code_borrowed="OWN007")
+                st.var[id(sym)] = {VarState.ESCAPED}
+            elif eff == Effect.BORROW_MUT:
+                self._check_mut_borrowable(st, sym, line)
+            elif eff == Effect.BORROW:
+                self._check_shared_borrowable(st, sym, line)
+            else:  # PLAIN
+                self.err("OWN041",
+                         f"argument '{sym.name}' to '{callee}' is an owned "
+                         f"resource but the parameter is a plain value", line)
+        elif sym.kind == Kind.BORROW:
+            if eff == Effect.BORROW:
+                if not self.binding_live(st, sym):
+                    self.err("OWN004",
+                             f"borrow '{sym.name}' used outside its live region",
+                             line)
+            elif eff == Effect.BORROW_MUT:
+                if sym.borrow_is_mut is False:
+                    self.err("OWN041",
+                             f"cannot pass shared borrow '{sym.name}' to '{callee}'"
+                             f": a mutable borrow is required", line)
+            elif eff == Effect.CONSUME:
+                self.err("OWN034",
+                         f"cannot consume '{sym.name}': it is a borrow, not an "
+                         f"owned resource", line)
+            else:  # PLAIN
+                self.err("OWN041",
+                         f"argument '{sym.name}' to '{callee}': a borrow cannot "
+                         f"be passed as a plain value", line)
+        elif sym.kind == Kind.PLAIN:
+            if eff in (Effect.BORROW, Effect.BORROW_MUT, Effect.CONSUME):
+                self.err("OWN041",
+                         f"argument '{sym.name}' to '{callee}': a plain value "
+                         f"cannot satisfy a resource parameter", line)
+
+
+def analyze(cfg: CFG) -> list[Diagnostic]:
+    return _Analyzer(cfg).run()

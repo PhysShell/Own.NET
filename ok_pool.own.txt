@@ -1,0 +1,23 @@
+module PoolDemo
+
+resource Buffer {
+  acquire rent
+  release give
+}
+
+// Canonical happy path: rent a buffer, look at it mutably then read it,
+// hand it back. Checker proves it is returned on the single path; codegen
+// hoists the release into a finally for exception-safety.
+fn process(size: int) {
+  let buf = acquire Buffer(size);
+
+  borrow_mut buf as bytes {
+    use bytes;
+  }
+
+  borrow buf as bytes {
+    use bytes;
+  }
+
+  release buf;
+}

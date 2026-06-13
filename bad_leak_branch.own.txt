@@ -1,0 +1,14 @@
+module LeakBranchDemo
+
+resource Conn {
+  acquire open
+  release close
+}
+
+// OWN001: released on the 'then' path only; leaks through 'else'.
+fn maybe(flag: int) {
+  let c = acquire Conn(flag);
+  if (flag) {
+    release c;
+  }
+}
