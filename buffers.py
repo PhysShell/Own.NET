@@ -101,12 +101,15 @@ class BufferInfo:
 
     def branches(self) -> list[dict]:
         """The runtime backend branches, for the compile-time report."""
-        if self.mode == BufferMode.SCRATCH:
+        if self.mode == BufferMode.SCRATCH and self.fallback_pool:
             return [
                 {"condition": f"size <= {self.inline_bytes}", "backend": "stackalloc"},
                 {"condition": f"size > {self.inline_bytes}", "backend": "ArrayPool"},
             ]
-        if self.mode in (BufferMode.STACK, BufferMode.INLINE):
+        if self.mode in (BufferMode.STACK, BufferMode.INLINE) or (
+                self.mode == BufferMode.SCRATCH and not self.fallback_pool):
+            # a scratch that forbids the heap fallback is, at runtime, stack-only;
+            # the report must not advertise an ArrayPool branch that cannot occur.
             return [{"condition": "always", "backend": "stackalloc"}]
         if self.mode == BufferMode.POOLED:
             return [{"condition": "always", "backend": "ArrayPool"}]

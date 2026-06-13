@@ -141,7 +141,11 @@ class _FnGen:
             if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
                 j = self._find_release(stmts, i + 1, st.name)
                 body = stmts[i + 1:j] if j is not None else stmts[i + 1:]
-                out.extend(self._emit_buffer(st.name, st.rhs, body, ind))
+                # no matching `release` => the buffer escapes (it was returned or
+                # consumed; the checker already proved this is the only clean
+                # reason). Ownership transferred, so cleanup must NOT run here.
+                escapes = j is None
+                out.extend(self._emit_buffer(st.name, st.rhs, body, ind, escapes))
                 i = (j + 1) if j is not None else len(stmts)
                 continue
             out.extend(self._stmt_inline(st, ind))
@@ -159,7 +163,8 @@ class _FnGen:
     # -- buffer lowering (the stackalloc / scratch / pool / native line) -----
 
     def _emit_buffer(self, name: str, intent: A.BufferIntent,
-                     body: list[A.Stmt], ind: str) -> list[str]:
+                     body: list[A.Stmt], ind: str,
+                     escapes: bool = False) -> list[str]:
         info, _ = resolve_buffer(intent, self.policies)
         self.buffer_vars[name] = info
         fn = self.fn.name
@@ -177,7 +182,13 @@ class _FnGen:
                     pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
                 if info.counters:
                     pre.append("OwnCounters.StackHit();")
-                pre.append(f"Span<byte> {name} = stackalloc byte[{L}];")
+                if info.size_const == L:
+                    pre.append(f"Span<byte> {name} = stackalloc byte[{L}];")
+                else:
+                    # reserve the inline capacity but expose only the requested
+                    # length (e.g. scratch(64, inline = 1024, fallback = forbidden)).
+                    pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
+                    pre.append(f"Span<byte> {name} = {name}_backing[..{size}];")
             else:
                 pre.append(f"if ((uint){size} > {L})")
                 pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
@@ -243,6 +254,10 @@ class _FnGen:
                            f"Clear({name}, (nuint){size});")
             fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name});")
 
+        if escapes:
+            # ownership left the function (return / consume): the new owner is
+            # responsible for Return/Free, so drop this frame's cleanup entirely.
+            fin = []
         return self._wrap_buffer(pre, body, fin, ind, native)
 
     def _wrap_buffer(self, pre: list[str], body: list[A.Stmt],

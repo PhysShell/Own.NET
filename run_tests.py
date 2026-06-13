@@ -324,6 +324,51 @@ def buffer_smoke() -> list[str]:
     return fails
 
 
+def escape_and_length_smoke() -> list[str]:
+    """Regression guards for the PR #2 review:
+    - an escaping pooled/native buffer must NOT run its pool/native cleanup
+      (ownership transferred to the caller/callee);
+    - a constant scratch smaller than its inline limit must expose the requested
+      length, not the reservation;
+    - a fallback-forbidden scratch must report as stack-only."""
+    fails: list[str] = []
+
+    pooled_ret = ("module M\n"
+                  "fn f(n: int) -> Buffer { let b = Buffer.pooled(n); return b; }\n")
+    out = generate(parse(pooled_ret))
+    if "ArrayPool<byte>.Shared.Return" in out:
+        fails.append("escaping pooled (return) must not Return to the pool")
+    if "finally" in out:
+        fails.append("escaping pooled (return) should emit no cleanup finally")
+
+    pooled_consume = ("module M\nextern fn Store(consume Buffer);\n"
+                      "fn f(n: int){ let b = Buffer.pooled(n); Store(b); }\n")
+    if "ArrayPool<byte>.Shared.Return" in generate(parse(pooled_consume)):
+        fails.append("escaping pooled (consume) must not Return to the pool")
+
+    native_ret = ("module M\n"
+                  "fn f(n: int) -> Buffer { let b = Buffer.native(n); return b; }\n")
+    if "NativeMemory.Free" in generate(parse(native_ret)):
+        fails.append("escaping native (return) must not Free the allocation")
+
+    scratch_const = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+                     "fn f(){ let b = Buffer.scratch(64, inline = 1024, "
+                     "fallback = forbidden); borrow_mut b as m { Fill(m); } "
+                     "release b; }\n")
+    out = generate(parse(scratch_const))
+    if "b_backing[..64]" not in out:
+        fails.append("constant forbidden-fallback scratch must expose length 64")
+
+    rep = build_report(parse(scratch_const), [])
+    e = rep["buffers"][0]
+    if e["fallback"] != "forbidden":
+        fails.append(f"forbidden scratch report fallback should be 'forbidden', got {e['fallback']}")
+    backends = {b["backend"] for b in e["branches"]}
+    if backends != {"stackalloc"}:
+        fails.append(f"forbidden scratch report should be stack-only, got {backends}")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -358,12 +403,18 @@ def run() -> int:
     for f in buffer_fails:
         print(f"BUFFER FAIL: {f}")
 
+    escape_fails = escape_and_length_smoke()
+    for f in escape_fails:
+        print(f"ESCAPE FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
     print(f"golden:   {'PASS' if not golden_fails else 'FAIL'}")
     print(f"buffer:   {'PASS' if not buffer_fails else 'FAIL'}")
-    return 1 if (failed or cg_fail or golden_fails or buffer_fails) else 0
+    print(f"escape:   {'PASS' if not escape_fails else 'FAIL'}")
+    return 1 if (failed or cg_fail or golden_fails or buffer_fails
+                 or escape_fails) else 0
 
 
 if __name__ == "__main__":
