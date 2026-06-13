@@ -45,7 +45,7 @@ C#  (шаблоны emit_* → реальный .NET; try/finally на straight-
 ### Запуск
 
 ```bash
-cd ownlang
+# запускать из корня репозитория (там, где лежит пакет ownlang/ и examples/)
 python -m ownlang check examples/ok_extern_calls.own        # проверка
 python -m ownlang emit  examples/golden_arraypool/buffer.own # проверка + печать C#
 python -m ownlang cfg   examples/bad_maybe_release.own       # дамп CFG
@@ -211,7 +211,7 @@ fn process(size: int) {
 | **OWN004** | borrow убегает из своей области (например, `return` borrow'а) |
 | **OWN005** | use/… после move (**definite**) |
 | **OWN006** | `borrow_mut` при живом shared borrow |
-| **OWN007** | move/consume владельца под живым borrow'ом |
+| **OWN007** | move/consume/return владельца под живым borrow'ом |
 | **OWN008** | release владельца под живым borrow'ом |
 | **OWN009** | операция над ресурсом, который **мог** быть освобождён на каком-то пути (**maybe**) |
 | **OWN010** | операция над ресурсом, который **мог** быть перемещён на каком-то пути (**maybe**) |

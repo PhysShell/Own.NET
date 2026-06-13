@@ -98,6 +98,9 @@ CASES = [
     ("move_while_borrowed",
      "fn f(){ let b = acquire Buffer(1); borrow b as s { let c = move b; "
      "release c; } }", ["OWN007"]),
+    ("return_while_borrowed",
+     "fn f() -> Buffer { let b = acquire Buffer(1); borrow b as s "
+     "{ return b; } }", ["OWN007"]),
     ("release_while_borrowed",
      "fn f(){ let b = acquire Buffer(1); borrow b as s { release b; } }",
      ["OWN008"]),

@@ -337,6 +337,14 @@ class _Analyzer:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
                                  ins.line)
+                else:
+                    # returning an owner is an escape (consume): it needs Own
+                    # permission, so a live loan on it is OWN007 just like move.
+                    shared, mut = self.loans_on(st, ins.sym)
+                    if shared or mut:
+                        self.err("OWN007",
+                                 f"cannot return '{ins.sym.name}' while it is "
+                                 f"borrowed", ins.line)
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
