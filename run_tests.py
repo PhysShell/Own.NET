@@ -169,10 +169,9 @@ CASES = [
      "fn f(n: int){ let b = Buffer.stack(n, max = 1024); release b; }", []),
     ("buf_inline_ok",
      "fn f(){ let b = Buffer.inline(64); release b; }", []),
-    ("buf_pooled_return_ok",
-     "fn f(n: int) -> Buffer { let b = Buffer.pooled(n); return b; }", []),
-    ("buf_pooled_consume_ok",
-     "fn f(n: int){ let b = Buffer.pooled(n); Store(b); }", []),
+    ("buf_pooled_local_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n); borrow_mut b as m { Fill(m); } "
+     "release b; }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -191,6 +190,14 @@ CASES = [
      "fn f() -> Buffer { let b = Buffer.stack(64); return b; }", ["OWN015"]),
     ("buf_scratch_escapes_consume",
      "fn f(n: int){ let b = Buffer.scratch(n); Store(b); }", ["OWN016"]),
+    ("buf_pooled_escapes_return",
+     "fn f(n: int) -> Buffer { let b = Buffer.pooled(n); return b; }",
+     ["OWN017"]),
+    ("buf_pooled_escapes_consume",
+     "fn f(n: int){ let b = Buffer.pooled(n); Store(b); }", ["OWN017"]),
+    ("buf_native_escapes_return",
+     "fn f(n: int) -> Buffer { let b = Buffer.native(n); return b; }",
+     ["OWN017"]),
     ("buf_scratch_forbid_dynamic",
      "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbidden); "
      "release b; }", ["OWN023"]),
@@ -321,35 +328,61 @@ def buffer_smoke() -> list[str]:
         backends = {b["backend"] for b in e["branches"]}
         if backends != {"stackalloc", "ArrayPool"}:
             fails.append(f"scratch report branches wrong: {backends}")
+
+    # the committed runnable golden must stay in sync with the emitter and stay
+    # a real, compilable ArrayPool program (a human can `dotnet run` it).
+    golden_path = os.path.join(os.path.dirname(__file__),
+                               "buffer_scratch_program.cs.txt")
+    if os.path.exists(golden_path):
+        prog = open(golden_path, encoding="utf-8").read()
+        for s in ("public static void parse(int size)",
+                  "ArrayPool<byte>.Shared.Rent(size)",
+                  "ArrayPool<byte>.Shared.Return(tmp_rented)",
+                  "internal static class OwnTrace",
+                  "internal static class OwnCounters",
+                  "public static void Main()"):
+            if s not in prog:
+                fails.append(f"runnable golden missing: {s!r}")
+        # its emitted parse body must match what the emitter produces today
+        if "tmp = tmp_backing[..size];" not in prog:
+            fails.append("runnable golden parse body drifted from the emitter")
+    else:
+        fails.append("runnable golden buffer_scratch_program.cs.txt is missing")
     return fails
 
 
 def escape_and_length_smoke() -> list[str]:
     """Regression guards for the PR #2 review:
-    - an escaping pooled/native buffer must NOT run its pool/native cleanup
-      (ownership transferred to the caller/callee);
-    - a constant scratch smaller than its inline limit must expose the requested
+    - the checker rejects an escaping movable (pooled/native) buffer rather than
+      letting codegen emit C# that leaks the rent or fails to compile (OWN017);
+    - a constant scratch smaller than its inline limit exposes the requested
       length, not the reservation;
-    - a fallback-forbidden scratch must report as stack-only."""
+    - a fallback-forbidden scratch reports as stack-only."""
     fails: list[str] = []
 
     pooled_ret = ("module M\n"
                   "fn f(n: int) -> Buffer { let b = Buffer.pooled(n); return b; }\n")
-    out = generate(parse(pooled_ret))
-    if "ArrayPool<byte>.Shared.Return" in out:
-        fails.append("escaping pooled (return) must not Return to the pool")
-    if "finally" in out:
-        fails.append("escaping pooled (return) should emit no cleanup finally")
+    if "OWN017" not in codes(pooled_ret):
+        fails.append("escaping pooled (return) must be rejected with OWN017")
 
     pooled_consume = ("module M\nextern fn Store(consume Buffer);\n"
                       "fn f(n: int){ let b = Buffer.pooled(n); Store(b); }\n")
-    if "ArrayPool<byte>.Shared.Return" in generate(parse(pooled_consume)):
-        fails.append("escaping pooled (consume) must not Return to the pool")
+    if "OWN017" not in codes(pooled_consume):
+        fails.append("escaping pooled (consume) must be rejected with OWN017")
 
     native_ret = ("module M\n"
                   "fn f(n: int) -> Buffer { let b = Buffer.native(n); return b; }\n")
-    if "NativeMemory.Free" in generate(parse(native_ret)):
-        fails.append("escaping native (return) must not Free the allocation")
+    if "OWN017" not in codes(native_ret):
+        fails.append("escaping native (return) must be rejected with OWN017")
+
+    # a locally-released pooled buffer is fine and DOES Return to the pool
+    pooled_local = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+                    "fn f(n: int){ let b = Buffer.pooled(n); "
+                    "borrow_mut b as m { Fill(m); } release b; }\n")
+    if codes(pooled_local):
+        fails.append(f"local pooled buffer should check clean, got {codes(pooled_local)}")
+    if "ArrayPool<byte>.Shared.Return" not in generate(parse(pooled_local)):
+        fails.append("local pooled buffer must Return to the pool")
 
     scratch_const = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
                      "fn f(){ let b = Buffer.scratch(64, inline = 1024, "

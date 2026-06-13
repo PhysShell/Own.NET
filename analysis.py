@@ -347,6 +347,13 @@ class _Analyzer:
                              f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
                              f"buffer and may be stack-backed; it cannot escape "
                              f"the current function", ins.line)
+                elif ins.sym.buffer is not None:
+                    self.err("OWN017",
+                             f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
+                             f"buffer; the PoC code generator cannot lower an "
+                             f"escaping buffer to faithful .NET (the caller gets "
+                             f"no handle to Return/Free), so returning it is "
+                             f"rejected", ins.line)
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
@@ -396,6 +403,12 @@ class _Analyzer:
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer "
                              f"and may be stack-backed; it cannot be moved to a "
                              f"longer-lived owner by consuming it in '{callee}'",
+                             line)
+                elif sym.buffer is not None:
+                    self.err("OWN017",
+                             f"'{sym.name}' is a {sym.buffer.mode.value} buffer; "
+                             f"the PoC code generator cannot lower an escaping "
+                             f"buffer, so consuming it in '{callee}' is rejected",
                              line)
                 st.var[id(sym)] = {VarState.ESCAPED}
             elif eff == Effect.BORROW_MUT:

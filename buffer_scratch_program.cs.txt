@@ -1,0 +1,130 @@
+// Runnable golden for the OwnLang buffer line — a scratch buffer that prefers
+// the stack and falls back to System.Buffers.ArrayPool<byte>.
+//
+// The ScratchDemo class body (parse) and the OwnTrace/OwnCounters classes are
+// EMITTED VERBATIM by:
+//     python -m ownlang emit buffer_scratch.own
+// Fill/Hash/Main are hand-written host code. This proves the buffer model lowers
+// to real, runnable .NET — it is not executed in the PoC sandbox (no .NET SDK).
+//
+// Build & run (see the runtime trace + counters):
+//     dotnet run -p:DefineConstants="OWNSHARP_TRACE;OWNSHARP_COUNTERS"
+using System;
+using System.Buffers;
+
+public static class ScratchDemo
+{
+    public static void parse(int size)
+    {
+        byte[]? tmp_rented = null;
+        Span<byte> tmp_backing = stackalloc byte[1024];
+        Span<byte> tmp;
+        if (size <= 1024)
+        {
+            OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "stackalloc");
+            OwnCounters.StackHit();
+            tmp = tmp_backing[..size];
+        }
+        else
+        {
+            OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "ArrayPool");
+            OwnCounters.PoolFallback(size);
+            tmp_rented = ArrayPool<byte>.Shared.Rent(size);
+            tmp = tmp_rented.AsSpan(0, size);
+        }
+        try
+        {
+            { // mutable borrow of tmp as bytes
+                var bytes = tmp;
+                Fill(bytes);
+            }
+            { // shared borrow of tmp as view
+                var view = tmp;
+                Hash(view);
+            }
+        }
+        finally
+        {
+            OwnCounters.Release();
+            if (tmp_rented is not null)
+                ArrayPool<byte>.Shared.Return(tmp_rented);
+        }
+    }
+
+    // ---- hand-written host (an `extern fn` is a promise the host keeps) ----
+    // Borrow params are noescape: these must not retain the span past the call.
+    static void Fill(Span<byte> b)
+    {
+        for (int i = 0; i < b.Length; i++) b[i] = (byte)(i & 0xFF);
+    }
+
+    static void Hash(ReadOnlySpan<byte> b)
+    {
+        int h = 17;
+        foreach (var x in b) h = unchecked(h * 31 + x);
+        Console.WriteLine($"hash={h} len={b.Length}");
+    }
+
+    public static void Main()
+    {
+        parse(64);     // <= inline limit -> stackalloc arm (no heap)
+        parse(4096);   //  > inline limit -> ArrayPool arm  (real Rent/Return)
+        // Visible only when built with -p:DefineConstants="OWNSHARP_COUNTERS".
+        Console.WriteLine(
+            $"stackHits={OwnCounters.ScratchStackHits} " +
+            $"poolFallbacks={OwnCounters.ScratchPoolFallbacks} " +
+            $"poolBytesRented={OwnCounters.ScratchPoolBytesRented}");
+        Console.WriteLine("ok");
+    }
+}
+
+internal static class OwnTrace
+{
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void ScratchSelected(string function, string buffer,
+        int requestedBytes, int inlineLimit, string backend)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, " +
+            $"inline={inlineLimit}, backend={backend}");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void StackSelected(string function, string buffer,
+        int requestedBytes, int inlineLimit)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, " +
+            $"inline={inlineLimit}, backend=stackalloc");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void PooledSelected(string function, string buffer, int requestedBytes)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, backend=ArrayPool");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void NativeSelected(string function, string buffer, int requestedBytes)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, backend=NativeMemory");
+}
+
+internal static class OwnCounters
+{
+    public static long ScratchStackHits;
+    public static long ScratchPoolFallbacks;
+    public static long ScratchPoolBytesRented;
+    public static long ScratchReleaseCount;
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void StackHit()
+        => System.Threading.Interlocked.Increment(ref ScratchStackHits);
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void PoolFallback(int bytes)
+    {
+        System.Threading.Interlocked.Increment(ref ScratchPoolFallbacks);
+        System.Threading.Interlocked.Add(ref ScratchPoolBytesRented, bytes);
+    }
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void Release()
+        => System.Threading.Interlocked.Increment(ref ScratchReleaseCount);
+}
+
