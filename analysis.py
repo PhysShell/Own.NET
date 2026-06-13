@@ -38,7 +38,8 @@ from enum import Enum, auto
 
 from .cfg import (
     CFG, Block, Symbol, Kind,
-    Acquire, MoveInto, Release, Use, Invoke, BorrowStart, BorrowEnd, Return,
+    Acquire, AcquireBuffer, MoveInto, Release, Use, Invoke,
+    BorrowStart, BorrowEnd, Return,
 )
 from .ast_nodes import Effect
 from .diagnostics import Diagnostic
@@ -263,6 +264,10 @@ class _Analyzer:
             st.var[id(ins.sym)] = {VarState.OWNED}
             return
 
+        if isinstance(ins, AcquireBuffer):
+            st.var[id(ins.sym)] = {VarState.OWNED}
+            return
+
         if isinstance(ins, MoveInto):
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
             st.var[id(ins.src)] = {VarState.MOVED}
@@ -337,6 +342,11 @@ class _Analyzer:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
                                  ins.line)
+                elif ins.sym.buffer is not None and ins.sym.buffer.stack_backed:
+                    self.err("OWN015",
+                             f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
+                             f"buffer and may be stack-backed; it cannot escape "
+                             f"the current function", ins.line)
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
@@ -381,6 +391,12 @@ class _Analyzer:
         if sym.kind == Kind.OWNED:
             if eff == Effect.CONSUME:
                 self._consume_like(st, sym, "consume", line, code_borrowed="OWN007")
+                if sym.buffer is not None and sym.buffer.stack_backed:
+                    self.err("OWN016",
+                             f"'{sym.name}' is a {sym.buffer.mode.value} buffer "
+                             f"and may be stack-backed; it cannot be moved to a "
+                             f"longer-lived owner by consuming it in '{callee}'",
+                             line)
                 st.var[id(sym)] = {VarState.ESCAPED}
             elif eff == Effect.BORROW_MUT:
                 self._check_mut_borrowable(st, sym, line)

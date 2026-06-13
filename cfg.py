@@ -26,6 +26,7 @@ from enum import Enum, auto
 from . import ast_nodes as A
 from .ast_nodes import Effect
 from .diagnostics import Diagnostic
+from .buffers import BufferInfo, Policy, resolve as resolve_buffer, MODE_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +52,10 @@ class Symbol:
     # for BORROW symbols: True if it is a mutable borrow (&mut / borrow_mut),
     # False if shared (&T / borrow). None for non-borrow symbols.
     borrow_is_mut: bool | None = None
+    # for OWNED buffer symbols: the resolved storage policy. None for ordinary
+    # `acquire`d resources. A stack-backed buffer (info.stack_backed) must not
+    # escape the function.
+    buffer: BufferInfo | None = None
 
     def __repr__(self) -> str:
         return f"<{self.name}:{self.kind.name}>"
@@ -65,6 +70,16 @@ class Symbol:
 class Acquire:
     sym: Symbol
     resource: str
+    line: int
+
+
+@dataclass
+class AcquireBuffer:
+    """Acquire an owned buffer with an explicit storage policy. Carries the
+    resolved BufferInfo so analysis can apply escape rules and codegen can emit
+    the right backend (stackalloc / ArrayPool / NativeMemory) plus its logging."""
+    sym: Symbol
+    info: BufferInfo
     line: int
 
 
@@ -118,7 +133,8 @@ class Return:
     line: int
 
 
-Instr = Acquire | MoveInto | Release | Use | Invoke | BorrowStart | BorrowEnd | Return
+Instr = (Acquire | AcquireBuffer | MoveInto | Release | Use | Invoke
+         | BorrowStart | BorrowEnd | Return)
 
 
 # ---------------------------------------------------------------------------
@@ -187,10 +203,12 @@ def collect_signatures(mod: A.Module) -> dict[str, Signature]:
 
 class _Builder:
     def __init__(self, fn: A.FnDecl, resource_names: set[str],
-                 signatures: dict[str, Signature]):
+                 signatures: dict[str, Signature],
+                 policies: dict[str, Policy] | None = None):
         self.fn = fn
         self.resource_names = resource_names
         self.signatures = signatures
+        self.policies = policies or {}
         self.diags: list[Diagnostic] = []
         self.blocks: list[Block] = []
         self.scopes: list[dict[str, Symbol]] = []
@@ -306,6 +324,8 @@ class _Builder:
             sym = self.declare(st.name, Kind.OWNED, st.line)
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
+        if isinstance(rhs, A.BufferIntent):
+            return self.lower_buffer(st, rhs, cur)
         if isinstance(rhs, A.Move):
             src = self.lookup(rhs.var, rhs.line)
             if src is not None and src.kind != Kind.OWNED:
@@ -315,6 +335,9 @@ class _Builder:
                 src = None
             dst = self.declare(st.name, Kind.OWNED, st.line)
             if src is not None:
+                # a moved buffer keeps its storage policy: a stack-backed buffer
+                # is still stack-backed after `move`, so escape rules carry over.
+                dst.buffer = src.buffer
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -330,6 +353,24 @@ class _Builder:
             self.declare(st.name, Kind.PLAIN, st.line)
             return cur
         raise AssertionError(f"unknown rhs {rhs!r}")
+
+    def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
+        if rhs.mode not in MODE_NAMES:
+            self.diags.append(Diagnostic(
+                "OWN030",
+                f"unknown buffer mode '{rhs.mode}'; expected one of "
+                f"{', '.join(sorted(MODE_NAMES))}", rhs.line))
+            self.declare(st.name, Kind.OWNED, st.line)
+            return cur
+        # resolve the size name (if it is a variable) so undefined names report
+        if isinstance(rhs.size, A.VarRef):
+            self.lookup(rhs.size.name, rhs.size.line)
+        info, bdiags = resolve_buffer(rhs, self.policies)
+        self.diags.extend(bdiags)
+        sym = self.declare(st.name, Kind.OWNED, st.line)
+        sym.buffer = info
+        cur.instrs.append(AcquireBuffer(sym, info, st.line))
+        return cur
 
     def lower_call(self, st: A.Call, cur: Block) -> Block:
         sig = self.signatures.get(st.callee)
@@ -425,8 +466,14 @@ class _Builder:
         return None
 
 
+def collect_policies(mod: A.Module) -> dict[str, Policy]:
+    return {p.name: Policy(p.name, dict(p.settings), p.line) for p in mod.policies}
+
+
 def build_cfg(fn: A.FnDecl, resource_names: set[str],
-              signatures: dict[str, Signature]) -> tuple[CFG, list[Diagnostic]]:
-    b = _Builder(fn, resource_names, signatures)
+              signatures: dict[str, Signature],
+              policies: dict[str, Policy] | None = None
+              ) -> tuple[CFG, list[Diagnostic]]:
+    b = _Builder(fn, resource_names, signatures, policies)
     cfg = b.build()
     return cfg, b.diags

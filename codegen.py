@@ -29,6 +29,7 @@ as its C# local (the span / ref), an owned argument as its variable.
 from __future__ import annotations
 
 from . import ast_nodes as A
+from .buffers import BufferMode, Policy, resolve as resolve_buffer
 
 
 class CodegenError(Exception):
@@ -47,9 +48,14 @@ class _FnGen:
         self.mod = mod
         self.fn = fn
         self.res = {r.name: r for r in mod.resources}
+        self.policies: dict[str, Policy] = {
+            p.name: Policy(p.name, dict(p.settings), p.line) for p in mod.policies
+        }
         self.owned_resource: dict[str, str] = {}
         # borrow binding name -> owner resource type (so calls know the C# view)
         self.binding_owner_res: dict[str, str] = {}
+        # buffer local name -> resolved BufferInfo (so borrows/args render right)
+        self.buffer_vars: dict[str, object] = {}
         for p in fn.params:
             if not p.type.borrowed and p.type.name in self.res:
                 self.owned_resource[p.name] = p.type.name
@@ -57,6 +63,10 @@ class _FnGen:
     # -- shape detection ----------------------------------------------------
 
     def _is_simple(self) -> bool:
+        # Buffers always take the inline path: their stackalloc/pool prelude and
+        # try/finally are emitted per-buffer, not by the straight-line hoister.
+        if _fn_has_buffer(self.fn.body):
+            return False
         return not _contains_branch_or_transfer(self.fn.body)
 
     # -- emit ---------------------------------------------------------------
@@ -118,10 +128,162 @@ class _FnGen:
 
     def _emit_inline(self, stmts: list[A.Stmt], indent: int) -> str:
         ind = "    " * indent
-        out: list[str] = []
-        for st in stmts:
-            out.extend(self._stmt_inline(st, ind))
+        out = self._emit_block(stmts, ind)
         return "".join(l + "\n" for l in out)
+
+    def _emit_block(self, stmts: list[A.Stmt], ind: str) -> list[str]:
+        """Emit a statement list. A buffer let consumes the statements up to its
+        matching `release` and lowers them inside its storage prelude + finally."""
+        out: list[str] = []
+        i = 0
+        while i < len(stmts):
+            st = stmts[i]
+            if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
+                j = self._find_release(stmts, i + 1, st.name)
+                body = stmts[i + 1:j] if j is not None else stmts[i + 1:]
+                out.extend(self._emit_buffer(st.name, st.rhs, body, ind))
+                i = (j + 1) if j is not None else len(stmts)
+                continue
+            out.extend(self._stmt_inline(st, ind))
+            i += 1
+        return out
+
+    @staticmethod
+    def _find_release(stmts: list[A.Stmt], start: int, name: str) -> int | None:
+        for k in range(start, len(stmts)):
+            st = stmts[k]
+            if isinstance(st, A.Release) and st.var == name:
+                return k
+        return None
+
+    # -- buffer lowering (the stackalloc / scratch / pool / native line) -----
+
+    def _emit_buffer(self, name: str, intent: A.BufferIntent,
+                     body: list[A.Stmt], ind: str) -> list[str]:
+        info, _ = resolve_buffer(intent, self.policies)
+        self.buffer_vars[name] = info
+        fn = self.fn.name
+        size = self._size_expr(info)
+        L = info.inline_bytes
+        pre: list[str] = []   # declarations + trace/counters, before the try
+        fin: list[str] = []   # cleanup, inside the finally
+        native = info.mode == BufferMode.NATIVE
+        scratch_pool = info.mode == BufferMode.SCRATCH and info.fallback_pool
+
+        if info.mode in (BufferMode.STACK, BufferMode.INLINE) or (
+                info.mode == BufferMode.SCRATCH and not info.fallback_pool):
+            if info.size_is_const:
+                if info.trace:
+                    pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
+                if info.counters:
+                    pre.append("OwnCounters.StackHit();")
+                pre.append(f"Span<byte> {name} = stackalloc byte[{L}];")
+            else:
+                pre.append(f"if ((uint){size} > {L})")
+                pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
+                if info.trace:
+                    pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
+                if info.counters:
+                    pre.append("OwnCounters.StackHit();")
+                pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
+                pre.append(f"Span<byte> {name} = {name}_backing[..{size}];")
+            if info.clear_on_release:
+                fin.append(f"{name}.Clear();")
+
+        elif scratch_pool:
+            pre.append(f"byte[]? {name}_rented = null;")
+            pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
+            pre.append(f"Span<byte> {name};")
+            pre.append(f"if ({size} <= {L})")
+            pre.append("{")
+            if info.trace:
+                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "stackalloc");')
+            if info.counters:
+                pre.append("    OwnCounters.StackHit();")
+            pre.append(f"    {name} = {name}_backing[..{size}];")
+            pre.append("}")
+            pre.append("else")
+            pre.append("{")
+            if info.trace:
+                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "ArrayPool");')
+            if info.counters:
+                pre.append(f"    OwnCounters.PoolFallback({size});")
+            pre.append(f"    {name}_rented = ArrayPool<byte>.Shared.Rent({size});")
+            pre.append(f"    {name} = {name}_rented.AsSpan(0, {size});")
+            pre.append("}")
+            if info.counters:
+                fin.append("OwnCounters.Release();")
+            if info.clear_on_release:
+                fin.append(f"{name}.Clear();")
+            fin.append(f"if ({name}_rented is not null)")
+            fin.append(f"    ArrayPool<byte>.Shared.Return({name}_rented);")
+
+        elif info.mode == BufferMode.POOLED:
+            if info.trace:
+                pre.append(f'OwnTrace.PooledSelected("{fn}", "{name}", {size});')
+            if info.counters:
+                pre.append(f"OwnCounters.PoolFallback({size});")
+            pre.append(f"byte[] {name}_array = ArrayPool<byte>.Shared.Rent({size});")
+            pre.append(f"Span<byte> {name} = {name}_array.AsSpan(0, {size});")
+            if info.counters:
+                fin.append("OwnCounters.Release();")
+            if info.clear_on_release:
+                fin.append(f"{name}.Clear();")
+            fin.append(f"ArrayPool<byte>.Shared.Return({name}_array);")
+
+        elif native:
+            if info.trace:
+                pre.append(f'OwnTrace.NativeSelected("{fn}", "{name}", {size});')
+            pre.append(f"byte* {name} = (byte*)System.Runtime.InteropServices."
+                       f"NativeMemory.Alloc((nuint){size});")
+            if info.counters:
+                fin.append("OwnCounters.Release();")
+            if info.clear_on_release:
+                fin.append(f"System.Runtime.InteropServices.NativeMemory."
+                           f"Clear({name}, (nuint){size});")
+            fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name});")
+
+        return self._wrap_buffer(pre, body, fin, ind, native)
+
+    def _wrap_buffer(self, pre: list[str], body: list[A.Stmt],
+                     fin: list[str], ind: str, native: bool) -> list[str]:
+        lines: list[str] = []
+        base = ind
+        if native:
+            lines.append(f"{base}unsafe")
+            lines.append(f"{base}{{")
+            inner = base + "    "
+        else:
+            inner = base
+        for p in pre:
+            lines.append(inner + p)
+        body_lines = self._emit_block(body, inner + "    ")
+        if fin:
+            lines.append(f"{inner}try")
+            lines.append(f"{inner}{{")
+            lines.extend(body_lines)
+            lines.append(f"{inner}}}")
+            lines.append(f"{inner}finally")
+            lines.append(f"{inner}{{")
+            for f in fin:
+                lines.append(inner + "    " + f)
+            lines.append(f"{inner}}}")
+        else:
+            # nothing to clean up (e.g. a stack buffer with no clear and no
+            # counters): the body runs straight, the frame reclaims the bytes.
+            for bl in body_lines:
+                # de-indent one level since there is no try block
+                lines.append(bl[4:] if bl.startswith("    ") else bl)
+        if native:
+            lines.append(f"{base}}}")
+        return lines
+
+    def _size_expr(self, info) -> str:
+        if info.size_is_const:
+            return str(info.size_const)
+        if info.size_var:
+            return info.size_var
+        return "0"
 
     def _stmt_inline(self, st: A.Stmt, ind: str) -> list[str]:
         if isinstance(st, A.Let):
@@ -151,20 +313,16 @@ class _FnGen:
             self.binding_owner_res[st.binding] = rt
             head = [f"{ind}{{ // {kind} borrow of {st.owner} as {st.binding}",
                     f"{ind}    var {st.binding} = {self._borrow_expr(st.owner, rt)};"]
-            body: list[str] = []
-            for inner in st.body:
-                body.extend(self._stmt_inline(inner, ind + "    "))
+            body = self._emit_block(st.body, ind + "    ")
             return head + body + [f"{ind}}}"]
         if isinstance(st, A.If):
             out = [f"{ind}if ({st.cond_text or 'cond'})", f"{ind}{{"]
-            for s in st.then_body:
-                out.extend(self._stmt_inline(s, ind + "    "))
+            out.extend(self._emit_block(st.then_body, ind + "    "))
             out.append(f"{ind}}}")
             if st.else_body:
                 out.append(f"{ind}else")
                 out.append(f"{ind}{{")
-                for s in st.else_body:
-                    out.extend(self._stmt_inline(s, ind + "    "))
+                out.extend(self._emit_block(st.else_body, ind + "    "))
                 out.append(f"{ind}}}")
             return out
         if isinstance(st, A.Return):
@@ -228,15 +386,106 @@ def _contains_branch_or_transfer(stmts: list[A.Stmt]) -> bool:
     return False
 
 
+def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
+    for st in stmts:
+        if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
+            return True
+        if isinstance(st, A.If):
+            if _fn_has_buffer(st.then_body) or _fn_has_buffer(st.else_body):
+                return True
+        if isinstance(st, A.BorrowBlock):
+            if _fn_has_buffer(st.body):
+                return True
+    return False
+
+
+def _buffer_modes(mod: A.Module) -> set[str]:
+    modes: set[str] = set()
+
+    def walk(stmts):
+        for st in stmts:
+            if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
+                modes.add(st.rhs.mode)
+            elif isinstance(st, A.If):
+                walk(st.then_body)
+                walk(st.else_body)
+            elif isinstance(st, A.BorrowBlock):
+                walk(st.body)
+
+    for fn in mod.functions:
+        walk(fn.body)
+    return modes
+
+
 def _usings(mod: A.Module) -> list[str]:
     out = ["using System;"]
     blob = " ".join(
         (r.emit_acquire or "") + (r.emit_release or "") + (r.emit_type or "")
         for r in mod.resources
     )
-    if "ArrayPool" in blob:
+    modes = _buffer_modes(mod)
+    if "ArrayPool" in blob or (modes & {"scratch", "pooled"}):
         out.append("using System.Buffers;")
     return out
+
+
+# Runtime logging support emitted alongside any module that uses buffers. The
+# two hooks are the runtime half of the design: a text trace of which backend a
+# scratch/stack request actually selected, and counters answering "how often do
+# we really hit the stack?". Both are [Conditional]: a normal Release build that
+# defines neither symbol pays nothing — you do not want logging to become the
+# new bottleneck on a hot path.
+_RUNTIME_SUPPORT = '''\
+internal static class OwnTrace
+{
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void ScratchSelected(string function, string buffer,
+        int requestedBytes, int inlineLimit, string backend)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, " +
+            $"inline={inlineLimit}, backend={backend}");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void StackSelected(string function, string buffer,
+        int requestedBytes, int inlineLimit)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, " +
+            $"inline={inlineLimit}, backend=stackalloc");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void PooledSelected(string function, string buffer, int requestedBytes)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, backend=ArrayPool");
+
+    [System.Diagnostics.Conditional("OWNSHARP_TRACE")]
+    public static void NativeSelected(string function, string buffer, int requestedBytes)
+        => System.Diagnostics.Trace.WriteLine(
+            $"[OwnSharp] {function}.{buffer}: requested={requestedBytes}, backend=NativeMemory");
+}
+
+internal static class OwnCounters
+{
+    public static long ScratchStackHits;
+    public static long ScratchPoolFallbacks;
+    public static long ScratchPoolBytesRented;
+    public static long ScratchReleaseCount;
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void StackHit()
+        => System.Threading.Interlocked.Increment(ref ScratchStackHits);
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void PoolFallback(int bytes)
+    {
+        System.Threading.Interlocked.Increment(ref ScratchPoolFallbacks);
+        System.Threading.Interlocked.Add(ref ScratchPoolBytesRented, bytes);
+    }
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void Release()
+        => System.Threading.Interlocked.Increment(ref ScratchReleaseCount);
+}
+'''
 
 
 def generate(mod: A.Module) -> str:
@@ -255,4 +504,7 @@ def generate(mod: A.Module) -> str:
                                   for line in b.splitlines()))
     parts.append("\n\n".join(indented))
     parts.append("}")
+    if _buffer_modes(mod):
+        parts.append("")
+        parts.append(_RUNTIME_SUPPORT)
     return "\n".join(parts) + "\n"

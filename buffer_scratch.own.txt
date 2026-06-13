@@ -1,0 +1,32 @@
+module ScratchDemo
+
+// A scratch buffer: prefer the stack, fall back to ArrayPool when the request
+// exceeds the inline limit. The user states the intent; the checker proves it
+// stays local; codegen emits both branches; and OwnTrace/OwnCounters log which
+// backend was actually chosen at runtime.
+//
+//   python -m ownlang check  buffer_scratch.own   # ownership is clean
+//   python -m ownlang emit   buffer_scratch.own   # stack-first + pool fallback
+//   python -m ownlang report buffer_scratch.own   # what the compiler decided
+
+policy DefaultScratch {
+    inline_bytes     = 1024;
+    fallback         = pool;
+    trace            = debug;
+    counters         = true;
+    clear_on_release = false;
+}
+
+extern fn Fill(borrow_mut Buffer);
+extern fn Hash(borrow Buffer);
+
+fn parse(size: int) {
+    let tmp = Buffer.scratch(size, inline = 1024, fallback = pool);
+    borrow_mut tmp as bytes {
+        Fill(bytes);
+    }
+    borrow tmp as view {
+        Hash(view);
+    }
+    release tmp;
+}

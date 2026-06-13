@@ -1,0 +1,10 @@
+module BadScratchEscape
+
+// OWN015: a scratch buffer may be stack-backed, so returning it would hand back
+// a span into a frame that is about to pop. If you need to return a buffer, use
+// Buffer.pooled(...) — a movable owned resource whose Return the checker enforces.
+
+fn leak(size: int) -> Buffer {
+    let tmp = Buffer.scratch(size, inline = 1024);
+    return tmp;
+}

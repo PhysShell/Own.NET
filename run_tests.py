@@ -16,10 +16,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.parser import parse, ParseError          # noqa: E402
 from ownlang.lexer import LexError                     # noqa: E402
-from ownlang.cfg import build_cfg, collect_signatures  # noqa: E402
+from ownlang.cfg import (build_cfg, collect_signatures,  # noqa: E402
+                         collect_policies)
 from ownlang.analysis import analyze                    # noqa: E402
 from ownlang.diagnostics import Severity                # noqa: E402
 from ownlang.codegen import generate                    # noqa: E402
+from ownlang.report import build_report                 # noqa: E402
 
 PRELUDE = (
     "module M\n"
@@ -38,9 +40,10 @@ def codes(src: str) -> list[str]:
         return ["OWN020"]
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
+    pols = collect_policies(mod)
     cs: list[str] = []
     for fn in mod.functions:
-        cfg, d1 = build_cfg(fn, rnames, sigs)
+        cfg, d1 = build_cfg(fn, rnames, sigs, pols)
         d2 = analyze(cfg)
         cs += [d.code for d in (d1 + d2) if d.severity == Severity.ERROR]
     return cs
@@ -154,6 +157,53 @@ CASES = [
     ("leak_and_uafr",
      "fn f(){ let a = acquire Buffer(1); let b = acquire Buffer(2); "
      "release b; use b; }", ["OWN001", "OWN002"]),
+
+    # ---- buffer storage policies: clean ----
+    ("buf_scratch_ok",
+     "fn f(n: int){ let b = Buffer.scratch(n, inline = 1024); "
+     "borrow_mut b as m { Fill(m); } release b; }", []),
+    ("buf_stack_const_ok",
+     "fn f(){ let b = Buffer.stack(256); borrow_mut b as m { Fill(m); } "
+     "release b; }", []),
+    ("buf_stack_dyn_bounded_ok",
+     "fn f(n: int){ let b = Buffer.stack(n, max = 1024); release b; }", []),
+    ("buf_inline_ok",
+     "fn f(){ let b = Buffer.inline(64); release b; }", []),
+    ("buf_pooled_return_ok",
+     "fn f(n: int) -> Buffer { let b = Buffer.pooled(n); return b; }", []),
+    ("buf_pooled_consume_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n); Store(b); }", []),
+    ("buf_native_ok",
+     "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
+    ("buf_policy_ok",
+     "policy P { inline_bytes = 512; fallback = pool; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }", []),
+
+    # ---- buffer storage policies: faults ----
+    ("buf_stack_dyn_unbounded",
+     "fn f(n: int){ let b = Buffer.stack(n); release b; }", ["OWN021"]),
+    ("buf_stack_too_large",
+     "fn f(){ let b = Buffer.stack(1000000); release b; }", ["OWN019"]),
+    ("buf_scratch_escapes_return",
+     "fn f(n: int) -> Buffer { let b = Buffer.scratch(n); return b; }",
+     ["OWN015"]),
+    ("buf_stack_escapes_return",
+     "fn f() -> Buffer { let b = Buffer.stack(64); return b; }", ["OWN015"]),
+    ("buf_scratch_escapes_consume",
+     "fn f(n: int){ let b = Buffer.scratch(n); Store(b); }", ["OWN016"]),
+    ("buf_scratch_forbid_dynamic",
+     "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbidden); "
+     "release b; }", ["OWN023"]),
+    ("buf_scratch_leak",
+     "fn f(n: int){ let b = Buffer.scratch(n); }", ["OWN001"]),
+    ("buf_unknown_mode",
+     "fn f(n: int){ let b = Buffer.bogus(n); release b; }", ["OWN030"]),
+    ("buf_release_while_borrowed",
+     "fn f(n: int){ let b = Buffer.scratch(n); borrow b as s { release b; } }",
+     ["OWN008"]),
+    ("buf_moved_then_used",
+     "fn f(n: int){ let a = Buffer.pooled(n); let b = move a; use a; "
+     "release b; }", ["OWN005"]),
 ]
 
 
@@ -210,6 +260,70 @@ def golden_smoke() -> list[str]:
     return fails
 
 
+BUFFER_GOLDEN = (
+    "module ScratchDemo\n"
+    "policy DefaultScratch { inline_bytes = 1024; fallback = pool; "
+    "trace = debug; counters = true; clear_on_release = false; }\n"
+    "extern fn Fill(borrow_mut Buffer);\n"
+    "extern fn Hash(borrow Buffer);\n"
+    "fn parse(size: int) {\n"
+    "  let tmp = Buffer.scratch(size, inline = 1024, fallback = pool);\n"
+    "  borrow_mut tmp as bytes { Fill(bytes); }\n"
+    "  borrow tmp as view { Hash(view); }\n"
+    "  release tmp;\n"
+    "}\n"
+)
+
+
+def buffer_smoke() -> list[str]:
+    """A scratch buffer must check clean, lower to the stack-first/pool-fallback
+    pattern with the trace + counter hooks, ship the [Conditional] runtime
+    support, and produce a compile-time report that names the chosen backends."""
+    fails: list[str] = []
+    cs = [c for c in codes(BUFFER_GOLDEN) if c.startswith("OWN")]
+    if cs:
+        fails.append(f"buffer golden should check clean, got {sorted(set(cs))}")
+    out = generate(parse(BUFFER_GOLDEN))
+    must_contain = [
+        "Span<byte> tmp_backing = stackalloc byte[1024];",
+        "if (size <= 1024)",
+        'OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "stackalloc");',
+        'OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "ArrayPool");',
+        "OwnCounters.StackHit();",
+        "OwnCounters.PoolFallback(size);",
+        "ArrayPool<byte>.Shared.Rent(size)",
+        "ArrayPool<byte>.Shared.Return(tmp_rented)",
+        "try",
+        "finally",
+        "internal static class OwnTrace",
+        "internal static class OwnCounters",
+        'Conditional("OWNSHARP_TRACE")',
+        'Conditional("OWNSHARP_COUNTERS")',
+    ]
+    for s in must_contain:
+        if s not in out:
+            fails.append(f"buffer C# missing: {s!r}")
+    # the pool Return must run exactly once, guarded by the rented null-check
+    if out.count("ArrayPool<byte>.Shared.Return(tmp_rented)") != 1:
+        fails.append("buffer C# should Return the rented array exactly once")
+
+    # compile-time report
+    mod = parse(BUFFER_GOLDEN)
+    rep = build_report(mod, [])
+    if not rep["buffers"]:
+        fails.append("buffer report produced no entries")
+    else:
+        e = rep["buffers"][0]
+        if e["mode"] != "scratch" or e["inlineBytes"] != 1024:
+            fails.append(f"buffer report has wrong mode/inline: {e}")
+        if e["escapePolicy"] != "local-only":
+            fails.append(f"scratch report should be local-only, got {e['escapePolicy']}")
+        backends = {b["backend"] for b in e["branches"]}
+        if backends != {"stackalloc", "ArrayPool"}:
+            fails.append(f"scratch report branches wrong: {backends}")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -240,11 +354,16 @@ def run() -> int:
     for f in golden_fails:
         print(f"GOLDEN FAIL: {f}")
 
+    buffer_fails = buffer_smoke()
+    for f in buffer_fails:
+        print(f"BUFFER FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
     print(f"golden:   {'PASS' if not golden_fails else 'FAIL'}")
-    return 1 if (failed or cg_fail or golden_fails) else 0
+    print(f"buffer:   {'PASS' if not buffer_fails else 'FAIL'}")
+    return 1 if (failed or cg_fail or golden_fails or buffer_fails) else 0
 
 
 if __name__ == "__main__":

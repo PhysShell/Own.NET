@@ -40,6 +40,12 @@ TITLES = {
     "OWN011": "mutable borrow while another mutable borrow is live",
     "OWN012": "shared borrow while a mutable borrow is live",
     "OWN013": "owner accessed while it is mutably borrowed",
+    # ---- buffer storage policies (stackalloc / scratch / pool / native) ----
+    "OWN015": "stack-backed buffer cannot escape the current function",
+    "OWN016": "stack-backed buffer moved to a longer-lived owner",
+    "OWN019": "inline capacity too large for a stack-backed policy",
+    "OWN021": "stack allocation requires a statically known bound",
+    "OWN023": "scratch fallback forbidden but the size may exceed the inline limit",
     # ---- unsupported ----
     "OWN020": "unsupported construct (out of scope for the MVP)",
     # ---- name resolution & structural ----
