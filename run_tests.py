@@ -172,6 +172,9 @@ CASES = [
     ("buf_pooled_local_ok",
      "fn f(n: int){ let b = Buffer.pooled(n); borrow_mut b as m { Fill(m); } "
      "release b; }", []),
+    ("buf_branchy_release_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n); if (c) { release b; } "
+     "else { release b; } }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -402,6 +405,38 @@ def escape_and_length_smoke() -> list[str]:
     return fails
 
 
+def branchy_and_malformed_smoke() -> list[str]:
+    """Two follow-up review guards:
+    - a buffer released inside branches is NOT an escape: codegen must emit the
+      real pool cleanup at each release site, never a generic Dispose on a Span;
+    - the report must skip a malformed buffer mode (Buffer.bogus) instead of
+      throwing, leaving the checker's OWN030 to stand."""
+    fails: list[str] = []
+
+    branchy = ("module M\n"
+               "fn f(n: int){ let b = Buffer.pooled(n); "
+               "if (c) { release b; } else { release b; } }\n")
+    if codes(branchy):
+        fails.append(f"branchy buffer release should check clean, got {codes(branchy)}")
+    out = generate(parse(branchy))
+    if "Dispose()" in out:
+        fails.append("branchy buffer release must not emit a generic Dispose()")
+    if out.count("ArrayPool<byte>.Shared.Return(b_array)") != 2:
+        fails.append("branchy pooled release must Return at both release sites")
+    if "ArrayPool<byte>.Shared.Rent(n)" not in out:
+        fails.append("branchy pooled buffer must still Rent once")
+
+    bogus = parse("module M\nfn f(n: int){ let b = Buffer.bogus(n); release b; }\n")
+    try:
+        rep = build_report(bogus, [])
+    except Exception as e:  # noqa: BLE001
+        fails.append(f"report crashed on a malformed buffer mode: {type(e).__name__}: {e}")
+    else:
+        if rep["buffers"]:
+            fails.append("report should skip an unresolved buffer mode")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -440,14 +475,19 @@ def run() -> int:
     for f in escape_fails:
         print(f"ESCAPE FAIL: {f}")
 
+    branchy_fails = branchy_and_malformed_smoke()
+    for f in branchy_fails:
+        print(f"BRANCHY FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
     print(f"golden:   {'PASS' if not golden_fails else 'FAIL'}")
     print(f"buffer:   {'PASS' if not buffer_fails else 'FAIL'}")
     print(f"escape:   {'PASS' if not escape_fails else 'FAIL'}")
+    print(f"branchy:  {'PASS' if not branchy_fails else 'FAIL'}")
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
-                 or escape_fails) else 0
+                 or escape_fails or branchy_fails) else 0
 
 
 if __name__ == "__main__":

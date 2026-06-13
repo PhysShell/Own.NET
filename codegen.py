@@ -56,6 +56,9 @@ class _FnGen:
         self.binding_owner_res: dict[str, str] = {}
         # buffer local name -> resolved BufferInfo (so borrows/args render right)
         self.buffer_vars: dict[str, object] = {}
+        # buffer local name -> cleanup lines, for buffers whose `release` is
+        # nested in branches (emitted at each release site, not in a finally)
+        self.buffer_cleanup: dict[str, list[str]] = {}
         for p in fn.params:
             if not p.type.borrowed and p.type.name in self.res:
                 self.owned_resource[p.name] = p.type.name
@@ -132,21 +135,16 @@ class _FnGen:
         return "".join(l + "\n" for l in out)
 
     def _emit_block(self, stmts: list[A.Stmt], ind: str) -> list[str]:
-        """Emit a statement list. A buffer let consumes the statements up to its
-        matching `release` and lowers them inside its storage prelude + finally."""
+        """Emit a statement list. A buffer let owns the remainder of its block:
+        its matching `release` may be straight-line or nested in branches, and
+        _emit_buffer handles both shapes."""
         out: list[str] = []
         i = 0
         while i < len(stmts):
             st = stmts[i]
             if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
-                j = self._find_release(stmts, i + 1, st.name)
-                body = stmts[i + 1:j] if j is not None else stmts[i + 1:]
-                # no matching `release` => the buffer escapes (it was returned or
-                # consumed; the checker already proved this is the only clean
-                # reason). Ownership transferred, so cleanup must NOT run here.
-                escapes = j is None
-                out.extend(self._emit_buffer(st.name, st.rhs, body, ind, escapes))
-                i = (j + 1) if j is not None else len(stmts)
+                out.extend(self._emit_buffer(st.name, st.rhs, stmts[i + 1:], ind))
+                i = len(stmts)
                 continue
             out.extend(self._stmt_inline(st, ind))
             i += 1
@@ -163,8 +161,7 @@ class _FnGen:
     # -- buffer lowering (the stackalloc / scratch / pool / native line) -----
 
     def _emit_buffer(self, name: str, intent: A.BufferIntent,
-                     body: list[A.Stmt], ind: str,
-                     escapes: bool = False) -> list[str]:
+                     rest: list[A.Stmt], ind: str) -> list[str]:
         info, _ = resolve_buffer(intent, self.policies)
         self.buffer_vars[name] = info
         fn = self.fn.name
@@ -254,11 +251,43 @@ class _FnGen:
                            f"Clear({name}, (nuint){size});")
             fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name});")
 
-        if escapes:
-            # ownership left the function (return / consume): the new owner is
-            # responsible for Return/Free, so drop this frame's cleanup entirely.
-            fin = []
-        return self._wrap_buffer(pre, body, fin, ind, native)
+        # decide the lifetime shape from where the matching `release` lives.
+        j = self._find_release(rest, 0, name)
+        if j is not None:
+            # straight-line: release b at this level -> exception-safe try/finally,
+            # then continue with whatever follows the release.
+            lines = self._wrap_buffer(pre, rest[:j], fin, ind, native)
+            lines.extend(self._emit_block(rest[j + 1:], ind))
+            return lines
+        if _has_release(rest, name):
+            # branchy: release b sits inside if/borrow blocks. Emit the prelude
+            # once, then the body inline, attaching the buffer's real cleanup to
+            # each release site (no hoisting into finally — the same trade-off the
+            # codegen already makes for branchy ordinary resources).
+            self.buffer_cleanup[name] = fin
+            return self._emit_buffer_branchy(pre, rest, ind, native)
+        # no release anywhere => leak or escape, both rejected by the checker
+        # (OWN001 / OWN015 / OWN016 / OWN017); it cannot reach a clean codegen.
+        raise CodegenError(
+            f"buffer '{name}' is never released and does not escape cleanly; "
+            f"the checker should have rejected this")
+
+    def _emit_buffer_branchy(self, pre: list[str], rest: list[A.Stmt],
+                             ind: str, native: bool) -> list[str]:
+        lines: list[str] = []
+        base = ind
+        if native:
+            lines.append(f"{base}unsafe")
+            lines.append(f"{base}{{")
+            inner = base + "    "
+        else:
+            inner = base
+        for p in pre:
+            lines.append(inner + p)
+        lines.extend(self._emit_block(rest, inner))
+        if native:
+            lines.append(f"{base}}}")
+        return lines
 
     def _wrap_buffer(self, pre: list[str], body: list[A.Stmt],
                      fin: list[str], ind: str, native: bool) -> list[str]:
@@ -316,6 +345,10 @@ class _FnGen:
             if isinstance(st.rhs, A.VarRef):
                 return [f"{ind}var {st.name} = {st.rhs.name};"]
         if isinstance(st, A.Release):
+            if st.var in self.buffer_cleanup:
+                # a branchy buffer release: emit this buffer's real cleanup
+                # (pool Return / native Free / clear), not a generic Dispose.
+                return [ind + line for line in self.buffer_cleanup[st.var]]
             rt = self.owned_resource.get(st.var, "")
             return [f"{ind}{self._release_stmt(st.var, rt)}"]
         if isinstance(st, A.Use):
@@ -397,6 +430,21 @@ def _contains_branch_or_transfer(stmts: list[A.Stmt]) -> bool:
             return True
         if isinstance(st, A.BorrowBlock):
             if _contains_branch_or_transfer(st.body):
+                return True
+    return False
+
+
+def _has_release(stmts: list[A.Stmt], name: str) -> bool:
+    """Does a `release name` appear anywhere in this statement tree (including
+    inside if-branches and borrow blocks)?"""
+    for st in stmts:
+        if isinstance(st, A.Release) and st.var == name:
+            return True
+        if isinstance(st, A.If):
+            if _has_release(st.then_body, name) or _has_release(st.else_body, name):
+                return True
+        if isinstance(st, A.BorrowBlock):
+            if _has_release(st.body, name):
                 return True
     return False
 

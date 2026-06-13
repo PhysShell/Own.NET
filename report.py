@@ -16,7 +16,7 @@ both emitted into the generated C# by codegen.py under [Conditional] guards.)
 from __future__ import annotations
 
 from . import ast_nodes as A
-from .buffers import resolve as resolve_buffer, Policy
+from .buffers import resolve as resolve_buffer, Policy, MODE_NAMES
 from .diagnostics import Diagnostic
 
 
@@ -59,6 +59,10 @@ def build_report(mod: A.Module, diags: list[Diagnostic]) -> dict:
         lo, hi = spans[id(fn)]
         fn_diags = [d for d in diags if lo <= d.line < hi]
         for name, intent in _walk_buffers(fn.body):
+            # skip a malformed intent (e.g. Buffer.bogus(n)); the checker already
+            # reported OWN030 for it, and resolving an unknown mode would throw.
+            if intent.mode not in MODE_NAMES:
+                continue
             info, _ = resolve_buffer(intent, policies)
             mine = [d for d in fn_diags if f"'{name}'" in d.message]
             mine_codes = {d.code for d in mine}

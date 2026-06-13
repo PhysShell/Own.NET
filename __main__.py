@@ -93,6 +93,11 @@ def cmd_report(path: str) -> int:
         for d in diags:
             print(d.render(path), file=sys.stderr)
         return 1
+    # surface diagnostics (e.g. a mistyped buffer mode) without crashing the
+    # report; the report still covers every well-formed buffer.
+    errors = [d for d in diags if d.severity == Severity.ERROR]
+    for d in diags:
+        print(d.render(path), file=sys.stderr)
     report = build_report(mod, diags)  # type: ignore[arg-type]
     print(render_report(report))
     out_path = path.rsplit(".", 1)[0] + ".ownreport.json"
@@ -100,7 +105,7 @@ def cmd_report(path: str) -> int:
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print(f"\nwrote {out_path}")
-    return 0
+    return 1 if errors else 0
 
 
 def _print_cfg(cfg: CFG) -> None:
