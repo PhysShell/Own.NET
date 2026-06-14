@@ -60,11 +60,11 @@ MODE_NAMES = {m.value for m in BufferMode}
 # heap, defeating the explicit storage guarantee.
 VALID_OPTIONS = frozenset({
     "policy", "inline", "inline_bytes", "max", "max_bytes",
-    "fallback", "clear", "trace", "counters",
+    "fallback", "clear", "trace", "counters", "sensitive",
 })
 VALID_POLICY_KEYS = frozenset({
     "inline_bytes", "max_bytes", "fallback", "clear_on_release",
-    "trace", "counters",
+    "trace", "counters", "sensitive",
 })
 
 # Modes whose backing storage may live on the stack. A stack-backed buffer must
@@ -95,6 +95,7 @@ class BufferInfo:
     fallback_pool: bool            # scratch: heap fallback allowed
     fallback_forbidden: bool       # stack: heap fallback explicitly forbidden
     clear_on_release: bool         # zero the bytes before returning/releasing
+    sensitive: bool                # holds secret data: must be cleared on release
     trace: bool                    # emit OwnTrace hooks
     counters: bool                 # emit OwnCounters hooks
     policy_name: str | None
@@ -358,9 +359,23 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
     # ---- flags from options / policy --------------------------------------
     clear = _bool_flag(opts.get("clear"), base.get("clear_on_release"),
                        False, "clear_on_release", diags, line)
+    sensitive = _bool_flag(opts.get("sensitive"), base.get("sensitive"),
+                           False, "sensitive", diags, line)
     trace = _trace_flag(opts.get("trace"), base.get("trace"), True, diags, line)
     counters = _bool_flag(opts.get("counters"), base.get("counters"),
                           True, "counters", diags, line)
+
+    # A buffer marked sensitive must be zeroed before its backing memory can be
+    # observed again — pooled/scratch arrays go back to a shared ArrayPool, native
+    # memory is handed back to the allocator, and even a stack frame is reused by
+    # the next call. Marking it sensitive without clearing is the silent leak the
+    # flag exists to prevent, so require an explicit `clear = true`.
+    if sensitive and not clear:
+        diags.append(Diagnostic(
+            "OWN024",
+            "buffer is marked sensitive but is not cleared on release; add "
+            "'clear = true' so its bytes are zeroed before the backing memory "
+            "is reused", line))
 
     info = BufferInfo(
         mode=mode,
@@ -371,6 +386,7 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
         fallback_pool=fallback_pool,
         fallback_forbidden=fallback_forbidden,
         clear_on_release=clear,
+        sensitive=sensitive,
         trace=trace,
         counters=counters,
         policy_name=pol_name,

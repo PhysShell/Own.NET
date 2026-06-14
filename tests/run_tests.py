@@ -280,8 +280,24 @@ CASES = [
     ("buf_policy_ok",
      "policy P { inline_bytes = 512; fallback = pool; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }", []),
+    ("buf_sensitive_cleared_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n, sensitive = true, clear = true); "
+     "release b; }", []),
+    ("buf_sensitive_policy_ok",
+     "policy Secret { sensitive = true; clear_on_release = true; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = Secret); release b; }", []),
 
     # ---- buffer storage policies: faults ----
+    ("buf_sensitive_no_clear",
+     "fn f(n: int){ let b = Buffer.pooled(n, sensitive = true); release b; }",
+     ["OWN024"]),
+    ("buf_sensitive_policy_no_clear",
+     "policy Secret { sensitive = true; clear_on_release = false; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = Secret); release b; }",
+     ["OWN024"]),
+    ("buf_bad_sensitive",
+     "fn f(n: int){ let b = Buffer.scratch(n, sensitive = ture); release b; }",
+     ["OWN030"]),
     ("buf_stack_dyn_unbounded",
      "fn f(n: int){ let b = Buffer.stack(n); release b; }", ["OWN021"]),
     ("buf_stack_too_large",
@@ -401,6 +417,12 @@ def buffer_smoke() -> list[str]:
         'OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "ArrayPool");',
         "OwnCounters.StackHit();",
         "OwnCounters.PoolFallback(size);",
+        "OwnCounters.Requested(size);",
+        "OwnCounters.PoolReturned(size);",
+        "public static long ScratchTotalRequestedBytes;",
+        "public static long ScratchMaxRequestedBytes;",
+        "public static long ScratchPoolBytesReturned;",
+        "public static long ScratchForcedClears;",
         "ArrayPool<byte>.Shared.Rent(size)",
         "ArrayPool<byte>.Shared.Return(tmp_rented)",
         "try",

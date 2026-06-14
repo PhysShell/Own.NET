@@ -79,6 +79,7 @@ def build_report(mod: A.Module, diags: list[Diagnostic]) -> dict:
                                    else "forbidden")),
                 "escapePolicy": info.escape_policy,
                 "clearOnRelease": info.clear_on_release,
+                "sensitive": info.sensitive,
                 "trace": info.trace,
                 "counters": info.counters,
                 "policy": info.policy_name,
@@ -102,6 +103,7 @@ def render_report(report: dict) -> str:
         lines.append(f"  Fallback: {e['fallback']}")
         lines.append(f"  EscapePolicy: {e['escapePolicy']}")
         lines.append(f"  ClearOnRelease: {str(e['clearOnRelease']).lower()}")
+        lines.append(f"  Sensitive: {str(e['sensitive']).lower()}")
         if e["policy"]:
             lines.append(f"  Policy: {e['policy']}")
         lines.append("  Generated branches:")
