@@ -68,12 +68,16 @@ class _FnGen:
     def _is_simple(self) -> bool:
         # Straight-line functions (no branch / move / owned-return) use the
         # try/finally hoist, which nests buffers AND ordinary resources so each
-        # gets its own exception-safe finally. But the hoist is only safe when
-        # scope lifetimes are LAMINAR (every pair nested or disjoint): a partial
-        # overlap (a opened first, released first, while b is still live) cannot
-        # be nested without breaking b's lifetime, so it falls back to faithful
-        # inline, which emits releases exactly where the source put them.
+        # gets its own exception-safe finally. The hoist is only safe when:
+        #  * every scope has a TOP-LEVEL `release` (a release nested in a borrow/if
+        #    block, or a resource consumed by a call, cannot be hoisted into a
+        #    finally without double-cleaning or emitting a stray release), and
+        #  * scope lifetimes are LAMINAR (every pair nested or disjoint).
+        # Otherwise it falls back to faithful inline, which emits releases exactly
+        # where the source put them.
         if _contains_branch_or_transfer(self.fn.body):
+            return False
+        if not _scopes_release_top_level(self.fn.body):
             return False
         return _laminar_scopes(self.fn.body)
 
@@ -526,6 +530,19 @@ def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
             if _fn_has_buffer(st.body):
                 return True
     return False
+
+
+def _scopes_release_top_level(stmts: list[A.Stmt]) -> bool:
+    """True if every top-level owned scope (an acquire or buffer let) has a
+    matching top-level `release`. A scope whose release is nested in a borrow/if
+    block — or which is consumed by a call instead of released — cannot be safely
+    hoisted into a finally, so such functions use faithful inline instead."""
+    released = {st.var for st in stmts if isinstance(st, A.Release)}
+    for st in stmts:
+        if isinstance(st, A.Let) and isinstance(st.rhs, (A.Acquire, A.BufferIntent)):
+            if st.name not in released:
+                return False
+    return True
 
 
 def _laminar_scopes(stmts: list[A.Stmt]) -> bool:

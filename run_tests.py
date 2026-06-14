@@ -256,6 +256,9 @@ CASES = [
     ("res_partial_overlap_ok",
      "fn f(){ let a = acquire Buffer(1); let c = acquire Conn(1); "
      "release a; use c; release c; }", []),
+    ("buf_nested_release_ok",
+     "fn f(n: int){ let a = acquire Conn(1); let b = Buffer.pooled(n); "
+     "borrow a as s { release b; } release a; }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -750,6 +753,19 @@ def ordering_counters_smoke() -> list[str]:
         fails.append("partial overlap must not emit use-after-release for b")
     if "a.ca()" in out and out.index("a.ca()") > out.index("Use(b)"):
         fails.append("a must be released at its source point, before use b")
+
+    # a buffer whose release is nested in another owner's borrow block must NOT
+    # be hoisted (that would double-clean: a stray Dispose plus the finally).
+    nested = ("module M\nresource Conn { acquire open release close }\n"
+              "fn f(n: int){ let a = acquire Conn(1); let b = Buffer.pooled(n); "
+              "borrow a as s { release b; } release a; }\n")
+    if codes(nested):
+        fails.append(f"nested buffer release should check clean, got {codes(nested)}")
+    out = generate(parse(nested))
+    if "Dispose()" in out:
+        fails.append("nested buffer release must not emit a generic Dispose()")
+    if out.count("ArrayPool<byte>.Shared.Return(b_array)") != 1:
+        fails.append("nested buffer release must return b_array exactly once")
 
     # native buffers expose a Span<byte> view (so a borrow/call sees the same
     # logical type as pooled/stack), and free the backing pointer on release
