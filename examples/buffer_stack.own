@@ -1,0 +1,26 @@
+module StackDemo
+
+// Strict stack mode: stackalloc only, the heap fallback is FORBIDDEN, the buffer
+// cannot escape. A constant bound lowers to `stackalloc byte[N]`; a dynamic size
+// requires a `max =` guard so the real stack frame is bounded — "we put up a
+// fence", not "the user promised".
+
+extern fn Fill(borrow_mut Buffer);
+
+fn fixed_buf() {
+    let line = Buffer.stack(256);           // -> Span<byte> line = stackalloc byte[256];
+    borrow_mut line as m {
+        Fill(m);
+    }
+    release line;
+}
+
+fn bounded(size: int)
+{
+    // dynamic size, but bounded: codegen emits a guard then slices the backing.
+    let buf = Buffer.stack(size, max = 1024);
+    borrow_mut buf as m {
+        Fill(m);
+    }
+    release buf;
+}

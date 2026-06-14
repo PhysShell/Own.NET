@@ -45,12 +45,13 @@ C#  (шаблоны emit_* → реальный .NET; try/finally на straight-
 ### Запуск
 
 ```bash
-cd ownlang
-python -m ownlang check examples/ok_extern_calls.own        # проверка
-python -m ownlang emit  examples/golden_arraypool/buffer.own # проверка + печать C#
-python -m ownlang cfg   examples/bad_maybe_release.own       # дамп CFG
+# запускать из корня репозитория (там, где лежит пакет ownlang/ и examples/)
+python -m ownlang check  examples/ok_extern_calls.own        # проверка
+python -m ownlang emit   examples/golden_arraypool/buffer.own # проверка + печать C#
+python -m ownlang cfg    examples/bad_maybe_release.own       # дамп CFG
+python -m ownlang report examples/buffer_scratch.own          # buffer-отчёт + .ownreport.json
 
-python tests/run_tests.py                                    # 42 кейса + codegen + golden smoke
+python tests/run_tests.py                                     # кейсы + codegen + golden + buffer smoke
 ```
 
 `check` возвращает ненулевой код при наличии ошибок — годится для CI.
@@ -60,7 +61,10 @@ python tests/run_tests.py                                    # 42 кейса + c
 
 ```bash
 cd examples/golden_arraypool
-dotnet run          # требует .NET SDK; в песочнице PoC его нет
+# Здесь лежат buffer.own (источник) и Program.cs (сгенерённый process + host).
+# Своего .csproj PoC не возит; чтобы запустить — заверни Program.cs в console-проект:
+dotnet new console -o demo && cp Program.cs demo/ && cd demo && dotnet run
+# (требует .NET SDK; в песочнице PoC его нет — проверено по построению, не запуском)
 ```
 
 `buffer.own` объявляет ресурс `Buffer` с шаблонами `emit_*`, отображающими его на
@@ -208,13 +212,24 @@ fn process(size: int) {
 | **OWN004** | borrow убегает из своей области (например, `return` borrow'а) |
 | **OWN005** | use/… после move (**definite**) |
 | **OWN006** | `borrow_mut` при живом shared borrow |
-| **OWN007** | move/consume владельца под живым borrow'ом |
+| **OWN007** | move/consume/return владельца под живым borrow'ом |
 | **OWN008** | release владельца под живым borrow'ом |
 | **OWN009** | операция над ресурсом, который **мог** быть освобождён на каком-то пути (**maybe**) |
 | **OWN010** | операция над ресурсом, который **мог** быть перемещён на каком-то пути (**maybe**) |
 | **OWN011** | `borrow_mut` при живом `borrow_mut` (два эксклюзива) |
 | **OWN012** | shared borrow при живом `borrow_mut` |
 | **OWN013** | прямое обращение к владельцу, пока он `borrow_mut` |
+
+### Буферы: storage policies
+
+| Код | Что ловит |
+|-----|-----------|
+| OWN015 | stack-backed буфер (`stack`/`scratch`/`inline`) пытается убежать из функции (`return`) |
+| OWN016 | stack-backed буфер отдан в `consume`-вызов (move в более долгоживущего владельца) |
+| OWN017 | movable-буфер (`pooled`/`native`) escape'ит — модель это разрешает, но PoC-codegen пока не умеет честно лоуэрить escape (см. ниже) |
+| OWN019 | inline-ёмкость слишком велика для stack-backed политики (выше потолка стека) |
+| OWN021 | `stack`/`inline` динамического размера без статической границы (нет `max =`) |
+| OWN023 | `scratch` с `fallback = forbidden`, но размер может превысить inline-лимит |
 
 ### Неподдерживаемое / структурное / граница
 
@@ -299,6 +314,179 @@ control-flow в `finally` — настоящая работа, она в roadmap
 
 ---
 
+## Буферы: storage policies + логирование
+
+`stackalloc` — это не оптимизация сама по себе. Это **storage strategy с жёстким
+lifetime-контрактом**. Поэтому буфер в OwnLang — это owned-ресурс (release ровно
+один раз, escape-проверки, конфликты borrow'ов — всё как обычно), но с явной
+**политикой хранения**. Модель: *пользователь задаёт intent → checker проверяет
+lifetime/ownership → backend выбирает или строго соблюдает storage → codegen
+генерит безопасный C# → логи показывают фактический выбор → benchmark доказывает
+выигрыш*. Не «компилятор молча решил за тебя» — а «ты задал политику, компилятор
+её соблюл, runtime показал, что реально выбралось».
+
+### Режимы
+
+```
+let a = Buffer.stack(256);                              // только stackalloc, fallback запрещён
+let b = Buffer.stack(size, max = 1024);                 // динамика, но с забором (guard)
+let c = Buffer.scratch(size, inline = 1024, fallback = pool);  // стек, иначе ArrayPool
+let d = Buffer.pooled(size);                            // только ArrayPool; movable, Return обязателен
+let e = Buffer.native(size);                            // NativeMemory; unsafe, Free обязателен
+let f = Buffer.inline(128);                             // фиксированный compile-time стековый буфер
+```
+
+Главное правило: **`stack` никогда не падает в heap**; **`scratch` может**, потому
+что пользователь явно разрешил fallback. API, который врёт про память, — это не
+абстракция. `stack`/`scratch`/`inline` — stack-backed → не могут escape (OWN015/016).
+
+Буфер можно `move` внутри функции — владение и storage-политика переходят на
+нового владельца, и `release` нового имени освобождает исходный backing. Namespace
+обязан быть `Buffer`: `Foo.stack(...)` (опечатка/чужой идентификатор) — это
+**OWN030**, а не тихая аллокация.
+
+`pooled`/`native` в **ownership-модели** movable (теоретически их можно
+`return`/`consume`). Но **deliverable здесь — checker, а codegen лишь доказывает,
+что модель лоуэрится в настоящий .NET**, и не раздувается в самоцель. Честно
+лоуэрить *escaping* буфер нечем: значение внутри функции — это `Span<byte>`, а
+отдавать наружу надо handle (`byte[]`/`byte*`+длина), которым вызывающий сделает
+`Return`/`Free`. Поэтому PoC **отвергает** escape movable-буфера (**OWN017**), а не
+шипает C#, который течёт или не компилируется. Локально `pooled`/`native` работают
+полноценно (rent→borrow→release с реальным `ArrayPool.Return`/`NativeMemory.Free`).
+Полноценный movable-lowering (через `byte[]`-handle или обёртку
+`IMemoryOwner<byte>`) — **roadmap**.
+
+### `scratch` лоуэрится так (это и есть golden buffer-пример)
+
+```csharp
+byte[]? tmp_rented = null;
+Span<byte> tmp_backing = stackalloc byte[1024];
+Span<byte> tmp;
+if (size <= 1024)
+{
+    OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "stackalloc");
+    OwnCounters.StackHit();
+    tmp = tmp_backing[..size];
+}
+else
+{
+    OwnTrace.ScratchSelected("parse", "tmp", size, 1024, "ArrayPool");
+    OwnCounters.PoolFallback(size);
+    tmp_rented = ArrayPool<byte>.Shared.Rent(size);
+    tmp = tmp_rented.AsSpan(0, size);
+}
+try { /* ... */ }
+finally
+{
+    OwnCounters.Release();
+    if (tmp_rented is not null)
+        ArrayPool<byte>.Shared.Return(tmp_rented);
+}
+```
+
+### Логирование — обязательная часть, а не опция
+
+Без логов `scratch` стал бы той самой «умной» абстракцией, которая молча выбрала
+pool, а ты три часа смотришь на GC-график. Поэтому логи — в трёх местах:
+
+1. **Compile-time report** (`python -m ownlang report file.own`): что checker/codegen
+   решил по каждому буферу — mode, inline-лимит, fallback, escape-policy, clear,
+   сгенерированные ветки и какие проверки прошли. Выводится текстом и пишется в
+   `file.ownreport.json` (удобно для ревью/CI).
+
+2. **Runtime trace** — хук `OwnTrace.*` в сгенерированном C#: какой backend реально
+   выбран при конкретном `size`. Под `[Conditional("OWNSHARP_TRACE")]` — в обычном
+   Release вызовы вырезаются, логирование не становится новым bottleneck'ом.
+
+3. **Runtime counters** — `OwnCounters` (`ScratchStackHits`, `ScratchPoolFallbacks`,
+   `ScratchPoolBytesRented`, `ScratchReleaseCount`) под `[Conditional("OWNSHARP_COUNTERS")]`.
+   Отвечают на главный вопрос: мы реально часто попадаем в стек, или inline-лимит
+   подобран мимо?
+
+### Политики
+
+`policy`-блок — это переиспользуемый набор дефолтов; буфер ссылается на него через
+`policy =`, инлайновые опции перекрывают:
+
+```
+policy SensitiveScratch {
+    inline_bytes     = 512;
+    fallback         = pool;
+    counters         = true;
+    clear_on_release = true;       // занулить байты перед возвратом в пул
+}
+
+fn handle(size: int) {
+    let secret = Buffer.scratch(size, policy = SensitiveScratch);
+    borrow_mut secret as m { Fill(m); }
+    release secret;                 // codegen: secret.Clear(); затем Return
+}
+```
+
+### Runnable golden
+
+`buffer_scratch_program.cs.txt` — запускаемый пример: метод `parse` и классы
+`OwnTrace`/`OwnCounters` вклеены **дословно** из `python -m ownlang emit
+buffer_scratch.own`, а `Fill`/`Hash`/`Main` — host-код. Доказывает, что
+buffer-модель лоуэрится в настоящий .NET с реальным `ArrayPool.Rent/Return`:
+
+```bash
+dotnet run -p:DefineConstants="OWNSHARP_TRACE;OWNSHARP_COUNTERS"
+# parse(64)   -> stackalloc-ветка (heap не трогаем)
+# parse(4096) -> ArrayPool-ветка  (реальные Rent/Return), trace + counters в выводе
+```
+
+### Где это жульничает
+
+Элемент буфера зафиксирован как `byte` (как во всех примерах). В straight-line
+функции (без `if`/`move`/owned-return) буферы и обычные ресурсы лоуэрятся в порядке
+исходника, каждый в свой exception-safe `try/finally` со split'ом по точке
+`release` — **но только если времена жизни laminar** (любая пара вложена или
+раздельна) **и каждый `release` на верхнем уровне**: непересекающиеся остаются
+раздельными (a возвращается до аренды b), вложенные — нестятся (LIFO). Частичное
+пересечение (`let a; let b; release a; … release b;`), `release` во вложенном
+`borrow`/`if`-блоке, или ресурс, consume'нутый вызовом, hoist'ить нельзя без
+искажения lifetime'а / двойной очистки, поэтому такие функции лоуэрятся
+faithful-inline (release ровно там, где написан; без `try/finally`).
+`scratch`/`stack`/`native` динамического размера guard'ят некорректный (в т.ч.
+отрицательный) запрос **до** любого trace/counter, чтобы битый ввод не портил
+метрики. Размер буфера обязан быть целым числом — `Buffer.pooled(flag: bool)`, owned-ресурс
+или plain неизвестного типа (например копия borrow'а) как размер это **OWN018**;
+а `inline` требует compile-time литерала — `Buffer.inline(n, max = …)` это
+**OWN021** (для динамики есть `stack`). Plain-локал, объявленный в теле буфера и
+использованный после release, не оборачивается в hoist'нутый `try` (иначе вышел бы
+из C#-scope) — такой буфер лоуэрится inline.
+Булевы настройки (`clear_on_release`, `counters`) и `trace` валидируются: опечатка
+вроде `clear_on_release = ture` — **OWN030**, а не тихое отключение clear на
+sensitive-буфере. `native` хранит `byte*` (backing, освобождается на release), но наружу
+отдаёт `Span<byte>`-view — borrow/call видят тот же логический тип, что и
+pooled/stack/scratch. Borrow-параметр типа `Buffer` (и в `extern`, и в **локальной**
+`fn`) рендерится как `Span<byte>`/`ReadOnlySpan<byte>`, так что один
+`fn helper(x: &mut Buffer)` лоуэрится в одну C#-сигнатуру для всех storage-режимов,
+а вызов `helper(b)` компилируется. Отчёт атрибутирует диагностики по идентичности
+буфера (`name#line:col`, переносится через `move`-алиасы), а не по имени в тексте —
+два одноимённых буфера в соседних скоупах не путаются.
+В ветвистой функции (есть `if`/`move`/owned-return) используется inline-режим:
+буфер с чистым вложением получает `try/finally`, а перекрывающиеся времена жизни,
+ветвистый release и moved-алиасы — inline-release (реальный cleanup в местах
+release'ов, без подъёма в `finally`; обычные ресурсы там тоже inline — подъём из
+произвольного control-flow это roadmap). `native` динамического размера
+guard'ит отрицательный запрос перед `NativeMemory.Alloc`. Escaping movable-буферы
+отвергаются (OWN017), полноценный movable-lowering — roadmap. Неизвестные значения
+**и имена** настроек (mode, namespace, policy, fallback, а также сами имена опций
+буфера и ключей policy-блока) ловятся как **OWN030** — опечатка в
+`fallback = forbidden`, `fallback = 0` или `fallbak = forbidden` не «протечёт» в
+heap, а будет отвергнута. Повторённая опция/ключ (`fallback = forbidden,
+fallback = pool`) — тоже **OWN030**: конфликтующее обещание не разрешается
+правилом «последний выигрывает». Бенчмарк-матрица из дизайн-дока
+(safe vs unsafe, stack vs pool на размерах 32 B … 1 MB) — **следующий слой**:
+правило «unsafe-backend разрешён только при выигрыше ≥ 10-15 % с disassembly-
+обоснованием» задаёт дисциплину, но прогон бенчей вне песочницы. Unsafe-контракты
+(`UNS0xx`) пока не реализованы: `native` лоуэрится в `NativeMemory.Alloc/Free` в
+`unsafe`-блоке, но pointer-escape проверки — roadmap.
+
+---
+
 ## Changelog: перенумерация кодов
 
 Коды переразложены в связную схему. Если ты смотришь вывод прошлой версии:
@@ -379,16 +567,18 @@ control-flow в `finally` — настоящая работа, она в roadmap
 ownlang/
   ownlang/
     lexer.py        # токенизатор; цикл/async лексятся как REJECTED; строки для emit_*
-    ast_nodes.py    # dataclass-узлы AST (resource, extern, call, эффекты)
+    ast_nodes.py    # dataclass-узлы AST (resource, extern, call, эффекты, buffer, policy)
     parser.py       # recursive descent; грамматика в docstring
+    buffers.py      # storage policies: режимы, резолв policy+intent, валидация
     cfg.py          # resolver (Symbol/Kind) + collect_signatures + lowering, Invoke
     analysis.py     # flow-sensitive dataflow: var-states + active loans + permissions
     diagnostics.py  # коды OWN0xx в одном месте
-    codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline)
-    __main__.py     # CLI: check / emit / cfg
+    codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline, буферы)
+    report.py       # compile-time buffer report -> stdout + .ownreport.json
+    __main__.py     # CLI: check / emit / cfg / report
   examples/
     ok_*.own                  # проходят
     bad_*.own                 # падают с конкретным кодом
-    golden_arraypool/         # buffer.own + Program.cs + demo.csproj (dotnet run)
+    golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
   tests/run_tests.py          # 42 кейса анализа + codegen smoke + golden smoke
 ```

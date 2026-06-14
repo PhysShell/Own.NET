@@ -1,0 +1,18 @@
+module MaybeReleaseDemo
+
+resource Buffer {
+  acquire rent
+  release give
+}
+
+// 'b' is released on the 'then' path only. At the join its state is
+// inconsistent, so the following `use b` touches a maybe-released value
+// (OWN009). The 'else' path never releases, so it also leaks (OWN001).
+// Good for `python -m ownlang cfg examples/bad_maybe_release.own`.
+fn use_after_maybe(flag: int) {
+  let b = acquire Buffer(flag);
+  if (flag) {
+    release b;
+  }
+  use b;
+}

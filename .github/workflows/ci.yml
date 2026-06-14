@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The PoC needs 3.11+ (see README). Run the floor and current releases.
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Zero-dependency project: nothing to install. The suite runs the
+      # analyzer cases, the golden ArrayPool lowering, the codegen content
+      # assertions, and the property fuzzer (fixed seed) in one entrypoint.
+      - name: Run test suite
+        run: python tests/run_tests.py
+
+  # A heavier, non-blocking fuzz pass so a flake-free regression that only
+  # shows up on other random draws still gets surfaced on every push.
+  fuzz-extended:
+    name: extended codegen fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Property fuzz (50k draws, rotating seed)
+        run: python tests/test_codegen_props.py 50000 ${{ github.run_number }}
