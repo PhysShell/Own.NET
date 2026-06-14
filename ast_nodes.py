@@ -73,6 +73,7 @@ class BufferIntent:
     line: int
     ns: str = "Buffer"
     col: int = 0
+    dups: tuple = ()   # option names that appeared more than once
 
 
 Expr = IntLit | VarRef | Acquire | Move | BufferIntent
@@ -199,6 +200,7 @@ class PolicyDecl:
     name: str
     settings: dict[str, object]
     line: int
+    dups: tuple = ()   # setting keys that appeared more than once
 
 
 @dataclass

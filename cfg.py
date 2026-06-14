@@ -505,7 +505,8 @@ class _Builder:
 
 
 def collect_policies(mod: A.Module) -> dict[str, Policy]:
-    return {p.name: Policy(p.name, dict(p.settings), p.line) for p in mod.policies}
+    return {p.name: Policy(p.name, dict(p.settings), p.line, p.dups)
+            for p in mod.policies}
 
 
 def build_cfg(fn: A.FnDecl, resource_names: set[str],

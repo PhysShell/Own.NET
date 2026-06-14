@@ -135,6 +135,7 @@ class Policy:
     name: str
     settings: dict[str, object] = field(default_factory=dict)
     line: int = 0
+    dups: tuple = ()   # setting keys that appeared more than once
 
 
 # --------------------------------------------------------------------------
@@ -167,6 +168,11 @@ def validate_policies(policies: dict[str, Policy]) -> list[Diagnostic]:
                     f"unknown policy setting '{key}' in policy '{pol.name}'; "
                     f"expected one of {', '.join(sorted(VALID_POLICY_KEYS))}",
                     pol.line))
+        for key in pol.dups:
+            diags.append(Diagnostic(
+                "OWN030",
+                f"duplicate policy setting '{key}' in policy '{pol.name}'",
+                pol.line))
     return diags
 
 
@@ -189,6 +195,11 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
                 "OWN030",
                 f"unknown buffer option '{key}'; expected one of "
                 f"{', '.join(sorted(VALID_OPTIONS))}", line))
+    # a repeated option (e.g. fallback = forbidden, fallback = pool) is a
+    # conflicting storage promise; reject it instead of letting the last win.
+    for key in intent.dups:
+        diags.append(Diagnostic(
+            "OWN030", f"duplicate buffer option '{key}'", line))
 
     # Start from a referenced policy's defaults, then let inline options win.
     base: dict[str, object] = {}

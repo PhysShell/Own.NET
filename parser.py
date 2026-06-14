@@ -130,13 +130,16 @@ class Parser:
         name = self.eat(Tok.IDENT).text
         self.eat(Tok.LBRACE)
         settings: dict[str, object] = {}
+        seen: list[str] = []
         while not self.at(Tok.RBRACE):
             key = self.eat(Tok.IDENT).text
             self.eat(Tok.EQ)
             settings[key] = self._policy_value()
             self.eat(Tok.SEMI)
+            seen.append(key)
         self.eat(Tok.RBRACE)
-        return A.PolicyDecl(name=name, settings=settings, line=kw.line)
+        dups = tuple(sorted({k for k in seen if seen.count(k) > 1}))
+        return A.PolicyDecl(name=name, settings=settings, line=kw.line, dups=dups)
 
     def _policy_value(self) -> object:
         """A policy setting value: an int, or an identifier interpreted as a
@@ -307,18 +310,21 @@ class Parser:
         self.eat(Tok.LPAREN)
         size: A.Expr | None = None
         options: dict[str, A.Expr] = {}
+        seen: list[str] = []                # option names in order (for dup detect)
         first = True
         if not self.at(Tok.RPAREN):
-            size, first = self._buffer_arg(options, first)
+            size, first = self._buffer_arg(options, seen, first)
             while self.accept(Tok.COMMA):
-                got, first = self._buffer_arg(options, first)
+                got, first = self._buffer_arg(options, seen, first)
                 if got is not None:
                     size = got
         self.eat(Tok.RPAREN)
+        dups = tuple(sorted({k for k in seen if seen.count(k) > 1}))
         return A.BufferIntent(mode=mode, size=size, options=options,
-                              line=ns.line, ns=ns.text, col=ns.col)
+                              line=ns.line, ns=ns.text, col=ns.col, dups=dups)
 
-    def _buffer_arg(self, options: dict, first: bool) -> tuple[A.Expr | None, bool]:
+    def _buffer_arg(self, options: dict, seen: list, first: bool
+                    ) -> tuple[A.Expr | None, bool]:
         """Parse one buffer argument: a named option, or the leading positional
         size. Returns (size_expr_or_None, still_first)."""
         # named option: IDENT "=" atom. `policy` is a keyword token elsewhere but
@@ -328,6 +334,7 @@ class Parser:
             self.pos += 1
             self.eat(Tok.EQ)
             options[key] = self.parse_atom()
+            seen.append(key)
             return None, first
         atom = self.parse_atom()
         if not first:

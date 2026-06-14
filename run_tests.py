@@ -241,6 +241,13 @@ CASES = [
     ("buf_policy_bools_ok",
      "policy S { clear_on_release = true; counters = false; trace = off; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = S); release b; }", []),
+    ("buf_duplicate_option",
+     "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbidden, "
+     "fallback = pool); release b; }", ["OWN030"]),
+    ("buf_duplicate_policy_setting",
+     "policy P { inline_bytes = 512; inline_bytes = 1024; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }",
+     ["OWN030"]),
     ("buf_inline_override_ignores_bad_policy",
      "policy P { inline_bytes = bogus; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = P, inline = 128); "
