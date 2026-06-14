@@ -68,8 +68,14 @@ class _FnGen:
     def _is_simple(self) -> bool:
         # Straight-line functions (no branch / move / owned-return) use the
         # try/finally hoist, which nests buffers AND ordinary resources so each
-        # gets its own exception-safe finally. Branchy functions fall to inline.
-        return not _contains_branch_or_transfer(self.fn.body)
+        # gets its own exception-safe finally. But the hoist is only safe when
+        # scope lifetimes are LAMINAR (every pair nested or disjoint): a partial
+        # overlap (a opened first, released first, while b is still live) cannot
+        # be nested without breaking b's lifetime, so it falls back to faithful
+        # inline, which emits releases exactly where the source put them.
+        if _contains_branch_or_transfer(self.fn.body):
+            return False
+        return _laminar_scopes(self.fn.body)
 
     # -- emit ---------------------------------------------------------------
 
@@ -299,6 +305,10 @@ class _FnGen:
 
         elif info.mode == BufferMode.NATIVE:
             # the method is emitted `unsafe`, so the pointer needs no local block.
+            # The pointer is the backing (freed on release); the buffer is exposed
+            # as a Span<byte> view, so borrows/calls see the SAME logical type as
+            # pooled/stack/scratch — an `extern fn Fill(borrow_mut Buffer)` lowers
+            # to one C# signature (Span<byte>) regardless of storage mode.
             if not info.size_is_const:
                 # a negative size would wrap when cast to nuint and request an
                 # enormous allocation; reject it before Alloc (and before clear).
@@ -306,12 +316,12 @@ class _FnGen:
                 pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
             if info.trace:
                 pre.append(f'OwnTrace.NativeSelected("{fn}", "{name}", {size});')
-            pre.append(f"byte* {name} = (byte*)System.Runtime.InteropServices."
+            pre.append(f"byte* {name}_ptr = (byte*)System.Runtime.InteropServices."
                        f"NativeMemory.Alloc((nuint){size});")
+            pre.append(f"Span<byte> {name} = new Span<byte>({name}_ptr, {size});")
             if info.clear_on_release:
-                fin.append(f"System.Runtime.InteropServices.NativeMemory."
-                           f"Clear({name}, (nuint){size});")
-            fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name});")
+                fin.append(f"{name}.Clear();")
+            fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name}_ptr);")
 
         return pre, fin
 
@@ -516,6 +526,26 @@ def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
             if _fn_has_buffer(st.body):
                 return True
     return False
+
+
+def _laminar_scopes(stmts: list[A.Stmt]) -> bool:
+    """True if every pair of top-level resource lifetimes is nested or disjoint
+    (never partially overlapping). Only then is the try/finally hoist safe: a
+    partial overlap `let a; let b; release a; ... release b;` cannot be nested
+    without forcing b's release before its source point."""
+    intervals: list[tuple[int, int]] = []
+    for i, st in enumerate(stmts):
+        if isinstance(st, A.Let) and isinstance(st.rhs, (A.Acquire, A.BufferIntent)):
+            for k in range(i + 1, len(stmts)):
+                s2 = stmts[k]
+                if isinstance(s2, A.Release) and s2.var == st.name:
+                    intervals.append((i, k))
+                    break
+    for a1, a2 in intervals:
+        for b1, b2 in intervals:
+            if a1 < b1 < a2 < b2:  # partial overlap
+                return False
+    return True
 
 
 def _fn_has_native(stmts: list[A.Stmt]) -> bool:

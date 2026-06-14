@@ -221,6 +221,9 @@ CASES = [
      "fn f(n: int){ let a = Buffer.pooled(n); if (c) { let b = move a; "
      "release b; } else { release a; } let b = acquire Conn(); release b; }",
      []),
+    ("res_partial_overlap_ok",
+     "fn f(){ let a = acquire Buffer(1); let c = acquire Conn(1); "
+     "release a; use c; release c; }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -700,6 +703,34 @@ def ordering_counters_smoke() -> list[str]:
         fails.append("scratch dynamic size must guard against a negative request")
     elif out.index("if (n < 0)") > out.index("ScratchSelected"):
         fails.append("scratch negative guard must run before any trace/counter")
+
+    # partially-overlapping lifetimes (a released while b still live) must NOT be
+    # hoisted into nested try/finally — that would force b's release before its
+    # source point. They fall back to faithful inline (release where written).
+    overlap = ("module M\nresource A { acquire oa release ca }\n"
+               "resource B { acquire ob release cb }\n"
+               "fn f(){ let a = acquire A(); let b = acquire B(); "
+               "release a; use b; release b; }\n")
+    out = generate(parse(overlap))
+    if "Use(b)" not in out or "b.cb()" not in out:
+        fails.append("overlap smoke missing expected lines")
+    elif out.index("Use(b)") > out.index("b.cb()"):
+        fails.append("partial overlap must not emit use-after-release for b")
+    if "a.ca()" in out and out.index("a.ca()") > out.index("Use(b)"):
+        fails.append("a must be released at its source point, before use b")
+
+    # native buffers expose a Span<byte> view (so a borrow/call sees the same
+    # logical type as pooled/stack), and free the backing pointer on release
+    native = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+              "fn g(n: int){ let b = Buffer.native(n); "
+              "borrow_mut b as m { Fill(m); } release b; }\n")
+    out = generate(parse(native))
+    if "new Span<byte>(b_ptr, n)" not in out:
+        fails.append("native buffer must expose a Span<byte> view for borrows/calls")
+    if "NativeMemory.Free(b_ptr)" not in out:
+        fails.append("native release must free the backing pointer")
+    if "var m = b;" not in out:
+        fails.append("native borrow must bind the span view, not the raw pointer")
 
     # a moved buffer's cleanup alias must not leak onto a later same-named, but
     # unrelated, resource declared in another scope
