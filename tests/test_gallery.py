@@ -86,6 +86,7 @@ def run() -> int:
     """Check every gallery example against its documented code; return 0/1."""
     fails: list[str] = _render_smoke()
     rows: list[tuple[str, str, str]] = []
+    matched = 0
     for name, want, analog in MANIFEST:
         path = os.path.join(_GALLERY, name)
         try:
@@ -95,13 +96,17 @@ def run() -> int:
             fails.append(f"{name}: missing")
             continue
         if want is None:
-            if got:
+            ok = not got
+            if not ok:
                 fails.append(f"{name}: expected clean, got {got}")
             shown = "clean"
         else:
-            if got != [want]:
+            ok = got == [want]
+            if not ok:
                 fails.append(f"{name}: expected [{want}], got {got}")
             shown = want
+        if ok:
+            matched += 1
         rows.append((name, shown, analog))
 
     width = max((len(n) for n, _, _ in rows), default=0)
@@ -113,11 +118,8 @@ def run() -> int:
             print(f"  {'':<{width}}  {'':<7}  ({title})")
     for f in fails:
         print(f"GALLERY FAIL: {f}")
-    # count only failures that name an actual gallery file (not render_pretty:…)
-    names = {n for n, _, _ in MANIFEST}
-    example_fails = {f.split(":")[0] for f in fails if f.split(":")[0] in names}
-    print(f"gallery: {len(rows) - len(example_fails)}"
-          f"/{len(MANIFEST)} examples match their documented diagnostic")
+    print(f"gallery: {matched}/{len(MANIFEST)} "
+          f"examples match their documented diagnostic")
     return 1 if fails else 0
 
 
