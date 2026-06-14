@@ -148,9 +148,11 @@ class _FnGen:
                 # after its finally so its lifetime ends at the source release.
                 out.extend(self._emit_hoist(tail, base))
                 return out
-            if isinstance(st, A.Release):
-                i += 1  # stray release (already consumed by its scope), skip
-                continue
+            # A release that reaches this top loop was NOT consumed by a scope:
+            # a scope handles its own release inside the recursion above (it is
+            # excluded from `body` and the function returns), so the only
+            # releases arriving here are for owned *parameters*, which open no
+            # scope. Emit them faithfully — skipping would leak the resource.
             out.extend(self._stmt_inline(st, base))
             i += 1
         return out
