@@ -492,14 +492,44 @@ class _Builder:
         return merge
 
     def lower_return(self, st: A.Return, cur: Block) -> Block | None:
+        ret = self.fn.ret
         sym: Symbol | None = None
-        if st.var is not None:
+        if st.var is None:
+            # `return;` with no value — only valid in a function with no return
+            # type. Otherwise the analyzer would treat the function as a valid
+            # terminal and codegen would emit `return;` from a non-void method.
+            if ret is not None:
+                self.diags.append(Diagnostic(
+                    "OWN035",
+                    f"'{self.fn.name}' returns '{ret.name}' but this 'return' "
+                    f"provides no value", st.line))
+        else:
             sym = self.lookup(st.var, st.line)
-            if sym is not None and sym.kind == Kind.BORROW:
+            if ret is None:
+                # returning a value from a function with no declared return type
+                # lowers to `return x;` inside a `void` method — uncompilable.
+                if sym is not None:
+                    self.diags.append(Diagnostic(
+                        "OWN035",
+                        f"'{self.fn.name}' has no return type but returns "
+                        f"'{st.var}'", st.line))
+                sym = None
+            elif sym is not None and sym.kind == Kind.BORROW:
                 self.diags.append(Diagnostic(
                     "OWN004",
                     f"'{st.var}' is a borrow and cannot be returned (it would "
                     f"outlive the resource it borrows)", st.line))
+                sym = None
+            elif (not ret.borrowed and ret.name in self.resource_names
+                  and sym is not None and sym.kind != Kind.OWNED):
+                # the return type is an owned resource, but the returned value is
+                # not one (e.g. `return n;` where n is a plain int). Dropping the
+                # symbol silently is what let codegen emit an uncompilable
+                # `return n;` from a `-> Buffer` method.
+                self.diags.append(Diagnostic(
+                    "OWN035",
+                    f"'{self.fn.name}' returns '{ret.name}' but '{st.var}' is "
+                    f"not an owned resource", st.line))
                 sym = None
             elif sym is not None and sym.kind == Kind.PLAIN:
                 sym = None
