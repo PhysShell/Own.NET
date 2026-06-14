@@ -33,19 +33,19 @@ class TypeRef:
 # ---- expressions (RHS of a let, or argument) ------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class IntLit:
     value: int
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class VarRef:
     name: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Acquire:
     """acquire Resource(args) -> Owned<Resource>"""
     resource: str
@@ -53,14 +53,14 @@ class Acquire:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Move:
     """move x  -> transfers ownership, invalidates x"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class BufferIntent:
     """Buffer.<mode>(size, name = value, ...) -> Owned<Buffer> with a storage
     policy. `mode` is one of stack/scratch/pooled/native/inline. `size` is the
@@ -82,28 +82,28 @@ Expr = IntLit | VarRef | Acquire | Move | BufferIntent
 # ---- statements -----------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class Let:
     name: str
     rhs: Expr
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Release:
     """release x;  -> consumes x"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Use:
     """use x;  -> reads x (owner or live borrow)"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Call:
     """callee(args);  -> a call to a declared extern or local fn"""
     callee: str
@@ -111,7 +111,7 @@ class Call:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class BorrowBlock:
     owner: str
     binding: str
@@ -120,7 +120,7 @@ class BorrowBlock:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class If:
     # condition is intentionally opaque: we model control flow, not values
     cond_text: str
@@ -129,7 +129,7 @@ class If:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Return:
     var: str | None
     line: int
@@ -141,14 +141,14 @@ Stmt = Let | Release | Use | Call | BorrowBlock | If | Return
 # ---- top level ------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class ResourceMember:
     role: str   # "acquire" | "release"
     name: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class ResourceDecl:
     name: str
     members: list[ResourceMember]
@@ -161,7 +161,7 @@ class ResourceDecl:
     emit_borrow: str | None = None     # e.g. "{0}.AsSpan()"
 
 
-@dataclass
+@dataclass(frozen=True)
 class EffectParam:
     """A positional parameter of an extern fn: an effect + a resource/plain type."""
     effect: Effect
@@ -169,7 +169,7 @@ class EffectParam:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExternDecl:
     name: str
     params: list[EffectParam]
@@ -177,14 +177,14 @@ class ExternDecl:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Param:
     name: str
     type: TypeRef
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class FnDecl:
     name: str
     params: list[Param]
@@ -193,7 +193,7 @@ class FnDecl:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class PolicyDecl:
     """policy Name { key = value; ... } — a named bundle of buffer defaults
     (inline_bytes, max_bytes, mode, fallback, trace, counters, clear_on_release)."""
@@ -203,7 +203,7 @@ class PolicyDecl:
     dups: tuple[str, ...] = ()   # setting keys that appeared more than once
 
 
-@dataclass
+@dataclass(frozen=True)
 class Module:
     name: str
     resources: list[ResourceDecl] = field(default_factory=list)
