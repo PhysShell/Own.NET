@@ -57,6 +57,32 @@ python tests/run_tests.py                                     # кейсы + cod
 `check` возвращает ненулевой код при наличии ошибок — годится для CI.
 `emit` **отказывается** генерировать C#, если в `.own` есть хоть одна ошибка.
 
+### Что оно ловит — галерея
+
+В `examples/gallery/` лежат маленькие программы «как в жизни»: каждая роняет ровно
+одну диагностику и снабжена C#-аналогом в комментарии. Каждый файл прибит к своему
+коду тестом (`tests/test_gallery.py`), так что демо не разъезжается с тем, что
+checker реально делает. Прогнать всё разом:
+
+```bash
+python tests/test_gallery.py
+```
+
+| Файл | Код | Реальный C#-аналог |
+|------|-----|--------------------|
+| `01_leak_on_error_path` | **OWN001** | забыл `Dispose()` на early-out ветке |
+| `02_use_after_release` | **OWN002** | обращение к стриму после `Dispose()` |
+| `03_double_release` | **OWN003** | `Dispose()` дважды |
+| `04_use_after_move` | **OWN005** | использовал значение после передачи владения |
+| `05_dispose_while_view_live` | **OWN008** | `ArrayPool.Return`, пока жив `Span<byte>` над массивом |
+| `06_exclusive_while_shared` | **OWN006** | пишут через `Span`, который алиасит живой `ReadOnlySpan` |
+| `07_use_after_handoff` | **OWN002** | тронул буфер после того, как его забрал вызов |
+| `08_stack_buffer_escapes` | **OWN015** | вернул `Span<byte>` над `stackalloc` (dangling) |
+| `09_untracked_call` | **OWN040** | владение «отмыли» через непрозрачный вызов |
+
+`00_ok_clean` — чистый happy-path (rent → view → return), лоуэрится в exception-safe
+`ArrayPool` Rent/Return.
+
 ### Golden-пример: настоящий ArrayPool
 
 ```bash

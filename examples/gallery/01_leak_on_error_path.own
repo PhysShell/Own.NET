@@ -1,0 +1,10 @@
+// OWN001 — leak on one path.
+// Real C#: you Dispose() in the happy branch but forget it on the early-out.
+module Gallery
+resource Conn { acquire open release close }
+fn handle(flag: int) {
+  let c = acquire Conn(flag);
+  if (flag) {
+    release c;           // released here ...
+  }                      // ... but on the else path c is never closed -> leak
+}

@@ -1,0 +1,9 @@
+// OWN040 — an unknown call is a hole the size of a bus, so it is forbidden.
+// Real C#: ownership "laundered" through an opaque helper the checker can't see.
+module Gallery
+resource Buffer { acquire rent release give }
+fn run() {
+  let b = acquire Buffer(64);
+  Mystery(b);            // not declared as extern fn / local fn -> rejected
+  release b;
+}
