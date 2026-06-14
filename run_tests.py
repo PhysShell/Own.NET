@@ -203,6 +203,16 @@ CASES = [
     ("buf_bad_policy_ref",
      "fn f(n: int){ let b = Buffer.scratch(n, policy = 0); release b; }",
      ["OWN030"]),
+    ("buf_bad_inline_bound",
+     "fn f(n: int){ let b = Buffer.scratch(n, inline = bogus); release b; }",
+     ["OWN030"]),
+    ("buf_bad_max_bound",
+     "fn f(n: int){ let b = Buffer.stack(n, max = bogus); release b; }",
+     ["OWN030"]),
+    ("buf_alias_redecl_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); if (c) { let b = move a; "
+     "release b; } else { release a; } let b = acquire Conn(); release b; }",
+     []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -367,6 +377,7 @@ def buffer_smoke() -> list[str]:
     if os.path.exists(golden_path):
         prog = open(golden_path, encoding="utf-8").read()
         for s in ("public static void parse(int size)",
+                  "if (size < 0)",
                   "ArrayPool<byte>.Shared.Rent(size)",
                   "ArrayPool<byte>.Shared.Return(tmp_rented)",
                   "internal static class OwnTrace",
@@ -374,6 +385,10 @@ def buffer_smoke() -> list[str]:
                   "public static void Main()"):
             if s not in prog:
                 fails.append(f"runnable golden missing: {s!r}")
+        # the negative-size guard must precede the trace/counter hooks
+        if "if (size < 0)" in prog and "ScratchSelected" in prog:
+            if prog.index("if (size < 0)") > prog.index("ScratchSelected"):
+                fails.append("runnable golden guard must precede the trace hook")
         # its emitted parse body must match what the emitter produces today
         if "tmp = tmp_backing[..size];" not in prog:
             fails.append("runnable golden parse body drifted from the emitter")
@@ -667,6 +682,20 @@ def ordering_counters_smoke() -> list[str]:
         fails.append("scratch dynamic size must guard against a negative request")
     elif out.index("if (n < 0)") > out.index("ScratchSelected"):
         fails.append("scratch negative guard must run before any trace/counter")
+
+    # a moved buffer's cleanup alias must not leak onto a later same-named, but
+    # unrelated, resource declared in another scope
+    redecl = ("module M\nresource Conn { acquire open release close }\n"
+              "fn f(n: int){ let a = Buffer.pooled(n); "
+              "if (c) { let b = move a; release b; } else { release a; } "
+              "let b = acquire Conn(); release b; }\n")
+    if codes(redecl):
+        fails.append(f"alias redeclaration should check clean, got {codes(redecl)}")
+    out = generate(parse(redecl))
+    if "b.close();" not in out:
+        fails.append("redeclared Conn must be closed, not treated as the buffer alias")
+    if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 2:
+        fails.append("a_array must be returned exactly once per branch (no stale alias)")
     return fails
 
 

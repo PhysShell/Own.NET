@@ -181,12 +181,26 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
                 "OWN030", f"undefined policy '{pol_name}'", line))
 
     def opt_int(name: str, default: int) -> int:
+        # present-but-not-an-integer (e.g. inline = bogus) must fail safe and
+        # diagnose, not silently fall through to the default and change the policy.
         if name in opts:
             v = _as_int(opts[name])
             if v is not None:
                 return v
-        if name in base and isinstance(base[name], int):
-            return base[name]  # type: ignore[return-value]
+            diags.append(Diagnostic(
+                "OWN030",
+                f"invalid '{name}' value '{_fallback_token(opts[name])}'; "
+                f"expected an integer", line))
+            return default
+        if name in base:
+            bv = base[name]
+            if isinstance(bv, int) and not isinstance(bv, bool):
+                return bv
+            diags.append(Diagnostic(
+                "OWN030",
+                f"invalid '{name}' value '{bv}' in policy; expected an integer",
+                line))
+            return default
         return default
 
     # ---- size --------------------------------------------------------------
@@ -203,17 +217,23 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
         if size_const is not None:
             inline_bytes = size_const
         else:
-            # dynamic size: needs an explicit max bound, else it is unbounded.
-            mx = opts.get("max")
-            mx_val = _as_int(mx) if mx is not None else opt_int("max_bytes", -1)
-            if mx_val is None or mx_val < 0:
+            # dynamic size: needs an explicit, integer max bound.
+            inline_bytes = MAX_STACK_BYTES  # safe default while we validate
+            if "max" in opts and _as_int(opts["max"]) is None:
                 diags.append(Diagnostic(
-                    "OWN021",
-                    f"'{mode.value}' allocation of a dynamic size requires a "
-                    f"statically known bound (add 'max = N')", line))
-                inline_bytes = MAX_STACK_BYTES  # keep going with a safe default
+                    "OWN030",
+                    f"invalid 'max' value '{_fallback_token(opts['max'])}'; "
+                    f"expected an integer", line))
             else:
-                inline_bytes = mx_val
+                mx_val = (_as_int(opts["max"]) if "max" in opts
+                          else opt_int("max_bytes", -1))
+                if mx_val < 0:
+                    diags.append(Diagnostic(
+                        "OWN021",
+                        f"'{mode.value}' allocation of a dynamic size requires a "
+                        f"statically known bound (add 'max = N')", line))
+                else:
+                    inline_bytes = mx_val
 
     elif mode == BufferMode.SCRATCH:
         inline_bytes = opt_int("inline", opt_int("inline_bytes", DEFAULT_INLINE_BYTES))

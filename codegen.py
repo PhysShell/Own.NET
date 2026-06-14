@@ -210,6 +210,9 @@ class _FnGen:
         caller's decision."""
         info, _ = resolve_buffer(intent, self.policies)
         self.buffer_vars[name] = info
+        # a fresh declaration of this name shadows any stale moved-alias cleanup
+        # left over from an earlier (now out-of-scope) buffer of the same name.
+        self.buffer_cleanup.pop(name, None)
         fn = self.fn.name
         size = self._size_expr(info)
         L = info.inline_bytes
@@ -354,6 +357,9 @@ class _FnGen:
 
     def _stmt_inline(self, st: A.Stmt, ind: str) -> list[str]:
         if isinstance(st, A.Let):
+            # a (re)declaration of this name shadows any stale buffer-cleanup
+            # alias from an earlier same-named buffer in another scope.
+            self.buffer_cleanup.pop(st.name, None)
             if isinstance(st.rhs, A.Acquire):
                 rt = st.rhs.resource
                 self.owned_resource[st.name] = rt

@@ -16,6 +16,8 @@ public static class ScratchDemo
 {
     public static void parse(int size)
     {
+        if (size < 0)
+            throw new ArgumentOutOfRangeException(nameof(size));
         byte[]? tmp_rented = null;
         Span<byte> tmp_backing = stackalloc byte[1024];
         Span<byte> tmp;
