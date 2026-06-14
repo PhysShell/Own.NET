@@ -40,13 +40,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang import ast_nodes as A                         # noqa: E402
-from ownlang.parser import parse                           # noqa: E402
-from ownlang.cfg import build_cfg, collect_signatures      # noqa: E402
-from ownlang.analysis import analyze                        # noqa: E402
-from ownlang.diagnostics import Severity                    # noqa: E402
-from ownlang.codegen import generate                        # noqa: E402
-
+from ownlang import ast_nodes as A
+from ownlang.analysis import analyze
+from ownlang.cfg import build_cfg, collect_signatures
+from ownlang.codegen import generate
+from ownlang.diagnostics import Severity
+from ownlang.parser import parse
 
 PRELUDE = (
     "module M\n"
@@ -76,7 +75,6 @@ class Gen:
     def fn(self) -> tuple[str, set[str]]:
         """Return (function source, coverage-tags hit)."""
         self.coverage = set()
-        params: list[str] = []          # (name, owned?)
         owned: list[str] = []           # names of owned values still needing a fate
         lines: list[str] = []
 
@@ -282,7 +280,7 @@ def run(iterations: int = 4000, seed: int = 1234) -> int:
         try:
             if not _is_clean(src):
                 continue
-        except Exception:  # noqa: BLE001  (malformed draw -> skip)
+        except Exception:
             continue
         clean += 1
         coverage |= cov
@@ -290,7 +288,7 @@ def run(iterations: int = 4000, seed: int = 1234) -> int:
         mod = parse(src)
         try:
             cs = generate(mod)              # P1: must not throw
-        except Exception as e:              # noqa: BLE001
+        except Exception as e:
             failures.append((fn_src, [f"generate threw {type(e).__name__}: {e}"]))
             continue
 

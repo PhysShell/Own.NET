@@ -49,7 +49,7 @@ class VarRef:
 class Acquire:
     """acquire Resource(args) -> Owned<Resource>"""
     resource: str
-    args: list["Expr"]
+    args: list[Expr]
     line: int
 
 
@@ -68,12 +68,12 @@ class BufferIntent:
     named option (inline, max, fallback, clear, trace, counters, policy) to its
     value expression. `ns` is the namespace as written (must be "Buffer")."""
     mode: str
-    size: "Expr | None"
-    options: dict[str, "Expr"]
+    size: Expr | None
+    options: dict[str, Expr]
     line: int
     ns: str = "Buffer"
     col: int = 0
-    dups: tuple = ()   # option names that appeared more than once
+    dups: tuple[str, ...] = ()   # option names that appeared more than once
 
 
 Expr = IntLit | VarRef | Acquire | Move | BufferIntent
@@ -107,7 +107,7 @@ class Use:
 class Call:
     """callee(args);  -> a call to a declared extern or local fn"""
     callee: str
-    args: list["Expr"]
+    args: list[Expr]
     line: int
 
 
@@ -116,7 +116,7 @@ class BorrowBlock:
     owner: str
     binding: str
     kind: BorrowKind
-    body: list["Stmt"]
+    body: list[Stmt]
     line: int
 
 
@@ -124,8 +124,8 @@ class BorrowBlock:
 class If:
     # condition is intentionally opaque: we model control flow, not values
     cond_text: str
-    then_body: list["Stmt"]
-    else_body: list["Stmt"]
+    then_body: list[Stmt]
+    else_body: list[Stmt]
     line: int
 
 
@@ -200,7 +200,7 @@ class PolicyDecl:
     name: str
     settings: dict[str, object]
     line: int
-    dups: tuple = ()   # setting keys that appeared more than once
+    dups: tuple[str, ...] = ()   # setting keys that appeared more than once
 
 
 @dataclass

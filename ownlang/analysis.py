@@ -35,13 +35,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import assert_never
 
-from .cfg import (
-    CFG, Block, Symbol, Kind,
-    Acquire, AcquireBuffer, MoveInto, Release, Use, Invoke,
-    BorrowStart, BorrowEnd, Return,
-)
 from .ast_nodes import Effect
+from .cfg import (
+    CFG,
+    Acquire,
+    AcquireBuffer,
+    Block,
+    BorrowEnd,
+    BorrowStart,
+    Instr,
+    Invoke,
+    Kind,
+    MoveInto,
+    Release,
+    Return,
+    Symbol,
+    Use,
+)
 from .diagnostics import Diagnostic
 
 
@@ -70,7 +82,7 @@ class State:
     var: dict[int, set[VarState]] = field(default_factory=dict)
     loans: dict[int, Loan] = field(default_factory=dict)
 
-    def copy(self) -> "State":
+    def copy(self) -> State:
         return State(
             var={k: set(v) for k, v in self.var.items()},
             loans=dict(self.loans),
@@ -167,7 +179,7 @@ class _Analyzer:
                 continue
             reachable.add(x)
             stack.extend(self.blocks[x].succ)
-        local_indeg = {b: 0 for b in reachable}
+        local_indeg = dict.fromkeys(reachable, 0)
         for b in reachable:
             for s in self.blocks[b].succ:
                 if s in reachable:
@@ -265,7 +277,7 @@ class _Analyzer:
             self.step(ins, st)
         return st
 
-    def step(self, ins, st: State) -> None:
+    def step(self, ins: Instr, st: State) -> None:
         if isinstance(ins, Acquire):
             st.var[id(ins.sym)] = {VarState.OWNED}
             return
@@ -283,7 +295,7 @@ class _Analyzer:
         if isinstance(ins, Release):
             subj = ins.sym.origin
             S = st.var.get(id(ins.sym), {VarState.OWNED})
-            if S == {VarState.RELEASED}:
+            if {VarState.RELEASED} == S:
                 self.err("OWN003", f"'{ins.sym.name}' is released twice",
                          ins.line, subject=subj)
             elif VarState.RELEASED in S:
@@ -374,7 +386,7 @@ class _Analyzer:
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
-        raise AssertionError(f"unknown instr {ins!r}")
+        assert_never(ins)
 
     # -- permission checks --------------------------------------------------
 

@@ -1,0 +1,23 @@
+[project]
+name = "ownlang"
+version = "0.0.0"
+description = "A tiny ownership / borrow / lifetime checker for a resource DSL that lowers to C#."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# High-signal rules only. SIM (flake8-simplify) is deliberately omitted: its
+# nested-if collapsing fights intentional, commented branch structure here.
+#   E/W pycodestyle · F pyflakes · I import order · B bugbear gotchas
+#   UP pyupgrade · C4 comprehensions · RUF ruff-native
+select = ["E", "W", "F", "I", "B", "UP", "C4", "RUF"]
+
+[tool.mypy]
+# The package is held to --strict. Tests/fuzzers are not (they lean on dynamic
+# construction and an AST oracle); ruff still covers them.
+python_version = "3.11"
+files = ["ownlang"]
+strict = true

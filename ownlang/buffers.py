@@ -113,7 +113,7 @@ class BufferInfo:
     def escape_policy(self) -> str:
         return "local-only" if self.stack_backed else "movable"
 
-    def branches(self) -> list[dict]:
+    def branches(self) -> list[dict[str, str]]:
         """The runtime backend branches, for the compile-time report."""
         if self.mode == BufferMode.SCRATCH and self.fallback_pool:
             return [
@@ -136,7 +136,7 @@ class Policy:
     name: str
     settings: dict[str, object] = field(default_factory=dict)
     line: int = 0
-    dups: tuple = ()   # setting keys that appeared more than once
+    dups: tuple[str, ...] = ()   # setting keys that appeared more than once
 
 
 # --------------------------------------------------------------------------
@@ -144,11 +144,11 @@ class Policy:
 # --------------------------------------------------------------------------
 
 
-def _as_int(expr) -> int | None:
+def _as_int(expr: object) -> int | None:
     return expr.value if isinstance(expr, A.IntLit) else None
 
 
-def _as_ident(expr) -> str | None:
+def _as_ident(expr: object) -> str | None:
     return expr.name if isinstance(expr, A.VarRef) else None
 
 
@@ -177,7 +177,7 @@ def validate_policies(policies: dict[str, Policy]) -> list[Diagnostic]:
     return diags
 
 
-def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
+def resolve(intent: A.BufferIntent, policies: dict[str, Policy]
             ) -> tuple[BufferInfo, list[Diagnostic]]:
     """Resolve one buffer intent against the available policies. Returns the
     metadata plus any policy/bound diagnostics (OWN019/021/023). Always returns
@@ -299,8 +299,11 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
                     f"invalid 'max' value '{_fallback_token(opts['max'])}'; "
                     f"expected an integer", line))
             else:
-                mx_val = (_as_int(opts["max"]) if "max" in opts
+                mx_raw = (_as_int(opts["max"]) if "max" in opts
                           else opt_int("max_bytes", -1))
+                # the `"max" in opts and _as_int(...) is None` case is handled in
+                # the branch above, so mx_raw is a concrete int here.
+                mx_val = mx_raw if mx_raw is not None else -1
                 if mx_val < 0:
                     diags.append(Diagnostic(
                         "OWN021",
@@ -395,7 +398,7 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
     return info, diags
 
 
-def _fallback_token(v) -> str:
+def _fallback_token(v: object) -> str:
     """Render a fallback value (an AST expr from an inline option, or a Python
     value from a policy) as a display token for validation/diagnostics."""
     if isinstance(v, A.IntLit):
@@ -407,8 +410,8 @@ def _fallback_token(v) -> str:
     return str(v)
 
 
-def _bool_flag(opt_expr, policy_val, default: bool, label: str,
-               diags, line: int) -> bool:
+def _bool_flag(opt_expr: object, policy_val: object, default: bool, label: str,
+               diags: list[Diagnostic], line: int) -> bool:
     # a malformed boolean (a typo like `ture`, or any non-bool) must be rejected,
     # not silently treated as the default — for a sensitive buffer that would
     # quietly turn off clear-on-release.
@@ -438,7 +441,8 @@ _TRACE_ON = ("debug", "on", "true")
 _TRACE_OFF = ("off", "none", "false")
 
 
-def _trace_flag(opt_expr, policy_val, default: bool, diags, line: int) -> bool:
+def _trace_flag(opt_expr: object, policy_val: object, default: bool,
+                diags: list[Diagnostic], line: int) -> bool:
     # `trace = debug` / `trace = off` / `trace = false`; on/off/none/true/false
     # toggle the (Conditional) hooks. A malformed value is rejected, not assumed
     # on. An inline option wins over the policy value.

@@ -23,12 +23,11 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.parser import parse                          # noqa: E402
-from ownlang.cfg import build_cfg, collect_signatures     # noqa: E402
-from ownlang.analysis import analyze                       # noqa: E402
-from ownlang.diagnostics import Severity                   # noqa: E402
-from ownlang.codegen import generate                       # noqa: E402
-
+from ownlang.analysis import analyze
+from ownlang.cfg import build_cfg, collect_signatures
+from ownlang.codegen import generate
+from ownlang.diagnostics import Severity
+from ownlang.parser import parse
 
 # Schematic prelude: resource Buffer renders as Buffer.rent(...) / x.give().
 SCHEMATIC = (
@@ -89,23 +88,23 @@ class Check:
 
     # -- assertions ---------------------------------------------------------
 
-    def has(self, needle: str) -> "Check":
+    def has(self, needle: str) -> Check:
         if needle not in self.cs:
             self.fails.append(f"expected to contain {needle!r}")
         return self
 
-    def lacks(self, needle: str) -> "Check":
+    def lacks(self, needle: str) -> Check:
         if needle in self.cs:
             self.fails.append(f"expected NOT to contain {needle!r}")
         return self
 
-    def count(self, needle: str, n: int) -> "Check":
+    def count(self, needle: str, n: int) -> Check:
         got = self.cs.count(needle)
         if got != n:
             self.fails.append(f"expected {needle!r} x{n}, got x{got}")
         return self
 
-    def before(self, a: str, b: str) -> "Check":
+    def before(self, a: str, b: str) -> Check:
         """`a` must appear, and its first occurrence must precede `b`'s."""
         ia, ib = self.cs.find(a), self.cs.find(b)
         if ia < 0:
@@ -116,7 +115,7 @@ class Check:
             self.fails.append(f"ordering: expected {a!r} before {b!r}")
         return self
 
-    def release_is_hoisted(self, give: str) -> "Check":
+    def release_is_hoisted(self, give: str) -> Check:
         """`give` (a release call) must sit inside a `finally`, exactly once,
         and not also be duplicated in the `try` body."""
         self.has("try").has("finally").count(give, 1)

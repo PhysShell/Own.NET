@@ -36,8 +36,8 @@ Grammar (informal):
 
 from __future__ import annotations
 
-from .lexer import Tok, Token, lex
 from . import ast_nodes as A
+from .lexer import Tok, Token, lex
 
 
 class ParseError(Exception):
@@ -323,7 +323,7 @@ class Parser:
         return A.BufferIntent(mode=mode, size=size, options=options,
                               line=ns.line, ns=ns.text, col=ns.col, dups=dups)
 
-    def _buffer_arg(self, options: dict, seen: list, first: bool
+    def _buffer_arg(self, options: dict[str, A.Expr], seen: list[str], first: bool
                     ) -> tuple[A.Expr | None, bool]:
         """Parse one buffer argument: a named option, or the leading positional
         size. Returns (size_expr_or_None, still_first)."""

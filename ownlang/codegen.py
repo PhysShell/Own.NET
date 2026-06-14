@@ -28,8 +28,12 @@ as its C# local (the span / ref), an owned argument as its variable.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from typing import assert_never
+
 from . import ast_nodes as A
-from .buffers import BufferMode, Policy, resolve as resolve_buffer
+from .buffers import BufferInfo, BufferMode, Policy
+from .buffers import resolve as resolve_buffer
 
 
 class CodegenError(Exception):
@@ -109,7 +113,7 @@ class _FnGen:
     # -- simple (try/finally hoist) ----------------------------------------
 
     def _emit_simple(self, stmts: list[A.Stmt]) -> str:
-        return "".join(l + "\n" for l in self._emit_hoist(stmts, "    "))
+        return "".join(line + "\n" for line in self._emit_hoist(stmts, "    "))
 
     def _emit_hoist(self, stmts: list[A.Stmt], base: str) -> list[str]:
         """Emit a straight-line sequence, nesting each openable resource (an
@@ -127,6 +131,7 @@ class _FnGen:
             st = stmts[i]
             scope = self._scope_lowering(st)
             if scope is not None:
+                assert isinstance(st, A.Let)  # only a Let opens a scope
                 prelude, fin = scope
                 out.extend(base + p for p in prelude)
                 after = stmts[i + 1:]
@@ -176,7 +181,7 @@ class _FnGen:
     def _emit_inline(self, stmts: list[A.Stmt], indent: int) -> str:
         ind = "    " * indent
         out = self._emit_block(stmts, ind)
-        return "".join(l + "\n" for l in out)
+        return "".join(line + "\n" for line in out)
 
     def _emit_block(self, stmts: list[A.Stmt], ind: str) -> list[str]:
         """Emit a statement list, lowering each buffer let by its lifetime shape.
@@ -293,7 +298,8 @@ class _FnGen:
             pre.append(f"if ({size} <= {L})")
             pre.append("{")
             if info.trace:
-                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "stackalloc");')
+                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", '
+                           f'{size}, {L}, "stackalloc");')
             if sc:
                 pre.append("    OwnCounters.StackHit();")
             pre.append(f"    {name} = {name}_backing[..{size}];")
@@ -301,7 +307,8 @@ class _FnGen:
             pre.append("else")
             pre.append("{")
             if info.trace:
-                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "ArrayPool");')
+                pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", '
+                           f'{size}, {L}, "ArrayPool");')
             if sc:
                 pre.append(f"    OwnCounters.PoolFallback({size});")
             pre.append(f"    {name}_rented = ArrayPool<byte>.Shared.Rent({size});")
@@ -388,7 +395,7 @@ class _FnGen:
         self.buffer_cleanup[name] = fin
         return [ind + p for p in pre]
 
-    def _size_expr(self, info) -> str:
+    def _size_expr(self, info: BufferInfo) -> str:
         if info.size_is_const:
             return str(info.size_const)
         if info.size_var:
@@ -404,7 +411,8 @@ class _FnGen:
                 rt = st.rhs.resource
                 self.owned_resource[st.name] = rt
                 args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
-                return [f"{ind}{self._local_type(rt)} {st.name} = {self._acquire_expr(rt, args_csv)};"]
+                return [f"{ind}{self._local_type(rt)} {st.name} = "
+                        f"{self._acquire_expr(rt, args_csv)};"]
             if isinstance(st.rhs, A.Move):
                 # a moved buffer carries its identity to the new owner: copy the
                 # pending cleanup to the new name (do NOT remove the original —
@@ -421,6 +429,10 @@ class _FnGen:
                 return [f"{ind}var {st.name} = {st.rhs.value};"]
             if isinstance(st.rhs, A.VarRef):
                 return [f"{ind}var {st.name} = {st.rhs.name};"]
+            # a buffer let never reaches the plain inline emitter — buffers are
+            # lowered by _emit_block / _buffer_lowering before this point.
+            raise CodegenError(
+                f"buffer let {st.name!r} reached the plain inline emitter")
         if isinstance(st, A.Release):
             if st.var in self.buffer_cleanup:
                 # a branchy buffer release: emit this buffer's real cleanup
@@ -452,7 +464,7 @@ class _FnGen:
             return out
         if isinstance(st, A.Return):
             return [f"{ind}return {st.var};" if st.var else f"{ind}return;"]
-        raise CodegenError(f"cannot codegen {st!r}")
+        assert_never(st)
 
     # -- template helpers ---------------------------------------------------
 
@@ -511,7 +523,7 @@ def _contains_branch_or_transfer(stmts: list[A.Stmt]) -> bool:
     return False
 
 
-def _iter_stmts(stmts: list[A.Stmt]):
+def _iter_stmts(stmts: list[A.Stmt]) -> Iterator[A.Stmt]:
     """Yield every statement in the tree, descending into if-branches and
     borrow blocks."""
     for st in stmts:
@@ -573,7 +585,8 @@ def _scope_body_has_plain_let(stmts: list[A.Stmt]) -> bool:
         if isinstance(st, A.Let) and isinstance(st.rhs, (A.Acquire, A.BufferIntent)):
             rel = None
             for k in range(i + 1, len(stmts)):
-                if isinstance(stmts[k], A.Release) and stmts[k].var == st.name:
+                s2 = stmts[k]
+                if isinstance(s2, A.Release) and s2.var == st.name:
                     rel = k
                     break
             body = stmts[i + 1:rel] if rel is not None else stmts[i + 1:]
@@ -632,7 +645,7 @@ def _fn_has_native(stmts: list[A.Stmt]) -> bool:
 def _buffer_modes(mod: A.Module) -> set[str]:
     modes: set[str] = set()
 
-    def walk(stmts):
+    def walk(stmts: list[A.Stmt]) -> None:
         for st in stmts:
             if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
                 modes.add(st.rhs.mode)

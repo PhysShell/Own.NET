@@ -629,6 +629,31 @@ ownlang/
   examples/
     ok_*.own                  # проходят
     bad_*.own                 # падают с конкретным кодом
+    gallery/                  # «что оно ловит» — narrated примеры, пинятся тестом
     golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
-  tests/run_tests.py          # 42 кейса анализа + codegen smoke + golden smoke
+  corpus/real-world/          # hand-reduced реальные ArrayPool-баги + expected-коды
+  tests/
+    run_tests.py              # кейсы анализа + codegen smoke + golden smoke
+    test_codegen.py           # content-assertions на сгенерённый C#
+    test_codegen_props.py     # property-фаззер с независимым AST-оракулом
+    test_gallery.py           # пинит каждый gallery-пример к его коду
+    test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
+  pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
+
+### Гейт качества (ruff + mypy --strict)
+
+Python взяли ради скорости прототипа, но без типов он легко скрывает «забыл ветку»
+класс багов (ровно такие плодил старый кодоген). Поэтому прикручены гайки, и они
+блокируют CI (job `lint`):
+
+- **ruff** (`E,W,F,I,B,UP,C4,RUF`) — стиль + bugbear-ловушки на всём дереве;
+- **mypy `--strict`** на пакете `ownlang` (тесты — динамический фаззер-код, их
+  держит только ruff);
+- **`typing.assert_never`** в каждом разборе по видам узлов (`lower_stmt`, `step`,
+  `_stmt_inline`): новый невручённый вариант union'а — это **ошибка компиляции
+  типов**, дешёвая замена exhaustive-match. Включение это уже поймало реальную
+  дыру — buffer-`let`, незакрытый в inline-эмиттере.
+
+Локально: `ruff check . && mypy`. Это не заменяет regression-сеть (фаззер/оракул/
+корпус ловят логику, линтер — опечатки и типы), а дополняет её.

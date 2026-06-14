@@ -7,6 +7,24 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Quality gate: ruff (style/bugs) on the whole tree, and mypy --strict on the
+  # ownlang package (tests are dynamic/fuzzer code, covered by ruff only). These
+  # are the "tighten the screws on Python" guard rails — see README.
+  lint:
+    name: lint (ruff + mypy --strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install linters
+        run: pip install "ruff==0.15.8" "mypy==1.19.1"
+      - name: ruff
+        run: ruff check .
+      - name: mypy --strict (ownlang)
+        run: mypy
+
   tests:
     name: tests (py${{ matrix.python-version }})
     runs-on: ubuntu-latest

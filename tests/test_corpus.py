@@ -26,12 +26,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.parser import parse, ParseError                # noqa: E402
-from ownlang.lexer import LexError                           # noqa: E402
-from ownlang.cfg import build_cfg, collect_signatures, collect_policies  # noqa: E402
-from ownlang.analysis import analyze                          # noqa: E402
-from ownlang.buffers import validate_policies                 # noqa: E402
-from ownlang.diagnostics import Severity                      # noqa: E402
+from ownlang.analysis import analyze
+from ownlang.buffers import validate_policies
+from ownlang.cfg import build_cfg, collect_policies, collect_signatures
+from ownlang.diagnostics import Severity
+from ownlang.lexer import LexError
+from ownlang.parser import ParseError, parse
 
 _CORPUS = os.path.join(os.path.dirname(__file__), "..", "corpus", "real-world")
 

@@ -22,12 +22,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import assert_never
 
 from . import ast_nodes as A
 from .ast_nodes import Effect
+from .buffers import MODE_NAMES, BufferInfo, Policy
+from .buffers import resolve as resolve_buffer
 from .diagnostics import Diagnostic
-from .buffers import BufferInfo, Policy, resolve as resolve_buffer, MODE_NAMES
-
 
 # ---------------------------------------------------------------------------
 # Symbols & kinds
@@ -115,7 +116,7 @@ class Invoke:
     """A resolved call. `args` pairs each argument's resolved Symbol (or None
     for a literal / unresolved) with the ownership Effect the callee applies."""
     callee: str
-    args: list[tuple["Symbol | None", Effect]]
+    args: list[tuple[Symbol | None, Effect]]
     line: int
 
 
@@ -231,7 +232,8 @@ class _Builder:
         self.scopes.pop()
 
     def declare(self, name: str, kind: Kind, line: int, *,
-                is_param_borrow=False, borrow_is_mut=None) -> Symbol:
+                is_param_borrow: bool = False,
+                borrow_is_mut: bool | None = None) -> Symbol:
         for sc in self.scopes:
             if name in sc:
                 self.diags.append(Diagnostic(
@@ -289,11 +291,12 @@ class _Builder:
         )
 
     def lower_seq(self, stmts: list[A.Stmt], cur: Block) -> Block | None:
+        node: Block | None = cur
         for st in stmts:
-            if cur is None:
+            if node is None:
                 return None
-            cur = self.lower_stmt(st, cur)
-        return cur
+            node = self.lower_stmt(st, node)
+        return node
 
     def lower_stmt(self, st: A.Stmt, cur: Block) -> Block | None:
         if isinstance(st, A.Let):
@@ -322,7 +325,7 @@ class _Builder:
             return self.lower_if(st, cur)
         if isinstance(st, A.Return):
             return self.lower_return(st, cur)
-        raise AssertionError(f"unknown stmt {st!r}")
+        assert_never(st)
 
     def lower_let(self, st: A.Let, cur: Block) -> Block:
         rhs = st.rhs

@@ -12,15 +12,19 @@ Exit code is non-zero if any error-level diagnostic was produced.
 from __future__ import annotations
 
 import sys
+from typing import TYPE_CHECKING
 
-from .parser import parse, ParseError
-from .lexer import LexError
-from .cfg import build_cfg, collect_signatures, collect_policies, CFG
+if TYPE_CHECKING:
+    from .cfg import Instr
+
 from .analysis import analyze
-from .codegen import generate
 from .buffers import validate_policies
-from .report import build_report, render_report
+from .cfg import CFG, build_cfg, collect_policies, collect_signatures
+from .codegen import generate
 from .diagnostics import Diagnostic, Severity
+from .lexer import LexError
+from .parser import ParseError, parse
+from .report import build_report, render_report
 
 
 def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
@@ -120,9 +124,18 @@ def _print_cfg(cfg: CFG) -> None:
     print()
 
 
-def _fmt_instr(ins) -> str:
-    from .cfg import (Acquire, AcquireBuffer, MoveInto, Release, Use, Invoke,
-                      BorrowStart, BorrowEnd, Return)
+def _fmt_instr(ins: Instr) -> str:
+    from .cfg import (
+        Acquire,
+        AcquireBuffer,
+        BorrowEnd,
+        BorrowStart,
+        Invoke,
+        MoveInto,
+        Release,
+        Return,
+        Use,
+    )
     if isinstance(ins, Acquire):
         return f"acquire {ins.sym.name} : {ins.resource}"
     if isinstance(ins, AcquireBuffer):
@@ -152,7 +165,7 @@ def _fmt_instr(ins) -> str:
 
 
 def _read(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
