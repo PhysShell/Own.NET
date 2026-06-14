@@ -43,6 +43,7 @@ from ownlang.cfg import (
 )
 from ownlang.diagnostics import Severity
 from ownlang.lexer import LexError
+from ownlang.lifetimes import check_lifetimes
 from ownlang.parser import ParseError, parse
 
 _CORPUS = os.path.join(os.path.dirname(__file__), "..", "corpus", "wpf")
@@ -58,6 +59,7 @@ def _check(src: str) -> tuple[list[str], str]:
     sigs = collect_signatures(mod)
     kinds = collect_kinds(mod)
     diags = list(validate_policies(collect_policies(mod)))
+    diags += check_lifetimes(mod)
     for fn in mod.functions:
         cfg, d1 = build_cfg(fn, rnames, sigs, None, kinds)
         diags += d1 + analyze(cfg)
@@ -94,14 +96,16 @@ def run() -> int:
         with open(exp, encoding="utf-8") as f:
             want = sorted(w for w in f.read().split() if w)
         with open(own, encoding="utf-8") as f:
-            codes, rendered = _check(f.read())
+            source = f.read()
+        codes, rendered = _check(source)
         got = sorted(set(codes))
         ok = True
         if got != want:
             fails.append(f"{case}: expected {want}, got {got}")
             ok = False
-        # the whole point of slice #1: the resource-kind tag must reach output.
-        if "[resource: " not in rendered:
+        # a case that tags a resource kind must surface it as [resource: ...];
+        # region-escape cases (no kinded resource) are exempt.
+        if 'kind "' in source and "[resource: " not in rendered:
             fails.append(f"{case}: rendered output carries no [resource: ...] tag")
             ok = False
         if ok:

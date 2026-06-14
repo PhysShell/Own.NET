@@ -85,13 +85,42 @@ lifetime Window < App;        // Window строго короче App
 lifetime ViewModel < Window;
 ```
 
-`<` задаёт строгий частичный порядок (DAG, без циклов — проверяется в
-`__post_init__`/резолвере: вот первый *настоящий* меж-полевой инвариант, ради
-которого post_init окупается). Объект из короткого региона, ставший достижимым из
-длинного через strong-подписку, — это `WPF010` (lifetime promotion), если нет
-owned-токена с гарантированным release. Это **slice #2**: тут появляется
-региональная аннотация на параметрах (`[Lifetime("App")] bus`) и проверка
-«source_lifetime > listener_lifetime ⇒ нужен токен».
+`<` задаёт строгий частичный порядок; циклы и ссылки на необъявленные регионы
+отвергаются (`OWN036`/`OWN030`). Объект из короткого региона, ставший достижимым
+из длинного через strong-подписку, промотится до длинного lifetime и утечёт.
+
+### Реализовано (slice #2)
+
+Синтаксис, который реально собран:
+
+```ownlang
+lifetime App;
+lifetime Window < App;            // Window строго короче App
+lifetime ViewModel < Window;
+
+fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
+    subscribe self to bus;        // bus сильно держит self
+}
+```
+
+- `fn F(...) lifetime L` — объект, который функция конструирует, живёт в регионе L.
+- `param: T lifetime L` — сервис-параметр живёт в регионе L.
+- `subscribe self to SOURCE;` — сильный захват: SOURCE держит self.
+
+**Правило (region escape, `OWN014`):** если `lifetime(SOURCE)` строго длиннее
+`lifetime(self)`, self промотится до длинного региона и утечёт. Захват источником
+равного-или-более-короткого lifetime — чисто (промоушена нет). Именно **порядок**
+делает это утечкой — это и отличает региональный анализ от простого «не released».
+Митигация (disposable-токен с release на close) — это slice-#1 паттерн
+`acquire`/`release`: если есть release-путь, `subscribe`-формы не пишут.
+
+Согласно развилке B код **доменно-нейтральный** (`OWN014` «escape в более долгий
+регион»), а не `WPF010`: ядро не знает про WPF, бизнес-формулировку даст будущий
+профиль/фронт.
+
+Чего **нет** (отложено): cross-procedural points-to (`self`/`source` — это scope
+самой функции и её аннотированные параметры, не произвольный граф объектов), и
+weak-reference policy как явный escape-hatch.
 
 ## 5. Каталог кодов (OWN-WPF) и куда какой слайс
 
@@ -101,7 +130,7 @@ owned-токена с гарантированным release. Это **slice #2*
 | WPF005 | `IDisposable`-поле требует `VM : IDisposable` + cascade `Dispose` | `OWN001`/`OWN002` | **#1** |
 | WPF002 | `DispatcherTimer`/`Timer` в VM требует `Stop`+detach | `OWN001` | #1/#2 |
 | WPF008 | `CollectionChanged`/`PropertyChanged` подписка без отписки | `OWN001` | #2 |
-| WPF010 | объект ушёл из короткого lifetime в длинный (region escape) | новый region-анализ | **#2** |
+| ~~WPF010~~ → `OWN014` | объект ушёл из короткого lifetime в длинный (region escape) | новый region-анализ ✅ **готово** | **#2** |
 | WPF003 | static-подписка запрещена без weak | region + policy | #2 |
 | WPF001/006/007/009 | event+= / DataContext / lambda-capture / static cache | region + capture-анализ | позже |
 
@@ -113,7 +142,10 @@ MVP (slice #1) сознательно сводит WPF004/005/002 к уже-ра
 - **slice #1 (сейчас):** WPF-корпус `corpus/wpf/` (zombie-VM, незакрытый таймер,
   disposable-поле) на текущем движке + WPF-галерея + self-checking тест. Опционально
   — тонкий WPF-флейвор слой над диагностиками (см. развилку B).
-- **slice #2:** lifetime-регионы (`lifetime A < B;`), region-escape-анализ, WPF010.
+- **slice #2 ✅ готово:** lifetime-регионы (`lifetime A < B;`, fn/param-аннотации,
+  `subscribe self to X;`), region-escape-анализ → `OWN014`; структурная валидация
+  порядка (`OWN030`/`OWN031`/`OWN036`). Корпус `corpus/wpf/viewmodel-escapes-to-app`
+  + `tests/test_lifetimes.py` (10 кейсов).
 - **slice #3 (далеко):** узкий Roslyn-frontend — pattern matcher (`event +=`,
   `Subscribe<T>`, `DispatcherTimer`, `IDisposable`-поля) → кормит это же ядро.
   Не «ингест всего C#» (это человеко-годы), а распознавание известных паттернов.

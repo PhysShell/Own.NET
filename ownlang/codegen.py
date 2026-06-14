@@ -464,6 +464,10 @@ class _FnGen:
             return out
         if isinstance(st, A.Return):
             return [f"{ind}return {st.var};" if st.var else f"{ind}return;"]
+        if isinstance(st, A.Subscribe):
+            # schematic: the real C# would be `source.Subscribe(this.Handler)`.
+            return [f"{ind}{st.source}.Subscribe(this); "
+                    f"// captures self at {st.source}'s lifetime"]
         assert_never(st)
 
     # -- template helpers ---------------------------------------------------

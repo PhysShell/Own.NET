@@ -333,6 +333,12 @@ class _Builder:
             return self.lower_if(st, cur)
         if isinstance(st, A.Return):
             return self.lower_return(st, cur)
+        if isinstance(st, A.Subscribe):
+            # a `subscribe self to X` is a lifetime-region fact, handled by the
+            # separate lifetime analysis (ownlang.lifetimes); it does not move,
+            # release, or borrow anything, so it is a no-op for the loans/
+            # permissions flow.
+            return cur
         assert_never(st)
 
     def lower_let(self, st: A.Let, cur: Block) -> Block:

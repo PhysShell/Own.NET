@@ -1,0 +1,16 @@
+module WpfRegionEscape
+
+// Lifetime regions: a Window-lived ViewModel must not outlive its window, and
+// the App-lived event bus outlives everything.
+lifetime App;
+lifetime Window < App;
+lifetime ViewModel < Window;
+
+// The ViewModel (ViewModel-lived) strongly subscribes itself to the App-lived
+// bus. Because App strictly outlives ViewModel, the subscription promotes the
+// VM to App lifetime -> it can never die while the app runs => OWN014. This is
+// the region-escape theorem: the *ordering* is what makes it a leak (subscribing
+// to a same/shorter-lived source would be fine).
+fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
+    subscribe self to bus;
+}

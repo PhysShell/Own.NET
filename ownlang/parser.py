@@ -4,21 +4,23 @@ Recursive-descent parser for OwnLang.
 Grammar (informal):
 
   module      := "module" IDENT item*
-  item        := resource | extern | fn | policy
+  item        := resource | extern | fn | policy | lifetime
   resource    := "resource" IDENT "{" rmember* "}"
   rmember     := ("acquire" | "release") IDENT
                | ("emit_type"|"emit_acquire"|"emit_release"|"emit_borrow") STRING
                | "kind" STRING                      // contextual; not reserved
+  lifetime    := "lifetime" IDENT ("<" IDENT)? ";"  // region; "<" = shorter-than
   policy      := "policy" IDENT "{" (IDENT "=" atom ";")* "}"
   extern      := "extern" "fn" IDENT "(" eparams? ")" ("->" type)? ";"
   eparams     := eparam ("," eparam)*
   eparam      := ("borrow" | "borrow_mut" | "consume")? IDENT      // IDENT = type name
-  fn          := "fn" IDENT "(" params? ")" ("->" type)? block
+  fn          := "fn" IDENT "(" params? ")" ("->" type)? ("lifetime" IDENT)? block
   params      := param ("," param)*
-  param       := IDENT ":" type
+  param       := IDENT ":" type ("lifetime" IDENT)?
   type        := "&" "mut"? IDENT | IDENT
   block       := "{" stmt* "}"
-  stmt        := let | release | use | call | borrow | if | return
+  stmt        := let | release | use | call | borrow | if | return | subscribe
+  subscribe   := "subscribe" "self" "to" IDENT ";"  // self/to contextual
   let         := "let" IDENT "=" rhs ";"
   rhs         := "acquire" IDENT "(" args? ")" | "move" IDENT
                | bufferintent | IDENT | INT
@@ -119,10 +121,22 @@ class Parser:
                 mod.functions.append(self.parse_fn())
             elif self.at(Tok.POLICY):
                 mod.policies.append(self.parse_policy())
+            elif self.at(Tok.LIFETIME):
+                mod.lifetimes.append(self.parse_lifetime())
             else:
                 raise ParseError(
-                    "expected 'resource', 'extern', 'fn' or 'policy'", self.cur)
+                    "expected 'resource', 'extern', 'fn', 'policy' or 'lifetime'",
+                    self.cur)
         return mod
+
+    def parse_lifetime(self) -> A.LifetimeDecl:
+        kw = self.eat(Tok.LIFETIME)
+        name = self.eat(Tok.IDENT).text
+        longer: str | None = None
+        if self.accept(Tok.LT):            # `lifetime Window < App;`
+            longer = self.eat(Tok.IDENT).text
+        self.eat(Tok.SEMI)
+        return A.LifetimeDecl(name=name, longer=longer, line=kw.line)
 
     # -- policies -----------------------------------------------------------
 
@@ -240,14 +254,21 @@ class Parser:
         ret: A.TypeRef | None = None
         if self.accept(Tok.ARROW):
             ret = self.parse_type()
+        lifetime: str | None = None        # `fn F(...) lifetime ViewModel { }`
+        if self.accept(Tok.LIFETIME):
+            lifetime = self.eat(Tok.IDENT).text
         body = self.parse_block()
-        return A.FnDecl(name=name, params=params, ret=ret, body=body, line=kw.line)
+        return A.FnDecl(name=name, params=params, ret=ret, body=body,
+                        line=kw.line, lifetime=lifetime)
 
     def parse_param(self) -> A.Param:
         nm = self.eat(Tok.IDENT)
         self.eat(Tok.COLON)
         ty = self.parse_type()
-        return A.Param(name=nm.text, type=ty, line=nm.line)
+        lifetime: str | None = None        # `bus: EventBus lifetime App`
+        if self.accept(Tok.LIFETIME):
+            lifetime = self.eat(Tok.IDENT).text
+        return A.Param(name=nm.text, type=ty, line=nm.line, lifetime=lifetime)
 
     def parse_type(self) -> A.TypeRef:
         line = self.cur.line
@@ -283,9 +304,24 @@ class Parser:
             return self.parse_if()
         if self.at(Tok.RETURN):
             return self.parse_return()
+        if self.at(Tok.SUBSCRIBE):
+            return self.parse_subscribe()
         if self.at(Tok.IDENT) and self.peek().kind == Tok.LPAREN:
             return self.parse_call()
         raise ParseError("expected a statement", self.cur)
+
+    def parse_subscribe(self) -> A.Subscribe:
+        kw = self.eat(Tok.SUBSCRIBE)
+        # `self` and `to` are contextual here (not globally reserved words).
+        kw_self = self.eat(Tok.IDENT)
+        if kw_self.text != "self":
+            raise ParseError("expected 'self' after 'subscribe'", kw_self)
+        kw_to = self.eat(Tok.IDENT)
+        if kw_to.text != "to":
+            raise ParseError("expected 'to' in 'subscribe self to <source>'", kw_to)
+        source = self.eat(Tok.IDENT).text
+        self.eat(Tok.SEMI)
+        return A.Subscribe(source=source, line=kw.line)
 
     def parse_let(self) -> A.Let:
         kw = self.eat(Tok.LET)

@@ -45,6 +45,7 @@ TITLES = {
     "OWN011": "mutable borrow while another mutable borrow is live",
     "OWN012": "shared borrow while a mutable borrow is live",
     "OWN013": "owner accessed while it is mutably borrowed",
+    "OWN014": "value escapes to a longer-lived region (lifetime promotion)",
     # ---- buffer storage policies (stackalloc / scratch / pool / native) ----
     "OWN015": "stack-backed buffer cannot escape the current function",
     "OWN016": "stack-backed buffer moved to a longer-lived owner",
@@ -63,6 +64,7 @@ TITLES = {
     "OWN033": "function must return a value on all paths",
     "OWN034": "operation requires an owned resource",
     "OWN035": "return type mismatch",
+    "OWN036": "cyclic lifetime ordering",
     # ---- extern / call boundary ----
     "OWN040": "call to an undeclared function (unknown calls are forbidden)",
     "OWN041": "call argument mismatch",

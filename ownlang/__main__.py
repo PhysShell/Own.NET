@@ -23,6 +23,7 @@ from .cfg import CFG, build_cfg, collect_kinds, collect_policies, collect_signat
 from .codegen import generate
 from .diagnostics import Diagnostic, Severity
 from .lexer import LexError
+from .lifetimes import check_lifetimes
 from .parser import ParseError, parse
 from .report import build_report, render_report
 
@@ -38,6 +39,7 @@ def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     pols = collect_policies(mod)
     kinds = collect_kinds(mod)
     diags: list[Diagnostic] = list(validate_policies(pols))
+    diags.extend(check_lifetimes(mod))
     for fn in mod.functions:
         cfg, d1 = build_cfg(fn, rnames, sigs, pols, kinds)
         d2 = analyze(cfg)

@@ -1044,10 +1044,15 @@ def run() -> int:
     import test_wpf
     wpf_rc = test_wpf.run()
 
+    # Lifetime-region analysis (lifetimes slice #2): the region-escape theorem
+    # (a short-lived object captured by a longer-lived source -> OWN014).
+    import test_lifetimes
+    lt_rc = test_lifetimes.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc or wpf_rc) else 0
+                 or gl_rc or co_rc or wpf_rc or lt_rc) else 0
 
 
 if __name__ == "__main__":

@@ -135,7 +135,17 @@ class Return:
     line: int
 
 
-Stmt = Let | Release | Use | Call | BorrowBlock | If | Return
+@dataclass(frozen=True)
+class Subscribe:
+    """`subscribe self to SOURCE;` — the current object (the function's scope,
+    living at the function's lifetime) is strongly captured by `source`. If
+    `source` outlives `self`, `self` is promoted to the longer lifetime (a
+    region escape). The heart of the lifetime/region analysis."""
+    source: str
+    line: int
+
+
+Stmt = Let | Release | Use | Call | BorrowBlock | If | Return | Subscribe
 
 
 # ---- top level ------------------------------------------------------------
@@ -187,6 +197,9 @@ class Param:
     name: str
     type: TypeRef
     line: int
+    # optional lifetime region this parameter (a service / source) lives at,
+    # e.g. `bus: EventBus lifetime App`. None when unannotated.
+    lifetime: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,6 +208,20 @@ class FnDecl:
     params: list[Param]
     ret: TypeRef | None
     body: list[Stmt]
+    line: int
+    # optional lifetime region of the object this function sets up (its scope),
+    # e.g. `fn CustomerViewModel(...) lifetime ViewModel { ... }`. None when
+    # unannotated (the lifetime analysis then skips this function).
+    lifetime: str | None = None
+
+
+@dataclass(frozen=True)
+class LifetimeDecl:
+    """`lifetime NAME;` or `lifetime NAME < LONGER;` — declares a region. The
+    `< LONGER` form states NAME is strictly shorter-lived than LONGER (nested
+    inside it). The relation is transitive; cycles are rejected."""
+    name: str
+    longer: str | None   # the region this one is strictly shorter than, if any
     line: int
 
 
@@ -215,3 +242,4 @@ class Module:
     externs: list[ExternDecl] = field(default_factory=list)
     functions: list[FnDecl] = field(default_factory=list)
     policies: list[PolicyDecl] = field(default_factory=list)
+    lifetimes: list[LifetimeDecl] = field(default_factory=list)

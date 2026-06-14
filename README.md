@@ -93,7 +93,7 @@ examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot rel
                   ^
 ```
 
-### Бизнес-применение: WPF lifetime-утечки (модуль `lifetimes`, slice #1)
+### Бизнес-применение: WPF lifetime-утечки (модуль `lifetimes`)
 
 Performance-профиль (`stackalloc`/pool) — это игрушка для performance-зоопарка.
 Бизнес-софт чаще умирает не от того, что `Span<byte>` на 7 нс медленнее, а от
@@ -117,12 +117,34 @@ case.own:16:9: error: [OWN001] 'customerChanged' is owned but not released at
                ^
 ```
 
+**Slice #2 — lifetime-регионы (region escape).** Это уже *новый* анализ, а не
+переиспользование. Объявляем регионы с порядком и вешаем lifetime на объект и
+сервисы; сильная подписка на более долгоживущий источник промотит объект до его
+lifetime и течёт — `OWN014`. Именно **порядок** делает это утечкой: подписка на
+равный-или-более-короткий источник — чисто.
+
+```text
+$ python -m ownlang check corpus/wpf/viewmodel-escapes-to-app/case.own
+case.own:15:23: error: [OWN014] 'bus' (lifetime 'App') outlives the captured
+  object 'CustomerViewModel' (lifetime 'ViewModel'); the strong subscription
+  promotes 'CustomerViewModel' to 'App' and it leaks (no release path)
+  15 |     subscribe self to bus;
+                            ^
+```
+```ownlang
+lifetime App;  lifetime Window < App;  lifetime ViewModel < Window;
+fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
+    subscribe self to bus;          // App > ViewModel -> промоушн -> OWN014
+}
+```
+
 `corpus/wpf/` — self-checking корпус реальных WPF-паттернов (`before.cs`/
-`after.cs`/`case.own`/expected), прибитый тестом `tests/test_wpf.py`. Полный план
-модуля (lifetime-регионы, каталог OWN-WPF, границы слайсов, что отложено) —
-в [`docs/lifetimes.md`](docs/lifetimes.md). Честно: `case.own` — hand reduction
-паттерна, не C#, который чекер съел (C#-фронта нет, это поздний слайс); корпус
-показывает, что ownership-**логика** ложится на реальный баг.
+`after.cs`/`case.own`/expected), прибитый `tests/test_wpf.py`; региональная
+теорема — `tests/test_lifetimes.py` (10 кейсов). Полный план модуля (каталог
+OWN-WPF, границы слайсов, что отложено) — в [`docs/lifetimes.md`](docs/lifetimes.md).
+Честно: `case.own` — hand reduction паттерна, не C#, который чекер съел (C#-фронта
+нет, это поздний слайс); `self`/`source` — это scope самой функции и её параметры,
+без cross-procedural points-to.
 
 ### Golden-пример: настоящий ArrayPool
 
@@ -309,8 +331,14 @@ fn process(size: int) {
 | OWN032 | owned-ресурс скопирован без `move` |
 | OWN033 | функция с типом возврата может дойти до конца без `return` |
 | OWN034 | операция применена не к owned-ресурсу |
+| OWN035 | несовпадение типа возврата |
+| OWN036 | циклический порядок lifetime-регионов |
 | OWN040 | вызов необъявленной функции (неизвестные вызовы запрещены) |
 | OWN041 | несовместимость аргумента вызова (арность / kind / plain-vs-resource) |
+
+Lifetime-регионы (модуль `lifetimes`): **OWN014** — объект промотится в более
+долгоживущий регион через сильную подписку (region escape); **OWN036** — цикл в
+`<`-порядке; ссылки на необъявленный регион — **OWN030**.
 
 Разделение **definite (002/005)** против **maybe (009/010)** — прямо по ревью:
 ошибка на *всех* путях и ошибка на *каком-то* пути — это разные по резкости
@@ -653,6 +681,7 @@ ownlang/
     buffers.py      # storage policies: режимы, резолв policy+intent, валидация
     cfg.py          # resolver (Symbol/Kind) + collect_signatures + lowering, Invoke
     analysis.py     # flow-sensitive dataflow: var-states + active loans + permissions
+    lifetimes.py    # lifetime-регионы: region-escape (OWN014) + валидация порядка
     diagnostics.py  # коды OWN0xx в одном месте
     codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline, буферы)
     report.py       # compile-time buffer report -> stdout + .ownreport.json
@@ -672,6 +701,7 @@ ownlang/
     test_gallery.py           # пинит каждый gallery-пример к его коду
     test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
     test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
+    test_lifetimes.py         # region-escape (OWN014) + валидация lifetime-порядка
   pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
 
