@@ -277,6 +277,15 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
         fallback_forbidden = True
         if size_const is not None:
             inline_bytes = size_const
+        elif mode == BufferMode.INLINE:
+            # inline is a fixed compile-time stack buffer: the size MUST be an
+            # integer literal. A dynamic size (even with `max`) is `stack`, not
+            # `inline`.
+            diags.append(Diagnostic(
+                "OWN021",
+                "'inline' buffer requires a compile-time integer literal size; "
+                "use 'stack' with a 'max =' bound for a dynamic size", line))
+            inline_bytes = MAX_STACK_BYTES
         else:
             # dynamic size: needs an explicit, integer max bound.
             inline_bytes = MAX_STACK_BYTES  # safe default while we validate

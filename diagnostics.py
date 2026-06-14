@@ -44,6 +44,7 @@ TITLES = {
     "OWN015": "stack-backed buffer cannot escape the current function",
     "OWN016": "stack-backed buffer moved to a longer-lived owner",
     "OWN017": "movable buffer escape is not supported by code generation (PoC limitation)",
+    "OWN018": "buffer size must be an integer",
     "OWN019": "inline capacity too large for a stack-backed policy",
     "OWN021": "stack allocation requires a statically known bound",
     "OWN023": "scratch fallback forbidden but the size may exceed the inline limit",

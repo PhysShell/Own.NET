@@ -218,6 +218,16 @@ CASES = [
      "policy P { fallbak = forbidden; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }",
      ["OWN030"]),
+    ("buf_size_not_int_bool",
+     "fn f(flag: bool){ let b = Buffer.pooled(flag); release b; }", ["OWN018"]),
+    ("buf_size_not_int_owned",
+     "fn f(){ let r = acquire Conn(1); let b = Buffer.pooled(r); "
+     "release b; release r; }", ["OWN018"]),
+    ("buf_inline_dynamic_rejected",
+     "fn f(n: int){ let b = Buffer.inline(n, max = 1024); release b; }",
+     ["OWN021"]),
+    ("buf_inline_literal_ok",
+     "fn f(){ let b = Buffer.inline(256); release b; }", []),
     ("buf_inline_override_ignores_bad_policy",
      "policy P { inline_bytes = bogus; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = P, inline = 128); "

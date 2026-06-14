@@ -56,6 +56,9 @@ class Symbol:
     # `acquire`d resources. A stack-backed buffer (info.stack_backed) must not
     # escape the function.
     buffer: BufferInfo | None = None
+    # the declared/inferred type name (e.g. "int", "bool", a resource name), so a
+    # buffer size can be required to be an integer. None when unknown.
+    type_name: str | None = None
 
     def __repr__(self) -> str:
         return f"<{self.name}:{self.kind.name}>"
@@ -260,6 +263,7 @@ class _Builder:
                 sym = self.declare(p.name, Kind.OWNED, p.line)
             else:
                 sym = self.declare(p.name, Kind.PLAIN, p.line)
+            sym.type_name = p.type.name
             self.params.append(sym)
 
         entry = self.new_block("entry")
@@ -347,10 +351,13 @@ class _Builder:
                     "OWN032",
                     f"cannot copy owned resource '{src.name}' into '{st.name}'; "
                     f"use 'move {src.name}' to transfer ownership", st.line))
-            self.declare(st.name, Kind.PLAIN, st.line)
+            dst = self.declare(st.name, Kind.PLAIN, st.line)
+            if src is not None and src.kind == Kind.PLAIN:
+                dst.type_name = src.type_name  # a copy keeps the value's type
             return cur
         if isinstance(rhs, A.IntLit):
-            self.declare(st.name, Kind.PLAIN, st.line)
+            dst = self.declare(st.name, Kind.PLAIN, st.line)
+            dst.type_name = "int"
             return cur
         raise AssertionError(f"unknown rhs {rhs!r}")
 
@@ -369,9 +376,24 @@ class _Builder:
                 f"{', '.join(sorted(MODE_NAMES))}", rhs.line))
             self.declare(st.name, Kind.OWNED, st.line)
             return cur
-        # resolve the size name (if it is a variable) so undefined names report
-        if isinstance(rhs.size, A.VarRef):
-            self.lookup(rhs.size.name, rhs.size.line)
+        # the size must resolve to an integer: an IntLit, or a plain `int` value.
+        # A bool/other plain, a borrow, or an owned resource as the size would
+        # lower to uncompilable C# (Rent(flag) / AsSpan(0, flag)).
+        if rhs.size is None:
+            self.diags.append(Diagnostic(
+                "OWN018", f"buffer '{st.name}' requires a size", rhs.line))
+        elif isinstance(rhs.size, A.VarRef):
+            ssym = self.lookup(rhs.size.name, rhs.size.line)
+            if ssym is not None and ssym.kind != Kind.PLAIN:
+                self.diags.append(Diagnostic(
+                    "OWN018",
+                    f"buffer size '{rhs.size.name}' must be an integer, not "
+                    f"{ssym.kind.name.lower()}", rhs.size.line))
+            elif ssym is not None and ssym.type_name not in (None, "int"):
+                self.diags.append(Diagnostic(
+                    "OWN018",
+                    f"buffer size '{rhs.size.name}' must be an integer "
+                    f"(it is '{ssym.type_name}')", rhs.size.line))
         info, bdiags = resolve_buffer(rhs, self.policies)
         self.diags.extend(bdiags)
         sym = self.declare(st.name, Kind.OWNED, st.line)
