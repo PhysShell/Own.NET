@@ -4,10 +4,11 @@ Recursive-descent parser for OwnLang.
 Grammar (informal):
 
   module      := "module" IDENT item*
-  item        := resource | extern | fn
+  item        := resource | extern | fn | policy
   resource    := "resource" IDENT "{" rmember* "}"
   rmember     := ("acquire" | "release") IDENT
                | ("emit_type"|"emit_acquire"|"emit_release"|"emit_borrow") STRING
+  policy      := "policy" IDENT "{" (IDENT "=" atom ";")* "}"
   extern      := "extern" "fn" IDENT "(" eparams? ")" ("->" type)? ";"
   eparams     := eparam ("," eparam)*
   eparam      := ("borrow" | "borrow_mut" | "consume")? IDENT      // IDENT = type name
@@ -18,7 +19,11 @@ Grammar (informal):
   block       := "{" stmt* "}"
   stmt        := let | release | use | call | borrow | if | return
   let         := "let" IDENT "=" rhs ";"
-  rhs         := "acquire" IDENT "(" args? ")" | "move" IDENT | IDENT | INT
+  rhs         := "acquire" IDENT "(" args? ")" | "move" IDENT
+               | bufferintent | IDENT | INT
+  bufferintent:= IDENT "." IDENT "(" bargs? ")"          // e.g. Buffer.scratch(...)
+  bargs       := barg ("," barg)*
+  barg        := IDENT "=" atom | atom                   // named option | positional size
   release     := "release" IDENT ";"
   use         := "use" IDENT ";"
   call        := IDENT "(" args? ")" ";"
@@ -111,9 +116,42 @@ class Parser:
                 mod.externs.append(self.parse_extern())
             elif self.at(Tok.FN):
                 mod.functions.append(self.parse_fn())
+            elif self.at(Tok.POLICY):
+                mod.policies.append(self.parse_policy())
             else:
-                raise ParseError("expected 'resource', 'extern' or 'fn'", self.cur)
+                raise ParseError(
+                    "expected 'resource', 'extern', 'fn' or 'policy'", self.cur)
         return mod
+
+    # -- policies -----------------------------------------------------------
+
+    def parse_policy(self) -> A.PolicyDecl:
+        kw = self.eat(Tok.POLICY)
+        name = self.eat(Tok.IDENT).text
+        self.eat(Tok.LBRACE)
+        settings: dict[str, object] = {}
+        seen: list[str] = []
+        while not self.at(Tok.RBRACE):
+            key = self.eat(Tok.IDENT).text
+            self.eat(Tok.EQ)
+            settings[key] = self._policy_value()
+            self.eat(Tok.SEMI)
+            seen.append(key)
+        self.eat(Tok.RBRACE)
+        dups = tuple(sorted({k for k in seen if seen.count(k) > 1}))
+        return A.PolicyDecl(name=name, settings=settings, line=kw.line, dups=dups)
+
+    def _policy_value(self) -> object:
+        """A policy setting value: an int, or an identifier interpreted as a
+        bool (true/false) or a bare keyword string (pool/forbidden/debug/...)."""
+        if self.at(Tok.INT):
+            return int(self.eat(Tok.INT).text)
+        word = self.eat(Tok.IDENT).text
+        if word == "true":
+            return True
+        if word == "false":
+            return False
+        return word
 
     # -- resources ----------------------------------------------------------
 
@@ -260,7 +298,50 @@ class Parser:
             kw = self.eat(Tok.MOVE)
             v = self.eat(Tok.IDENT)
             return A.Move(var=v.text, line=kw.line)
+        # buffer intent:  Namespace "." mode "(" bargs? ")"   e.g. Buffer.scratch(...)
+        if self.at(Tok.IDENT) and self.peek().kind == Tok.DOT:
+            return self.parse_buffer_intent()
         return self.parse_atom()
+
+    def parse_buffer_intent(self) -> A.BufferIntent:
+        ns = self.eat(Tok.IDENT)            # namespace, conventionally "Buffer"
+        self.eat(Tok.DOT)
+        mode = self.eat(Tok.IDENT).text
+        self.eat(Tok.LPAREN)
+        size: A.Expr | None = None
+        options: dict[str, A.Expr] = {}
+        seen: list[str] = []                # option names in order (for dup detect)
+        first = True
+        if not self.at(Tok.RPAREN):
+            size, first = self._buffer_arg(options, seen, first)
+            while self.accept(Tok.COMMA):
+                got, first = self._buffer_arg(options, seen, first)
+                if got is not None:
+                    size = got
+        self.eat(Tok.RPAREN)
+        dups = tuple(sorted({k for k in seen if seen.count(k) > 1}))
+        return A.BufferIntent(mode=mode, size=size, options=options,
+                              line=ns.line, ns=ns.text, col=ns.col, dups=dups)
+
+    def _buffer_arg(self, options: dict, seen: list, first: bool
+                    ) -> tuple[A.Expr | None, bool]:
+        """Parse one buffer argument: a named option, or the leading positional
+        size. Returns (size_expr_or_None, still_first)."""
+        # named option: IDENT "=" atom. `policy` is a keyword token elsewhere but
+        # is also a valid option name here, so accept it too.
+        if (self.at(Tok.IDENT) or self.at(Tok.POLICY)) and self.peek().kind == Tok.EQ:
+            key = self.cur.text
+            self.pos += 1
+            self.eat(Tok.EQ)
+            options[key] = self.parse_atom()
+            seen.append(key)
+            return None, first
+        atom = self.parse_atom()
+        if not first:
+            raise ParseError("only the leading size may be positional in a "
+                             "buffer intent; later arguments must be named",
+                             self.cur)
+        return atom, False
 
     def parse_args(self) -> list[A.Expr]:
         args: list[A.Expr] = []

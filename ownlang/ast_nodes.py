@@ -60,7 +60,23 @@ class Move:
     line: int
 
 
-Expr = IntLit | VarRef | Acquire | Move
+@dataclass
+class BufferIntent:
+    """Buffer.<mode>(size, name = value, ...) -> Owned<Buffer> with a storage
+    policy. `mode` is one of stack/scratch/pooled/native/inline. `size` is the
+    single positional argument (an IntLit or VarRef), or None. `options` maps a
+    named option (inline, max, fallback, clear, trace, counters, policy) to its
+    value expression. `ns` is the namespace as written (must be "Buffer")."""
+    mode: str
+    size: "Expr | None"
+    options: dict[str, "Expr"]
+    line: int
+    ns: str = "Buffer"
+    col: int = 0
+    dups: tuple = ()   # option names that appeared more than once
+
+
+Expr = IntLit | VarRef | Acquire | Move | BufferIntent
 
 
 # ---- statements -----------------------------------------------------------
@@ -178,8 +194,19 @@ class FnDecl:
 
 
 @dataclass
+class PolicyDecl:
+    """policy Name { key = value; ... } — a named bundle of buffer defaults
+    (inline_bytes, max_bytes, mode, fallback, trace, counters, clear_on_release)."""
+    name: str
+    settings: dict[str, object]
+    line: int
+    dups: tuple = ()   # setting keys that appeared more than once
+
+
+@dataclass
 class Module:
     name: str
     resources: list[ResourceDecl] = field(default_factory=list)
     externs: list[ExternDecl] = field(default_factory=list)
     functions: list[FnDecl] = field(default_factory=list)
+    policies: list[PolicyDecl] = field(default_factory=list)

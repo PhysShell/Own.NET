@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+*.ownreport.json
 
 # .NET build output (golden_arraypool demo)
 bin/

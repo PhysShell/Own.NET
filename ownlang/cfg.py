@@ -26,6 +26,7 @@ from enum import Enum, auto
 from . import ast_nodes as A
 from .ast_nodes import Effect
 from .diagnostics import Diagnostic
+from .buffers import BufferInfo, Policy, resolve as resolve_buffer, MODE_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +52,18 @@ class Symbol:
     # for BORROW symbols: True if it is a mutable borrow (&mut / borrow_mut),
     # False if shared (&T / borrow). None for non-borrow symbols.
     borrow_is_mut: bool | None = None
+    # for OWNED buffer symbols: the resolved storage policy. None for ordinary
+    # `acquire`d resources. A stack-backed buffer (info.stack_backed) must not
+    # escape the function.
+    buffer: BufferInfo | None = None
+    # the declared/inferred type name (e.g. "int", "bool", a resource name), so a
+    # buffer size can be required to be an integer. None when unknown.
+    type_name: str | None = None
+    # a stable identity for the originating buffer (name#line). Set when a buffer
+    # is acquired and inherited across `move`, so a diagnostic about any alias can
+    # be attributed to the right buffer in the report (distinct from a same-named
+    # buffer in a sibling scope).
+    origin: str | None = None
 
     def __repr__(self) -> str:
         return f"<{self.name}:{self.kind.name}>"
@@ -65,6 +78,16 @@ class Symbol:
 class Acquire:
     sym: Symbol
     resource: str
+    line: int
+
+
+@dataclass
+class AcquireBuffer:
+    """Acquire an owned buffer with an explicit storage policy. Carries the
+    resolved BufferInfo so analysis can apply escape rules and codegen can emit
+    the right backend (stackalloc / ArrayPool / NativeMemory) plus its logging."""
+    sym: Symbol
+    info: BufferInfo
     line: int
 
 
@@ -118,7 +141,8 @@ class Return:
     line: int
 
 
-Instr = Acquire | MoveInto | Release | Use | Invoke | BorrowStart | BorrowEnd | Return
+Instr = (Acquire | AcquireBuffer | MoveInto | Release | Use | Invoke
+         | BorrowStart | BorrowEnd | Return)
 
 
 # ---------------------------------------------------------------------------
@@ -187,10 +211,12 @@ def collect_signatures(mod: A.Module) -> dict[str, Signature]:
 
 class _Builder:
     def __init__(self, fn: A.FnDecl, resource_names: set[str],
-                 signatures: dict[str, Signature]):
+                 signatures: dict[str, Signature],
+                 policies: dict[str, Policy] | None = None):
         self.fn = fn
         self.resource_names = resource_names
         self.signatures = signatures
+        self.policies = policies or {}
         self.diags: list[Diagnostic] = []
         self.blocks: list[Block] = []
         self.scopes: list[dict[str, Symbol]] = []
@@ -242,6 +268,7 @@ class _Builder:
                 sym = self.declare(p.name, Kind.OWNED, p.line)
             else:
                 sym = self.declare(p.name, Kind.PLAIN, p.line)
+            sym.type_name = p.type.name
             self.params.append(sym)
 
         entry = self.new_block("entry")
@@ -306,6 +333,8 @@ class _Builder:
             sym = self.declare(st.name, Kind.OWNED, st.line)
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
+        if isinstance(rhs, A.BufferIntent):
+            return self.lower_buffer(st, rhs, cur)
         if isinstance(rhs, A.Move):
             src = self.lookup(rhs.var, rhs.line)
             if src is not None and src.kind != Kind.OWNED:
@@ -315,6 +344,12 @@ class _Builder:
                 src = None
             dst = self.declare(st.name, Kind.OWNED, st.line)
             if src is not None:
+                # a moved buffer keeps its storage policy AND its origin identity:
+                # a stack-backed buffer is still stack-backed after `move` (escape
+                # rules carry over), and diagnostics on the alias attribute to the
+                # original buffer in the report.
+                dst.buffer = src.buffer
+                dst.origin = src.origin
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -324,12 +359,60 @@ class _Builder:
                     "OWN032",
                     f"cannot copy owned resource '{src.name}' into '{st.name}'; "
                     f"use 'move {src.name}' to transfer ownership", st.line))
-            self.declare(st.name, Kind.PLAIN, st.line)
+            dst = self.declare(st.name, Kind.PLAIN, st.line)
+            if src is not None and src.kind == Kind.PLAIN:
+                dst.type_name = src.type_name  # a copy keeps the value's type
             return cur
         if isinstance(rhs, A.IntLit):
-            self.declare(st.name, Kind.PLAIN, st.line)
+            dst = self.declare(st.name, Kind.PLAIN, st.line)
+            dst.type_name = "int"
             return cur
         raise AssertionError(f"unknown rhs {rhs!r}")
+
+    def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
+        if rhs.ns != "Buffer":
+            self.diags.append(Diagnostic(
+                "OWN030",
+                f"unknown buffer namespace '{rhs.ns}'; buffer intents are "
+                f"written 'Buffer.<mode>(...)'", rhs.line))
+            self.declare(st.name, Kind.OWNED, st.line)
+            return cur
+        if rhs.mode not in MODE_NAMES:
+            self.diags.append(Diagnostic(
+                "OWN030",
+                f"unknown buffer mode '{rhs.mode}'; expected one of "
+                f"{', '.join(sorted(MODE_NAMES))}", rhs.line))
+            self.declare(st.name, Kind.OWNED, st.line)
+            return cur
+        # the size must resolve to an integer: an IntLit, or a plain `int` value.
+        # A bool/other plain, a borrow, or an owned resource as the size would
+        # lower to uncompilable C# (Rent(flag) / AsSpan(0, flag)).
+        if rhs.size is None:
+            self.diags.append(Diagnostic(
+                "OWN018", f"buffer '{st.name}' requires a size", rhs.line))
+        elif isinstance(rhs.size, A.VarRef):
+            ssym = self.lookup(rhs.size.name, rhs.size.line)
+            if ssym is not None and ssym.kind != Kind.PLAIN:
+                self.diags.append(Diagnostic(
+                    "OWN018",
+                    f"buffer size '{rhs.size.name}' must be an integer, not "
+                    f"{ssym.kind.name.lower()}", rhs.size.line))
+            elif ssym is not None and ssym.type_name != "int":
+                # an unknown-typed plain (e.g. a copy of a borrow) is NOT an int;
+                # accepting it would lower to Rent(span)/AsSpan(0, span).
+                what = (f"it is '{ssym.type_name}'" if ssym.type_name
+                        else "its type cannot be determined")
+                self.diags.append(Diagnostic(
+                    "OWN018",
+                    f"buffer size '{rhs.size.name}' must be an integer "
+                    f"({what})", rhs.size.line))
+        info, bdiags = resolve_buffer(rhs, self.policies)
+        self.diags.extend(bdiags)
+        sym = self.declare(st.name, Kind.OWNED, st.line)
+        sym.buffer = info
+        sym.origin = f"{st.name}#{rhs.line}:{rhs.col}"
+        cur.instrs.append(AcquireBuffer(sym, info, st.line))
+        return cur
 
     def lower_call(self, st: A.Call, cur: Block) -> Block:
         sig = self.signatures.get(st.callee)
@@ -425,8 +508,15 @@ class _Builder:
         return None
 
 
+def collect_policies(mod: A.Module) -> dict[str, Policy]:
+    return {p.name: Policy(p.name, dict(p.settings), p.line, p.dups)
+            for p in mod.policies}
+
+
 def build_cfg(fn: A.FnDecl, resource_names: set[str],
-              signatures: dict[str, Signature]) -> tuple[CFG, list[Diagnostic]]:
-    b = _Builder(fn, resource_names, signatures)
+              signatures: dict[str, Signature],
+              policies: dict[str, Policy] | None = None
+              ) -> tuple[CFG, list[Diagnostic]]:
+    b = _Builder(fn, resource_names, signatures, policies)
     cfg = b.build()
     return cfg, b.diags

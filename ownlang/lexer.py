@@ -37,6 +37,7 @@ class Tok(Enum):
     ELSE = auto()
     RETURN = auto()
     MUT = auto()
+    POLICY = auto()
     # emit-template keywords (only meaningful inside a resource body)
     EMIT_TYPE = auto()
     EMIT_ACQUIRE = auto()
@@ -54,6 +55,7 @@ class Tok(Enum):
     SEMI = auto()
     AMP = auto()
     EQ = auto()
+    DOT = auto()
     ARROW = auto()
     EOF = auto()
 
@@ -76,6 +78,7 @@ KEYWORDS = {
     "else": Tok.ELSE,
     "return": Tok.RETURN,
     "mut": Tok.MUT,
+    "policy": Tok.POLICY,
     "emit_type": Tok.EMIT_TYPE,
     "emit_acquire": Tok.EMIT_ACQUIRE,
     "emit_release": Tok.EMIT_RELEASE,
@@ -197,6 +200,7 @@ def lex(src: str) -> list[Token]:
             ";": Tok.SEMI,
             "&": Tok.AMP,
             "=": Tok.EQ,
+            ".": Tok.DOT,
         }
         if c in simple:
             advance()
