@@ -228,6 +228,19 @@ CASES = [
      ["OWN021"]),
     ("buf_inline_literal_ok",
      "fn f(){ let b = Buffer.inline(256); release b; }", []),
+    ("buf_policy_bad_clear",
+     "policy Sensitive { clear_on_release = ture; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = Sensitive); release b; }",
+     ["OWN030"]),
+    ("buf_bad_counters",
+     "fn f(n: int){ let b = Buffer.scratch(n, counters = ture); release b; }",
+     ["OWN030"]),
+    ("buf_bad_trace",
+     "fn f(n: int){ let b = Buffer.scratch(n, trace = ture); release b; }",
+     ["OWN030"]),
+    ("buf_policy_bools_ok",
+     "policy S { clear_on_release = true; counters = false; trace = off; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = S); release b; }", []),
     ("buf_inline_override_ignores_bad_policy",
      "policy P { inline_bytes = bogus; } "
      "fn f(n: int){ let b = Buffer.scratch(n, policy = P, inline = 128); "

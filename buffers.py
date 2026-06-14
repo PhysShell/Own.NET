@@ -150,14 +150,6 @@ def _as_ident(expr) -> str | None:
     return expr.name if isinstance(expr, A.VarRef) else None
 
 
-def _truthy(expr) -> bool:
-    name = _as_ident(expr)
-    if name is not None:
-        return name == "true"
-    val = _as_int(expr)
-    return bool(val)
-
-
 # --------------------------------------------------------------------------
 # Resolution: intent + policies -> validated BufferInfo + diagnostics
 # --------------------------------------------------------------------------
@@ -353,9 +345,11 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
             f"raise the policy ceiling deliberately", line))
 
     # ---- flags from options / policy --------------------------------------
-    clear = _flag(opts.get("clear"), base.get("clear_on_release"), default=False)
-    trace = _trace_flag(opts.get("trace"), base.get("trace"), default=True)
-    counters = _flag(opts.get("counters"), base.get("counters"), default=True)
+    clear = _bool_flag(opts.get("clear"), base.get("clear_on_release"),
+                       False, "clear_on_release", diags, line)
+    trace = _trace_flag(opts.get("trace"), base.get("trace"), True, diags, line)
+    counters = _bool_flag(opts.get("counters"), base.get("counters"),
+                          True, "counters", diags, line)
 
     info = BufferInfo(
         mode=mode,
@@ -386,25 +380,62 @@ def _fallback_token(v) -> str:
     return str(v)
 
 
-def _flag(opt_expr, policy_val, default: bool) -> bool:
+def _bool_flag(opt_expr, policy_val, default: bool, label: str,
+               diags, line: int) -> bool:
+    # a malformed boolean (a typo like `ture`, or any non-bool) must be rejected,
+    # not silently treated as the default — for a sensitive buffer that would
+    # quietly turn off clear-on-release.
     if opt_expr is not None:
-        return _truthy(opt_expr)
-    if isinstance(policy_val, bool):
-        return policy_val
+        name = _as_ident(opt_expr)
+        if name == "true":
+            return True
+        if name == "false":
+            return False
+        diags.append(Diagnostic(
+            "OWN030",
+            f"invalid '{label}' value '{_fallback_token(opt_expr)}'; "
+            f"expected true or false", line))
+        return default
+    if policy_val is not None:
+        if isinstance(policy_val, bool):
+            return policy_val
+        diags.append(Diagnostic(
+            "OWN030",
+            f"invalid '{label}' value '{policy_val}' in policy; expected true "
+            f"or false", line))
+        return default
     return default
 
 
-def _trace_flag(opt_expr, policy_val, default: bool) -> bool:
-    # `trace = debug` / `trace = off` / `trace = false`; "off"/"none"/"false"
-    # disable the (Conditional) hooks, anything else (e.g. "debug") enables them.
-    # An inline option wins over the policy value.
+_TRACE_ON = ("debug", "on", "true")
+_TRACE_OFF = ("off", "none", "false")
+
+
+def _trace_flag(opt_expr, policy_val, default: bool, diags, line: int) -> bool:
+    # `trace = debug` / `trace = off` / `trace = false`; on/off/none/true/false
+    # toggle the (Conditional) hooks. A malformed value is rejected, not assumed
+    # on. An inline option wins over the policy value.
     if opt_expr is not None:
         name = _as_ident(opt_expr)
-        if name is not None:
-            return name not in ("off", "none", "false")
-        return _truthy(opt_expr)
-    if isinstance(policy_val, bool):
-        return policy_val
-    if isinstance(policy_val, str):
-        return policy_val not in ("off", "none", "false")
+        if name in _TRACE_ON:
+            return True
+        if name in _TRACE_OFF:
+            return False
+        diags.append(Diagnostic(
+            "OWN030",
+            f"invalid 'trace' value '{_fallback_token(opt_expr)}'; expected one "
+            f"of debug/on/off/none/true/false", line))
+        return default
+    if policy_val is not None:
+        if isinstance(policy_val, bool):
+            return policy_val
+        if policy_val in _TRACE_ON:
+            return True
+        if policy_val in _TRACE_OFF:
+            return False
+        diags.append(Diagnostic(
+            "OWN030",
+            f"invalid 'trace' value '{policy_val}' in policy; expected one of "
+            f"debug/on/off/none/true/false", line))
+        return default
     return default

@@ -447,7 +447,10 @@ release b;`) hoist'ить нельзя без искажения lifetime'а, п
 отрицательный) запрос **до** любого trace/counter, чтобы битый ввод не портил
 метрики. Размер буфера обязан быть целым числом — `Buffer.pooled(flag: bool)` или
 owned-ресурс как размер это **OWN018**; а `inline` требует compile-time
-литерала — `Buffer.inline(n, max = …)` это **OWN021** (для динамики есть `stack`). `native` хранит `byte*` (backing, освобождается на release), но наружу
+литерала — `Buffer.inline(n, max = …)` это **OWN021** (для динамики есть `stack`).
+Булевы настройки (`clear_on_release`, `counters`) и `trace` валидируются: опечатка
+вроде `clear_on_release = ture` — **OWN030**, а не тихое отключение clear на
+sensitive-буфере. `native` хранит `byte*` (backing, освобождается на release), но наружу
 отдаёт `Span<byte>`-view — borrow/call видят тот же логический тип, что и
 pooled/stack/scratch, так что один `extern fn Fill(borrow_mut Buffer)` лоуэрится в
 одну C#-сигнатуру (`Span<byte>`) для всех storage-режимов.
