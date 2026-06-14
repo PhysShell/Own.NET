@@ -397,11 +397,15 @@ class _Builder:
                     "OWN018",
                     f"buffer size '{rhs.size.name}' must be an integer, not "
                     f"{ssym.kind.name.lower()}", rhs.size.line))
-            elif ssym is not None and ssym.type_name not in (None, "int"):
+            elif ssym is not None and ssym.type_name != "int":
+                # an unknown-typed plain (e.g. a copy of a borrow) is NOT an int;
+                # accepting it would lower to Rent(span)/AsSpan(0, span).
+                what = (f"it is '{ssym.type_name}'" if ssym.type_name
+                        else "its type cannot be determined")
                 self.diags.append(Diagnostic(
                     "OWN018",
                     f"buffer size '{rhs.size.name}' must be an integer "
-                    f"(it is '{ssym.type_name}')", rhs.size.line))
+                    f"({what})", rhs.size.line))
         info, bdiags = resolve_buffer(rhs, self.policies)
         self.diags.extend(bdiags)
         sym = self.declare(st.name, Kind.OWNED, st.line)

@@ -84,6 +84,10 @@ class _FnGen:
             return False
         if not _scopes_release_top_level(self.fn.body):
             return False
+        if _scope_body_has_plain_let(self.fn.body):
+            # a plain local in a scope's body, used after the release, would be
+            # trapped in the hoisted try; emit faithfully inline instead.
+            return False
         return _laminar_scopes(self.fn.body)
 
     # -- emit ---------------------------------------------------------------
@@ -190,7 +194,8 @@ class _FnGen:
                 rest = stmts[i + 1:]
                 name = st.name
                 j = self._find_release(rest, 0, name)
-                if j is not None and not _fn_has_buffer(rest[:j]):
+                if (j is not None and not _fn_has_buffer(rest[:j])
+                        and not _body_has_plain_let(rest[:j])):
                     out.extend(self._emit_buffer_scoped(name, st.rhs, rest[:j], ind))
                     i += 1 + j + 1   # consume the let, its body, and its release
                     continue
@@ -533,6 +538,30 @@ def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
                 return True
         if isinstance(st, A.BorrowBlock):
             if _fn_has_buffer(st.body):
+                return True
+    return False
+
+
+def _body_has_plain_let(stmts: list[A.Stmt]) -> bool:
+    """True if a plain local (`let x = <int/var>`) is declared at this level. Such
+    a local declared inside a hoisted try would go out of scope after the finally,
+    so a scope whose body contains one is emitted inline (no try) instead."""
+    return any(isinstance(s, A.Let) and isinstance(s.rhs, (A.IntLit, A.VarRef))
+               for s in stmts)
+
+
+def _scope_body_has_plain_let(stmts: list[A.Stmt]) -> bool:
+    """True if any top-level scope (acquire/buffer let) has a plain local declared
+    between its acquire and its release."""
+    for i, st in enumerate(stmts):
+        if isinstance(st, A.Let) and isinstance(st.rhs, (A.Acquire, A.BufferIntent)):
+            rel = None
+            for k in range(i + 1, len(stmts)):
+                if isinstance(stmts[k], A.Release) and stmts[k].var == st.name:
+                    rel = k
+                    break
+            body = stmts[i + 1:rel] if rel is not None else stmts[i + 1:]
+            if _body_has_plain_let(body):
                 return True
     return False
 

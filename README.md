@@ -447,9 +447,12 @@ dotnet run -p:DefineConstants="OWNSHARP_TRACE;OWNSHARP_COUNTERS"
 faithful-inline (release ровно там, где написан; без `try/finally`).
 `scratch`/`stack`/`native` динамического размера guard'ят некорректный (в т.ч.
 отрицательный) запрос **до** любого trace/counter, чтобы битый ввод не портил
-метрики. Размер буфера обязан быть целым числом — `Buffer.pooled(flag: bool)` или
-owned-ресурс как размер это **OWN018**; а `inline` требует compile-time
-литерала — `Buffer.inline(n, max = …)` это **OWN021** (для динамики есть `stack`).
+метрики. Размер буфера обязан быть целым числом — `Buffer.pooled(flag: bool)`, owned-ресурс
+или plain неизвестного типа (например копия borrow'а) как размер это **OWN018**;
+а `inline` требует compile-time литерала — `Buffer.inline(n, max = …)` это
+**OWN021** (для динамики есть `stack`). Plain-локал, объявленный в теле буфера и
+использованный после release, не оборачивается в hoist'нутый `try` (иначе вышел бы
+из C#-scope) — такой буфер лоуэрится inline.
 Булевы настройки (`clear_on_release`, `counters`) и `trace` валидируются: опечатка
 вроде `clear_on_release = ture` — **OWN030**, а не тихое отключение clear на
 sensitive-буфере. `native` хранит `byte*` (backing, освобождается на release), но наружу

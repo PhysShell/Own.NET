@@ -226,6 +226,12 @@ CASES = [
     ("buf_inline_dynamic_rejected",
      "fn f(n: int){ let b = Buffer.inline(n, max = 1024); release b; }",
      ["OWN021"]),
+    ("buf_size_borrow_temp",
+     "fn f(x: &Buffer){ let n = x; let b = Buffer.pooled(n); release b; }",
+     ["OWN018"]),
+    ("buf_local_after_release_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n); let x = 1; release b; "
+     "let y = x; }", []),
     ("buf_inline_literal_ok",
      "fn f(){ let b = Buffer.inline(256); release b; }", []),
     ("buf_policy_bad_clear",
@@ -738,6 +744,21 @@ def ordering_counters_smoke() -> list[str]:
         fails.append("disjoint smoke missing expected lines")
     elif out.index("Return(a_array)") > out.index("b_array = ArrayPool"):
         fails.append("buffer a must be returned before buffer b is rented")
+
+    # a plain local declared in a buffer's body and used after the release must
+    # not be trapped in a hoisted try (it would go out of C# scope); the buffer
+    # is lowered inline (no try) so the local stays at function scope.
+    aftrel = ("module M\nfn f(n: int){ let b = Buffer.pooled(n); let x = 1; "
+              "release b; let y = x; }\n")
+    if codes(aftrel):
+        fails.append(f"local-after-release should check clean, got {codes(aftrel)}")
+    body = generate(parse(aftrel)).split("public static void f")[1].split("internal static")[0]
+    if "try" in body:
+        fails.append("a buffer with a plain local in its body must not be hoisted")
+    if "var x = 1;" not in body or "var y = x;" not in body:
+        fails.append("local-after-release smoke missing expected lines")
+    elif body.index("var x = 1;") > body.index("var y = x;"):
+        fails.append("x must be declared before y")
 
     # a negative scratch size is rejected BEFORE any trace/counter runs
     negsc = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
