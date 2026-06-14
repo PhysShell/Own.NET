@@ -37,6 +37,7 @@ _CORPUS = os.path.join(os.path.dirname(__file__), "..", "corpus", "real-world")
 
 
 def _codes(src: str) -> list[str]:
+    """The error codes the checker produces for one `.own` source string."""
     try:
         mod = parse(src)
     except (ParseError, LexError):
@@ -52,6 +53,7 @@ def _codes(src: str) -> list[str]:
 
 
 def _cases() -> list[str]:
+    """The case directory names under corpus/real-world/."""
     if not os.path.isdir(_CORPUS):
         return []
     return sorted(d for d in os.listdir(_CORPUS)
@@ -59,8 +61,11 @@ def _cases() -> list[str]:
 
 
 def run() -> int:
+    """Check every corpus case against its expected diagnostics; return 0/1."""
     fails: list[str] = []
     rows: list[tuple[str, str]] = []
+    checked = 0
+    matched = 0
     for case in _cases():
         d = os.path.join(_CORPUS, case)
         own = os.path.join(d, "case.own")
@@ -71,10 +76,15 @@ def run() -> int:
                 fails.append(f"{case}: missing {os.path.basename(required)}")
         if not (os.path.exists(own) and os.path.exists(exp)):
             continue
-        want = sorted(w for w in open(exp, encoding="utf-8").read().split() if w)
-        got = sorted(set(_codes(open(own, encoding="utf-8").read())))
+        checked += 1
+        with open(exp, encoding="utf-8") as f:
+            want = sorted(w for w in f.read().split() if w)
+        with open(own, encoding="utf-8") as f:
+            got = sorted(set(_codes(f.read())))
         if got != want:
             fails.append(f"{case}: expected {want}, got {got}")
+        else:
+            matched += 1
         rows.append((case, ",".join(want)))
 
     print("real-world corpus (corpus/real-world/):")
@@ -83,8 +93,7 @@ def run() -> int:
         print(f"  {case:<{width}}  {codes}")
     for f in fails:
         print(f"CORPUS FAIL: {f}")
-    print(f"corpus: {len(rows) - len(fails)}/{len(_cases())} cases match "
-          f"their expected diagnostics")
+    print(f"corpus: {matched}/{checked} cases match their expected diagnostics")
     return 1 if fails else 0
 
 

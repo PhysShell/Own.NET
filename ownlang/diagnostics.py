@@ -101,6 +101,7 @@ class Diagnostic:
         return stripped + 1 if src_line.strip() else None
 
     def render(self, filename: str = "<input>") -> str:
+        """Plain one-line rendering: `file:line: severity: [code] message`."""
         return (
             f"{filename}:{self.line}: {self.severity.value}: "
             f"[{self.code}] {self.message}"

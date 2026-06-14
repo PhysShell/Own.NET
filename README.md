@@ -86,7 +86,7 @@ python tests/test_gallery.py
 `check` печатает ошибку в стиле rustc — `file:line:col`, сама строка исходника и
 каретка под виновным именем:
 
-```
+```text
 $ python -m ownlang check examples/gallery/05_dispose_while_view_live.own
 examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot release 'b' while it is borrowed
   9 |     release b;           // freeing the backing store while `view` is alive

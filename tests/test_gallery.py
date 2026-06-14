@@ -44,6 +44,7 @@ MANIFEST = [
 
 
 def _codes(src: str) -> list[str]:
+    """The error codes the checker produces for one `.own` source string."""
     try:
         mod = parse(src)
     except (ParseError, LexError):
@@ -63,8 +64,9 @@ def _render_smoke() -> list[str]:
     """The pretty CLI rendering must carry a line:col header, the source line,
     and a caret on the named identifier."""
     fails: list[str] = []
-    src = open(os.path.join(_GALLERY, "02_use_after_release.own"),
-               encoding="utf-8").read()
+    with open(os.path.join(_GALLERY, "02_use_after_release.own"),
+              encoding="utf-8") as f:
+        src = f.read()
     mod = parse(src)
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
@@ -81,12 +83,14 @@ def _render_smoke() -> list[str]:
 
 
 def run() -> int:
+    """Check every gallery example against its documented code; return 0/1."""
     fails: list[str] = _render_smoke()
     rows: list[tuple[str, str, str]] = []
     for name, want, analog in MANIFEST:
         path = os.path.join(_GALLERY, name)
         try:
-            got = sorted(set(_codes(open(path, encoding="utf-8").read())))
+            with open(path, encoding="utf-8") as f:
+                got = sorted(set(_codes(f.read())))
         except FileNotFoundError:
             fails.append(f"{name}: missing")
             continue
@@ -100,7 +104,7 @@ def run() -> int:
             shown = want
         rows.append((name, shown, analog))
 
-    width = max(len(n) for n, _, _ in rows)
+    width = max((len(n) for n, _, _ in rows), default=0)
     print("what it catches — gallery (examples/gallery/):")
     for name, code, analog in rows:
         title = TITLES.get(code, "")
@@ -109,7 +113,10 @@ def run() -> int:
             print(f"  {'':<{width}}  {'':<7}  ({title})")
     for f in fails:
         print(f"GALLERY FAIL: {f}")
-    print(f"gallery: {len(rows) - len({f.split(':')[0] for f in fails})}"
+    # count only failures that name an actual gallery file (not render_pretty:…)
+    names = {n for n, _, _ in MANIFEST}
+    example_fails = {f.split(":")[0] for f in fails if f.split(":")[0] in names}
+    print(f"gallery: {len(rows) - len(example_fails)}"
           f"/{len(MANIFEST)} examples match their documented diagnostic")
     return 1 if fails else 0
 

@@ -11,7 +11,7 @@ oft-cited example).
 release) — `release` is `ArrayPool.Return`, and `BuildResult(quotient)` reads
 the buffer afterwards.
 
-```
+```text
 $ python -m ownlang check corpus/real-world/arraypool-use-after-return/case.own
 case.own:14:14: error: [OWN002] borrow 'quotient' after it was released
  14 |   BuildResult(quotient);              // read after return -> OWN002
