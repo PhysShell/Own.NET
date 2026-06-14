@@ -1032,10 +1032,15 @@ def run() -> int:
     import test_gallery  # noqa: E402
     gl_rc = test_gallery.run()
 
+    # Real-world corpus: each case.own (a reduction of a real ArrayPool/Dispose
+    # bug) must still produce the diagnostics it documents.
+    import test_corpus  # noqa: E402
+    co_rc = test_corpus.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc) else 0
+                 or gl_rc or co_rc) else 0
 
 
 if __name__ == "__main__":
