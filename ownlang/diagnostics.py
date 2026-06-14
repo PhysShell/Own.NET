@@ -57,6 +57,7 @@ TITLES = {
     "OWN032": "owned resource copied without 'move'",
     "OWN033": "function must return a value on all paths",
     "OWN034": "operation requires an owned resource",
+    "OWN035": "return type mismatch",
     # ---- extern / call boundary ----
     "OWN040": "call to an undeclared function (unknown calls are forbidden)",
     "OWN041": "call argument mismatch",

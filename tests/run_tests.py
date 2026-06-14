@@ -137,6 +137,20 @@ CASES = [
      "fn f(){ let a = acquire Buffer(1); let b = a; release a; }", ["OWN032"]),
     ("missing_return",
      "fn f() -> Buffer { let b = acquire Buffer(1); release b; }", ["OWN033"]),
+    ("return_plain_as_resource",
+     "fn f(n: int) -> Buffer { return n; }", ["OWN035"]),
+    ("return_empty_as_resource",
+     "fn f() -> Buffer { return; }", ["OWN035"]),
+    ("return_value_from_void",
+     "fn g(n: int){ return n; }", ["OWN035"]),
+    ("return_wrong_resource_type",
+     "fn f() -> Buffer { let c = acquire Conn(1); return c; }", ["OWN035"]),
+    ("return_wrong_resource_param",
+     "fn f(c: Conn) -> Buffer { return c; }", ["OWN035"]),
+    ("ok_return_owned_conn",
+     "fn f() -> Conn { let c = acquire Conn(1); return c; }", []),
+    ("ok_bare_return_void",
+     "fn f(){ let b = acquire Buffer(1); release b; return; }", []),
     ("loop_rejected", "fn f(){ while (x) { use x; } }", ["OWN020"]),
     ("async_rejected", "fn f(){ async { use x; } }", ["OWN020"]),
 
@@ -159,6 +173,56 @@ CASES = [
     ("leak_and_uafr",
      "fn f(){ let a = acquire Buffer(1); let b = acquire Buffer(2); "
      "release b; use b; }", ["OWN001", "OWN002"]),
+
+    # ---- ownership/borrow soundness (adversarial) ----
+    # Clean programs that must NOT be rejected (false-positive guard).
+    ("ok_sequential_mut_borrows",
+     "fn f(){ let b = acquire Buffer(1); borrow_mut b as m1 { use m1; } "
+     "borrow_mut b as m2 { use m2; } release b; }", []),
+    ("ok_consume_both_arms",
+     "fn f(){ let b = acquire Buffer(1); if (c) { Store(b); } "
+     "else { Store(b); } }", []),
+    ("ok_move_chain",
+     "fn f(){ let a = acquire Buffer(1); let b = move a; let c = move b; "
+     "release c; }", []),
+    ("ok_temp_borrows_then_consume",
+     "fn f(){ let b = acquire Buffer(1); Hash(b); Fill(b); Store(b); }", []),
+    ("ok_nested_shared_borrows",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { borrow b as t "
+     "{ use t; } } release b; }", []),
+    # Bad programs that must be rejected (false-negative guard).
+    ("borrow_moved_name",
+     "fn f(){ let a = acquire Buffer(1); let c = move a; borrow a as s "
+     "{ use s; } release c; }", ["OWN005"]),
+    ("release_moved_name",
+     "fn f(){ let a = acquire Buffer(1); let c = move a; release a; "
+     "release c; }", ["OWN005"]),
+    ("void_return_in_borrow_leaks",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { use s; return; } }",
+     ["OWN001"]),
+    ("double_consume",
+     "fn f(){ let b = acquire Buffer(1); Store(b); Store(b); }", ["OWN002"]),
+    ("consume_borrow_binding",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { Store(s); } "
+     "release b; }", ["OWN034"]),
+    ("mut_call_under_shared",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { Fill(b); } "
+     "release b; }", ["OWN006"]),
+    ("leak_inner_acquire_in_borrow",
+     "fn f(){ let a = acquire Buffer(1); borrow a as s { let b = acquire "
+     "Buffer(2); use s; } release a; }", ["OWN001"]),
+    ("move_borrow_binding",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { let c = move s; "
+     "release c; } release b; }", ["OWN034"]),
+    ("shadow_borrow_binding",
+     "fn f(){ let b = acquire Buffer(1); borrow b as s { borrow b as s "
+     "{ use s; } } release b; }", ["OWN031"]),
+    ("return_moved_and_leak",
+     "fn f() -> Buffer { let a = acquire Buffer(1); let b = move a; "
+     "return a; }", ["OWN001", "OWN005"]),
+    ("plain_copy_to_resource_param",
+     "fn f(){ let a = acquire Buffer(1); let b = a; Hash(b); release a; }",
+     ["OWN032", "OWN041"]),
 
     # ---- buffer storage policies: clean ----
     ("buf_scratch_ok",

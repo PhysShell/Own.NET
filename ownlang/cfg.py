@@ -331,6 +331,7 @@ class _Builder:
                 self.diags.append(Diagnostic(
                     "OWN030", f"undefined resource '{rhs.resource}'", rhs.line))
             sym = self.declare(st.name, Kind.OWNED, st.line)
+            sym.type_name = rhs.resource
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
         if isinstance(rhs, A.BufferIntent):
@@ -350,6 +351,7 @@ class _Builder:
                 # original buffer in the report.
                 dst.buffer = src.buffer
                 dst.origin = src.origin
+                dst.type_name = src.type_name   # the moved value keeps its type
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -492,15 +494,56 @@ class _Builder:
         return merge
 
     def lower_return(self, st: A.Return, cur: Block) -> Block | None:
+        ret = self.fn.ret
         sym: Symbol | None = None
-        if st.var is not None:
+        if st.var is None:
+            # `return;` with no value — only valid in a function with no return
+            # type. Otherwise the analyzer would treat the function as a valid
+            # terminal and codegen would emit `return;` from a non-void method.
+            if ret is not None:
+                self.diags.append(Diagnostic(
+                    "OWN035",
+                    f"'{self.fn.name}' returns '{ret.name}' but this 'return' "
+                    f"provides no value", st.line))
+        else:
             sym = self.lookup(st.var, st.line)
-            if sym is not None and sym.kind == Kind.BORROW:
+            if ret is None:
+                # returning a value from a function with no declared return type
+                # lowers to `return x;` inside a `void` method — uncompilable.
+                if sym is not None:
+                    self.diags.append(Diagnostic(
+                        "OWN035",
+                        f"'{self.fn.name}' has no return type but returns "
+                        f"'{st.var}'", st.line))
+                sym = None
+            elif sym is not None and sym.kind == Kind.BORROW:
                 self.diags.append(Diagnostic(
                     "OWN004",
                     f"'{st.var}' is a borrow and cannot be returned (it would "
                     f"outlive the resource it borrows)", st.line))
                 sym = None
+            elif (not ret.borrowed and ret.name in self.resource_names
+                  and sym is not None and sym.buffer is None
+                  and (sym.kind != Kind.OWNED or sym.type_name != ret.name)):
+                # the return type is an owned resource; the returned value must be
+                # an owned resource OF THE SAME type. Both a plain (`return n;`)
+                # and a different resource (`return c;` where c is a Conn but the
+                # function returns Buffer) lower to an uncompilable method, and
+                # the analyzer would otherwise pass them. (Buffers have their own
+                # escape rules -- OWN015/016/017 -- so they are left to the
+                # analyzer rather than reported here.)
+                if sym.kind != Kind.OWNED:
+                    what = "not an owned resource"
+                    sym = None        # a plain value: nothing escapes
+                else:
+                    # a real (but wrong-typed) owned resource still leaves the
+                    # function; keep it so it is marked escaped, not leaked --
+                    # the type mismatch is the error, an extra OWN001 is noise.
+                    what = f"an owned '{sym.type_name}'"
+                self.diags.append(Diagnostic(
+                    "OWN035",
+                    f"'{self.fn.name}' returns '{ret.name}' but '{st.var}' is "
+                    f"{what}", st.line))
             elif sym is not None and sym.kind == Kind.PLAIN:
                 sym = None
         cur.instrs.append(Return(sym, st.line))
