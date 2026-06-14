@@ -537,6 +537,62 @@ def _report_check(mod, check):
     return rep["buffers"][0]["checks"][check] if rep["buffers"] else None
 
 
+def nesting_native_trace_smoke() -> list[str]:
+    """Three follow-up review guards:
+    - an ordinary resource inside a buffer's lifetime keeps its own finally
+      (exception from the body must not leak it while the buffer is returned);
+    - a native buffer with a dynamic size guards against a negative request
+      before NativeMemory.Alloc;
+    - a policy `trace = false` is honoured (no OwnTrace, report trace:false)."""
+    fails: list[str] = []
+
+    # Issue 1: buffer + ordinary resource each get their own finally
+    mix = ("module M\nresource Conn { acquire open release close }\n"
+           "extern fn Work(borrow_mut Buffer);\n"
+           "fn f(n: int){ let b = Buffer.scratch(n); let c = acquire Conn(); "
+           "Work(b); release c; release b; }\n")
+    if codes(mix):
+        fails.append(f"buffer+resource should check clean, got {codes(mix)}")
+    out = generate(parse(mix))
+    if out.count("finally") != 2:
+        fails.append(f"buffer+resource must produce two finally blocks, got {out.count('finally')}")
+    if "c.close();" not in out:
+        fails.append("Conn must be closed")
+    elif out.index("c.close();") > out.index("ArrayPool<byte>.Shared.Return"):
+        fails.append("Conn finally must be nested inside the buffer's try (close before Return)")
+
+    # Issue 2: native dynamic size guards against a negative request
+    nat_dyn = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+               "fn g(n: int){ let b = Buffer.native(n); "
+               "borrow_mut b as m { Fill(m); } release b; }\n")
+    out = generate(parse(nat_dyn))
+    if "if (n < 0)" not in out or "ArgumentOutOfRangeException(nameof(n))" not in out:
+        fails.append("native dynamic size must guard against a negative request")
+    nat_const = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+                 "fn g(){ let b = Buffer.native(256); "
+                 "borrow_mut b as m { Fill(m); } release b; }\n")
+    if "< 0" in generate(parse(nat_const)):
+        fails.append("native constant size should not emit a negative guard")
+
+    # Issue 3: a policy trace = false disables tracing
+    from ownlang.buffers import resolve as _resolve, Policy
+    from ownlang.ast_nodes import BufferIntent, VarRef
+    intent = BufferIntent(mode="scratch", size=VarRef("n", 1),
+                          options={"policy": VarRef("Quiet", 1)}, line=1)
+    pol = {"Quiet": Policy("Quiet", {"trace": False, "counters": True})}
+    info, _ = _resolve(intent, pol)
+    if info.trace:
+        fails.append("policy trace = false must disable tracing")
+    quiet = ("module M\npolicy Quiet { trace = false; }\n"
+             "extern fn Fill(borrow_mut Buffer);\n"
+             "fn h(n: int){ let b = Buffer.scratch(n, policy = Quiet); "
+             "borrow_mut b as m { Fill(m); } release b; }\n")
+    hbody = generate(parse(quiet)).split("public static void h")[1].split("internal static")[0]
+    if "OwnTrace" in hbody:
+        fails.append("policy trace = false must emit no OwnTrace calls")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -579,6 +635,10 @@ def run() -> int:
     for f in branchy_fails:
         print(f"BRANCHY FAIL: {f}")
 
+    nest_fails = nesting_native_trace_smoke()
+    for f in nest_fails:
+        print(f"NESTING FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
@@ -586,8 +646,9 @@ def run() -> int:
     print(f"buffer:   {'PASS' if not buffer_fails else 'FAIL'}")
     print(f"escape:   {'PASS' if not escape_fails else 'FAIL'}")
     print(f"branchy:  {'PASS' if not branchy_fails else 'FAIL'}")
+    print(f"nesting:  {'PASS' if not nest_fails else 'FAIL'}")
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
-                 or escape_fails or branchy_fails) else 0
+                 or escape_fails or branchy_fails or nest_fails) else 0
 
 
 if __name__ == "__main__":

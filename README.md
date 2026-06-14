@@ -435,16 +435,19 @@ dotnet run -p:DefineConstants="OWNSHARP_TRACE;OWNSHARP_COUNTERS"
 
 ### Где это жульничает
 
-Элемент буфера зафиксирован как `byte` (как во всех примерах). Буфер, который
-вкладывается чисто (release straight-line на своём уровне, без другого буфера
-внутри тела), лоуэрится в exception-safe `try/finally` (это golden-форма scratch).
-Перекрывающиеся времена жизни (release в не-LIFO порядке) и ветвистый release
-(внутри `if`/borrow) используют inline-release: реальный cleanup (pool `Return` /
-native `Free` / clear) эмитится ровно в местах release'ов — **без** подъёма в
-`finally`, тот же trade-off, что и у обычных ресурсов (подъём из произвольного
-control-flow — roadmap). Escaping movable-буферы отвергаются (OWN017), полноценный
-movable-lowering — roadmap. Неизвестные значения настроек (mode, policy, fallback)
-ловятся как **OWN030** — опечатка в `fallback = forbidden` не «протечёт» в heap. Бенчмарк-матрица из дизайн-дока
+Элемент буфера зафиксирован как `byte` (как во всех примерах). В straight-line
+функции (без `if`/`move`/owned-return) буферы и обычные ресурсы вкладываются
+вместе одним hoist'ом — каждый в свой exception-safe `try/finally`, release'ы в
+обратном (LIFO) порядке; исключение из тела не «течёт» ни ресурсом, ни буфером.
+В ветвистой функции (есть `if`/`move`/owned-return) используется inline-режим:
+буфер с чистым вложением получает `try/finally`, а перекрывающиеся времена жизни,
+ветвистый release и moved-алиасы — inline-release (реальный cleanup в местах
+release'ов, без подъёма в `finally`; обычные ресурсы там тоже inline — подъём из
+произвольного control-flow это roadmap). `native` динамического размера
+guard'ит отрицательный запрос перед `NativeMemory.Alloc`. Escaping movable-буферы
+отвергаются (OWN017), полноценный movable-lowering — roadmap. Неизвестные значения
+настроек (mode, namespace, policy, fallback) ловятся как **OWN030** — опечатка в
+`fallback = forbidden` (или `fallback = 0`) не «протечёт» в heap. Бенчмарк-матрица из дизайн-дока
 (safe vs unsafe, stack vs pool на размерах 32 B … 1 MB) — **следующий слой**:
 правило «unsafe-backend разрешён только при выигрыше ≥ 10-15 % с disassembly-
 обоснованием» задаёт дисциплину, но прогон бенчей вне песочницы. Unsafe-контракты

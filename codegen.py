@@ -66,10 +66,9 @@ class _FnGen:
     # -- shape detection ----------------------------------------------------
 
     def _is_simple(self) -> bool:
-        # Buffers always take the inline path: their stackalloc/pool prelude and
-        # try/finally are emitted per-buffer, not by the straight-line hoister.
-        if _fn_has_buffer(self.fn.body):
-            return False
+        # Straight-line functions (no branch / move / owned-return) use the
+        # try/finally hoist, which nests buffers AND ordinary resources so each
+        # gets its own exception-safe finally. Branchy functions fall to inline.
         return not _contains_branch_or_transfer(self.fn.body)
 
     # -- emit ---------------------------------------------------------------
@@ -91,44 +90,54 @@ class _FnGen:
     # -- simple (try/finally hoist) ----------------------------------------
 
     def _emit_simple(self, stmts: list[A.Stmt]) -> str:
-        acquired: list[tuple[str, str, str]] = []  # (var, resource, args_csv)
+        # Each "scope" is an openable resource — an ordinary acquire or a buffer —
+        # rendered as (prelude lines, cleanup lines). They nest in source order
+        # with the body innermost, so every scope gets its own finally (releases
+        # run in reverse, LIFO). A scope with no cleanup (e.g. a stack buffer)
+        # adds no try block.
+        scopes: list[tuple[list[str], list[str]]] = []
         other: list[A.Stmt] = []
         for st in stmts:
             if isinstance(st, A.Let) and isinstance(st.rhs, A.Acquire):
                 rt = st.rhs.resource
                 self.owned_resource[st.name] = rt
                 args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
-                acquired.append((st.name, rt, args_csv))
+                prelude = [f"{self._local_type(rt)} {st.name} = "
+                           f"{self._acquire_expr(rt, args_csv)};"]
+                scopes.append((prelude, [self._release_stmt(st.name, rt)]))
+            elif isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
+                scopes.append(self._buffer_lowering(st.name, st.rhs))
             elif isinstance(st, A.Release):
-                pass  # consumed by the finally
+                pass  # consumed by the matching scope's finally
             else:
                 other.append(st)
 
         lines: list[str] = []
         ind = "    "
 
-        def open_resource(idx: int, base: str) -> None:
-            var, rt, args_csv = acquired[idx]
-            lines.append(f"{base}{self._local_type(rt)} {var} = {self._acquire_expr(rt, args_csv)};")
-            lines.append(f"{base}try")
-            lines.append(f"{base}{{")
-            inner = base + ind
-            if idx + 1 < len(acquired):
-                open_resource(idx + 1, inner)
-            else:
+        def open_scope(idx: int, base: str) -> None:
+            if idx >= len(scopes):
                 for st in other:
-                    lines.extend(self._stmt_inline(st, inner))
-            lines.append(f"{base}}}")
-            lines.append(f"{base}finally")
-            lines.append(f"{base}{{")
-            lines.append(f"{base}{ind}{self._release_stmt(var, rt)}")
-            lines.append(f"{base}}}")
+                    lines.extend(self._stmt_inline(st, base))
+                return
+            prelude, fin = scopes[idx]
+            for p in prelude:
+                lines.append(base + p)
+            if fin:
+                lines.append(f"{base}try")
+                lines.append(f"{base}{{")
+                open_scope(idx + 1, base + ind)
+                lines.append(f"{base}}}")
+                lines.append(f"{base}finally")
+                lines.append(f"{base}{{")
+                for f in fin:
+                    lines.append(base + ind + f)
+                lines.append(f"{base}}}")
+            else:
+                # nothing to clean up (e.g. a stack buffer): no try, same level
+                open_scope(idx + 1, base)
 
-        if acquired:
-            open_resource(0, ind)
-        else:
-            for st in other:
-                lines.extend(self._stmt_inline(st, ind))
+        open_scope(0, ind)
         return "".join(l + "\n" for l in lines)
 
     # -- faithful inline ----------------------------------------------------
@@ -267,6 +276,11 @@ class _FnGen:
 
         elif info.mode == BufferMode.NATIVE:
             # the method is emitted `unsafe`, so the pointer needs no local block.
+            if not info.size_is_const:
+                # a negative size would wrap when cast to nuint and request an
+                # enormous allocation; reject it before Alloc (and before clear).
+                pre.append(f"if ({size} < 0)")
+                pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
             if info.trace:
                 pre.append(f'OwnTrace.NativeSelected("{fn}", "{name}", {size});')
             pre.append(f"byte* {name} = (byte*)System.Runtime.InteropServices."

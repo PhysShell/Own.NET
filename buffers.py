@@ -296,10 +296,16 @@ def _flag(opt_expr, policy_val, default: bool) -> bool:
 
 
 def _trace_flag(opt_expr, policy_val, default: bool) -> bool:
-    # `trace = debug` / `trace = off`; debug means "emit the (Conditional) hooks".
-    for v in (_as_ident(opt_expr) if opt_expr is not None else None, policy_val):
-        if isinstance(v, str):
-            return v not in ("off", "none", "false")
+    # `trace = debug` / `trace = off` / `trace = false`; "off"/"none"/"false"
+    # disable the (Conditional) hooks, anything else (e.g. "debug") enables them.
+    # An inline option wins over the policy value.
     if opt_expr is not None:
+        name = _as_ident(opt_expr)
+        if name is not None:
+            return name not in ("off", "none", "false")
         return _truthy(opt_expr)
+    if isinstance(policy_val, bool):
+        return policy_val
+    if isinstance(policy_val, str):
+        return policy_val not in ("off", "none", "false")
     return default
