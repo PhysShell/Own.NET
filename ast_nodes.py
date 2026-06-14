@@ -72,6 +72,7 @@ class BufferIntent:
     options: dict[str, "Expr"]
     line: int
     ns: str = "Buffer"
+    col: int = 0
 
 
 Expr = IntLit | VarRef | Acquire | Move | BufferIntent

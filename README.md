@@ -454,8 +454,12 @@ owned-ресурс как размер это **OWN018**; а `inline` требу
 вроде `clear_on_release = ture` — **OWN030**, а не тихое отключение clear на
 sensitive-буфере. `native` хранит `byte*` (backing, освобождается на release), но наружу
 отдаёт `Span<byte>`-view — borrow/call видят тот же логический тип, что и
-pooled/stack/scratch, так что один `extern fn Fill(borrow_mut Buffer)` лоуэрится в
-одну C#-сигнатуру (`Span<byte>`) для всех storage-режимов.
+pooled/stack/scratch. Borrow-параметр типа `Buffer` (и в `extern`, и в **локальной**
+`fn`) рендерится как `Span<byte>`/`ReadOnlySpan<byte>`, так что один
+`fn helper(x: &mut Buffer)` лоуэрится в одну C#-сигнатуру для всех storage-режимов,
+а вызов `helper(b)` компилируется. Отчёт атрибутирует диагностики по идентичности
+буфера (`name#line:col`, переносится через `move`-алиасы), а не по имени в тексте —
+два одноимённых буфера в соседних скоупах не путаются.
 В ветвистой функции (есть `if`/`move`/owned-return) используется inline-режим:
 буфер с чистым вложением получает `try/finally`, а перекрывающиеся времена жизни,
 ветвистый release и moved-алиасы — inline-release (реальный cleanup в местах

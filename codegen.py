@@ -37,6 +37,11 @@ class CodegenError(Exception):
 
 
 def _csharp_type(t: A.TypeRef) -> str:
+    # a borrowed Buffer is the buffer's view type: Span<byte> / ReadOnlySpan<byte>
+    # (the same view a buffer intent and `emit_borrow` produce), so a local helper
+    # `fn h(x: &mut Buffer)` lowers to one that accepts a buffer value by value.
+    if t.name == "Buffer" and t.borrowed:
+        return "Span<byte>" if t.mutable else "ReadOnlySpan<byte>"
     base = {"int": "int", "bool": "bool"}.get(t.name, t.name)
     if t.borrowed:
         return ("ref " if t.mutable else "ref readonly ") + base

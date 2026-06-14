@@ -68,6 +68,9 @@ class Diagnostic:
     message: str
     line: int
     severity: Severity = Severity.ERROR
+    # for buffer diagnostics: a stable identity (name#line) of the buffer the
+    # diagnostic is about, so the report attributes it by symbol, not by name.
+    subject: str | None = None
 
     @property
     def title(self) -> str:

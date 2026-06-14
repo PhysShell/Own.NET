@@ -59,6 +59,11 @@ class Symbol:
     # the declared/inferred type name (e.g. "int", "bool", a resource name), so a
     # buffer size can be required to be an integer. None when unknown.
     type_name: str | None = None
+    # a stable identity for the originating buffer (name#line). Set when a buffer
+    # is acquired and inherited across `move`, so a diagnostic about any alias can
+    # be attributed to the right buffer in the report (distinct from a same-named
+    # buffer in a sibling scope).
+    origin: str | None = None
 
     def __repr__(self) -> str:
         return f"<{self.name}:{self.kind.name}>"
@@ -339,9 +344,12 @@ class _Builder:
                 src = None
             dst = self.declare(st.name, Kind.OWNED, st.line)
             if src is not None:
-                # a moved buffer keeps its storage policy: a stack-backed buffer
-                # is still stack-backed after `move`, so escape rules carry over.
+                # a moved buffer keeps its storage policy AND its origin identity:
+                # a stack-backed buffer is still stack-backed after `move` (escape
+                # rules carry over), and diagnostics on the alias attribute to the
+                # original buffer in the report.
                 dst.buffer = src.buffer
+                dst.origin = src.origin
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -398,6 +406,7 @@ class _Builder:
         self.diags.extend(bdiags)
         sym = self.declare(st.name, Kind.OWNED, st.line)
         sym.buffer = info
+        sym.origin = f"{st.name}#{rhs.line}:{rhs.col}"
         cur.instrs.append(AcquireBuffer(sym, info, st.line))
         return cur
 

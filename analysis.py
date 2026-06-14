@@ -104,8 +104,9 @@ class _Analyzer:
                 s.var[id(p)] = {VarState.OWNED}
         return s
 
-    def err(self, code: str, msg: str, line: int) -> None:
-        self.diags.append(Diagnostic(code, msg, line))
+    def err(self, code: str, msg: str, line: int,
+            subject: str | None = None) -> None:
+        self.diags.append(Diagnostic(code, msg, line, subject=subject))
 
     # -- loan / permission helpers -----------------------------------------
 
@@ -130,24 +131,28 @@ class _Analyzer:
     # gone / maybe-gone cases shared by use/move/release/borrow/consume.
     def _state_problem(self, st: State, sym: Symbol, verb: str, line: int) -> bool:
         S = st.var.get(id(sym), {VarState.OWNED})
+        subj = sym.origin
         if VarState.OWNED not in S:
             if VarState.MOVED in S:
-                self.err("OWN005", f"{verb} '{sym.name}' after it was moved", line)
+                self.err("OWN005", f"{verb} '{sym.name}' after it was moved",
+                         line, subject=subj)
             elif VarState.ESCAPED in S and VarState.RELEASED not in S:
                 self.err("OWN002",
-                         f"{verb} '{sym.name}' after it was consumed", line)
+                         f"{verb} '{sym.name}' after it was consumed", line,
+                         subject=subj)
             else:
-                self.err("OWN002", f"{verb} '{sym.name}' after it was released", line)
+                self.err("OWN002", f"{verb} '{sym.name}' after it was released",
+                         line, subject=subj)
             return True
         if S & {VarState.RELEASED, VarState.ESCAPED}:
             self.err("OWN009",
                      f"{verb} '{sym.name}', which may have been released on some "
-                     f"path", line)
+                     f"path", line, subject=subj)
             return True
         if VarState.MOVED in S:
             self.err("OWN010",
                      f"{verb} '{sym.name}', which may have been moved on some "
-                     f"path", line)
+                     f"path", line, subject=subj)
             return True
         return False
 
@@ -231,7 +236,8 @@ class _Analyzer:
                 name = sym.name if sym else f"#{symid}"
                 self.err("OWN001",
                          f"'{name}' is owned but not released {context} "
-                         f"(leaks on at least one path)", at_line)
+                         f"(leaks on at least one path)", at_line,
+                         subject=(sym.origin if sym else None))
 
     def _sym_by_id(self, symid: int) -> Symbol | None:
         if not hasattr(self, "_symindex"):
@@ -275,19 +281,21 @@ class _Analyzer:
             return
 
         if isinstance(ins, Release):
+            subj = ins.sym.origin
             S = st.var.get(id(ins.sym), {VarState.OWNED})
             if S == {VarState.RELEASED}:
-                self.err("OWN003", f"'{ins.sym.name}' is released twice", ins.line)
+                self.err("OWN003", f"'{ins.sym.name}' is released twice",
+                         ins.line, subject=subj)
             elif VarState.RELEASED in S:
                 self.err("OWN003",
                          f"'{ins.sym.name}' may already be released on some path "
-                         f"before this release", ins.line)
+                         f"before this release", ins.line, subject=subj)
             elif not self._state_problem(st, ins.sym, "release", ins.line):
                 shared, mut = self.loans_on(st, ins.sym)
                 if shared or mut:
                     self.err("OWN008",
                              f"cannot release '{ins.sym.name}' while it is borrowed",
-                             ins.line)
+                             ins.line, subject=subj)
             st.var[id(ins.sym)] = {VarState.RELEASED}
             return
 
@@ -332,28 +340,29 @@ class _Analyzer:
             self.leak_check(st, at_line=ins.line, context="before return",
                             exclude=ins.sym)
             if ins.sym is not None:
+                subj = ins.sym.origin
                 S = st.var.get(id(ins.sym), {VarState.OWNED})
                 if VarState.OWNED not in S:
                     if VarState.MOVED in S:
                         self.err("OWN005",
                                  f"'{ins.sym.name}' returned after it was moved",
-                                 ins.line)
+                                 ins.line, subject=subj)
                     else:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
-                                 ins.line)
+                                 ins.line, subject=subj)
                 elif ins.sym.buffer is not None and ins.sym.buffer.stack_backed:
                     self.err("OWN015",
                              f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
                              f"buffer and may be stack-backed; it cannot escape "
-                             f"the current function", ins.line)
+                             f"the current function", ins.line, subject=subj)
                 elif ins.sym.buffer is not None:
                     self.err("OWN017",
                              f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
                              f"buffer; the PoC code generator cannot lower an "
                              f"escaping buffer to faithful .NET (the caller gets "
                              f"no handle to Return/Free), so returning it is "
-                             f"rejected", ins.line)
+                             f"rejected", ins.line, subject=subj)
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
@@ -403,13 +412,13 @@ class _Analyzer:
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer "
                              f"and may be stack-backed; it cannot be moved to a "
                              f"longer-lived owner by consuming it in '{callee}'",
-                             line)
+                             line, subject=sym.origin)
                 elif sym.buffer is not None:
                     self.err("OWN017",
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer; "
                              f"the PoC code generator cannot lower an escaping "
                              f"buffer, so consuming it in '{callee}' is rejected",
-                             line)
+                             line, subject=sym.origin)
                 st.var[id(sym)] = {VarState.ESCAPED}
             elif eff == Effect.BORROW_MUT:
                 self._check_mut_borrowable(st, sym, line)

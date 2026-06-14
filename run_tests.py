@@ -259,6 +259,9 @@ CASES = [
     ("buf_nested_release_ok",
      "fn f(n: int){ let a = acquire Conn(1); let b = Buffer.pooled(n); "
      "borrow a as s { release b; } release a; }", []),
+    ("buf_local_helper_ok",
+     "fn helper(x: &mut Buffer){ use x; } "
+     "fn f(n: int){ let b = Buffer.pooled(n); helper(b); release b; }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -796,6 +799,47 @@ def ordering_counters_smoke() -> list[str]:
     return fails
 
 
+def helper_and_report_smoke() -> list[str]:
+    """Two review guards:
+    - a local helper with a `&mut Buffer` / `&Buffer` param lowers to a
+      Span<byte> / ReadOnlySpan<byte> signature, so passing a buffer value (a
+      Span) compiles;
+    - the report attributes diagnostics by buffer identity (name#line), so two
+      same-named buffers in sibling scopes are not conflated."""
+    fails: list[str] = []
+
+    helper = ("module M\nfn helper(x: &mut Buffer){ use x; }\n"
+              "fn view(y: &Buffer){ use y; }\n"
+              "fn f(n: int){ let b = Buffer.pooled(n); helper(b); view(b); "
+              "release b; }\n")
+    if codes(helper):
+        fails.append(f"local Buffer helper should check clean, got {codes(helper)}")
+    out = generate(parse(helper))
+    if "public static void helper(Span<byte> x)" not in out:
+        fails.append("&mut Buffer param must lower to Span<byte>")
+    if "public static void view(ReadOnlySpan<byte> y)" not in out:
+        fails.append("&Buffer param must lower to ReadOnlySpan<byte>")
+    if "ref Buffer" in out or "ref readonly Buffer" in out:
+        fails.append("Buffer borrow params must not lower to ref Buffer")
+
+    # same name in sibling scopes: only the leaking buffer fails releaseOnAllPaths
+    sib = ("module M\nfn f(n: int){ if (c) { let b = Buffer.pooled(n); } "
+           "else { let b = Buffer.pooled(n); release b; } }\n")
+    mod = parse(sib)
+    rn = {r.name for r in mod.resources}
+    sg = collect_signatures(mod)
+    pl = collect_policies(mod)
+    diags = list(validate_policies(pl))
+    for fn in mod.functions:
+        cfg, d1 = build_cfg(fn, rn, sg, pl)
+        diags += d1 + analyze(cfg)
+    rep = build_report(mod, diags)
+    flags = sorted(e["checks"]["releaseOnAllPaths"] for e in rep["buffers"])
+    if flags != [False, True]:
+        fails.append(f"sibling same-name buffers must be attributed separately, got {flags}")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -846,6 +890,10 @@ def run() -> int:
     for f in order_fails:
         print(f"ORDERING FAIL: {f}")
 
+    helper_fails = helper_and_report_smoke()
+    for f in helper_fails:
+        print(f"HELPER FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
@@ -855,9 +903,10 @@ def run() -> int:
     print(f"branchy:  {'PASS' if not branchy_fails else 'FAIL'}")
     print(f"nesting:  {'PASS' if not nest_fails else 'FAIL'}")
     print(f"ordering: {'PASS' if not order_fails else 'FAIL'}")
+    print(f"helper:   {'PASS' if not helper_fails else 'FAIL'}")
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
-                 or order_fails) else 0
+                 or order_fails or helper_fails) else 0
 
 
 if __name__ == "__main__":
