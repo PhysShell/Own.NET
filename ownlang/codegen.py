@@ -708,6 +708,7 @@ internal static class OwnCounters
     public static void Requested(int bytes)
     {
         System.Threading.Interlocked.Add(ref ScratchTotalRequestedBytes, bytes);
+        // CAS retry loop: update max if bytes > current max; retry if concurrent update
         long cur;
         do
         {
