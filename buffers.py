@@ -210,17 +210,21 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
 
     elif mode == BufferMode.SCRATCH:
         inline_bytes = opt_int("inline", opt_int("inline_bytes", DEFAULT_INLINE_BYTES))
-        fb = _as_ident(opts.get("fallback")) if "fallback" in opts \
-            else _as_ident_or_none(base.get("fallback"))
-        if fb is None:
+        # distinguish "absent" (default to pool) from "present but malformed".
+        # A present-but-malformed value — a string typo (`forbiden`) OR a
+        # non-identifier (`fallback = 0`) — must fail safe and diagnose, never
+        # silently fall through to enabling the heap.
+        fb_present = "fallback" in opts or "fallback" in base
+        if fb_present:
+            raw = opts["fallback"] if "fallback" in opts else base["fallback"]
+            fb = _fallback_token(raw)
+        else:
             fb = "pool"  # scratch defaults to a pool fallback
         fb_valid = fb in ("pool", "forbidden")
-        if not fb_valid:
-            # a typo here (e.g. `forbiden`) must NOT silently fall through to the
-            # heap — that would quietly break the explicit storage guarantee.
+        if fb_present and not fb_valid:
             diags.append(Diagnostic(
                 "OWN030",
-                f"unknown fallback '{fb}' for scratch buffer; expected 'pool' "
+                f"invalid fallback '{fb}' for scratch buffer; expected 'pool' "
                 f"or 'forbidden'", line))
         if fb == "pool":
             fallback_pool = True
@@ -271,8 +275,16 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
     return info, diags
 
 
-def _as_ident_or_none(v) -> str | None:
-    return v if isinstance(v, str) else None
+def _fallback_token(v) -> str:
+    """Render a fallback value (an AST expr from an inline option, or a Python
+    value from a policy) as a display token for validation/diagnostics."""
+    if isinstance(v, A.IntLit):
+        return str(v.value)
+    if isinstance(v, A.VarRef):
+        return v.name
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return str(v)
 
 
 def _flag(opt_expr, policy_val, default: bool) -> bool:

@@ -184,6 +184,9 @@ CASES = [
     ("buf_scratch_bad_fallback",
      "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbiden); "
      "release b; }", ["OWN030"]),
+    ("buf_scratch_nonident_fallback",
+     "fn f(n: int){ let b = Buffer.scratch(n, fallback = 0); release b; }",
+     ["OWN030"]),
     ("buf_move_release_ok",
      "fn f(n: int){ let a = Buffer.pooled(n); let b = move a; release b; }", []),
     ("buf_bad_namespace",
@@ -472,6 +475,18 @@ def branchy_and_malformed_smoke() -> list[str]:
               "let b = Buffer.scratch(n, fallback = forbiden); release b; }\n")
     if "OWN030" not in codes(bad_fb):
         fails.append("misspelled scratch fallback must produce OWN030")
+
+    # a non-identifier fallback (fallback = 0) must likewise fail safe: OWN030
+    # AND no ArrayPool fallback enabled (it must not silently heap-allocate).
+    from ownlang.buffers import resolve as _resolve
+    from ownlang.ast_nodes import BufferIntent, IntLit
+    intent = BufferIntent(mode="scratch", size=IntLit(8, 1),
+                          options={"fallback": IntLit(0, 1)}, line=1)
+    info, idiags = _resolve(intent, {})
+    if "OWN030" not in {d.code for d in idiags}:
+        fails.append("non-identifier scratch fallback must produce OWN030")
+    if info.fallback_pool:
+        fails.append("non-identifier scratch fallback must not enable the pool")
 
     # the report's noEscape check must agree with the OWN017 checker diagnostic
     esc = parse("module M\nfn f(n: int) -> Buffer { let b = Buffer.pooled(n); "
