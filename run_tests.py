@@ -21,6 +21,7 @@ from ownlang.cfg import (build_cfg, collect_signatures,  # noqa: E402
 from ownlang.analysis import analyze                    # noqa: E402
 from ownlang.diagnostics import Severity                # noqa: E402
 from ownlang.codegen import generate                    # noqa: E402
+from ownlang.buffers import validate_policies           # noqa: E402
 from ownlang.report import build_report                 # noqa: E402
 
 PRELUDE = (
@@ -41,7 +42,8 @@ def codes(src: str) -> list[str]:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
-    cs: list[str] = []
+    cs: list[str] = [d.code for d in validate_policies(pols)
+                     if d.severity == Severity.ERROR]
     for fn in mod.functions:
         cfg, d1 = build_cfg(fn, rnames, sigs, pols)
         d2 = analyze(cfg)
@@ -208,6 +210,13 @@ CASES = [
      ["OWN030"]),
     ("buf_bad_max_bound",
      "fn f(n: int){ let b = Buffer.stack(n, max = bogus); release b; }",
+     ["OWN030"]),
+    ("buf_unknown_option",
+     "fn f(n: int){ let b = Buffer.scratch(n, fallbak = forbidden); "
+     "release b; }", ["OWN030"]),
+    ("buf_unknown_policy_setting",
+     "policy P { fallbak = forbidden; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }",
      ["OWN030"]),
     ("buf_inline_override_ignores_bad_policy",
      "policy P { inline_bytes = bogus; } "

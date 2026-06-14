@@ -456,8 +456,10 @@ release'ов, без подъёма в `finally`; обычные ресурсы 
 произвольного control-flow это roadmap). `native` динамического размера
 guard'ит отрицательный запрос перед `NativeMemory.Alloc`. Escaping movable-буферы
 отвергаются (OWN017), полноценный movable-lowering — roadmap. Неизвестные значения
-настроек (mode, namespace, policy, fallback) ловятся как **OWN030** — опечатка в
-`fallback = forbidden` (или `fallback = 0`) не «протечёт» в heap. Бенчмарк-матрица из дизайн-дока
+**и имена** настроек (mode, namespace, policy, fallback, а также сами имена опций
+буфера и ключей policy-блока) ловятся как **OWN030** — опечатка в
+`fallback = forbidden`, `fallback = 0` или `fallbak = forbidden` не «протечёт» в
+heap, а будет отвергнута. Бенчмарк-матрица из дизайн-дока
 (safe vs unsafe, stack vs pool на размерах 32 B … 1 MB) — **следующий слой**:
 правило «unsafe-backend разрешён только при выигрыше ≥ 10-15 % с disassembly-
 обоснованием» задаёт дисциплину, но прогон бенчей вне песочницы. Unsafe-контракты

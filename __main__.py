@@ -18,6 +18,7 @@ from .lexer import LexError
 from .cfg import build_cfg, collect_signatures, collect_policies, CFG
 from .analysis import analyze
 from .codegen import generate
+from .buffers import validate_policies
 from .report import build_report, render_report
 from .diagnostics import Diagnostic, Severity
 
@@ -31,7 +32,7 @@ def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
-    diags: list[Diagnostic] = []
+    diags: list[Diagnostic] = list(validate_policies(pols))
     for fn in mod.functions:
         cfg, d1 = build_cfg(fn, rnames, sigs, pols)
         d2 = analyze(cfg)

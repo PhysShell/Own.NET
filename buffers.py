@@ -54,6 +54,19 @@ class BufferMode(Enum):
 
 MODE_NAMES = {m.value for m in BufferMode}
 
+# Recognized named options on a buffer intent, and recognized keys in a policy
+# block. An unknown name (a typo like `fallbak`) must be rejected, not silently
+# ignored — otherwise a misspelled `fallback = forbidden` quietly defaults to the
+# heap, defeating the explicit storage guarantee.
+VALID_OPTIONS = frozenset({
+    "policy", "inline", "inline_bytes", "max", "max_bytes",
+    "fallback", "clear", "trace", "counters",
+})
+VALID_POLICY_KEYS = frozenset({
+    "inline_bytes", "max_bytes", "fallback", "clear_on_release",
+    "trace", "counters",
+})
+
 # Modes whose backing storage may live on the stack. A stack-backed buffer must
 # not escape the function: it would be a dangling span the instant the frame
 # pops. `scratch` is included because at runtime it *might* be the stack arm.
@@ -150,6 +163,21 @@ def _truthy(expr) -> bool:
 # --------------------------------------------------------------------------
 
 
+def validate_policies(policies: dict[str, Policy]) -> list[Diagnostic]:
+    """Reject unknown keys in `policy` blocks (a typo like `fallbak` must not be
+    silently ignored). Reported once, at the policy's declaration."""
+    diags: list[Diagnostic] = []
+    for pol in policies.values():
+        for key in pol.settings:
+            if key not in VALID_POLICY_KEYS:
+                diags.append(Diagnostic(
+                    "OWN030",
+                    f"unknown policy setting '{key}' in policy '{pol.name}'; "
+                    f"expected one of {', '.join(sorted(VALID_POLICY_KEYS))}",
+                    pol.line))
+    return diags
+
+
 def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
             ) -> tuple[BufferInfo, list[Diagnostic]]:
     """Resolve one buffer intent against the available policies. Returns the
@@ -160,6 +188,15 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
 
     mode = BufferMode(intent.mode)
     opts = dict(intent.options)
+
+    # reject misspelled / unknown option names before any defaults are applied,
+    # so e.g. `fallbak = forbidden` cannot silently fall back to the pool.
+    for key in intent.options:
+        if key not in VALID_OPTIONS:
+            diags.append(Diagnostic(
+                "OWN030",
+                f"unknown buffer option '{key}'; expected one of "
+                f"{', '.join(sorted(VALID_OPTIONS))}", line))
 
     # Start from a referenced policy's defaults, then let inline options win.
     base: dict[str, object] = {}
