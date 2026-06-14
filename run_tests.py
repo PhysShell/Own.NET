@@ -194,6 +194,9 @@ CASES = [
     ("buf_move_escapes",
      "fn f(n: int) -> Buffer { let a = Buffer.stack(n, max = 100); "
      "let b = move a; return b; }", ["OWN015"]),
+    ("buf_sibling_move_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); if (c) { let b = move a; "
+     "release b; } else { release a; } }", []),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -593,6 +596,53 @@ def nesting_native_trace_smoke() -> list[str]:
     return fails
 
 
+def ordering_counters_smoke() -> list[str]:
+    """Three follow-up review guards:
+    - a moved buffer's cleanup survives in sibling branches (a `move` in one
+      branch must not strip the original's cleanup from the other);
+    - pooled buffers do not emit the Scratch.* counters (they would corrupt the
+      stack-hit-rate metric);
+    - simple-mode keeps a buffer prelude after earlier plain statements it can
+      depend on (no Rent(n) before `var n = 64;`)."""
+    fails: list[str] = []
+
+    # Issue 1: move in one branch must not strip cleanup from the sibling branch
+    sib = ("module M\nfn f(n: int){ let a = Buffer.pooled(n); "
+           "if (c) { let b = move a; release b; } else { release a; } }\n")
+    if codes(sib):
+        fails.append(f"sibling-branch move should check clean, got {codes(sib)}")
+    out = generate(parse(sib))
+    if "Dispose()" in out:
+        fails.append("sibling-branch release must return to the pool, not Dispose")
+    if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 2:
+        fails.append("both branches must return a_array to the pool")
+
+    # Issue 2: pooled buffers must not touch the Scratch.* counters (check the
+    # function body only — the OwnCounters class itself is always emitted)
+    pooled = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+              "fn p(n: int){ let b = Buffer.pooled(n); "
+              "borrow_mut b as m { Fill(m); } release b; }\n")
+    pbody = generate(parse(pooled)).split("public static void p")[1].split("internal static")[0]
+    if "OwnCounters" in pbody:
+        fails.append("pooled buffer must not emit Scratch.* counters")
+    # ...but scratch still must (sanity that the gate is mode-specific)
+    scratch = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+               "fn s(n: int){ let b = Buffer.scratch(n); "
+               "borrow_mut b as m { Fill(m); } release b; }\n")
+    sbody = generate(parse(scratch)).split("public static void s")[1].split("internal static")[0]
+    if "OwnCounters.StackHit()" not in sbody:
+        fails.append("scratch buffer must still emit Scratch.* counters")
+
+    # Issue 3: a plain statement before a buffer stays before its prelude
+    order = "module M\nfn q(){ let n = 64; let b = Buffer.pooled(n); release b; }\n"
+    out = generate(parse(order))
+    if "var n = 64;" not in out or "Rent(n)" not in out:
+        fails.append("ordering smoke missing expected lines")
+    elif out.index("var n = 64;") > out.index("Rent(n)"):
+        fails.append("buffer prelude must come after the plain statement it depends on")
+    return fails
+
+
 def run() -> int:
     passed = 0
     failed = 0
@@ -639,6 +689,10 @@ def run() -> int:
     for f in nest_fails:
         print(f"NESTING FAIL: {f}")
 
+    order_fails = ordering_counters_smoke()
+    for f in order_fails:
+        print(f"ORDERING FAIL: {f}")
+
     total = passed + failed
     print(f"\nanalysis: {passed}/{total} passed, {failed} failed")
     print(f"codegen:  {cg_total - cg_fail}/{cg_total} generated cleanly")
@@ -647,8 +701,10 @@ def run() -> int:
     print(f"escape:   {'PASS' if not escape_fails else 'FAIL'}")
     print(f"branchy:  {'PASS' if not branchy_fails else 'FAIL'}")
     print(f"nesting:  {'PASS' if not nest_fails else 'FAIL'}")
+    print(f"ordering: {'PASS' if not order_fails else 'FAIL'}")
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
-                 or escape_fails or branchy_fails or nest_fails) else 0
+                 or escape_fails or branchy_fails or nest_fails
+                 or order_fails) else 0
 
 
 if __name__ == "__main__":

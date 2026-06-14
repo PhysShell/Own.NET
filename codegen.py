@@ -90,55 +90,70 @@ class _FnGen:
     # -- simple (try/finally hoist) ----------------------------------------
 
     def _emit_simple(self, stmts: list[A.Stmt]) -> str:
-        # Each "scope" is an openable resource — an ordinary acquire or a buffer —
-        # rendered as (prelude lines, cleanup lines). They nest in source order
-        # with the body innermost, so every scope gets its own finally (releases
-        # run in reverse, LIFO). A scope with no cleanup (e.g. a stack buffer)
-        # adds no try block.
-        scopes: list[tuple[list[str], list[str]]] = []
-        other: list[A.Stmt] = []
-        for st in stmts:
-            if isinstance(st, A.Let) and isinstance(st.rhs, A.Acquire):
-                rt = st.rhs.resource
-                self.owned_resource[st.name] = rt
-                args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
-                prelude = [f"{self._local_type(rt)} {st.name} = "
-                           f"{self._acquire_expr(rt, args_csv)};"]
-                scopes.append((prelude, [self._release_stmt(st.name, rt)]))
-            elif isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
-                scopes.append(self._buffer_lowering(st.name, st.rhs))
-            elif isinstance(st, A.Release):
-                pass  # consumed by the matching scope's finally
-            else:
-                other.append(st)
+        return "".join(l + "\n" for l in self._emit_hoist(stmts, "    "))
 
-        lines: list[str] = []
+    def _emit_hoist(self, stmts: list[A.Stmt], base: str) -> list[str]:
+        """Emit a straight-line sequence, nesting each openable resource (an
+        ordinary acquire or a buffer) in its own try/finally. Statements are
+        emitted in SOURCE ORDER: anything before a scope (e.g. `let n = 64;` or a
+        setup call the allocation depends on) is emitted before that scope's
+        prelude; the scope's try then wraps everything after it, so releases run
+        in reverse (LIFO). A scope with no cleanup adds no try block."""
         ind = "    "
+        out: list[str] = []
+        i = 0
+        while i < len(stmts):
+            st = stmts[i]
+            scope = self._scope_lowering(st)
+            if scope is not None:
+                prelude, fin = scope
+                out.extend(base + p for p in prelude)
+                rest = self._drop_release(stmts[i + 1:], st.name)
+                if fin:
+                    out.append(f"{base}try")
+                    out.append(f"{base}{{")
+                    out.extend(self._emit_hoist(rest, base + ind))
+                    out.append(f"{base}}}")
+                    out.append(f"{base}finally")
+                    out.append(f"{base}{{")
+                    out.extend(base + ind + f for f in fin)
+                    out.append(f"{base}}}")
+                else:
+                    out.extend(self._emit_hoist(rest, base))
+                return out  # the rest of the sequence was consumed recursively
+            if isinstance(st, A.Release):
+                i += 1  # consumed by its scope's finally
+                continue
+            out.extend(self._stmt_inline(st, base))
+            i += 1
+        return out
 
-        def open_scope(idx: int, base: str) -> None:
-            if idx >= len(scopes):
-                for st in other:
-                    lines.extend(self._stmt_inline(st, base))
-                return
-            prelude, fin = scopes[idx]
-            for p in prelude:
-                lines.append(base + p)
-            if fin:
-                lines.append(f"{base}try")
-                lines.append(f"{base}{{")
-                open_scope(idx + 1, base + ind)
-                lines.append(f"{base}}}")
-                lines.append(f"{base}finally")
-                lines.append(f"{base}{{")
-                for f in fin:
-                    lines.append(base + ind + f)
-                lines.append(f"{base}}}")
-            else:
-                # nothing to clean up (e.g. a stack buffer): no try, same level
-                open_scope(idx + 1, base)
+    def _scope_lowering(self, st: A.Stmt) -> tuple[list[str], list[str]] | None:
+        """If `st` opens a resource (an `acquire` let or a buffer let), return its
+        (prelude, cleanup) lines; otherwise None."""
+        if isinstance(st, A.Let) and isinstance(st.rhs, A.Acquire):
+            rt = st.rhs.resource
+            self.owned_resource[st.name] = rt
+            args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
+            return ([f"{self._local_type(rt)} {st.name} = "
+                     f"{self._acquire_expr(rt, args_csv)};"],
+                    [self._release_stmt(st.name, rt)])
+        if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
+            return self._buffer_lowering(st.name, st.rhs)
+        return None
 
-        open_scope(0, ind)
-        return "".join(l + "\n" for l in lines)
+    @staticmethod
+    def _drop_release(stmts: list[A.Stmt], name: str) -> list[A.Stmt]:
+        """The sequence with the first top-level `release name` removed (it is
+        handled by that scope's finally)."""
+        out: list[A.Stmt] = []
+        dropped = False
+        for st in stmts:
+            if not dropped and isinstance(st, A.Release) and st.var == name:
+                dropped = True
+                continue
+            out.append(st)
+        return out
 
     # -- faithful inline ----------------------------------------------------
 
@@ -206,13 +221,17 @@ class _FnGen:
         pre: list[str] = []   # declarations + trace/counters, before the try
         fin: list[str] = []   # cleanup, inside the finally / at release sites
         scratch_pool = info.mode == BufferMode.SCRATCH and info.fallback_pool
+        # the OwnCounters are Scratch.* metrics — they answer "do scratch requests
+        # hit the stack?". Only scratch buffers touch them; pooled/native/stack
+        # allocations must not pollute the scratch hit/fallback counts.
+        sc = info.counters and info.mode == BufferMode.SCRATCH
 
         if info.mode in (BufferMode.STACK, BufferMode.INLINE) or (
                 info.mode == BufferMode.SCRATCH and not info.fallback_pool):
             if info.size_is_const:
                 if info.trace:
                     pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
-                if info.counters:
+                if sc:
                     pre.append("OwnCounters.StackHit();")
                 if info.size_const == L:
                     pre.append(f"Span<byte> {name} = stackalloc byte[{L}];")
@@ -226,10 +245,12 @@ class _FnGen:
                 pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
                 if info.trace:
                     pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
-                if info.counters:
+                if sc:
                     pre.append("OwnCounters.StackHit();")
                 pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
                 pre.append(f"Span<byte> {name} = {name}_backing[..{size}];")
+            if sc:
+                fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"{name}.Clear();")
 
@@ -241,7 +262,7 @@ class _FnGen:
             pre.append("{")
             if info.trace:
                 pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "stackalloc");')
-            if info.counters:
+            if sc:
                 pre.append("    OwnCounters.StackHit();")
             pre.append(f"    {name} = {name}_backing[..{size}];")
             pre.append("}")
@@ -249,12 +270,12 @@ class _FnGen:
             pre.append("{")
             if info.trace:
                 pre.append(f'    OwnTrace.ScratchSelected("{fn}", "{name}", {size}, {L}, "ArrayPool");')
-            if info.counters:
+            if sc:
                 pre.append(f"    OwnCounters.PoolFallback({size});")
             pre.append(f"    {name}_rented = ArrayPool<byte>.Shared.Rent({size});")
             pre.append(f"    {name} = {name}_rented.AsSpan(0, {size});")
             pre.append("}")
-            if info.counters:
+            if sc:
                 fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"{name}.Clear();")
@@ -262,14 +283,12 @@ class _FnGen:
             fin.append(f"    ArrayPool<byte>.Shared.Return({name}_rented);")
 
         elif info.mode == BufferMode.POOLED:
+            # pooled is not scratch: trace it, but do not touch the Scratch.*
+            # counters (that would report normal pool rents as scratch misses).
             if info.trace:
                 pre.append(f'OwnTrace.PooledSelected("{fn}", "{name}", {size});')
-            if info.counters:
-                pre.append(f"OwnCounters.PoolFallback({size});")
             pre.append(f"byte[] {name}_array = ArrayPool<byte>.Shared.Rent({size});")
             pre.append(f"Span<byte> {name} = {name}_array.AsSpan(0, {size});")
-            if info.counters:
-                fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"{name}.Clear();")
             fin.append(f"ArrayPool<byte>.Shared.Return({name}_array);")
@@ -285,8 +304,6 @@ class _FnGen:
                 pre.append(f'OwnTrace.NativeSelected("{fn}", "{name}", {size});')
             pre.append(f"byte* {name} = (byte*)System.Runtime.InteropServices."
                        f"NativeMemory.Alloc((nuint){size});")
-            if info.counters:
-                fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"System.Runtime.InteropServices.NativeMemory."
                            f"Clear({name}, (nuint){size});")
@@ -342,11 +359,12 @@ class _FnGen:
                 args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
                 return [f"{ind}{self._local_type(rt)} {st.name} = {self._acquire_expr(rt, args_csv)};"]
             if isinstance(st.rhs, A.Move):
-                # a moved buffer carries its identity to the new owner: transfer
-                # the pending cleanup so a later `release <new>` returns/frees the
-                # original backing, and alias the C# local.
+                # a moved buffer carries its identity to the new owner: copy the
+                # pending cleanup to the new name (do NOT remove the original —
+                # sibling branches that did not move still need it, and releasing
+                # the original after a move is use-after-move, rejected upstream).
                 if st.rhs.var in self.buffer_cleanup:
-                    self.buffer_cleanup[st.name] = self.buffer_cleanup.pop(st.rhs.var)
+                    self.buffer_cleanup[st.name] = self.buffer_cleanup[st.rhs.var]
                 if st.rhs.var in self.buffer_vars:
                     self.buffer_vars[st.name] = self.buffer_vars[st.rhs.var]
                 self.owned_resource[st.name] = self.owned_resource.get(st.rhs.var, "")
