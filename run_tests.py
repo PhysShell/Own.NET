@@ -209,6 +209,14 @@ CASES = [
     ("buf_bad_max_bound",
      "fn f(n: int){ let b = Buffer.stack(n, max = bogus); release b; }",
      ["OWN030"]),
+    ("buf_inline_override_ignores_bad_policy",
+     "policy P { inline_bytes = bogus; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = P, inline = 128); "
+     "release b; }", []),
+    ("buf_bad_policy_inline_no_override",
+     "policy P { inline_bytes = bogus; } "
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = P); release b; }",
+     ["OWN030"]),
     ("buf_alias_redecl_ok",
      "fn f(n: int){ let a = Buffer.pooled(n); if (c) { let b = move a; "
      "release b; } else { release a; } let b = acquire Conn(); release b; }",
@@ -499,6 +507,16 @@ def branchy_and_malformed_smoke() -> list[str]:
               "let b = Buffer.scratch(n, fallback = forbiden); release b; }\n")
     if "OWN030" not in codes(bad_fb):
         fails.append("misspelled scratch fallback must produce OWN030")
+
+    # an inline override must skip a malformed policy default (override wins) and
+    # the effective inline limit must be the override
+    ov = ("module M\npolicy P { inline_bytes = bogus; }\n"
+          "fn f(n: int){ let b = Buffer.scratch(n, policy = P, inline = 128); "
+          "release b; }\n")
+    if codes(ov):
+        fails.append(f"inline override should ignore bad policy default, got {codes(ov)}")
+    if "stackalloc byte[128]" not in generate(parse(ov)):
+        fails.append("inline override (128) must be the effective inline limit")
 
     # a non-identifier fallback (fallback = 0) must likewise fail safe: OWN030
     # AND no ArrayPool fallback enabled (it must not silently heap-allocate).

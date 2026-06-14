@@ -203,6 +203,30 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
             return default
         return default
 
+    def first_int(sources: list[tuple[bool, str]], label: str,
+                  default: int) -> int:
+        """First *present* source, in priority order, as an integer. Only that
+        source is validated/diagnosed — lower-priority sources are ignored once a
+        higher-priority one is present, so an inline option overrides a policy
+        default even when the (now-irrelevant) policy value is malformed."""
+        for from_opts, key in sources:
+            container = opts if from_opts else base
+            if key not in container:
+                continue
+            raw = container[key]
+            v = (_as_int(raw) if from_opts
+                 else (raw if isinstance(raw, int) and not isinstance(raw, bool)
+                       else None))
+            if v is not None:
+                return v
+            where = "" if from_opts else " in policy"
+            diags.append(Diagnostic(
+                "OWN030",
+                f"invalid '{label}' value '{_fallback_token(raw)}'{where}; "
+                f"expected an integer", line))
+            return default
+        return default
+
     # ---- size --------------------------------------------------------------
     size_const = _as_int(intent.size) if intent.size is not None else None
     size_var = _as_ident(intent.size) if intent.size is not None else None
@@ -236,7 +260,9 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
                     inline_bytes = mx_val
 
     elif mode == BufferMode.SCRATCH:
-        inline_bytes = opt_int("inline", opt_int("inline_bytes", DEFAULT_INLINE_BYTES))
+        inline_bytes = first_int(
+            [(True, "inline"), (True, "inline_bytes"), (False, "inline_bytes")],
+            "inline", DEFAULT_INLINE_BYTES)
         # distinguish "absent" (default to pool) from "present but malformed".
         # A present-but-malformed value — a string typo (`forbiden`) OR a
         # non-identifier (`fallback = 0`) — must fail safe and diagnose, never
