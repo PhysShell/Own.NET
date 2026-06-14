@@ -167,9 +167,16 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
     pol_expr = opts.pop("policy", None)
     if pol_expr is not None:
         pol_name = _as_ident(pol_expr)
-        if pol_name in policies:
+        if pol_name is None:
+            # present but not a policy name (e.g. policy = 0): never fall through
+            # to defaults silently — that could bypass an intended policy.
+            diags.append(Diagnostic(
+                "OWN030",
+                f"invalid policy reference '{_fallback_token(pol_expr)}'; "
+                f"expected a policy name", line))
+        elif pol_name in policies:
             base = dict(policies[pol_name].settings)
-        elif pol_name is not None:
+        else:
             diags.append(Diagnostic(
                 "OWN030", f"undefined policy '{pol_name}'", line))
 

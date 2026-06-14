@@ -95,10 +95,12 @@ class _FnGen:
     def _emit_hoist(self, stmts: list[A.Stmt], base: str) -> list[str]:
         """Emit a straight-line sequence, nesting each openable resource (an
         ordinary acquire or a buffer) in its own try/finally. Statements are
-        emitted in SOURCE ORDER: anything before a scope (e.g. `let n = 64;` or a
-        setup call the allocation depends on) is emitted before that scope's
-        prelude; the scope's try then wraps everything after it, so releases run
-        in reverse (LIFO). A scope with no cleanup adds no try block."""
+        emitted in SOURCE ORDER, and each scope is split at its `release`: the
+        statements during its lifetime go inside the try, the statements after
+        the release are emitted after the finally (as siblings). So disjoint
+        sequential resources stay disjoint (a is returned before b is rented),
+        while overlapping ones nest (releases run LIFO). A scope with no cleanup
+        adds no try block."""
         ind = "    "
         out: list[str] = []
         i = 0
@@ -108,21 +110,27 @@ class _FnGen:
             if scope is not None:
                 prelude, fin = scope
                 out.extend(base + p for p in prelude)
-                rest = self._drop_release(stmts[i + 1:], st.name)
+                after = stmts[i + 1:]
+                rel = self._find_release(after, 0, st.name)
+                body = after if rel is None else after[:rel]
+                tail = [] if rel is None else after[rel + 1:]
                 if fin:
                     out.append(f"{base}try")
                     out.append(f"{base}{{")
-                    out.extend(self._emit_hoist(rest, base + ind))
+                    out.extend(self._emit_hoist(body, base + ind))
                     out.append(f"{base}}}")
                     out.append(f"{base}finally")
                     out.append(f"{base}{{")
                     out.extend(base + ind + f for f in fin)
                     out.append(f"{base}}}")
                 else:
-                    out.extend(self._emit_hoist(rest, base))
-                return out  # the rest of the sequence was consumed recursively
+                    out.extend(self._emit_hoist(body, base))
+                # statements after this scope's release are siblings, emitted
+                # after its finally so its lifetime ends at the source release.
+                out.extend(self._emit_hoist(tail, base))
+                return out
             if isinstance(st, A.Release):
-                i += 1  # consumed by its scope's finally
+                i += 1  # stray release (already consumed by its scope), skip
                 continue
             out.extend(self._stmt_inline(st, base))
             i += 1
@@ -141,19 +149,6 @@ class _FnGen:
         if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
             return self._buffer_lowering(st.name, st.rhs)
         return None
-
-    @staticmethod
-    def _drop_release(stmts: list[A.Stmt], name: str) -> list[A.Stmt]:
-        """The sequence with the first top-level `release name` removed (it is
-        handled by that scope's finally)."""
-        out: list[A.Stmt] = []
-        dropped = False
-        for st in stmts:
-            if not dropped and isinstance(st, A.Release) and st.var == name:
-                dropped = True
-                continue
-            out.append(st)
-        return out
 
     # -- faithful inline ----------------------------------------------------
 
@@ -255,6 +250,12 @@ class _FnGen:
                 fin.append(f"{name}.Clear();")
 
         elif scratch_pool:
+            if not info.size_is_const:
+                # reject a negative size before any trace/counter runs: otherwise
+                # `size <= limit` takes the stack arm, logs a hit, and the [..size]
+                # slice throws before the try can balance it — corrupting metrics.
+                pre.append(f"if ({size} < 0)")
+                pre.append(f"    throw new ArgumentOutOfRangeException(nameof({size}));")
             pre.append(f"byte[]? {name}_rented = null;")
             pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
             pre.append(f"Span<byte> {name};")

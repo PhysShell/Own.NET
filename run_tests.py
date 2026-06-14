@@ -197,6 +197,12 @@ CASES = [
     ("buf_sibling_move_ok",
      "fn f(n: int){ let a = Buffer.pooled(n); if (c) { let b = move a; "
      "release b; } else { release a; } }", []),
+    ("buf_disjoint_sequential_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); release a; "
+     "let b = Buffer.pooled(n); release b; }", []),
+    ("buf_bad_policy_ref",
+     "fn f(n: int){ let b = Buffer.scratch(n, policy = 0); release b; }",
+     ["OWN030"]),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -640,6 +646,27 @@ def ordering_counters_smoke() -> list[str]:
         fails.append("ordering smoke missing expected lines")
     elif out.index("var n = 64;") > out.index("Rent(n)"):
         fails.append("buffer prelude must come after the plain statement it depends on")
+
+    # disjoint sequential buffers: a must be returned before b is rented (its
+    # source release point must not be swallowed into b's lifetime)
+    disj = ("module M\nextern fn Use1(borrow_mut Buffer);\n"
+            "fn d(n: int){ let a = Buffer.pooled(n); Use1(a); release a; "
+            "let b = Buffer.pooled(n); Use1(b); release b; }\n")
+    out = generate(parse(disj))
+    if "ArrayPool<byte>.Shared.Return(a_array)" not in out or "b_array = ArrayPool" not in out:
+        fails.append("disjoint smoke missing expected lines")
+    elif out.index("Return(a_array)") > out.index("b_array = ArrayPool"):
+        fails.append("buffer a must be returned before buffer b is rented")
+
+    # a negative scratch size is rejected BEFORE any trace/counter runs
+    negsc = ("module M\nextern fn Fill(borrow_mut Buffer);\n"
+             "fn g(n: int){ let b = Buffer.scratch(n); "
+             "borrow_mut b as m { Fill(m); } release b; }\n")
+    out = generate(parse(negsc))
+    if "if (n < 0)" not in out:
+        fails.append("scratch dynamic size must guard against a negative request")
+    elif out.index("if (n < 0)") > out.index("ScratchSelected"):
+        fails.append("scratch negative guard must run before any trace/counter")
     return fails
 
 
