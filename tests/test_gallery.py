@@ -59,8 +59,29 @@ def _codes(src: str) -> list[str]:
     return out
 
 
-def run() -> int:
+def _render_smoke() -> list[str]:
+    """The pretty CLI rendering must carry a line:col header, the source line,
+    and a caret on the named identifier."""
     fails: list[str] = []
+    src = open(os.path.join(_GALLERY, "02_use_after_release.own"),
+               encoding="utf-8").read()
+    mod = parse(src)
+    rnames = {r.name for r in mod.resources}
+    sigs = collect_signatures(mod)
+    diags = []
+    for fn in mod.functions:
+        cfg, d1 = build_cfg(fn, rnames, sigs)
+        diags += d1 + analyze(cfg)
+    pretty = "\n".join(d.render_pretty("f.own", src) for d in diags)
+    if ":9:" not in pretty:
+        fails.append("render_pretty: missing line:col header")
+    if "\n" not in pretty or "^" not in pretty:
+        fails.append("render_pretty: missing source line / caret")
+    return fails
+
+
+def run() -> int:
+    fails: list[str] = _render_smoke()
     rows: list[tuple[str, str, str]] = []
     for name, want, analog in MANIFEST:
         path = os.path.join(_GALLERY, name)

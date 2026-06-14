@@ -16,8 +16,13 @@ naturally from the set-of-states lattice.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
+
+# the first single-quoted identifier in a message is the thing it is about
+# ('b' in "use 'b' after it was released"); used to place a caret under it.
+_SUBJECT_RE = re.compile(r"'([^']+)'")
 
 
 class Severity(Enum):
@@ -78,8 +83,41 @@ class Diagnostic:
     def title(self) -> str:
         return TITLES.get(self.code, "")
 
+    def _caret_col(self, src_line: str) -> int | None:
+        """1-based column of this diagnostic in `src_line`: the position of the
+        identifier it names. None if it cannot be located."""
+        m = _SUBJECT_RE.search(self.message)
+        if m:
+            name = m.group(1)
+            # prefer a whole-word match so 'a' lands on the argument in `Hash(a)`,
+            # not on the 'a' inside `Hash`; fall back to a plain substring search.
+            wb = re.search(rf"\b{re.escape(name)}\b", src_line)
+            if wb:
+                return wb.start() + 1
+            idx = src_line.find(name)
+            if idx >= 0:
+                return idx + 1
+        stripped = len(src_line) - len(src_line.lstrip())
+        return stripped + 1 if src_line.strip() else None
+
     def render(self, filename: str = "<input>") -> str:
         return (
             f"{filename}:{self.line}: {self.severity.value}: "
             f"[{self.code}] {self.message}"
         )
+
+    def render_pretty(self, filename: str, source: str) -> str:
+        """A rustc-style rendering: a `file:line:col` header, the offending
+        source line, and a caret under the named identifier. Falls back to the
+        plain header when the line/column cannot be resolved."""
+        lines = source.splitlines()
+        src_line = lines[self.line - 1] if 1 <= self.line <= len(lines) else ""
+        col = self._caret_col(src_line)
+        loc = f"{filename}:{self.line}" + (f":{col}" if col else "")
+        out = [f"{loc}: {self.severity.value}: [{self.code}] {self.message}"]
+        if src_line.strip():
+            gutter = f"  {self.line} | "
+            out.append(f"{gutter}{src_line}")
+            if col:
+                out.append(" " * (len(gutter) + col - 1) + "^")
+        return "\n".join(out)
