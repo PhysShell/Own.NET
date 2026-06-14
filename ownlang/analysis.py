@@ -351,18 +351,26 @@ class _Analyzer:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
                                  ins.line, subject=subj)
-                elif ins.sym.buffer is not None and ins.sym.buffer.stack_backed:
-                    self.err("OWN015",
-                             f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
-                             f"buffer and may be stack-backed; it cannot escape "
-                             f"the current function", ins.line, subject=subj)
-                elif ins.sym.buffer is not None:
-                    self.err("OWN017",
-                             f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
-                             f"buffer; the PoC code generator cannot lower an "
-                             f"escaping buffer to faithful .NET (the caller gets "
-                             f"no handle to Return/Free), so returning it is "
-                             f"rejected", ins.line, subject=subj)
+                else:
+                    # returning an owner is an escape (consume): it needs Own
+                    # permission, so a live loan on it is OWN007, just like move.
+                    shared, mut = self.loans_on(st, ins.sym)
+                    if shared or mut:
+                        self.err("OWN007",
+                                 f"cannot return '{ins.sym.name}' while it is "
+                                 f"borrowed", ins.line, subject=subj)
+                    elif ins.sym.buffer is not None and ins.sym.buffer.stack_backed:
+                        self.err("OWN015",
+                                 f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
+                                 f"buffer and may be stack-backed; it cannot escape "
+                                 f"the current function", ins.line, subject=subj)
+                    elif ins.sym.buffer is not None:
+                        self.err("OWN017",
+                                 f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
+                                 f"buffer; the PoC code generator cannot lower an "
+                                 f"escaping buffer to faithful .NET (the caller gets "
+                                 f"no handle to Return/Free), so returning it is "
+                                 f"rejected", ins.line, subject=subj)
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
