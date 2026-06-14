@@ -932,9 +932,18 @@ def run() -> int:
     print(f"nesting:  {'PASS' if not nest_fails else 'FAIL'}")
     print(f"ordering: {'PASS' if not order_fails else 'FAIL'}")
     print(f"helper:   {'PASS' if not helper_fails else 'FAIL'}")
+
+    # Content-level codegen assertions + property fuzzer: these inspect the
+    # generated C# itself (release placement/count, declaration order), catching
+    # lowerings that are silently wrong rather than ones that merely throw.
+    import test_codegen        # noqa: E402  (lives in this directory)
+    cc_rc = test_codegen.run()
+    import test_codegen_props  # noqa: E402
+    pf_rc = test_codegen_props.run(iterations=3000, seed=1234)
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
-                 or order_fails or helper_fails) else 0
+                 or order_fails or helper_fails or cc_rc or pf_rc) else 0
 
 
 if __name__ == "__main__":
