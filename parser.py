@@ -315,7 +315,8 @@ class Parser:
                 if got is not None:
                     size = got
         self.eat(Tok.RPAREN)
-        return A.BufferIntent(mode=mode, size=size, options=options, line=ns.line)
+        return A.BufferIntent(mode=mode, size=size, options=options,
+                              line=ns.line, ns=ns.text)
 
     def _buffer_arg(self, options: dict, first: bool) -> tuple[A.Expr | None, bool]:
         """Parse one buffer argument: a named option, or the leading positional

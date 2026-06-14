@@ -184,6 +184,13 @@ CASES = [
     ("buf_scratch_bad_fallback",
      "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbiden); "
      "release b; }", ["OWN030"]),
+    ("buf_move_release_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); let b = move a; release b; }", []),
+    ("buf_bad_namespace",
+     "fn f(n: int){ let b = Foo.stack(n, max = 1024); release b; }", ["OWN030"]),
+    ("buf_move_escapes",
+     "fn f(n: int) -> Buffer { let a = Buffer.stack(n, max = 100); "
+     "let b = move a; return b; }", ["OWN015"]),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -469,18 +476,50 @@ def branchy_and_malformed_smoke() -> list[str]:
     # the report's noEscape check must agree with the OWN017 checker diagnostic
     esc = parse("module M\nfn f(n: int) -> Buffer { let b = Buffer.pooled(n); "
                 "return b; }\n")
-    diags = []
+    if _report_check(esc, "noEscape"):
+        fails.append("report noEscape must be false for an OWN017-rejected buffer")
+
+    # a buffer released through a moved alias must lower (not raise) and the
+    # cleanup must attach to the moved-to name's release.
+    moved = ("module M\nfn f(n: int){ let a = Buffer.pooled(n); "
+             "let b = move a; release b; }\n")
+    if codes(moved):
+        fails.append(f"move-then-release buffer should check clean, got {codes(moved)}")
+    try:
+        out = generate(parse(moved))
+    except Exception as e:  # noqa: BLE001
+        fails.append(f"move-then-release buffer crashed codegen: {type(e).__name__}: {e}")
+    else:
+        if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 1:
+            fails.append("moved buffer must still Return its original backing once")
+
+    # a wrong namespace (Foo.stack) must be diagnosed, not silently lowered
+    bad_ns = "module M\nfn f(n: int){ let b = Foo.stack(n, max = 1024); release b; }\n"
+    if "OWN030" not in codes(bad_ns):
+        fails.append("non-Buffer namespace must produce OWN030")
+
+    # an escape reported on a moved-to alias must fail the buffer's noEscape check
+    moved_esc = parse("module M\nfn f(n: int) -> Buffer { "
+                      "let a = Buffer.stack(n, max = 100); let b = move a; "
+                      "return b; }\n")
+    if _report_check(moved_esc, "noEscape"):
+        fails.append("report noEscape must be false when a moved alias escapes")
+    return fails
+
+
+def _report_check(mod, check):
+    """Run the full checker over a parsed module and return the named report
+    check (True/False) for its first buffer."""
     from ownlang.cfg import build_cfg, collect_signatures, collect_policies
-    rn = {r.name for r in esc.resources}
-    sg = collect_signatures(esc)
-    pl = collect_policies(esc)
-    for fn in esc.functions:
+    rn = {r.name for r in mod.resources}
+    sg = collect_signatures(mod)
+    pl = collect_policies(mod)
+    diags = []
+    for fn in mod.functions:
         cfg, d1 = build_cfg(fn, rn, sg, pl)
         diags += d1 + analyze(cfg)
-    rep = build_report(esc, diags)
-    if rep["buffers"] and rep["buffers"][0]["checks"]["noEscape"]:
-        fails.append("report noEscape must be false for an OWN017-rejected buffer")
-    return fails
+    rep = build_report(mod, diags)
+    return rep["buffers"][0]["checks"][check] if rep["buffers"] else None
 
 
 def run() -> int:

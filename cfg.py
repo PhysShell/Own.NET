@@ -355,6 +355,13 @@ class _Builder:
         raise AssertionError(f"unknown rhs {rhs!r}")
 
     def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
+        if rhs.ns != "Buffer":
+            self.diags.append(Diagnostic(
+                "OWN030",
+                f"unknown buffer namespace '{rhs.ns}'; buffer intents are "
+                f"written 'Buffer.<mode>(...)'", rhs.line))
+            self.declare(st.name, Kind.OWNED, st.line)
+            return cur
         if rhs.mode not in MODE_NAMES:
             self.diags.append(Diagnostic(
                 "OWN030",

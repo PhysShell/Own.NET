@@ -160,7 +160,7 @@ class _FnGen:
                     out.extend(self._emit_buffer_scoped(name, st.rhs, rest[:j], ind))
                     i += 1 + j + 1   # consume the let, its body, and its release
                     continue
-                if not _has_release(rest, name):
+                if not _buffer_released(rest, name):
                     # leak or escape — both rejected by the checker first
                     # (OWN001 / OWN015 / OWN016 / OWN017); unreachable cleanly.
                     raise CodegenError(
@@ -328,6 +328,13 @@ class _FnGen:
                 args_csv = ", ".join(self._arg(x) for x in st.rhs.args)
                 return [f"{ind}{self._local_type(rt)} {st.name} = {self._acquire_expr(rt, args_csv)};"]
             if isinstance(st.rhs, A.Move):
+                # a moved buffer carries its identity to the new owner: transfer
+                # the pending cleanup so a later `release <new>` returns/frees the
+                # original backing, and alias the C# local.
+                if st.rhs.var in self.buffer_cleanup:
+                    self.buffer_cleanup[st.name] = self.buffer_cleanup.pop(st.rhs.var)
+                if st.rhs.var in self.buffer_vars:
+                    self.buffer_vars[st.name] = self.buffer_vars[st.rhs.var]
                 self.owned_resource[st.name] = self.owned_resource.get(st.rhs.var, "")
                 return [f"{ind}var {st.name} = {st.rhs.var}; "
                         f"// ownership moved from {st.rhs.var}"]
@@ -425,19 +432,38 @@ def _contains_branch_or_transfer(stmts: list[A.Stmt]) -> bool:
     return False
 
 
-def _has_release(stmts: list[A.Stmt], name: str) -> bool:
-    """Does a `release name` appear anywhere in this statement tree (including
-    inside if-branches and borrow blocks)?"""
+def _iter_stmts(stmts: list[A.Stmt]):
+    """Yield every statement in the tree, descending into if-branches and
+    borrow blocks."""
     for st in stmts:
-        if isinstance(st, A.Release) and st.var == name:
-            return True
+        yield st
         if isinstance(st, A.If):
-            if _has_release(st.then_body, name) or _has_release(st.else_body, name):
-                return True
-        if isinstance(st, A.BorrowBlock):
-            if _has_release(st.body, name):
-                return True
-    return False
+            yield from _iter_stmts(st.then_body)
+            yield from _iter_stmts(st.else_body)
+        elif isinstance(st, A.BorrowBlock):
+            yield from _iter_stmts(st.body)
+
+
+def _move_aliases(stmts: list[A.Stmt], name: str) -> set[str]:
+    """The set of names a buffer flows into via `let X = move <alias>`, starting
+    from its declaration name (transitive)."""
+    aliases = {name}
+    changed = True
+    while changed:
+        changed = False
+        for st in _iter_stmts(stmts):
+            if (isinstance(st, A.Let) and isinstance(st.rhs, A.Move)
+                    and st.rhs.var in aliases and st.name not in aliases):
+                aliases.add(st.name)
+                changed = True
+    return aliases
+
+
+def _buffer_released(stmts: list[A.Stmt], name: str) -> bool:
+    """Is the buffer released somewhere — possibly through a moved alias?"""
+    aliases = _move_aliases(stmts, name)
+    return any(isinstance(st, A.Release) and st.var in aliases
+               for st in _iter_stmts(stmts))
 
 
 def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:

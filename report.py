@@ -42,6 +42,31 @@ def _walk_buffers(stmts: list[A.Stmt]):
             yield from _walk_buffers(st.body)
 
 
+def _iter_stmts(stmts: list[A.Stmt]):
+    for st in stmts:
+        yield st
+        if isinstance(st, A.If):
+            yield from _iter_stmts(st.then_body)
+            yield from _iter_stmts(st.else_body)
+        elif isinstance(st, A.BorrowBlock):
+            yield from _iter_stmts(st.body)
+
+
+def _move_aliases(stmts: list[A.Stmt], name: str) -> set[str]:
+    """Names a buffer flows into via `let X = move <alias>` (transitive), so a
+    diagnostic reported on the moved-to name is attributed to the buffer."""
+    aliases = {name}
+    changed = True
+    while changed:
+        changed = False
+        for st in _iter_stmts(stmts):
+            if (isinstance(st, A.Let) and isinstance(st.rhs, A.Move)
+                    and st.rhs.var in aliases and st.name not in aliases):
+                aliases.add(st.name)
+                changed = True
+    return aliases
+
+
 def build_report(mod: A.Module, diags: list[Diagnostic]) -> dict:
     policies: dict[str, Policy] = {
         p.name: Policy(p.name, dict(p.settings), p.line) for p in mod.policies
@@ -59,12 +84,18 @@ def build_report(mod: A.Module, diags: list[Diagnostic]) -> dict:
         lo, hi = spans[id(fn)]
         fn_diags = [d for d in diags if lo <= d.line < hi]
         for name, intent in _walk_buffers(fn.body):
-            # skip a malformed intent (e.g. Buffer.bogus(n)); the checker already
-            # reported OWN030 for it, and resolving an unknown mode would throw.
-            if intent.mode not in MODE_NAMES:
+            # skip a malformed intent (bad namespace or mode, e.g. Foo.stack /
+            # Buffer.bogus); the checker already reported OWN030, and resolving an
+            # unknown mode would throw.
+            if intent.ns != "Buffer" or intent.mode not in MODE_NAMES:
                 continue
             info, _ = resolve_buffer(intent, policies)
-            mine = [d for d in fn_diags if f"'{name}'" in d.message]
+            # attribute diagnostics through move-aliases: an escape reported on a
+            # moved-to name (e.g. OWN015 on 'b' after `let b = move a`) still
+            # belongs to this buffer.
+            aliases = _move_aliases(fn.body, name)
+            mine = [d for d in fn_diags
+                    if any(f"'{a}'" in d.message for a in aliases)]
             mine_codes = {d.code for d in mine}
             checks = {
                 check: not (codes & mine_codes)

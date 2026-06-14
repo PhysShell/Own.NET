@@ -66,11 +66,12 @@ class BufferIntent:
     policy. `mode` is one of stack/scratch/pooled/native/inline. `size` is the
     single positional argument (an IntLit or VarRef), or None. `options` maps a
     named option (inline, max, fallback, clear, trace, counters, policy) to its
-    value expression."""
+    value expression. `ns` is the namespace as written (must be "Buffer")."""
     mode: str
     size: "Expr | None"
     options: dict[str, "Expr"]
     line: int
+    ns: str = "Buffer"
 
 
 Expr = IntLit | VarRef | Acquire | Move | BufferIntent
