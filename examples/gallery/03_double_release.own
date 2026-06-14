@@ -1,0 +1,9 @@
+// OWN003 — double release.
+// Real C#: Dispose() called twice (and the type isn't idempotent).
+module Gallery
+resource Conn { acquire open release close }
+fn run() {
+  let c = acquire Conn(1);
+  release c;
+  release c;
+}

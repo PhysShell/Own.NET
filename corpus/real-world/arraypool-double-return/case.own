@@ -1,0 +1,14 @@
+// OwnLang model: returning the same buffer twice is a double `release`.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "byte[]"
+  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"
+  emit_release "ArrayPool<byte>.Shared.Return({0})"
+}
+fn run(n: int) {
+  let rented = acquire Buffer(n);   // ArrayPool.Rent
+  release rented;                   // ArrayPool.Return
+  release rented;                   // returned again -> OWN003
+}

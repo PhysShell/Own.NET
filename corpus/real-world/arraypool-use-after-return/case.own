@@ -1,0 +1,18 @@
+// OwnLang model. `acquire` == ArrayPool.Rent, `release` == ArrayPool.Return,
+// a `borrow`/call == reading a Span over the buffer. Reading after `release`
+// is the use-after-return the BEFORE code commits.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "byte[]"
+  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"
+  emit_release "ArrayPool<byte>.Shared.Return({0})"
+  emit_borrow  "{0}.AsSpan()"
+}
+extern fn BuildResult(borrow Buffer);
+fn divide(n: int) {
+  let quotient = acquire Buffer(n);   // ArrayPool.Rent
+  release quotient;                   // ArrayPool.Return  <-- too early
+  BuildResult(quotient);              // read after return -> OWN002
+}

@@ -1,0 +1,11 @@
+// OWN005 — use after ownership was moved away.
+// Real C#: using a buffer after you handed the only owner to someone else.
+module Gallery
+resource Buffer { acquire rent release give }
+extern fn Hash(borrow Buffer);
+fn run() {
+  let a = acquire Buffer(64);
+  let b = move a;        // ownership transferred to b
+  Hash(a);               // a is now empty
+  release b;
+}

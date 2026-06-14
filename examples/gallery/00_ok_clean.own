@@ -1,0 +1,19 @@
+// Clean: acquire, look at it mutably then read-only, hand it back.
+// Lowers to ArrayPool Rent/Return inside a try/finally (exception-safe).
+module Gallery
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "byte[]"
+  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"
+  emit_release "ArrayPool<byte>.Shared.Return({0})"
+  emit_borrow  "{0}.AsSpan()"
+}
+extern fn Fill(borrow_mut Buffer);
+extern fn Hash(borrow Buffer);
+fn process(size: int) {
+  let buf = acquire Buffer(size);
+  borrow_mut buf as bytes { Fill(bytes); }
+  borrow buf as view { Hash(view); }
+  release buf;
+}

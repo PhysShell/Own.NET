@@ -1,0 +1,12 @@
+// OWN008 — release while a borrow (a view) is still outstanding.
+// Real C#: returning the array to ArrayPool while a Span<byte> over it is in use.
+module Gallery
+resource Buffer { acquire rent release give }
+extern fn Fill(borrow_mut Buffer);
+fn run() {
+  let b = acquire Buffer(64);
+  borrow_mut b as view {
+    release b;           // freeing the backing store while `view` is alive
+    Fill(view);
+  }
+}

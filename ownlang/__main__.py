@@ -47,7 +47,7 @@ def cmd_check(path: str) -> int:
     diags, _ = _collect(src)
     errors = [d for d in diags if d.severity == Severity.ERROR]
     for d in diags:
-        print(d.render(path))
+        print(d.render_pretty(path, src))
     if not diags:
         print(f"{path}: ok — no ownership problems found")
     n = len(errors)
@@ -61,7 +61,7 @@ def cmd_emit(path: str) -> int:
     errors = [d for d in diags if d.severity == Severity.ERROR]
     if errors or mod is None:
         for d in diags:
-            print(d.render(path), file=sys.stderr)
+            print(d.render_pretty(path, src), file=sys.stderr)
         print(f"\nrefusing to generate C#: {len(errors)} error(s).", file=sys.stderr)
         return 1
     print(generate(mod))  # type: ignore[arg-type]

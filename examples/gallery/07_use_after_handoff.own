@@ -1,0 +1,11 @@
+// OWN002 — use after ownership was consumed by a callee.
+// Real C#: a method takes ownership (it will Dispose), then you touch it again.
+module Gallery
+resource Buffer { acquire rent release give }
+extern fn Store(consume Buffer);
+extern fn Hash(borrow Buffer);
+fn run() {
+  let b = acquire Buffer(64);
+  Store(b);              // Store now owns b (and will free it)
+  Hash(b);               // ... but we used it afterwards
+}

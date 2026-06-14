@@ -1,0 +1,12 @@
+// OWN006 — exclusive (mutable) access while a shared view is live.
+// Real C#: writing through one Span while another ReadOnlySpan aliases it.
+module Gallery
+resource Buffer { acquire rent release give }
+extern fn Fill(borrow_mut Buffer);
+fn run() {
+  let b = acquire Buffer(64);
+  borrow b as readers {
+    Fill(b);             // needs exclusive access, but `readers` is live
+  }
+  release b;
+}

@@ -42,3 +42,27 @@ jobs:
           python-version: "3.13"
       - name: Property fuzz (50k draws, rotating seed)
         run: python tests/test_codegen_props.py 50000 ${{ github.run_number }}
+
+  # Prove the lowering is real: take the generated C# and put it through the
+  # actual .NET compiler (the PoC sandbox has no SDK, so this is the only place
+  # the golden example is genuinely compiled and run, not "verified by
+  # construction").
+  dotnet-golden:
+    name: golden C# compiles & runs (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Check the emitted method is still in sync with the golden host
+        run: python examples/golden_arraypool/verify_emit.py
+      - name: Compile & run the generated C# with the real compiler
+        run: |
+          dotnet new console -o "$RUNNER_TEMP/golden_app"
+          cp examples/golden_arraypool/Program.cs "$RUNNER_TEMP/golden_app/Program.cs"
+          dotnet run --project "$RUNNER_TEMP/golden_app"
+

@@ -1027,9 +1027,20 @@ def run() -> int:
     import test_codegen_props  # noqa: E402
     pf_rc = test_codegen_props.run(iterations=3000, seed=1234)
 
+    # The "what it catches" gallery: every examples/gallery/ file must still
+    # produce exactly the diagnostic it advertises, so the demo can't drift.
+    import test_gallery  # noqa: E402
+    gl_rc = test_gallery.run()
+
+    # Real-world corpus: each case.own (a reduction of a real ArrayPool/Dispose
+    # bug) must still produce the diagnostics it documents.
+    import test_corpus  # noqa: E402
+    co_rc = test_corpus.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
-                 or order_fails or helper_fails or cc_rc or pf_rc) else 0
+                 or order_fails or helper_fails or cc_rc or pf_rc
+                 or gl_rc or co_rc) else 0
 
 
 if __name__ == "__main__":

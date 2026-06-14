@@ -1,0 +1,8 @@
+// OWN015 — a stack-backed buffer cannot escape its function.
+// Real C#: returning a Span<byte> over a stackalloc -> it dangles the instant
+// the frame pops.
+module Gallery
+fn make() -> Buffer {
+  let tmp = Buffer.stack(64);   // lives on the stack frame of make()
+  return tmp;                   // ... must not leave it
+}

@@ -57,6 +57,42 @@ python tests/run_tests.py                                     # кейсы + cod
 `check` возвращает ненулевой код при наличии ошибок — годится для CI.
 `emit` **отказывается** генерировать C#, если в `.own` есть хоть одна ошибка.
 
+### Что оно ловит — галерея
+
+В `examples/gallery/` лежат маленькие программы «как в жизни»: каждая роняет ровно
+одну диагностику и снабжена C#-аналогом в комментарии. Каждый файл прибит к своему
+коду тестом (`tests/test_gallery.py`), так что демо не разъезжается с тем, что
+checker реально делает. Прогнать всё разом:
+
+```bash
+python tests/test_gallery.py
+```
+
+| Файл | Код | Реальный C#-аналог |
+|------|-----|--------------------|
+| `01_leak_on_error_path` | **OWN001** | забыл `Dispose()` на early-out ветке |
+| `02_use_after_release` | **OWN002** | обращение к стриму после `Dispose()` |
+| `03_double_release` | **OWN003** | `Dispose()` дважды |
+| `04_use_after_move` | **OWN005** | использовал значение после передачи владения |
+| `05_dispose_while_view_live` | **OWN008** | `ArrayPool.Return`, пока жив `Span<byte>` над массивом |
+| `06_exclusive_while_shared` | **OWN006** | пишут через `Span`, который алиасит живой `ReadOnlySpan` |
+| `07_use_after_handoff` | **OWN002** | тронул буфер после того, как его забрал вызов |
+| `08_stack_buffer_escapes` | **OWN015** | вернул `Span<byte>` над `stackalloc` (dangling) |
+| `09_untracked_call` | **OWN040** | владение «отмыли» через непрозрачный вызов |
+
+`00_ok_clean` — чистый happy-path (rent → view → return), лоуэрится в exception-safe
+`ArrayPool` Rent/Return.
+
+`check` печатает ошибку в стиле rustc — `file:line:col`, сама строка исходника и
+каретка под виновным именем:
+
+```text
+$ python -m ownlang check examples/gallery/05_dispose_while_view_live.own
+examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot release 'b' while it is borrowed
+  9 |     release b;           // freeing the backing store while `view` is alive
+                  ^
+```
+
 ### Golden-пример: настоящий ArrayPool
 
 ```bash
@@ -536,9 +572,11 @@ fallback = pool`) — тоже **OWN030**: конфликтующее обеща
 3. **Циклы и async отвергаются, а не анализируются** (OWN020). Нужен worklist с
    fixpoint и loop-инварианты владения; CFG к этому готов (DAG-проход → worklist).
 
-4. **C# в песочнице не запускается.** Компилятора нет, поэтому golden-пример
-   проверен *по построению* и чекером, **не исполнен**. У себя: `dotnet run`
-   в `examples/golden_arraypool`.
+4. **В песочнице PoC нет .NET** — golden проверен *по построению* и чекером. Но
+   **CI его реально компилирует и запускает** настоящим компилятором (job
+   `dotnet-golden`: сверяет emit-вывод с host'ом, затем `dotnet run`), так что
+   лоуэрение проверено исполнением — просто не в этой песочнице. У себя: `dotnet
+   run` в `examples/golden_arraypool`.
 
 5. **Нет настоящей системы типов.** Ресурсы номинальные, аргументы `acquire` не
    типизируются, арифметики нет. Условие в `if` — непрозрачный текст: моделируется
@@ -546,6 +584,12 @@ fallback = pool`) — тоже **OWN030**: конфликтующее обеща
    (вызов как statement; если локальный `fn` возвращает ресурс — он не трекается).
 
 6. **Запрещено shadowing** (OWN031). Rust разрешает; для PoC запрет проще.
+
+7. **CI-экшены не запинены по commit-SHA** (`actions/checkout@v4` и пр. на тегах,
+   без `persist-credentials: false`) — SAST (zizmor) это флагует. Сознательно
+   отложено: SHA-пиннинг — repo-wide политика, которую ведёт Dependabot / отдельный
+   hardening-проход, а не один PR; джобы только checkout + прогон тестов, без push
+   и без секретов, так что экспозиция минимальна.
 
 ---
 

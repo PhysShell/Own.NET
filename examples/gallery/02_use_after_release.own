@@ -1,0 +1,10 @@
+// OWN002 — use after release (definite, on every path).
+// Real C#: touching a stream after Dispose() -> ObjectDisposedException.
+module Gallery
+resource Conn { acquire open release close }
+extern fn Send(borrow Conn);
+fn run() {
+  let c = acquire Conn(1);
+  release c;
+  Send(c);               // c is already closed
+}
