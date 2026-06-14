@@ -274,6 +274,17 @@ case("two_functions", SCHEMATIC,
      "fn c(){ let d = acquire Buffer(2); release d; }") \
     .has("static void a(").has("static void c(")
 
+# A scratch buffer with clear-on-release zeroes its bytes and bumps the
+# ForcedClear counter (the one Scratch.* metric the golden smoke doesn't hit).
+case("scratch_clear_forced_clear_counter", SCHEMATIC,
+     "fn f(n: int){ let b = Buffer.scratch(n, clear = true); release b; }") \
+    .has(".Clear();").has("OwnCounters.ForcedClear();")
+
+# The requested/returned byte counters are emitted around the scratch arms.
+case("scratch_byte_counters", SCHEMATIC,
+     "fn f(n: int){ let b = Buffer.scratch(n); release b; }") \
+    .has("OwnCounters.Requested(n);").has("OwnCounters.PoolReturned(n);")
+
 
 # ---------------------------------------------------------------------------
 # runner

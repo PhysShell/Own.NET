@@ -48,6 +48,7 @@ TITLES = {
     "OWN019": "inline capacity too large for a stack-backed policy",
     "OWN021": "stack allocation requires a statically known bound",
     "OWN023": "scratch fallback forbidden but the size may exceed the inline limit",
+    "OWN024": "sensitive buffer is not cleared on release",
     # ---- unsupported ----
     "OWN020": "unsupported construct (out of scope for the MVP)",
     # ---- name resolution & structural ----

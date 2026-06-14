@@ -252,6 +252,7 @@ class _FnGen:
                 if info.trace:
                     pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
                 if sc:
+                    pre.append(f"OwnCounters.Requested({size});")
                     pre.append("OwnCounters.StackHit();")
                 if info.size_const == L:
                     pre.append(f"Span<byte> {name} = stackalloc byte[{L}];")
@@ -266,6 +267,7 @@ class _FnGen:
                 if info.trace:
                     pre.append(f'OwnTrace.StackSelected("{fn}", "{name}", {size}, {L});')
                 if sc:
+                    pre.append(f"OwnCounters.Requested({size});")
                     pre.append("OwnCounters.StackHit();")
                 pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
                 pre.append(f"Span<byte> {name} = {name}_backing[..{size}];")
@@ -273,6 +275,8 @@ class _FnGen:
                 fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"{name}.Clear();")
+                if sc:
+                    fin.append("OwnCounters.ForcedClear();")
 
         elif scratch_pool:
             if not info.size_is_const:
@@ -284,6 +288,8 @@ class _FnGen:
             pre.append(f"byte[]? {name}_rented = null;")
             pre.append(f"Span<byte> {name}_backing = stackalloc byte[{L}];")
             pre.append(f"Span<byte> {name};")
+            if sc:
+                pre.append(f"OwnCounters.Requested({size});")
             pre.append(f"if ({size} <= {L})")
             pre.append("{")
             if info.trace:
@@ -305,8 +311,16 @@ class _FnGen:
                 fin.append("OwnCounters.Release();")
             if info.clear_on_release:
                 fin.append(f"{name}.Clear();")
+                if sc:
+                    fin.append("OwnCounters.ForcedClear();")
             fin.append(f"if ({name}_rented is not null)")
-            fin.append(f"    ArrayPool<byte>.Shared.Return({name}_rented);")
+            if sc:
+                fin.append("{")
+                fin.append(f"    ArrayPool<byte>.Shared.Return({name}_rented);")
+                fin.append(f"    OwnCounters.PoolReturned({size});")
+                fin.append("}")
+            else:
+                fin.append(f"    ArrayPool<byte>.Shared.Return({name}_rented);")
 
         elif info.mode == BufferMode.POOLED:
             # pooled is not scratch: trace it, but do not touch the Scratch.*
@@ -684,7 +698,25 @@ internal static class OwnCounters
     public static long ScratchStackHits;
     public static long ScratchPoolFallbacks;
     public static long ScratchPoolBytesRented;
+    public static long ScratchPoolBytesReturned;
+    public static long ScratchTotalRequestedBytes;
+    public static long ScratchMaxRequestedBytes;
     public static long ScratchReleaseCount;
+    public static long ScratchForcedClears;
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void Requested(int bytes)
+    {
+        System.Threading.Interlocked.Add(ref ScratchTotalRequestedBytes, bytes);
+        long cur;
+        do
+        {
+            cur = System.Threading.Interlocked.Read(ref ScratchMaxRequestedBytes);
+            if (bytes <= cur) return;
+        }
+        while (System.Threading.Interlocked.CompareExchange(
+                   ref ScratchMaxRequestedBytes, bytes, cur) != cur);
+    }
 
     [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
     public static void StackHit()
@@ -698,8 +730,16 @@ internal static class OwnCounters
     }
 
     [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void PoolReturned(int bytes)
+        => System.Threading.Interlocked.Add(ref ScratchPoolBytesReturned, bytes);
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
     public static void Release()
         => System.Threading.Interlocked.Increment(ref ScratchReleaseCount);
+
+    [System.Diagnostics.Conditional("OWNSHARP_COUNTERS")]
+    public static void ForcedClear()
+        => System.Threading.Interlocked.Increment(ref ScratchForcedClears);
 }
 '''
 
