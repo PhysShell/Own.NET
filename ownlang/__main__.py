@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 from .analysis import analyze
 from .buffers import validate_policies
-from .cfg import CFG, build_cfg, collect_policies, collect_signatures
+from .cfg import CFG, build_cfg, collect_kinds, collect_policies, collect_signatures
 from .codegen import generate
 from .diagnostics import Diagnostic, Severity
 from .lexer import LexError
@@ -36,9 +36,10 @@ def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
+    kinds = collect_kinds(mod)
     diags: list[Diagnostic] = list(validate_policies(pols))
     for fn in mod.functions:
-        cfg, d1 = build_cfg(fn, rnames, sigs, pols)
+        cfg, d1 = build_cfg(fn, rnames, sigs, pols, kinds)
         d2 = analyze(cfg)
         diags.extend(d1)
         diags.extend(d2)

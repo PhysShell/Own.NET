@@ -60,6 +60,11 @@ class Symbol:
     # the declared/inferred type name (e.g. "int", "bool", a resource name), so a
     # buffer size can be required to be an integer. None when unknown.
     type_name: str | None = None
+    # the resource's optional human "kind" (e.g. "subscription token"), copied
+    # from its ResourceDecl at acquire / on an owned parameter. Surfaced on
+    # diagnostics as `[resource: <kind>]`; None for plain values and untagged
+    # resources.
+    resource_kind: str | None = None
     # a stable identity for the originating buffer (name#line). Set when a buffer
     # is acquired and inherited across `move`, so a diagnostic about any alias can
     # be attributed to the right buffer in the report (distinct from a same-named
@@ -213,11 +218,13 @@ def collect_signatures(mod: A.Module) -> dict[str, Signature]:
 class _Builder:
     def __init__(self, fn: A.FnDecl, resource_names: set[str],
                  signatures: dict[str, Signature],
-                 policies: dict[str, Policy] | None = None):
+                 policies: dict[str, Policy] | None = None,
+                 resource_kinds: dict[str, str] | None = None):
         self.fn = fn
         self.resource_names = resource_names
         self.signatures = signatures
         self.policies = policies or {}
+        self.resource_kinds = resource_kinds or {}
         self.diags: list[Diagnostic] = []
         self.blocks: list[Block] = []
         self.scopes: list[dict[str, Symbol]] = []
@@ -271,6 +278,7 @@ class _Builder:
             else:
                 sym = self.declare(p.name, Kind.PLAIN, p.line)
             sym.type_name = p.type.name
+            sym.resource_kind = self.resource_kinds.get(p.type.name)
             self.params.append(sym)
 
         entry = self.new_block("entry")
@@ -335,6 +343,7 @@ class _Builder:
                     "OWN030", f"undefined resource '{rhs.resource}'", rhs.line))
             sym = self.declare(st.name, Kind.OWNED, st.line)
             sym.type_name = rhs.resource
+            sym.resource_kind = self.resource_kinds.get(rhs.resource)
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
         if isinstance(rhs, A.BufferIntent):
@@ -355,6 +364,7 @@ class _Builder:
                 dst.buffer = src.buffer
                 dst.origin = src.origin
                 dst.type_name = src.type_name   # the moved value keeps its type
+                dst.resource_kind = src.resource_kind  # ...and its kind tag
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -372,7 +382,7 @@ class _Builder:
             dst = self.declare(st.name, Kind.PLAIN, st.line)
             dst.type_name = "int"
             return cur
-        raise AssertionError(f"unknown rhs {rhs!r}")
+        assert_never(rhs)
 
     def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
         if rhs.ns != "Buffer":
@@ -561,8 +571,14 @@ def collect_policies(mod: A.Module) -> dict[str, Policy]:
 
 def build_cfg(fn: A.FnDecl, resource_names: set[str],
               signatures: dict[str, Signature],
-              policies: dict[str, Policy] | None = None
+              policies: dict[str, Policy] | None = None,
+              resource_kinds: dict[str, str] | None = None
               ) -> tuple[CFG, list[Diagnostic]]:
-    b = _Builder(fn, resource_names, signatures, policies)
+    b = _Builder(fn, resource_names, signatures, policies, resource_kinds)
     cfg = b.build()
     return cfg, b.diags
+
+
+def collect_kinds(mod: A.Module) -> dict[str, str]:
+    """resource name -> its declared `kind` string (only those that set one)."""
+    return {r.name: r.kind for r in mod.resources if r.kind}

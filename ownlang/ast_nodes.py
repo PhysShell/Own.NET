@@ -159,6 +159,11 @@ class ResourceDecl:
     emit_acquire: str | None = None    # e.g. "ArrayPool<byte>.Shared.Rent({args})"
     emit_release: str | None = None    # e.g. "ArrayPool<byte>.Shared.Return({0})"
     emit_borrow: str | None = None     # e.g. "{0}.AsSpan()"
+    # an optional human "kind" of resource (e.g. "subscription token", "timer"),
+    # carried onto diagnostics as `[resource: <kind>]`. Domain-neutral metadata:
+    # a later profile (e.g. WPF) reads it to give the generic OWN finding a
+    # business-flavoured framing, without the core knowing about any domain.
+    kind: str | None = None
 
 
 @dataclass(frozen=True)

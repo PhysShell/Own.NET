@@ -8,6 +8,7 @@ Grammar (informal):
   resource    := "resource" IDENT "{" rmember* "}"
   rmember     := ("acquire" | "release") IDENT
                | ("emit_type"|"emit_acquire"|"emit_release"|"emit_borrow") STRING
+               | "kind" STRING                      // contextual; not reserved
   policy      := "policy" IDENT "{" (IDENT "=" atom ";")* "}"
   extern      := "extern" "fn" IDENT "(" eparams? ")" ("->" type)? ";"
   eparams     := eparam ("," eparam)*
@@ -161,6 +162,7 @@ class Parser:
         self.eat(Tok.LBRACE)
         members: list[A.ResourceMember] = []
         emit: dict[str, str] = {}
+        kind: str | None = None
         while not self.at(Tok.RBRACE):
             if self.at(Tok.ACQUIRE):
                 self.eat(Tok.ACQUIRE)
@@ -175,8 +177,14 @@ class Parser:
                 self.pos += 1
                 val = self.eat(Tok.STRING).text
                 emit[field] = val
+            elif self.at(Tok.IDENT) and self.cur.text == "kind":
+                # contextual keyword (not globally reserved): kind "subscription token"
+                self.pos += 1
+                kind = self.eat(Tok.STRING).text
             else:
-                raise ParseError("expected 'acquire', 'release' or an emit_* template", self.cur)
+                raise ParseError(
+                    "expected 'acquire', 'release', 'kind' or an emit_* template",
+                    self.cur)
         self.eat(Tok.RBRACE)
         return A.ResourceDecl(
             name=name, members=members, line=kw.line,
@@ -184,6 +192,7 @@ class Parser:
             emit_acquire=emit.get("emit_acquire"),
             emit_release=emit.get("emit_release"),
             emit_borrow=emit.get("emit_borrow"),
+            kind=kind,
         )
 
     # -- externs ------------------------------------------------------------

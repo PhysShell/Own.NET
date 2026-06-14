@@ -93,6 +93,37 @@ examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot rel
                   ^
 ```
 
+### Бизнес-применение: WPF lifetime-утечки (модуль `lifetimes`, slice #1)
+
+Performance-профиль (`stackalloc`/pool) — это игрушка для performance-зоопарка.
+Бизнес-софт чаще умирает не от того, что `Span<byte>` на 7 нс медленнее, а от
+зомби-ViewModel: кто-то подписался на singleton-event и не отписался — окно
+закрыто, а `CustomerViewModel` жива весь день, потому что event bus держит на неё
+strong-ссылку. GC не телепат.
+
+Ключевой разворот: **это уже выразимо текущим ownership-ядром.** Моделируем
+ViewModel как scope (конструктор = начало, `Dispose` = конец); подписка =
+`acquire` токена, отписка = `release`. Тогда «подписался и не Dispose» —
+это обычный **OWN001**, а «тронул после Dispose» — **OWN002**. Новый, доменно-
+нейтральный кусок: у `resource` появился тег `kind`, который вешается на
+диагностику как `[resource: ...]` — это шов, за который позже зацепится WPF-
+профиль/Roslyn-фронт, не зная про WPF в самом ядре.
+
+```text
+$ python -m ownlang check corpus/wpf/zombie-viewmodel/case.own
+case.own:16:9: error: [OWN001] 'customerChanged' is owned but not released at
+  end of function (leaks on at least one path) [resource: subscription token]
+  16 |     let customerChanged = acquire Subscription(bus);
+               ^
+```
+
+`corpus/wpf/` — self-checking корпус реальных WPF-паттернов (`before.cs`/
+`after.cs`/`case.own`/expected), прибитый тестом `tests/test_wpf.py`. Полный план
+модуля (lifetime-регионы, каталог OWN-WPF, границы слайсов, что отложено) —
+в [`docs/lifetimes.md`](docs/lifetimes.md). Честно: `case.own` — hand reduction
+паттерна, не C#, который чекер съел (C#-фронта нет, это поздний слайс); корпус
+показывает, что ownership-**логика** ложится на реальный баг.
+
 ### Golden-пример: настоящий ArrayPool
 
 ```bash
@@ -632,12 +663,15 @@ ownlang/
     gallery/                  # «что оно ловит» — narrated примеры, пинятся тестом
     golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
   corpus/real-world/          # hand-reduced реальные ArrayPool-баги + expected-коды
+  corpus/wpf/                 # WPF lifetime-баги (zombie-VM, use-after-dispose)
+  docs/lifetimes.md           # дизайн модуля lifetimes (WPF, регионы, слайсы)
   tests/
     run_tests.py              # кейсы анализа + codegen smoke + golden smoke
     test_codegen.py           # content-assertions на сгенерённый C#
     test_codegen_props.py     # property-фаззер с независимым AST-оракулом
     test_gallery.py           # пинит каждый gallery-пример к его коду
     test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
+    test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
   pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
 

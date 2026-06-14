@@ -1039,10 +1039,15 @@ def run() -> int:
     import test_corpus
     co_rc = test_corpus.run()
 
+    # WPF lifetime corpus (lifetimes slice #1): subscription/timer leaks caught
+    # by the generic ownership checker, carrying the [resource: <kind>] tag.
+    import test_wpf
+    wpf_rc = test_wpf.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc) else 0
+                 or gl_rc or co_rc or wpf_rc) else 0
 
 
 if __name__ == "__main__":
