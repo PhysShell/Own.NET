@@ -175,6 +175,15 @@ CASES = [
     ("buf_branchy_release_ok",
      "fn f(n: int){ let b = Buffer.pooled(n); if (c) { release b; } "
      "else { release b; } }", []),
+    ("buf_overlapping_fifo_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); let b = Buffer.pooled(n); "
+     "release a; release b; }", []),
+    ("buf_overlapping_lifo_ok",
+     "fn f(n: int){ let a = Buffer.pooled(n); let b = Buffer.pooled(n); "
+     "release b; release a; }", []),
+    ("buf_scratch_bad_fallback",
+     "fn f(n: int){ let b = Buffer.scratch(n, fallback = forbiden); "
+     "release b; }", ["OWN030"]),
     ("buf_native_ok",
      "fn f(n: int){ let b = Buffer.native(n); release b; }", []),
     ("buf_policy_ok",
@@ -434,6 +443,43 @@ def branchy_and_malformed_smoke() -> list[str]:
     else:
         if rep["buffers"]:
             fails.append("report should skip an unresolved buffer mode")
+
+    # overlapping buffer lifetimes released in non-LIFO (FIFO) order must lower
+    # without a CodegenError, and both arrays must be returned to the pool.
+    fifo = ("module M\nfn f(n: int){ let a = Buffer.pooled(n); "
+            "let b = Buffer.pooled(n); release a; release b; }\n")
+    if codes(fifo):
+        fails.append(f"FIFO overlapping buffers should check clean, got {codes(fifo)}")
+    try:
+        out = generate(parse(fifo))
+    except Exception as e:  # noqa: BLE001
+        fails.append(f"FIFO overlapping buffers crashed codegen: {type(e).__name__}: {e}")
+    else:
+        if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 1:
+            fails.append("FIFO: a must be returned to the pool exactly once")
+        if out.count("ArrayPool<byte>.Shared.Return(b_array)") != 1:
+            fails.append("FIFO: b must be returned to the pool exactly once")
+
+    # a misspelled forbidden-fallback must be diagnosed, never silently pooled
+    bad_fb = ("module M\nfn f(n: int){ "
+              "let b = Buffer.scratch(n, fallback = forbiden); release b; }\n")
+    if "OWN030" not in codes(bad_fb):
+        fails.append("misspelled scratch fallback must produce OWN030")
+
+    # the report's noEscape check must agree with the OWN017 checker diagnostic
+    esc = parse("module M\nfn f(n: int) -> Buffer { let b = Buffer.pooled(n); "
+                "return b; }\n")
+    diags = []
+    from ownlang.cfg import build_cfg, collect_signatures, collect_policies
+    rn = {r.name for r in esc.resources}
+    sg = collect_signatures(esc)
+    pl = collect_policies(esc)
+    for fn in esc.functions:
+        cfg, d1 = build_cfg(fn, rn, sg, pl)
+        diags += d1 + analyze(cfg)
+    rep = build_report(esc, diags)
+    if rep["buffers"] and rep["buffers"][0]["checks"]["noEscape"]:
+        fails.append("report noEscape must be false for an OWN017-rejected buffer")
     return fails
 
 

@@ -22,7 +22,7 @@ from .diagnostics import Diagnostic
 
 # Diagnostics that, if present for a given buffer, mean a specific check failed.
 _CHECK_CODES = {
-    "noEscape": {"OWN015", "OWN016"},
+    "noEscape": {"OWN015", "OWN016", "OWN017"},
     "releaseOnAllPaths": {"OWN001"},
     "noUseAfterRelease": {"OWN002", "OWN009"},
     "noActiveLoansAtRelease": {"OWN008"},

@@ -77,7 +77,11 @@ class _FnGen:
     def emit(self) -> str:
         ret = _csharp_type(self.fn.ret) if self.fn.ret else "void"
         params = ", ".join(f"{_csharp_type(p.type)} {p.name}" for p in self.fn.params)
-        head = f"public static {ret} {self.fn.name}({params})"
+        # a function that allocates a native buffer needs pointers, so the whole
+        # method is `unsafe` (cleaner than scoping each pointer in its own block,
+        # and it lets native buffers follow the same lifetime shapes as the rest).
+        unsafe = "unsafe " if _fn_has_native(self.fn.body) else ""
+        head = f"public static {unsafe}{ret} {self.fn.name}({params})"
         if self._is_simple():
             body = self._emit_simple(self.fn.body)
         else:
@@ -135,16 +139,35 @@ class _FnGen:
         return "".join(l + "\n" for l in out)
 
     def _emit_block(self, stmts: list[A.Stmt], ind: str) -> list[str]:
-        """Emit a statement list. A buffer let owns the remainder of its block:
-        its matching `release` may be straight-line or nested in branches, and
-        _emit_buffer handles both shapes."""
+        """Emit a statement list, lowering each buffer let by its lifetime shape.
+
+        A buffer gets the exception-safe try/finally only when it nests cleanly:
+        its `release` is straight-line at this level AND no other buffer is
+        acquired inside its body (which would make the lifetimes overlap in
+        non-LIFO order). Otherwise — overlapping lifetimes, or a release nested in
+        branches — it uses inline-release: the prelude here, the real cleanup
+        emitted at each `release` site (no hoist into finally; the same trade-off
+        the codegen already makes for branchy ordinary resources)."""
         out: list[str] = []
         i = 0
         while i < len(stmts):
             st = stmts[i]
             if isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent):
-                out.extend(self._emit_buffer(st.name, st.rhs, stmts[i + 1:], ind))
-                i = len(stmts)
+                rest = stmts[i + 1:]
+                name = st.name
+                j = self._find_release(rest, 0, name)
+                if j is not None and not _fn_has_buffer(rest[:j]):
+                    out.extend(self._emit_buffer_scoped(name, st.rhs, rest[:j], ind))
+                    i += 1 + j + 1   # consume the let, its body, and its release
+                    continue
+                if not _has_release(rest, name):
+                    # leak or escape — both rejected by the checker first
+                    # (OWN001 / OWN015 / OWN016 / OWN017); unreachable cleanly.
+                    raise CodegenError(
+                        f"buffer '{name}' is never released and does not escape "
+                        f"cleanly; the checker should have rejected this")
+                out.extend(self._emit_buffer_inline(name, st.rhs, ind))
+                i += 1
                 continue
             out.extend(self._stmt_inline(st, ind))
             i += 1
@@ -160,16 +183,19 @@ class _FnGen:
 
     # -- buffer lowering (the stackalloc / scratch / pool / native line) -----
 
-    def _emit_buffer(self, name: str, intent: A.BufferIntent,
-                     rest: list[A.Stmt], ind: str) -> list[str]:
+    def _buffer_lowering(self, name: str, intent: A.BufferIntent
+                         ) -> tuple[list[str], list[str]]:
+        """Lower one buffer to its (prelude, cleanup) C# lines. The prelude holds
+        the allocation + trace/counter hooks; the cleanup is the pool Return /
+        native Free / clear. How they are placed (try/finally vs inline) is the
+        caller's decision."""
         info, _ = resolve_buffer(intent, self.policies)
         self.buffer_vars[name] = info
         fn = self.fn.name
         size = self._size_expr(info)
         L = info.inline_bytes
         pre: list[str] = []   # declarations + trace/counters, before the try
-        fin: list[str] = []   # cleanup, inside the finally
-        native = info.mode == BufferMode.NATIVE
+        fin: list[str] = []   # cleanup, inside the finally / at release sites
         scratch_pool = info.mode == BufferMode.SCRATCH and info.fallback_pool
 
         if info.mode in (BufferMode.STACK, BufferMode.INLINE) or (
@@ -239,7 +265,8 @@ class _FnGen:
                 fin.append(f"{name}.Clear();")
             fin.append(f"ArrayPool<byte>.Shared.Return({name}_array);")
 
-        elif native:
+        elif info.mode == BufferMode.NATIVE:
+            # the method is emitted `unsafe`, so the pointer needs no local block.
             if info.trace:
                 pre.append(f'OwnTrace.NativeSelected("{fn}", "{name}", {size});')
             pre.append(f"byte* {name} = (byte*)System.Runtime.InteropServices."
@@ -251,76 +278,40 @@ class _FnGen:
                            f"Clear({name}, (nuint){size});")
             fin.append(f"System.Runtime.InteropServices.NativeMemory.Free({name});")
 
-        # decide the lifetime shape from where the matching `release` lives.
-        j = self._find_release(rest, 0, name)
-        if j is not None:
-            # straight-line: release b at this level -> exception-safe try/finally,
-            # then continue with whatever follows the release.
-            lines = self._wrap_buffer(pre, rest[:j], fin, ind, native)
-            lines.extend(self._emit_block(rest[j + 1:], ind))
-            return lines
-        if _has_release(rest, name):
-            # branchy: release b sits inside if/borrow blocks. Emit the prelude
-            # once, then the body inline, attaching the buffer's real cleanup to
-            # each release site (no hoisting into finally — the same trade-off the
-            # codegen already makes for branchy ordinary resources).
-            self.buffer_cleanup[name] = fin
-            return self._emit_buffer_branchy(pre, rest, ind, native)
-        # no release anywhere => leak or escape, both rejected by the checker
-        # (OWN001 / OWN015 / OWN016 / OWN017); it cannot reach a clean codegen.
-        raise CodegenError(
-            f"buffer '{name}' is never released and does not escape cleanly; "
-            f"the checker should have rejected this")
+        return pre, fin
 
-    def _emit_buffer_branchy(self, pre: list[str], rest: list[A.Stmt],
-                             ind: str, native: bool) -> list[str]:
-        lines: list[str] = []
-        base = ind
-        if native:
-            lines.append(f"{base}unsafe")
-            lines.append(f"{base}{{")
-            inner = base + "    "
-        else:
-            inner = base
-        for p in pre:
-            lines.append(inner + p)
-        lines.extend(self._emit_block(rest, inner))
-        if native:
-            lines.append(f"{base}}}")
-        return lines
-
-    def _wrap_buffer(self, pre: list[str], body: list[A.Stmt],
-                     fin: list[str], ind: str, native: bool) -> list[str]:
-        lines: list[str] = []
-        base = ind
-        if native:
-            lines.append(f"{base}unsafe")
-            lines.append(f"{base}{{")
-            inner = base + "    "
-        else:
-            inner = base
-        for p in pre:
-            lines.append(inner + p)
-        body_lines = self._emit_block(body, inner + "    ")
+    def _emit_buffer_scoped(self, name: str, intent: A.BufferIntent,
+                            body: list[A.Stmt], ind: str) -> list[str]:
+        """The buffer nests cleanly: wrap its body in an exception-safe
+        try/finally (this is the golden scratch shape)."""
+        pre, fin = self._buffer_lowering(name, intent)
+        lines = [ind + p for p in pre]
+        body_lines = self._emit_block(body, ind + "    ")
         if fin:
-            lines.append(f"{inner}try")
-            lines.append(f"{inner}{{")
+            lines.append(f"{ind}try")
+            lines.append(f"{ind}{{")
             lines.extend(body_lines)
-            lines.append(f"{inner}}}")
-            lines.append(f"{inner}finally")
-            lines.append(f"{inner}{{")
+            lines.append(f"{ind}}}")
+            lines.append(f"{ind}finally")
+            lines.append(f"{ind}{{")
             for f in fin:
-                lines.append(inner + "    " + f)
-            lines.append(f"{inner}}}")
+                lines.append(ind + "    " + f)
+            lines.append(f"{ind}}}")
         else:
             # nothing to clean up (e.g. a stack buffer with no clear and no
             # counters): the body runs straight, the frame reclaims the bytes.
             for bl in body_lines:
-                # de-indent one level since there is no try block
                 lines.append(bl[4:] if bl.startswith("    ") else bl)
-        if native:
-            lines.append(f"{base}}}")
         return lines
+
+    def _emit_buffer_inline(self, name: str, intent: A.BufferIntent,
+                            ind: str) -> list[str]:
+        """Overlapping or branchy lifetime: emit the prelude here and attach the
+        cleanup to each `release` site (handled by _stmt_inline). No try/finally —
+        the same exception-safety trade-off as branchy ordinary resources."""
+        pre, fin = self._buffer_lowering(name, intent)
+        self.buffer_cleanup[name] = fin
+        return [ind + p for p in pre]
 
     def _size_expr(self, info) -> str:
         if info.size_is_const:
@@ -458,6 +449,20 @@ def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
                 return True
         if isinstance(st, A.BorrowBlock):
             if _fn_has_buffer(st.body):
+                return True
+    return False
+
+
+def _fn_has_native(stmts: list[A.Stmt]) -> bool:
+    for st in stmts:
+        if (isinstance(st, A.Let) and isinstance(st.rhs, A.BufferIntent)
+                and st.rhs.mode == "native"):
+            return True
+        if isinstance(st, A.If):
+            if _fn_has_native(st.then_body) or _fn_has_native(st.else_body):
+                return True
+        if isinstance(st, A.BorrowBlock):
+            if _fn_has_native(st.body):
                 return True
     return False
 

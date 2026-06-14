@@ -214,18 +214,27 @@ def resolve(intent: "A.BufferIntent", policies: dict[str, Policy]
             else _as_ident_or_none(base.get("fallback"))
         if fb is None:
             fb = "pool"  # scratch defaults to a pool fallback
-        if fb == "forbidden":
+        fb_valid = fb in ("pool", "forbidden")
+        if not fb_valid:
+            # a typo here (e.g. `forbiden`) must NOT silently fall through to the
+            # heap — that would quietly break the explicit storage guarantee.
+            diags.append(Diagnostic(
+                "OWN030",
+                f"unknown fallback '{fb}' for scratch buffer; expected 'pool' "
+                f"or 'forbidden'", line))
+        if fb == "pool":
+            fallback_pool = True
+        else:
+            # 'forbidden', or an invalid value handled fail-safe (no heap)
             fallback_forbidden = True
             # scratch with no heap fallback and a size that may exceed the inline
             # limit cannot honour the "stack only" promise.
-            if size_const is None or size_const > inline_bytes:
+            if fb_valid and (size_const is None or size_const > inline_bytes):
                 diags.append(Diagnostic(
                     "OWN023",
                     f"scratch buffer forbids a heap fallback but its size may "
                     f"exceed the inline limit of {inline_bytes}; use 'stack' "
                     f"with a 'max =' bound instead", line))
-        else:
-            fallback_pool = True
 
     elif mode == BufferMode.POOLED:
         fallback_pool = True
