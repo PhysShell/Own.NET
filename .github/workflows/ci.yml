@@ -109,6 +109,7 @@ jobs:
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/CustomerViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
+            frontend/roslyn/samples/TimerViewModel.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -122,5 +123,14 @@ jobs:
           if echo "$out" | grep -q "OrdersViewModel.cs"; then
             echo "FAIL: disposed subscription wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 at the C# location"
+          # WPF002: the started, never-stopped timer leaks with a [resource: timer]
+          # tag; the timer stopped in Dispose stays silent.
+          echo "$out" | grep -q "TimerViewModel.cs" \
+            || { echo "FAIL: expected the TimerViewModel timer leak"; exit 1; }
+          echo "$out" | grep -q "resource: timer" \
+            || { echo "FAIL: expected a [resource: timer] tag"; exit 1; }
+          if echo "$out" | grep -q "CleanTimerViewModel"; then
+            echo "FAIL: stopped timer wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer) at the C# location"
 

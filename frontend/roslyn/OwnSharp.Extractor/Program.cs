@@ -5,10 +5,12 @@
 // spec's vocabulary. The Python core (`python -m ownlang ownir facts.json`) then
 // produces the verdict (OWN001 leak) at the C# location.
 //
-// v0 heuristic (documented in docs/proposals/P-001): a subscription is
-// `target += handler` where the right side is a method group (identifier or
-// member access), not e.g. `count += 1`. It is "released" if a matching
-// `target -= handler` (same text on both sides) exists anywhere in the class.
+// Heuristic (docs/proposals/P-001, P-004): a subscription is `target += handler`
+// where the right side is a method group (identifier or member access), not e.g.
+// `count += 1`. It is "released" if a matching `target -= handler` (same text on
+// both sides) exists in the class. A `Tick`/`Elapsed` handler is additionally
+// tagged resource=timer (WPF002) and counts as released if the timer's receiver
+// also has a `.Stop()` call (e.g. `_timer.Stop()` in Dispose).
 //
 // Usage: ownsharp-extract <file.cs> [more.cs ...] [-o facts.json]
 
@@ -37,6 +39,18 @@ static bool IsHandler(ExpressionSyntax rhs) =>
 static int LineOf(SyntaxNode node) =>
     node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
+// The receiver of `target.Member` ("_timer" for `_timer.Tick`), or null when the
+// left side is a bare identifier (`Changed += h`).
+static string? Receiver(ExpressionSyntax expr) =>
+    expr is MemberAccessExpressionSyntax m ? m.Expression.ToString() : null;
+
+// A timer subscription is a `Tick`/`Elapsed` handler — DispatcherTimer and the
+// WinForms timer expose `Tick`, System.Timers.Timer exposes `Elapsed`. A running
+// timer strong-refs the handler's owner, so an undetached one leaks it.
+static bool IsTimerEvent(ExpressionSyntax left) =>
+    left is MemberAccessExpressionSyntax m
+        && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
+
 var components = new List<object>();
 
 foreach (var path in inputs)
@@ -55,17 +69,29 @@ foreach (var path in inputs)
             if (a.IsKind(SyntaxKind.SubtractAssignmentExpression) && IsHandler(a.Right))
                 unsub.Add($"{a.Left}|{a.Right}");
 
+        // every receiver with a `.Stop()` call: a timer detached this way counts
+        // as released even without an explicit `Tick -=` (e.g. Stop() in Dispose).
+        var stopped = new HashSet<string>();
+        foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            if (inv.Expression is MemberAccessExpressionSyntax m
+                && m.Name.Identifier.Text == "Stop")
+                stopped.Add(m.Expression.ToString());
+
         var subs = new List<object>();
         foreach (var a in assigns)
         {
             if (!a.IsKind(SyntaxKind.AddAssignmentExpression) || !IsHandler(a.Right))
                 continue;
+            var isTimer = IsTimerEvent(a.Left);
+            var released = unsub.Contains($"{a.Left}|{a.Right}")
+                || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
             subs.Add(new
             {
                 @event = a.Left.ToString(),
                 handler = a.Right.ToString(),
                 line = LineOf(a.Left),
-                released = unsub.Contains($"{a.Left}|{a.Right}"),
+                released,
+                resource = isTimer ? "timer" : "subscription",
             });
         }
 

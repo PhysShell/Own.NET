@@ -1,0 +1,20 @@
+{
+  "ownir_version": 0,
+  "module": "WpfTimers",
+  "components": [
+    {
+      "name": "TimerViewModel",
+      "file": "TimerViewModel.cs",
+      "subscriptions": [
+        {"event": "_timer.Tick", "handler": "OnTick", "line": 15, "released": false, "resource": "timer"}
+      ]
+    },
+    {
+      "name": "CleanTimerViewModel",
+      "file": "TimerViewModel.cs",
+      "subscriptions": [
+        {"event": "_timer.Tick", "handler": "OnTick", "line": 29, "released": true, "resource": "timer"}
+      ]
+    }
+  ]
+}

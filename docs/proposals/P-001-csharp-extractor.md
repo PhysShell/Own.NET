@@ -18,7 +18,8 @@ seam:
 - **CI** (`wpf-extractor` job): real `.cs` → extractor → facts → core → leak at
   its C# line; the disposed sample stays silent.
 
-Next: timers, `IDisposable` fields, and feeding region facts to OWN014.
+Next: `IDisposable` fields, and feeding region facts to OWN014 (timers built —
+the WPF002 increment, see [P-004](P-004-wpf-lifetime-profile.md)).
 
 ## Motivation
 

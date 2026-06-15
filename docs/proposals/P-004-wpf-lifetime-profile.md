@@ -1,6 +1,7 @@
 # P-004 — WPF / UI lifetime leak profile
 
-- **Status:** draft (P0 — the user's real pain; extends P-001 v0)
+- **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer) built**;
+  WPF003–005 next
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the extractor + OwnIR seam),
   `spec/OwnCore.md`, `spec/Lifetimes.md` (OWN001 leak, OWN014 region escape).
   See [`docs/ROADMAP.md`](../ROADMAP.md) for where this sits (Milestones 1–2).
@@ -27,7 +28,7 @@ ends `ViewModel`/`View`, derives `Window`/`UserControl`/`Page`, implements
 | Rule | Pattern | Core verdict |
 |------|---------|--------------|
 | **WPF001** | `source.Event += handler` with no matching `-=` in `Dispose`/`OnClosed`/`Unloaded` | `OWN001` (leak) ✅ v0 |
-| **WPF002** | `DispatcherTimer`/`Timer` started (`Tick +=` / `Start()`) with no `Stop()` + detach | `OWN001` |
+| **WPF002** | `DispatcherTimer`/`Timer` `Tick`/`Elapsed` handler with no `-=` and no `Stop()` | `OWN001` `[resource: timer]` ✅ |
 | **WPF003** | an `IDisposable` subscription field never disposed by the owner | `OWN001` (see P-005) |
 | **WPF004** | `Subscribe(...)` whose `IDisposable` result is ignored | `OWN001` |
 | **WPF005** | strong capture by a longer-lived source (the ViewModel `escapes` to App) | `OWN014` |
@@ -71,8 +72,10 @@ facts so OWN014 fires for WPF005.
      --[core]--> OWN001 (leak) / OWN014 (escape) @ C# line
 ```
 
-Land **one pattern per increment** (WPF002 next, then WPF003/004, then WPF005),
-each with `bad_*.cs` / `ok_*.cs` fixtures, exactly as v0 did. WPF003 overlaps the
+Land **one pattern per increment** (WPF002 built — a `Tick`/`Elapsed` handler is
+a `Timer` resource, released by `-=` or a `Stop()` on the same receiver; next
+WPF003/004, then WPF005), each with `bad`/`ok` samples, exactly as v0 did.
+WPF003 overlaps the
 general `IDisposable`-field rule in [P-005](P-005-idisposable-ownership.md); build
 it once in the resource core and let WPF consume it as a profile.
 

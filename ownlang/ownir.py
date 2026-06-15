@@ -6,7 +6,7 @@ the spec's vocabulary; this module ingests them, routes them through the proven
 checker, and maps the verdict back to the original C# location. The core stays a
 single checker — we do not reimplement it in C# (a second checker would drift).
 
-OwnIR v0 schema (JSON)::
+OwnIR schema (JSON)::
 
     {
       "ownir_version": 0,
@@ -17,19 +17,24 @@ OwnIR v0 schema (JSON)::
           "file": "CustomerViewModel.cs",
           "subscriptions": [
             {"event": "bus.CustomerChanged", "handler": "OnCustomerChanged",
-             "line": 12, "released": false}
+             "line": 12, "released": false},
+            {"event": "_timer.Tick", "handler": "OnTick", "line": 18,
+             "released": false, "resource": "timer"}
           ]
         }
       ]
     }
 
-A subscription is modelled as an owned `Subscription` resource: `event +=` is an
-`acquire`, a matching `-=` / Dispose is a `release`. An unreleased subscription
-is therefore the core's OWN001 (owned-but-not-released), carrying the
-`[resource: subscription token]` kind tag — surfaced at the C# `line`.
+Each entry in `subscriptions` is an owned resource: `event +=` / `Tick +=` is an
+`acquire`, a matching `-=` / `Dispose` / timer `Stop()` is a `release`. The
+optional `resource` field picks the kind — "subscription" (default; tag
+`[resource: subscription token]`) or "timer" (a started `DispatcherTimer`/`Timer`
+whose `Tick`/`Elapsed` handler is never detached; tag `[resource: timer]`). An
+unreleased entry is the core's OWN001 (owned-but-not-released) at the C# `line`.
 
-v0 covers exactly the `event += without -=` pattern (released == false -> leak).
-Timers, IDisposable fields and region escape are later (see docs/proposals/P-001).
+The `resource` field is additive and optional, so it does NOT bump
+`ownir_version`: an older core just reads every entry as a subscription.
+IDisposable fields and region escape are later (see docs/proposals/P-004).
 """
 
 from __future__ import annotations
@@ -58,7 +63,21 @@ _PRELUDE = (
     '    release Dispose\n'
     '    kind "subscription token"\n'
     '}\n'
+    'resource Timer {\n'
+    '    acquire Start\n'
+    '    release Stop\n'
+    '    kind "timer"\n'
+    '}\n'
 )
+
+# OwnIR resource kinds the bridge knows how to lower: (own resource type to
+# acquire, human kind tag the finding carries). `event +=` is a Subscription; a
+# `Tick`/`Elapsed` handler on a started timer is a Timer (the running timer
+# strong-refs the handler's owner). Unknown values fall back to Subscription.
+_RESOURCES = {
+    "subscription": ("Subscription", "subscription token"),
+    "timer": ("Timer", "timer"),
+}
 
 
 @dataclass(frozen=True)
@@ -70,10 +89,11 @@ class Finding:
     event: str
     handler: str
     message: str
+    kind: str = "subscription token"
 
     def render(self) -> str:
         return (f"{self.file}:{self.line}: error: [{self.code}] "
-                f"{self.message} [resource: subscription token]")
+                f"{self.message} [resource: {self.kind}]")
 
 
 def load(path: str) -> dict[str, Any]:
@@ -106,6 +126,11 @@ def load(path: str) -> dict[str, Any]:
         subs = c.get("subscriptions", [])
         if not isinstance(subs, list) or not all(isinstance(s, dict) for s in subs):
             raise OwnIRError("each component's 'subscriptions' must be objects")
+        for s in subs:
+            r = s.get("resource", "subscription")
+            if not isinstance(r, str):
+                raise OwnIRError(
+                    f"subscription 'resource' must be a string, got {r!r}")
     return result
 
 
@@ -137,7 +162,9 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             gid += 1
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
-            lines.append(f"    let {handle} = acquire Subscription();")
+            rtype, _ = _RESOURCES.get(sub.get("resource", "subscription"),
+                                      _RESOURCES["subscription"])
+            lines.append(f"    let {handle} = acquire {rtype}();")
             if sub.get("released"):
                 lines.append(f"    release {handle};")
         lines.append("}")
@@ -196,13 +223,22 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 f"message={d.message!r}). The OwnIR lowering has drifted from "
                 f"the core; teach the bridge this diagnostic rather than "
                 f"dropping the finding.")
+        event = sub.get("event", "?")
+        handler = sub.get("handler", "?")
+        component = sub["component"]
+        rkind = sub.get("resource", "subscription")
+        _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+        if rkind == "timer":
+            message = (f"timer '{event}' (handler '{handler}') is started but "
+                       f"never stopped or detached — the running timer keeps "
+                       f"'{component}' alive (leak)")
+        else:
+            message = (f"event '{event}' is subscribed (handler '{handler}') "
+                       f"but never unsubscribed — the source keeps "
+                       f"'{component}' alive (leak)")
         findings.append(Finding(
             file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
-            component=sub["component"], event=sub.get("event", "?"),
-            handler=sub.get("handler", "?"),
-            message=(f"event '{sub.get('event', '?')}' is subscribed "
-                     f"(handler '{sub.get('handler', '?')}') but never "
-                     f"unsubscribed — the source keeps "
-                     f"'{sub['component']}' alive (leak)")))
+            component=component, event=event, handler=handler,
+            message=message, kind=kind))
     findings.sort(key=lambda f: (f.file, f.line, f.code))
     return findings

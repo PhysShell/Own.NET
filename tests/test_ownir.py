@@ -30,6 +30,8 @@ from ownlang.parser import parse
 
 _FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
                         "sample.facts.json")
+_TIMER_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
+                              "timer.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -108,6 +110,30 @@ def run() -> int:
         load(_write_facts({"module": "Legacy", "components": []}))
     except OwnIRError as e:
         fails.append(f"versionless facts wrongly rejected: {e}")
+
+    # --- WPF002 timer profile: a started timer never stopped/detached leaks,
+    #     a stopped one stays silent, and the finding is tagged [resource: timer].
+    with open(_TIMER_FIXTURE, encoding="utf-8") as f:
+        tfacts = json.load(f)
+    tfindings = check_facts(tfacts)
+    checks += 1
+    leaks = [x for x in tfindings if x.component == "TimerViewModel"]
+    if len(tfindings) != 1 or not leaks:
+        fails.append(f"expected 1 timer finding (TimerViewModel), got "
+                     f"{[(x.component, x.code) for x in tfindings]}")
+    else:
+        t0 = leaks[0]
+        checks += 1
+        if (t0.file, t0.line, t0.code) != ("TimerViewModel.cs", 15, "OWN001"):
+            fails.append(f"wrong timer location/code: {t0.file}:{t0.line} {t0.code}")
+        if "timer" not in t0.message or "stopped" not in t0.message:
+            fails.append(f"timer message missing timer/stopped: {t0.message!r}")
+        if "[resource: timer]" not in t0.render():
+            fails.append(f"timer finding missing kind tag: {t0.render()!r}")
+    # a stopped timer (released) must NOT be reported.
+    checks += 1
+    if any(x.component == "CleanTimerViewModel" for x in tfindings):
+        fails.append("stopped timer was wrongly reported")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")
