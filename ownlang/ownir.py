@@ -36,6 +36,9 @@ owned-resource records) is an owned resource, discriminated by an optional
   - "disposable": an `IDisposable` field the class `new`s and never `Dispose()`s
     (optional `type` names the field's declared type); tag
     `[resource: disposable field]`.
+  - "subscribe": a `X.Subscribe(...)` whose `IDisposable` result is ignored (a
+    bare statement, not captured/disposed) — always a leak; tag
+    `[resource: subscription token]`.
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
 `line`. The `resource`/`type` fields are additive and optional, so they do NOT
@@ -88,6 +91,7 @@ _PRELUDE = (
 # Disposable it owns. Unknown values fall back to Subscription.
 _RESOURCES = {
     "subscription": ("Subscription", "subscription token"),
+    "subscribe": ("Subscription", "subscription token"),
     "timer": ("Timer", "timer"),
     "disposable": ("Disposable", "disposable field"),
 }
@@ -254,6 +258,10 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             of_type = f" (type '{typ}')" if typ else ""
             message = (f"IDisposable field '{event}'{of_type} is never "
                        f"disposed — its owner '{component}' leaks it (leak)")
+        elif rkind == "subscribe":
+            message = (f"the result of '{event}' is ignored — the IDisposable "
+                       f"subscription is never disposed, leaking "
+                       f"'{component}' (leak)")
         else:
             message = (f"event '{event}' is subscribed (handler '{handler}') "
                        f"but never unsubscribed — the source keeps "

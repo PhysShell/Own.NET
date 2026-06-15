@@ -1,0 +1,13 @@
+{
+  "ownir_version": 0,
+  "module": "WpfMessenger",
+  "components": [
+    {
+      "name": "InboxViewModel",
+      "file": "MessengerViewModel.cs",
+      "subscriptions": [
+        {"event": "_messenger.Subscribe", "line": 12, "released": false, "resource": "subscribe"}
+      ]
+    }
+  ]
+}

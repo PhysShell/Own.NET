@@ -111,6 +111,7 @@ jobs:
             frontend/roslyn/samples/OrdersViewModel.cs \
             frontend/roslyn/samples/TimerViewModel.cs \
             frontend/roslyn/samples/DisposableFieldViewModel.cs \
+            frontend/roslyn/samples/MessengerViewModel.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -143,5 +144,14 @@ jobs:
           if echo "$out" | grep -q "CleanReportViewModel"; then
             echo "FAIL: disposed field wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field) at the C# location"
+          # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
+          # disposed one stays silent. "ignored" is unique to the WPF004 message.
+          echo "$out" | grep -q "MessengerViewModel.cs" \
+            || { echo "FAIL: expected the InboxViewModel ignored-Subscribe leak"; exit 1; }
+          echo "$out" | grep -q "is ignored" \
+            || { echo "FAIL: expected the ignored-Subscribe message"; exit 1; }
+          if echo "$out" | grep -q "CleanInboxViewModel"; then
+            echo "FAIL: captured+disposed subscription wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe) at the C# location"
 

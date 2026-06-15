@@ -1,7 +1,8 @@
 # P-004 — WPF / UI lifetime leak profile
 
 - **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer)** + **WPF003
-  (IDisposable field) built**; WPF004–005 next
+  (IDisposable field)** + **WPF004 (ignored Subscribe) built**; WPF005 (escape)
+  next
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the extractor + OwnIR seam),
   `spec/OwnCore.md`, `spec/Lifetimes.md` (OWN001 leak, OWN014 region escape).
   See [`docs/ROADMAP.md`](../ROADMAP.md) for where this sits (Milestones 1–2).
@@ -30,7 +31,7 @@ ends `ViewModel`/`View`, derives `Window`/`UserControl`/`Page`, implements
 | **WPF001** | `source.Event += handler` with no matching `-=` in `Dispose`/`OnClosed`/`Unloaded` | `OWN001` (leak) ✅ v0 |
 | **WPF002** | `DispatcherTimer`/`Timer` `Tick`/`Elapsed` handler with no `-=` and no `Stop()` | `OWN001` `[resource: timer]` ✅ |
 | **WPF003** | an `IDisposable` field the class `new`s but never disposes | `OWN001` `[resource: disposable field]` ✅ (core of P-005) |
-| **WPF004** | `Subscribe(...)` whose `IDisposable` result is ignored | `OWN001` |
+| **WPF004** | `X.Subscribe(...)` whose `IDisposable` result is ignored (bare statement) | `OWN001` `[resource: subscription token]` ✅ |
 | **WPF005** | strong capture by a longer-lived source (the ViewModel `escapes` to App) | `OWN014` |
 
 Modelled as resource facts (no new magic — the resource is just named
@@ -72,9 +73,10 @@ facts so OWN014 fires for WPF005.
      --[core]--> OWN001 (leak) / OWN014 (escape) @ C# line
 ```
 
-Land **one pattern per increment** (WPF002 built — a `Tick`/`Elapsed` handler is
-a `Timer` resource, released by `-=` or a `Stop()` on the same receiver; next
-WPF003/004, then WPF005), each with `bad`/`ok` samples, exactly as v0 did.
+Land **one pattern per increment** (WPF002/003/004 built — a `Tick`/`Elapsed`
+handler is a `Timer`; a `new`'d-and-undisposed `IDisposable` field is a
+`Disposable`; an ignored `X.Subscribe(...)` is a dropped subscription token;
+WPF005 escape next), each with `bad`/`ok` samples, exactly as v0 did.
 WPF003 overlaps the
 general `IDisposable`-field rule in [P-005](P-005-idisposable-ownership.md); build
 it once in the resource core and let WPF consume it as a profile.

@@ -34,6 +34,8 @@ _TIMER_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
                               "timer.facts.json")
 _DISPOSABLE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "disposable.facts.json")
+_SUBSCRIBE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                  "ownir", "subscribe.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -162,6 +164,25 @@ def run() -> int:
     checks += 1
     if any(x.component == "CleanReportViewModel" for x in dfindings):
         fails.append("disposed field was wrongly reported")
+
+    # --- WPF004 ignored Subscribe(): the dropped IDisposable token always leaks,
+    #     carrying the [resource: subscription token] tag.
+    with open(_SUBSCRIBE_FIXTURE, encoding="utf-8") as f:
+        sfacts = json.load(f)
+    sfindings = check_facts(sfacts)
+    checks += 1
+    if len(sfindings) != 1:
+        fails.append(f"expected 1 subscribe finding, got "
+                     f"{[(x.component, x.code) for x in sfindings]}")
+    else:
+        s0 = sfindings[0]
+        checks += 1
+        if (s0.file, s0.line, s0.code) != ("MessengerViewModel.cs", 12, "OWN001"):
+            fails.append(f"wrong subscribe location/code: {s0.file}:{s0.line} {s0.code}")
+        if "ignored" not in s0.message or "Subscribe" not in s0.message:
+            fails.append(f"subscribe message missing ignored/Subscribe: {s0.message!r}")
+        if "[resource: subscription token]" not in s0.render():
+            fails.append(f"subscribe finding missing kind tag: {s0.render()!r}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

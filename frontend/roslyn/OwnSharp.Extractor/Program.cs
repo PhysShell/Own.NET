@@ -156,6 +156,22 @@ foreach (var path in inputs)
             }
         }
 
+        // WPF004: a `X.Subscribe(...)` whose IDisposable result is ignored — the
+        // call stands as a bare statement (not assigned/returned/added), so the
+        // token is dropped and never disposed. Member-access only (`x.Subscribe`),
+        // to avoid flagging bare void `Subscribe(...)` helpers.
+        foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            if (inv.Expression is MemberAccessExpressionSyntax m
+                && m.Name.Identifier.Text == "Subscribe"
+                && inv.Parent is ExpressionStatementSyntax)
+                subs.Add(new
+                {
+                    @event = m.ToString(),
+                    line = LineOf(inv),
+                    released = false,
+                    resource = "subscribe",
+                });
+
         if (subs.Count > 0)
             components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
     }
