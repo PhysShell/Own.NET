@@ -212,7 +212,7 @@ def _handle_of(diag: object) -> str | None:
     acquire stamps `subject` in cfg.lower_let; None means the diagnostic carries
     no subject identity at all."""
     subject = getattr(diag, "subject", None)
-    if not subject:
+    if not isinstance(subject, str) or not subject:
         return None
     return subject.split("#", 1)[0]
 

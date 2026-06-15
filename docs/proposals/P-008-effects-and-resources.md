@@ -67,6 +67,7 @@ EFF001  undeclared effect (e.g. DbRead)
 EFF002  pure method uses Clock/Network/Db/Log/Pool
 EFF003  forbidden effect in layer Domain
 EFF004  mutable resource used without ! permission
+EFF005  unpaired resource protocol (Rent without Return, BeginTransaction without Commit/Rollback)
 ```
 
 ## Non-goals

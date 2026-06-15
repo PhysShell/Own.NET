@@ -6,7 +6,7 @@
       "name": "Loader",
       "file": "LocalDisposableSample.cs",
       "subscriptions": [
-        {"event": "leaky", "line": 10, "released": false, "resource": "local-disposable", "type": "MemoryStream"},
+        {"event": "leaky", "line": 12, "released": false, "resource": "local-disposable", "type": "MemoryStream"},
         {"event": "disposed", "line": 18, "released": true, "resource": "local-disposable", "type": "MemoryStream"}
       ]
     }

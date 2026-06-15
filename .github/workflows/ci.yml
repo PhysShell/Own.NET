@@ -166,6 +166,10 @@ jobs:
           # one and a returned (transferred) one stay silent.
           echo "$out" | grep -q "local IDisposable 'leaky'" \
             || { echo "FAIL: expected the undisposed-local leak"; exit 1; }
+          echo "$out" | grep -q "LocalDisposableSample.cs" \
+            || { echo "FAIL: expected LocalDisposableSample.cs in the local-disposable finding"; exit 1; }
+          echo "$out" | grep -q "resource: disposable]" \
+            || { echo "FAIL: expected a [resource: disposable] tag"; exit 1; }
           if echo "$out" | grep -qE "'guarded'|'moved'"; then
             echo "FAIL: using/returned local wrongly reported"; exit 1
           fi

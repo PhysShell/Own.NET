@@ -6,14 +6,14 @@
       "name": "ReportViewModel",
       "file": "DisposableFieldViewModel.cs",
       "subscriptions": [
-        {"event": "_cts", "line": 11, "released": false, "resource": "disposable", "type": "CancellationTokenSource"}
+        {"event": "_cts", "line": 10, "released": false, "resource": "disposable", "type": "CancellationTokenSource"}
       ]
     },
     {
       "name": "CleanReportViewModel",
       "file": "DisposableFieldViewModel.cs",
       "subscriptions": [
-        {"event": "_cts", "line": 25, "released": true, "resource": "disposable", "type": "CancellationTokenSource"}
+        {"event": "_cts", "line": 21, "released": true, "resource": "disposable", "type": "CancellationTokenSource"}
       ]
     }
   ]

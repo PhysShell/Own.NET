@@ -156,7 +156,7 @@ def run() -> int:
     else:
         d0 = dleaks[0]
         checks += 1
-        if (d0.file, d0.line, d0.code) != ("DisposableFieldViewModel.cs", 11, "OWN001"):
+        if (d0.file, d0.line, d0.code) != ("DisposableFieldViewModel.cs", 10, "OWN001"):
             fails.append(f"wrong field location/code: {d0.file}:{d0.line} {d0.code}")
         if "IDisposable field" not in d0.message or "_cts" not in d0.message:
             fails.append(f"disposable message missing field: {d0.message!r}")
@@ -219,7 +219,7 @@ def run() -> int:
     else:
         l0 = lfindings[0]
         checks += 1
-        if (l0.file, l0.line, l0.code) != ("LocalDisposableSample.cs", 10, "OWN001"):
+        if (l0.file, l0.line, l0.code) != ("LocalDisposableSample.cs", 12, "OWN001"):
             fails.append(f"wrong local location/code: {l0.file}:{l0.line} {l0.code}")
         if "local IDisposable" not in l0.message or "MemoryStream" not in l0.message:
             fails.append(f"local message missing text/type: {l0.message!r}")

@@ -132,7 +132,7 @@ foreach (var path in inputs)
         var disposed = new HashSet<string>();
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
-                && m.Name.Identifier.Text == "Dispose"
+                && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                 && FieldName(m.Expression) is { } df)
                 disposed.Add(df);
 
@@ -201,8 +201,8 @@ foreach (var path in inputs)
                 if (inv.Expression is MemberAccessExpressionSyntax m
                     && m.Name.Identifier.Text == "Return"
                     && inv.ArgumentList.Arguments.Count > 0
-                    && inv.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax id)
-                    returned.Add(id.Identifier.Text);
+                    && FieldName(inv.ArgumentList.Arguments[0].Expression) is { } rn)
+                    returned.Add(rn);
             foreach (var (name, line) in rented)
                 subs.Add(new
                 {
@@ -234,7 +234,7 @@ foreach (var path in inputs)
             var disposedLocal = new HashSet<string>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (inv.Expression is MemberAccessExpressionSyntax m
-                    && m.Name.Identifier.Text == "Dispose"
+                    && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                     && FieldName(m.Expression) is { } dn)
                     disposedLocal.Add(dn);
 
