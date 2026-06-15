@@ -52,7 +52,7 @@ trap 'rm -f "$facts"' EXIT
 
 # Stage 1: extract facts. dotnet's build/run chatter goes to stderr so stdout
 # stays clean for the host-parseable findings (-o writes the facts to a file).
-dotnet run --project "$extractor" --nologo -- "${paths[@]}" -o "$facts" 1>&2
+dotnet run --project "$extractor" -- "${paths[@]}" -o "$facts" 1>&2
 
 # Stage 2: the one checker produces the verdict at the C# location.
 set +e

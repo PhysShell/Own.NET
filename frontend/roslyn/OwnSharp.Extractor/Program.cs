@@ -56,13 +56,20 @@ static bool IsSkipped(string path)
 }
 
 // Expand directories into their .cs files; pass explicit files through as-is.
+// IgnoreInaccessible tolerates an unreadable subdir mid-walk (otherwise the
+// whole scan would abort with an unhandled exception on a locked directory).
 static IEnumerable<string> Expand(IEnumerable<string> roots)
 {
+    var opts = new EnumerationOptions
+    {
+        RecurseSubdirectories = true,
+        IgnoreInaccessible = true,
+    };
     foreach (var p in roots)
     {
         if (Directory.Exists(p))
         {
-            foreach (var f in Directory.EnumerateFiles(p, "*.cs", SearchOption.AllDirectories))
+            foreach (var f in Directory.EnumerateFiles(p, "*.cs", opts))
                 if (!IsSkipped(f))
                     yield return f;
         }
@@ -123,6 +130,14 @@ var components = new List<object>();
 
 foreach (var path in inputs)
 {
+    // Defensive: an explicit input that is not a readable file (a directory
+    // passed by mistake, a deleted path) is skipped with a note, never an
+    // unhandled exception that aborts the whole scan.
+    if (!File.Exists(path))
+    {
+        Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
+        continue;
+    }
     var text = File.ReadAllText(path);
     var file = Rel(path);
     var root = CSharpSyntaxTree.ParseText(text, path: path).GetRoot();

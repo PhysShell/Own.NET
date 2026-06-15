@@ -193,8 +193,10 @@ jobs:
           dotnet-version: "8.0.x"
       - name: GitHub-annotation format over the sample tree (directory walk)
         run: |
-          out=$(scripts/own-check.sh --format github -- frontend/roslyn/samples 2>/dev/null)
-          echo "$out"
+          # stdout (captured) carries only the annotations; the extractor's build
+          # chatter and any error flow to stderr -> the job log (never muted).
+          out=$(scripts/own-check.sh --format github -- frontend/roslyn/samples)
+          echo "--- annotations ---"; echo "$out"; echo "-------------------"
           echo "$out" | grep -q "^::error " \
             || { echo "FAIL: expected a ::error annotation"; exit 1; }
           echo "$out" | grep -q "frontend/roslyn/samples/CustomerViewModel.cs" \
@@ -203,8 +205,8 @@ jobs:
             || { echo "FAIL: expected the OWN001 title in the annotation"; exit 1; }
       - name: MSBuild diagnostic format over the sample tree
         run: |
-          out=$(scripts/own-check.sh --format msbuild -- frontend/roslyn/samples 2>/dev/null)
-          echo "$out"
+          out=$(scripts/own-check.sh --format msbuild -- frontend/roslyn/samples)
+          echo "--- diagnostics ---"; echo "$out"; echo "-------------------"
           echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): error OWN001:" \
             || { echo "FAIL: expected an MSBuild-format error line"; exit 1; }
       - name: --fail-on-finding propagates the core's exit code
