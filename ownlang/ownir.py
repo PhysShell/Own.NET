@@ -71,6 +71,18 @@ class OwnIRError(ValueError):
     driver turns it into a clear one-line error rather than a traceback."""
 
 
+def _esc_data(s: str) -> str:
+    """Escape a GitHub workflow-command message (the text after `::`). Per the
+    Actions command spec, only `%`, CR and LF are special there."""
+    return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+def _esc_prop(s: str) -> str:
+    """Escape a GitHub workflow-command property value (`file=`, `title=`).
+    Property values additionally treat `:` and `,` as separators."""
+    return _esc_data(s).replace(":", "%3A").replace(",", "%2C")
+
+
 _PRELUDE = (
     'resource Subscription {\n'
     '    acquire Subscribe\n'
@@ -124,6 +136,32 @@ class Finding:
     def render(self) -> str:
         return (f"{self.file}:{self.line}: error: [{self.code}] "
                 f"{self.message} [resource: {self.kind}]")
+
+    def render_github(self) -> str:
+        """A GitHub Actions workflow annotation. Printed on a CI step's stdout,
+        GitHub renders it as an inline error on the PR diff at the C# location.
+        `title` carries the OWN code; the message keeps the [resource:] tag."""
+        msg = f"[{self.code}] {self.message} [resource: {self.kind}]"
+        return (f"::error file={_esc_prop(self.file)},line={self.line},"
+                f"title={_esc_prop(self.code)}::{_esc_data(msg)}")
+
+    def render_msbuild(self) -> str:
+        """The canonical MSBuild diagnostic format `file(line): error CODE: msg`.
+        `dotnet build` and the Visual Studio Error List parse exactly this, so
+        the findings surface in-IDE without a Roslyn analyzer — one checker, not
+        a second one reimplemented in C#."""
+        return (f"{self.file}({self.line}): error {self.code}: "
+                f"{self.message} [resource: {self.kind}]")
+
+
+def render_finding(f: Finding, fmt: str) -> str:
+    """Render a finding in one of the supported surfaces: `human` (the default
+    CLI line), `github` (CI annotation), or `msbuild` (VS Error List)."""
+    if fmt == "github":
+        return f.render_github()
+    if fmt == "msbuild":
+        return f.render_msbuild()
+    return f.render()
 
 
 def load(path: str) -> dict[str, Any]:

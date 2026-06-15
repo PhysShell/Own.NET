@@ -1,0 +1,53 @@
+name: "Own.NET resource-leak check"
+description: >-
+  Scan C# for lifetime/resource leaks the compiler cannot express — event/timer
+  subscription leaks, undisposed IDisposable fields/locals, ignored Subscribe()
+  tokens, ArrayPool buffers rented-but-never-returned — and annotate the PR.
+author: "Own.NET"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  path:
+    description: "File(s) or directory to scan (directories are walked for *.cs)."
+    required: false
+    default: "."
+  format:
+    description: "Finding surface: github (PR annotations), msbuild, or human."
+    required: false
+    default: "github"
+  fail-on-finding:
+    description: "Fail the step when any leak is found."
+    required: false
+    default: "true"
+  python-version:
+    description: "Python version for the Own.NET core."
+    required: false
+    default: "3.13"
+  dotnet-version:
+    description: "The .NET SDK version for the Roslyn extractor."
+    required: false
+    default: "8.0.x"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python (Own.NET core)
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Set up .NET (Roslyn extractor)
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Own.NET leak check
+      shell: bash
+      run: |
+        args=(--root "${{ github.action_path }}" --format "${{ inputs.format }}")
+        if [ "${{ inputs.fail-on-finding }}" = "true" ]; then
+          args+=(--fail-on-finding)
+        fi
+        "${{ github.action_path }}/scripts/own-check.sh" "${args[@]}" -- ${{ inputs.path }}

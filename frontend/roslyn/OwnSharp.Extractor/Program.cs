@@ -12,26 +12,74 @@
 // tagged resource=timer (WPF002) and counts as released if the timer's receiver
 // also has a `.Stop()` call (e.g. `_timer.Stop()` in Dispose).
 //
-// Usage: ownsharp-extract <file.cs> [more.cs ...] [-o facts.json]
+// Usage: ownsharp-extract <file.cs | dir> [more ...] [-o facts.json]
+//
+// Inputs may be .cs files or directories. A directory is walked recursively for
+// *.cs, skipping build output (bin/obj), VCS/vendor dirs (.git, node_modules)
+// and generated files (*.g.cs, *.Designer.cs) — so you can point it at a whole
+// repo (this is what the `own-check` script / GitHub Action do).
 
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-var inputs = new List<string>();
+var rawInputs = new List<string>();
 string? outPath = null;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
-    else inputs.Add(args[i]);
+    else rawInputs.Add(args[i]);
 }
 
-if (inputs.Count == 0)
+if (rawInputs.Count == 0)
 {
-    Console.Error.WriteLine("usage: ownsharp-extract <file.cs> [...] [-o facts.json]");
+    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir> [...] [-o facts.json]");
     return 2;
 }
+
+// A path segment we never scan: build output, VCS, and vendored trees.
+static bool IsSkippedDir(string seg) =>
+    seg is "bin" or "obj" or ".git" or ".vs" or "node_modules" or "packages";
+
+// Generated C# the author did not write (and cannot fix): skip it.
+static bool IsGenerated(string path) =>
+    path.EndsWith(".g.cs", StringComparison.Ordinal)
+    || path.EndsWith(".Designer.cs", StringComparison.Ordinal)
+    || path.EndsWith(".AssemblyInfo.cs", StringComparison.Ordinal);
+
+static bool IsSkipped(string path)
+{
+    foreach (var seg in path.Split('/', '\\'))
+        if (IsSkippedDir(seg)) return true;
+    return IsGenerated(path);
+}
+
+// Expand directories into their .cs files; pass explicit files through as-is.
+static IEnumerable<string> Expand(IEnumerable<string> roots)
+{
+    foreach (var p in roots)
+    {
+        if (Directory.Exists(p))
+        {
+            foreach (var f in Directory.EnumerateFiles(p, "*.cs", SearchOption.AllDirectories))
+                if (!IsSkipped(f))
+                    yield return f;
+        }
+        else
+        {
+            yield return p;
+        }
+    }
+}
+
+// A finding's file is reported relative to the current directory (the repo root
+// in CI / under the Action), with forward slashes — so a GitHub annotation or an
+// MSBuild diagnostic points at the right file even when two files share a name.
+static string Rel(string path) =>
+    Path.GetRelativePath(Directory.GetCurrentDirectory(), path).Replace('\\', '/');
+
+var inputs = Expand(rawInputs).Distinct().ToList();
 
 static bool IsHandler(ExpressionSyntax rhs) =>
     rhs is IdentifierNameSyntax || rhs is MemberAccessExpressionSyntax;
@@ -76,7 +124,7 @@ var components = new List<object>();
 foreach (var path in inputs)
 {
     var text = File.ReadAllText(path);
-    var file = Path.GetFileName(path);
+    var file = Rel(path);
     var root = CSharpSyntaxTree.ParseText(text, path: path).GetRoot();
 
     foreach (var cls in root.DescendantNodes().OfType<ClassDeclarationSyntax>())

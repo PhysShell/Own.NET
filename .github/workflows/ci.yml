@@ -175,3 +175,48 @@ jobs:
           fi
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
 
+  # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
+  # directory of real C# and prints findings in the host-parseable formats the
+  # GitHub Action (PR annotations) and a VS Error List (MSBuild) consume — and
+  # the composite action itself runs end-to-end. One checker: the script just
+  # chains the extractor and the Python core.
+  own-check-surface:
+    name: own-check repo scan (github + msbuild) + composite action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: GitHub-annotation format over the sample tree (directory walk)
+        run: |
+          out=$(scripts/own-check.sh --format github -- frontend/roslyn/samples 2>/dev/null)
+          echo "$out"
+          echo "$out" | grep -q "^::error " \
+            || { echo "FAIL: expected a ::error annotation"; exit 1; }
+          echo "$out" | grep -q "frontend/roslyn/samples/CustomerViewModel.cs" \
+            || { echo "FAIL: expected the relative path to the Customer leak"; exit 1; }
+          echo "$out" | grep -q "title=OWN001" \
+            || { echo "FAIL: expected the OWN001 title in the annotation"; exit 1; }
+      - name: MSBuild diagnostic format over the sample tree
+        run: |
+          out=$(scripts/own-check.sh --format msbuild -- frontend/roslyn/samples 2>/dev/null)
+          echo "$out"
+          echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): error OWN001:" \
+            || { echo "FAIL: expected an MSBuild-format error line"; exit 1; }
+      - name: --fail-on-finding propagates the core's exit code
+        run: |
+          if scripts/own-check.sh --fail-on-finding -- frontend/roslyn/samples >/dev/null 2>&1; then
+            echo "FAIL: a tree with leaks should exit non-zero under --fail-on-finding"; exit 1
+          fi
+          echo "OK: --fail-on-finding surfaced the leaks as a non-zero exit"
+      - name: The composite action runs end-to-end (non-failing)
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          fail-on-finding: "false"
+

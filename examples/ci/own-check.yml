@@ -1,0 +1,28 @@
+# Example consumer workflow — copy into a .NET repo's .github/workflows/.
+#
+# Drops the Own.NET resource-leak check onto every pull request: the Roslyn
+# extractor scans the repo's C#, the Python core produces the verdict, and any
+# leak shows up as an inline annotation on the PR diff (and fails the check).
+#
+# Pin the action to a released tag (e.g. @v0.1.0) rather than @main for stability.
+
+name: Own.NET leak check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read   # the check only reads the code
+
+jobs:
+  own-check:
+    name: resource-leak check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PhysShell/own.net@main
+        with:
+          path: .
+          format: github
+          fail-on-finding: "true"
