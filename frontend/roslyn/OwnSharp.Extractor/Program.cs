@@ -213,6 +213,60 @@ foreach (var path in inputs)
                 });
         }
 
+        // D1 (P-005): a local IDisposable the method `new`s but never disposes,
+        // not guarded by `using`, and not handed out (returned / passed as an
+        // argument / assigned out) — ownership transfer is ambiguous syntactically
+        // (P-005 D5), so those are conservatively excluded. Per member.
+        foreach (var member in cls.Members)
+        {
+            var usingGuarded = new HashSet<string>();
+            foreach (var u in member.DescendantNodes().OfType<UsingStatementSyntax>())
+                if (u.Declaration is { } ud)
+                    foreach (var v in ud.Variables)
+                        usingGuarded.Add(v.Identifier.Text);
+
+            var escaped = new HashSet<string>();
+            foreach (var id in member.DescendantNodes().OfType<IdentifierNameSyntax>())
+                if (id.Parent is ReturnStatementSyntax or ArgumentSyntax
+                    || (id.Parent is AssignmentExpressionSyntax asg && asg.Right == id))
+                    escaped.Add(id.Identifier.Text);
+
+            var disposedLocal = new HashSet<string>();
+            foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (inv.Expression is MemberAccessExpressionSyntax m
+                    && m.Name.Identifier.Text == "Dispose"
+                    && FieldName(m.Expression) is { } dn)
+                    disposedLocal.Add(dn);
+
+            foreach (var ld in member.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+            {
+                if (ld.UsingKeyword != default)
+                    continue;   // `using var x = ...` is safe
+                foreach (var v in ld.Declaration.Variables)
+                {
+                    var name = v.Identifier.Text;
+                    if (usingGuarded.Contains(name) || escaped.Contains(name))
+                        continue;
+                    string? ctype = v.Initializer?.Value switch
+                    {
+                        ObjectCreationExpressionSyntax oc => oc.Type.ToString(),
+                        ImplicitObjectCreationExpressionSyntax => ld.Declaration.Type.ToString(),
+                        _ => null,
+                    };
+                    if (ctype is null || !IsDisposableType(ctype))
+                        continue;
+                    subs.Add(new
+                    {
+                        @event = name,
+                        line = LineOf(v),
+                        released = disposedLocal.Contains(name),
+                        resource = "local-disposable",
+                        type = ctype,
+                    });
+                }
+            }
+        }
+
         if (subs.Count > 0)
             components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
     }

@@ -1,8 +1,8 @@
 # P-005 — `IDisposable` ownership profile
 
-- **Status:** draft (P0 — the most down-to-earth resource module). D2 (owned
-  field never disposed) has a first cut shipped via WPF003
-  ([P-004](P-004-wpf-lifetime-profile.md)); D1/D3/D4/D5 here generalise it.
+- **Status:** in progress (P0 — the most down-to-earth resource module). **D1
+  (local never disposed)** built, plus **D2 (owned field never disposed)** via
+  WPF003 ([P-004](P-004-wpf-lifetime-profile.md)); D3/D4/D5 next.
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release), [P-001](P-001-csharp-extractor.md) (the C# seam).
   Shares the resource core with [P-004](P-004-wpf-lifetime-profile.md).
@@ -24,8 +24,8 @@ The five concrete findings, all intraprocedural (or single-class) to start:
 
 | Finding | Pattern | Core verdict |
 |---------|---------|--------------|
-| **D1** local not disposed | `new FileStream(...)` (or any `IDisposable`) not disposed on every path | `OWN001` |
-| **D2** owned field not disposed | an `IDisposable` field whose owner's `Dispose()` does not cascade to it | `OWN001` |
+| **D1** local not disposed | a `new`'d `IDisposable` local, no `using`, not disposed/returned/passed out | `OWN001` `[resource: disposable]` ✅ |
+| **D2** owned field not disposed | an `IDisposable` field whose owner's `Dispose()` does not cascade to it | `OWN001` ✅ (WPF003) |
 | **D3** double dispose | `Dispose()` reachable twice | `OWN003` |
 | **D4** use after dispose | `x.Dispose(); x.Write(...)` (same method/CFG) | `OWN002` |
 | **D5** transfer unknown | a disposable handed to a callee whose ownership effect is unknown | (heuristic) |

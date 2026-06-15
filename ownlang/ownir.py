@@ -39,6 +39,9 @@ owned-resource records) is an owned resource, discriminated by an optional
   - "subscribe": a `X.Subscribe(...)` whose `IDisposable` result is ignored (a
     bare statement, not captured/disposed) — always a leak; tag
     `[resource: subscription token]`.
+  - "local-disposable": a local the method `new`s of an `IDisposable` type,
+    never disposed and not guarded by `using` (and not returned/passed out);
+    tag `[resource: disposable]`.
   - "pool": an `ArrayPool`/`MemoryPool` buffer `Rent`ed but never `Return`ed;
     tag `[resource: pooled buffer]`.
 
@@ -102,6 +105,7 @@ _RESOURCES = {
     "subscribe": ("Subscription", "subscription token"),
     "timer": ("Timer", "timer"),
     "disposable": ("Disposable", "disposable field"),
+    "local-disposable": ("Disposable", "disposable"),
     "pool": ("PooledBuffer", "pooled buffer"),
 }
 
@@ -267,6 +271,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             of_type = f" (type '{typ}')" if typ else ""
             message = (f"IDisposable field '{event}'{of_type} is never "
                        f"disposed — its owner '{component}' leaks it (leak)")
+        elif rkind == "local-disposable":
+            typ = sub.get("type")
+            of_type = f" (type '{typ}')" if typ else ""
+            message = (f"local IDisposable '{event}'{of_type} is created but "
+                       f"never disposed (leak)")
         elif rkind == "subscribe":
             message = (f"the result of '{event}' is ignored — the IDisposable "
                        f"subscription is never disposed, leaking "

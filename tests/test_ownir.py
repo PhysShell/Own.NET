@@ -38,6 +38,8 @@ _SUBSCRIBE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                   "ownir", "subscribe.facts.json")
 _POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                              "ownir", "pool.facts.json")
+_LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                              "ownir", "local_disposable.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -204,6 +206,25 @@ def run() -> int:
             fails.append(f"pool message missing rented/returned: {p0.message!r}")
         if "[resource: pooled buffer]" not in p0.render():
             fails.append(f"pool finding missing kind tag: {p0.render()!r}")
+
+    # --- P-005 D1 local IDisposable: a `new`'d local never disposed leaks; an
+    #     explicitly disposed one stays silent; tag [resource: disposable].
+    with open(_LOCAL_FIXTURE, encoding="utf-8") as f:
+        lfacts = json.load(f)
+    lfindings = check_facts(lfacts)
+    checks += 1
+    if len(lfindings) != 1 or lfindings[0].event != "leaky":
+        fails.append(f"expected 1 local-disposable finding (leaky), got "
+                     f"{[(x.event, x.code) for x in lfindings]}")
+    else:
+        l0 = lfindings[0]
+        checks += 1
+        if (l0.file, l0.line, l0.code) != ("LocalDisposableSample.cs", 10, "OWN001"):
+            fails.append(f"wrong local location/code: {l0.file}:{l0.line} {l0.code}")
+        if "local IDisposable" not in l0.message or "MemoryStream" not in l0.message:
+            fails.append(f"local message missing text/type: {l0.message!r}")
+        if "[resource: disposable]" not in l0.render():
+            fails.append(f"local finding missing kind tag: {l0.render()!r}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")
