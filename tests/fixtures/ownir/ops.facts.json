@@ -1,0 +1,22 @@
+{
+  "ownir_version": 0,
+  "module": "OpsSample",
+  "components": [
+    {
+      "name": "UseAfter",
+      "file": "DisposeOrderSample.cs",
+      "subscriptions": [
+        {"event": "s", "line": 10, "released": true, "resource": "local-disposable", "type": "MemoryStream",
+         "ops": [{"op": "release", "line": 12}, {"op": "use", "line": 13}]}
+      ]
+    },
+    {
+      "name": "DoubleDispose",
+      "file": "DisposeOrderSample.cs",
+      "subscriptions": [
+        {"event": "s", "line": 20, "released": true, "resource": "local-disposable", "type": "MemoryStream",
+         "ops": [{"op": "release", "line": 22}, {"op": "release", "line": 23}]}
+      ]
+    }
+  ]
+}

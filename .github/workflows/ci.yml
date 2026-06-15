@@ -114,6 +114,7 @@ jobs:
             frontend/roslyn/samples/MessengerViewModel.cs \
             frontend/roslyn/samples/PooledBufferSample.cs \
             frontend/roslyn/samples/LocalDisposableSample.cs \
+            frontend/roslyn/samples/DisposeOrderSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -173,5 +174,13 @@ jobs:
           if echo "$out" | grep -qE "'guarded'|'moved'"; then
             echo "FAIL: using/returned local wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
+          # P-005 D3/D4: ordered ops — use-after-dispose (OWN002) and double-
+          # dispose (OWN003), each at the offending op's C# line.
+          echo "$out" | grep -q "DisposeOrderSample.cs" \
+            || { echo "FAIL: expected DisposeOrderSample findings"; exit 1; }
+          echo "$out" | grep -q "used after it was disposed" \
+            || { echo "FAIL: expected a use-after-dispose (OWN002)"; exit 1; }
+          echo "$out" | grep -q "disposed more than once" \
+            || { echo "FAIL: expected a double-dispose (OWN003)"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001/002/003 (subscription + timer + field + Subscribe + pool + local + order) at the C# location"
 

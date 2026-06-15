@@ -71,6 +71,24 @@ static bool IsDisposableType(string t) =>
     || t.EndsWith("Stream") || t.EndsWith("Reader") || t.EndsWith("Writer")
     || t.EndsWith("Subscription");
 
+// The ordered operations on a local `name` inside `member`, in source order:
+// `name.Dispose()`/`name.DisposeAsync()` is a release, any other reference is a
+// use. Feeds OWN002 (use-after-dispose) and OWN003 (double-dispose) — P-005 D3/D4.
+static List<(string Op, int Line)> OpsFor(SyntaxNode member, string name)
+{
+    var raw = new List<(int Span, string Op, int Line)>();
+    foreach (var idref in member.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (idref.Identifier.Text != name) continue;
+        var isRelease = idref.Parent is MemberAccessExpressionSyntax ma
+            && ma.Name.Identifier.Text is "Dispose" or "DisposeAsync"
+            && ma.Parent is InvocationExpressionSyntax;
+        raw.Add((idref.SpanStart, isRelease ? "release" : "use", LineOf(idref)));
+    }
+    raw.Sort((a, b) => a.Span.CompareTo(b.Span));
+    return raw.ConvertAll(o => (o.Op, o.Line));
+}
+
 var components = new List<object>();
 
 foreach (var path in inputs)
@@ -233,13 +251,6 @@ foreach (var path in inputs)
                     || (id.Parent is AssignmentExpressionSyntax asg && asg.Right == id))
                     escaped.Add(id.Identifier.Text);
 
-            var disposedLocal = new HashSet<string>();
-            foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
-                if (inv.Expression is MemberAccessExpressionSyntax m
-                    && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
-                    && FieldName(m.Expression) is { } dn)
-                    disposedLocal.Add(dn);
-
             foreach (var ld in member.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
             {
                 if (ld.UsingKeyword != default)
@@ -257,14 +268,30 @@ foreach (var path in inputs)
                     };
                     if (ctype is null || !IsDisposableType(ctype))
                         continue;
-                    subs.Add(new
-                    {
-                        @event = name,
-                        line = LineOf(v),
-                        released = disposedLocal.Contains(name),
-                        resource = "local-disposable",
-                        type = ctype,
-                    });
+                    var ops = OpsFor(member, name);
+                    var released = ops.Exists(o => o.Op == "release");
+                    // when the local is disposed at least once, carry the ordered
+                    // ops so the core can flag use-after-dispose / double-dispose;
+                    // otherwise the flat `released = false` leak model suffices.
+                    if (released)
+                        subs.Add(new
+                        {
+                            @event = name,
+                            line = LineOf(v),
+                            released = true,
+                            resource = "local-disposable",
+                            type = ctype,
+                            ops = ops.ConvertAll(o => (object)new { op = o.Op, line = o.Line }),
+                        });
+                    else
+                        subs.Add(new
+                        {
+                            @event = name,
+                            line = LineOf(v),
+                            released = false,
+                            resource = "local-disposable",
+                            type = ctype,
+                        });
                 }
             }
         }

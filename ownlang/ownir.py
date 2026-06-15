@@ -46,9 +46,13 @@ owned-resource records) is an owned resource, discriminated by an optional
     tag `[resource: pooled buffer]`.
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
-`line`. The `resource`/`type` fields are additive and optional, so they do NOT
-bump `ownir_version`: an older core just reads every entry as a subscription.
-Region escape (OWN014) is later (see docs/proposals/P-004).
+`line`. A record may also carry an ordered `ops` list — e.g.
+`"ops": [{"op": "release", "line": 12}, {"op": "use", "line": 13}]` — lowered in
+order so the core flags use-after-release (OWN002) and double-release (OWN003) at
+the offending op's C# line (P-005 D3/D4). The `resource`/`type`/`ops` fields are
+additive and optional, so they do NOT bump `ownir_version`: an older core just
+reads every entry as a subscription (and, lacking `ops`, falls back to the flat
+`released` leak model). Region escape (OWN014) is later (see docs/proposals/P-004).
 """
 
 from __future__ import annotations
@@ -165,18 +169,40 @@ def load(path: str) -> dict[str, Any]:
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(
                     f"subscription 'type' must be a string, got {t!r}")
+            ops = s.get("ops")
+            if ops is not None:
+                if not isinstance(ops, list):
+                    raise OwnIRError("subscription 'ops' must be a JSON array")
+                for o in ops:
+                    if not isinstance(o, dict) or o.get("op") not in ("use", "release"):
+                        raise OwnIRError(
+                            "each op must be an object {op: 'use'|'release', "
+                            f"line: int}}, got {o!r}")
     return result
 
 
-def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
+def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]],
+                                           dict[int, int]]:
     """Lower OwnIR facts to a synthetic `.own` module (a readable ownership
-    sketch of the C#) plus a map from each synthetic handle to its source fact.
+    sketch of the C#), plus (a) a map from each synthetic handle to its source
+    fact and (b) a `linemap` from synthetic `.own` line -> original C# line for
+    ordered-op diagnostics.
 
-    Each subscription becomes `let <handle> = acquire Subscription();`, with a
-    `release` iff the extractor found a matching unsubscribe. Handles are globally
-    unique so a diagnostic naming one maps straight back to its C# location."""
+    Each record becomes `let <handle> = acquire <Resource>();`. If it carries an
+    ordered `ops` list ([{op: use|release, line}]), each op is emitted in order
+    (`release`/`use <handle>;`) so the core can flag use-after-release (OWN002)
+    and double-release (OWN003) at the offending op — its synthetic line is
+    recorded in `linemap`. Otherwise a single `release` is emitted iff `released`
+    (the flat leak model). Handles are globally unique so a diagnostic naming one
+    maps straight back to its C# location.
+
+    The line list is kept flat (one physical line per element) so a synthetic
+    line number is exactly its 1-based index — `linemap` keys off that."""
     handles: dict[str, dict[str, Any]] = {}
-    lines = [f"module {facts.get('module', 'Extracted')}", "", _PRELUDE]
+    linemap: dict[int, int] = {}
+    lines = [f"module {facts.get('module', 'Extracted')}", ""]
+    lines.extend(_PRELUDE.splitlines())
+    lines.append("")
     gid = 0
     components = facts.get("components", [])
     if not isinstance(components, list):
@@ -199,11 +225,22 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             rtype, _ = _RESOURCES.get(sub.get("resource", "subscription"),
                                       _RESOURCES["subscription"])
             lines.append(f"    let {handle} = acquire {rtype}();")
-            if sub.get("released"):
+            ops = sub.get("ops")
+            if isinstance(ops, list) and ops:
+                for op in ops:
+                    verb = op.get("op") if isinstance(op, dict) else None
+                    if verb == "release":
+                        lines.append(f"    release {handle};")
+                    elif verb == "use":
+                        lines.append(f"    use {handle};")
+                    else:
+                        continue
+                    linemap[len(lines)] = int(op.get("line", 0))
+            elif sub.get("released"):
                 lines.append(f"    release {handle};")
         lines.append("}")
         lines.append("")
-    return "\n".join(lines), handles
+    return "\n".join(lines), handles, linemap
 
 
 def _handle_of(diag: object) -> str | None:
@@ -234,7 +271,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # seam is already split so that switch is additive, not a rewrite.
     from .__main__ import _collect
 
-    src, handles = to_own(facts)
+    src, handles, linemap = to_own(facts)
     diags, mod = _collect(src)
     if mod is None:
         # the only source here is our own generator, so a parse failure is an
@@ -262,7 +299,17 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         component = sub["component"]
         rkind = sub.get("resource", "subscription")
         _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
-        if rkind == "timer":
+        line = int(sub.get("line", 0))
+        if d.code in ("OWN002", "OWN003"):
+            # an ordered-op fault (use-after-dispose / double-dispose): the core
+            # reports it at the offending op's synthetic line — map it back to
+            # the op's C# line, not the acquire.
+            line = linemap.get(d.line, line)
+            verb = ("used after it was disposed (use-after-dispose)"
+                    if d.code == "OWN002"
+                    else "disposed more than once (double dispose)")
+            message = f"'{event}' is {verb}"
+        elif rkind == "timer":
             message = (f"timer '{event}' (handler '{handler}') is started but "
                        f"never stopped or detached — the running timer keeps "
                        f"'{component}' alive (leak)")
@@ -288,7 +335,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                        f"but never unsubscribed — the source keeps "
                        f"'{component}' alive (leak)")
         findings.append(Finding(
-            file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+            file=sub["file"], line=line, code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind))
     findings.sort(key=lambda f: (f.file, f.line, f.code))

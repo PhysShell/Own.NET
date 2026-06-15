@@ -40,6 +40,8 @@ _POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                              "ownir", "pool.facts.json")
 _LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "local_disposable.facts.json")
+_OPS_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                            "ownir", "ops.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -67,7 +69,7 @@ def run() -> int:
         facts = json.load(f)
 
     # the lowered sketch must be valid .own (it goes through the real parser).
-    src, _ = to_own(facts)
+    src, _, _ = to_own(facts)
     checks += 1
     try:
         parse(src)
@@ -225,6 +227,33 @@ def run() -> int:
             fails.append(f"local message missing text/type: {l0.message!r}")
         if "[resource: disposable]" not in l0.render():
             fails.append(f"local finding missing kind tag: {l0.render()!r}")
+
+    # --- P-005 D3/D4 ordered ops: use-after-dispose (OWN002) and double-dispose
+    #     (OWN003), each surfaced at the offending op's C# line (via the linemap).
+    with open(_OPS_FIXTURE, encoding="utf-8") as f:
+        ofacts = json.load(f)
+    ofindings = check_facts(ofacts)
+    checks += 1
+    if sorted(x.code for x in ofindings) != ["OWN002", "OWN003"]:
+        fails.append(f"expected one OWN002 + one OWN003, got "
+                     f"{[(x.code, x.line) for x in ofindings]}")
+    else:
+        ua = next(x for x in ofindings if x.code == "OWN002")
+        dd = next(x for x in ofindings if x.code == "OWN003")
+        checks += 1
+        # OWN002 lands on the use (C# line 13), not the acquire (10).
+        if (ua.file, ua.line) != ("DisposeOrderSample.cs", 13):
+            fails.append(f"use-after-dispose at wrong line: {ua.file}:{ua.line}")
+        if "used after it was disposed" not in ua.message:
+            fails.append(f"OWN002 message off: {ua.message!r}")
+        if "[resource: disposable]" not in ua.render():
+            fails.append(f"OWN002 missing kind tag: {ua.render()!r}")
+        checks += 1
+        # OWN003 lands on the second dispose (C# line 23).
+        if (dd.file, dd.line) != ("DisposeOrderSample.cs", 23):
+            fails.append(f"double-dispose at wrong line: {dd.file}:{dd.line}")
+        if "disposed more than once" not in dd.message:
+            fails.append(f"OWN003 message off: {dd.message!r}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

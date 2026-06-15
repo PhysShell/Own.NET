@@ -1,8 +1,9 @@
 # P-005 — `IDisposable` ownership profile
 
-- **Status:** in progress (P0 — the most down-to-earth resource module). **D1
-  (local never disposed)** built, plus **D2 (owned field never disposed)** via
-  WPF003 ([P-004](P-004-wpf-lifetime-profile.md)); D3/D4/D5 next.
+- **Status:** in progress (P0 — the most down-to-earth resource module). **D1**
+  (local never disposed), **D2** (owned field, via WPF003 in
+  [P-004](P-004-wpf-lifetime-profile.md)), **D3** (double dispose) and **D4**
+  (use-after-dispose) built; D5 (ownership transfer) next.
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release), [P-001](P-001-csharp-extractor.md) (the C# seam).
   Shares the resource core with [P-004](P-004-wpf-lifetime-profile.md).
@@ -26,8 +27,8 @@ The five concrete findings, all intraprocedural (or single-class) to start:
 |---------|---------|--------------|
 | **D1** local not disposed | a `new`'d `IDisposable` local, no `using`, not disposed/returned/passed out | `OWN001` `[resource: disposable]` ✅ |
 | **D2** owned field not disposed | an `IDisposable` field whose owner's `Dispose()` does not cascade to it | `OWN001` ✅ (WPF003) |
-| **D3** double dispose | `Dispose()` reachable twice | `OWN003` |
-| **D4** use after dispose | `x.Dispose(); x.Write(...)` (same method/CFG) | `OWN002` |
+| **D3** double dispose | `x.Dispose(); x.Dispose();` (ordered `ops`) | `OWN003` ✅ |
+| **D4** use after dispose | `x.Dispose(); x.Write(...)` (ordered `ops`) | `OWN002` ✅ |
 | **D5** transfer unknown | a disposable handed to a callee whose ownership effect is unknown | (heuristic) |
 
 Resource mapping (the vocabulary is already the core's):
@@ -67,6 +68,14 @@ sensitive lattice (the same one that already produces OWN001/002/003 on `.own`).
 *.cs --[extractor: new / using / Dispose / field-cascade]--> facts.json
      --[core: flow lattice]--> OWN001 / OWN002 / OWN003 @ C# line
 ```
+
+D3/D4 are the first facts that outgrow the flat `{acquire, released}` shape: a
+record carries an ordered `ops` list (`[{op: use|release, line}]`) that the
+bridge lowers to `release`/`use <handle>;` in source order, so the core's lattice
+flags double-release (OWN003) and use-after-release (OWN002) at the offending
+op's line. The field is additive (an old core ignores it and falls back to the
+flat leak), so it does not bump `ownir_version`; a synthetic-line→C#-line map
+carries the verdict back to the right C# op.
 
 D2 (owned field) needs an object-level "owner releases its fields in `Dispose`"
 fact — the same `owner(this, R)` + release-region machinery P-004 needs for
