@@ -227,7 +227,11 @@ def main(argv: list[str]) -> int:
     i = 0
     while i < len(rest):
         a = rest[i]
-        if a == "--format" and i + 1 < len(rest):
+        if a == "--format":
+            if i + 1 >= len(rest):
+                print("--format requires a value: human|github|msbuild",
+                      file=sys.stderr)
+                return 2
             fmt, i = rest[i + 1], i + 2
             continue
         if a.startswith("--format="):
@@ -235,7 +239,9 @@ def main(argv: list[str]) -> int:
             continue
         positional.append(a)
         i += 1
-    if not positional:
+    # exactly one positional (the path/file); zero or extra args is a usage error
+    # (a silently-ignored extra arg hides a caller mistake).
+    if len(positional) != 1:
         print(__doc__)
         return 2
     if fmt not in _FORMATS:

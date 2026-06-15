@@ -45,9 +45,17 @@ runs:
 
     - name: Own.NET leak check
       shell: bash
+      env:
+        # Pass user-controlled inputs through the environment (data), not by
+        # template interpolation into the script body (code) — otherwise a path
+        # like `.; rm -rf x` would be expanded into the shell before bash parses
+        # it. CodeRabbit #10.
+        OWN_PATH: ${{ inputs.path }}
+        OWN_FORMAT: ${{ inputs.format }}
+        OWN_FAIL_ON_FINDING: ${{ inputs.fail-on-finding }}
       run: |
-        args=(--root "${{ github.action_path }}" --format "${{ inputs.format }}")
-        if [ "${{ inputs.fail-on-finding }}" = "true" ]; then
+        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT")
+        if [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
           args+=(--fail-on-finding)
         fi
-        "${{ github.action_path }}/scripts/own-check.sh" "${args[@]}" -- ${{ inputs.path }}
+        "${{ github.action_path }}/scripts/own-check.sh" "${args[@]}" -- "$OWN_PATH"

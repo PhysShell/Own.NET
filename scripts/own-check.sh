@@ -29,8 +29,12 @@ paths=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --root)            root="$2"; shift 2 ;;
-    --format)          format="$2"; shift 2 ;;
+    --root)
+      [[ $# -ge 2 ]] || { echo "own-check: --root requires a value" >&2; exit 2; }
+      root="$2"; shift 2 ;;
+    --format)
+      [[ $# -ge 2 ]] || { echo "own-check: --format requires a value" >&2; exit 2; }
+      format="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
     --)                shift; while [[ $# -gt 0 ]]; do paths+=("$1"); shift; done ;;
     -h|--help)         sed -n '2,30p' "$0"; exit 0 ;;

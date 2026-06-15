@@ -138,7 +138,17 @@ foreach (var path in inputs)
         Console.Error.WriteLine($"ownsharp-extract: skipping (not a file): {path}");
         continue;
     }
-    var text = File.ReadAllText(path);
+    string text;
+    try
+    {
+        text = File.ReadAllText(path);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        // A locked/unreadable file is skipped with a note, not an abort.
+        Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
+        continue;
+    }
     var file = Rel(path);
     var root = CSharpSyntaxTree.ParseText(text, path: path).GetRoot();
 
