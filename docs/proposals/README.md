@@ -25,6 +25,20 @@ proposal is marked `done` with a pointer.
 | [P-001](P-001-csharp-extractor.md) | C# → OwnIR extractor (the WPF leak spike) | in progress (v0 built) |
 | [P-002](P-002-verification-backend.md) | Verification backend (Boogie/Dafny) | draft |
 | [P-003](P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | draft |
+| [P-004](P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | draft |
+| [P-005](P-005-idisposable-ownership.md) | `IDisposable` ownership profile | draft |
+| [P-006](P-006-di-lifetimes.md) | DI lifetime / captive dependency | draft |
+| [P-007](P-007-arraypool-span.md) | ArrayPool / Span borrow-view | draft |
+| [P-008](P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | draft |
+| [P-009](P-009-nogc-regions.md) | No-GC / allocation-free regions | draft |
+| [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
+| [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
+| [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | draft |
+
+> For priorities, milestones, the framing, and the design philosophy across all
+> of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-012
+> capture ideas raised in design discussion — they are *on the record for
+> consideration*, drafts, not commitments.
 
 ## The long-term arc (one paragraph)
 
