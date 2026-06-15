@@ -172,6 +172,47 @@ foreach (var path in inputs)
                     resource = "subscribe",
                 });
 
+        // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
+        // matched per member so a `buf` returned in one method does not mask a
+        // leak of a same-named `buf` in another.
+        foreach (var member in cls.Members)
+        {
+            var rented = new List<(string Name, int Line)>();
+            foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (inv.Expression is MemberAccessExpressionSyntax m
+                    && m.Name.Identifier.Text == "Rent"
+                    && (m.Expression.ToString().Contains("Pool")
+                        || m.Expression.ToString().Contains("pool")))
+                {
+                    string? name = inv.Parent switch
+                    {
+                        EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
+                            => vd.Identifier.Text,
+                        AssignmentExpressionSyntax asg => FieldName(asg.Left),
+                        _ => null,
+                    };
+                    if (name != null)
+                        rented.Add((name, LineOf(inv)));
+                }
+            if (rented.Count == 0)
+                continue;
+            var returned = new HashSet<string>();
+            foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (inv.Expression is MemberAccessExpressionSyntax m
+                    && m.Name.Identifier.Text == "Return"
+                    && inv.ArgumentList.Arguments.Count > 0
+                    && inv.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax id)
+                    returned.Add(id.Identifier.Text);
+            foreach (var (name, line) in rented)
+                subs.Add(new
+                {
+                    @event = name,
+                    line,
+                    released = returned.Contains(name),
+                    resource = "pool",
+                });
+        }
+
         if (subs.Count > 0)
             components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
     }

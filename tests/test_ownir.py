@@ -36,6 +36,8 @@ _DISPOSABLE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "disposable.facts.json")
 _SUBSCRIBE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                   "ownir", "subscribe.facts.json")
+_POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                             "ownir", "pool.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -183,6 +185,25 @@ def run() -> int:
             fails.append(f"subscribe message missing ignored/Subscribe: {s0.message!r}")
         if "[resource: subscription token]" not in s0.render():
             fails.append(f"subscribe finding missing kind tag: {s0.render()!r}")
+
+    # --- POOL001 ArrayPool: a buffer rented but never returned leaks; a returned
+    #     one stays silent; tag [resource: pooled buffer].
+    with open(_POOL_FIXTURE, encoding="utf-8") as f:
+        pfacts = json.load(f)
+    pfindings = check_facts(pfacts)
+    checks += 1
+    if len(pfindings) != 1 or pfindings[0].event != "leaky":
+        fails.append(f"expected 1 pool finding (leaky), got "
+                     f"{[(x.event, x.code) for x in pfindings]}")
+    else:
+        p0 = pfindings[0]
+        checks += 1
+        if (p0.file, p0.line, p0.code) != ("PooledBufferSample.cs", 9, "OWN001"):
+            fails.append(f"wrong pool location/code: {p0.file}:{p0.line} {p0.code}")
+        if "rented" not in p0.message or "returned" not in p0.message:
+            fails.append(f"pool message missing rented/returned: {p0.message!r}")
+        if "[resource: pooled buffer]" not in p0.render():
+            fails.append(f"pool finding missing kind tag: {p0.render()!r}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

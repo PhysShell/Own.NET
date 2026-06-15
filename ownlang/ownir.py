@@ -39,6 +39,8 @@ owned-resource records) is an owned resource, discriminated by an optional
   - "subscribe": a `X.Subscribe(...)` whose `IDisposable` result is ignored (a
     bare statement, not captured/disposed) — always a leak; tag
     `[resource: subscription token]`.
+  - "pool": an `ArrayPool`/`MemoryPool` buffer `Rent`ed but never `Return`ed;
+    tag `[resource: pooled buffer]`.
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
 `line`. The `resource`/`type` fields are additive and optional, so they do NOT
@@ -82,18 +84,25 @@ _PRELUDE = (
     '    release Dispose\n'
     '    kind "disposable field"\n'
     '}\n'
+    'resource PooledBuffer {\n'
+    '    acquire Rent\n'
+    '    release Return\n'
+    '    kind "pooled buffer"\n'
+    '}\n'
 )
 
 # OwnIR resource kinds the bridge knows how to lower: (own resource type to
 # acquire, human kind tag the finding carries). `event +=` is a Subscription; a
 # `Tick`/`Elapsed` handler on a started timer is a Timer (the running timer
 # strong-refs the handler's owner); an `IDisposable` field the class `new`s is a
-# Disposable it owns. Unknown values fall back to Subscription.
+# Disposable it owns; an `ArrayPool`/`MemoryPool` `Rent` is a PooledBuffer that
+# must be `Return`ed. Unknown values fall back to Subscription.
 _RESOURCES = {
     "subscription": ("Subscription", "subscription token"),
     "subscribe": ("Subscription", "subscription token"),
     "timer": ("Timer", "timer"),
     "disposable": ("Disposable", "disposable field"),
+    "pool": ("PooledBuffer", "pooled buffer"),
 }
 
 
@@ -262,6 +271,9 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             message = (f"the result of '{event}' is ignored — the IDisposable "
                        f"subscription is never disposed, leaking "
                        f"'{component}' (leak)")
+        elif rkind == "pool":
+            message = (f"pooled buffer '{event}' is rented but never returned "
+                       f"to the pool (leak)")
         else:
             message = (f"event '{event}' is subscribed (handler '{handler}') "
                        f"but never unsubscribed — the source keeps "

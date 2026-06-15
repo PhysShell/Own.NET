@@ -70,7 +70,8 @@ architectural strictness, and the borrow-checker showcase):
 2. `WPF002` — `DispatcherTimer`/`Timer` `Tick`/`Elapsed` without stop/detach ✅
 3. `OWN001` — `IDisposable` field the class `new`s but never disposes ✅
 4. `DI001` — singleton captures a scoped dependency
-5. `POOL` — `Span`/view used after `ArrayPool.Return`
+5. `POOL001` — `ArrayPool` buffer `Rent`ed but never `Return`ed ✅
+   (`POOL002` `Span`/view used after `Return` next)
 
 ### Milestones
 

@@ -112,6 +112,7 @@ jobs:
             frontend/roslyn/samples/TimerViewModel.cs \
             frontend/roslyn/samples/DisposableFieldViewModel.cs \
             frontend/roslyn/samples/MessengerViewModel.cs \
+            frontend/roslyn/samples/PooledBufferSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -153,5 +154,12 @@ jobs:
           if echo "$out" | grep -q "CleanInboxViewModel"; then
             echo "FAIL: captured+disposed subscription wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe) at the C# location"
+          # POOL001: a Rent'd-but-never-Return'd buffer leaks; the rent+return
+          # (finally) one stays silent.
+          echo "$out" | grep -q "pooled buffer 'leaky'" \
+            || { echo "FAIL: expected the rented-not-returned buffer leak"; exit 1; }
+          if echo "$out" | grep -q "pooled buffer 'ok'"; then
+            echo "FAIL: returned buffer wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool) at the C# location"
 

@@ -1,6 +1,7 @@
 # P-007 — ArrayPool / Span borrow-view profile
 
-- **Status:** draft (P1 — the borrow checker's flagship showcase)
+- **Status:** in progress (P1) — **POOL001 (rented-not-returned) built**;
+  POOL002–005 (views, escape, double-return) next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
@@ -28,7 +29,7 @@ The corpus already pins two real cases (`corpus/real-world/arraypool-double-retu
 
 | Finding | Pattern | Core verdict |
 |---------|---------|--------------|
-| **POOL001** rented not returned | `Rent(...)` with no `Return` on some path (incl. early `return`/`throw`) | `OWN001` |
+| **POOL001** rented not returned | `Rent(...)` with no matching `Return(buf)` in the same member | `OWN001` `[resource: pooled buffer]` ✅ |
 | **POOL002** view after return | a `Span`/`Memory` view used after the owner is `Return`ed | `OWN002` |
 | **POOL003** double return | `Return` reachable twice for the same buffer | `OWN003` |
 | **POOL004** view escapes | a borrowed `Span` returned/stored beyond the owner's lifetime | `OWN004`/`OWN008` |
