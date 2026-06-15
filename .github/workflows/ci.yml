@@ -109,6 +109,11 @@ jobs:
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/CustomerViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
+            frontend/roslyn/samples/TimerViewModel.cs \
+            frontend/roslyn/samples/DisposableFieldViewModel.cs \
+            frontend/roslyn/samples/MessengerViewModel.cs \
+            frontend/roslyn/samples/PooledBufferSample.cs \
+            frontend/roslyn/samples/LocalDisposableSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -122,5 +127,51 @@ jobs:
           if echo "$out" | grep -q "OrdersViewModel.cs"; then
             echo "FAIL: disposed subscription wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 at the C# location"
+          # WPF002: the started, never-stopped timer leaks with a [resource: timer]
+          # tag; the timer stopped in Dispose stays silent.
+          echo "$out" | grep -q "TimerViewModel.cs" \
+            || { echo "FAIL: expected the TimerViewModel timer leak"; exit 1; }
+          echo "$out" | grep -q "resource: timer" \
+            || { echo "FAIL: expected a [resource: timer] tag"; exit 1; }
+          if echo "$out" | grep -q "CleanTimerViewModel"; then
+            echo "FAIL: stopped timer wrongly reported"; exit 1
+          fi
+          # WPF003: the IDisposable field the class new's but never disposes leaks
+          # with a [resource: disposable field] tag; the one disposed in Dispose
+          # stays silent.
+          echo "$out" | grep -q "DisposableFieldViewModel.cs" \
+            || { echo "FAIL: expected the ReportViewModel field leak"; exit 1; }
+          echo "$out" | grep -q "resource: disposable field" \
+            || { echo "FAIL: expected a [resource: disposable field] tag"; exit 1; }
+          if echo "$out" | grep -q "CleanReportViewModel"; then
+            echo "FAIL: disposed field wrongly reported"; exit 1
+          fi
+          # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
+          # disposed one stays silent. "ignored" is unique to the WPF004 message.
+          echo "$out" | grep -q "MessengerViewModel.cs" \
+            || { echo "FAIL: expected the InboxViewModel ignored-Subscribe leak"; exit 1; }
+          echo "$out" | grep -q "is ignored" \
+            || { echo "FAIL: expected the ignored-Subscribe message"; exit 1; }
+          if echo "$out" | grep -q "CleanInboxViewModel"; then
+            echo "FAIL: captured+disposed subscription wrongly reported"; exit 1
+          fi
+          # POOL001: a Rent'd-but-never-Return'd buffer leaks; the rent+return
+          # (finally) one stays silent.
+          echo "$out" | grep -q "pooled buffer 'leaky'" \
+            || { echo "FAIL: expected the rented-not-returned buffer leak"; exit 1; }
+          if echo "$out" | grep -q "pooled buffer 'ok'"; then
+            echo "FAIL: returned buffer wrongly reported"; exit 1
+          fi
+          # P-005 D1: a `new`'d local IDisposable never disposed leaks; a `using`
+          # one and a returned (transferred) one stay silent.
+          echo "$out" | grep -q "local IDisposable 'leaky'" \
+            || { echo "FAIL: expected the undisposed-local leak"; exit 1; }
+          echo "$out" | grep -q "LocalDisposableSample.cs" \
+            || { echo "FAIL: expected LocalDisposableSample.cs in the local-disposable finding"; exit 1; }
+          echo "$out" | grep -q "resource: disposable]" \
+            || { echo "FAIL: expected a [resource: disposable] tag"; exit 1; }
+          if echo "$out" | grep -qE "'guarded'|'moved'"; then
+            echo "FAIL: using/returned local wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
 

@@ -1,0 +1,14 @@
+{
+  "ownir_version": 0,
+  "module": "PoolApp",
+  "components": [
+    {
+      "name": "Hasher",
+      "file": "PooledBufferSample.cs",
+      "subscriptions": [
+        {"event": "leaky", "line": 9, "released": false, "resource": "pool"},
+        {"event": "ok", "line": 16, "released": true, "resource": "pool"}
+      ]
+    }
+  ]
+}

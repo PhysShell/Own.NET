@@ -29,25 +29,33 @@ from .parser import ParseError, parse
 from .report import build_report, render_report
 
 
+def check_module(mod: object) -> list[Diagnostic]:
+    """Run the full ownership pipeline over an already-parsed module and return
+    its diagnostics. This is the AST-level entry to the *one* checker: callers
+    that already hold a `Module` (the OwnIR bridge lowers facts straight to one)
+    use this instead of re-serialising to source text and re-parsing it."""
+    rnames = {r.name for r in mod.resources}  # type: ignore[attr-defined]
+    sigs = collect_signatures(mod)  # type: ignore[arg-type]
+    pols = collect_policies(mod)  # type: ignore[arg-type]
+    kinds = collect_kinds(mod)  # type: ignore[arg-type]
+    diags: list[Diagnostic] = list(validate_policies(pols))
+    diags.extend(check_lifetimes(mod))  # type: ignore[arg-type]
+    for fn in mod.functions:  # type: ignore[attr-defined]
+        cfg, d1 = build_cfg(fn, rnames, sigs, pols, kinds)
+        d2 = analyze(cfg)
+        diags.extend(d1)
+        diags.extend(d2)
+    diags.sort(key=lambda d: (d.line, d.code))
+    return diags
+
+
 def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     try:
         mod = parse(src)
     except (ParseError, LexError) as e:
         line = getattr(e, "line", 0)
         return [Diagnostic("OWN020", str(e).split(": ", 1)[-1], line)], None
-    rnames = {r.name for r in mod.resources}
-    sigs = collect_signatures(mod)
-    pols = collect_policies(mod)
-    kinds = collect_kinds(mod)
-    diags: list[Diagnostic] = list(validate_policies(pols))
-    diags.extend(check_lifetimes(mod))
-    for fn in mod.functions:
-        cfg, d1 = build_cfg(fn, rnames, sigs, pols, kinds)
-        d2 = analyze(cfg)
-        diags.extend(d1)
-        diags.extend(d2)
-    diags.sort(key=lambda d: (d.line, d.code))
-    return diags, mod
+    return check_module(mod), mod
 
 
 def cmd_check(path: str) -> int:
@@ -176,8 +184,13 @@ def _read(path: str) -> str:
 def cmd_ownir(path: str) -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
     the same core, surfacing findings at their C# locations (P-001)."""
-    from .ownir import check_facts, load
-    findings = check_facts(load(path))
+    from .ownir import OwnIRError, check_facts, load
+    try:
+        findings = check_facts(load(path))
+    except OwnIRError as e:
+        # bad facts / a drifted contract: a clear one-liner, not a traceback.
+        print(f"{path}: error: {e}", file=sys.stderr)
+        return 2
     for f in findings:
         print(f.render())
     if not findings:
