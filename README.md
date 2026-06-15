@@ -138,6 +138,21 @@ fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
 }
 ```
 
+**P-001 — настоящий C# (а не hand-reduced).** Узкий Roslyn-экстрактор
+(`frontend/roslyn/`, syntax-only) находит `event += без -=` в реальном `.cs` и
+эмитит OwnIR-факты; Python-мост (`python -m ownlang ownir facts.json`) прогоняет
+их через **то же ядро** и выдаёт OWN001 **на месте C#**:
+
+```text
+CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribed
+  (handler 'OnCustomerChanged') but never unsubscribed — ... (leak)
+  [resource: subscription token]
+```
+Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet
+есть лишь в CI (job `wpf-extractor` гоняет экстрактор на сэмплах сквозняком);
+Python-мост тестируется локально (`tests/test_ownir.py`) на рукописных фактах.
+Объём v0 и не-цели — в [`docs/proposals/P-001`](docs/proposals/P-001-csharp-extractor.md).
+
 `corpus/wpf/` — self-checking корпус реальных WPF-паттернов (`before.cs`/
 `after.cs`/`case.own`/expected), прибитый `tests/test_wpf.py`; региональная
 теорема — `tests/test_lifetimes.py` (10 кейсов). Полный план модуля (каталог
@@ -682,6 +697,7 @@ ownlang/
     cfg.py          # resolver (Symbol/Kind) + collect_signatures + lowering, Invoke
     analysis.py     # flow-sensitive dataflow: var-states + active loans + permissions
     lifetimes.py    # lifetime-регионы: region-escape (OWN014) + валидация порядка
+    ownir.py        # C#-факты (OwnIR) -> ядро -> диагностика на месте C# (P-001)
     diagnostics.py  # коды OWN0xx в одном месте
     codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline, буферы)
     report.py       # compile-time buffer report -> stdout + .ownreport.json
@@ -705,6 +721,8 @@ ownlang/
     test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
     test_lifetimes.py         # region-escape (OWN014) + валидация lifetime-порядка
     test_spec.py              # conformance: каждое правило spec/ срабатывает на примере
+    test_ownir.py             # OwnIR-мост: C#-факты -> ядро -> OWN001 на месте C#
+  frontend/roslyn/            # C#-экстрактор (Roslyn, CI-only) + сэмплы .cs (P-001)
   pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
 

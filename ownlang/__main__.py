@@ -5,6 +5,7 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang emit   file.own      # check, then print generated C#
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
+    python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -172,13 +173,27 @@ def _read(path: str) -> str:
         return f.read()
 
 
+def cmd_ownir(path: str) -> int:
+    """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
+    the same core, surfacing findings at their C# locations (P-001)."""
+    from .ownir import check_facts, load
+    findings = check_facts(load(path))
+    for f in findings:
+        print(f.render())
+    if not findings:
+        print(f"{path}: ok — no subscription leaks found")
+    n = len(findings)
+    print(f"\n{n} finding{'s' if n != 1 else ''}.")
+    return 1 if findings else 0
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) < 2 or argv[0] not in {"check", "emit", "cfg", "report"}:
+    if len(argv) < 2 or argv[0] not in {"check", "emit", "cfg", "report", "ownir"}:
         print(__doc__)
         return 2
     cmd, path = argv[0], argv[1]
     return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
-            "report": cmd_report}[cmd](path)
+            "report": cmd_report, "ownir": cmd_ownir}[cmd](path)
 
 
 if __name__ == "__main__":

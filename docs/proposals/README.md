@@ -22,7 +22,7 @@ proposal is marked `done` with a pointer.
 
 | # | Title | Status |
 |---|-------|--------|
-| [P-001](P-001-csharp-extractor.md) | C# → OwnIR extractor (the WPF leak spike) | draft |
+| [P-001](P-001-csharp-extractor.md) | C# → OwnIR extractor (the WPF leak spike) | in progress (v0 built) |
 | [P-002](P-002-verification-backend.md) | Verification backend (Boogie/Dafny) | draft |
 | [P-003](P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | draft |
 

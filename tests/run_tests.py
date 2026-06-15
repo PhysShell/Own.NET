@@ -1053,10 +1053,16 @@ def run() -> int:
     import test_spec
     spec_rc = test_spec.run()
 
+    # OwnIR fact bridge (P-001): C#-extracted facts route through the core and
+    # surface a subscription leak at its C# location.
+    import test_ownir
+    ownir_rc = test_ownir.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc or wpf_rc or lt_rc or spec_rc) else 0
+                 or gl_rc or co_rc or wpf_rc or lt_rc or spec_rc
+                 or ownir_rc) else 0
 
 
 if __name__ == "__main__":

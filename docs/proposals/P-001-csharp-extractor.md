@@ -1,7 +1,24 @@
 # P-001 — C# → OwnIR extractor (the WPF leak spike)
 
-- **Status:** draft (decision pending: seam + v0 scope)
+- **Status:** in progress — **v0 built** (`event += without -=`). Seam and v0
+  scope decided as recommended below.
 - **Depends on:** `spec/OwnCore.md`, `spec/Lifetimes.md` (the fact vocabulary)
+
+## What is built (v0)
+
+The `event += without -=` pattern, end-to-end, exactly along the recommended
+seam:
+
+- **Roslyn extractor** (`frontend/roslyn/OwnSharp.Extractor`, C#, syntax-only):
+  scans `.cs`, emits OwnIR facts (JSON) — built & run in CI (`wpf-extractor`).
+- **Python fact bridge** (`ownlang/ownir.py`, `python -m ownlang ownir`): lowers
+  facts to a synthetic `.own` sketch, runs the **existing core**, and maps the
+  OWN001 verdict back to the C# location with the `[resource: subscription
+  token]` tag. Tested locally against hand-written facts (`tests/test_ownir.py`).
+- **CI** (`wpf-extractor` job): real `.cs` → extractor → facts → core → leak at
+  its C# line; the disposed sample stays silent.
+
+Next: timers, `IDisposable` fields, and feeding region facts to OWN014.
 
 ## Motivation
 

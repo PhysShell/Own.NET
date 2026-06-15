@@ -84,3 +84,37 @@ jobs:
           cp examples/golden_arraypool/Program.cs "$RUNNER_TEMP/golden_app/Program.cs"
           dotnet run --project "$RUNNER_TEMP/golden_app"
 
+  # P-001: prove the C# leak pipeline end-to-end on real C# — the Roslyn
+  # extractor turns sample .cs into OwnIR facts, and the core surfaces the
+  # subscription leak at its C# location (and stays silent on the disposed one).
+  wpf-extractor:
+    name: C# leak extractor (Roslyn) -> OwnIR -> core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Extract OwnIR facts from sample C#
+        run: |
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/CustomerViewModel.cs \
+            frontend/roslyn/samples/OrdersViewModel.cs \
+            -o "$RUNNER_TEMP/facts.json"
+          cat "$RUNNER_TEMP/facts.json"
+      - name: Check facts through the core
+        run: |
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/facts.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "CustomerViewModel.cs" \
+            || { echo "FAIL: expected the CustomerViewModel leak"; exit 1; }
+          echo "$out" | grep -q "OWN001" \
+            || { echo "FAIL: expected OWN001"; exit 1; }
+          if echo "$out" | grep -q "OrdersViewModel.cs"; then
+            echo "FAIL: disposed subscription wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 at the C# location"
+
