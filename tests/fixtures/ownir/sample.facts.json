@@ -1,0 +1,19 @@
+{
+  "module": "WpfApp",
+  "components": [
+    {
+      "name": "CustomerViewModel",
+      "file": "CustomerViewModel.cs",
+      "subscriptions": [
+        {"event": "bus.CustomerChanged", "handler": "OnCustomerChanged", "line": 12, "released": false}
+      ]
+    },
+    {
+      "name": "OrdersViewModel",
+      "file": "OrdersViewModel.cs",
+      "subscriptions": [
+        {"event": "bus.OrdersChanged", "handler": "OnOrdersChanged", "line": 20, "released": true}
+      ]
+    }
+  ]
+}

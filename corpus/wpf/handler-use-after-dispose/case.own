@@ -1,0 +1,17 @@
+module WpfHandlerAfterDispose
+
+// Same subscription-token protocol, tagged with its kind.
+resource Subscription {
+    acquire Subscribe
+    release Dispose
+    kind "subscription token"
+}
+
+// On window close the VM disposes (unsubscribes) its subscription, but a late
+// queued callback still touches it. Using a subscription after Dispose is the
+// generic use-after-release (OWN002), tagged with the resource kind.
+fn CloseHandler(bus: int) {
+    let sub = acquire Subscription(bus);
+    release sub;          // unsubscribed / disposed on close
+    use sub;              // a late callback still touches it -> OWN002
+}

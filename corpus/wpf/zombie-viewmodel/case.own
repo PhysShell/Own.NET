@@ -1,0 +1,18 @@
+module WpfZombieViewModel
+
+// A subscription token: bus.Subscribe<T>(handler) hands you one; you must
+// Dispose it to unsubscribe. `kind` tags this resource so the generic
+// ownership finding carries a business-flavoured [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Dispose
+    kind "subscription token"
+}
+
+// The ViewModel modelled as one scope: its "constructor" subscribes to the
+// App-lifetime bus; the end of the scope is its Dispose. Acquiring the token
+// without releasing it = the bus keeps the VM alive => leak (OWN001).
+fn CustomerViewModel(bus: int) {
+    let customerChanged = acquire Subscription(bus);
+    // no `release customerChanged;` -> zombie ViewModel
+}

@@ -22,12 +22,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import assert_never
 
 from . import ast_nodes as A
 from .ast_nodes import Effect
+from .buffers import MODE_NAMES, BufferInfo, Policy
+from .buffers import resolve as resolve_buffer
 from .diagnostics import Diagnostic
-from .buffers import BufferInfo, Policy, resolve as resolve_buffer, MODE_NAMES
-
 
 # ---------------------------------------------------------------------------
 # Symbols & kinds
@@ -59,6 +60,11 @@ class Symbol:
     # the declared/inferred type name (e.g. "int", "bool", a resource name), so a
     # buffer size can be required to be an integer. None when unknown.
     type_name: str | None = None
+    # the resource's optional human "kind" (e.g. "subscription token"), copied
+    # from its ResourceDecl at acquire / on an owned parameter. Surfaced on
+    # diagnostics as `[resource: <kind>]`; None for plain values and untagged
+    # resources.
+    resource_kind: str | None = None
     # a stable identity for the originating buffer (name#line). Set when a buffer
     # is acquired and inherited across `move`, so a diagnostic about any alias can
     # be attributed to the right buffer in the report (distinct from a same-named
@@ -115,7 +121,7 @@ class Invoke:
     """A resolved call. `args` pairs each argument's resolved Symbol (or None
     for a literal / unresolved) with the ownership Effect the callee applies."""
     callee: str
-    args: list[tuple["Symbol | None", Effect]]
+    args: list[tuple[Symbol | None, Effect]]
     line: int
 
 
@@ -212,11 +218,13 @@ def collect_signatures(mod: A.Module) -> dict[str, Signature]:
 class _Builder:
     def __init__(self, fn: A.FnDecl, resource_names: set[str],
                  signatures: dict[str, Signature],
-                 policies: dict[str, Policy] | None = None):
+                 policies: dict[str, Policy] | None = None,
+                 resource_kinds: dict[str, str] | None = None):
         self.fn = fn
         self.resource_names = resource_names
         self.signatures = signatures
         self.policies = policies or {}
+        self.resource_kinds = resource_kinds or {}
         self.diags: list[Diagnostic] = []
         self.blocks: list[Block] = []
         self.scopes: list[dict[str, Symbol]] = []
@@ -231,7 +239,8 @@ class _Builder:
         self.scopes.pop()
 
     def declare(self, name: str, kind: Kind, line: int, *,
-                is_param_borrow=False, borrow_is_mut=None) -> Symbol:
+                is_param_borrow: bool = False,
+                borrow_is_mut: bool | None = None) -> Symbol:
         for sc in self.scopes:
             if name in sc:
                 self.diags.append(Diagnostic(
@@ -269,6 +278,7 @@ class _Builder:
             else:
                 sym = self.declare(p.name, Kind.PLAIN, p.line)
             sym.type_name = p.type.name
+            sym.resource_kind = self.resource_kinds.get(p.type.name)
             self.params.append(sym)
 
         entry = self.new_block("entry")
@@ -289,11 +299,12 @@ class _Builder:
         )
 
     def lower_seq(self, stmts: list[A.Stmt], cur: Block) -> Block | None:
+        node: Block | None = cur
         for st in stmts:
-            if cur is None:
+            if node is None:
                 return None
-            cur = self.lower_stmt(st, cur)
-        return cur
+            node = self.lower_stmt(st, node)
+        return node
 
     def lower_stmt(self, st: A.Stmt, cur: Block) -> Block | None:
         if isinstance(st, A.Let):
@@ -322,7 +333,13 @@ class _Builder:
             return self.lower_if(st, cur)
         if isinstance(st, A.Return):
             return self.lower_return(st, cur)
-        raise AssertionError(f"unknown stmt {st!r}")
+        if isinstance(st, A.Subscribe):
+            # a `subscribe self to X` is a lifetime-region fact, handled by the
+            # separate lifetime analysis (ownlang.lifetimes); it does not move,
+            # release, or borrow anything, so it is a no-op for the loans/
+            # permissions flow.
+            return cur
+        assert_never(st)
 
     def lower_let(self, st: A.Let, cur: Block) -> Block:
         rhs = st.rhs
@@ -332,6 +349,7 @@ class _Builder:
                     "OWN030", f"undefined resource '{rhs.resource}'", rhs.line))
             sym = self.declare(st.name, Kind.OWNED, st.line)
             sym.type_name = rhs.resource
+            sym.resource_kind = self.resource_kinds.get(rhs.resource)
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
         if isinstance(rhs, A.BufferIntent):
@@ -352,6 +370,7 @@ class _Builder:
                 dst.buffer = src.buffer
                 dst.origin = src.origin
                 dst.type_name = src.type_name   # the moved value keeps its type
+                dst.resource_kind = src.resource_kind  # ...and its kind tag
                 cur.instrs.append(MoveInto(dst, src, st.line))
             return cur
         if isinstance(rhs, A.VarRef):
@@ -369,7 +388,7 @@ class _Builder:
             dst = self.declare(st.name, Kind.PLAIN, st.line)
             dst.type_name = "int"
             return cur
-        raise AssertionError(f"unknown rhs {rhs!r}")
+        assert_never(rhs)
 
     def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
         if rhs.ns != "Buffer":
@@ -558,8 +577,14 @@ def collect_policies(mod: A.Module) -> dict[str, Policy]:
 
 def build_cfg(fn: A.FnDecl, resource_names: set[str],
               signatures: dict[str, Signature],
-              policies: dict[str, Policy] | None = None
+              policies: dict[str, Policy] | None = None,
+              resource_kinds: dict[str, str] | None = None
               ) -> tuple[CFG, list[Diagnostic]]:
-    b = _Builder(fn, resource_names, signatures, policies)
+    b = _Builder(fn, resource_names, signatures, policies, resource_kinds)
     cfg = b.build()
     return cfg, b.diags
+
+
+def collect_kinds(mod: A.Module) -> dict[str, str]:
+    """resource name -> its declared `kind` string (only those that set one)."""
+    return {r.name: r.kind for r in mod.resources if r.kind}

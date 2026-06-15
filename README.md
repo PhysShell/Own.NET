@@ -93,6 +93,74 @@ examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot rel
                   ^
 ```
 
+### Бизнес-применение: WPF lifetime-утечки (модуль `lifetimes`)
+
+Performance-профиль (`stackalloc`/pool) — это игрушка для performance-зоопарка.
+Бизнес-софт чаще умирает не от того, что `Span<byte>` на 7 нс медленнее, а от
+зомби-ViewModel: кто-то подписался на singleton-event и не отписался — окно
+закрыто, а `CustomerViewModel` жива весь день, потому что event bus держит на неё
+strong-ссылку. GC не телепат.
+
+Ключевой разворот: **это уже выразимо текущим ownership-ядром.** Моделируем
+ViewModel как scope (конструктор = начало, `Dispose` = конец); подписка =
+`acquire` токена, отписка = `release`. Тогда «подписался и не Dispose» —
+это обычный **OWN001**, а «тронул после Dispose» — **OWN002**. Новый, доменно-
+нейтральный кусок: у `resource` появился тег `kind`, который вешается на
+диагностику как `[resource: ...]` — это шов, за который позже зацепится WPF-
+профиль/Roslyn-фронт, не зная про WPF в самом ядре.
+
+```text
+$ python -m ownlang check corpus/wpf/zombie-viewmodel/case.own
+case.own:16:9: error: [OWN001] 'customerChanged' is owned but not released at
+  end of function (leaks on at least one path) [resource: subscription token]
+  16 |     let customerChanged = acquire Subscription(bus);
+               ^
+```
+
+**Slice #2 — lifetime-регионы (region escape).** Это уже *новый* анализ, а не
+переиспользование. Объявляем регионы с порядком и вешаем lifetime на объект и
+сервисы; сильная подписка на более долгоживущий источник промотит объект до его
+lifetime и течёт — `OWN014`. Именно **порядок** делает это утечкой: подписка на
+равный-или-более-короткий источник — чисто.
+
+```text
+$ python -m ownlang check corpus/wpf/viewmodel-escapes-to-app/case.own
+case.own:15:23: error: [OWN014] 'bus' (lifetime 'App') outlives the captured
+  object 'CustomerViewModel' (lifetime 'ViewModel'); the strong subscription
+  promotes 'CustomerViewModel' to 'App' and it leaks (no release path)
+  15 |     subscribe self to bus;
+                            ^
+```
+```ownlang
+lifetime App;  lifetime Window < App;  lifetime ViewModel < Window;
+fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
+    subscribe self to bus;          // App > ViewModel -> промоушн -> OWN014
+}
+```
+
+**P-001 — настоящий C# (а не hand-reduced).** Узкий Roslyn-экстрактор
+(`frontend/roslyn/`, syntax-only) находит `event += без -=` в реальном `.cs` и
+эмитит OwnIR-факты; Python-мост (`python -m ownlang ownir facts.json`) прогоняет
+их через **то же ядро** и выдаёт OWN001 **на месте C#**:
+
+```text
+CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribed
+  (handler 'OnCustomerChanged') but never unsubscribed — ... (leak)
+  [resource: subscription token]
+```
+Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet
+есть лишь в CI (job `wpf-extractor` гоняет экстрактор на сэмплах сквозняком);
+Python-мост тестируется локально (`tests/test_ownir.py`) на рукописных фактах.
+Объём v0 и не-цели — в [`docs/proposals/P-001`](docs/proposals/P-001-csharp-extractor.md).
+
+`corpus/wpf/` — self-checking корпус реальных WPF-паттернов (`before.cs`/
+`after.cs`/`case.own`/expected), прибитый `tests/test_wpf.py`; региональная
+теорема — `tests/test_lifetimes.py` (10 кейсов). Полный план модуля (каталог
+OWN-WPF, границы слайсов, что отложено) — в [`docs/lifetimes.md`](docs/lifetimes.md).
+Честно: `case.own` — hand reduction паттерна, не C#, который чекер съел (C#-фронта
+нет, это поздний слайс); `self`/`source` — это scope самой функции и её параметры,
+без cross-procedural points-to.
+
 ### Golden-пример: настоящий ArrayPool
 
 ```bash
@@ -278,8 +346,14 @@ fn process(size: int) {
 | OWN032 | owned-ресурс скопирован без `move` |
 | OWN033 | функция с типом возврата может дойти до конца без `return` |
 | OWN034 | операция применена не к owned-ресурсу |
+| OWN035 | несовпадение типа возврата |
+| OWN036 | циклический порядок lifetime-регионов |
 | OWN040 | вызов необъявленной функции (неизвестные вызовы запрещены) |
 | OWN041 | несовместимость аргумента вызова (арность / kind / plain-vs-resource) |
+
+Lifetime-регионы (модуль `lifetimes`): **OWN014** — объект промотится в более
+долгоживущий регион через сильную подписку (region escape); **OWN036** — цикл в
+`<`-порядке; ссылки на необъявленный регион — **OWN030**.
 
 Разделение **definite (002/005)** против **maybe (009/010)** — прямо по ревью:
 ошибка на *всех* путях и ошибка на *каком-то* пути — это разные по резкости
@@ -622,6 +696,8 @@ ownlang/
     buffers.py      # storage policies: режимы, резолв policy+intent, валидация
     cfg.py          # resolver (Symbol/Kind) + collect_signatures + lowering, Invoke
     analysis.py     # flow-sensitive dataflow: var-states + active loans + permissions
+    lifetimes.py    # lifetime-регионы: region-escape (OWN014) + валидация порядка
+    ownir.py        # C#-факты (OwnIR) -> ядро -> диагностика на месте C# (P-001)
     diagnostics.py  # коды OWN0xx в одном месте
     codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline, буферы)
     report.py       # compile-time buffer report -> stdout + .ownreport.json
@@ -629,6 +705,40 @@ ownlang/
   examples/
     ok_*.own                  # проходят
     bad_*.own                 # падают с конкретным кодом
+    gallery/                  # «что оно ловит» — narrated примеры, пинятся тестом
     golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
-  tests/run_tests.py          # 42 кейса анализа + codegen smoke + golden smoke
+  corpus/real-world/          # hand-reduced реальные ArrayPool-баги + expected-коды
+  corpus/wpf/                 # WPF lifetime-баги (zombie-VM, use-after-dispose)
+  spec/                       # НОРМАТИВНАЯ спека: OwnCore/Buffer/Lifetimes/Diag/Codegen
+  docs/proposals/             # forward-looking RFC: P-001 C#-extractor, P-002 verif, ...
+  docs/lifetimes.md           # дизайн модуля lifetimes (WPF, регионы, слайсы)
+  tests/
+    run_tests.py              # кейсы анализа + codegen smoke + golden smoke
+    test_codegen.py           # content-assertions на сгенерённый C#
+    test_codegen_props.py     # property-фаззер с независимым AST-оракулом
+    test_gallery.py           # пинит каждый gallery-пример к его коду
+    test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
+    test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
+    test_lifetimes.py         # region-escape (OWN014) + валидация lifetime-порядка
+    test_spec.py              # conformance: каждое правило spec/ срабатывает на примере
+    test_ownir.py             # OwnIR-мост: C#-факты -> ядро -> OWN001 на месте C#
+  frontend/roslyn/            # C#-экстрактор (Roslyn, CI-only) + сэмплы .cs (P-001)
+  pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
+
+### Гейт качества (ruff + mypy --strict)
+
+Python взяли ради скорости прототипа, но без типов он легко скрывает «забыл ветку»
+класс багов (ровно такие плодил старый кодоген). Поэтому прикручены гайки, и они
+блокируют CI (job `lint`):
+
+- **ruff** (`E,W,F,I,B,UP,C4,RUF`) — стиль + bugbear-ловушки на всём дереве;
+- **mypy `--strict`** на пакете `ownlang` (тесты — динамический фаззер-код, их
+  держит только ruff);
+- **`typing.assert_never`** в каждом разборе по видам узлов (`lower_stmt`, `step`,
+  `_stmt_inline`): новый невручённый вариант union'а — это **ошибка компиляции
+  типов**, дешёвая замена exhaustive-match. Включение это уже поймало реальную
+  дыру — buffer-`let`, незакрытый в inline-эмиттере.
+
+Локально: `ruff check . && mypy`. Это не заменяет regression-сеть (фаззер/оракул/
+корпус ловят логику, линтер — опечатки и типы), а дополняет её.

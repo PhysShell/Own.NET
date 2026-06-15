@@ -43,6 +43,9 @@ class Tok(Enum):
     EMIT_ACQUIRE = auto()
     EMIT_RELEASE = auto()
     EMIT_BORROW = auto()
+    # lifetime regions
+    LIFETIME = auto()
+    SUBSCRIBE = auto()
     # explicitly-unsupported keywords (reported, not parsed)
     REJECTED = auto()
     # punctuation
@@ -57,6 +60,7 @@ class Tok(Enum):
     EQ = auto()
     DOT = auto()
     ARROW = auto()
+    LT = auto()
     EOF = auto()
 
 
@@ -83,6 +87,8 @@ KEYWORDS = {
     "emit_acquire": Tok.EMIT_ACQUIRE,
     "emit_release": Tok.EMIT_RELEASE,
     "emit_borrow": Tok.EMIT_BORROW,
+    "lifetime": Tok.LIFETIME,
+    "subscribe": Tok.SUBSCRIBE,
 }
 
 # Things we refuse to analyze in the MVP. Lexed so we can say so plainly.
@@ -201,6 +207,7 @@ def lex(src: str) -> list[Token]:
             "&": Tok.AMP,
             "=": Tok.EQ,
             ".": Tok.DOT,
+            "<": Tok.LT,
         }
         if c in simple:
             advance()

@@ -18,8 +18,9 @@ case.own:14:14: error: [OWN002] borrow 'quotient' after it was released
                     ^
 ```
 
-**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not C#
-the checker ingested — OwnLang has no C# front-end. It demonstrates that the
+**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not
+direct C# extractor output (the narrow P-001 extractor covers event-subscription
+leaks, not ArrayPool). It demonstrates that the
 ownership *logic* maps onto the real bug: had the code been written in OwnLang,
 the checker would have rejected it. The real-world specifics (the division math,
 the exact slice bounds) are abstracted to `acquire`/`release`/`borrow`.

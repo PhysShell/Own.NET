@@ -5,6 +5,7 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang emit   file.own      # check, then print generated C#
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
+    python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -12,15 +13,20 @@ Exit code is non-zero if any error-level diagnostic was produced.
 from __future__ import annotations
 
 import sys
+from typing import TYPE_CHECKING
 
-from .parser import parse, ParseError
-from .lexer import LexError
-from .cfg import build_cfg, collect_signatures, collect_policies, CFG
+if TYPE_CHECKING:
+    from .cfg import Instr
+
 from .analysis import analyze
-from .codegen import generate
 from .buffers import validate_policies
-from .report import build_report, render_report
+from .cfg import CFG, build_cfg, collect_kinds, collect_policies, collect_signatures
+from .codegen import generate
 from .diagnostics import Diagnostic, Severity
+from .lexer import LexError
+from .lifetimes import check_lifetimes
+from .parser import ParseError, parse
+from .report import build_report, render_report
 
 
 def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
@@ -32,9 +38,11 @@ def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
+    kinds = collect_kinds(mod)
     diags: list[Diagnostic] = list(validate_policies(pols))
+    diags.extend(check_lifetimes(mod))
     for fn in mod.functions:
-        cfg, d1 = build_cfg(fn, rnames, sigs, pols)
+        cfg, d1 = build_cfg(fn, rnames, sigs, pols, kinds)
         d2 = analyze(cfg)
         diags.extend(d1)
         diags.extend(d2)
@@ -120,9 +128,18 @@ def _print_cfg(cfg: CFG) -> None:
     print()
 
 
-def _fmt_instr(ins) -> str:
-    from .cfg import (Acquire, AcquireBuffer, MoveInto, Release, Use, Invoke,
-                      BorrowStart, BorrowEnd, Return)
+def _fmt_instr(ins: Instr) -> str:
+    from .cfg import (
+        Acquire,
+        AcquireBuffer,
+        BorrowEnd,
+        BorrowStart,
+        Invoke,
+        MoveInto,
+        Release,
+        Return,
+        Use,
+    )
     if isinstance(ins, Acquire):
         return f"acquire {ins.sym.name} : {ins.resource}"
     if isinstance(ins, AcquireBuffer):
@@ -152,17 +169,31 @@ def _fmt_instr(ins) -> str:
 
 
 def _read(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
+def cmd_ownir(path: str) -> int:
+    """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
+    the same core, surfacing findings at their C# locations (P-001)."""
+    from .ownir import check_facts, load
+    findings = check_facts(load(path))
+    for f in findings:
+        print(f.render())
+    if not findings:
+        print(f"{path}: ok — no subscription leaks found")
+    n = len(findings)
+    print(f"\n{n} finding{'s' if n != 1 else ''}.")
+    return 1 if findings else 0
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) < 2 or argv[0] not in {"check", "emit", "cfg", "report"}:
+    if len(argv) < 2 or argv[0] not in {"check", "emit", "cfg", "report", "ownir"}:
         print(__doc__)
         return 2
     cmd, path = argv[0], argv[1]
     return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
-            "report": cmd_report}[cmd](path)
+            "report": cmd_report, "ownir": cmd_ownir}[cmd](path)
 
 
 if __name__ == "__main__":

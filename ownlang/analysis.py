@@ -35,13 +35,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import assert_never
 
-from .cfg import (
-    CFG, Block, Symbol, Kind,
-    Acquire, AcquireBuffer, MoveInto, Release, Use, Invoke,
-    BorrowStart, BorrowEnd, Return,
-)
 from .ast_nodes import Effect
+from .cfg import (
+    CFG,
+    Acquire,
+    AcquireBuffer,
+    Block,
+    BorrowEnd,
+    BorrowStart,
+    Instr,
+    Invoke,
+    Kind,
+    MoveInto,
+    Release,
+    Return,
+    Symbol,
+    Use,
+)
 from .diagnostics import Diagnostic
 
 
@@ -70,7 +82,7 @@ class State:
     var: dict[int, set[VarState]] = field(default_factory=dict)
     loans: dict[int, Loan] = field(default_factory=dict)
 
-    def copy(self) -> "State":
+    def copy(self) -> State:
         return State(
             var={k: set(v) for k, v in self.var.items()},
             loans=dict(self.loans),
@@ -105,8 +117,10 @@ class _Analyzer:
         return s
 
     def err(self, code: str, msg: str, line: int,
-            subject: str | None = None) -> None:
-        self.diags.append(Diagnostic(code, msg, line, subject=subject))
+            subject: str | None = None,
+            resource_kind: str | None = None) -> None:
+        self.diags.append(Diagnostic(code, msg, line, subject=subject,
+                                     resource_kind=resource_kind))
 
     # -- loan / permission helpers -----------------------------------------
 
@@ -132,27 +146,28 @@ class _Analyzer:
     def _state_problem(self, st: State, sym: Symbol, verb: str, line: int) -> bool:
         S = st.var.get(id(sym), {VarState.OWNED})
         subj = sym.origin
+        kind = sym.resource_kind
         if VarState.OWNED not in S:
             if VarState.MOVED in S:
                 self.err("OWN005", f"{verb} '{sym.name}' after it was moved",
-                         line, subject=subj)
+                         line, subject=subj, resource_kind=kind)
             elif VarState.ESCAPED in S and VarState.RELEASED not in S:
                 self.err("OWN002",
                          f"{verb} '{sym.name}' after it was consumed", line,
-                         subject=subj)
+                         subject=subj, resource_kind=kind)
             else:
                 self.err("OWN002", f"{verb} '{sym.name}' after it was released",
-                         line, subject=subj)
+                         line, subject=subj, resource_kind=kind)
             return True
         if S & {VarState.RELEASED, VarState.ESCAPED}:
             self.err("OWN009",
                      f"{verb} '{sym.name}', which may have been released on some "
-                     f"path", line, subject=subj)
+                     f"path", line, subject=subj, resource_kind=kind)
             return True
         if VarState.MOVED in S:
             self.err("OWN010",
                      f"{verb} '{sym.name}', which may have been moved on some "
-                     f"path", line, subject=subj)
+                     f"path", line, subject=subj, resource_kind=kind)
             return True
         return False
 
@@ -167,7 +182,7 @@ class _Analyzer:
                 continue
             reachable.add(x)
             stack.extend(self.blocks[x].succ)
-        local_indeg = {b: 0 for b in reachable}
+        local_indeg = dict.fromkeys(reachable, 0)
         for b in reachable:
             for s in self.blocks[b].succ:
                 if s in reachable:
@@ -237,7 +252,8 @@ class _Analyzer:
                 self.err("OWN001",
                          f"'{name}' is owned but not released {context} "
                          f"(leaks on at least one path)", at_line,
-                         subject=(sym.origin if sym else None))
+                         subject=(sym.origin if sym else None),
+                         resource_kind=(sym.resource_kind if sym else None))
 
     def _sym_by_id(self, symid: int) -> Symbol | None:
         if not hasattr(self, "_symindex"):
@@ -265,7 +281,7 @@ class _Analyzer:
             self.step(ins, st)
         return st
 
-    def step(self, ins, st: State) -> None:
+    def step(self, ins: Instr, st: State) -> None:
         if isinstance(ins, Acquire):
             st.var[id(ins.sym)] = {VarState.OWNED}
             return
@@ -282,20 +298,22 @@ class _Analyzer:
 
         if isinstance(ins, Release):
             subj = ins.sym.origin
+            rkind = ins.sym.resource_kind
             S = st.var.get(id(ins.sym), {VarState.OWNED})
-            if S == {VarState.RELEASED}:
+            if {VarState.RELEASED} == S:
                 self.err("OWN003", f"'{ins.sym.name}' is released twice",
-                         ins.line, subject=subj)
+                         ins.line, subject=subj, resource_kind=rkind)
             elif VarState.RELEASED in S:
                 self.err("OWN003",
                          f"'{ins.sym.name}' may already be released on some path "
-                         f"before this release", ins.line, subject=subj)
+                         f"before this release", ins.line, subject=subj,
+                         resource_kind=rkind)
             elif not self._state_problem(st, ins.sym, "release", ins.line):
                 shared, mut = self.loans_on(st, ins.sym)
                 if shared or mut:
                     self.err("OWN008",
                              f"cannot release '{ins.sym.name}' while it is borrowed",
-                             ins.line, subject=subj)
+                             ins.line, subject=subj, resource_kind=rkind)
             st.var[id(ins.sym)] = {VarState.RELEASED}
             return
 
@@ -341,16 +359,17 @@ class _Analyzer:
                             exclude=ins.sym)
             if ins.sym is not None:
                 subj = ins.sym.origin
+                rkind = ins.sym.resource_kind
                 S = st.var.get(id(ins.sym), {VarState.OWNED})
                 if VarState.OWNED not in S:
                     if VarState.MOVED in S:
                         self.err("OWN005",
                                  f"'{ins.sym.name}' returned after it was moved",
-                                 ins.line, subject=subj)
+                                 ins.line, subject=subj, resource_kind=rkind)
                     else:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
-                                 ins.line, subject=subj)
+                                 ins.line, subject=subj, resource_kind=rkind)
                 else:
                     # returning an owner is an escape (consume): it needs Own
                     # permission, so a live loan on it is OWN007, just like move.
@@ -358,7 +377,8 @@ class _Analyzer:
                     if shared or mut:
                         self.err("OWN007",
                                  f"cannot return '{ins.sym.name}' while it is "
-                                 f"borrowed", ins.line, subject=subj)
+                                 f"borrowed", ins.line, subject=subj,
+                                 resource_kind=rkind)
                     elif ins.sym.buffer is not None and ins.sym.buffer.stack_backed:
                         self.err("OWN015",
                                  f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
@@ -374,7 +394,7 @@ class _Analyzer:
                 st.var[id(ins.sym)] = {VarState.ESCAPED}
             return
 
-        raise AssertionError(f"unknown instr {ins!r}")
+        assert_never(ins)
 
     # -- permission checks --------------------------------------------------
 

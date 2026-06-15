@@ -14,15 +14,14 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.parser import parse, ParseError          # noqa: E402
-from ownlang.lexer import LexError                     # noqa: E402
-from ownlang.cfg import (build_cfg, collect_signatures,  # noqa: E402
-                         collect_policies)
-from ownlang.analysis import analyze                    # noqa: E402
-from ownlang.diagnostics import Severity                # noqa: E402
-from ownlang.codegen import generate                    # noqa: E402
-from ownlang.buffers import validate_policies           # noqa: E402
-from ownlang.report import build_report                 # noqa: E402
+from ownlang.analysis import analyze
+from ownlang.buffers import validate_policies
+from ownlang.cfg import build_cfg, collect_policies, collect_signatures
+from ownlang.codegen import generate
+from ownlang.diagnostics import Severity
+from ownlang.lexer import LexError
+from ownlang.parser import ParseError, parse
+from ownlang.report import build_report
 
 PRELUDE = (
     "module M\n"
@@ -523,7 +522,8 @@ def buffer_smoke() -> list[str]:
     golden_path = os.path.join(os.path.dirname(__file__),
                                "buffer_scratch_program.cs.txt")
     if os.path.exists(golden_path):
-        prog = open(golden_path, encoding="utf-8").read()
+        with open(golden_path, encoding="utf-8") as f:
+            prog = f.read()
         for s in ("public static void parse(int size)",
                   "if (size < 0)",
                   "ArrayPool<byte>.Shared.Rent(size)",
@@ -589,7 +589,8 @@ def escape_and_length_smoke() -> list[str]:
     rep = build_report(parse(scratch_const), [])
     e = rep["buffers"][0]
     if e["fallback"] != "forbidden":
-        fails.append(f"forbidden scratch report fallback should be 'forbidden', got {e['fallback']}")
+        fails.append("forbidden scratch report fallback should be "
+                     f"'forbidden', got {e['fallback']}")
     backends = {b["backend"] for b in e["branches"]}
     if backends != {"stackalloc"}:
         fails.append(f"forbidden scratch report should be stack-only, got {backends}")
@@ -620,7 +621,7 @@ def branchy_and_malformed_smoke() -> list[str]:
     bogus = parse("module M\nfn f(n: int){ let b = Buffer.bogus(n); release b; }\n")
     try:
         rep = build_report(bogus, [])
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         fails.append(f"report crashed on a malformed buffer mode: {type(e).__name__}: {e}")
     else:
         if rep["buffers"]:
@@ -634,7 +635,7 @@ def branchy_and_malformed_smoke() -> list[str]:
         fails.append(f"FIFO overlapping buffers should check clean, got {codes(fifo)}")
     try:
         out = generate(parse(fifo))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         fails.append(f"FIFO overlapping buffers crashed codegen: {type(e).__name__}: {e}")
     else:
         if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 1:
@@ -660,8 +661,8 @@ def branchy_and_malformed_smoke() -> list[str]:
 
     # a non-identifier fallback (fallback = 0) must likewise fail safe: OWN030
     # AND no ArrayPool fallback enabled (it must not silently heap-allocate).
-    from ownlang.buffers import resolve as _resolve
     from ownlang.ast_nodes import BufferIntent, IntLit
+    from ownlang.buffers import resolve as _resolve
     intent = BufferIntent(mode="scratch", size=IntLit(8, 1),
                           options={"fallback": IntLit(0, 1)}, line=1)
     info, idiags = _resolve(intent, {})
@@ -684,7 +685,7 @@ def branchy_and_malformed_smoke() -> list[str]:
         fails.append(f"move-then-release buffer should check clean, got {codes(moved)}")
     try:
         out = generate(parse(moved))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         fails.append(f"move-then-release buffer crashed codegen: {type(e).__name__}: {e}")
     else:
         if out.count("ArrayPool<byte>.Shared.Return(a_array)") != 1:
@@ -707,7 +708,7 @@ def branchy_and_malformed_smoke() -> list[str]:
 def _report_check(mod, check):
     """Run the full checker over a parsed module and return the named report
     check (True/False) for its first buffer."""
-    from ownlang.cfg import build_cfg, collect_signatures, collect_policies
+    from ownlang.cfg import build_cfg, collect_policies, collect_signatures
     rn = {r.name for r in mod.resources}
     sg = collect_signatures(mod)
     pl = collect_policies(mod)
@@ -757,8 +758,9 @@ def nesting_native_trace_smoke() -> list[str]:
         fails.append("native constant size should not emit a negative guard")
 
     # Issue 3: a policy trace = false disables tracing
-    from ownlang.buffers import resolve as _resolve, Policy
     from ownlang.ast_nodes import BufferIntent, VarRef
+    from ownlang.buffers import Policy
+    from ownlang.buffers import resolve as _resolve
     intent = BufferIntent(mode="scratch", size=VarRef("n", 1),
                           options={"policy": VarRef("Quiet", 1)}, line=1)
     pol = {"Quiet": Policy("Quiet", {"trace": False, "counters": True})}
@@ -976,7 +978,7 @@ def run() -> int:
             continue
         try:
             generate(parse(PRELUDE + body))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             cg_fail += 1
             print(f"CODEGEN FAIL {name}: {type(e).__name__}: {e}")
 
@@ -1022,25 +1024,45 @@ def run() -> int:
     # Content-level codegen assertions + property fuzzer: these inspect the
     # generated C# itself (release placement/count, declaration order), catching
     # lowerings that are silently wrong rather than ones that merely throw.
-    import test_codegen        # noqa: E402  (lives in this directory)
+    import test_codegen
     cc_rc = test_codegen.run()
-    import test_codegen_props  # noqa: E402
+    import test_codegen_props
     pf_rc = test_codegen_props.run(iterations=3000, seed=1234)
 
     # The "what it catches" gallery: every examples/gallery/ file must still
     # produce exactly the diagnostic it advertises, so the demo can't drift.
-    import test_gallery  # noqa: E402
+    import test_gallery
     gl_rc = test_gallery.run()
 
     # Real-world corpus: each case.own (a reduction of a real ArrayPool/Dispose
     # bug) must still produce the diagnostics it documents.
-    import test_corpus  # noqa: E402
+    import test_corpus
     co_rc = test_corpus.run()
+
+    # WPF lifetime corpus (lifetimes slice #1): subscription/timer leaks caught
+    # by the generic ownership checker, carrying the [resource: <kind>] tag.
+    import test_wpf
+    wpf_rc = test_wpf.run()
+
+    # Lifetime-region analysis (lifetimes slice #2): the region-escape theorem
+    # (a short-lived object captured by a longer-lived source -> OWN014).
+    import test_lifetimes
+    lt_rc = test_lifetimes.run()
+
+    # Spec conformance pilot: every normative spec/ rule fires on its example.
+    import test_spec
+    spec_rc = test_spec.run()
+
+    # OwnIR fact bridge (P-001): C#-extracted facts route through the core and
+    # surface a subscription leak at its C# location.
+    import test_ownir
+    ownir_rc = test_ownir.run()
 
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc) else 0
+                 or gl_rc or co_rc or wpf_rc or lt_rc or spec_rc
+                 or ownir_rc) else 0
 
 
 if __name__ == "__main__":

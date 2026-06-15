@@ -1,4 +1,13 @@
-"""AST for OwnLang. Plain dataclasses; every node carries a source line."""
+"""AST for OwnLang. Plain dataclasses; every node carries a source line.
+
+Nodes are `@dataclass(frozen=True)`. The freeze is **shallow by design**: it
+blocks attribute *rebinding* (`node.rhs = ...`), which is the realistic accident
+we want to catch, but not mutation of a nested container (`node.args.append(...)`
+still works). We rely on this plus a verified convention that no pass mutates AST
+containers after parsing — `Module`'s collections are in fact filled by the
+parser via `.append` during construction. Deep immutability (tuples /
+MappingProxyType) was considered and deferred as low-value churn for the PoC.
+"""
 
 from __future__ import annotations
 
@@ -33,34 +42,34 @@ class TypeRef:
 # ---- expressions (RHS of a let, or argument) ------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class IntLit:
     value: int
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class VarRef:
     name: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Acquire:
     """acquire Resource(args) -> Owned<Resource>"""
     resource: str
-    args: list["Expr"]
+    args: list[Expr]
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Move:
     """move x  -> transfers ownership, invalidates x"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class BufferIntent:
     """Buffer.<mode>(size, name = value, ...) -> Owned<Buffer> with a storage
     policy. `mode` is one of stack/scratch/pooled/native/inline. `size` is the
@@ -68,12 +77,12 @@ class BufferIntent:
     named option (inline, max, fallback, clear, trace, counters, policy) to its
     value expression. `ns` is the namespace as written (must be "Buffer")."""
     mode: str
-    size: "Expr | None"
-    options: dict[str, "Expr"]
+    size: Expr | None
+    options: dict[str, Expr]
     line: int
     ns: str = "Buffer"
     col: int = 0
-    dups: tuple = ()   # option names that appeared more than once
+    dups: tuple[str, ...] = ()   # option names that appeared more than once
 
 
 Expr = IntLit | VarRef | Acquire | Move | BufferIntent
@@ -82,73 +91,83 @@ Expr = IntLit | VarRef | Acquire | Move | BufferIntent
 # ---- statements -----------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class Let:
     name: str
     rhs: Expr
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Release:
     """release x;  -> consumes x"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Use:
     """use x;  -> reads x (owner or live borrow)"""
     var: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Call:
     """callee(args);  -> a call to a declared extern or local fn"""
     callee: str
-    args: list["Expr"]
+    args: list[Expr]
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class BorrowBlock:
     owner: str
     binding: str
     kind: BorrowKind
-    body: list["Stmt"]
+    body: list[Stmt]
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class If:
     # condition is intentionally opaque: we model control flow, not values
     cond_text: str
-    then_body: list["Stmt"]
-    else_body: list["Stmt"]
+    then_body: list[Stmt]
+    else_body: list[Stmt]
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Return:
     var: str | None
     line: int
 
 
-Stmt = Let | Release | Use | Call | BorrowBlock | If | Return
+@dataclass(frozen=True)
+class Subscribe:
+    """`subscribe self to SOURCE;` — the current object (the function's scope,
+    living at the function's lifetime) is strongly captured by `source`. If
+    `source` outlives `self`, `self` is promoted to the longer lifetime (a
+    region escape). The heart of the lifetime/region analysis."""
+    source: str
+    line: int
+
+
+Stmt = Let | Release | Use | Call | BorrowBlock | If | Return | Subscribe
 
 
 # ---- top level ------------------------------------------------------------
 
 
-@dataclass
+@dataclass(frozen=True)
 class ResourceMember:
     role: str   # "acquire" | "release"
     name: str
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class ResourceDecl:
     name: str
     members: list[ResourceMember]
@@ -159,9 +178,14 @@ class ResourceDecl:
     emit_acquire: str | None = None    # e.g. "ArrayPool<byte>.Shared.Rent({args})"
     emit_release: str | None = None    # e.g. "ArrayPool<byte>.Shared.Return({0})"
     emit_borrow: str | None = None     # e.g. "{0}.AsSpan()"
+    # an optional human "kind" of resource (e.g. "subscription token", "timer"),
+    # carried onto diagnostics as `[resource: <kind>]`. Domain-neutral metadata:
+    # a later profile (e.g. WPF) reads it to give the generic OWN finding a
+    # business-flavoured framing, without the core knowing about any domain.
+    kind: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class EffectParam:
     """A positional parameter of an extern fn: an effect + a resource/plain type."""
     effect: Effect
@@ -169,7 +193,7 @@ class EffectParam:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExternDecl:
     name: str
     params: list[EffectParam]
@@ -177,36 +201,54 @@ class ExternDecl:
     line: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Param:
     name: str
     type: TypeRef
     line: int
+    # optional lifetime region this parameter (a service / source) lives at,
+    # e.g. `bus: EventBus lifetime App`. None when unannotated.
+    lifetime: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class FnDecl:
     name: str
     params: list[Param]
     ret: TypeRef | None
     body: list[Stmt]
     line: int
+    # optional lifetime region of the object this function sets up (its scope),
+    # e.g. `fn CustomerViewModel(...) lifetime ViewModel { ... }`. None when
+    # unannotated (the lifetime analysis then skips this function).
+    lifetime: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
+class LifetimeDecl:
+    """`lifetime NAME;` or `lifetime NAME < LONGER;` — declares a region. The
+    `< LONGER` form states NAME is strictly shorter-lived than LONGER (nested
+    inside it). The relation is transitive; cycles are rejected."""
+    name: str
+    longer: str | None   # the region this one is strictly shorter than, if any
+    line: int
+
+
+@dataclass(frozen=True)
 class PolicyDecl:
     """policy Name { key = value; ... } — a named bundle of buffer defaults
     (inline_bytes, max_bytes, mode, fallback, trace, counters, clear_on_release)."""
     name: str
     settings: dict[str, object]
     line: int
-    dups: tuple = ()   # setting keys that appeared more than once
+    dups: tuple[str, ...] = ()   # setting keys that appeared more than once
 
 
-@dataclass
+@dataclass(frozen=True)
 class Module:
     name: str
     resources: list[ResourceDecl] = field(default_factory=list)
     externs: list[ExternDecl] = field(default_factory=list)
     functions: list[FnDecl] = field(default_factory=list)
     policies: list[PolicyDecl] = field(default_factory=list)
+    lifetimes: list[LifetimeDecl] = field(default_factory=list)

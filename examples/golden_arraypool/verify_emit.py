@@ -17,8 +17,8 @@ import sys
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_HERE, "..", ".."))
 
-from ownlang.parser import parse        # noqa: E402
-from ownlang.codegen import generate     # noqa: E402
+from ownlang.codegen import generate  # noqa: E402
+from ownlang.parser import parse  # noqa: E402
 
 
 def _method_lines(text: str) -> list[str]:

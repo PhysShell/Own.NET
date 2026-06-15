@@ -45,6 +45,7 @@ TITLES = {
     "OWN011": "mutable borrow while another mutable borrow is live",
     "OWN012": "shared borrow while a mutable borrow is live",
     "OWN013": "owner accessed while it is mutably borrowed",
+    "OWN014": "value escapes to a longer-lived region (lifetime promotion)",
     # ---- buffer storage policies (stackalloc / scratch / pool / native) ----
     "OWN015": "stack-backed buffer cannot escape the current function",
     "OWN016": "stack-backed buffer moved to a longer-lived owner",
@@ -63,6 +64,7 @@ TITLES = {
     "OWN033": "function must return a value on all paths",
     "OWN034": "operation requires an owned resource",
     "OWN035": "return type mismatch",
+    "OWN036": "cyclic lifetime ordering",
     # ---- extern / call boundary ----
     "OWN040": "call to an undeclared function (unknown calls are forbidden)",
     "OWN041": "call argument mismatch",
@@ -78,10 +80,17 @@ class Diagnostic:
     # for buffer diagnostics: a stable identity (name#line) of the buffer the
     # diagnostic is about, so the report attributes it by symbol, not by name.
     subject: str | None = None
+    # the resource's human "kind" (e.g. "subscription token"), when the finding
+    # is about a tagged resource. Rendered as a ` [resource: <kind>]` suffix —
+    # domain-neutral metadata a later profile (e.g. WPF) keys off.
+    resource_kind: str | None = None
 
     @property
     def title(self) -> str:
         return TITLES.get(self.code, "")
+
+    def _kind_suffix(self) -> str:
+        return f" [resource: {self.resource_kind}]" if self.resource_kind else ""
 
     def _caret_col(self, src_line: str) -> int | None:
         """1-based column of this diagnostic in `src_line`: the position of the
@@ -104,7 +113,7 @@ class Diagnostic:
         """Plain one-line rendering: `file:line: severity: [code] message`."""
         return (
             f"{filename}:{self.line}: {self.severity.value}: "
-            f"[{self.code}] {self.message}"
+            f"[{self.code}] {self.message}{self._kind_suffix()}"
         )
 
     def render_pretty(self, filename: str, source: str) -> str:
@@ -115,7 +124,8 @@ class Diagnostic:
         src_line = lines[self.line - 1] if 1 <= self.line <= len(lines) else ""
         col = self._caret_col(src_line)
         loc = f"{filename}:{self.line}" + (f":{col}" if col else "")
-        out = [f"{loc}: {self.severity.value}: [{self.code}] {self.message}"]
+        out = [f"{loc}: {self.severity.value}: [{self.code}] "
+               f"{self.message}{self._kind_suffix()}"]
         if src_line.strip():
             gutter = f"  {self.line} | "
             out.append(f"{gutter}{src_line}")
