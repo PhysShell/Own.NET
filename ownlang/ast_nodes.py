@@ -1,4 +1,13 @@
-"""AST for OwnLang. Plain dataclasses; every node carries a source line."""
+"""AST for OwnLang. Plain dataclasses; every node carries a source line.
+
+Nodes are `@dataclass(frozen=True)`. The freeze is **shallow by design**: it
+blocks attribute *rebinding* (`node.rhs = ...`), which is the realistic accident
+we want to catch, but not mutation of a nested container (`node.args.append(...)`
+still works). We rely on this plus a verified convention that no pass mutates AST
+containers after parsing — `Module`'s collections are in fact filled by the
+parser via `.append` during construction. Deep immutability (tuples /
+MappingProxyType) was considered and deferred as low-value churn for the PoC.
+"""
 
 from __future__ import annotations
 
