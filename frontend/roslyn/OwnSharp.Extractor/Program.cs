@@ -74,7 +74,9 @@ foreach (var path in inputs)
     }
 }
 
-var facts = new { module = "Extracted", components };
+// ownir_version stamps the fact-schema vocabulary; the Python core rejects a
+// mismatch loudly (ownlang/ownir.py OWNIR_VERSION) rather than mis-reading facts.
+var facts = new { ownir_version = 0, module = "Extracted", components };
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
 
 if (outPath is null) Console.WriteLine(json);

@@ -9,6 +9,7 @@ single checker — we do not reimplement it in C# (a second checker would drift)
 OwnIR v0 schema (JSON)::
 
     {
+      "ownir_version": 0,
       "module": "WpfApp",
       "components": [
         {
@@ -37,7 +38,19 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from .diagnostics import _SUBJECT_RE, Severity
+from .diagnostics import Severity
+
+# The OwnIR schema version this core understands. Bump it whenever the fact
+# vocabulary changes incompatibly; the extractor stamps the same number so a
+# mismatched extractor/core pair fails loudly (see load()) instead of silently
+# mis-reading facts.
+OWNIR_VERSION = 0
+
+
+class OwnIRError(ValueError):
+    """A malformed or unmappable OwnIR fact set. Carries a human message; the
+    driver turns it into a clear one-line error rather than a traceback."""
+
 
 _PRELUDE = (
     'resource Subscription {\n'
@@ -67,16 +80,32 @@ def load(path: str) -> dict[str, Any]:
     """Load and shape-check an OwnIR facts file (it is external input — a
     malformed file should fail with a clear error, not a deep traceback)."""
     with open(path, encoding="utf-8") as f:
-        result: Any = json.load(f)
+        try:
+            result: Any = json.load(f)
+        except json.JSONDecodeError as e:
+            raise OwnIRError(f"{path} is not valid JSON: {e}") from e
     if not isinstance(result, dict):
-        raise ValueError("OwnIR root must be a JSON object")
+        raise OwnIRError("OwnIR root must be a JSON object")
+    # version gate first: a vocabulary mismatch makes every later shape-check
+    # meaningless, so reject it up front with an actionable message. An absent
+    # field is treated as the current version (the only producers that omit it
+    # predate versioning, i.e. are v0 by definition).
+    ver = result.get("ownir_version", OWNIR_VERSION)
+    if not isinstance(ver, int) or isinstance(ver, bool):
+        raise OwnIRError(f"OwnIR 'ownir_version' must be an integer, got {ver!r}")
+    if ver != OWNIR_VERSION:
+        raise OwnIRError(
+            f"OwnIR facts are schema v{ver}, but this core understands "
+            f"v{OWNIR_VERSION}. Build the Roslyn extractor and the Python core "
+            f"from the same commit — the OwnIR fact vocabulary changed between "
+            f"the version that produced this file and the one reading it.")
     comps = result.get("components", [])
     if not isinstance(comps, list) or not all(isinstance(c, dict) for c in comps):
-        raise ValueError("OwnIR 'components' must be a JSON array of objects")
+        raise OwnIRError("OwnIR 'components' must be a JSON array of objects")
     for c in comps:
         subs = c.get("subscriptions", [])
         if not isinstance(subs, list) or not all(isinstance(s, dict) for s in subs):
-            raise ValueError("each component's 'subscriptions' must be objects")
+            raise OwnIRError("each component's 'subscriptions' must be objects")
     return result
 
 
@@ -92,18 +121,18 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     gid = 0
     components = facts.get("components", [])
     if not isinstance(components, list):
-        raise ValueError("OwnIR 'components' must be a JSON array")
+        raise OwnIRError("OwnIR 'components' must be a JSON array")
     for comp in components:
         if not isinstance(comp, dict):
-            raise ValueError("each OwnIR component must be a JSON object")
+            raise OwnIRError("each OwnIR component must be a JSON object")
         cname = comp.get("name", f"Component{gid}")
         lines.append(f"fn {cname}() {{")
         subscriptions = comp.get("subscriptions", [])
         if not isinstance(subscriptions, list):
-            raise ValueError("component 'subscriptions' must be a JSON array")
+            raise OwnIRError("component 'subscriptions' must be a JSON array")
         for sub in subscriptions:
             if not isinstance(sub, dict):
-                raise ValueError("each subscription must be a JSON object")
+                raise OwnIRError("each subscription must be a JSON object")
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
@@ -116,22 +145,57 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     return "\n".join(lines), handles
 
 
+def _handle_of(diag: object) -> str | None:
+    """The synthetic handle (`sub_N`) a diagnostic is about, recovered from its
+    structured `subject` (`name#line`) — NOT by scraping the human message. Each
+    acquire stamps `subject` in cfg.lower_let; None means the diagnostic carries
+    no subject identity at all."""
+    subject = getattr(diag, "subject", None)
+    if not subject:
+        return None
+    return subject.split("#", 1)[0]
+
+
 def check_facts(facts: dict[str, Any]) -> list[Finding]:
     """Run the core checker over the lowered facts and return findings mapped
-    back to their original C# locations (v0: the `event += without -=` leak)."""
-    # imported here to avoid a module-level cycle (ownir is a leaf consumer)
+    back to their original C# locations (v0: the `event += without -=` leak).
+
+    The fact->handle->diagnostic round-trip is fully ours: every error the core
+    reports on the lowered module MUST attribute to a known subscription handle.
+    If one does not, the lowering has drifted from the core (or the core grew a
+    diagnostic the bridge has not been taught to map) — we raise rather than
+    silently dropping a real finding, since a swallowed leak is the worst
+    outcome for a leak checker."""
+    # imported here to avoid a module-level cycle (ownir is a leaf consumer).
+    # v0 lowers to `.own` text and goes through _collect (parse + the one
+    # checker). The next pattern (timers / region facts with no surface syntax)
+    # builds a Module and calls __main__.check_module directly instead — the
+    # seam is already split so that switch is additive, not a rewrite.
     from .__main__ import _collect
 
     src, handles = to_own(facts)
-    diags, _ = _collect(src)
+    diags, mod = _collect(src)
+    if mod is None:
+        # the only source here is our own generator, so a parse failure is an
+        # internal bug in to_own, not bad user input — surface it loudly.
+        msg = diags[0].message if diags else "unknown parse error"
+        raise OwnIRError(
+            f"internal: the lowered OwnIR module did not parse ({msg}). "
+            f"This is a bug in the fact lowering, not in the facts.")
+
     findings: list[Finding] = []
     for d in diags:
         if d.severity != Severity.ERROR:
             continue
-        m = _SUBJECT_RE.search(d.message)
-        sub = handles.get(m.group(1)) if m else None
+        sub = handles.get(_handle_of(d) or "")
         if sub is None:
-            continue
+            raise OwnIRError(
+                f"internal: the core reported [{d.code}] on the lowered facts "
+                f"that the bridge cannot map back to a C# subscription "
+                f"(subject={getattr(d, 'subject', None)!r}, "
+                f"message={d.message!r}). The OwnIR lowering has drifted from "
+                f"the core; teach the bridge this diagnostic rather than "
+                f"dropping the finding.")
         findings.append(Finding(
             file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
             component=sub["component"], event=sub.get("event", "?"),

@@ -84,7 +84,14 @@ CI-validated C# artifact (like the golden). Land **one pattern** first
 
 ## Open questions
 
-1. **Seam:** confirm `C# extractor → OwnIR → Python core` (vs all-in-C#).
+1. ~~**Seam:** confirm `C# extractor → OwnIR → Python core` (vs all-in-C#).~~
+   **Resolved:** extractor → versioned OwnIR JSON → Python core. The core also
+   exposes an AST-level entry (`__main__.check_module`) so the next pattern can
+   build a module directly instead of round-tripping through `.own` text.
 2. **v0 scope:** one pattern first, or the four-rule set in one go.
-3. **OwnIR serialization:** JSON schema vs emitting `.own` directly.
+3. ~~**OwnIR serialization:** JSON schema vs emitting `.own` directly.~~
+   **Resolved:** JSON, stamped with `ownir_version` (`OWNIR_VERSION`, currently
+   0). A mismatched extractor/core pair fails loudly at load instead of being
+   silently mis-read; the bridge maps verdicts back to C# by the diagnostic's
+   structured `subject`, not by scraping the human message.
 4. Heuristic vs annotation for "this class is a lifetime-bound component".

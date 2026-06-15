@@ -350,6 +350,11 @@ class _Builder:
             sym = self.declare(st.name, Kind.OWNED, st.line)
             sym.type_name = rhs.resource
             sym.resource_kind = self.resource_kinds.get(rhs.resource)
+            # a stable identity (name#line) so a diagnostic about this resource
+            # can be attributed structurally — by Diagnostic.subject — instead of
+            # by scraping the name out of the human message. The OwnIR bridge keys
+            # its C#-location map off exactly this (see ownir.check_facts).
+            sym.origin = f"{st.name}#{rhs.line}"
             cur.instrs.append(Acquire(sym, rhs.resource, st.line))
             return cur
         if isinstance(rhs, A.BufferIntent):
