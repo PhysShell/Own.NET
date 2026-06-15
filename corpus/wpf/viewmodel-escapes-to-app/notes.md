@@ -26,8 +26,9 @@ source produces no diagnostic (no promotion possible). The fix (`after.cs`) keep
 a disposable token released on close — the slice-#1 acquire/release pattern —
 which gives the VM a release path back to its Window lifetime.
 
-**Honesty / scope.** `case.own` is a *hand reduction*, not C# the checker
-ingested (no C# front-end yet). `self`/`source` are the function's own scope and
+**Honesty / scope.** `case.own` is a *hand reduction*, not direct C# extractor
+output (the narrow P-001 extractor does not yet emit region facts). `self`/
+`source` are the function's own scope and
 its annotated parameters — there is no cross-procedural points-to, and weak-event
 policy as an explicit escape hatch is a later slice (see `docs/lifetimes.md`).
 `before.cs` / `after.cs` are representative, not a verbatim copy of one PR.

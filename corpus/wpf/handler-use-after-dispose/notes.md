@@ -17,8 +17,9 @@ case.own:16:9: error: [OWN002] use 'sub' after it was released
                ^
 ```
 
-**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not C#
-the checker ingested — OwnLang has no C# front-end. It shows the ownership
+**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not
+direct C# extractor output (the C# extractor in P-001 is narrow — event
+subscriptions only). It shows the ownership
 *logic* maps onto the real bug; it does not model the dispatcher queue or
 exception flow. `before.cs` / `after.cs` are representative, not a verbatim copy
 of one PR.

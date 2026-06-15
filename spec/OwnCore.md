@@ -129,10 +129,11 @@ value leaves is `consume`/return. Argument/effect mismatch → **OWN041**.
 ## 9. Conformance
 
 Rules are not prose-only: each is pinned by an executable example.
-`tests/test_spec.py` runs one canonical program per rule and asserts the exact
-code, so the spec and the checker cannot drift. The broader gallery
-(`tests/test_gallery.py`), region (`tests/test_lifetimes.py`) and corpus suites
-extend this. A spec change without a test change (or vice-versa) is a red build.
+`tests/test_spec.py` runs one canonical program per rule and asserts the rule's
+diagnostic code is among the produced codes, so the spec and the checker cannot
+drift. The broader gallery (`tests/test_gallery.py`), region
+(`tests/test_lifetimes.py`) and corpus suites pin exact behaviour. A spec change
+without a test change (or vice-versa) is a red build.
 
 ## 10. Out of scope (see proposals, not here)
 

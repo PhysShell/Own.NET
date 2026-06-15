@@ -161,10 +161,14 @@ def run() -> int:
     # lifetimes, and place a caret under the source in the `subscribe` line.
     escape_src = CASES[0][1]
     diags = check_lifetimes(parse(escape_src))
-    pretty = diags[0].render_pretty("m.own", escape_src)
-    for needed in ("bus", "App", "VM", "ViewModel", "^"):
-        if needed not in pretty:
-            fails.append(f"escape message missing {needed!r}")
+    headline = next((d for d in diags if d.code == "OWN014"), None)
+    if headline is None:
+        fails.append("escape_to_app: expected an OWN014 headline diagnostic")
+    else:
+        pretty = headline.render_pretty("m.own", escape_src)
+        for needed in ("bus", "App", "VM", "ViewModel", "^"):
+            if needed not in pretty:
+                fails.append(f"escape message missing {needed!r}")
 
     for f in fails:
         print(f"LIFETIMES FAIL: {f}")

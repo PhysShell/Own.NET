@@ -98,7 +98,7 @@ def run() -> int:
         with open(own, encoding="utf-8") as f:
             source = f.read()
         codes, rendered = _check(source)
-        got = sorted(set(codes))
+        got = sorted(codes)   # keep multiplicity: a duplicate code is a regression
         ok = True
         if got != want:
             fails.append(f"{case}: expected {want}, got {got}")

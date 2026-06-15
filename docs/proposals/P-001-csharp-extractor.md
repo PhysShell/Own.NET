@@ -54,8 +54,10 @@ owner(this, Subscription)
 escapes(this, App)                // strong capture by a longer-lived source
 ```
 
-The existing core then produces `OWN001` (no release path) / `OWN014` (region
-escape), with the `[resource: subscription]` kind tag.
+In v0 the existing core produces `OWN001` (no release path) with the
+`[resource: subscription token]` kind tag. `OWN014` (region escape) is enabled
+once the extractor emits the `escapes(...)`/lifetime facts above — that is the
+next increment, not v0.
 
 ## Non-goals
 

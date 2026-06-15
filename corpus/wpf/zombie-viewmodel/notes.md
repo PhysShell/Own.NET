@@ -26,9 +26,10 @@ stays a generic ownership checker, and a later WPF profile/front-end can read th
 kind to phrase this as "WPF004: subscription token never disposed" without the
 core knowing anything about WPF.
 
-**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not C#
-the checker ingested — OwnLang has no C# front-end (that is a later slice). It
-shows the ownership *logic* maps onto the real leak: had the VM been written in
+**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not
+direct C# extractor output for this case. A narrow C# extractor now exists
+(P-001, event subscriptions), but this example is curated to spotlight the
+ownership logic: had the VM been written in
 OwnLang, the checker would have rejected it. The lifetime-region machinery that
 would catch "VM promoted to App-lifetime through the subscription" (the escape
 path) is a separate, later slice; here the bug is caught by plain

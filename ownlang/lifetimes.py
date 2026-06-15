@@ -81,10 +81,13 @@ def _strictly_longer(decls: list[A.LifetimeDecl]) -> dict[str, set[str]]:
 
 def check_lifetimes(mod: A.Module) -> list[Diagnostic]:
     """Region diagnostics for a module: structural validation of the lifetime
-    order plus the per-function escape check. Empty when no lifetimes are used."""
+    order plus the per-function escape check. Empty when no lifetimes are used.
+
+    Note: we do NOT early-return on an empty `mod.lifetimes` — a function or
+    parameter may still carry a `lifetime X` annotation referencing an undeclared
+    region, which must be flagged (OWN030). With no declarations, `names` is empty
+    and any annotation is therefore undefined."""
     diags: list[Diagnostic] = []
-    if not mod.lifetimes:
-        return diags
 
     names: set[str] = set()
     for d in mod.lifetimes:

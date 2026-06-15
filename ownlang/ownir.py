@@ -64,9 +64,19 @@ class Finding:
 
 
 def load(path: str) -> dict[str, Any]:
-    """Load an OwnIR facts file."""
+    """Load and shape-check an OwnIR facts file (it is external input — a
+    malformed file should fail with a clear error, not a deep traceback)."""
     with open(path, encoding="utf-8") as f:
-        result: dict[str, Any] = json.load(f)
+        result: Any = json.load(f)
+    if not isinstance(result, dict):
+        raise ValueError("OwnIR root must be a JSON object")
+    comps = result.get("components", [])
+    if not isinstance(comps, list) or not all(isinstance(c, dict) for c in comps):
+        raise ValueError("OwnIR 'components' must be a JSON array of objects")
+    for c in comps:
+        subs = c.get("subscriptions", [])
+        if not isinstance(subs, list) or not all(isinstance(s, dict) for s in subs):
+            raise ValueError("each component's 'subscriptions' must be objects")
     return result
 
 
@@ -80,10 +90,20 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     handles: dict[str, dict[str, Any]] = {}
     lines = [f"module {facts.get('module', 'Extracted')}", "", _PRELUDE]
     gid = 0
-    for comp in facts.get("components", []):
+    components = facts.get("components", [])
+    if not isinstance(components, list):
+        raise ValueError("OwnIR 'components' must be a JSON array")
+    for comp in components:
+        if not isinstance(comp, dict):
+            raise ValueError("each OwnIR component must be a JSON object")
         cname = comp.get("name", f"Component{gid}")
         lines.append(f"fn {cname}() {{")
-        for sub in comp.get("subscriptions", []):
+        subscriptions = comp.get("subscriptions", [])
+        if not isinstance(subscriptions, list):
+            raise ValueError("component 'subscriptions' must be a JSON array")
+        for sub in subscriptions:
+            if not isinstance(sub, dict):
+                raise ValueError("each subscription must be a JSON object")
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
