@@ -59,15 +59,17 @@ static string? FieldName(ExpressionSyntax expr) => expr switch
     _ => null,
 };
 
-// A field type treated as owned-disposable (syntax-only heuristic — no semantic
-// model): a curated set plus a few suffixes. Gated on the class `new`ing the
-// field (see below), so injected/borrowed disposables are not flagged.
+// A field/local type treated as owned-disposable (syntax-only heuristic — no
+// semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
+// the value, so injected/borrowed disposables are not flagged. Timer types are
+// deliberately excluded: a `Tick`/`Elapsed` timer is the WPF002 pattern's job
+// (released by Stop()/detach), and DispatcherTimer is not even IDisposable, so
+// matching `*Timer` here would double-report and false-positive a stopped timer.
 static bool IsDisposableType(string t) =>
-    t is "IDisposable" or "IAsyncDisposable" or "DispatcherTimer" or "Timer"
-       or "CancellationTokenSource" or "HttpClient" or "SerialPort"
-       or "SqlConnection"
+    t is "IDisposable" or "IAsyncDisposable" or "CancellationTokenSource"
+       or "HttpClient" or "SerialPort" or "SqlConnection"
     || t.EndsWith("Stream") || t.EndsWith("Reader") || t.EndsWith("Writer")
-    || t.EndsWith("Timer") || t.EndsWith("Subscription");
+    || t.EndsWith("Subscription");
 
 var components = new List<object>();
 
