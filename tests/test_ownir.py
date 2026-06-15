@@ -32,6 +32,8 @@ _FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
                         "sample.facts.json")
 _TIMER_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
                               "timer.facts.json")
+_DISPOSABLE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                   "ownir", "disposable.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -134,6 +136,32 @@ def run() -> int:
     checks += 1
     if any(x.component == "CleanTimerViewModel" for x in tfindings):
         fails.append("stopped timer was wrongly reported")
+
+    # --- WPF003 IDisposable field: a field the class new's and never disposes
+    #     leaks; one disposed in Dispose() stays silent; tag [resource: disposable field].
+    with open(_DISPOSABLE_FIXTURE, encoding="utf-8") as f:
+        dfacts = json.load(f)
+    dfindings = check_facts(dfacts)
+    checks += 1
+    dleaks = [x for x in dfindings if x.component == "ReportViewModel"]
+    if len(dfindings) != 1 or not dleaks:
+        fails.append(f"expected 1 disposable finding (ReportViewModel), got "
+                     f"{[(x.component, x.code) for x in dfindings]}")
+    else:
+        d0 = dleaks[0]
+        checks += 1
+        if (d0.file, d0.line, d0.code) != ("DisposableFieldViewModel.cs", 11, "OWN001"):
+            fails.append(f"wrong field location/code: {d0.file}:{d0.line} {d0.code}")
+        if "IDisposable field" not in d0.message or "_cts" not in d0.message:
+            fails.append(f"disposable message missing field: {d0.message!r}")
+        if "CancellationTokenSource" not in d0.message:
+            fails.append(f"disposable message missing type: {d0.message!r}")
+        if "[resource: disposable field]" not in d0.render():
+            fails.append(f"disposable finding missing kind tag: {d0.render()!r}")
+    # a field disposed in Dispose() (released) must NOT be reported.
+    checks += 1
+    if any(x.component == "CleanReportViewModel" for x in dfindings):
+        fails.append("disposed field was wrongly reported")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

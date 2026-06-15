@@ -1,7 +1,7 @@
 # P-004 — WPF / UI lifetime leak profile
 
-- **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer) built**;
-  WPF003–005 next
+- **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer)** + **WPF003
+  (IDisposable field) built**; WPF004–005 next
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the extractor + OwnIR seam),
   `spec/OwnCore.md`, `spec/Lifetimes.md` (OWN001 leak, OWN014 region escape).
   See [`docs/ROADMAP.md`](../ROADMAP.md) for where this sits (Milestones 1–2).
@@ -29,7 +29,7 @@ ends `ViewModel`/`View`, derives `Window`/`UserControl`/`Page`, implements
 |------|---------|--------------|
 | **WPF001** | `source.Event += handler` with no matching `-=` in `Dispose`/`OnClosed`/`Unloaded` | `OWN001` (leak) ✅ v0 |
 | **WPF002** | `DispatcherTimer`/`Timer` `Tick`/`Elapsed` handler with no `-=` and no `Stop()` | `OWN001` `[resource: timer]` ✅ |
-| **WPF003** | an `IDisposable` subscription field never disposed by the owner | `OWN001` (see P-005) |
+| **WPF003** | an `IDisposable` field the class `new`s but never disposes | `OWN001` `[resource: disposable field]` ✅ (core of P-005) |
 | **WPF004** | `Subscribe(...)` whose `IDisposable` result is ignored | `OWN001` |
 | **WPF005** | strong capture by a longer-lived source (the ViewModel `escapes` to App) | `OWN014` |
 

@@ -68,7 +68,7 @@ architectural strictness, and the borrow-checker showcase):
 
 1. `WPF001` — event/subscription `+=` without `-=` (the WPF spike; P-001 v0 ✅)
 2. `WPF002` — `DispatcherTimer`/`Timer` `Tick`/`Elapsed` without stop/detach ✅
-3. `BOR/OWN` — `IDisposable` field not disposed by its owner
+3. `OWN001` — `IDisposable` field the class `new`s but never disposes ✅
 4. `DI001` — singleton captures a scoped dependency
 5. `POOL` — `Span`/view used after `ArrayPool.Return`
 

@@ -110,6 +110,7 @@ jobs:
             frontend/roslyn/samples/CustomerViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
             frontend/roslyn/samples/TimerViewModel.cs \
+            frontend/roslyn/samples/DisposableFieldViewModel.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -132,5 +133,15 @@ jobs:
           if echo "$out" | grep -q "CleanTimerViewModel"; then
             echo "FAIL: stopped timer wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer) at the C# location"
+          # WPF003: the IDisposable field the class new's but never disposes leaks
+          # with a [resource: disposable field] tag; the one disposed in Dispose
+          # stays silent.
+          echo "$out" | grep -q "DisposableFieldViewModel.cs" \
+            || { echo "FAIL: expected the ReportViewModel field leak"; exit 1; }
+          echo "$out" | grep -q "resource: disposable field" \
+            || { echo "FAIL: expected a [resource: disposable field] tag"; exit 1; }
+          if echo "$out" | grep -q "CleanReportViewModel"; then
+            echo "FAIL: disposed field wrongly reported"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field) at the C# location"
 

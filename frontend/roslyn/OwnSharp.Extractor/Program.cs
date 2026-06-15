@@ -51,6 +51,24 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
     left is MemberAccessExpressionSyntax m
         && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
 
+// The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
+static string? FieldName(ExpressionSyntax expr) => expr switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax m => m.Name.Identifier.Text,
+    _ => null,
+};
+
+// A field type treated as owned-disposable (syntax-only heuristic — no semantic
+// model): a curated set plus a few suffixes. Gated on the class `new`ing the
+// field (see below), so injected/borrowed disposables are not flagged.
+static bool IsDisposableType(string t) =>
+    t is "IDisposable" or "IAsyncDisposable" or "DispatcherTimer" or "Timer"
+       or "CancellationTokenSource" or "HttpClient" or "SerialPort"
+       or "SqlConnection"
+    || t.EndsWith("Stream") || t.EndsWith("Reader") || t.EndsWith("Writer")
+    || t.EndsWith("Timer") || t.EndsWith("Subscription");
+
 var components = new List<object>();
 
 foreach (var path in inputs)
@@ -93,6 +111,49 @@ foreach (var path in inputs)
                 released,
                 resource = isTimer ? "timer" : "subscription",
             });
+        }
+
+        // WPF003: an IDisposable field the class constructs (`new`) but never
+        // disposes. Owned (not injected) = assigned a `new` in this class;
+        // released = a `<field>.Dispose()` call somewhere in the class.
+        var constructed = new HashSet<string>();
+        foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
+            foreach (var v in fd.Declaration.Variables)
+                if (v.Initializer?.Value is ObjectCreationExpressionSyntax
+                                          or ImplicitObjectCreationExpressionSyntax)
+                    constructed.Add(v.Identifier.Text);
+        foreach (var a in assigns)
+            if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && a.Right is ObjectCreationExpressionSyntax
+                           or ImplicitObjectCreationExpressionSyntax
+                && FieldName(a.Left) is { } fn)
+                constructed.Add(fn);
+
+        var disposed = new HashSet<string>();
+        foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            if (inv.Expression is MemberAccessExpressionSyntax m
+                && m.Name.Identifier.Text == "Dispose"
+                && FieldName(m.Expression) is { } df)
+                disposed.Add(df);
+
+        foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
+        {
+            var tname = fd.Declaration.Type.ToString();
+            if (!IsDisposableType(tname))
+                continue;
+            foreach (var v in fd.Declaration.Variables)
+            {
+                if (!constructed.Contains(v.Identifier.Text))
+                    continue;
+                subs.Add(new
+                {
+                    @event = v.Identifier.Text,
+                    line = LineOf(v),
+                    released = disposed.Contains(v.Identifier.Text),
+                    resource = "disposable",
+                    type = tname,
+                });
+            }
         }
 
         if (subs.Count > 0)

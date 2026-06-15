@@ -1,6 +1,8 @@
 # P-005 — `IDisposable` ownership profile
 
-- **Status:** draft (P0 — the most down-to-earth resource module)
+- **Status:** draft (P0 — the most down-to-earth resource module). D2 (owned
+  field never disposed) has a first cut shipped via WPF003
+  ([P-004](P-004-wpf-lifetime-profile.md)); D1/D3/D4/D5 here generalise it.
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release), [P-001](P-001-csharp-extractor.md) (the C# seam).
   Shares the resource core with [P-004](P-004-wpf-lifetime-profile.md).

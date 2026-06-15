@@ -25,16 +25,22 @@ OwnIR schema (JSON)::
       ]
     }
 
-Each entry in `subscriptions` is an owned resource: `event +=` / `Tick +=` is an
-`acquire`, a matching `-=` / `Dispose` / timer `Stop()` is a `release`. The
-optional `resource` field picks the kind — "subscription" (default; tag
-`[resource: subscription token]`) or "timer" (a started `DispatcherTimer`/`Timer`
-whose `Tick`/`Elapsed` handler is never detached; tag `[resource: timer]`). An
-unreleased entry is the core's OWN001 (owned-but-not-released) at the C# `line`.
+Each entry in `subscriptions` (historically named — it is really the list of
+owned-resource records) is an owned resource, discriminated by an optional
+`resource` field:
 
-The `resource` field is additive and optional, so it does NOT bump
-`ownir_version`: an older core just reads every entry as a subscription.
-IDisposable fields and region escape are later (see docs/proposals/P-004).
+  - "subscription" (default): `event +=` acquires, a matching `-=` releases;
+    tag `[resource: subscription token]`.
+  - "timer": a started `DispatcherTimer`/`Timer` whose `Tick`/`Elapsed` handler
+    is never `-=`'d or `Stop()`ped; tag `[resource: timer]`.
+  - "disposable": an `IDisposable` field the class `new`s and never `Dispose()`s
+    (optional `type` names the field's declared type); tag
+    `[resource: disposable field]`.
+
+An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
+`line`. The `resource`/`type` fields are additive and optional, so they do NOT
+bump `ownir_version`: an older core just reads every entry as a subscription.
+Region escape (OWN014) is later (see docs/proposals/P-004).
 """
 
 from __future__ import annotations
@@ -68,15 +74,22 @@ _PRELUDE = (
     '    release Stop\n'
     '    kind "timer"\n'
     '}\n'
+    'resource Disposable {\n'
+    '    acquire New\n'
+    '    release Dispose\n'
+    '    kind "disposable field"\n'
+    '}\n'
 )
 
 # OwnIR resource kinds the bridge knows how to lower: (own resource type to
 # acquire, human kind tag the finding carries). `event +=` is a Subscription; a
 # `Tick`/`Elapsed` handler on a started timer is a Timer (the running timer
-# strong-refs the handler's owner). Unknown values fall back to Subscription.
+# strong-refs the handler's owner); an `IDisposable` field the class `new`s is a
+# Disposable it owns. Unknown values fall back to Subscription.
 _RESOURCES = {
     "subscription": ("Subscription", "subscription token"),
     "timer": ("Timer", "timer"),
+    "disposable": ("Disposable", "disposable field"),
 }
 
 
@@ -131,6 +144,10 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(r, str):
                 raise OwnIRError(
                     f"subscription 'resource' must be a string, got {r!r}")
+            t = s.get("type")
+            if t is not None and not isinstance(t, str):
+                raise OwnIRError(
+                    f"subscription 'type' must be a string, got {t!r}")
     return result
 
 
@@ -232,6 +249,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             message = (f"timer '{event}' (handler '{handler}') is started but "
                        f"never stopped or detached — the running timer keeps "
                        f"'{component}' alive (leak)")
+        elif rkind == "disposable":
+            typ = sub.get("type")
+            of_type = f" (type '{typ}')" if typ else ""
+            message = (f"IDisposable field '{event}'{of_type} is never "
+                       f"disposed — its owner '{component}' leaks it (leak)")
         else:
             message = (f"event '{event}' is subscribed (handler '{handler}') "
                        f"but never unsubscribed — the source keeps "
