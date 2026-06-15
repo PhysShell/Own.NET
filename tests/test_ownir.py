@@ -25,7 +25,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import tempfile
 
-from ownlang.ownir import OWNIR_VERSION, OwnIRError, check_facts, load, to_own
+from ownlang.ownir import (
+    OWNIR_VERSION,
+    Finding,
+    OwnIRError,
+    check_facts,
+    load,
+    render_finding,
+    to_own,
+)
 from ownlang.parser import parse
 
 _FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
@@ -225,6 +233,36 @@ def run() -> int:
             fails.append(f"local message missing text/type: {l0.message!r}")
         if "[resource: disposable]" not in l0.render():
             fails.append(f"local finding missing kind tag: {l0.render()!r}")
+
+    # --- output surfaces (Уровень 1): the same finding renders for a human, a
+    #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
+    #     in the core (one checker), so the Action/script stay thin wrappers.
+    fnd = Finding(file="src/A.cs", line=42, code="OWN001", component="A",
+                  event="bus.X", handler="OnX", message="event 'bus.X' leaks (leak)",
+                  kind="subscription token")
+    checks += 1
+    gh = render_finding(fnd, "github")
+    if not gh.startswith("::error file=src/A.cs,line=42,title=OWN001::"):
+        fails.append(f"github render wrong prefix: {gh!r}")
+    if "leaks (leak) [resource: subscription token]" not in gh:
+        fails.append(f"github render missing message/tag: {gh!r}")
+    checks += 1
+    mb = render_finding(fnd, "msbuild")
+    if mb != ("src/A.cs(42): error OWN001: event 'bus.X' leaks (leak) "
+              "[resource: subscription token]"):
+        fails.append(f"msbuild render wrong: {mb!r}")
+    checks += 1
+    # an unknown format falls back to the human line (no crash).
+    if render_finding(fnd, "bogus") != fnd.render():
+        fails.append("unknown format should fall back to human render")
+    checks += 1
+    # GitHub command metacharacters in a path/message are escaped, never raw.
+    nasty = Finding(file="a,b:c.cs", line=1, code="OWN001", component="C",
+                    event="e", handler="h", message="line1\nline2 50% off",
+                    kind="timer")
+    g2 = render_finding(nasty, "github")
+    if "a%2Cb%3Ac.cs" not in g2 or "%0A" not in g2 or "50%25 off" not in g2:
+        fails.append(f"github render did not escape metacharacters: {g2!r}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

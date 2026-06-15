@@ -6,6 +6,10 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
+    python -m ownlang ownir  facts.json --format github|msbuild|human
+
+`--format` (ownir only) selects the finding surface: `human` (default CLI line),
+`github` (CI annotations on the PR diff), or `msbuild` (VS Error List).
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -181,32 +185,77 @@ def _read(path: str) -> str:
         return f.read()
 
 
-def cmd_ownir(path: str) -> int:
+def cmd_ownir(path: str, fmt: str = "human") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
-    the same core, surfacing findings at their C# locations (P-001)."""
-    from .ownir import OwnIRError, check_facts, load
+    the same core, surfacing findings at their C# locations (P-001). `fmt`
+    selects the surface: human (CLI), github (CI annotations), msbuild (VS)."""
+    from .ownir import OwnIRError, check_facts, load, render_finding
     try:
         findings = check_facts(load(path))
     except OwnIRError as e:
         # bad facts / a drifted contract: a clear one-liner, not a traceback.
         print(f"{path}: error: {e}", file=sys.stderr)
         return 2
+    # In a machine format, stdout carries only the annotations/diagnostics a host
+    # (GitHub, MSBuild/VS) parses; the human summary goes to stderr so it cannot
+    # pollute that stream.
+    machine = fmt in {"github", "msbuild"}
+    summary_to = sys.stderr if machine else sys.stdout
     for f in findings:
-        print(f.render())
+        print(render_finding(f, fmt))
     if not findings:
-        print(f"{path}: ok — no subscription leaks found")
+        print(f"{path}: ok — no subscription leaks found", file=summary_to)
     n = len(findings)
-    print(f"\n{n} finding{'s' if n != 1 else ''}.")
+    print(f"\n{n} finding{'s' if n != 1 else ''}.", file=summary_to)
     return 1 if findings else 0
 
 
+_FORMATS = {"human", "github", "msbuild"}
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) < 2 or argv[0] not in {"check", "emit", "cfg", "report", "ownir"}:
+    if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir"}:
         print(__doc__)
         return 2
-    cmd, path = argv[0], argv[1]
+    cmd = argv[0]
+    # Pull the optional `--format X` / `--format=X` flag (ownir only) out of the
+    # arguments; everything else is positional. Keeps the other commands' single
+    # positional-path contract intact.
+    fmt = "human"
+    positional: list[str] = []
+    rest = argv[1:]
+    i = 0
+    while i < len(rest):
+        a = rest[i]
+        if a == "--format":
+            if i + 1 >= len(rest):
+                print("--format requires a value: human|github|msbuild",
+                      file=sys.stderr)
+                return 2
+            fmt, i = rest[i + 1], i + 2
+            continue
+        if a.startswith("--format="):
+            fmt, i = a.split("=", 1)[1], i + 1
+            continue
+        positional.append(a)
+        i += 1
+    # exactly one positional (the path/file); zero or extra args is a usage error
+    # (a silently-ignored extra arg hides a caller mistake).
+    if len(positional) != 1:
+        print(__doc__)
+        return 2
+    if fmt not in _FORMATS:
+        print(f"unknown --format {fmt!r} (choose: {', '.join(sorted(_FORMATS))})",
+              file=sys.stderr)
+        return 2
+    if cmd != "ownir" and fmt != "human":
+        print("--format only applies to `ownir`", file=sys.stderr)
+        return 2
+    path = positional[0]
+    if cmd == "ownir":
+        return cmd_ownir(path, fmt)
     return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
-            "report": cmd_report, "ownir": cmd_ownir}[cmd](path)
+            "report": cmd_report}[cmd](path)
 
 
 if __name__ == "__main__":
