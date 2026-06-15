@@ -7,12 +7,12 @@
     <Nullable>enable</Nullable>
     <AssemblyName>ownsharp-extract</AssemblyName>
 
-    <!-- Packable as a .NET global/local tool: `dotnet pack` then
-         `dotnet tool install --global OwnSharp.Extractor` exposes the
-         `ownsharp-extract` command. NOTE: the tool is only the C# *extractor*
-         (it emits OwnIR facts.json); the verdict still comes from the Python
-         core (`python -m ownlang ownir`). The own-check script / Action chain
-         the two — there is one checker, not two. -->
+    <!-- Packable as a .NET tool: `dotnet pack`, then install it globally with
+         `dotnet tool install` (PackageId OwnSharp.Extractor) to get the
+         `ownsharp-extract` command. NOTE: the tool is only the C# extractor (it
+         emits OwnIR facts.json); the verdict still comes from the Python core
+         (`python -m ownlang ownir`). The own-check script / Action chain the
+         two. There is one checker, not two. -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>ownsharp-extract</ToolCommandName>
     <PackageId>OwnSharp.Extractor</PackageId>
