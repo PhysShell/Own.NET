@@ -693,6 +693,8 @@ ownlang/
     golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
   corpus/real-world/          # hand-reduced реальные ArrayPool-баги + expected-коды
   corpus/wpf/                 # WPF lifetime-баги (zombie-VM, use-after-dispose)
+  spec/                       # НОРМАТИВНАЯ спека: OwnCore/Buffer/Lifetimes/Diag/Codegen
+  docs/proposals/             # forward-looking RFC: P-001 C#-extractor, P-002 verif, ...
   docs/lifetimes.md           # дизайн модуля lifetimes (WPF, регионы, слайсы)
   tests/
     run_tests.py              # кейсы анализа + codegen smoke + golden smoke
@@ -702,6 +704,7 @@ ownlang/
     test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
     test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
     test_lifetimes.py         # region-escape (OWN014) + валидация lifetime-порядка
+    test_spec.py              # conformance: каждое правило spec/ срабатывает на примере
   pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
 ```
 

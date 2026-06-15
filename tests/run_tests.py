@@ -1049,10 +1049,14 @@ def run() -> int:
     import test_lifetimes
     lt_rc = test_lifetimes.run()
 
+    # Spec conformance pilot: every normative spec/ rule fires on its example.
+    import test_spec
+    spec_rc = test_spec.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc or wpf_rc or lt_rc) else 0
+                 or gl_rc or co_rc or wpf_rc or lt_rc or spec_rc) else 0
 
 
 if __name__ == "__main__":
