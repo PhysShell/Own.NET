@@ -8,19 +8,23 @@ stop aspirational docs from lying about the code.
 
 | File | Covers |
 |------|--------|
+| [Grammar.md](Grammar.md) | the surface syntax: tokens, EBNF, construct→spec map |
 | [OwnCore.md](OwnCore.md) | the affine-ownership + borrow-permission core: identity, states, loans, rules R1–R12, call boundary |
-| [BufferPolicies.md](BufferPolicies.md) | storage policies (stack/scratch/pooled/native/inline), rules B1–B7 |
+| [BufferPolicies.md](BufferPolicies.md) | storage policies (stack/scratch/pooled/native/inline), rules B1–B8, `policy` blocks |
 | [Lifetimes.md](Lifetimes.md) | lifetime regions and the region-escape theorem, rules L1–L4 |
 | [Diagnostics.md](Diagnostics.md) | every OWN code, grouped, linked to the rule that raises it |
 | [CodegenContract.md](CodegenContract.md) | the checker↔codegen contract C1–C4, lowering modes |
+| [CLI.md](CLI.md) | the `check` / `emit` / `cfg` / `report` commands |
 
 ## Spec ↔ tests (conformance)
 
 Each normative rule is backed by an executable example, so the spec and the
 checker cannot silently drift:
 
-- `tests/test_spec.py` — one canonical program per OwnCore/Lifetimes rule,
-  asserting the exact code. The conformance pilot.
+- `tests/test_spec.py` — one canonical program per normative rule
+  (OwnCore R1–R12/S8, Lifetimes L1–L3, Buffer B1/B4/B8, structural), asserting
+  the rule's code fires. ~21 distinct codes pinned; the rest (maybe-variants,
+  buffer specifics) are covered by the suites below.
 - `tests/test_gallery.py`, `tests/test_lifetimes.py`, `tests/test_wpf.py`,
   `tests/test_corpus.py` — broader pinned examples.
 

@@ -40,6 +40,18 @@ inline = 256)`. The namespace is `Buffer`; the method selects the mode.
   *requested* logical length, independent of whether the stack or pool branch is
   taken.
 
+## Buffer options and `policy` blocks
+
+A buffer-intent takes a positional `size` plus named options; a `policy P { ... }`
+block is a **reusable bundle of the same defaults**, applied by `policy = P`.
+Inline options win over the policy. Recognised keys: `inline`/`inline_bytes`,
+`max`/`max_bytes`, `fallback` (`pool`/`forbidden`), `trace`, `counters`,
+`clear`/`clear_on_release`, `sensitive`, `mode`, `policy`.
+
+- **B8 — keys are validated.** An unknown key in a `policy` block, or a malformed
+  value (e.g. `clear = ture`, `fallback = bogus`), is **OWN030** — never a silent
+  default. A duplicate key is reported too.
+
 ## Logging surfaces
 
 Under `[Conditional]` compilation symbols, codegen may emit `OwnTrace` (which

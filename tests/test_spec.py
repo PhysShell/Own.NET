@@ -96,6 +96,23 @@ CASES: list[tuple[str, str, str]] = [
     ("Lifetimes-L3", "OWN014",
      "module M\nlifetime App;\nlifetime ViewModel < App;\n"
      "fn VM(bus: EventBus lifetime App) lifetime ViewModel { subscribe self to bus; }"),
+    # buffers
+    ("Buffer-B1", "OWN015",
+     "module M\nfn f() -> Buffer { let b = Buffer.stack(16); return b; }"),
+    ("Buffer-B4", "OWN018",
+     "module M\nfn f(flag: bool) { let b = Buffer.stack(flag); }"),
+    ("Buffer-B8", "OWN030",
+     "module M\npolicy P { bogus = 1; }"),
+    # structural
+    ("Struct-OWN031", "OWN031",
+     f"module M\n{_BUF}\n"
+     "fn f() { let a = acquire Buf(); let a = acquire Buf(); release a; }"),
+    ("Struct-OWN033", "OWN033",
+     f"module M\n{_BUF}\nfn f() -> Buf {{ }}"),
+    ("Struct-OWN035", "OWN035",
+     f"module M\n{_BUF}\nfn f(n: int) -> Buf {{ return n; }}"),
+    ("Struct-OWN041", "OWN041",
+     f"module M\n{_BUF}\nextern fn Need(consume Buf);\nfn f(x: int) {{ Need(x); }}"),
 ]
 
 
