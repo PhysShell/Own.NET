@@ -22,9 +22,10 @@
 #
 # Local IDisposables are checked by default with the path-sensitive flow analysis
 # (--flow-locals): more precise (no Task/DataTable false positives; catches
-# use-after-dispose / double-dispose / leak-on-a-path, any IDisposable type) but it
-# honestly skips methods with loops / try until P-016 A1 lands. --legacy falls back
-# to the broad, name-based flat detector.
+# use-after-dispose / double-dispose / leak-on-a-path, any IDisposable type).
+# Branches and while/foreach loops are analysed (P-016 A1); methods with a
+# construct it can't model yet (for/do loops, try) are honestly skipped. --legacy
+# falls back to the broad, name-based flat detector.
 #
 # Requirements: a .NET SDK (`dotnet`) and Python 3.11+ on PATH.
 

@@ -1,0 +1,13 @@
+# Seed targets for the miner — scripts/mine.sh / .github/workflows/mine.yml.
+#
+# Well-known, permissively-licensed C# repos with IDisposable-dense code
+# (ADO.NET / streams / readers), good for stress-testing the leak detector on
+# unseen shapes. Mine ONE at a time — shallow, read-only; this is a spot-check,
+# not a crawler.
+#
+# One `owner/repo` per line; everything after `#` is a note. Verify the license
+# before doing anything beyond local analysis (e.g. reporting bugs upstream).
+DapperLib/Dapper          # micro-ORM, ADO.NET (SqlConnection/IDataReader) — closest to GTM's domain
+JoshClose/CsvHelper       # TextReader/TextWriter dense
+JamesNK/Newtonsoft.Json   # JsonReader/Writer (IDisposable), streams
+restsharp/RestSharp       # HttpClient / streams
