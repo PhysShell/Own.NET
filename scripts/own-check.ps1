@@ -32,13 +32,13 @@
 .EXAMPLE
   scripts\own-check.ps1 -Format github -Severity warning -FailOnFinding -- .
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Root,
     [string]$Format = "human",
     [string]$Severity = "error",
     [switch]$FailOnFinding,
-    [Parameter(ValueFromRemainingArguments = $true)]
+    [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
     [string[]]$Paths
 )
 
