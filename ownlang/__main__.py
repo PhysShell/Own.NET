@@ -6,10 +6,13 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
-    python -m ownlang ownir  facts.json --format github|msbuild|human
+    python -m ownlang ownir  facts.json --format github|msbuild|human [--severity error|warning]
 
 `--format` (ownir only) selects the finding surface: `human` (default CLI line),
 `github` (CI annotations on the PR diff), or `msbuild` (VS Error List).
+`--severity` (ownir only) picks how the host shows a finding — `error` (default,
+fails a build / red check) or `warning` (advisory). It is a presentation choice;
+the finding is still the core's verdict.
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -185,10 +188,11 @@ def _read(path: str) -> str:
         return f.read()
 
 
-def cmd_ownir(path: str, fmt: str = "human") -> int:
+def cmd_ownir(path: str, fmt: str = "human", severity: str = "error") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
     the same core, surfacing findings at their C# locations (P-001). `fmt`
-    selects the surface: human (CLI), github (CI annotations), msbuild (VS)."""
+    selects the surface: human (CLI), github (CI annotations), msbuild (VS);
+    `severity` picks how the host shows them (error/warning)."""
     from .ownir import OwnIRError, check_facts, load, render_finding
     try:
         findings = check_facts(load(path))
@@ -202,7 +206,7 @@ def cmd_ownir(path: str, fmt: str = "human") -> int:
     machine = fmt in {"github", "msbuild"}
     summary_to = sys.stderr if machine else sys.stdout
     for f in findings:
-        print(render_finding(f, fmt))
+        print(render_finding(f, fmt, severity))
     if not findings:
         print(f"{path}: ok — no subscription leaks found", file=summary_to)
     n = len(findings)
@@ -211,6 +215,7 @@ def cmd_ownir(path: str, fmt: str = "human") -> int:
 
 
 _FORMATS = {"human", "github", "msbuild"}
+_SEVERITIES = {"error", "warning"}
 
 
 def main(argv: list[str]) -> int:
@@ -218,24 +223,29 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     cmd = argv[0]
-    # Pull the optional `--format X` / `--format=X` flag (ownir only) out of the
-    # arguments; everything else is positional. Keeps the other commands' single
-    # positional-path contract intact.
-    fmt = "human"
+    # Pull the optional value-flags (`--format`/`--severity`, ownir only) out of
+    # the arguments in either `--flag V` or `--flag=V` form; everything else is
+    # positional. Keeps the other commands' single positional-path contract.
+    opts = {"--format": "human", "--severity": "error"}
     positional: list[str] = []
     rest = argv[1:]
     i = 0
     while i < len(rest):
         a = rest[i]
-        if a == "--format":
-            if i + 1 >= len(rest):
-                print("--format requires a value: human|github|msbuild",
-                      file=sys.stderr)
-                return 2
-            fmt, i = rest[i + 1], i + 2
-            continue
-        if a.startswith("--format="):
-            fmt, i = a.split("=", 1)[1], i + 1
+        matched = False
+        for flag in opts:
+            if a == flag:
+                if i + 1 >= len(rest):
+                    print(f"{flag} requires a value", file=sys.stderr)
+                    return 2
+                opts[flag], i = rest[i + 1], i + 2
+                matched = True
+                break
+            if a.startswith(flag + "="):
+                opts[flag], i = a.split("=", 1)[1], i + 1
+                matched = True
+                break
+        if matched:
             continue
         positional.append(a)
         i += 1
@@ -244,16 +254,21 @@ def main(argv: list[str]) -> int:
     if len(positional) != 1:
         print(__doc__)
         return 2
+    fmt, severity = opts["--format"], opts["--severity"]
     if fmt not in _FORMATS:
         print(f"unknown --format {fmt!r} (choose: {', '.join(sorted(_FORMATS))})",
               file=sys.stderr)
         return 2
-    if cmd != "ownir" and fmt != "human":
-        print("--format only applies to `ownir`", file=sys.stderr)
+    if severity not in _SEVERITIES:
+        print(f"unknown --severity {severity!r} (choose: "
+              f"{', '.join(sorted(_SEVERITIES))})", file=sys.stderr)
+        return 2
+    if cmd != "ownir" and (fmt != "human" or severity != "error"):
+        print("--format/--severity only apply to `ownir`", file=sys.stderr)
         return 2
     path = positional[0]
     if cmd == "ownir":
-        return cmd_ownir(path, fmt)
+        return cmd_ownir(path, fmt, severity)
     return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
             "report": cmd_report}[cmd](path)
 

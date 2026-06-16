@@ -54,9 +54,10 @@ and defer the native analyzer until (if ever) the core itself moves to .NET.
   files (`*.g.cs`, `*.Designer.cs`, `*.AssemblyInfo.cs`). Finding paths are
   reported relative to the working directory (forward slashes) so annotations
   point at the right file even when names collide.
-- **`scripts/own-check.sh`.** One command that chains both stages (extractor →
-  core) with `--format` and `--fail-on-finding`. The body of the Action and a
-  standalone local command.
+- **`scripts/own-check.sh`** (+ a PowerShell twin **`scripts/own-check.ps1`** for
+  Windows/VS users without bash). One command that chains both stages (extractor
+  → core) with `--format`, `--severity`, and `--fail-on-finding`. The body of the
+  Action and a standalone local command.
 - **`action.yml`** — a composite GitHub Action (`uses: PhysShell/own.net@…`):
   sets up Python + .NET, runs `own-check.sh` over the consumer's checkout,
   annotates the PR. Example consumer workflow in `examples/ci/own-check.yml`.
@@ -84,9 +85,11 @@ not overlap.
 
 ## Open questions
 
-1. MSBuild severity: emit findings as `error` (fails a parsing build) or
-   `warning` (advisory)? v0 uses `error` to match the core; the Action's
-   `fail-on-finding` already gates CI independently.
+1. ~~MSBuild severity: emit findings as `error` or `warning`?~~ **Resolved:**
+   a `--severity {error,warning}` flag (default `error`) is threaded through the
+   core renderer, `own-check.sh`/`.ps1`, and the Action's `severity` input, so a
+   build can show findings advisory (warning) without failing. The Action's
+   `fail-on-finding` still gates CI independently.
 2. Should `own-check` grow a `--baseline`/diff mode (only new findings on a PR)
    so adopting it on a legacy repo isn't an immediate wall of red?
 3. Action distribution: a moving `@main`, or tagged releases (`@v0.1.0`) +

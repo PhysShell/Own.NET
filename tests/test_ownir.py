@@ -264,6 +264,23 @@ def run() -> int:
     if "a%2Cb%3Ac.cs" not in g2 or "%0A" not in g2 or "50%25 off" not in g2:
         fails.append(f"github render did not escape metacharacters: {g2!r}")
 
+    # --severity is a presentation choice: warning renders ::warning / : warning:
+    # / warning:, error (default) is unchanged.
+    checks += 1
+    if not render_finding(fnd, "github", "warning").startswith(
+            "::warning file=src/A.cs,line=42,"):
+        fails.append("github render did not honor severity=warning")
+    checks += 1
+    if "src/A.cs(42): warning OWN001:" not in render_finding(fnd, "msbuild", "warning"):
+        fails.append("msbuild render did not honor severity=warning")
+    checks += 1
+    if "src/A.cs:42: warning: [OWN001]" not in render_finding(fnd, "human", "warning"):
+        fails.append("human render did not honor severity=warning")
+    checks += 1
+    # the default stays error (no accidental severity drift).
+    if not render_finding(fnd, "msbuild").startswith("src/A.cs(42): error OWN001:"):
+        fails.append("msbuild default severity should remain error")
+
     for f in fails:
         print(f"OWNIR FAIL: {f}")
     print(f"ownir: {checks - len(fails)}/{checks} bridge checks passed")

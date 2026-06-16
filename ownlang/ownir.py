@@ -133,35 +133,39 @@ class Finding:
     message: str
     kind: str = "subscription token"
 
-    def render(self) -> str:
-        return (f"{self.file}:{self.line}: error: [{self.code}] "
+    def render(self, severity: str = "error") -> str:
+        return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
                 f"{self.message} [resource: {self.kind}]")
 
-    def render_github(self) -> str:
+    def render_github(self, severity: str = "error") -> str:
         """A GitHub Actions workflow annotation. Printed on a CI step's stdout,
-        GitHub renders it as an inline error on the PR diff at the C# location.
-        `title` carries the OWN code; the message keeps the [resource:] tag."""
+        GitHub renders it inline on the PR diff at the C# location. `severity`
+        is the annotation level (`error`/`warning`); `title` carries the OWN
+        code; the message keeps the [resource:] tag."""
         msg = f"[{self.code}] {self.message} [resource: {self.kind}]"
-        return (f"::error file={_esc_prop(self.file)},line={self.line},"
+        return (f"::{severity} file={_esc_prop(self.file)},line={self.line},"
                 f"title={_esc_prop(self.code)}::{_esc_data(msg)}")
 
-    def render_msbuild(self) -> str:
+    def render_msbuild(self, severity: str = "error") -> str:
         """The canonical MSBuild diagnostic format `file(line): error CODE: msg`.
         `dotnet build` and the Visual Studio Error List parse exactly this, so
         the findings surface in-IDE without a Roslyn analyzer — one checker, not
-        a second one reimplemented in C#."""
-        return (f"{self.file}({self.line}): error {self.code}: "
+        a second one reimplemented in C#. `severity` picks `error`/`warning` so a
+        build can show them advisory instead of failing."""
+        return (f"{self.file}({self.line}): {severity} {self.code}: "
                 f"{self.message} [resource: {self.kind}]")
 
 
-def render_finding(f: Finding, fmt: str) -> str:
+def render_finding(f: Finding, fmt: str, severity: str = "error") -> str:
     """Render a finding in one of the supported surfaces: `human` (the default
-    CLI line), `github` (CI annotation), or `msbuild` (VS Error List)."""
+    CLI line), `github` (CI annotation), or `msbuild` (VS Error List). `severity`
+    is a presentation choice — the finding is still the core's verdict; it only
+    controls whether the host shows it as an error (default) or a warning."""
     if fmt == "github":
-        return f.render_github()
+        return f.render_github(severity)
     if fmt == "msbuild":
-        return f.render_msbuild()
-    return f.render()
+        return f.render_msbuild(severity)
+    return f.render(severity)
 
 
 def load(path: str) -> dict[str, Any]:

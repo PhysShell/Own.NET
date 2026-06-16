@@ -36,6 +36,9 @@ add a dependency.
 
 # CI annotations; non-zero exit on any finding
 "$OWN/scripts/own-check.sh" --format github --fail-on-finding -- .
+
+# advisory: render findings as warnings (won't fail a build)
+"$OWN/scripts/own-check.sh" --format msbuild --severity warning -- path/to/your/Project
 ```
 
 `own-check.sh` walks the path for `*.cs` (skipping `bin`/`obj`/`.git`/
@@ -90,7 +93,7 @@ a `.csproj`):
   </PropertyGroup>
 
   <Target Name="OwnNetLeakCheck" BeforeTargets="Build">
-    <Exec Command="bash &quot;$(OwnNetRoot)/scripts/own-check.sh&quot; --format msbuild -- &quot;$(MSBuildProjectDirectory)&quot;"
+    <Exec Command="bash &quot;$(OwnNetRoot)/scripts/own-check.sh&quot; --format msbuild --severity warning -- &quot;$(MSBuildProjectDirectory)&quot;"
           ContinueOnError="true" />
   </Target>
 </Project>
@@ -100,17 +103,11 @@ The MSBuild `Exec` task scans the command's output for canonical diagnostic
 lines and raises them as build diagnostics, so they land in the **Error List**
 and the build log without any analyzer.
 
-**Severity today:** the core emits findings as `error`, so with `Exec` they
-surface as build **errors** (and fail the build). If you want them advisory,
-either keep Option A (on-demand), or downgrade the severity inline by rewriting
-the stream:
-
-```xml
-<Exec Command="bash &quot;$(OwnNetRoot)/scripts/own-check.sh&quot; --format msbuild -- &quot;$(MSBuildProjectDirectory)&quot; | sed 's/: error OWN/: warning OWN/'"
-      ContinueOnError="true" />
-```
-
-(A first-class `--severity warning` switch is a tracked open question in P-013.)
+**Severity:** `--severity` chooses how the host shows a finding. The target
+above uses `--severity warning` so findings are **advisory** — they appear in
+the Error List but don't fail the build, which is what you want on every
+inner-loop build. Drop `--severity warning` (the default is `error`) if you'd
+rather a leak break the build, e.g. on a release/CI configuration.
 
 > Note: this runs the extractor build (`dotnet run`) as part of your build, which
 > adds a few seconds. For large solutions prefer Option A or the CI job (§3) over
@@ -133,20 +130,20 @@ example in [`examples/ci/own-check.yml`](../examples/ci/own-check.yml)):
 Findings appear as inline `error` annotations on the changed lines, and the
 check goes red. This is the path that needs no local setup at all.
 
-## 4. Windows without bash (raw two-command form)
+## 4. Windows without bash (PowerShell)
 
-`own-check.sh` is a thin convenience wrapper. If you have no bash, chain the two
-stages yourself (PowerShell):
+If you have no bash, use the bundled PowerShell twin — same flags, same output,
+no shell dependency:
 
 ```powershell
-$facts = New-TemporaryFile
-dotnet run --project "$OWN\frontend\roslyn\OwnSharp.Extractor" -- . -o $facts.FullName
-$env:PYTHONPATH = $OWN
-python -m ownlang ownir $facts.FullName --format msbuild
+& "$OWN\scripts\own-check.ps1" -Format msbuild -- src\MyApp
+& "$OWN\scripts\own-check.ps1" -Format github -Severity warning -FailOnFinding -- .
 ```
 
-Same output, no shell dependency — drop this into a `.ps1` and point a Visual
-Studio External Tool (or an MSBuild `Exec`) at `powershell -File …`.
+Point a Visual Studio External Tool (§2A) at `powershell.exe` with arguments
+`-File "<OWN>\scripts\own-check.ps1" -Format msbuild -- "$(ProjectDir)"`, or an
+MSBuild `Exec` (§2B) at `powershell -File "$(OwnNetRoot)\scripts\own-check.ps1" …`,
+instead of the bash command.
 
 ## Caveats
 
