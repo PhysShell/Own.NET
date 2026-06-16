@@ -35,10 +35,16 @@ string? outPath = null;
 // (e.g. to run only the disposable/pool detectors); it is the first instance of
 // the broader check-selection surface tracked in P-015.
 bool emitEvents = true;
+// --flow-locals (P-016 B0b/B2, EXPERIMENTAL, default off): emit per-method flow
+// facts for non-escaping local IDisposables (acquire/use/release/if/return over a
+// CFG) so the core checks them path-sensitively (OWN001/002/003). Supersedes the
+// flat D1 local-disposable detector when on. Default off keeps the shipped surface.
+bool flowLocals = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
     else if (args[i] == "--no-event-leaks") emitEvents = false;
+    else if (args[i] == "--flow-locals") flowLocals = true;
     else rawInputs.Add(args[i]);
 }
 
@@ -144,6 +150,114 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
     IsHandler(right)
         && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
 
+// --- P-016 B0b/B2: flow lowering for local IDisposables (experimental) ---
+
+// A type that implements System.IDisposable (semantic) — the flow lowering tracks
+// locals of such types.
+static bool ImplementsIDisposable(ITypeSymbol? t) =>
+    t is not null
+    && ((t.Name == "IDisposable" && t.ContainingNamespace?.ToString() == "System")
+        || t.AllInterfaces.Any(i => i.Name == "IDisposable"
+                                    && i.ContainingNamespace?.ToString() == "System"));
+
+// Types that implement IDisposable but whose disposal is conventionally OPTIONAL —
+// the .NET guidance / Roslyn CA2000 exempt them: Task/ValueTask only hold a
+// lazily-allocated wait handle, and the System.Data containers' Dispose() is a
+// no-op. The flow detector must not flag an undisposed local of these (this is the
+// curated exemption the flat D1 detector gets for free via IsDisposableType, which
+// is exactly why D1 never flagged Task/DataTable and the semantic path did).
+static bool IsDisposeOptional(ITypeSymbol t)
+{
+    var ns = t.ContainingNamespace?.ToString();
+    return (ns == "System.Threading.Tasks" && t.Name is "Task" or "ValueTask")
+        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
+}
+
+static string MethodName(BaseMethodDeclarationSyntax m) => m switch
+{
+    MethodDeclarationSyntax md => md.Identifier.Text,
+    ConstructorDeclarationSyntax => ".ctor",
+    _ => "?",
+};
+
+// Lower a method block to OwnIR flow nodes (acquire/use/release/if/return) for the
+// `tracked` local IDisposables. Returns null on any UNMODELLED statement
+// (loop/try/switch/...): the method is then honestly skipped, not guessed.
+static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
+{
+    var nodes = new List<object>();
+    foreach (var st in block.Statements)
+        if (!LowerFlowStmt(st, tracked, nodes))
+            return null;
+    return nodes;
+}
+
+static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<object> nodes)
+{
+    switch (st)
+    {
+        case BlockSyntax b:
+            foreach (var s2 in b.Statements)
+                if (!LowerFlowStmt(s2, tracked, nodes))
+                    return false;
+            return true;
+        case LocalDeclarationStatementSyntax ld:
+            if (ld.UsingKeyword == default)
+                foreach (var v in ld.Declaration.Variables)
+                    if (tracked.Contains(v.Identifier.Text)
+                        && v.Initializer?.Value is ObjectCreationExpressionSyntax
+                                                or ImplicitObjectCreationExpressionSyntax)
+                        nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
+            return true;
+        case ExpressionStatementSyntax es:
+            EmitFlowExpr(es.Expression, tracked, nodes);
+            return true;
+        case IfStatementSyntax ifs:
+        {
+            var thenNodes = new List<object>();
+            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes))
+                return false;
+            var elseNodes = new List<object>();
+            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes))
+                return false;
+            nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
+            return true;
+        }
+        case UsingStatementSyntax us:
+            // using(...) {body}: the using local is auto-disposed (untracked); still
+            // lower the body so a tracked plain local used inside is seen.
+            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes);
+        case ReturnStatementSyntax rs:
+            // a tracked local never escapes (excluded), so a returned value is not a
+            // tracked resource — model it as a bare return (a CFG exit edge).
+            nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
+            return true;
+        default:
+            return false;   // unmodelled (loop/try/switch/...) -> bail the method
+    }
+}
+
+static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<object> nodes)
+{
+    // x.Dispose()/x.Close() on a tracked local -> release.
+    if (expr is InvocationExpressionSyntax inv
+        && inv.Expression is MemberAccessExpressionSyntax ma
+        && ma.Name.Identifier.Text is "Dispose" or "Close"
+        && ma.Expression is IdentifierNameSyntax rid
+        && tracked.Contains(rid.Identifier.Text))
+    {
+        nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
+        return;
+    }
+    // any other reference to a tracked local -> use (once per local in this expr).
+    var used = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+        if (tracked.Contains(idn.Identifier.Text))
+            used.Add(idn.Identifier.Text);
+    foreach (var u in used)
+        nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
+}
+
 // The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
 static string? FieldName(ExpressionSyntax expr) => expr switch
 {
@@ -165,6 +279,8 @@ static bool IsDisposableType(string t) =>
     || t.EndsWith("Subscription");
 
 var components = new List<object>();
+// P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
+var flowFunctions = new List<object>();
 
 // Parse every input into a syntax tree first (keeping the file path we report
 // it under), then build ONE compilation over all of them so the SemanticModel
@@ -385,7 +501,9 @@ foreach (var (file, tree) in parsed)
         // D1 (P-005): a local IDisposable the method `new`s but never disposes,
         // not guarded by `using`, and not handed out (returned / passed as an
         // argument / assigned out) — ownership transfer is ambiguous syntactically
-        // (P-005 D5), so those are conservatively excluded. Per member.
+        // (P-005 D5), so those are conservatively excluded. Per member. Suppressed
+        // under --flow-locals, where the path-sensitive flow detector supersedes it.
+        if (!flowLocals)
         foreach (var member in cls.Members)
         {
             var usingGuarded = new HashSet<string>();
@@ -436,6 +554,51 @@ foreach (var (file, tree) in parsed)
             }
         }
 
+        // P-016 B0b/B2 (--flow-locals): per-method flow facts for non-escaping local
+        // IDisposables. The core checks them path-sensitively (OWN001/002/003).
+        // Methods with an unmodelled construct (loop/try/switch) are honestly skipped.
+        if (flowLocals)
+            foreach (var method in cls.Members.OfType<BaseMethodDeclarationSyntax>())
+            {
+                if (method.Body is not { } mbody)
+                    continue;
+                var candidates = new HashSet<string>();
+                foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+                {
+                    if (ld.UsingKeyword != default)
+                        continue;
+                    foreach (var v in ld.Declaration.Variables)
+                        if (v.Initializer is { Value: ObjectCreationExpressionSyntax
+                                                   or ImplicitObjectCreationExpressionSyntax } init
+                            && model.GetTypeInfo(init.Value).Type is { } dt
+                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
+                            candidates.Add(v.Identifier.Text);
+                }
+                if (candidates.Count == 0)
+                    continue;
+                // a local that escapes (returned / passed as arg / assigned out) is
+                // conservatively not tracked — its disposal may be the callee's job.
+                var escapedLocals = new HashSet<string>();
+                foreach (var idn in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+                    if (candidates.Contains(idn.Identifier.Text)
+                        && (idn.Parent is ReturnStatementSyntax or ArgumentSyntax
+                            || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)))
+                        escapedLocals.Add(idn.Identifier.Text);
+                var tracked = new HashSet<string>(candidates);
+                tracked.ExceptWith(escapedLocals);
+                if (tracked.Count == 0)
+                    continue;
+                var fbody = LowerFlowBody(mbody, tracked);
+                if (fbody is null || fbody.Count == 0)
+                    continue;
+                flowFunctions.Add(new
+                {
+                    name = $"{cls.Identifier.Text}.{MethodName(method)}",
+                    file,
+                    body = fbody,
+                });
+            }
+
         if (subs.Count > 0)
             components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
     }
@@ -443,7 +606,7 @@ foreach (var (file, tree) in parsed)
 
 // ownir_version stamps the fact-schema vocabulary; the Python core rejects a
 // mismatch loudly (ownlang/ownir.py OWNIR_VERSION) rather than mis-reading facts.
-var facts = new { ownir_version = 0, module = "Extracted", components };
+var facts = new { ownir_version = 0, module = "Extracted", components, functions = flowFunctions };
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
 
 if (outPath is null) Console.WriteLine(json);

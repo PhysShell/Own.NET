@@ -187,6 +187,57 @@ jobs:
             echo "FAIL: a static-handler subscription was wrongly reported"; exit 1
           fi
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
+      - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
+        run: |
+          # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
+          # detector cannot catch (use-after-dispose, double-dispose, leak-on-path).
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/FlowLocalsSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 (leak on a path)"; exit 1; }
+          echo "$out" | grep -q "OWN003" || { echo "FAIL: expected OWN003 (double-dispose)"; exit 1; }
+          # a real Timer leak the flat curated allowlist misses but the semantic path catches:
+          echo "$out" | grep -q "OWN001.*'realTimer'" || { echo "FAIL: expected OWN001 on the leaked Timer"; exit 1; }
+          # the OWN001 wording splits on whether the local was released anywhere: the
+          # Timer is released on no path -> "is never disposed"; LeakOnElse's `leak` is
+          # released on the then-branch only -> "may not be disposed on every path".
+          echo "$out" | grep -qE "'realTimer' is never disposed" \
+            || { echo "FAIL: expected the never-disposed wording for the 0-release Timer"; exit 1; }
+          echo "$out" | grep -qE "'leak' may not be disposed on every path" \
+            || { echo "FAIL: expected the partial-path wording for LeakOnElse"; exit 1; }
+          # dispose-optional (Task) and disposed/loopy/escaping locals must stay silent:
+          for ok in clean looped esc exemptTask; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
+          done
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: Escape-via-projection leak — GTM UnitOfWork (--flow-locals, P-016 B0b/B2)
+        run: |
+          # A real GTM leak the flat detector misses: a UnitOfWork (IDisposable) used
+          # ONLY through member access to build a returned DEFERRED IQueryable. The
+          # bare `uow` never escapes, so it stays tracked and is disposed on no path
+          # -> OWN001. Crucially NOT fixable by a naive `using` (the deferred query
+          # would run after dispose) — the `using var`+materialize fix (uowFixed) is
+          # the one that must stay silent.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/UnitOfWorkFlowSample.cs --flow-locals -o "$RUNNER_TEMP/uow.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/uow.json" || true)
+          echo "$out"
+          # `uow` is released on no path, so the OWN001 reads "is never disposed".
+          echo "$out" | grep -qE "OWN001.*'uow' is never disposed" \
+            || { echo "FAIL: expected OWN001 'is never disposed' on UnitOfWork 'uow'"; exit 1; }
+          echo "$out" | grep -q "UnitOfWorkFlowSample.cs" \
+            || { echo "FAIL: expected the finding at the C# sample location"; exit 1; }
+          # the three correct fixes must stay silent: materialize inside `using`
+          # (uowFixed), and ownership TRANSFERRED to the caller — returned (uowOwned)
+          # or moved out as an argument (uowMoved).
+          for ok in uowFixed uowOwned uowMoved; do
+            if echo "$out" | grep -q "'$ok'"; then
+              echo "FAIL: a correct fix ('$ok') was wrongly reported as a leak"; exit 1
+            fi
+          done
+          echo "OK: escape-via-projection UnitOfWork leak -> OWN001 'never disposed'; materialize + ownership-transfer fixes stay silent"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the

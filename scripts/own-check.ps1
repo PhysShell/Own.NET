@@ -26,6 +26,13 @@
   analysis skipped" notes, P-014 Tier A), normal (default), or verbose (also a
   per-code breakdown).
 
+.PARAMETER Legacy
+  Use the legacy flat local-IDisposable detector instead of the default
+  path-sensitive flow analysis (--flow-locals). The flow analysis is more precise
+  (no Task/DataTable false positives; catches use-after-dispose / double-dispose /
+  leak-on-a-path, and any IDisposable type) but honestly skips methods with loops /
+  try until P-016 A1 lands. -Legacy is the broad, name-based fallback.
+
 .PARAMETER FailOnFinding
   Exit non-zero (the core's code) when any leak is found.
 
@@ -44,6 +51,7 @@ param(
     [string]$Severity = "error",
     [ValidateSet("quiet", "normal", "verbose")]
     [string]$Verbosity = "normal",
+    [switch]$Legacy,
     [switch]$FailOnFinding,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Paths
@@ -65,8 +73,11 @@ $facts = New-TemporaryFile
 try {
     # Stage 1: extract facts. dotnet's build chatter is sent to the host (not
     # stdout) so stdout stays clean for the host-parseable findings; -o writes
-    # the facts to a file.
-    & dotnet run --project $extractor -- @Paths -o $facts.FullName 1>$null
+    # the facts to a file. Default: the path-sensitive flow detector for local
+    # IDisposables (--flow-locals); -Legacy keeps the flat name-based detector.
+    $exArgs = @($Paths) + @("-o", $facts.FullName)
+    if (-not $Legacy) { $exArgs += "--flow-locals" }
+    & dotnet run --project $extractor -- @exArgs 1>$null
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     # Stage 2: the one checker produces the verdict at the C# location.

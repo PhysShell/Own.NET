@@ -48,6 +48,10 @@ _POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                              "ownir", "pool.facts.json")
 _LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "local_disposable.facts.json")
+_UOW_FLOW_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                 "ownir", "unitofwork_flow.facts.json")
+_LEAK_ON_ELSE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                     "ownir", "flow_leak_on_else.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -237,6 +241,62 @@ def run() -> int:
             fails.append(f"local message missing text/type: {l0.message!r}")
         if "[resource: disposable]" not in l0.render():
             fails.append(f"local finding missing kind tag: {l0.render()!r}")
+
+    # --- P-016 B0b/B2 escape-via-projection (the GTM UnitOfWork case): a local
+    #     IDisposable created and captured ONLY through member access into a returned
+    #     DEFERRED query is still a leak — the bare handle never escapes, so the flow
+    #     detector keeps it tracked and it is disposed on no path -> OWN001 on the
+    #     local. Distilled from CatalogService.GetProductsFromCatalogWODocuments; pins
+    #     that the projection capture does NOT mask the leak (a naive `using` cannot
+    #     fix it, so the find must survive). `uow` is released on no path, so the
+    #     OWN001 reads "is never disposed" (not the partial-path wording). Tag
+    #     [resource: disposable].
+    with open(_UOW_FLOW_FIXTURE, encoding="utf-8") as f:
+        wfacts = json.load(f)
+    wfindings = check_facts(wfacts)
+    checks += 1
+    if len(wfindings) != 1 or wfindings[0].code != "OWN001":
+        fails.append(f"expected 1 flow OWN001 (UnitOfWork 'uow'), got "
+                     f"{[(x.event, x.code) for x in wfindings]}")
+    else:
+        w0 = wfindings[0]
+        checks += 1
+        if (w0.file, w0.line, w0.code) != ("UnitOfWorkFlowSample.cs", 26, "OWN001"):
+            fails.append(f"wrong uow location/code: {w0.file}:{w0.line} {w0.code}")
+        if w0.event != "uow" or \
+                w0.component != "CatalogService.GetProductsFromCatalogWODocuments":
+            fails.append(f"wrong uow local/component: {w0.event!r}/{w0.component!r}")
+        if "is never disposed" not in w0.message or "uow" not in w0.message:
+            fails.append(f"uow message wrong (want 'is never disposed'): {w0.message!r}")
+        # a 0-release leak must NOT borrow the partial-path wording.
+        if "every path" in w0.message:
+            fails.append(f"uow (0 releases) wrongly used the partial-path wording: "
+                         f"{w0.message!r}")
+        if "[resource: disposable]" not in w0.render():
+            fails.append(f"uow finding missing kind tag: {w0.render()!r}")
+
+    # --- the other OWN001 wording: a local released on SOME branch but leaked on
+    #     another (the LeakOnElse shape) reads "may not be disposed on every path",
+    #     NOT "never disposed" — the everReleased split (extractor flow body has a
+    #     release of this local somewhere) chooses between the two phrasings.
+    with open(_LEAK_ON_ELSE_FIXTURE, encoding="utf-8") as f:
+        efacts = json.load(f)
+    efindings = check_facts(efacts)
+    checks += 1
+    if len(efindings) != 1 or efindings[0].code != "OWN001":
+        fails.append(f"expected 1 flow OWN001 (LeakOnElse 'leak'), got "
+                     f"{[(x.event, x.code) for x in efindings]}")
+    else:
+        e0 = efindings[0]
+        checks += 1
+        if (e0.file, e0.line) != ("FlowLocalsSample.cs", 23):
+            fails.append(f"wrong leak-on-else location: {e0.file}:{e0.line}")
+        if "may not be disposed on every path" not in e0.message:
+            fails.append(f"leak-on-else message wrong (want partial-path): "
+                         f"{e0.message!r}")
+        if "is never disposed" in e0.message:
+            fails.append(f"partial-release leak wrongly used the never-disposed "
+                         f"wording: {e0.message!r}")
 
     # --- DI001 captive dependency (P-006): a singleton capturing a scoped
     #     service (directly or through a transient) is flagged at its

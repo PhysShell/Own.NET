@@ -1,0 +1,78 @@
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+// P-016 B0b/B2 (experimental, --flow-locals): path-sensitive flow analysis of
+// local IDisposables. These are bugs the flat D1 detector cannot catch (it only
+// asks "disposed anywhere?"). Distinct local names let CI assert each verdict.
+public class FlowLocalsSample
+{
+    // OWN002: used after Dispose()
+    public void UseAfterDispose()
+    {
+        var uad = new MemoryStream();
+        uad.WriteByte(1);
+        uad.Dispose();
+        uad.WriteByte(2);
+    }
+
+    // OWN001: disposed only on the `then` path -> leaks on the else path
+    public void LeakOnElse(bool c)
+    {
+        var leak = new MemoryStream();
+        if (c)
+        {
+            leak.Dispose();
+        }
+    }
+
+    // OWN003: disposed twice
+    public void DoubleDispose()
+    {
+        var dbl = new MemoryStream();
+        dbl.Dispose();
+        dbl.Dispose();
+    }
+
+    // clean: disposed on all paths -> silent
+    public void Clean()
+    {
+        var clean = new MemoryStream();
+        clean.WriteByte(1);
+        clean.Dispose();
+    }
+
+    // has a loop -> method honestly skipped (no flow finding)
+    public void HasLoop()
+    {
+        var looped = new MemoryStream();
+        for (int i = 0; i < 3; i++) { looped.WriteByte((byte)i); }
+        looped.Dispose();
+    }
+
+    // escapes (returned) -> not tracked
+    public Stream Escapes()
+    {
+        var esc = new MemoryStream();
+        return esc;
+    }
+
+    // dispose-optional: Task is IDisposable but disposing it is unnecessary
+    // (CA2000-exempt) -> silent, not a leak.
+    public void TaskIsExempt()
+    {
+        var exemptTask = new Task(() => { });
+        exemptTask.Start();
+    }
+
+    // real leak: System.Threading.Timer owns an unmanaged timer-queue handle and
+    // MUST be disposed (not dispose-optional) -> OWN001. The flat detector misses
+    // this (Timer is absent from its curated allowlist); the semantic flow path
+    // catches it.
+    public void TimerLeaks()
+    {
+        var realTimer = new Timer(_ => { });
+        realTimer.Change(0, 1000);
+    }
+}

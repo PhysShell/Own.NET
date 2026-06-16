@@ -12,13 +12,19 @@
 #
 # Usage:
 #   scripts/own-check.sh [--format human|github|msbuild] [--severity error|warning]
-#                        [--fail-on-finding] [--root <own.net checkout>]
+#                        [--fail-on-finding] [--legacy] [--root <own.net checkout>]
 #                        [--] <path|file> [more ...]
 #
 # Defaults: --format human, --severity error, scans ".", does not fail the shell
 # on findings, --root is the repo this script lives in. --severity picks how a
 # host shows findings (warning = advisory). With --fail-on-finding the exit code
 # is the core's (1 = leaks found). A hard error (bad facts) always exits non-zero.
+#
+# Local IDisposables are checked by default with the path-sensitive flow analysis
+# (--flow-locals): more precise (no Task/DataTable false positives; catches
+# use-after-dispose / double-dispose / leak-on-a-path, any IDisposable type) but it
+# honestly skips methods with loops / try until P-016 A1 lands. --legacy falls back
+# to the broad, name-based flat detector.
 #
 # Requirements: a .NET SDK (`dotnet`) and Python 3.11+ on PATH.
 
@@ -28,6 +34,7 @@ root=""
 format="human"
 severity="error"
 fail_on_finding=0
+legacy=0
 paths=()
 
 while [[ $# -gt 0 ]]; do
@@ -42,6 +49,7 @@ while [[ $# -gt 0 ]]; do
       [[ $# -ge 2 ]] || { echo "own-check: --severity requires a value" >&2; exit 2; }
       severity="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
+    --legacy)          legacy=1; shift ;;
     --)                shift; while [[ $# -gt 0 ]]; do paths+=("$1"); shift; done ;;
     -h|--help)         sed -n '2,30p' "$0"; exit 0 ;;
     *)                 paths+=("$1"); shift ;;
@@ -62,7 +70,11 @@ trap 'rm -f "$facts"' EXIT
 
 # Stage 1: extract facts. dotnet's build/run chatter goes to stderr so stdout
 # stays clean for the host-parseable findings (-o writes the facts to a file).
-dotnet run --project "$extractor" -- "${paths[@]}" -o "$facts" 1>&2
+# Default: the path-sensitive flow detector for local IDisposables (--flow-locals);
+# --legacy keeps the flat name-based detector.
+extractor_args=("${paths[@]}" -o "$facts")
+[[ "$legacy" -eq 0 ]] && extractor_args+=(--flow-locals)
+dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
 
 # Stage 2: the one checker produces the verdict at the C# location.
 set +e
