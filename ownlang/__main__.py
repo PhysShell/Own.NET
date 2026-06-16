@@ -227,6 +227,7 @@ def main(argv: list[str]) -> int:
     # the arguments in either `--flag V` or `--flag=V` form; everything else is
     # positional. Keeps the other commands' single positional-path contract.
     opts = {"--format": "human", "--severity": "error"}
+    seen_value_flags = False
     positional: list[str] = []
     rest = argv[1:]
     i = 0
@@ -239,11 +240,11 @@ def main(argv: list[str]) -> int:
                     print(f"{flag} requires a value", file=sys.stderr)
                     return 2
                 opts[flag], i = rest[i + 1], i + 2
-                matched = True
+                seen_value_flags = matched = True
                 break
             if a.startswith(flag + "="):
                 opts[flag], i = a.split("=", 1)[1], i + 1
-                matched = True
+                seen_value_flags = matched = True
                 break
         if matched:
             continue
@@ -263,7 +264,10 @@ def main(argv: list[str]) -> int:
         print(f"unknown --severity {severity!r} (choose: "
               f"{', '.join(sorted(_SEVERITIES))})", file=sys.stderr)
         return 2
-    if cmd != "ownir" and (fmt != "human" or severity != "error"):
+    # `--format`/`--severity` are ownir-only — reject them on other commands by
+    # *presence*, not just non-default value (so `check x --format human` is a
+    # clear error, not a silent no-op).
+    if cmd != "ownir" and seen_value_flags:
         print("--format/--severity only apply to `ownir`", file=sys.stderr)
         return 2
     path = positional[0]
