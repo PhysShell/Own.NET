@@ -311,7 +311,8 @@ def run() -> int:
     wlfindings = check_facts(wlfacts)
     checks += 1
     codes = sorted({x.code for x in wlfindings})
-    if codes != ["OWN001", "OWN003"] or any(x.event != "c" for x in wlfindings):
+    if len(wlfindings) != 2 or codes != ["OWN001", "OWN003"] \
+            or any(x.event != "c" for x in wlfindings):
         fails.append(f"expected cross-iteration OWN001+OWN003 on 'c', got "
                      f"{[(x.event, x.code) for x in wlfindings]}")
     else:
