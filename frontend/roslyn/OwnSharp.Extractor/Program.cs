@@ -265,10 +265,14 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
 
 static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<object> nodes)
 {
-    // x.Dispose()/x.Close() on a tracked local -> release.
+    // `await x.DisposeAsync()` is the IAsyncDisposable release — look through the
+    // await to the inner call so it counts as disposal, not a bare use.
+    if (expr is AwaitExpressionSyntax awaited)
+        expr = awaited.Expression;
+    // x.Dispose()/x.Close()/x.DisposeAsync() on a tracked local -> release.
     if (expr is InvocationExpressionSyntax inv
         && inv.Expression is MemberAccessExpressionSyntax ma
-        && ma.Name.Identifier.Text is "Dispose" or "Close"
+        && ma.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
         && ma.Expression is IdentifierNameSyntax rid
         && tracked.Contains(rid.Identifier.Text))
     {
@@ -449,6 +453,11 @@ foreach (var (file, tree) in parsed)
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
+            // a `static` IDisposable field is a process-lifetime singleton (a shared
+            // HttpClient, a sentinel like Dapper's DisposedReader.Instance) — it is
+            // intentionally never disposed, so it is not an owned leak.
+            if (fd.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+                continue;
             var tname = fd.Declaration.Type.ToString();
             if (!IsDisposableType(tname))
                 continue;

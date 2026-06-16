@@ -149,6 +149,11 @@ jobs:
           if echo "$out" | grep -q "CleanReportViewModel"; then
             echo "FAIL: disposed field wrongly reported"; exit 1
           fi
+          # a static IDisposable field is a process-lifetime singleton (Dapper's
+          # DisposedReader.Instance) — never an owned leak, so it stays silent.
+          if echo "$out" | grep -q "SharedTokenHolder"; then
+            echo "FAIL: a static singleton IDisposable field was wrongly reported"; exit 1
+          fi
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
@@ -216,7 +221,8 @@ jobs:
           # dispose-optional (Task), disposed/escaping locals, a `for` loop (still
           # skipped: `looped`), and a balanced acquire+dispose in a loop (`whileClean`)
           # must stay silent:
-          for ok in clean looped esc exemptTask whileClean; do
+          # `asyncDisposed` is released via `await x.DisposeAsync()` -> must stay silent.
+          for ok in clean looped esc exemptTask whileClean asyncDisposed; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

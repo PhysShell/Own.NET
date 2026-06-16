@@ -113,4 +113,15 @@ public class FlowLocalsSample
         var realTimer = new Timer(_ => { });
         realTimer.Change(0, 1000);
     }
+
+    // `await x.DisposeAsync()` is the IAsyncDisposable release and must count as
+    // disposal, not a leak. Reduced from Dapper's WrappedReaderTests
+    // (DbWrappedReader_DisposeAsync_DoesNotThrow), a false positive found by mining.
+    // Silent.
+    public async Task DisposedAsync()
+    {
+        var asyncDisposed = new MemoryStream();
+        asyncDisposed.WriteByte(1);
+        await asyncDisposed.DisposeAsync();
+    }
 }

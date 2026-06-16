@@ -30,3 +30,11 @@ public sealed class CleanReportViewModel : IDisposable
         _cts.Dispose();   // release
     }
 }
+
+// A `static` IDisposable field has process lifetime — it is intentionally never
+// disposed (a shared HttpClient, or a sentinel like Dapper's DisposedReader.Instance,
+// a false positive found by mining). The detector must NOT flag it -> silent.
+public sealed class SharedTokenHolder
+{
+    public static readonly CancellationTokenSource Shared = new();
+}
