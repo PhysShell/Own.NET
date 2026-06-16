@@ -198,10 +198,13 @@ jobs:
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
           echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 (leak on a path)"; exit 1; }
           echo "$out" | grep -q "OWN003" || { echo "FAIL: expected OWN003 (double-dispose)"; exit 1; }
-          for ok in clean looped esc; do
-            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent case '$ok' was reported"; exit 1; fi
+          # a real Timer leak the flat curated allowlist misses but the semantic path catches:
+          echo "$out" | grep -q "OWN001.*'realTimer'" || { echo "FAIL: expected OWN001 on the leaked Timer"; exit 1; }
+          # dispose-optional (Task) and disposed/loopy/escaping locals must stay silent:
+          for ok in clean looped esc exemptTask; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
-          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, beyond the flat detector)"
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, dispose-optional exempt, beyond flat)"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the

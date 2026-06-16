@@ -160,6 +160,19 @@ static bool ImplementsIDisposable(ITypeSymbol? t) =>
         || t.AllInterfaces.Any(i => i.Name == "IDisposable"
                                     && i.ContainingNamespace?.ToString() == "System"));
 
+// Types that implement IDisposable but whose disposal is conventionally OPTIONAL —
+// the .NET guidance / Roslyn CA2000 exempt them: Task/ValueTask only hold a
+// lazily-allocated wait handle, and the System.Data containers' Dispose() is a
+// no-op. The flow detector must not flag an undisposed local of these (this is the
+// curated exemption the flat D1 detector gets for free via IsDisposableType, which
+// is exactly why D1 never flagged Task/DataTable and the semantic path did).
+static bool IsDisposeOptional(ITypeSymbol t)
+{
+    var ns = t.ContainingNamespace?.ToString();
+    return (ns == "System.Threading.Tasks" && t.Name is "Task" or "ValueTask")
+        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
+}
+
 static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 {
     MethodDeclarationSyntax md => md.Identifier.Text,
@@ -557,7 +570,8 @@ foreach (var (file, tree) in parsed)
                     foreach (var v in ld.Declaration.Variables)
                         if (v.Initializer is { Value: ObjectCreationExpressionSyntax
                                                    or ImplicitObjectCreationExpressionSyntax } init
-                            && ImplementsIDisposable(model.GetTypeInfo(init.Value).Type))
+                            && model.GetTypeInfo(init.Value).Type is { } dt
+                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
                             candidates.Add(v.Identifier.Text);
                 }
                 if (candidates.Count == 0)

@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 // P-016 B0b/B2 (experimental, --flow-locals): path-sensitive flow analysis of
 // local IDisposables. These are bugs the flat D1 detector cannot catch (it only
@@ -54,5 +56,23 @@ public class FlowLocalsSample
     {
         var esc = new MemoryStream();
         return esc;
+    }
+
+    // dispose-optional: Task is IDisposable but disposing it is unnecessary
+    // (CA2000-exempt) -> silent, not a leak.
+    public void TaskIsExempt()
+    {
+        var exemptTask = new Task(() => { });
+        exemptTask.Start();
+    }
+
+    // real leak: System.Threading.Timer owns an unmanaged timer-queue handle and
+    // MUST be disposed (not dispose-optional) -> OWN001. The flat detector misses
+    // this (Timer is absent from its curated allowlist); the semantic flow path
+    // catches it.
+    public void TimerLeaks()
+    {
+        var realTimer = new Timer(_ => { });
+        realTimer.Change(0, 1000);
     }
 }
