@@ -1,6 +1,11 @@
 # P-016 — Deep C# fact extraction: CFG + flow lowering
 
-- **Status:** draft (P1 — the "make the core actually bite real C#" track)
+- **Status:** draft (P1 — the "make the core actually bite real C#" track). **B0a
+  done** (direct `Module`, no re-parse). **B0b+B2 spike landed** (experimental
+  `--flow-locals`): real C# → CFG flow facts → core → path-sensitive OWN001/002/003
+  on local IDisposables — proven on `samples/FlowLocalsSample.cs`, run clean over
+  GTM. Not yet graduated (default off; no `OWNIR_VERSION` bump; loops still skipped;
+  GTM delta untriaged). A1 (loops) and graduation are next.
 - **Depends on:**
   - [P-014](P-014-semantic-resolution.md) Tier A — the `SemanticModel` (**DONE**).
     The hard prerequisite: typed ownership facts are impossible without binding.

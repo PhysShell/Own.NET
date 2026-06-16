@@ -187,6 +187,21 @@ jobs:
             echo "FAIL: a static-handler subscription was wrongly reported"; exit 1
           fi
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
+      - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
+        run: |
+          # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
+          # detector cannot catch (use-after-dispose, double-dispose, leak-on-path).
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/FlowLocalsSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 (leak on a path)"; exit 1; }
+          echo "$out" | grep -q "OWN003" || { echo "FAIL: expected OWN003 (double-dispose)"; exit 1; }
+          for ok in clean looped esc; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent case '$ok' was reported"; exit 1; fi
+          done
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, beyond the flat detector)"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
