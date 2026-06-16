@@ -209,6 +209,15 @@ jobs:
           echo "--- diagnostics ---"; echo "$out"; echo "-------------------"
           echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): error OWN001:" \
             || { echo "FAIL: expected an MSBuild-format error line"; exit 1; }
+      - name: --severity warning renders advisory diagnostics
+        run: |
+          out=$(scripts/own-check.sh --format msbuild --severity warning -- frontend/roslyn/samples)
+          echo "$out"
+          echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): warning OWN001:" \
+            || { echo "FAIL: expected an MSBuild-format warning line"; exit 1; }
+          if echo "$out" | grep -qE ": error OWN001:"; then
+            echo "FAIL: --severity warning should not emit error-level lines"; exit 1
+          fi
       - name: --fail-on-finding propagates the core's exit code
         run: |
           if scripts/own-check.sh --fail-on-finding -- frontend/roslyn/samples >/dev/null 2>&1; then

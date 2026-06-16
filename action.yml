@@ -17,6 +17,10 @@ inputs:
     description: "Finding surface: github (PR annotations), msbuild, or human."
     required: false
     default: "github"
+  severity:
+    description: "How findings are shown: error (default) or warning (advisory)."
+    required: false
+    default: "error"
   fail-on-finding:
     description: "Fail the step when any leak is found."
     required: false
@@ -52,9 +56,10 @@ runs:
         # it. CodeRabbit #10.
         OWN_PATH: ${{ inputs.path }}
         OWN_FORMAT: ${{ inputs.format }}
+        OWN_SEVERITY: ${{ inputs.severity }}
         OWN_FAIL_ON_FINDING: ${{ inputs.fail-on-finding }}
       run: |
-        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT")
+        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT" --severity "$OWN_SEVERITY")
         if [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
           args+=(--fail-on-finding)
         fi

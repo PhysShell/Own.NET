@@ -48,6 +48,8 @@ _POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                              "ownir", "pool.facts.json")
 _LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "local_disposable.facts.json")
+_DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                           "ownir", "di.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -234,6 +236,65 @@ def run() -> int:
         if "[resource: disposable]" not in l0.render():
             fails.append(f"local finding missing kind tag: {l0.render()!r}")
 
+    # --- DI001 captive dependency (P-006): a singleton capturing a scoped
+    #     service (directly or through a transient) is flagged at its
+    #     registration site; safe registrations stay silent.
+    from ownlang.di import Service, find_captive_dependencies
+
+    # unit: the graph check itself (singleton->scoped and singleton->transient->
+    # scoped are captive; singleton->singleton->scoped and scoped->scoped are not).
+    svcs = [
+        Service("A", "singleton", ("B",)),            # A -> scoped B : captive
+        Service("B", "scoped", ()),
+        Service("C", "singleton", ("T",)),            # C -> transient -> scoped : captive
+        Service("T", "transient", ("B",)),
+        Service("D", "singleton", ("E",)),            # D -> singleton E : safe here
+        Service("E", "singleton", ("B",)),            # E -> scoped B : E's own bug
+        Service("F", "scoped", ("B",)),               # scoped -> scoped : safe
+    ]
+    captives = find_captive_dependencies(svcs)
+    checks += 1
+    captors = sorted((c.singleton, c.captured) for c in captives)
+    if captors != [("A", "B"), ("C", "B"), ("E", "B")]:
+        fails.append(f"captive-dependency set wrong: {captors}")
+    checks += 1
+    cpath = next((c.path for c in captives if c.singleton == "C"), None)
+    if cpath != ("C", "T", "B"):
+        fails.append(f"transitive captive path wrong: {cpath}")
+
+    # bridge: the fixture surfaces exactly the two captive singletons as DI001
+    # at their registration lines; the clock/scoped-to-scoped stay silent.
+    with open(_DI_FIXTURE, encoding="utf-8") as f:
+        difacts = json.load(f)
+    difindings = check_facts(difacts)
+    checks += 1
+    di = sorted((x.component, x.line, x.code) for x in difindings
+                if x.code == "DI001")
+    if di != [("EmailSender", 12, "DI001"), ("ReportService", 15, "DI001")]:
+        fails.append(f"DI001 findings wrong: {di}")
+    checks += 1
+    if any(x.component == "Clock" for x in difindings):
+        fails.append("a dependency-free singleton was wrongly flagged")
+    checks += 1
+    em = next((x for x in difindings if x.component == "EmailSender"), None)
+    if em is None or "captures scoped service 'AppDbContext'" not in em.message:
+        fails.append(f"DI001 message missing captive text: "
+                     f"{em.message if em else None!r}")
+    checks += 1
+    # an unknown lifetime must fail loudly at load (external input).
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "perpetual"}]}):
+        fails.append("an invalid service lifetime did not raise OwnIRError")
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"lifetime": "singleton"}]}):
+        fails.append("a missing/empty service name did not raise OwnIRError")
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "line": "NaN"}]}):
+        fails.append("a non-integer service line did not raise OwnIRError")
+
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
     #     in the core (one checker), so the Action/script stay thin wrappers.
@@ -263,6 +324,23 @@ def run() -> int:
     g2 = render_finding(nasty, "github")
     if "a%2Cb%3Ac.cs" not in g2 or "%0A" not in g2 or "50%25 off" not in g2:
         fails.append(f"github render did not escape metacharacters: {g2!r}")
+
+    # --severity is a presentation choice: warning renders ::warning / : warning:
+    # / warning:, error (default) is unchanged.
+    checks += 1
+    if not render_finding(fnd, "github", "warning").startswith(
+            "::warning file=src/A.cs,line=42,"):
+        fails.append("github render did not honor severity=warning")
+    checks += 1
+    if "src/A.cs(42): warning OWN001:" not in render_finding(fnd, "msbuild", "warning"):
+        fails.append("msbuild render did not honor severity=warning")
+    checks += 1
+    if "src/A.cs:42: warning: [OWN001]" not in render_finding(fnd, "human", "warning"):
+        fails.append("human render did not honor severity=warning")
+    checks += 1
+    # the default stays error (no accidental severity drift).
+    if not render_finding(fnd, "msbuild").startswith("src/A.cs(42): error OWN001:"):
+        fails.append("msbuild default severity should remain error")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

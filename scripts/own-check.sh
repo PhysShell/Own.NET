@@ -11,11 +11,13 @@
 # only extracts facts.
 #
 # Usage:
-#   scripts/own-check.sh [--format human|github|msbuild] [--fail-on-finding]
-#                        [--root <own.net checkout>] [--] <path|file> [more ...]
+#   scripts/own-check.sh [--format human|github|msbuild] [--severity error|warning]
+#                        [--fail-on-finding] [--root <own.net checkout>]
+#                        [--] <path|file> [more ...]
 #
-# Defaults: --format human, scans ".", does not fail the shell on findings,
-# --root is the repo this script lives in. With --fail-on-finding the exit code
+# Defaults: --format human, --severity error, scans ".", does not fail the shell
+# on findings, --root is the repo this script lives in. --severity picks how a
+# host shows findings (warning = advisory). With --fail-on-finding the exit code
 # is the core's (1 = leaks found). A hard error (bad facts) always exits non-zero.
 #
 # Requirements: a .NET SDK (`dotnet`) and Python 3.11+ on PATH.
@@ -24,6 +26,7 @@ set -euo pipefail
 
 root=""
 format="human"
+severity="error"
 fail_on_finding=0
 paths=()
 
@@ -35,6 +38,9 @@ while [[ $# -gt 0 ]]; do
     --format)
       [[ $# -ge 2 ]] || { echo "own-check: --format requires a value" >&2; exit 2; }
       format="$2"; shift 2 ;;
+    --severity)
+      [[ $# -ge 2 ]] || { echo "own-check: --severity requires a value" >&2; exit 2; }
+      severity="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
     --)                shift; while [[ $# -gt 0 ]]; do paths+=("$1"); shift; done ;;
     -h|--help)         sed -n '2,30p' "$0"; exit 0 ;;
@@ -60,7 +66,7 @@ dotnet run --project "$extractor" -- "${paths[@]}" -o "$facts" 1>&2
 
 # Stage 2: the one checker produces the verdict at the C# location.
 set +e
-PYTHONPATH="$root" python -m ownlang ownir "$facts" --format "$format"
+PYTHONPATH="$root" python -m ownlang ownir "$facts" --format "$format" --severity "$severity"
 rc=$?
 set -e
 

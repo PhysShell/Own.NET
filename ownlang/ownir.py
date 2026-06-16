@@ -49,6 +49,19 @@ An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
 `line`. The `resource`/`type` fields are additive and optional, so they do NOT
 bump `ownir_version`: an older core just reads every entry as a subscription.
 Region escape (OWN014) is later (see docs/proposals/P-004).
+
+An optional top-level `services` array carries the DI registration graph for the
+DI001 captive-dependency check (P-006) — a separate core analysis (ownlang/di.py)
+over who is registered with which lifetime and who they depend on::
+
+    "services": [
+      {"name": "EmailSender", "lifetime": "singleton", "deps": ["AppDbContext"],
+       "file": "Startup.cs", "line": 12},
+      {"name": "AppDbContext", "lifetime": "scoped", "deps": []}
+    ]
+
+A singleton that reaches a scoped service (directly, or through a transient) is a
+DI001 finding at its registration site. The block is additive/optional too.
 """
 
 from __future__ import annotations
@@ -57,6 +70,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from .di import LIFETIMES as DI_LIFETIMES
+from .di import Service, find_captive_dependencies
 from .diagnostics import Severity
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
@@ -133,35 +148,39 @@ class Finding:
     message: str
     kind: str = "subscription token"
 
-    def render(self) -> str:
-        return (f"{self.file}:{self.line}: error: [{self.code}] "
+    def render(self, severity: str = "error") -> str:
+        return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
                 f"{self.message} [resource: {self.kind}]")
 
-    def render_github(self) -> str:
+    def render_github(self, severity: str = "error") -> str:
         """A GitHub Actions workflow annotation. Printed on a CI step's stdout,
-        GitHub renders it as an inline error on the PR diff at the C# location.
-        `title` carries the OWN code; the message keeps the [resource:] tag."""
+        GitHub renders it inline on the PR diff at the C# location. `severity`
+        is the annotation level (`error`/`warning`); `title` carries the OWN
+        code; the message keeps the [resource:] tag."""
         msg = f"[{self.code}] {self.message} [resource: {self.kind}]"
-        return (f"::error file={_esc_prop(self.file)},line={self.line},"
+        return (f"::{severity} file={_esc_prop(self.file)},line={self.line},"
                 f"title={_esc_prop(self.code)}::{_esc_data(msg)}")
 
-    def render_msbuild(self) -> str:
+    def render_msbuild(self, severity: str = "error") -> str:
         """The canonical MSBuild diagnostic format `file(line): error CODE: msg`.
         `dotnet build` and the Visual Studio Error List parse exactly this, so
         the findings surface in-IDE without a Roslyn analyzer — one checker, not
-        a second one reimplemented in C#."""
-        return (f"{self.file}({self.line}): error {self.code}: "
+        a second one reimplemented in C#. `severity` picks `error`/`warning` so a
+        build can show them advisory instead of failing."""
+        return (f"{self.file}({self.line}): {severity} {self.code}: "
                 f"{self.message} [resource: {self.kind}]")
 
 
-def render_finding(f: Finding, fmt: str) -> str:
+def render_finding(f: Finding, fmt: str, severity: str = "error") -> str:
     """Render a finding in one of the supported surfaces: `human` (the default
-    CLI line), `github` (CI annotation), or `msbuild` (VS Error List)."""
+    CLI line), `github` (CI annotation), or `msbuild` (VS Error List). `severity`
+    is a presentation choice — the finding is still the core's verdict; it only
+    controls whether the host shows it as an error (default) or a warning."""
     if fmt == "github":
-        return f.render_github()
+        return f.render_github(severity)
     if fmt == "msbuild":
-        return f.render_msbuild()
-    return f.render()
+        return f.render_msbuild(severity)
+    return f.render(severity)
 
 
 def load(path: str) -> dict[str, Any]:
@@ -203,6 +222,28 @@ def load(path: str) -> dict[str, Any]:
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(
                     f"subscription 'type' must be a string, got {t!r}")
+    # Optional DI registration graph (DI001 — captive dependency, P-006). Additive
+    # and optional: an older core simply ignores it.
+    svcs = result.get("services", [])
+    if not isinstance(svcs, list) or not all(isinstance(s, dict) for s in svcs):
+        raise OwnIRError("OwnIR 'services' must be a JSON array of objects")
+    for s in svcs:
+        lt = s.get("lifetime")
+        if lt not in DI_LIFETIMES:
+            raise OwnIRError(
+                f"service 'lifetime' must be one of {sorted(DI_LIFETIMES)}, "
+                f"got {lt!r}")
+        name = s.get("name")
+        if not isinstance(name, str) or not name:
+            raise OwnIRError("service 'name' must be a non-empty string")
+        deps = s.get("deps", [])
+        if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
+            raise OwnIRError("service 'deps' must be an array of strings")
+        if not isinstance(s.get("file", "?"), str):
+            raise OwnIRError("service 'file' must be a string")
+        ln = s.get("line", 0)
+        if not isinstance(ln, int) or isinstance(ln, bool):
+            raise OwnIRError("service 'line' must be an integer")
     return result
 
 
@@ -329,5 +370,43 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind))
+
+    # DI001 (captive dependency): a separate core analysis over the registration
+    # graph, not the acquire/release model — the bridge just routes the facts to
+    # it (see ownlang/di.py). Findings carry the registration site as file/line.
+    findings.extend(_di_findings(facts))
+
     findings.sort(key=lambda f: (f.file, f.line, f.code))
     return findings
+
+
+def _as_int(v: Any) -> int:
+    """A non-throwing int coercion: load() already validates `line`, but
+    check_facts may be called directly (tests, embedders) on un-validated facts,
+    so a bad `line` degrades to 0 rather than raising a bare ValueError."""
+    return v if isinstance(v, int) and not isinstance(v, bool) else 0
+
+
+def _di_findings(facts: dict[str, Any]) -> list[Finding]:
+    """Run the DI captive-dependency check over the facts' `services` graph and
+    map each result to a DI001 Finding at its registration site."""
+    raw = facts.get("services", [])
+    if not isinstance(raw, list):
+        return []
+    services = [
+        Service(
+            name=str(s.get("name", "?")),
+            lifetime=str(s.get("lifetime", "")),
+            deps=tuple(s.get("deps", [])),
+            file=str(s.get("file", "?")),
+            line=_as_int(s.get("line", 0)),
+        )
+        for s in raw if isinstance(s, dict)
+    ]
+    return [
+        Finding(
+            file=c.file, line=c.line, code="DI001",
+            component=c.singleton, event=c.captured, handler="",
+            message=c.message, kind="DI lifetime")
+        for c in find_captive_dependencies(services)
+    ]

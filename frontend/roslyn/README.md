@@ -63,6 +63,9 @@ in-process and would force a *second* checker in C# (or shelling out to Python
 per keystroke) — a conflict with "one checker", not just effort. See
 [P-013](../../docs/proposals/P-013-distribution-surface.md).
 
+**Step-by-step usage** (terminal, Visual Studio Error List, CI) lives in
+[`docs/howto-visual-studio.md`](../../docs/howto-visual-studio.md).
+
 ## Scope / honesty
 
 This sandbox has no local `dotnet`, so the extractor is built and run only in CI
