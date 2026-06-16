@@ -30,6 +30,13 @@ jobs:
         run: ruff check .
       - name: mypy --strict (ownlang)
         run: mypy
+      # The evaluation scripts (corpus miner, cross-tool oracle diff) carry
+      # embedded fixtures; run their selftests here so the parsers/aggregators
+      # stay honest on every push, not only on workflow_dispatch.
+      - name: script selftests (miner + oracle)
+        run: |
+          python scripts/mine_report.py --selftest
+          python scripts/oracle_compare.py --selftest
 
   tests:
     name: tests (py${{ matrix.python-version }})

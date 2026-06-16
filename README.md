@@ -696,6 +696,56 @@ OWN010 в новой схеме занят «maybe-move».)
 
 ---
 
+## Related work / позиционирование
+
+Честно: **мы не первый и не лучший детектор утечек ресурсов для C#.** Ниша плотно
+занята зрелыми инструментами, и притворяться иначе — ровно та декорация, против
+которой вся затея:
+
+| Инструмент | Что ловит | Как |
+|---|---|---|
+| **Infer#** (Microsoft, на базе Facebook Infer) | resource leak, null-deref, thread-safety, taint | интерпроцедурно, separation logic; по скомпилированным `.dll`+`.pdb` |
+| **CodeQL** `cs/local-not-disposed` | локальный `IDisposable` без `Dispose` | dataflow по собранной CodeQL-базе |
+| **IDisposableAnalyzers** (`IDISP0xx`) | dispose / ownership-transfer | Roslyn-аналайзер (синтаксис + символы), в IDE |
+| **CA2000 / CA2213** (.NET SDK analyzers) | dispose до выхода из scope; недиспоженные поля | flow-sensitive, но transfer-распознавание — список типов |
+| **SonarC#, PVS-Studio (V3178), ReSharper `[MustDisposeResource]`** | dispose-утечки | паттерны / аннотации |
+
+Все они сильнее нас в **leak-recall** на больших базах: интерпроцедурные,
+обстрелянные, без нашего «honest skip». Это **планка**, и мы это признаём.
+
+**Чем мы отличаемся — модель, а не охват.** Перечисленные инструменты по сути
+отвечают на один вопрос: *«этот `IDisposable` освобождён?»*. Own.NET моделирует
+**владение целиком** в духе Rust — и из этого выпадают классы дефектов, которых у
+leak-only инструментов нет в их основном запросе:
+
+- **double-dispose (OWN003)** и **use-after-dispose (OWN002)** — отдельные коды,
+  не «leak». В leak-запросах Infer#/CodeQL их попросту нет.
+- **loans + permissions (OWN006–013)** — алиасинг и эксклюзивность borrow'ов
+  (mutable-while-shared и пр.). Ни один C#-инструмент не делает этого для
+  `IDisposable`; C#-ный `ref safety` / `scoped` / `Span` — это escape-safety для
+  ref/span-значений, не ownership ресурсов, и пересечения почти нет.
+- **region/lifetime escape (OWN014)** — промоушн объекта в более долгоживущий
+  регион (zombie-ViewModel). Это lifetime-анализ, а не dispose-чек.
+
+Ближайший «та же идея, другой язык» — не в C#, а в C++/Rust: **C++ Lifetime
+profile** (Sutter / MSVC, opt-in), экспериментальная **lifetime-safety в Clang**
+(2025, вдохновлённая Polonius) и сам **Polonius** — Datalog-формулировка
+borrow-чека Rust ([rust-lang/polonius](https://github.com/rust-lang/polonius)).
+Их факты (`loan_issued_at` / `cfg_edge` / `loan_killed_at` / `subset`) — ровно тот
+словарь, в котором написан наш OwnIR (`acquire`/`use`/`release`/`return` +
+back-edge); мы воспроизводим **region-based** модель, просто на другом движке
+(питоновский worklist-fixpoint вместо Datalog). Попытки «Rust-подобного C#»
+(вроде RLC#) — заброшены.
+
+**А ещё зрелые детекторы для нас — оракул.** Раз они сильны в leak-detection, их
+можно гонять на том же коде и сверять находки: пересечение = high-confidence,
+*only-oracle* = наш recall-gap (что пропустили), *only-own* = кандидат в FP
+**или** уникальный улов (тот самый double-dispose). Это валидационный харнес
+поверх mining — `scripts/oracle_compare.py` + workflow **oracle (cross-tool)**,
+подробности в [`docs/notes/oracle.md`](docs/notes/oracle.md).
+
+---
+
 ## Структура
 
 ```
