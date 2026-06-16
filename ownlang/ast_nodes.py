@@ -139,6 +139,16 @@ class If:
 
 
 @dataclass(frozen=True)
+class While:
+    # like If, the condition is opaque: we model the loop's control flow (a body
+    # that may run zero or more times, with a back-edge to the test), not the
+    # values. The analysis reaches a fixpoint over the back-edge (analysis.py).
+    cond_text: str
+    body: list[Stmt]
+    line: int
+
+
+@dataclass(frozen=True)
 class Return:
     var: str | None
     line: int
@@ -154,7 +164,7 @@ class Subscribe:
     line: int
 
 
-Stmt = Let | Release | Use | Call | BorrowBlock | If | Return | Subscribe
+Stmt = Let | Release | Use | Call | BorrowBlock | If | While | Return | Subscribe
 
 
 # ---- top level ------------------------------------------------------------

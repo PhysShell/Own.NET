@@ -19,7 +19,7 @@ Grammar (informal):
   param       := IDENT ":" type ("lifetime" IDENT)?
   type        := "&" "mut"? IDENT | IDENT
   block       := "{" stmt* "}"
-  stmt        := let | release | use | call | borrow | if | return | subscribe
+  stmt        := let | release | use | call | borrow | if | while | return | subscribe
   subscribe   := "subscribe" "self" "to" IDENT ";"  // self/to contextual
   let         := "let" IDENT "=" rhs ";"
   rhs         := "acquire" IDENT "(" args? ")" | "move" IDENT
@@ -32,6 +32,7 @@ Grammar (informal):
   call        := IDENT "(" args? ")" ";"
   borrow      := ("borrow" | "borrow_mut") IDENT "as" IDENT block
   if          := "if" "(" cond ")" block ("else" block)?
+  while       := "while" "(" cond ")" block
   return      := "return" IDENT? ";"
   args        := atom ("," atom)*
   atom        := INT | IDENT
@@ -100,8 +101,9 @@ class Parser:
         if self.at(Tok.REJECTED):
             t = self.cur
             raise ParseError(
-                f"'{t.text}' is out of scope for the MVP — loops and async are "
-                f"deliberately unsupported (see README, 'Where it cheats')",
+                f"'{t.text}' is out of scope for the MVP — for/loop-style "
+                f"iteration and async are deliberately unsupported ('while' is "
+                f"supported; see README, 'Where it cheats')",
                 t,
             )
 
@@ -302,6 +304,8 @@ class Parser:
             return self.parse_borrow()
         if self.at(Tok.IF):
             return self.parse_if()
+        if self.at(Tok.WHILE):
+            return self.parse_while()
         if self.at(Tok.RETURN):
             return self.parse_return()
         if self.at(Tok.SUBSCRIBE):
@@ -459,6 +463,26 @@ class Parser:
             else_body = self.parse_block()
         return A.If(cond_text=" ".join(cond_parts), then_body=then_body,
                     else_body=else_body, line=kw.line)
+
+    def parse_while(self) -> A.While:
+        kw = self.eat(Tok.WHILE)
+        self.eat(Tok.LPAREN)
+        cond_parts: list[str] = []
+        depth = 1
+        while True:
+            if self.at(Tok.EOF):
+                raise ParseError("unterminated while-condition", self.cur)
+            if self.at(Tok.LPAREN):
+                depth += 1
+            elif self.at(Tok.RPAREN):
+                depth -= 1
+                if depth == 0:
+                    self.eat(Tok.RPAREN)
+                    break
+            cond_parts.append(self.cur.text)
+            self.pos += 1
+        body = self.parse_block()
+        return A.While(cond_text=" ".join(cond_parts), body=body, line=kw.line)
 
     def parse_return(self) -> A.Return:
         kw = self.eat(Tok.RETURN)

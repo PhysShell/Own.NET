@@ -1,0 +1,12 @@
+// OWN001 — a resource acquired every iteration but never released: leaks each pass.
+// Real C#: `while (reader.Read()) { var conn = Open(...); Use(conn); }` with no
+// Dispose() — a fresh handle leaks on every loop turn. The checker analyses the
+// loop (worklist fixpoint over the back-edge) rather than skipping it.
+module Gallery
+resource Conn { acquire open release close }
+fn drain(n: int) {
+  while (n) {
+    let c = acquire Conn(n);   // opened every iteration ...
+    use c;
+  }                            // ... never closed -> leak
+}

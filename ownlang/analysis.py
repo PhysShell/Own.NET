@@ -26,13 +26,22 @@ counts. Here that separation is made explicit and given names:
   a move needs Own (suspended by *any* loan -> OWN007), a release needs Drop
   (-> OWN008), `use` needs Read (suspended by a mutable loan -> OWN013), and so on.
 
-The traversal is a single topological pass over the loop-free DAG. Because every
-borrow is block-scoped, the set of active loans is identical on all predecessors
-of a merge, so joining loans is trivial; this invariant is asserted, not assumed.
+The traversal is a forward worklist to a fixpoint, so it handles loops (`while`):
+a block is re-evaluated until its in-state stops growing. The per-symbol lattice
+is the finite set {OWNED,MOVED,RELEASED,ESCAPED} merged by union, and the transfer
+is monotone, so the iteration converges (no widening needed). On a loop-free CFG
+this reduces to one pass per block — identical to the previous topological walk.
+Because every borrow is block-scoped, the active loans are identical on all
+predecessors of a merge (back-edges included), so joining loans is trivial; this
+invariant is asserted, not assumed.
+
+Diagnostics are emitted in a second pass, once, on the converged in-states — never
+during the fixpoint iteration (a looped block is transferred many times).
 """
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import assert_never
@@ -93,11 +102,13 @@ def join(a: State, b: State) -> State:
     out = State()
     for k in set(a.var) | set(b.var):
         out.var[k] = set(a.var.get(k, set())) | set(b.var.get(k, set()))
-    # Block-scoped borrows => identical active loans on both predecessors.
-    # Assert the invariant rather than silently papering over a builder bug.
+    # Block-scoped borrows => identical active loans on both predecessors. This
+    # holds across loop back-edges too: a borrow opened inside a loop body closes
+    # within the same iteration, so the loan set at the body exit equals the one on
+    # the entry edge. Assert the invariant rather than paper over a builder bug.
     assert set(a.loans) == set(b.loans), (
         "active loans differ at a control-flow merge; this should be impossible "
-        "for block-scoped borrows in a loop-free language"
+        "for block-scoped borrows (they close within the scope that opened them)"
     )
     out.loans = dict(a.loans)
     return out
@@ -108,6 +119,11 @@ class _Analyzer:
         self.cfg = cfg
         self.diags: list[Diagnostic] = []
         self.blocks = {b.id: b for b in cfg.blocks}
+        # During the fixpoint pass (phase 1) the transfer runs repeatedly to
+        # converge the per-block in-states; diagnostics must NOT be emitted then
+        # (a block in a loop is visited many times). `silent` gates `err`; phase 2
+        # re-runs the transfer once per block, emitting on the converged state.
+        self.silent = False
 
     def initial_state(self) -> State:
         s = State()
@@ -119,6 +135,8 @@ class _Analyzer:
     def err(self, code: str, msg: str, line: int,
             subject: str | None = None,
             resource_kind: str | None = None) -> None:
+        if self.silent:
+            return
         self.diags.append(Diagnostic(code, msg, line, subject=subject,
                                      resource_kind=resource_kind))
 
@@ -171,55 +189,75 @@ class _Analyzer:
             return True
         return False
 
-    # -- topological order over the DAG ------------------------------------
+    # -- reachability + dataflow fixpoint ----------------------------------
 
-    def topo_order(self) -> list[int]:
-        reachable: set[int] = set()
+    def reachable(self) -> set[int]:
+        seen: set[int] = set()
         stack = [self.cfg.entry]
         while stack:
             x = stack.pop()
-            if x in reachable:
+            if x in seen:
                 continue
-            reachable.add(x)
+            seen.add(x)
             stack.extend(self.blocks[x].succ)
-        local_indeg = dict.fromkeys(reachable, 0)
-        for b in reachable:
-            for s in self.blocks[b].succ:
-                if s in reachable:
-                    local_indeg[s] += 1
-        ready = [b for b in reachable if local_indeg[b] == 0]
-        order: list[int] = []
-        while ready:
-            b = ready.pop()
-            order.append(b)
-            for s in self.blocks[b].succ:
-                if s in reachable:
-                    local_indeg[s] -= 1
-                    if local_indeg[s] == 0:
-                        ready.append(s)
-        return order
+        return seen
+
+    def in_state_of(self, bid: int, preds: dict[int, list[int]],
+                    reachable: set[int], out_states: dict[int, State]) -> State:
+        """The in-state of a block = the join (union) of its already-computed
+        predecessors' out-states; the entry block starts from `initial_state`."""
+        if bid == self.cfg.entry:
+            return self.initial_state()
+        ps = [p for p in preds[bid] if p in reachable and p in out_states]
+        if not ps:
+            return State()
+        st = out_states[ps[0]].copy()
+        for p in ps[1:]:
+            st = join(st, out_states[p])
+        return st
+
+    def fixpoint(self, reachable: set[int]) -> dict[int, State]:
+        """Forward worklist to a fixpoint over a (possibly cyclic) CFG. The
+        per-symbol lattice is the finite set {OWNED,MOVED,RELEASED,ESCAPED}, merged
+        by union at joins; the transfer is monotone, so iterating until no out-state
+        changes converges (a block's out can only grow up the finite lattice). A
+        block is re-queued only when one of its predecessors' out-state changed.
+        Runs silently — phase 2 emits the diagnostics on the converged in-states."""
+        preds = self.cfg.preds()
+        in_states: dict[int, State] = {}
+        out_states: dict[int, State] = {}
+        work: deque[int] = deque(sorted(reachable))
+        queued: set[int] = set(reachable)
+        while work:
+            bid = work.popleft()
+            queued.discard(bid)
+            in_states[bid] = self.in_state_of(bid, preds, reachable, out_states)
+            new_out = self.transfer(self.blocks[bid], in_states[bid])
+            if bid not in out_states or new_out != out_states[bid]:
+                out_states[bid] = new_out
+                for s in self.blocks[bid].succ:
+                    if s in reachable and s not in queued:
+                        work.append(s)
+                        queued.add(s)
+        return in_states
 
     # -- main --------------------------------------------------------------
 
     def run(self) -> list[Diagnostic]:
-        order = self.topo_order()
-        preds = self.cfg.preds()
+        reachable = self.reachable()
+        # Phase 1: converge the in-states silently (no diagnostics — a looped block
+        # is transferred many times before it stabilises).
+        self.silent = True
+        in_states = self.fixpoint(reachable)
+        self.silent = False
+        # Phase 2: one emitting transfer per block, on its converged in-state, so
+        # every diagnostic is reported exactly once at the fixpoint. Block order is
+        # irrelevant — __main__ sorts the diagnostics by (line, code).
         out_states: dict[int, State] = {}
-        reachable = set(order)
+        for bid in sorted(reachable):
+            out_states[bid] = self.transfer(self.blocks[bid], in_states[bid])
 
-        for bid in order:
-            ps = [p for p in preds[bid] if p in reachable and p in out_states]
-            if bid == self.cfg.entry:
-                in_state = self.initial_state()
-            elif ps:
-                in_state = out_states[ps[0]].copy()
-                for p in ps[1:]:
-                    in_state = join(in_state, out_states[p])
-            else:
-                in_state = State()
-            out_states[bid] = self.transfer(self.blocks[bid], in_state)
-
-        for bid in order:
+        for bid in sorted(reachable):
             blk = self.blocks[bid]
             if blk.succ:
                 continue

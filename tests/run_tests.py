@@ -150,7 +150,20 @@ CASES = [
      "fn f() -> Conn { let c = acquire Conn(1); return c; }", []),
     ("ok_bare_return_void",
      "fn f(){ let b = acquire Buffer(1); release b; return; }", []),
-    ("loop_rejected", "fn f(){ while (x) { use x; } }", ["OWN020"]),
+    # ---- loops (while): analysed via a worklist fixpoint, not rejected ----
+    # acquire + release each iteration is balanced -> clean (also codegens).
+    ("loop_clean_balanced",
+     "fn f(n: int){ while (n) { let c = acquire Conn(1); release c; } }", []),
+    # acquired each iteration but never released -> leaks.
+    ("loop_leak_each_iter",
+     "fn f(n: int){ while (n) { let c = acquire Conn(1); use c; } }", ["OWN001"]),
+    # released inside the loop with no re-acquire: the 2nd iteration double-releases
+    # (OWN003, only visible once the back-edge state is folded in) and the 0-trip
+    # path leaks (OWN001). A single topological pass would miss the OWN003.
+    ("loop_double_release_xiter",
+     "fn f(n: int){ let c = acquire Conn(1); while (n) { release c; } }",
+     ["OWN001", "OWN003"]),
+    # for/loop-style iteration and async stay out of scope -> OWN020.
     ("async_rejected", "fn f(){ async { use x; } }", ["OWN020"]),
 
     # ---- extern boundary ----
@@ -1049,6 +1062,11 @@ def run() -> int:
     import test_lifetimes
     lt_rc = test_lifetimes.run()
 
+    # Loop support (P-016 A1): `while` is analysed via a worklist fixpoint over the
+    # back-edge — cross-iteration leak/use-after-release/double-release, not OWN020.
+    import test_loops
+    loops_rc = test_loops.run()
+
     # Spec conformance pilot: every normative spec/ rule fires on its example.
     import test_spec
     spec_rc = test_spec.run()
@@ -1061,8 +1079,8 @@ def run() -> int:
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc or wpf_rc or lt_rc or spec_rc
-                 or ownir_rc) else 0
+                 or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
+                 or spec_rc or ownir_rc) else 0
 
 
 if __name__ == "__main__":
