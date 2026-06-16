@@ -1,6 +1,11 @@
 # P-006 — DI lifetime / captive dependency profile
 
-- **Status:** draft (P0 — clean lifetime model, little R&D, sells to ASP.NET)
+- **Status:** in progress (P0 — clean lifetime model, little R&D, sells to
+  ASP.NET). DI001 captive-dependency check built in the core (`ownlang/di.py`)
+  over an OwnIR `services` registration graph, surfaced through the bridge with
+  hand-written facts + tests. Next: the C# extractor that builds the registration
+  graph from `services.Add{Singleton,Scoped,Transient}` + constructor injection
+  (CI-only, like the rest of the extractor).
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).

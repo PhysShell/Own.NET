@@ -48,6 +48,8 @@ _POOL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                              "ownir", "pool.facts.json")
 _LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "local_disposable.facts.json")
+_DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                           "ownir", "di.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -233,6 +235,56 @@ def run() -> int:
             fails.append(f"local message missing text/type: {l0.message!r}")
         if "[resource: disposable]" not in l0.render():
             fails.append(f"local finding missing kind tag: {l0.render()!r}")
+
+    # --- DI001 captive dependency (P-006): a singleton capturing a scoped
+    #     service (directly or through a transient) is flagged at its
+    #     registration site; safe registrations stay silent.
+    from ownlang.di import Service, find_captive_dependencies
+
+    # unit: the graph check itself (singleton->scoped and singleton->transient->
+    # scoped are captive; singleton->singleton->scoped and scoped->scoped are not).
+    svcs = [
+        Service("A", "singleton", ("B",)),            # A -> scoped B : captive
+        Service("B", "scoped", ()),
+        Service("C", "singleton", ("T",)),            # C -> transient -> scoped : captive
+        Service("T", "transient", ("B",)),
+        Service("D", "singleton", ("E",)),            # D -> singleton E : safe here
+        Service("E", "singleton", ("B",)),            # E -> scoped B : E's own bug
+        Service("F", "scoped", ("B",)),               # scoped -> scoped : safe
+    ]
+    captives = find_captive_dependencies(svcs)
+    checks += 1
+    captors = sorted((c.singleton, c.captured) for c in captives)
+    if captors != [("A", "B"), ("C", "B"), ("E", "B")]:
+        fails.append(f"captive-dependency set wrong: {captors}")
+    checks += 1
+    cpath = next((c.path for c in captives if c.singleton == "C"), None)
+    if cpath != ("C", "T", "B"):
+        fails.append(f"transitive captive path wrong: {cpath}")
+
+    # bridge: the fixture surfaces exactly the two captive singletons as DI001
+    # at their registration lines; the clock/scoped-to-scoped stay silent.
+    with open(_DI_FIXTURE, encoding="utf-8") as f:
+        difacts = json.load(f)
+    difindings = check_facts(difacts)
+    checks += 1
+    di = sorted((x.component, x.line, x.code) for x in difindings
+                if x.code == "DI001")
+    if di != [("EmailSender", 12, "DI001"), ("ReportService", 15, "DI001")]:
+        fails.append(f"DI001 findings wrong: {di}")
+    checks += 1
+    if any(x.component == "Clock" for x in difindings):
+        fails.append("a dependency-free singleton was wrongly flagged")
+    checks += 1
+    em = next((x for x in difindings if x.component == "EmailSender"), None)
+    if em is None or "captures scoped service 'AppDbContext'" not in em.message:
+        fails.append(f"DI001 message missing captive text: "
+                     f"{em.message if em else None!r}")
+    checks += 1
+    # an unknown lifetime must fail loudly at load (external input).
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "perpetual"}]}):
+        fails.append("an invalid service lifetime did not raise OwnIRError")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
