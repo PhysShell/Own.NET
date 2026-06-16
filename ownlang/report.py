@@ -43,7 +43,7 @@ def _walk_buffers(
         elif isinstance(st, A.If):
             yield from _walk_buffers(st.then_body)
             yield from _walk_buffers(st.else_body)
-        elif isinstance(st, A.BorrowBlock):
+        elif isinstance(st, (A.While, A.BorrowBlock)):
             yield from _walk_buffers(st.body)
 
 

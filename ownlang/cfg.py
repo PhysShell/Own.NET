@@ -13,9 +13,10 @@ Two things live here:
 2. A control-flow graph: real basic blocks with successor edges, branches at
    `if`, merge nodes, and terminal blocks at `return`. Borrow scopes lower to
    explicit BORROW_START / BORROW_END instructions; calls lower to an Invoke
-   instruction carrying the resolved per-argument ownership effect. There are
-   no loops, so the CFG is a DAG and a single topological pass suffices — this
-   is exactly where loop support (worklist + fixpoint) would later plug in.
+   instruction carrying the resolved per-argument ownership effect. A `while`
+   lowers to a header block (the test) with a back-edge from the body exit, so
+   the CFG may contain cycles; the analysis converges over them with a worklist
+   fixpoint (analysis.py) instead of a single topological pass.
 """
 
 from __future__ import annotations
@@ -331,6 +332,8 @@ class _Builder:
             return self.lower_borrow(st, cur)
         if isinstance(st, A.If):
             return self.lower_if(st, cur)
+        if isinstance(st, A.While):
+            return self.lower_while(st, cur)
         if isinstance(st, A.Return):
             return self.lower_return(st, cur)
         if isinstance(st, A.Subscribe):
@@ -516,6 +519,25 @@ class _Builder:
         if else_exit is not None:
             else_exit.succ = [merge.id]
         return merge
+
+    def lower_while(self, st: A.While, cur: Block) -> Block | None:
+        # while (cond) { body }: a header block tests the (opaque) condition with
+        # two successors — the body and the after-block. The body's exit loops back
+        # to the header (the back-edge), so the header is a merge of the entry edge
+        # and the back-edge. The analysis reaches a fixpoint over that back-edge
+        # (analysis.py worklist); a borrow opened in the body closes within the same
+        # iteration, so the loan set is identical on both header predecessors.
+        header = self.new_block("while.header")
+        cur.succ = [header.id]
+        body_entry = self.new_block("while.body")
+        after = self.new_block("while.after")
+        header.succ = [body_entry.id, after.id]
+        self.push_scope()
+        body_exit = self.lower_seq(st.body, body_entry)
+        self.pop_scope()
+        if body_exit is not None:
+            body_exit.succ = [header.id]   # back-edge: end of body -> re-test
+        return after
 
     def lower_return(self, st: A.Return, cur: Block) -> Block | None:
         ret = self.fn.ret

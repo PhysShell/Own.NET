@@ -9,8 +9,13 @@
   FPs (Task/DataTable) now excluded by a CA2000-style exemption → 100% precision on
   the sample. The own-check wrappers (`own-check.ps1`/`.sh`) now **default to
   `--flow-locals`** (`-Legacy`/`--legacy` opts back to the flat detector); the raw
-  extractor flag stays default-off pending A1 + an `OWNIR_VERSION` bump. Next: A1
-  (loops), escape-via-projection hardening, then full graduation.
+  extractor flag stays default-off pending an `OWNIR_VERSION` bump. **A1 (core loop
+  support) landed:** `while` is analysed with a worklist+fixpoint over the back-edge
+  (cross-iteration leak / use-after-release / double-release), replacing the single
+  topological pass; `for`/`loop`/async stay `OWN020`. Pinned by `tests/test_loops.py`
+  + gallery `10_leak_in_loop.own`. Next: have the flow extractor lower `while` to
+  back-edge flow facts (it currently bails on loop bodies), escape-via-projection
+  hardening, then full graduation.
 - **Depends on:**
   - [P-014](P-014-semantic-resolution.md) Tier A — the `SemanticModel` (**DONE**).
     The hard prerequisite: typed ownership facts are impossible without binding.
@@ -68,11 +73,17 @@ a CFG-carrying bridge, and the existing core checks real code.
 
 ### Track A — core only (pure DSL, no frontend, `.own`-tested)
 
-- **A1 — Loops.** Replace the single topological pass over the DAG (`cfg.py`,
-  `analysis.py`) with a worklist + fixpoint over back-edges. The lattice is the
-  finite set-of-states (OwnCore §3, union at merges) → monotone → it converges
-  (confirm whether widening is even needed). Removes the `OWN020` "loops" clause.
-  Fully independent of the frontend; pinned by new `.own` loop cases + the gallery.
+- **A1 — Loops. ✅ DONE.** Replaced the single topological pass over the DAG
+  (`cfg.py`, `analysis.py`) with a worklist + fixpoint over back-edges. The lattice
+  is the finite set-of-states (OwnCore §3, union at merges) → monotone → it converges
+  (widening was **not** needed — the per-symbol lattice has height 4). `while` lowers
+  to a header block with a back-edge from the body exit; diagnostics are emitted in a
+  second pass on the converged in-states (never during fixpoint iteration). Removed
+  the `OWN020` "loops" clause for `while` (`for`/`loop`/async still `OWN020`). Fully
+  independent of the frontend; pinned by `tests/test_loops.py` (cross-iteration
+  OWN001/003/009) + gallery `10_leak_in_loop.own`. Remaining: the flow **extractor**
+  still bails on loop bodies — lowering `while` to back-edge flow facts is a Track-B
+  follow-on (so loopy C# methods stop being honestly skipped).
 
 ### Track B — frontend depth (needs the `SemanticModel`, now present)
 

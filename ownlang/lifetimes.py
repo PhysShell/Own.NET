@@ -51,7 +51,7 @@ def _iter_subscribes(stmts: list[A.Stmt]) -> Iterator[A.Subscribe]:
         elif isinstance(st, A.If):
             yield from _iter_subscribes(st.then_body)
             yield from _iter_subscribes(st.else_body)
-        elif isinstance(st, A.BorrowBlock):
+        elif isinstance(st, (A.While, A.BorrowBlock)):
             yield from _iter_subscribes(st.body)
 
 

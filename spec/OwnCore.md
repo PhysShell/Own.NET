@@ -8,7 +8,8 @@
 
 OwnCore is the small affine-ownership + borrow-permission core of OwnLang. It is
 deliberately boring: a linear resource protocol with block-scoped loans, checked
-flow-sensitively over a loop-free CFG. No generic lifetimes, no async borrowing,
+flow-sensitively over a CFG (a `while` loop is a back-edge the analysis converges
+over with a worklist fixpoint). No generic lifetimes, no async borrowing,
 no higher-ranked anything. Buffers and lifetime regions are layered on top and
 specified separately ([BufferPolicies.md](BufferPolicies.md),
 [Lifetimes.md](Lifetimes.md)).
@@ -63,8 +64,9 @@ derived on demand:
 | OWNED | mutable | — (exclusive: owner unusable) |
 | MOVED / RELEASED / ESCAPED | — | — |
 
-Because the language is loop-free and borrows are block-scoped, the set of active
-loans is identical on all predecessors of a merge; the checker **asserts** this
+Because borrows are block-scoped (a loan opened inside a `while` body also closes
+inside it, within the same iteration), the set of active loans is identical on all
+predecessors of a merge — back-edges included; the checker **asserts** this
 invariant rather than assuming it.
 
 ## 5. Operations
@@ -137,7 +139,9 @@ without a test change (or vice-versa) is a red build.
 
 ## 10. Out of scope (see proposals, not here)
 
-Loops/async (**OWN020**), a real type system, value-level reasoning (an `if`
-condition is opaque text — control flow is modelled, not values), C# ingestion,
+`for`/`loop`-style iteration and async (**OWN020**) — but **not** `while`, which is
+analysed via a worklist fixpoint — a real type system, value-level reasoning (an
+`if`/`while` condition is opaque text — control flow is modelled, not values), C#
+ingestion,
 and formal soundness proofs are explicitly **not** part of OwnCore today. They
 are tracked in [`docs/proposals/`](../docs/proposals/).

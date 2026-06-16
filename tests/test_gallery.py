@@ -40,6 +40,7 @@ MANIFEST = [
     ("07_use_after_handoff.own",     "OWN002", "used a buffer after a callee took ownership"),
     ("08_stack_buffer_escapes.own",  "OWN015", "returned a Span over a stackalloc (dangling)"),
     ("09_untracked_call.own",        "OWN040", "ownership laundered through an opaque call"),
+    ("10_leak_in_loop.own",          "OWN001", "acquired in a loop, never released (while)"),
 ]
 
 

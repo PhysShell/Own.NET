@@ -3,9 +3,10 @@ Lexer for OwnLang — a tiny ownership-checked language.
 
 Deliberately small. We tokenize keywords, identifiers, integer literals, string
 literals (used only for C#-emit templates on a resource), and a handful of
-punctuation. The features we explicitly DON'T support (loops, async) are lexed
-as their own token class so the parser can emit an honest "out of scope"
-diagnostic instead of a confusing parse error.
+punctuation. The features we explicitly DON'T support (for/loop-style iteration,
+async) are lexed as their own token class so the parser can emit an honest "out
+of scope" diagnostic instead of a confusing parse error. (`while` IS supported —
+the core analyses loops via a worklist fixpoint; see analysis.py.)
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ class Tok(Enum):
     USE = auto()
     IF = auto()
     ELSE = auto()
+    WHILE = auto()
     RETURN = auto()
     MUT = auto()
     POLICY = auto()
@@ -80,6 +82,7 @@ KEYWORDS = {
     "use": Tok.USE,
     "if": Tok.IF,
     "else": Tok.ELSE,
+    "while": Tok.WHILE,
     "return": Tok.RETURN,
     "mut": Tok.MUT,
     "policy": Tok.POLICY,
@@ -92,7 +95,8 @@ KEYWORDS = {
 }
 
 # Things we refuse to analyze in the MVP. Lexed so we can say so plainly.
-REJECTED_KEYWORDS = {"while", "for", "loop", "async", "await", "yield", "spawn"}
+# (`while` graduated out of this set — the core now analyses it; see analysis.py.)
+REJECTED_KEYWORDS = {"for", "loop", "async", "await", "yield", "spawn"}
 
 
 @dataclass(frozen=True)

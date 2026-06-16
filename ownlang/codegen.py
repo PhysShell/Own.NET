@@ -462,6 +462,11 @@ class _FnGen:
                 out.extend(self._emit_block(st.else_body, ind + "    "))
                 out.append(f"{ind}}}")
             return out
+        if isinstance(st, A.While):
+            out = [f"{ind}while ({st.cond_text or 'cond'})", f"{ind}{{"]
+            out.extend(self._emit_block(st.body, ind + "    "))
+            out.append(f"{ind}}}")
+            return out
         if isinstance(st, A.Return):
             return [f"{ind}return {st.var};" if st.var else f"{ind}return;"]
         if isinstance(st, A.Subscribe):
@@ -515,7 +520,7 @@ def _member(r: A.ResourceDecl, role: str) -> str:
 
 def _contains_branch_or_transfer(stmts: list[A.Stmt]) -> bool:
     for st in stmts:
-        if isinstance(st, A.If):
+        if isinstance(st, (A.If, A.While)):
             return True
         if isinstance(st, A.Return) and st.var is not None:
             return True
@@ -535,7 +540,7 @@ def _iter_stmts(stmts: list[A.Stmt]) -> Iterator[A.Stmt]:
         if isinstance(st, A.If):
             yield from _iter_stmts(st.then_body)
             yield from _iter_stmts(st.else_body)
-        elif isinstance(st, A.BorrowBlock):
+        elif isinstance(st, (A.While, A.BorrowBlock)):
             yield from _iter_stmts(st.body)
 
 
@@ -568,7 +573,7 @@ def _fn_has_buffer(stmts: list[A.Stmt]) -> bool:
         if isinstance(st, A.If):
             if _fn_has_buffer(st.then_body) or _fn_has_buffer(st.else_body):
                 return True
-        if isinstance(st, A.BorrowBlock):
+        if isinstance(st, (A.While, A.BorrowBlock)):
             if _fn_has_buffer(st.body):
                 return True
     return False
@@ -640,7 +645,7 @@ def _fn_has_native(stmts: list[A.Stmt]) -> bool:
         if isinstance(st, A.If):
             if _fn_has_native(st.then_body) or _fn_has_native(st.else_body):
                 return True
-        if isinstance(st, A.BorrowBlock):
+        if isinstance(st, (A.While, A.BorrowBlock)):
             if _fn_has_native(st.body):
                 return True
     return False
@@ -656,7 +661,7 @@ def _buffer_modes(mod: A.Module) -> set[str]:
             elif isinstance(st, A.If):
                 walk(st.then_body)
                 walk(st.else_body)
-            elif isinstance(st, A.BorrowBlock):
+            elif isinstance(st, (A.While, A.BorrowBlock)):
                 walk(st.body)
 
     for fn in mod.functions:
