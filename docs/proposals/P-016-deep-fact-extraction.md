@@ -13,9 +13,14 @@
   support) landed:** `while` is analysed with a worklist+fixpoint over the back-edge
   (cross-iteration leak / use-after-release / double-release), replacing the single
   topological pass; `for`/`loop`/async stay `OWN020`. Pinned by `tests/test_loops.py`
-  + gallery `10_leak_in_loop.own`. Next: have the flow extractor lower `while` to
-  back-edge flow facts (it currently bails on loop bodies), escape-via-projection
-  hardening, then full graduation.
+  + gallery `10_leak_in_loop.own`. **A1 reached the frontend:** the flow extractor now
+  lowers `while` and `foreach` bodies to a `while` back-edge flow op (0+ iterations,
+  opaque condition) instead of skipping the whole method — so loopy C# is analysed
+  end-to-end (cross-iteration leak/double-release through the bridge). `for` (can
+  declare a resource in its initializer) and `do` (runs 1+ times) still bail honestly.
+  Pinned by `samples/FlowLocalsSample.cs` (`whileLeak`/`foreachLeak`/`whileClean`) +
+  `tests/fixtures/ownir/flow_while.facts.json`. Next: `for`/`foreach`-with-disposable-
+  iterator lowering, escape-via-projection hardening, then full graduation.
 - **Depends on:**
   - [P-014](P-014-semantic-resolution.md) Tier A — the `SemanticModel` (**DONE**).
     The hard prerequisite: typed ownership facts are impossible without binding.
@@ -81,9 +86,12 @@ a CFG-carrying bridge, and the existing core checks real code.
   second pass on the converged in-states (never during fixpoint iteration). Removed
   the `OWN020` "loops" clause for `while` (`for`/`loop`/async still `OWN020`). Fully
   independent of the frontend; pinned by `tests/test_loops.py` (cross-iteration
-  OWN001/003/009) + gallery `10_leak_in_loop.own`. Remaining: the flow **extractor**
-  still bails on loop bodies — lowering `while` to back-edge flow facts is a Track-B
-  follow-on (so loopy C# methods stop being honestly skipped).
+  OWN001/003/009) + gallery `10_leak_in_loop.own`. **Frontend follow-on landed:** the
+  flow extractor (`LowerFlowStmt`) now lowers `while` and `foreach` bodies to a `while`
+  back-edge flow op (both are the 0+-iteration, opaque-condition shape), and the bridge
+  (`ownir._lower_flow`) maps it to the core `While` node — so loopy C# is analysed
+  end-to-end instead of the whole method being skipped. `for`/`do` still bail honestly.
+  Pinned by `FlowLocalsSample.cs` + `tests/fixtures/ownir/flow_while.facts.json`.
 
 ### Track B — frontend depth (needs the `SemanticModel`, now present)
 

@@ -1,0 +1,17 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "functions": [
+    {
+      "name": "FlowLocalsSample.WhileXIter",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "c", "line": 20},
+        {"op": "while", "line": 21, "body": [
+          {"op": "release", "var": "c", "line": 22}
+        ]}
+      ]
+    }
+  ]
+}

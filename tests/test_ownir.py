@@ -52,6 +52,8 @@ _UOW_FLOW_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                  "ownir", "unitofwork_flow.facts.json")
 _LEAK_ON_ELSE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                      "ownir", "flow_leak_on_else.facts.json")
+_WHILE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                              "ownir", "flow_while.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -297,6 +299,29 @@ def run() -> int:
         if "is never disposed" in e0.message:
             fails.append(f"partial-release leak wrongly used the never-disposed "
                          f"wording: {e0.message!r}")
+
+    # --- P-016 A1 reaches the frontend: a `while` flow body (the extractor now
+    #     lowers loops instead of skipping the method) routes through the core's
+    #     worklist fixpoint. A resource acquired before the loop and released INSIDE
+    #     it double-releases on the 2nd turn (OWN003) and leaks on the 0-trip path
+    #     (OWN001) — both on the same local, proving the loop op reaches the fixpoint
+    #     end-to-end through the bridge (not just on the `.own` DSL).
+    with open(_WHILE_FIXTURE, encoding="utf-8") as f:
+        wlfacts = json.load(f)
+    wlfindings = check_facts(wlfacts)
+    checks += 1
+    codes = sorted({x.code for x in wlfindings})
+    if len(wlfindings) != 2 or codes != ["OWN001", "OWN003"] \
+            or any(x.event != "c" for x in wlfindings):
+        fails.append(f"expected cross-iteration OWN001+OWN003 on 'c', got "
+                     f"{[(x.event, x.code) for x in wlfindings]}")
+    else:
+        checks += 1
+        if any(x.file != "FlowLocalsSample.cs" or x.line != 20 for x in wlfindings):
+            fails.append(f"wrong while-xiter location: "
+                         f"{[(x.file, x.line) for x in wlfindings]}")
+        if not all(x.kind == "disposable" for x in wlfindings):
+            fails.append("while-xiter findings missing [resource: disposable] kind")
 
     # --- DI001 captive dependency (P-006): a singleton capturing a scoped
     #     service (directly or through a transient) is flagged at its

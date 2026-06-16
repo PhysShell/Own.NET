@@ -43,12 +43,50 @@ public class FlowLocalsSample
         clean.Dispose();
     }
 
-    // has a loop -> method honestly skipped (no flow finding)
+    // has a `for` loop (not yet lowered: `for` can declare a resource in its
+    // initializer) -> method honestly skipped, no flow finding. `while`/`foreach`
+    // ARE lowered now (see below).
     public void HasLoop()
     {
         var looped = new MemoryStream();
         for (int i = 0; i < 3; i++) { looped.WriteByte((byte)i); }
         looped.Dispose();
+    }
+
+    // P-016 A1 reached the frontend: a `while` body is lowered to a back-edge the
+    // core's worklist fixpoint analyses. A stream acquired each iteration and never
+    // disposed leaks -> OWN001 (per iteration).
+    public void WhileLeak(int n)
+    {
+        while (n > 0)
+        {
+            var whileLeak = new MemoryStream();
+            whileLeak.WriteByte(1);
+            n = n - 1;
+        }
+    }
+
+    // `foreach` is the same 0+-iteration shape -> the undisposed local leaks too.
+    public void ForeachLeak(int[] items)
+    {
+        foreach (var it in items)
+        {
+            var foreachLeak = new MemoryStream();
+            foreachLeak.WriteByte((byte)it);
+        }
+    }
+
+    // acquire + dispose within the loop body is balanced -> silent (no false
+    // positive now that loops are analysed rather than skipped).
+    public void WhileClean(int n)
+    {
+        while (n > 0)
+        {
+            var whileClean = new MemoryStream();
+            whileClean.WriteByte(1);
+            whileClean.Dispose();
+            n = n - 1;
+        }
     }
 
     // escapes (returned) -> not tracked

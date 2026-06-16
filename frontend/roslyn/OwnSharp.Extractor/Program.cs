@@ -232,8 +232,34 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // tracked resource — model it as a bare return (a CFG exit edge).
             nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
             return true;
+        case WhileStatementSyntax ws:
+        {
+            // P-016 A1 reached the frontend: a `while` lowers to a `while` flow op
+            // (a body that runs 0+ times with a back-edge); the core analyses it with
+            // its worklist fixpoint (cross-iteration leak / use-after-release /
+            // double-release). The condition is opaque (we model control flow, not
+            // values). If the body has an unmodelled statement, bail the method.
+            var bodyNodes = new List<object>();
+            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes))
+                return false;
+            nodes.Add(new { op = "while", line = LineOf(ws), body = bodyNodes });
+            return true;
+        }
+        case ForEachStatementSyntax fes:
+        {
+            // `foreach` runs its body 0+ times over an (opaque) collection — the same
+            // ownership shape as `while`. The loop variable is never a `new`'d
+            // candidate and the hidden enumerator is auto-disposed, so modelling the
+            // body as a `while` is sound. (`for`/`do` stay unmodelled below: `for`
+            // can declare a resource in its initializer and `do` runs 1+ times.)
+            var bodyNodes = new List<object>();
+            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes))
+                return false;
+            nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
+            return true;
+        }
         default:
-            return false;   // unmodelled (loop/try/switch/...) -> bail the method
+            return false;   // unmodelled (for/do/try/switch/...) -> bail the method
     }
 }
 
