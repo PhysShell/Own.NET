@@ -50,6 +50,8 @@ _LOCAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "local_disposable.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
+_UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                   "ownir", "unresolved.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -294,6 +296,43 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "line": "NaN"}]}):
         fails.append("a non-integer service line did not raise OwnIRError")
+
+    # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
+    #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it
+    #     (no phantom OWN001) and it surfaces as an advisory OWN050 note; a real
+    #     subscription in the same component still leaks (OWN001, non-advisory).
+    with open(_UNRESOLVED_FIXTURE, encoding="utf-8") as f:
+        ufacts = json.load(f)
+    usrc, _ = to_own(ufacts)
+    checks += 1
+    try:
+        parse(usrc)
+    except Exception as e:
+        fails.append(f"lowered unresolved facts do not parse: {e}")
+    # the marker must NOT be lowered to an acquire (else it becomes a phantom leak)
+    checks += 1
+    if usrc.count("acquire Subscription") != 1:
+        fails.append(f"unresolved marker was lowered to an acquire: {usrc!r}")
+    ufindings = check_facts(ufacts)
+    unotes = [x for x in ufindings if x.code == "OWN050"]
+    uleaks = [x for x in ufindings if x.code == "OWN001"]
+    checks += 1
+    if len(unotes) != 1 or not unotes[0].advisory:
+        fails.append(f"expected 1 advisory OWN050 note, got "
+                     f"{[(x.code, x.advisory) for x in ufindings]}")
+    else:
+        u0 = unotes[0]
+        checks += 1
+        if (u0.file, u0.line) != ("GridViewModel.cs", 20):
+            fails.append(f"wrong OWN050 location: {u0.file}:{u0.line}")
+        if "leakage analysis skipped" not in u0.message:
+            fails.append(f"OWN050 message wrong: {u0.message!r}")
+        if "[resource: unresolved reference]" not in u0.render():
+            fails.append(f"OWN050 missing kind tag: {u0.render()!r}")
+    checks += 1
+    if len(uleaks) != 1 or uleaks[0].advisory:
+        fails.append(f"expected 1 real OWN001 leak (non-advisory), got "
+                     f"{[(x.code, x.advisory) for x in ufindings]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives

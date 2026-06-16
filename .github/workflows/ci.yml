@@ -114,6 +114,9 @@ jobs:
             frontend/roslyn/samples/MessengerViewModel.cs \
             frontend/roslyn/samples/PooledBufferSample.cs \
             frontend/roslyn/samples/LocalDisposableSample.cs \
+            frontend/roslyn/samples/SelfOwnedViewModel.cs \
+            frontend/roslyn/samples/StaticHandlerViewModel.cs \
+            frontend/roslyn/samples/SampleTypes.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -172,6 +175,16 @@ jobs:
             || { echo "FAIL: expected a [resource: disposable] tag"; exit 1; }
           if echo "$out" | grep -qE "'guarded'|'moved'"; then
             echo "FAIL: using/returned local wrongly reported"; exit 1
+          fi
+          # P-004 self-owned exemption: a subscription whose source is a field the
+          # class constructs (owns) is a GC-collectable cycle, not a leak — silent.
+          if echo "$out" | grep -q "SelfOwnedViewModel.cs"; then
+            echo "FAIL: a self-owned subscription was wrongly reported"; exit 1
+          fi
+          # P-004 static-handler exemption: a static-method handler has a null
+          # delegate target — no instance retained, so not a leak — silent.
+          if echo "$out" | grep -q "StaticHandlerViewModel.cs"; then
+            echo "FAIL: a static-handler subscription was wrongly reported"; exit 1
           fi
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) at the C# location"
 

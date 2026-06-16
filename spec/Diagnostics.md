@@ -68,6 +68,20 @@ See [BufferPolicies.md](BufferPolicies.md).
 | OWN040 | call to an undeclared function (unknown calls are forbidden) |
 | OWN041 | call argument mismatch (arity / effect / plain-vs-resource) |
 
+## C# front-end resolution coverage (P-014)
+
+Advisory only — a *coverage note*, never a verdict (this is the "noted" exception
+to the `error`-by-default rule above). Emitted by the OwnIR bridge (not the core
+lattice) when the type-aware C# extractor ([P-014](../docs/proposals/P-014-semantic-resolution.md))
+sees a `+=` that looks like an event subscription but cannot bind its left side to
+an event — its declaring type is an unreferenced external assembly. We do not
+guess a leak; we report, honestly, that it was not checked. Rendered as a
+`warning` regardless of `--severity` and excluded from the exit code.
+
+| Code | Title |
+|------|-------|
+| OWN050 | declaring type unresolved — leakage analysis skipped |
+
 ## Rendering
 
 The CLI renders rustc-style: `file:line:col`, the source line, and a caret under

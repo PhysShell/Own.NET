@@ -9,7 +9,8 @@
 The `event += without -=` pattern, end-to-end, exactly along the recommended
 seam:
 
-- **Roslyn extractor** (`frontend/roslyn/OwnSharp.Extractor`, C#, syntax-only):
+- **Roslyn extractor** (`frontend/roslyn/OwnSharp.Extractor`, C#, type-aware:
+  project-local `SemanticModel` — see [P-014](P-014-semantic-resolution.md)):
   scans `.cs`, emits OwnIR facts (JSON) — built & run in CI (`wpf-extractor`).
 - **Python fact bridge** (`ownlang/ownir.py`, `python -m ownlang ownir`): lowers
   facts to a synthetic `.own` sketch, runs the **existing core**, and maps the
@@ -31,7 +32,9 @@ narrow class of leaks the core already models: event subscriptions, timers,
 `IDisposable` fields, ignored `Subscribe` results.
 
 This is **not** a full C# ownership front-end (generics, async, dataflow — that is
-human-years and explicitly rejected). It is a syntactic/local pattern extractor.
+human-years and explicitly rejected). It is a narrow, intraprocedural fact
+extractor — type-aware for the one fact that needs it (the type of a `+=` LHS),
+via a project-local `SemanticModel` ([P-014](P-014-semantic-resolution.md)).
 
 ## Scope (v0)
 

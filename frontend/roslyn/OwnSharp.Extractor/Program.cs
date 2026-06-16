@@ -1,16 +1,20 @@
 // OwnSharp OwnIR extractor (P-001 v0).
 //
-// Scans C# *source text* (syntax only — no compilation, no references) for the
-// event-subscription leak pattern and emits OwnIR facts (JSON) in the OwnLang
-// spec's vocabulary. The Python core (`python -m ownlang ownir facts.json`) then
-// produces the verdict (OWN001 leak) at the C# location.
+// Scans C# and emits OwnIR facts (JSON) in the OwnLang spec's vocabulary; the
+// Python core (`python -m ownlang ownir facts.json`) produces the verdict
+// (OWN001 leak) at the C# location.
 //
-// Heuristic (docs/proposals/P-001, P-004): a subscription is `target += handler`
-// where the right side is a method group (identifier or member access), not e.g.
-// `count += 1`. It is "released" if a matching `target -= handler` (same text on
-// both sides) exists in the class. A `Tick`/`Elapsed` handler is additionally
-// tagged resource=timer (WPF002) and counts as released if the timer's receiver
-// also has a `.Stop()` call (e.g. `_timer.Stop()` in Dispose).
+// Event subscriptions are resolved type-aware (P-014 Tier A): all inputs are
+// parsed into ONE CSharpCompilation with the runtime's framework references, and
+// a `target += handler` is a subscription only when the SemanticModel binds the
+// left side to an event symbol — so `sum += value` (arithmetic) is not a leak.
+// When the left side's declaring type is an unresolved external reference we do
+// not guess: a handler-shaped RHS surfaces as an OWN050 "leakage analysis
+// skipped" note, never a leak. A subscription is "released" by a matching
+// `target -= handler` in the class; a `Tick`/`Elapsed` handler is tagged
+// resource=timer (WPF002) and is released if the timer's receiver also has a
+// `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
+// (P-014 rollout: the event fact goes type-aware first).
 //
 // Usage: ownsharp-extract <file.cs | dir> [more ...] [-o facts.json]
 //
@@ -26,9 +30,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 var rawInputs = new List<string>();
 string? outPath = null;
+// Event-subscription detection is on by default now that it is type-aware
+// (P-014 Tier A graduates it from the interim off). `--no-event-leaks` opts out
+// (e.g. to run only the disposable/pool detectors); it is the first instance of
+// the broader check-selection surface tracked in P-015.
+bool emitEvents = true;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
+    else if (args[i] == "--no-event-leaks") emitEvents = false;
     else rawInputs.Add(args[i]);
 }
 
@@ -106,6 +116,34 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
     left is MemberAccessExpressionSyntax m
         && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
 
+// P-004 self-owned exemption: is the event SOURCE owned by (and so never longer-
+// lived than) the subscriber? True for a bare instance event on `this`, or a
+// receiver that resolves to a field/local the class constructs (`new`s). Such a
+// `source <-> this` reference cycle is GC-collectable, so the subscription is not
+// a leak. The receiver is resolved to a SYMBOL (not matched by text), and the
+// `constructed` set is AST-based (ObjectCreationExpressionSyntax) — not a regex.
+// NOTE: callers must exclude timers — a *running* timer is rooted by the
+// dispatcher regardless of who owns the field.
+static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
+                              SemanticModel model, HashSet<string> constructed)
+{
+    if (left is not MemberAccessExpressionSyntax m)
+        return !ev.IsStatic;   // bare event => an instance event on `this`
+    if (m.Expression is ThisExpressionSyntax)
+        return true;
+    var recv = model.GetSymbolInfo(m.Expression).Symbol;
+    return (recv is IFieldSymbol or ILocalSymbol) && constructed.Contains(recv.Name);
+}
+
+// P-004 static-handler exemption: a `+= StaticMethod` stores a delegate whose
+// Target is null, so no instance is retained — the subscription cannot leak a
+// subscriber, however long-lived the source. Only method-group handlers
+// (identifier / member access) are judged; lambdas and delegate-typed values may
+// capture state and are left as leak candidates.
+static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
+    IsHandler(right)
+        && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
+
 // The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
 static string? FieldName(ExpressionSyntax expr) => expr switch
 {
@@ -128,6 +166,10 @@ static bool IsDisposableType(string t) =>
 
 var components = new List<object>();
 
+// Parse every input into a syntax tree first (keeping the file path we report
+// it under), then build ONE compilation over all of them so the SemanticModel
+// resolves cross-file and cross-project symbols (P-014 Tier A).
+var parsed = new List<(string file, SyntaxTree tree)>();
 foreach (var path in inputs)
 {
     // Defensive: an explicit input that is not a readable file (a directory
@@ -149,8 +191,28 @@ foreach (var path in inputs)
         Console.Error.WriteLine($"ownsharp-extract: skipping unreadable file: {path} ({ex.Message})");
         continue;
     }
-    var file = Rel(path);
-    var root = CSharpSyntaxTree.ParseText(text, path: path).GetRoot();
+    parsed.Add((Rel(path), CSharpSyntaxTree.ParseText(text, path: path)));
+}
+
+// Project-local compilation (P-014 Tier A): the framework reference set is this
+// runtime's trusted platform assemblies — zero-config, on disk wherever `dotnet`
+// runs; no third-party / MSBuild references. Enough to resolve primitives,
+// in-project types and BCL events; external types (WPF/DevExpress) stay
+// unresolved and are surfaced as OWN050 "unchecked", never guessed as leaks.
+// Error-tolerant: compile diagnostics are irrelevant — we only read symbols.
+var references = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? "")
+    .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+    .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+    .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
+    .ToList();
+var compilation = CSharpCompilation.Create(
+    "own", parsed.Select(p => p.tree), references,
+    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+foreach (var (file, tree) in parsed)
+{
+    var model = compilation.GetSemanticModel(tree);
+    var root = tree.GetRoot();
 
     foreach (var cls in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
     {
@@ -170,27 +232,9 @@ foreach (var path in inputs)
                 && m.Name.Identifier.Text == "Stop")
                 stopped.Add(m.Expression.ToString());
 
-        var subs = new List<object>();
-        foreach (var a in assigns)
-        {
-            if (!a.IsKind(SyntaxKind.AddAssignmentExpression) || !IsHandler(a.Right))
-                continue;
-            var isTimer = IsTimerEvent(a.Left);
-            var released = unsub.Contains($"{a.Left}|{a.Right}")
-                || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
-            subs.Add(new
-            {
-                @event = a.Left.ToString(),
-                handler = a.Right.ToString(),
-                line = LineOf(a.Left),
-                released,
-                resource = isTimer ? "timer" : "subscription",
-            });
-        }
-
-        // WPF003: an IDisposable field the class constructs (`new`) but never
-        // disposes. Owned (not injected) = assigned a `new` in this class;
-        // released = a `<field>.Dispose()` call somewhere in the class.
+        // Fields/locals this class constructs (`new`) — it OWNS them, so their
+        // lifetime cannot exceed the class's. Used by the self-owned-subscription
+        // exemption (P-004) just below and by the disposable detector (WPF003).
         var constructed = new HashSet<string>();
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
             foreach (var v in fd.Declaration.Variables)
@@ -204,6 +248,56 @@ foreach (var path in inputs)
                 && FieldName(a.Left) is { } fn)
                 constructed.Add(fn);
 
+        var subs = new List<object>();
+        foreach (var a in assigns)
+        {
+            if (!emitEvents || !a.IsKind(SyntaxKind.AddAssignmentExpression))
+                continue;
+            // P-014 Tier A: a `+=` is an event subscription only when the LHS binds
+            // to an event symbol. `sum += value` (a local/field/property) resolves
+            // to a non-event and is skipped — arithmetic, not a leak. When the LHS
+            // cannot be resolved (its declaring type is an unreferenced external
+            // assembly) we do NOT guess a leak: a handler-shaped RHS becomes an
+            // OWN050 "unchecked" marker that the core surfaces as an advisory note.
+            var leftSymbol = model.GetSymbolInfo(a.Left).Symbol;
+            if (leftSymbol is IEventSymbol ev)
+            {
+                var isTimer = IsTimerEvent(a.Left);
+                // P-004 lifetime exemptions — skip, not a leak (timers excluded: a
+                // running timer is dispatcher-rooted regardless):
+                //  - self-owned source (`this`, or a field/local the class
+                //    constructs) — the source<->this cycle is GC-collectable;
+                //  - static handler — a static method has a null delegate target,
+                //    so no instance is retained and nothing can leak.
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, constructed)
+                                 || IsStaticHandler(a.Right, model)))
+                    continue;
+                var released = unsub.Contains($"{a.Left}|{a.Right}")
+                    || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
+                subs.Add(new
+                {
+                    @event = a.Left.ToString(),
+                    handler = a.Right.ToString(),
+                    line = LineOf(a.Left),
+                    released,
+                    resource = isTimer ? "timer" : "subscription",
+                });
+            }
+            else if (leftSymbol is null && IsHandler(a.Right))
+            {
+                subs.Add(new
+                {
+                    @event = a.Left.ToString(),
+                    handler = a.Right.ToString(),
+                    line = LineOf(a.Left),
+                    resource = "unresolved-subscription",
+                });
+            }
+        }
+
+        // WPF003: an IDisposable field the class constructs (`new`) but never
+        // disposes. Owned (not injected) = in `constructed` (computed above);
+        // released = a `<field>.Dispose()` call somewhere in the class.
         var disposed = new HashSet<string>();
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m

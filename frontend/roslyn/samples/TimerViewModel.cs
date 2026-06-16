@@ -1,10 +1,10 @@
 using System;
-using System.Windows.Threading;
 
 namespace WpfApp;
 
-// A DispatcherTimer whose Tick handler is never detached and the timer is never
-// stopped: the running timer keeps this view-model alive. The core reports
+// A DispatcherTimer (the in-sample stand-in from SampleTypes.cs — WPF is not on
+// the Tier A reference set) whose Tick handler is never detached and the timer is
+// never stopped: the running timer keeps this view-model alive. The core reports
 // OWN001 [resource: timer] at the `+=` line.
 public sealed class TimerViewModel
 {
