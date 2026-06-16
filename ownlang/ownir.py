@@ -86,6 +86,7 @@ from .ast_nodes import (
     Return,
     Stmt,
     Use,
+    While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
 from .di import Service, find_captive_dependencies
@@ -407,9 +408,9 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
 
 def _released_vars(nodes: list[Any]) -> set[str]:
     """The set of local names with at least one `release` op anywhere in a flow body
-    (recursing into `if` branches). Used to word an OWN001 as "never disposed" (the
-    name is absent here, so it was released on no path) vs "not on every path" (the
-    name is present, but the core still found a leaking path)."""
+    (recursing into `if` branches and `while` bodies). Used to word an OWN001 as
+    "never disposed" (the name is absent here, so it was released on no path) vs "not
+    on every path" (the name is present, but the core still found a leaking path)."""
     out: set[str] = set()
     for n in nodes:
         if not isinstance(n, dict):
@@ -424,6 +425,10 @@ def _released_vars(nodes: list[Any]) -> set[str]:
                 b = n.get(branch, [])
                 if isinstance(b, list):
                     out |= _released_vars(b)
+        elif op == "while":
+            b = n.get("body", [])
+            if isinstance(b, list):
+                out |= _released_vars(b)
     return out
 
 
@@ -433,9 +438,10 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 released_vars: set[str]) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
-    sub-bodies. Each acquire gets a globally-unique handle `loc_<n>` (so a finding
-    maps back to the C# local); `localmap` resolves later references within the same
-    function and its branches."""
+    sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
+    checks it, P-016 A1). Each acquire gets a globally-unique handle `loc_<n>` (so a
+    finding maps back to the C# local); `localmap` resolves later references within
+    the same function and its branches/loops."""
     body: list[Stmt] = []
     for n in nodes:
         if not isinstance(n, dict):
@@ -471,6 +477,11 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             else_b = _lower_flow(en if isinstance(en, list) else [],
                                  ffile, fname, handles, loc, localmap, released_vars)
             body.append(If("?", then_b, else_b, line))
+        elif op == "while":
+            bn = n.get("body", [])
+            body_b = _lower_flow(bn if isinstance(bn, list) else [],
+                                 ffile, fname, handles, loc, localmap, released_vars)
+            body.append(While("?", body_b, line))
     return body
 
 
