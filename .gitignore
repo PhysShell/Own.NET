@@ -7,3 +7,8 @@ __pycache__/
 # .NET build output (golden_arraypool demo)
 bin/
 obj/
+
+# Corpus mining: cloned third-party source + raw reports (scripts/mine.sh).
+# Never commit other projects' code; promote interesting findings into
+# corpus/real-world/ as minimal reduced cases instead.
+corpus/mined/

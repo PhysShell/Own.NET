@@ -1,0 +1,69 @@
+name: mine (corpus)
+
+# On-demand corpus mining: clone one public C# repo and run the Own.NET leak
+# check over it, uploading a structured report. Evaluation tooling for the
+# analyser — see docs/notes/mining.md. One repo per run (be a good citizen).
+#
+# Trigger from the Actions tab ("Run workflow") or the API. Inputs are passed to
+# the miner via env (never interpolated into the shell) to avoid script injection.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Target: owner/repo (e.g. DapperLib/Dapper) or a git URL"
+        required: true
+      ref:
+        description: "Branch / tag / sha to mine (optional, default: repo HEAD)"
+        required: false
+        default: ""
+      paths:
+        description: "Subdir of the target to scan (optional, default: whole repo)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  mine:
+    name: mine ${{ inputs.repo }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Mine the target
+        env:
+          REPO: ${{ inputs.repo }}
+          REF: ${{ inputs.ref }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          args=()
+          [[ -n "$REF" ]]   && args+=(--ref "$REF")
+          [[ -n "$PATHS" ]] && args+=(--paths "$PATHS")
+          scripts/mine.sh "${args[@]}" "$REPO"
+      - name: Publish the report to the run summary
+        if: always()
+        run: |
+          report=$(ls corpus/mined/*/report.md 2>/dev/null | head -1 || true)
+          if [[ -n "$report" ]]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "no report produced (see the Mine step log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mine-report
+          path: |
+            corpus/mined/*/report.md
+            corpus/mined/*/report.json
+            corpus/mined/*/findings.txt
+            corpus/mined/*/extract.log
+          if-no-files-found: warn
