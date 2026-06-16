@@ -74,6 +74,16 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from .ast_nodes import (
+    Acquire,
+    FnDecl,
+    Let,
+    Module,
+    Release,
+    ResourceDecl,
+    ResourceMember,
+    Stmt,
+)
 from .di import LIFETIMES as DI_LIFETIMES
 from .di import Service, find_captive_dependencies
 from .diagnostics import Severity
@@ -298,6 +308,74 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     return "\n".join(lines), handles
 
 
+def _prelude_resources() -> list[ResourceDecl]:
+    """The owned-resource declarations the lowered functions acquire — the AST twin
+    of `_PRELUDE`. Members mirror the text prelude; `kind` carries the
+    `[resource: <kind>]` tag a finding surfaces."""
+    return [
+        ResourceDecl("Subscription",
+                     [ResourceMember("acquire", "Subscribe", 0),
+                      ResourceMember("release", "Dispose", 0)], 0,
+                     kind="subscription token"),
+        ResourceDecl("Timer",
+                     [ResourceMember("acquire", "Start", 0),
+                      ResourceMember("release", "Stop", 0)], 0, kind="timer"),
+        ResourceDecl("Disposable",
+                     [ResourceMember("acquire", "New", 0),
+                      ResourceMember("release", "Dispose", 0)], 0,
+                     kind="disposable field"),
+        ResourceDecl("PooledBuffer",
+                     [ResourceMember("acquire", "Rent", 0),
+                      ResourceMember("release", "Return", 0)], 0,
+                     kind="pooled buffer"),
+    ]
+
+
+def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]:
+    """Build the core `Module` AST **directly** from OwnIR facts — no `.own` source
+    text and no re-parse (P-016 B0a; the round-trip `to_own` + `parse` has existed
+    since P-001). Mirrors `to_own`'s lowering exactly: each owned-resource fact
+    becomes `let <handle> = acquire <Resource>();`, with a `release` iff the
+    extractor found a matching teardown. Returns the Module plus the handle->fact
+    map; a diagnostic names a handle via its symbol `origin` (`<name>#<line>`,
+    cfg.py), which maps straight back to the C# location."""
+    handles: dict[str, dict[str, Any]] = {}
+    functions: list[FnDecl] = []
+    gid = 0
+    components = facts.get("components", [])
+    if not isinstance(components, list):
+        raise OwnIRError("OwnIR 'components' must be a JSON array")
+    for comp in components:
+        if not isinstance(comp, dict):
+            raise OwnIRError("each OwnIR component must be a JSON object")
+        cname = comp.get("name", f"Component{gid}")
+        body: list[Stmt] = []
+        subscriptions = comp.get("subscriptions", [])
+        if not isinstance(subscriptions, list):
+            raise OwnIRError("component 'subscriptions' must be a JSON array")
+        for sub in subscriptions:
+            if not isinstance(sub, dict):
+                raise OwnIRError("each subscription must be a JSON object")
+            # an unresolved-subscription marker is not an owned resource — it is
+            # surfaced as an advisory OWN050 note, never lowered (see to_own).
+            if sub.get("resource") == "unresolved-subscription":
+                continue
+            handle = f"sub_{gid}"
+            gid += 1
+            handles[handle] = {**sub, "component": cname,
+                               "file": comp.get("file", "?")}
+            rtype, _ = _RESOURCES.get(sub.get("resource", "subscription"),
+                                      _RESOURCES["subscription"])
+            line = _as_int(sub.get("line", 0))
+            body.append(Let(handle, Acquire(rtype, [], line), line))
+            if sub.get("released"):
+                body.append(Release(handle, line))
+        functions.append(FnDecl(cname, [], None, body, 0))
+    return (Module(str(facts.get("module", "Extracted")),
+                   resources=_prelude_resources(), functions=functions),
+            handles)
+
+
 def _handle_of(diag: object) -> str | None:
     """The synthetic handle (`sub_N`) a diagnostic is about, recovered from its
     structured `subject` (`name#line`) — NOT by scraping the human message. Each
@@ -319,22 +397,14 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     diagnostic the bridge has not been taught to map) — we raise rather than
     silently dropping a real finding, since a swallowed leak is the worst
     outcome for a leak checker."""
-    # imported here to avoid a module-level cycle (ownir is a leaf consumer).
-    # v0 lowers to `.own` text and goes through _collect (parse + the one
-    # checker). The next pattern (timers / region facts with no surface syntax)
-    # builds a Module and calls __main__.check_module directly instead — the
-    # seam is already split so that switch is additive, not a rewrite.
-    from .__main__ import _collect
+    # P-016 B0a: build the core Module AST DIRECTLY from facts and check it — no
+    # `.own` source text and no re-parse (the round-trip that existed since P-001).
+    # `to_own` is kept as a human-readable sketch / test aid. Imported here to avoid
+    # a module-level cycle (ownir is a leaf consumer).
+    from .__main__ import check_module
 
-    src, handles = to_own(facts)
-    diags, mod = _collect(src)
-    if mod is None:
-        # the only source here is our own generator, so a parse failure is an
-        # internal bug in to_own, not bad user input — surface it loudly.
-        msg = diags[0].message if diags else "unknown parse error"
-        raise OwnIRError(
-            f"internal: the lowered OwnIR module did not parse ({msg}). "
-            f"This is a bug in the fact lowering, not in the facts.")
+    mod, handles = to_module(facts)
+    diags = check_module(mod)
 
     findings: list[Finding] = []
     for d in diags:
