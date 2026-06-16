@@ -58,6 +58,31 @@ namespace Catalog
                 uowFixed.ProductCatalogs.Where(p => p.DocumentID == null);
             return productCatalogs.ToList();   // materialized before dispose
         }
+
+        // Option B — ownership TRANSFERRED to the caller (the composable fix): the
+        // unit of work is `new`'d here but RETURNED, so the caller keeps the context
+        // alive across the deferred query's enumeration and disposes it itself:
+        //   using var uow = svc.CreateUnitOfWork();
+        //   foreach (var p in svc.QueryProducts(uow, header)) { ... }   // ctx alive
+        // The bare `uowOwned` escapes via `return`, so the flow detector does not
+        // track it -> silent. Unlike the materialize fix, the IQueryable stays
+        // composable (the caller can still add .Where()/paging translated to SQL).
+        public IUnitOfWork CreateUnitOfWork()
+        {
+            var uowOwned = new UnitOfWork(true);
+            return uowOwned;
+        }
+
+        // Option B, the argument form: the unit of work is `new`'d here but handed to
+        // a callee that takes ownership (disposal becomes the callee's contract). The
+        // bare `uowMoved` escapes via the ARGUMENT, so it is not tracked -> silent.
+        public void ImportProducts(DocHeader header)
+        {
+            var uowMoved = new UnitOfWork(true);
+            ConsumeUnitOfWork(uowMoved);
+        }
+
+        private static void ConsumeUnitOfWork(IUnitOfWork uow) => uow.Dispose();
     }
 
     // --- Minimal stand-ins for the GTM domain types: self-contained so the sample

@@ -1,0 +1,17 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "functions": [
+    {
+      "name": "FlowLocalsSample.LeakOnElse",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "leak", "line": 23},
+        {"op": "if", "line": 24, "then": [
+          {"op": "release", "var": "leak", "line": 26}
+        ], "else": []}
+      ]
+    }
+  ]
+}

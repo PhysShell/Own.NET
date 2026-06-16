@@ -393,17 +393,44 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             fname = str(fn.get("name", f"Fn{loc[0]}"))
             ffile = str(fn.get("file", "?"))
             nodes = fn.get("body", [])
-            fbody = _lower_flow(nodes if isinstance(nodes, list) else [],
-                                ffile, fname, handles, loc, {})
+            nodes = nodes if isinstance(nodes, list) else []
+            # which locals have ANY release in the body (any branch) — lets the OWN001
+            # wording distinguish "never disposed" (no release at all) from "not
+            # disposed on every path" (released on some branch, leaked on another).
+            released = _released_vars(nodes)
+            fbody = _lower_flow(nodes, ffile, fname, handles, loc, {}, released)
             functions.append(FnDecl(fname, [], None, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
                    resources=_prelude_resources(), functions=functions),
             handles)
 
 
+def _released_vars(nodes: list[Any]) -> set[str]:
+    """The set of local names with at least one `release` op anywhere in a flow body
+    (recursing into `if` branches). Used to word an OWN001 as "never disposed" (the
+    name is absent here, so it was released on no path) vs "not on every path" (the
+    name is present, but the core still found a leaking path)."""
+    out: set[str] = set()
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "release":
+            v = n.get("var")
+            if isinstance(v, str):
+                out.add(v)
+        elif op == "if":
+            for branch in ("then", "else"):
+                b = n.get(branch, [])
+                if isinstance(b, list):
+                    out |= _released_vars(b)
+    return out
+
+
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handles: dict[str, dict[str, Any]], loc: list[int],
-                localmap: dict[str, str]) -> list[Stmt]:
+                localmap: dict[str, str],
+                released_vars: set[str]) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies. Each acquire gets a globally-unique handle `loc_<n>` (so a finding
@@ -421,7 +448,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             name = str(n.get("var", "?"))
             localmap[name] = handle
             handles[handle] = {"file": ffile, "line": line, "event": name,
-                               "component": fname, "resource": "flow-local"}
+                               "component": fname, "resource": "flow-local",
+                               "ever_released": name in released_vars}
             body.append(Let(handle, Acquire("Disposable", [], line), line))
         elif op == "use":
             h = localmap.get(str(n.get("var")))
@@ -439,9 +467,9 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             tn = n.get("then", [])
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [],
-                                 ffile, fname, handles, loc, localmap)
+                                 ffile, fname, handles, loc, localmap, released_vars)
             else_b = _lower_flow(en if isinstance(en, list) else [],
-                                 ffile, fname, handles, loc, localmap)
+                                 ffile, fname, handles, loc, localmap, released_vars)
             body.append(If("?", then_b, else_b, line))
     return body
 
@@ -497,12 +525,21 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             # P-016 B0b/B2: path-sensitive local-IDisposable verdicts. The code is
             # the core's (OWN001/002/003/009); phrase it for the C# local.
             name = event
-            msg = {
-                "OWN001": f"IDisposable local '{name}' may not be disposed on every path (leak)",
-                "OWN002": f"IDisposable local '{name}' is used after it is disposed",
-                "OWN003": f"IDisposable local '{name}' is disposed more than once",
-                "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",
-            }.get(d.code, f"IDisposable local '{name}': {d.message}")
+            if d.code == "OWN001":
+                # OWN001 spans "released on 0 paths" and "released on some but not all"
+                # — the core's "not on every path". Word it from whether the flow body
+                # released this local anywhere (ever_released): no release at all reads
+                # as "never disposed"; a partial release as "not on every path". Same
+                # leak verdict either way.
+                msg = (f"IDisposable local '{name}' may not be disposed on every path (leak)"
+                       if sub.get("ever_released")
+                       else f"IDisposable local '{name}' is never disposed (leak)")
+            else:
+                msg = {
+                    "OWN002": f"IDisposable local '{name}' is used after it is disposed",
+                    "OWN003": f"IDisposable local '{name}' is disposed more than once",
+                    "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",
+                }.get(d.code, f"IDisposable local '{name}': {d.message}")
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
