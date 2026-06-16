@@ -34,9 +34,12 @@ proposal is marked `done` with a pointer.
 | [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
 | [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
 | [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | draft |
+| [P-013](P-013-distribution-surface.md) | Distribution surface (how people run Own.NET) | v0 built (CI/Action + dotnet tool) |
+| [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | draft (P0) |
+| [P-015](P-015-configuration-surface.md) | Configuration surface (check selection & per-category severity) | draft (stub) |
 
 > For priorities, milestones, the framing, and the design philosophy across all
-> of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-012
+> of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-015
 > capture ideas raised in design discussion — they are *on the record for
 > consideration*, drafts, not commitments.
 
