@@ -65,9 +65,12 @@ jobs:
             http://*|https://*|git@*) url="$REPO" ;;
             *) url="https://github.com/${REPO}.git" ;;
           esac
-          args=(--depth 1 --quiet)
-          [[ -n "$REF" ]] && args+=(--branch "$REF")
-          git clone "${args[@]}" "$url" target
+          git clone --depth 1 --quiet "$url" target
+          if [[ -n "$REF" ]]; then
+            # --branch only accepts a branch/tag; fetch+checkout also takes a raw SHA.
+            git -C target fetch --depth 1 --quiet origin "$REF"
+            git -C target checkout --quiet --detach FETCH_HEAD
+          fi
           echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # Own.NET — no build needed; scans .cs directly.

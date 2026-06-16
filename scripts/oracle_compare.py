@@ -124,16 +124,19 @@ def norm_path(raw: str, strips: list[str]) -> str:
     return p.lstrip("/")
 
 
-def build_own(text: str, strips: list[str]) -> list[Finding]:
-    """Parse own-check human output into Findings (reusing the miner's parser)."""
+def build_own(text: str, strips: list[str]) -> tuple[list[Finding], int]:
+    """Parse own-check human output into Findings (reusing the miner's parser).
+    Also returns the unparsed-line count, so drift in the own-check format is
+    surfaced rather than silently dropped (which would inflate `oracle-only`)."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from mine_report import parse  # local import: scripts/ is on the path now
-    raw, _ = parse(text)
-    return [
+    raw, unparsed = parse(text)
+    findings = [
         Finding("own", norm_path(f["file"], strips), int(f["line"]),
                 f["code"], f["message"], _own_class(f["code"]))
         for f in raw
     ]
+    return findings, unparsed
 
 
 def _first_location(res: dict[str, Any]) -> tuple[str, int] | None:
@@ -206,7 +209,8 @@ def _fmt_files(s: set[str], cap: int = 12) -> str:
 
 
 def render_md(result: dict[str, Any], target: str, commit: str,
-              oracles: list[str], tol: int, max_list: int = 50) -> str:
+              oracles: list[str], tol: int, own_unparsed: int = 0,
+              max_list: int = 50) -> str:
     """The human-facing comparison report."""
     own_leak = result["own_leak"]
     ora_leak = result["oracle_leak"]
@@ -224,6 +228,11 @@ def render_md(result: dict[str, Any], target: str, commit: str,
         f"- generated: {datetime.now(UTC):%Y-%m-%d %H:%M UTC}",
         f"- tools: Own.NET + {', '.join(oracles) or '(no oracle SARIF supplied)'}",
         f"- file match: basename + line within ±{tol}",
+    ]
+    if own_unparsed:
+        out.append(f"- **warning:** {own_unparsed} own-check line(s) did not parse "
+                   "(format drift?) — Own.NET findings may be incomplete")
+    out += [
         "",
         "Leak / not-disposed class only — the question all three tools can answer. "
         "Own.NET's use-after-release and double-release are listed separately: the "
@@ -352,7 +361,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest:
         return _selftest()
 
-    own = build_own(Path(args.own).read_text(encoding="utf-8"), args.strip) if args.own else []
+    own: list[Finding] = []
+    own_unparsed = 0
+    if args.own:
+        own, own_unparsed = build_own(
+            Path(args.own).read_text(encoding="utf-8"), args.strip)
+        if own_unparsed:
+            print(f"warning: {own_unparsed} own-check line(s) did not parse "
+                  "(format drift?); Own.NET findings may be incomplete",
+                  file=sys.stderr)
     sarif_inputs: list[tuple[str, str]] = []
     if args.infersharp:
         sarif_inputs.append(("infersharp", args.infersharp))
@@ -375,7 +392,8 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.json_out).write_text(
             json.dumps(to_json(result, args.target, args.commit), indent=2),
             encoding="utf-8")
-    print(render_md(result, args.target, args.commit, present, args.line_tol))
+    print(render_md(result, args.target, args.commit, present, args.line_tol,
+                    own_unparsed))
     return 0
 
 
@@ -406,7 +424,7 @@ def _selftest() -> int:
              "artifactLocation": {"uri": "E.cs"}, "region": {"startLine": 7}}}]},
     ]}]})
 
-    own = build_own(own_txt, [])
+    own, own_unparsed = build_own(own_txt, [])
     oracles = parse_sarif(infer, "infersharp", []) + parse_sarif(codeql, "codeql", [])
     r = compare(own, oracles, tol=3)
 
@@ -433,8 +451,17 @@ def _selftest() -> int:
     js = to_json(r, "o/r", "abc123")
     if js["totals"]["agree"] != 1 or js["totals"]["oracle_only"] != 1:
         fails.append(f"json totals wrong: {js['totals']}")
+    # parser-drift surfacing: a clean input drops nothing; an unrecognised line
+    # is counted and rendered as a header warning, not silently swallowed.
+    if own_unparsed != 0:
+        fails.append(f"clean own input should have 0 unparsed, got {own_unparsed}")
+    _, drift = build_own("a line that is not a finding\n", [])
+    if drift != 1:
+        fails.append(f"parser drift not surfaced: expected 1 unparsed, got {drift}")
+    if "warning:" not in render_md(r, "o/r", "abc123", ["infersharp"], 3, drift):
+        fails.append("unparsed warning not rendered in header")
 
-    total = 9
+    total = 12
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")
