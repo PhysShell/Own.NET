@@ -50,7 +50,7 @@ jobs:
       - name: Publish the report to the run summary
         if: always()
         run: |
-          report=$(ls corpus/mined/*/report.md 2>/dev/null | head -1 || true)
+          report=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
           if [[ -n "$report" ]]; then
             cat "$report" >> "$GITHUB_STEP_SUMMARY"
           else

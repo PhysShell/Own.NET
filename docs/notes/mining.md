@@ -17,7 +17,7 @@ So mining needs **no per-repo build setup** — just point it at the `.cs`.
 In CI (no local .NET needed) — Actions tab → **mine (corpus)** → *Run workflow*,
 or via the API; the report lands in the run summary and as an artifact:
 
-```
+```text
 inputs: repo = DapperLib/Dapper   ref = (optional)   paths = (optional subdir)
 ```
 
