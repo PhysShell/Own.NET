@@ -158,3 +158,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-011](proposals/P-011-editor-tooling.md) | Editor tooling & syntax highlighting | side-track | draft |
 | [P-012](proposals/P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | enabling | draft |
 | [P-013](proposals/P-013-distribution-surface.md) | Distribution surface (CI Action + dotnet tool) | enabling | v0 built |
+| [P-014](proposals/P-014-semantic-resolution.md) | Semantic resolution for the C# extractor | P0 | draft |

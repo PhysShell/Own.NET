@@ -34,6 +34,8 @@ proposal is marked `done` with a pointer.
 | [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
 | [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
 | [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | draft |
+| [P-013](P-013-distribution-surface.md) | Distribution surface (CI Action + dotnet tool) | v0 built |
+| [P-014](P-014-semantic-resolution.md) | Semantic resolution for the C# extractor | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-012
