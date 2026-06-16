@@ -1,0 +1,24 @@
+{
+  "ownir_version": 0,
+  "module": "TierA",
+  "components": [
+    {
+      "name": "GridViewModel",
+      "file": "GridViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "grid.View.CellValueChanged",
+          "handler": "OnCellChanged",
+          "line": 20,
+          "resource": "unresolved-subscription"
+        },
+        {
+          "event": "vm.PropertyChanged",
+          "handler": "OnProp",
+          "line": 22,
+          "released": false
+        }
+      ]
+    }
+  ]
+}

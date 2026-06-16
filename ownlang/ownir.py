@@ -44,6 +44,10 @@ owned-resource records) is an owned resource, discriminated by an optional
     tag `[resource: disposable]`.
   - "pool": an `ArrayPool`/`MemoryPool` buffer `Rent`ed but never `Return`ed;
     tag `[resource: pooled buffer]`.
+  - "unresolved-subscription": a `+=` whose left side could not be bound to an
+    event (its declaring type is an unreferenced external assembly). NOT an owned
+    resource — it is skipped by the lowering and surfaced separately as an
+    advisory OWN050 "leakage analysis skipped" note, never a leak (P-014 Tier A).
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
 `line`. The `resource`/`type` fields are additive and optional, so they do NOT
@@ -147,6 +151,9 @@ class Finding:
     handler: str
     message: str
     kind: str = "subscription token"
+    # an advisory note (e.g. OWN050 "leakage analysis skipped") rather than a leak
+    # verdict: rendered as a warning and excluded from the exit code.
+    advisory: bool = False
 
     def render(self, severity: str = "error") -> str:
         return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
@@ -271,6 +278,12 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
         for sub in subscriptions:
             if not isinstance(sub, dict):
                 raise OwnIRError("each subscription must be a JSON object")
+            # An "unresolved-subscription" marker is not an owned resource (the
+            # extractor could not bind the LHS to an event). Do not lower it to an
+            # acquire — that would become a phantom OWN001 leak. It is surfaced as
+            # an advisory OWN050 note by _unresolved_findings instead.
+            if sub.get("resource") == "unresolved-subscription":
+                continue
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
@@ -376,6 +389,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # it (see ownlang/di.py). Findings carry the registration site as file/line.
     findings.extend(_di_findings(facts))
 
+    # OWN050 (P-014 Tier A): a `+=` whose declaring type could not be resolved —
+    # an advisory "leakage analysis skipped" note, never a leak. Routed through
+    # this side path so it bypasses the ERROR-only diagnostic mapping above.
+    findings.extend(_unresolved_findings(facts))
+
     findings.sort(key=lambda f: (f.file, f.line, f.code))
     return findings
 
@@ -410,3 +428,38 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             message=c.message, kind="DI lifetime")
         for c in find_captive_dependencies(services)
     ]
+
+
+def _unresolved_findings(facts: dict[str, Any]) -> list[Finding]:
+    """Surface every "unresolved-subscription" marker as an advisory OWN050
+    finding (P-014 Tier A): the extractor saw a `+=` that looks like an event
+    subscription but could not bind the left side to an event — its declaring
+    type is an unreferenced external assembly. We do not guess a leak; we say,
+    honestly, that it was not checked. Advisory: rendered as a warning and
+    excluded from the exit code (see __main__.cmd_ownir)."""
+    out: list[Finding] = []
+    comps = facts.get("components", [])
+    if not isinstance(comps, list):
+        return out
+    for comp in comps:
+        if not isinstance(comp, dict):
+            continue
+        cfile = comp.get("file", "?")
+        cname = comp.get("name", "?")
+        subs = comp.get("subscriptions", [])
+        if not isinstance(subs, list):
+            continue
+        for sub in subs:
+            if not isinstance(sub, dict) or \
+                    sub.get("resource") != "unresolved-subscription":
+                continue
+            event = sub.get("event", "?")
+            handler = sub.get("handler", "?")
+            message = (f"cannot verify '{event}' — its declaring type is an "
+                       f"unresolved reference (build the project or pass "
+                       f"references); leakage analysis skipped")
+            out.append(Finding(
+                file=cfile, line=_as_int(sub.get("line", 0)), code="OWN050",
+                component=cname, event=event, handler=handler, message=message,
+                kind="unresolved reference", advisory=True))
+    return out

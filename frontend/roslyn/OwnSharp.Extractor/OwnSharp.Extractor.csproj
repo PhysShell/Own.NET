@@ -21,7 +21,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Syntax-only Roslyn: we parse C# source text, no compilation/references. -->
+    <!-- Type-aware Roslyn (P-014 Tier A): project-local CSharpCompilation +
+         SemanticModel over the runtime's framework references, still fact-only
+         and intraprocedural. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
   </ItemGroup>
 

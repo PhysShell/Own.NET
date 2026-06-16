@@ -13,6 +13,9 @@ Command-line driver for the OwnLang PoC.
 `--severity` (ownir only) picks how the host shows a finding — `error` (default,
 fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
+`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory OWN050
+"leakage analysis skipped" notes, P-014 Tier A), `normal` (default), or `verbose`
+(also print a per-code breakdown).
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -188,11 +191,14 @@ def _read(path: str) -> str:
         return f.read()
 
 
-def cmd_ownir(path: str, fmt: str = "human", severity: str = "error") -> int:
+def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
+              verbosity: str = "normal") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
     the same core, surfacing findings at their C# locations (P-001). `fmt`
     selects the surface: human (CLI), github (CI annotations), msbuild (VS);
-    `severity` picks how the host shows them (error/warning)."""
+    `severity` picks how the host shows them (error/warning); `verbosity` is
+    `quiet` (errors only — hide the advisory OWN050 notes), `normal` (default), or
+    `verbose` (also print a per-code breakdown)."""
     from .ownir import OwnIRError, check_facts, load, render_finding
     try:
         findings = check_facts(load(path))
@@ -205,17 +211,34 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error") -> int:
     # pollute that stream.
     machine = fmt in {"github", "msbuild"}
     summary_to = sys.stderr if machine else sys.stdout
-    for f in findings:
-        print(render_finding(f, fmt, severity))
-    if not findings:
+    # OWN050 "leakage analysis skipped" notes are advisory (P-014 Tier A): always
+    # shown as warnings regardless of --severity, and never affect the exit code —
+    # they are coverage notes ("we could not check this"), not verdicts.
+    leaks = [f for f in findings if not f.advisory]
+    notes = [f for f in findings if f.advisory]
+    shown = leaks if verbosity == "quiet" else findings
+    for f in shown:
+        print(render_finding(f, fmt, "warning" if f.advisory else severity))
+    if not shown:
         print(f"{path}: ok — no subscription leaks found", file=summary_to)
-    n = len(findings)
-    print(f"\n{n} finding{'s' if n != 1 else ''}.", file=summary_to)
-    return 1 if findings else 0
+    n = len(leaks)
+    summary = f"\n{n} finding{'s' if n != 1 else ''}"
+    if notes:
+        summary += (f" ({len(notes)} unchecked hidden)" if verbosity == "quiet"
+                    else f", {len(notes)} unchecked (OWN050)")
+    print(summary + ".", file=summary_to)
+    if verbosity == "verbose" and findings:
+        by_code: dict[str, int] = {}
+        for f in findings:
+            by_code[f.code] = by_code.get(f.code, 0) + 1
+        breakdown = ", ".join(f"{c}={by_code[c]}" for c in sorted(by_code))
+        print(f"  by code: {breakdown}", file=summary_to)
+    return 1 if leaks else 0
 
 
 _FORMATS = {"human", "github", "msbuild"}
 _SEVERITIES = {"error", "warning"}
+_VERBOSITY = {"quiet", "normal", "verbose"}
 
 
 def main(argv: list[str]) -> int:
@@ -223,10 +246,10 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     cmd = argv[0]
-    # Pull the optional value-flags (`--format`/`--severity`, ownir only) out of
-    # the arguments in either `--flag V` or `--flag=V` form; everything else is
-    # positional. Keeps the other commands' single positional-path contract.
-    opts = {"--format": "human", "--severity": "error"}
+    # Pull the optional value-flags (`--format`/`--severity`/`--verbosity`, ownir
+    # only) out of the arguments in either `--flag V` or `--flag=V` form; everything
+    # else is positional. Keeps the other commands' single positional-path contract.
+    opts = {"--format": "human", "--severity": "error", "--verbosity": "normal"}
     seen_value_flags = False
     positional: list[str] = []
     rest = argv[1:]
@@ -255,7 +278,8 @@ def main(argv: list[str]) -> int:
     if len(positional) != 1:
         print(__doc__)
         return 2
-    fmt, severity = opts["--format"], opts["--severity"]
+    fmt, severity, verbosity = (opts["--format"], opts["--severity"],
+                                opts["--verbosity"])
     if fmt not in _FORMATS:
         print(f"unknown --format {fmt!r} (choose: {', '.join(sorted(_FORMATS))})",
               file=sys.stderr)
@@ -264,15 +288,20 @@ def main(argv: list[str]) -> int:
         print(f"unknown --severity {severity!r} (choose: "
               f"{', '.join(sorted(_SEVERITIES))})", file=sys.stderr)
         return 2
-    # `--format`/`--severity` are ownir-only — reject them on other commands by
-    # *presence*, not just non-default value (so `check x --format human` is a
-    # clear error, not a silent no-op).
+    if verbosity not in _VERBOSITY:
+        print(f"unknown --verbosity {verbosity!r} (choose: "
+              f"{', '.join(sorted(_VERBOSITY))})", file=sys.stderr)
+        return 2
+    # `--format`/`--severity`/`--verbosity` are ownir-only — reject them on other
+    # commands by *presence*, not just non-default value (so `check x --format
+    # human` is a clear error, not a silent no-op).
     if cmd != "ownir" and seen_value_flags:
-        print("--format/--severity only apply to `ownir`", file=sys.stderr)
+        print("--format/--severity/--verbosity only apply to `ownir`",
+              file=sys.stderr)
         return 2
     path = positional[0]
     if cmd == "ownir":
-        return cmd_ownir(path, fmt, severity)
+        return cmd_ownir(path, fmt, severity, verbosity)
     return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
             "report": cmd_report}[cmd](path)
 

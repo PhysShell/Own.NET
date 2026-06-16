@@ -150,9 +150,10 @@ instead of the bash command.
 - **Heuristic findings can be false positives** (e.g. ownership handed to a
   callee). Treat output as a reviewer, not a gate, until you've calibrated it on
   your codebase — and prefer `--fail-on-finding` only once it's quiet.
-- **One method at a time, syntax-only.** The extractor does not do
-  interprocedural/`async`/whole-program analysis yet (by design — see the
-  ROADMAP). It honestly skips what it can't model rather than guessing.
+- **One method at a time, type-aware (project-local `SemanticModel`).** The
+  extractor does not do interprocedural/`async`/whole-program analysis yet (by
+  design — see the ROADMAP). It honestly skips what it can't model rather than
+  guessing.
 - **`bin`/`obj`/generated files are skipped**; paths are reported relative to the
   scan root so they resolve in the editor and on the PR.
 

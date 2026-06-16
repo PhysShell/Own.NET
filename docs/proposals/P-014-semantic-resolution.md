@@ -261,7 +261,10 @@ T1→T2 are sequential (infra then fix); T3/T4 land with T2; T5 (docs) any time;
   **P-004** — its mechanisms are `[OwnIgnore("source lifetime is shorter")]`
   (P-004:60-61) and WPF005 firing OWN014 only on a *longer-lived* source
   (P-004:35,45). P-014 removes the *gross* noise (arithmetic, unresolved
-  externals) so P-004's heuristic operates on real subscriptions only.
+  externals) so P-004's heuristic operates on real subscriptions only. (The first
+  P-004 increment — the self-owned-source exemption, skipping a subscription whose
+  source is `this` or a field the class constructs — landed alongside this work;
+  see P-004.)
 - **Requiring a green build for Tier A.** The compilation degrades gracefully:
   partial resolution still types the locals/fields Tier A needs.
 - **A new `info`/`note` severity level.** The unresolved channel is a `warning`.

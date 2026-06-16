@@ -35,9 +35,12 @@ long-term identity the backlog is aiming at:
   - Concretely: prove Own.NET finds **one** real memory/resource bug in real C#,
     then widen the frontend to fit exactly the next real bug.
 - **Narrow C# frontend, intraprocedural first.** The frontend's job is not to
-  "understand C#" (SemanticModel hides async, generics, LINQ, closures, pattern
-  matching, overload resolution, nullable flow, source generators…). Its job is
-  to extract *facts*: acquire / borrow / use / release / escape / control-flow.
+  "understand C#" — it uses a project-local `SemanticModel` only for binding and
+  type resolution (is a `+=` LHS an event or a number? — [P-014](proposals/P-014-semantic-resolution.md)),
+  not for whole-language understanding (async, generics, LINQ, closures, pattern
+  matching, overload resolution, nullable flow, source generators stay out of
+  scope). Its job is to extract *facts*: acquire / borrow / use / release / escape
+  / control-flow.
 - **Refuse the soul-eating version.** Every proposal's Non-goals section is the
   most important one. Boredom keeps projects alive.
 

@@ -1,8 +1,8 @@
 # P-004 — WPF / UI lifetime leak profile
 
 - **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer)** + **WPF003
-  (IDisposable field)** + **WPF004 (ignored Subscribe) built**; WPF005 (escape)
-  next
+  (IDisposable field)** + **WPF004 (ignored Subscribe)** + **self-owned & static-
+  handler exemptions (P-014 Tier A) built**; WPF005 (escape) next
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the extractor + OwnIR seam),
   `spec/OwnCore.md`, `spec/Lifetimes.md` (OWN001 leak, OWN014 region escape).
   See [`docs/ROADMAP.md`](../ROADMAP.md) for where this sits (Milestones 1–2).
@@ -45,6 +45,23 @@ owner(this, Subscription)
 escapes(this, App)  -> a strong capture by a longer-lived source  (feeds OWN014)
 Dispose/OnClosed/Unloaded -> a permitted release region
 ```
+
+**Lifetime exemptions (built, P-014 Tier A).** Two sound, syntax-cheap cases where
+a `+=` without `-=` is provably *not* a leak and is dropped — decided semantically
+(symbols, not text):
+- **Self-owned source** — the event source is `this`, or a field/local the class
+  constructs (and so owns); the `source <-> this` cycle outlives nothing and is
+  GC-collectable.
+- **Static handler** — `+= StaticMethod` stores a delegate whose `Target` is null,
+  so no instance is retained, however long-lived the source.
+
+Timers are excluded from both (a *running* timer is dispatcher-rooted regardless).
+Samples: `SelfOwnedViewModel.cs` / `StaticHandlerViewModel.cs` (silent) vs
+`CustomerViewModel.cs` (injected instance source → leak). On GTM these keep
+`VCreate`/`VRibbon`'s *instance* subscriptions to the static
+`LicContext.LicenseDataChanged` as leaks, while dropping the static-class
+`Context`'s subscription to the *same* event — the deciding factor is the
+subscriber/handler, not the source.
 
 The corpus already pins three of these against real core codes:
 `corpus/wpf/zombie-viewmodel` (OWN001), `viewmodel-escapes-to-app` (OWN014),

@@ -10,10 +10,14 @@ checks.
 
 ## What it does (v0)
 
-Syntax-only (no compilation, no references): finds `target += handler` event
-subscriptions and marks each `released` iff a matching `target -= handler` exists
-in the same class. Exactly the `event += without -=` leak pattern. The verdict
-(OWN001) comes from the core, not from here — there is one checker, not two.
+Type-aware (P-014 Tier A): all inputs are parsed into one `CSharpCompilation` with
+the runtime's framework references, and a `target += handler` is an event
+subscription only when the `SemanticModel` binds the left side to an event — so
+`sum += value` (arithmetic) is not a leak. Each is marked `released` iff a matching
+`target -= handler` exists in the same class. When the left side's declaring type
+is an unresolved external reference, it surfaces as an OWN050 "leakage analysis
+skipped" note, never guessed as a leak. Still fact-only and intraprocedural; the
+verdict (OWN001) comes from the core, not from here — there is one checker, not two.
 
 ## Run
 
@@ -70,6 +74,8 @@ per keystroke) — a conflict with "one checker", not just effort. See
 
 This sandbox has no local `dotnet`, so the extractor is built and run only in CI
 (the `wpf-extractor` job); the Python bridge + core are tested locally
-(`tests/test_ownir.py`) against hand-written facts. The heuristic (RHS is a
-method group) and non-goals (XAML, timers, IDisposable fields, semantic event
-resolution) are tracked in the proposal.
+(`tests/test_ownir.py`) against hand-written facts. Event subscriptions are
+resolved type-aware (P-014 Tier A); resolving *external* events (WPF/DevExpress)
+needs their references (P-014 Tier B, opt-in) — until then they surface as OWN050
+"unchecked" notes. The IDisposable-field / local / pool detectors remain syntactic
+for now (P-014 rollout: the event fact goes type-aware first).

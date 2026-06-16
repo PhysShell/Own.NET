@@ -21,6 +21,11 @@
 .PARAMETER Severity
   How a host shows findings: error (default) or warning (advisory).
 
+.PARAMETER Verbosity
+  How much to print: quiet (errors only — hide the advisory OWN050 "leakage
+  analysis skipped" notes, P-014 Tier A), normal (default), or verbose (also a
+  per-code breakdown).
+
 .PARAMETER FailOnFinding
   Exit non-zero (the core's code) when any leak is found.
 
@@ -37,6 +42,8 @@ param(
     [string]$Root,
     [string]$Format = "human",
     [string]$Severity = "error",
+    [ValidateSet("quiet", "normal", "verbose")]
+    [string]$Verbosity = "normal",
     [switch]$FailOnFinding,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Paths
@@ -64,7 +71,9 @@ try {
 
     # Stage 2: the one checker produces the verdict at the C# location.
     $env:PYTHONPATH = $Root
-    & python -m ownlang ownir $facts.FullName --format $Format --severity $Severity
+    $ownirArgs = @($facts.FullName, "--format", $Format, "--severity", $Severity,
+                   "--verbosity", $Verbosity)
+    & python -m ownlang ownir @ownirArgs
     $rc = $LASTEXITCODE
 }
 finally {

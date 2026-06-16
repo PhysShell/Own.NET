@@ -6,6 +6,7 @@ Numbering scheme (renumbered in this revision — see README changelog):
   020      unsupported construct (loops / async)
   030-034  name resolution & structural
   040-041  extern / call-boundary
+  050      C# front-end resolution coverage (P-014; advisory, never a verdict)
 
 The split between *definite* (002 use-after-release, 005 use-after-move) and
 *maybe* (009, 010) codes is deliberate: a fault that holds on every path is a
@@ -68,6 +69,8 @@ TITLES = {
     # ---- extern / call boundary ----
     "OWN040": "call to an undeclared function (unknown calls are forbidden)",
     "OWN041": "call argument mismatch",
+    # ---- C# front-end resolution coverage (P-014; advisory) ----
+    "OWN050": "declaring type unresolved — leakage analysis skipped",
 }
 
 

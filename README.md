@@ -139,9 +139,10 @@ fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
 ```
 
 **P-001 — настоящий C# (а не hand-reduced).** Узкий Roslyn-экстрактор
-(`frontend/roslyn/`, syntax-only) находит `event += без -=` в реальном `.cs` и
-эмитит OwnIR-факты; Python-мост (`python -m ownlang ownir facts.json`) прогоняет
-их через **то же ядро** и выдаёт OWN001 **на месте C#**:
+(`frontend/roslyn/`, type-aware: project-local `SemanticModel`, см. P-014) находит
+`event += без -=` в реальном `.cs` (по семантике: `sum += value` — не событие, а
+арифметика) и эмитит OwnIR-факты; Python-мост (`python -m ownlang ownir facts.json`)
+прогоняет их через **то же ядро** и выдаёт OWN001 **на месте C#**:
 
 ```text
 CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribed
