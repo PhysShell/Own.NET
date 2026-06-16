@@ -221,8 +221,9 @@ jobs:
           # dispose-optional (Task), disposed/escaping locals, a `for` loop (still
           # skipped: `looped`), and a balanced acquire+dispose in a loop (`whileClean`)
           # must stay silent:
-          # `asyncDisposed` is released via `await x.DisposeAsync()` -> must stay silent.
-          for ok in clean looped esc exemptTask whileClean asyncDisposed; do
+          # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
+          # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

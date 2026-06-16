@@ -269,6 +269,13 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<ob
     // await to the inner call so it counts as disposal, not a bare use.
     if (expr is AwaitExpressionSyntax awaited)
         expr = awaited.Expression;
+    // ... and through a trailing `.ConfigureAwait(false)` — the library-idiomatic
+    // `await x.DisposeAsync().ConfigureAwait(false)` awaits the ConfigureAwait call.
+    if (expr is InvocationExpressionSyntax cfg
+        && cfg.Expression is MemberAccessExpressionSyntax cfgMa
+        && cfgMa.Name.Identifier.Text == "ConfigureAwait"
+        && cfgMa.Expression is InvocationExpressionSyntax inner)
+        expr = inner;
     // x.Dispose()/x.Close()/x.DisposeAsync() on a tracked local -> release.
     if (expr is InvocationExpressionSyntax inv
         && inv.Expression is MemberAccessExpressionSyntax ma

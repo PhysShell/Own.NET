@@ -124,4 +124,13 @@ public class FlowLocalsSample
         asyncDisposed.WriteByte(1);
         await asyncDisposed.DisposeAsync();
     }
+
+    // the library-idiomatic chained form `await x.DisposeAsync().ConfigureAwait(false)`
+    // is also disposal, not a leak (CodeRabbit caught this gap). Silent.
+    public async Task DisposedAsyncConfigured()
+    {
+        var asyncDisposedCfg = new MemoryStream();
+        asyncDisposedCfg.WriteByte(1);
+        await asyncDisposedCfg.DisposeAsync().ConfigureAwait(false);
+    }
 }
