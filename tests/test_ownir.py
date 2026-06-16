@@ -285,6 +285,15 @@ def run() -> int:
     if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
                          "services": [{"name": "X", "lifetime": "perpetual"}]}):
         fails.append("an invalid service lifetime did not raise OwnIRError")
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"lifetime": "singleton"}]}):
+        fails.append("a missing/empty service name did not raise OwnIRError")
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "line": "NaN"}]}):
+        fails.append("a non-integer service line did not raise OwnIRError")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives

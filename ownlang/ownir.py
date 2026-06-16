@@ -233,11 +233,17 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError(
                 f"service 'lifetime' must be one of {sorted(DI_LIFETIMES)}, "
                 f"got {lt!r}")
-        if not isinstance(s.get("name", ""), str):
-            raise OwnIRError("service 'name' must be a string")
+        name = s.get("name")
+        if not isinstance(name, str) or not name:
+            raise OwnIRError("service 'name' must be a non-empty string")
         deps = s.get("deps", [])
         if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
             raise OwnIRError("service 'deps' must be an array of strings")
+        if not isinstance(s.get("file", "?"), str):
+            raise OwnIRError("service 'file' must be a string")
+        ln = s.get("line", 0)
+        if not isinstance(ln, int) or isinstance(ln, bool):
+            raise OwnIRError("service 'line' must be an integer")
     return result
 
 
@@ -374,6 +380,13 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     return findings
 
 
+def _as_int(v: Any) -> int:
+    """A non-throwing int coercion: load() already validates `line`, but
+    check_facts may be called directly (tests, embedders) on un-validated facts,
+    so a bad `line` degrades to 0 rather than raising a bare ValueError."""
+    return v if isinstance(v, int) and not isinstance(v, bool) else 0
+
+
 def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     """Run the DI captive-dependency check over the facts' `services` graph and
     map each result to a DI001 Finding at its registration site."""
@@ -386,7 +399,7 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             lifetime=str(s.get("lifetime", "")),
             deps=tuple(s.get("deps", [])),
             file=str(s.get("file", "?")),
-            line=int(s.get("line", 0)),
+            line=_as_int(s.get("line", 0)),
         )
         for s in raw if isinstance(s, dict)
     ]
