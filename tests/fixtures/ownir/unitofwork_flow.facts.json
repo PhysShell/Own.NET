@@ -1,0 +1,18 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "functions": [
+    {
+      "name": "CatalogService.GetProductsFromCatalogWODocuments",
+      "file": "UnitOfWorkFlowSample.cs",
+      "body": [
+        {"op": "acquire", "var": "uow", "line": 26},
+        {"op": "if", "line": 35, "then": [], "else": [
+          {"op": "use", "var": "uow", "line": 42}
+        ]},
+        {"op": "return", "var": null, "line": 48}
+      ]
+    }
+  ]
+}

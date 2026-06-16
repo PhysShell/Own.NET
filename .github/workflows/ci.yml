@@ -205,6 +205,28 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, dispose-optional exempt, beyond flat)"
+      - name: Escape-via-projection leak — GTM UnitOfWork (--flow-locals, P-016 B0b/B2)
+        run: |
+          # A real GTM leak the flat detector misses: a UnitOfWork (IDisposable) used
+          # ONLY through member access to build a returned DEFERRED IQueryable. The
+          # bare `uow` never escapes, so it stays tracked and is disposed on no path
+          # -> OWN001. Crucially NOT fixable by a naive `using` (the deferred query
+          # would run after dispose) — the `using var`+materialize fix (uowFixed) is
+          # the one that must stay silent.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/UnitOfWorkFlowSample.cs --flow-locals -o "$RUNNER_TEMP/uow.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/uow.json" || true)
+          echo "$out"
+          echo "$out" | grep -qE "OWN001.*'uow'" \
+            || { echo "FAIL: expected OWN001 on the undisposed UnitOfWork 'uow'"; exit 1; }
+          echo "$out" | grep -q "UnitOfWorkFlowSample.cs" \
+            || { echo "FAIL: expected the finding at the C# sample location"; exit 1; }
+          # the using-var + materialize fix transfers nothing out and disposes on all
+          # paths -> it must not be reported.
+          if echo "$out" | grep -q "'uowFixed'"; then
+            echo "FAIL: the using-var+materialize fix was wrongly reported"; exit 1
+          fi
+          echo "OK: escape-via-projection UnitOfWork leak -> OWN001 (naive-using-proof); the materialized fix stays silent"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
