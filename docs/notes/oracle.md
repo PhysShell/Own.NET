@@ -36,7 +36,10 @@ Two classes sit **outside** the three-way diff and are reported separately:
   CodeQL constructs a database (here via `build-mode: none`, from source), Infer#
   analyses compiled `.dll`+`.pdb`. So the oracle run can fail where ours doesn't
   — that asymmetry is the point, and each oracle step is `continue-on-error` so a
-  build failure still yields a partial report.
+  build failure still yields a partial report. (For Infer#, the workflow
+  auto-builds a lone solution — a root-level `*.sln` preferred, else a unique one
+  anywhere; a repo with several needs the `build` input, since `dotnet build
+  <dir>` is ambiguous otherwise, MSB1050.)
 - **Path/line matching is deliberately loose.** Tools disagree on the exact line
   (allocation site vs declaration) and on path prefixes. The comparator matches
   on **basename + a line window** (`--line-tol`, default 3). Robust to prefixes;
@@ -91,9 +94,12 @@ line up with two independent engines.
 - **No tool versions pinned in the report yet.** `microsoft/infersharpaction@v1.5`
   and `github/codeql-action@v3` float on tags; the report header names the tools
   but not exact analyser versions. A later pass can stamp them.
-- **CodeQL runs the default suite, filtered in the comparator** (rather than a
-  single-query pack). Simpler and robust to suite/version drift; the filter keys
-  on the dispose/leak rule family.
+- **CodeQL runs the `security-and-quality` suite, filtered in the comparator**
+  (rather than a single-query pack). This matters: the dispose/leak queries
+  (`cs/local-not-disposed` & friends) are *quality* queries, **absent from the
+  default code-scanning (security) suite** — without the suite, CodeQL silently
+  contributes zero. The filter keys on the dispose/leak rule family; robust to
+  version drift.
 - **One target, by hand.** Same discipline as mining: a deliberate spot-check,
   not a crawler. Be a good citizen (shallow, read-only).
 - **Agreement is necessary, not sufficient.** Two tools can share a blind spot.
