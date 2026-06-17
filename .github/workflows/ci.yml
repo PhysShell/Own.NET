@@ -250,9 +250,19 @@ jobs:
           echo "$cov"
           echo "$cov" | grep -qE '^coverage: [0-9]+/[0-9]+ methods .* flow-analysed' \
             || { echo "FAIL: expected a --stats coverage line on stderr"; exit 1; }
-          grep -q '"methods_flow_analysed"' "$RUNNER_TEMP/stats.json" \
-            || { echo "FAIL: expected a stats object in the facts JSON"; exit 1; }
-          echo "OK: --stats coverage on stderr + stats object in facts JSON"
+          # Parse the JSON (not a substring grep): assert the stats object exists,
+          # all three counters are numbers, and the invariant holds — every method
+          # with a disposable local is either flow-analysed or honestly skipped.
+          jq -e '.stats as $s
+            | ($s.methods_with_local | type == "number")
+              and ($s.methods_flow_analysed | type == "number")
+              and ($s.methods_skipped_unmodelled | type == "number")
+              and ($s.methods_flow_analysed + $s.methods_skipped_unmodelled
+                   == $s.methods_with_local)' \
+            "$RUNNER_TEMP/stats.json" >/dev/null \
+            || { echo "FAIL: stats object missing / non-numeric / invariant violated";
+                 cat "$RUNNER_TEMP/stats.json"; exit 1; }
+          echo "OK: --stats coverage on stderr + valid stats object (invariant holds)"
       - name: Escape-via-projection leak — GTM UnitOfWork (--flow-locals, P-016 B0b/B2)
         run: |
           # A real GTM leak the flat detector misses: a UnitOfWork (IDisposable) used

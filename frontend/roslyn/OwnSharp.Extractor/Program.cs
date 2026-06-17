@@ -60,6 +60,16 @@ if (rawInputs.Count == 0)
     return 2;
 }
 
+// --stats reports flow-locals coverage; the counters only move inside the
+// --flow-locals pass. Without it they would all be zero and the summary would
+// read "0/0 methods flow-analysed" — the exact ambiguous zero --stats exists to
+// kill (e.g. `own-check.sh --legacy --stats`). Refuse the contradictory combo.
+if (reportStats && !flowLocals)
+{
+    Console.Error.WriteLine("ownsharp-extract: --stats requires --flow-locals");
+    return 2;
+}
+
 // A path segment we never scan: build output, VCS, and vendored trees.
 static bool IsSkippedDir(string seg) =>
     seg is "bin" or "obj" or ".git" or ".vs" or "node_modules" or "packages";
