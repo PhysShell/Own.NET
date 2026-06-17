@@ -101,6 +101,42 @@ Pair this with the extractor's planned `--stats` coverage (methods analysed vs
 skipped) and the picture is complete: how much we looked at, and how our verdicts
 line up with two independent engines.
 
+## What the first Dapper three-way showed (a worked example)
+
+Running all three on Dapper's **product code** (commit `72a54c4`; `--exclude-tests`
+dropped 165 test/benchmark findings) gave **Own.NET 0 · Infer# 3 · CodeQL 2**
+leak-class, `agree 0`, and **`own-only 0`** (no false positives from us). The five
+oracle-only findings are both classes we deliberately don't model — and one of them
+is arguably a *precision win for us*:
+
+- **Infer# ×3** — all `WrappedBasicReader` / `DbWrappedReader` in `SqlMapper`
+  (`SqlMapper.cs:1952`, `:3294`, `SqlMapper.IDataReader.cs:118`): "resource
+  allocated … is not closed." But that wrapper is Dapper's **caller-owned disposal
+  handle** — `ExecuteReader*` does `return DbWrappedReader.Create(cmd, reader)`
+  (ownership handed to the caller), and the `GetRowParser`/`GetDbDataReader` adapter
+  wraps the *caller's own* reader (disposing it would close the caller's reader).
+  `WrappedBasicReader.Dispose()` simply forwards to `_reader.Dispose()` — it exists
+  precisely so the **holder** disposes it. So these are Infer# **over-reports on the
+  returns-`IDisposable` pattern** — exactly the escape / ownership-transfer case
+  Own.NET treats as *not a leak*. Our `0` is the right verdict here; Infer#'s `3`
+  look like false positives. (Verified against `WrappedReader.cs` and the
+  `ExecuteReader` return; the two `SqlMapper.cs` sites match the same direct-return
+  and adapter shapes.)
+- **CodeQL ×2** — `cs/dispose-not-called-on-throw` at `SqlMapper.cs:1242/1333`: a
+  disposable local may leak *only if* an exception is thrown mid-method. We don't
+  model exceptional CFG edges, so this is an honest recall gap **by design**, not a
+  logic bug.
+
+Caveat: `own-only 0` also reflects **coverage** — Dapper's core is heavily async and
+interprocedural, which we under-analyse, so "found nothing" partly means "didn't
+reach it." Telling the two apart needs the extractor's `--stats` (analysed vs
+skipped) — the missing signal this run made concrete.
+
+Net: the oracle did its job. It turned "are we behind?" into a precise map —
+precision held (0 FPs; we look *more* correct than Infer# on ownership transfer),
+and the recall gap is two named, roadmapped classes (interprocedural escape
+tracking, exception-path disposal).
+
 ## Honest gaps (v1)
 
 - **No tool versions pinned in the report yet.** `microsoft/infersharpaction@v1.5`
