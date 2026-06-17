@@ -106,7 +106,7 @@ jobs:
       # Infer# — needs compiled binaries; build the target into one output dir.
       # `dotnet build <dir>` errors (MSB1050) when a repo root holds more than one
       # project/solution, so choose a target: explicit `build` input wins; else a
-      # lone *.sln; else the dir (may fail -> continue-on-error -> partial report).
+      # lone solution (root-preferred); else the dir (continue-on-error -> partial).
       - name: Build the target (for Infer#)
         env:
           BUILD: ${{ inputs.build }}
@@ -115,12 +115,17 @@ jobs:
           if [[ -n "$BUILD" ]]; then
             tgt="target/$BUILD"
           else
-            mapfile -t slns < <(find target -maxdepth 2 -name '*.sln' | sort)
-            if [[ ${#slns[@]} -eq 1 ]]; then
-              tgt="${slns[0]}"
+            # Prefer a unique solution at the repo root; else a unique solution
+            # anywhere (covers a lone deep .sln); else fall back to the dir + note.
+            mapfile -t root_slns < <(find target -maxdepth 1 -name '*.sln' | sort)
+            mapfile -t all_slns  < <(find target -name '*.sln' | sort)
+            if [[ ${#root_slns[@]} -eq 1 ]]; then
+              tgt="${root_slns[0]}"
+            elif [[ ${#root_slns[@]} -eq 0 && ${#all_slns[@]} -eq 1 ]]; then
+              tgt="${all_slns[0]}"
             else
               tgt="target"
-              echo "note: found ${#slns[@]} .sln under target; pass the 'build' input to disambiguate"
+              echo "note: ${#root_slns[@]} root / ${#all_slns[@]} total .sln under target; pass the 'build' input to disambiguate"
             fi
           fi
           echo "Infer# build target: $tgt"
