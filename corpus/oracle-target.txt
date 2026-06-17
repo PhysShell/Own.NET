@@ -1,0 +1,11 @@
+# Target for the push-triggered oracle (.github/workflows/oracle.yml, push path).
+# Format = mine-target.txt: first non-comment line is "owner/repo" or an https URL.
+# Optional lines: ref=<branch|tag|sha>, paths=<subdir>, build=<proj>, include_tests=<bool>.
+# Bump this file (commit + push) to run the cross-tool oracle. Dev-branch only.
+#
+# Cross-tool validation of the SystemEvents finding: does CodeQL (and Infer#, if the
+# WPF target builds on Linux) also flag the ScreenToGif
+# SystemEvents.DisplaySettingsChanged leak, or is it an Own.NET-only (differentiated)
+# find? Pinned to the commit we mined.
+NickeManarin/ScreenToGif
+ref=27a49c3

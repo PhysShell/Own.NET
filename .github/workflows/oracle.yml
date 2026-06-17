@@ -39,6 +39,14 @@ on:
         required: false
         type: boolean
         default: false
+  # Dev-loop fallback (the automation token can't `workflow_dispatch`): bump the
+  # sentinel corpus/oracle-target.txt to run the oracle push-triggered, reading the
+  # target from that file. Dev-branch only — remove before merging to main.
+  push:
+    branches:
+      - claude/zen-pasteur-76hfs1
+    paths:
+      - corpus/oracle-target.txt
 
 permissions:
   contents: read
@@ -57,14 +65,44 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      # Resolve the target: workflow_dispatch inputs win; on push, read the
+      # sentinel corpus/oracle-target.txt (same format/allowlist as mine-on-push).
+      # Everything downstream reads steps.t.outputs.* so both triggers share steps.
+      - name: Resolve target
+        id: t
+        env:
+          IN_REPO: ${{ inputs.repo }}
+          IN_REF: ${{ inputs.ref }}
+          IN_PATHS: ${{ inputs.paths }}
+          IN_BUILD: ${{ inputs.build }}
+          IN_TESTS: ${{ inputs.include_tests }}
+        run: |
+          file=corpus/oracle-target.txt
+          if [[ -n "$IN_REPO" ]]; then
+            repo="$IN_REPO"; ref="$IN_REF"; paths="$IN_PATHS"; build="$IN_BUILD"; tests="$IN_TESTS"
+          else
+            repo=$(grep -vE '^[[:space:]]*(#|$)' "$file" | head -1 | tr -d '[:space:]')
+            ref=$(grep -E '^ref=' "$file"           | head -1 | sed 's/^ref=//'           | tr -d '[:space:]')
+            paths=$(grep -E '^paths=' "$file"        | head -1 | sed 's/^paths=//'         | tr -d '[:space:]')
+            build=$(grep -E '^build=' "$file"        | head -1 | sed 's/^build=//'         | tr -d '[:space:]')
+            tests=$(grep -E '^include_tests=' "$file"| head -1 | sed 's/^include_tests=//' | tr -d '[:space:]')
+          fi
+          # Allowlist: GitHub owner/repo or an https URL — never an odd scheme.
+          if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ || "$repo" =~ ^https://[A-Za-z0-9./_-]+$ ]]; then
+            echo "oracle: invalid target '$repo'" >&2; exit 2
+          fi
+          { echo "repo=$repo"; echo "ref=$ref"; echo "paths=$paths";
+            echo "build=$build"; echo "tests=${tests:-false}"; } >> "$GITHUB_OUTPUT"
+          echo "oracle target: $repo (ref='${ref:-HEAD}' paths='${paths:-*}' build='${build:-auto}' tests='${tests:-false}')"
+
       # Fast fail: the diff logic is unit-tested before we clone/build anything.
       - name: Comparator selftest
         run: python scripts/oracle_compare.py --selftest
 
       - name: Clone the target
         env:
-          REPO: ${{ inputs.repo }}
-          REF: ${{ inputs.ref }}
+          REPO: ${{ steps.t.outputs.repo }}
+          REF: ${{ steps.t.outputs.ref }}
         run: |
           case "$REPO" in
             http://*|https://*|git@*) url="$REPO" ;;
@@ -81,7 +119,7 @@ jobs:
       # Own.NET — no build needed; scans .cs directly.
       - name: Own.NET own-check
         env:
-          PATHS: ${{ inputs.paths }}
+          PATHS: ${{ steps.t.outputs.paths }}
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
           set +e
@@ -115,8 +153,8 @@ jobs:
       # projects); else a lone solution (.sln/.slnx); else the dir (-> partial).
       - name: Build the target (for Infer#)
         env:
-          BUILD: ${{ inputs.build }}
-          REPO: ${{ inputs.repo }}
+          BUILD: ${{ steps.t.outputs.build }}
+          REPO: ${{ steps.t.outputs.repo }}
         continue-on-error: true
         run: |
           if [[ -n "$BUILD" ]]; then
@@ -162,8 +200,8 @@ jobs:
       - name: Diff Own.NET vs the oracles
         if: always()
         env:
-          REPO: ${{ inputs.repo }}
-          INCLUDE_TESTS: ${{ inputs.include_tests }}
+          REPO: ${{ steps.t.outputs.repo }}
+          INCLUDE_TESTS: ${{ steps.t.outputs.tests }}
         run: |
           args=(--own own.txt --target "$REPO" --commit "${COMMIT:-}"
                 --strip "$GITHUB_WORKSPACE/target" --strip target
