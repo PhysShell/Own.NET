@@ -166,6 +166,37 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
     IsHandler(right)
         && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
 
+// P-004 severity tiering: of the subscriptions that survive the self-owned and
+// static-handler exemptions (and are not timers), how long-lived is the event
+// SOURCE? A static event lives for the whole process, so an undetached handler is
+// a provable leak -> "static". A receiver that resolves to a local variable is
+// bounded by the method and cannot outlive `this` -> "local" (the caller drops it;
+// not a heap leak). Anything else is an instance field / property / injected
+// parameter of UNKNOWN lifetime -> "injected": it MIGHT outlive `this`, but we
+// cannot prove it without ownership modelling, so the core renders it a warning
+// (not a hard error) until that lands.
+static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
+                                     SemanticModel model)
+{
+    if (ev.IsStatic)
+        return "static";
+    if (left is MemberAccessExpressionSyntax m)
+    {
+        var recv = model.GetSymbolInfo(m.Expression).Symbol;
+        if (recv is ILocalSymbol)
+            return "local";
+        if (recv is IFieldSymbol { IsStatic: true } or IPropertySymbol { IsStatic: true })
+            return "static";
+    }
+    return "injected";
+}
+
+// A lambda / anonymous-method handler stores no named delegate, so the
+// subscription can NEVER be undone with `-=` (you would have had to cache the
+// delegate in a field). A particularly sharp leak shape worth calling out.
+static bool IsLambdaHandler(ExpressionSyntax right) =>
+    right is AnonymousFunctionExpressionSyntax;
+
 // --- P-016 B0b/B2: flow lowering for local IDisposables (experimental) ---
 
 // A type that implements System.IDisposable (semantic) — the flow lowering tracks
@@ -447,6 +478,14 @@ foreach (var (file, tree) in parsed)
                 if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, constructed)
                                  || IsStaticHandler(a.Right, model)))
                     continue;
+                // P-004 tiering: a local-variable source is method-bounded — it
+                // cannot outlive `this`, so it is not a heap leak; drop it (the same
+                // spirit as the self-owned drop above). "static"/"injected" ride
+                // along as a `source` hint so the core can grade the severity.
+                var source = isTimer ? "static"
+                                     : SubscriptionSourceKind(a.Left, ev, model);
+                if (source == "local")
+                    continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
                 subs.Add(new
@@ -456,6 +495,8 @@ foreach (var (file, tree) in parsed)
                     line = LineOf(a.Left),
                     released,
                     resource = isTimer ? "timer" : "subscription",
+                    source,
+                    lambda = !isTimer && IsLambdaHandler(a.Right),
                 });
             }
             else if (leftSymbol is null && IsHandler(a.Right))

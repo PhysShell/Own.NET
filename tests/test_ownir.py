@@ -119,6 +119,45 @@ def run() -> int:
     if check_facts({"module": "Empty", "components": []}):
         fails.append("empty facts produced findings")
 
+    # --- P-004 severity tiering: the subscription fact's `source` grades severity.
+    def _one(source: str, lambda_: bool = False) -> Finding:
+        """One unreleased subscription with the given source kind -> its Finding."""
+        return check_facts({"module": "M", "components": [
+            {"name": "Vm", "file": "Vm.cs", "subscriptions": [
+                {"event": "bus.X", "handler": "h", "line": 5, "released": False,
+                 "resource": "subscription", "source": source,
+                 "lambda": lambda_}]}]})[0]
+
+    # an injected source (unknown lifetime) is a WARNING-tier leak — not a hard
+    # error — and says so; it is still a leak verdict (not advisory) so it keeps
+    # the non-zero exit code.
+    checks += 1
+    inj = _one("injected")
+    if inj.severity != "warning":
+        fails.append(f"injected source should be warning-tier, got {inj.severity!r}")
+    if inj.advisory:
+        fails.append("injected-source leak must not be advisory (still a leak)")
+    if "injected dependency" not in inj.message:
+        fails.append(f"injected message missing wording: {inj.message!r}")
+
+    # a static event source is provably process-lived -> a hard ERROR: its severity
+    # field is None, so it renders at the host's --severity (default error). (The
+    # field is the core's verdict; the cmd_ownir render policy is locked in CI.)
+    checks += 1
+    stat = _one("static")
+    if stat.severity is not None:
+        fails.append(f"static source should be error-tier (None), got {stat.severity!r}")
+    if "injected dependency" in stat.message:
+        fails.append(f"static message must not claim an injected source: {stat.message!r}")
+
+    # a lambda handler additionally calls out that it has no `-=` handle to detach.
+    checks += 1
+    lam = _one("injected", lambda_=True)
+    if lam.severity != "warning":
+        fails.append(f"injected lambda should be warning-tier, got {lam.severity!r}")
+    if "inline lambda" not in lam.message or "-=" not in lam.message:
+        fails.append(f"lambda handler should note the missing -= handle: {lam.message!r}")
+
     # the fixture carries the current schema version (the contract is stamped).
     checks += 1
     if facts.get("ownir_version") != OWNIR_VERSION:
