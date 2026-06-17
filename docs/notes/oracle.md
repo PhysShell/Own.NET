@@ -12,7 +12,7 @@ verdict.
 ## The three buckets
 
 Restricted to the comparable class — *resource leak / not disposed* (OWN001 vs
-Infer#'s `DOTNET_RESOURCE_LEAK` vs CodeQL's `cs/local-not-disposed` & friends):
+Infer#'s `PULSE_RESOURCE_LEAK` vs CodeQL's `cs/local-not-disposed` & friends):
 
 | bucket | meaning | what to do |
 |---|---|---|
@@ -43,6 +43,14 @@ Two classes sit **outside** the three-way diff and are reported separately:
   to a single root `*.sln`/`*.slnx`, then a single solution anywhere, then the
   dir. The `build` input overrides. The shallow clone is deepened first, since
   version tools like Nerdbank.GitVersioning need history.)
+- **All three are compared on the *product* code by default.** Infer# only builds
+  the product project (above), so own-check / CodeQL — which scan the whole source
+  tree — would otherwise count test/benchmark leaks the others never saw. The
+  comparator drops findings under `test` / `benchmark` / `sample` / `example`
+  paths (`--exclude-tests`, the workflow default); set `include_tests` to compare
+  across everything. Doing it in the comparator keeps one uniform rule for all
+  tools (CodeQL's `paths-ignore` is unreliable for compiled C# with
+  `build-mode: none`).
 - **Path/line matching is deliberately loose.** Tools disagree on the exact line
   (allocation site vs declaration) and on path prefixes. The comparator matches
   on **basename + a line window** (`--line-tol`, default 3). Robust to prefixes;
@@ -58,6 +66,7 @@ artifact (`report.md`, `report.json`, plus each tool's raw output):
 ```text
 inputs: repo = DapperLib/Dapper   ref = (optional)
         paths = (optional own-check subdir)   build = (optional proj/sln for Infer#)
+        include_tests = false (default: compare product code only; true keeps tests/benchmarks)
 ```
 
 The diff core runs anywhere on already-produced outputs (this is what `--selftest`
