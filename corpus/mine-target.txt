@@ -3,4 +3,7 @@
 # Optional lines: ref=<branch|tag|sha>, paths=<subdir of the target to scan>.
 # Bump this file (commit + push) to kick off a mine; read the result in the run log.
 # cycle: re-mine WITH the WPF reference pack loaded (OWN_EXTRA_REF_DIRS).
+# 2026-06-17: re-mine to confirm the self-owned exemption extension (ref/out-built
+# fields + GetTemplateChild template parts) drops the OWN001 self-owned-control
+# false positives from the 123 baseline.
 NickeManarin/ScreenToGif
