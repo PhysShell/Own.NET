@@ -51,10 +51,17 @@ jobs:
         if: always()
         run: |
           report=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
+          findings=$(find corpus/mined -name findings.txt -type f 2>/dev/null | head -1 || true)
           if [[ -n "$report" ]]; then
             cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            # Also echo to stdout so the report is readable straight from the job
+            # log (the API/agent eval loop reads logs, not the summary or artifact).
+            echo "::group::report.md"; cat "$report"; echo "::endgroup::"
           else
             echo "no report produced (see the Mine step log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ -n "$findings" ]]; then
+            echo "::group::findings.txt"; cat "$findings"; echo "::endgroup::"
           fi
       - name: Upload the report
         if: always()
