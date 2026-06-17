@@ -63,30 +63,41 @@ _RESOURCE_TAIL = re.compile(r"\[resource: (?P<kind>[^\]]*)\]\s*$")
 _CHATTER = re.compile(r"\b\d+ (finding|error)s?\b|: ok | no ownership| no subscription")
 
 
+def _net_open(s: str) -> int:
+    """Net unclosed (){}[] in `s`. A multi-line finding's header (an inline lambda
+    handler echoed across lines) is left unbalanced; a complete finding is balanced —
+    so this distinguishes a continuation line from stray drift after a finished one."""
+    return (s.count("(") - s.count(")")
+            + s.count("{") - s.count("}")
+            + s.count("[") - s.count("]"))
+
+
 def parse(text: str) -> tuple[list[dict[str, Any]], int]:
     """Parse own-check human output into finding dicts; return (findings, unparsed).
     A finding may span several lines — an inline lambda handler body is echoed across
-    lines, with the trailing `[resource: kind]` tag (when present) on the last — so a
-    non-header line extends the current finding's message and recovers a late kind,
-    rather than counting as drift. Build chatter shouldn't reach here (own-check sends
-    it to stderr); a stray line that does is counted, not silently dropped."""
+    lines, with the trailing `[resource: kind]` tag (when present) on the last. A
+    non-header line extends the current finding's message ONLY while that message's
+    brackets are still unbalanced (i.e. we are inside the lambda body); once balanced,
+    the finding is complete and a further non-matching line is stray drift, counted —
+    not silently absorbed. Build chatter shouldn't reach here (own-check sends it to
+    stderr); a stray line that does and isn't chatter is counted, not dropped."""
     findings: list[dict[str, Any]] = []
     unparsed = 0
     cur: dict[str, Any] | None = None
+    cur_open = 0
     for raw in text.splitlines():
         line = raw.rstrip()
         if not line:
             continue
         m = _LINE.match(line)
         if m is None:
-            if _CHATTER.search(line):
-                continue
-            if cur is not None:                         # multi-line finding body
+            if cur is not None and cur_open > 0:        # inside a multi-line body
                 cur["message"] += "\n" + line
+                cur_open += _net_open(line)
                 tail = _RESOURCE_TAIL.search(line)
                 if tail and not cur["kind"]:
                     cur["kind"] = tail["kind"]
-            else:
+            elif not _CHATTER.search(line):
                 unparsed += 1
             continue
         cur = {
@@ -97,6 +108,7 @@ def parse(text: str) -> tuple[list[dict[str, Any]], int]:
             "message": m["msg"],
             "kind": m["kind"] or "",
         }
+        cur_open = _net_open(m["msg"])
         findings.append(cur)
     return findings, unparsed
 
