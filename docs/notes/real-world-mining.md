@@ -17,9 +17,10 @@ miner (`.github/workflows/mine-on-push.yml`) driven by a sentinel file
 report to the job log. The findings were then triaged by reading the flagged
 `file:line` in a local clone of the target.
 
-> `mine-on-push.yml` + `corpus/mine-target.txt` are **dev-loop scaffolding**
-> (dev-branch only) — they exist because the token can't dispatch `mine.yml`.
-> They should not be merged to `main`; the supported path stays `mine.yml`.
+> `mine-on-push.yml` + `corpus/mine-target.txt` (and the analogous `push:` trigger
+> + `corpus/oracle-target.txt` on `oracle.yml`) are **dev-loop scaffolding**
+> (dev-branch only) — they exist because the token can't `workflow_dispatch`. They
+> should not be merged to `main`; the supported paths stay `mine.yml` / `oracle.yml`.
 
 ## What it found
 
@@ -89,8 +90,47 @@ Both real leaks are locked as regressions: `corpus/real-world/screentogif-loaded
 (VideoSource, warning) and `corpus/real-world/screentogif-systemevents-leak/`
 (SystemEvents, error).
 
+## Cross-tool validation (the oracle)
+
+"Real leak" was, so far, our own verdict plus manual reasoning. The cross-tool
+oracle (`oracle.yml` → `scripts/oracle_compare.py`) settles it: run Own.NET, CodeQL
+and Infer# over the *same* commit and diff their leak-class findings. On ScreenToGif
+@27a49c3, CodeQL (2.25.6, `security-and-quality`, database-from-source) ran; **Infer#
+was skipped** — ScreenToGif is WPF and does not `dotnet build` on the Linux runner
+(`NETSDK1100`) — so this is Own.NET vs **CodeQL**.
+
+Their leak findings are **nearly disjoint** (file overlap: **1**):
+
+- **Own.NET only** — every subscription/lifetime leak, including the two this run is
+  about: `GraphicsConfigurationDialog.xaml.cs:35` & `Troubleshoot.xaml.cs:27`
+  (`SystemEvents.DisplaySettingsChanged`, error) and `VideoSource.xaml.cs:50/67/75/83`
+  (view→view-model, warning), plus a pile of own-control subscriptions
+  (`EncoderListViewItem` ×6, `LightWindow` ×5, `SplitButton`, `StatusBand`, …).
+  **CodeQL flags none of them** — its query set has no "event subscribed, never
+  unsubscribed" rule.
+- **Oracle only — 33** — entirely CodeQL's Dispose/RAII class (`cs/local-not-disposed`:
+  `OpenFileDialog`/`SaveFileDialog`/`Pen`/`Bitmap`/…, and `cs/dispose-not-called-on-throw`).
+  Own.NET flags none of these — a real recall gap in the *other* class (local
+  IDisposables), a candidate for a later D1 pass.
+- **Agree — 1** (`HttpHelper.cs`).
+
+So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
+oracle, not just argued**: the tools are complementary (Own.NET on subscription/
+lifetime, CodeQL on Dispose/RAII), overlapping on a single file. For an Infer# data
+point too, a minimal **non-WPF** repro (it builds on Linux) is the clean follow-up.
+
+> Getting a trustworthy diff took fixing two oracle bugs: the comparator dropped
+> multi-line / untagged own-check findings (`scripts/mine_report.py` parser drift —
+> 38 lines "unparsed", so only 3 of ~36 findings reached the diff), and own-check ran
+> without framework refs at `--severity error`, so it never emitted the very findings
+> under test (SystemEvents → OWN050; VideoSource → filtered). Both fixed; the
+> comparator selftest now covers the multi-line shape, and the oracle's own-check
+> materializes the WindowsDesktop refs and runs at `--severity warning`.
+
 ## Reproduce
 
 Point `mine.yml` (Actions → *mine (corpus)* → Run workflow) at a target; for the
 WPF profile, set `OWN_EXTRA_REF_DIRS` to a WindowsDesktop `ref/net8.0` dir (the
 miner shows how to materialize it). Read the report in the run summary / artifact.
+For the cross-tool diff, run `oracle.yml` the same way — it materializes the
+WindowsDesktop refs itself and emits the Own.NET-vs-CodeQL/Infer# agreement report.
