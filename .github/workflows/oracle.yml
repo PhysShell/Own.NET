@@ -93,7 +93,7 @@ jobs:
       # default code-scanning (security) suite — so request security-and-quality,
       # else CodeQL silently contributes zero. Comparator filters to the leak family.
       - name: CodeQL init
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         continue-on-error: true
         with:
           languages: csharp
