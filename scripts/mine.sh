@@ -74,15 +74,19 @@ echo "mine: scanning $scan (commit $commit)" >&2
 # stderr; keep them apart. Without --fail-on-finding it exits 0 even with leaks;
 # rc>=2 is a hard error (bad facts) — note it but still report what we captured.
 set +e
-"$root/scripts/own-check.sh" --root "$root" --format "$format" -- "$scan" \
+"$root/scripts/own-check.sh" --root "$root" --format "$format" --stats -- "$scan" \
   >"$outdir/findings.txt" 2>"$outdir/extract.log"
 rc=$?
 set -e
+# --stats writes a one-line flow-locals coverage summary to the extractor's stderr
+# (captured in extract.log); surface it in the report so a clean run reads as
+# "analysed N, skipped M" rather than an ambiguous zero.
+cov="$(grep -m1 '^coverage:' "$outdir/extract.log" 2>/dev/null || true)"
 [[ "$rc" -ge 2 ]] && echo "mine: own-check hard error (rc=$rc); see $outdir/extract.log" >&2
 
 python "$root/scripts/mine_report.py" "$outdir/findings.txt" \
   --repo "$target" --commit "$commit" --json "$outdir/report.json" \
-  >"$outdir/report.md"
+  --coverage "$cov" >"$outdir/report.md"
 
 [[ "$keep_src" -eq 1 ]] || rm -rf "$src"
 

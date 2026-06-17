@@ -234,6 +234,20 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: Coverage summary (--stats)
+        run: |
+          # --stats prints a flow-locals coverage line to stderr and stamps the same
+          # counts into the facts JSON: of the methods with a disposable local, how
+          # many were flow-analysed vs honestly skipped (an unmodelled construct).
+          cov=$(dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/FlowLocalsSample.cs --flow-locals --stats \
+            -o "$RUNNER_TEMP/stats.json" 2>&1 >/dev/null)
+          echo "$cov"
+          echo "$cov" | grep -qE '^coverage: [0-9]+/[0-9]+ methods .* flow-analysed' \
+            || { echo "FAIL: expected a --stats coverage line on stderr"; exit 1; }
+          grep -q '"methods_flow_analysed"' "$RUNNER_TEMP/stats.json" \
+            || { echo "FAIL: expected a stats object in the facts JSON"; exit 1; }
+          echo "OK: --stats coverage on stderr + stats object in facts JSON"
       - name: Escape-via-projection leak — GTM UnitOfWork (--flow-locals, P-016 B0b/B2)
         run: |
           # A real GTM leak the flat detector misses: a UnitOfWork (IDisposable) used

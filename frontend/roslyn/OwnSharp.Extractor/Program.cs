@@ -40,11 +40,17 @@ bool emitEvents = true;
 // CFG) so the core checks them path-sensitively (OWN001/002/003). Supersedes the
 // flat D1 local-disposable detector when on. Default off keeps the shipped surface.
 bool flowLocals = false;
+// --stats (coverage): print a one-line flow-locals coverage summary to stderr
+// (of the methods that have a disposable local worth checking, how many were
+// flow-analysed vs honestly skipped for an unmodelled construct) and stamp the
+// same counts into the facts JSON. Turns "0 findings" into "clean vs didn't-reach".
+bool reportStats = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
     else if (args[i] == "--no-event-leaks") emitEvents = false;
     else if (args[i] == "--flow-locals") flowLocals = true;
+    else if (args[i] == "--stats") reportStats = true;
     else rawInputs.Add(args[i]);
 }
 
@@ -362,6 +368,12 @@ var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
+// --flow-locals coverage counters (--stats). A method "with a local" here is one
+// that has a non-escaping `new` IDisposable worth tracking; of those we either
+// flow-analyse it or honestly skip it (an unmodelled for/do/try/switch/async made
+// LowerFlowBody bail). methods_with_local == analysed + skipped.
+int statMethodsWithLocal = 0, statMethodsAnalysed = 0, statMethodsSkipped = 0;
+
 foreach (var (file, tree) in parsed)
 {
     var model = compilation.GetSemanticModel(tree);
@@ -630,9 +642,14 @@ foreach (var (file, tree) in parsed)
                 tracked.ExceptWith(escapedLocals);
                 if (tracked.Count == 0)
                     continue;
+                statMethodsWithLocal++;
                 var fbody = LowerFlowBody(mbody, tracked);
                 if (fbody is null || fbody.Count == 0)
+                {
+                    statMethodsSkipped++;   // unmodelled construct -> honestly skipped
                     continue;
+                }
+                statMethodsAnalysed++;
                 flowFunctions.Add(new
                 {
                     name = $"{cls.Identifier.Text}.{MethodName(method)}",
@@ -648,8 +665,26 @@ foreach (var (file, tree) in parsed)
 
 // ownir_version stamps the fact-schema vocabulary; the Python core rejects a
 // mismatch loudly (ownlang/ownir.py OWNIR_VERSION) rather than mis-reading facts.
-var facts = new { ownir_version = 0, module = "Extracted", components, functions = flowFunctions };
+// `stats` is additive coverage metadata — the core's load() ignores unknown keys.
+var facts = new
+{
+    ownir_version = 0,
+    module = "Extracted",
+    components,
+    functions = flowFunctions,
+    stats = new
+    {
+        methods_with_local = statMethodsWithLocal,
+        methods_flow_analysed = statMethodsAnalysed,
+        methods_skipped_unmodelled = statMethodsSkipped,
+    },
+};
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
+
+if (reportStats)
+    Console.Error.WriteLine(
+        $"coverage: {statMethodsAnalysed}/{statMethodsWithLocal} methods with a "
+        + $"disposable local flow-analysed; {statMethodsSkipped} skipped (unmodelled construct)");
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
