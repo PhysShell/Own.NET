@@ -115,6 +115,7 @@ jobs:
         run: |
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/CustomerViewModel.cs \
+            frontend/roslyn/samples/LambdaHandlerViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
             frontend/roslyn/samples/TimerViewModel.cs \
             frontend/roslyn/samples/DisposableFieldViewModel.cs \
@@ -137,6 +138,10 @@ jobs:
           if echo "$out" | grep -q "OrdersViewModel.cs"; then
             echo "FAIL: disposed subscription wrongly reported"; exit 1
           fi
+          # a lambda handler has no handle, so it can NEVER be `-=`'d — an especially
+          # nasty WPF leak; the LHS still binds to the event, so it must be OWN001.
+          echo "$out" | grep -q "LambdaHandlerViewModel.cs" \
+            || { echo "FAIL: expected the lambda-handler subscription leak"; exit 1; }
           # WPF002: the started, never-stopped timer leaks with a [resource: timer]
           # tag; the timer stopped in Dispose stays silent.
           echo "$out" | grep -q "TimerViewModel.cs" \
