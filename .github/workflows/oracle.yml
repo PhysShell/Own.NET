@@ -1,0 +1,156 @@
+name: oracle (cross-tool)
+
+# On-demand cross-tool validation: run Own.NET's leak check, Infer#, and CodeQL
+# over the SAME public C# repo and diff their leak-class findings into an
+# agreement report (scripts/oracle_compare.py). Evaluation tooling — the mature
+# detectors are both a recall bar and an oracle. See docs/notes/oracle.md.
+#
+# Trigger from the Actions tab ("Run workflow") or the API. Inputs reach the
+# shell via env (never interpolated into a `run:` script) to avoid injection.
+#
+# Honest notes:
+#   * Own.NET needs no build (error-tolerant SemanticModel). The two oracles do:
+#     CodeQL builds a database (build-mode: none, from source); Infer# analyses
+#     compiled .dll+.pdb, so the target must `dotnet build`. Each oracle step is
+#     continue-on-error, so a build failure still yields a partial report.
+#   * The diff core (oracle_compare.py) is unit-tested (--selftest, run first);
+#     this orchestration is validated on dispatch, like mine.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Target: owner/repo (e.g. DapperLib/Dapper) or a git URL"
+        required: true
+      ref:
+        description: "Branch / tag / sha to analyse (optional, default: repo HEAD)"
+        required: false
+        default: ""
+      paths:
+        description: "Subdir to scan with own-check (optional, default: whole repo)"
+        required: false
+        default: ""
+      build:
+        description: "Project/solution under the target to `dotnet build` for Infer# (optional, default: repo root)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  security-events: write   # required by the CodeQL action internals (upload is off)
+
+jobs:
+  oracle:
+    name: oracle ${{ inputs.repo }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Fast fail: the diff logic is unit-tested before we clone/build anything.
+      - name: Comparator selftest
+        run: python scripts/oracle_compare.py --selftest
+
+      - name: Clone the target
+        env:
+          REPO: ${{ inputs.repo }}
+          REF: ${{ inputs.ref }}
+        run: |
+          case "$REPO" in
+            http://*|https://*|git@*) url="$REPO" ;;
+            *) url="https://github.com/${REPO}.git" ;;
+          esac
+          git clone --depth 1 --quiet "$url" target
+          if [[ -n "$REF" ]]; then
+            # --branch only accepts a branch/tag; fetch+checkout also takes a raw SHA.
+            git -C target fetch --depth 1 --quiet origin "$REF"
+            git -C target checkout --quiet --detach FETCH_HEAD
+          fi
+          echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      # Own.NET — no build needed; scans .cs directly.
+      - name: Own.NET own-check
+        env:
+          PATHS: ${{ inputs.paths }}
+        run: |
+          scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
+          set +e
+          scripts/own-check.sh --format human -- "$scan" > own.txt 2> own-extract.log
+          echo "own-check rc=$? ; $(wc -l < own.txt) finding line(s)"
+
+      # CodeQL — database from source (no build), default queries; we filter to
+      # the dispose/leak family in the comparator.
+      - name: CodeQL init
+        uses: github/codeql-action/init@v3
+        continue-on-error: true
+        with:
+          languages: csharp
+          build-mode: none
+          source-root: target
+      - name: CodeQL analyze
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+        with:
+          category: ownnet-oracle
+          output: codeql-out
+          upload: false
+
+      # Infer# — needs compiled binaries; build the target into one output dir.
+      - name: Build the target (for Infer#)
+        env:
+          BUILD: ${{ inputs.build }}
+        continue-on-error: true
+        run: |
+          tgt="target"; [[ -n "$BUILD" ]] && tgt="target/$BUILD"
+          if dotnet build "$tgt" -c Release -o _bin -v quiet; then
+            echo "BUILD_OK=1" >> "$GITHUB_ENV"
+          else
+            echo "target build failed — Infer# will be skipped, report stays partial"
+          fi
+      - name: Run Infer#
+        if: env.BUILD_OK == '1'
+        uses: microsoft/infersharpaction@v1.5
+        continue-on-error: true
+        with:
+          binary-path: _bin
+
+      - name: Diff Own.NET vs the oracles
+        if: always()
+        env:
+          REPO: ${{ inputs.repo }}
+        run: |
+          args=(--own own.txt --target "$REPO" --commit "${COMMIT:-}"
+                --strip "$GITHUB_WORKSPACE/target" --strip target
+                --json report.json)
+          [[ -f infer-out/report.sarif ]] && args+=(--infersharp infer-out/report.sarif)
+          cq=$(find codeql-out -name '*.sarif' -type f 2>/dev/null | head -1 || true)
+          [[ -n "$cq" ]] && args+=(--codeql "$cq")
+          python scripts/oracle_compare.py "${args[@]}" > report.md
+          cat report.md
+
+      - name: Publish the report to the run summary
+        if: always()
+        run: |
+          if [[ -s report.md ]]; then
+            cat report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "no report produced (see the Diff step log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload the report and raw outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-report
+          path: |
+            report.md
+            report.json
+            own.txt
+            own-extract.log
+            infer-out/report.sarif
+            codeql-out/*.sarif
+          if-no-files-found: warn
