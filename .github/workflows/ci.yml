@@ -249,21 +249,23 @@ jobs:
             || { echo "FAIL: expected the never-disposed wording for the 0-release Timer"; exit 1; }
           echo "$out" | grep -qE "'leak' may not be disposed on every path" \
             || { echo "FAIL: expected the partial-path wording for LeakOnElse"; exit 1; }
-          # P-016 A1 reached the frontend: `while`/`foreach` bodies are now lowered
-          # (not skipped), so a per-iteration leak in one is caught.
+          # P-016 A1 reached the frontend: `while`/`foreach`/`for` bodies are now
+          # lowered (not skipped), so a per-iteration leak in one is caught.
           echo "$out" | grep -qE "OWN001.*'whileLeak' is never disposed" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a while loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'foreachLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a foreach loop"; exit 1; }
-          # dispose-optional (Task), disposed/escaping locals, a `for` loop (still
-          # skipped: `looped`), and a balanced acquire+dispose in a loop (`whileClean`)
-          # must stay silent:
+          echo "$out" | grep -qE "OWN001.*'forLeak'" \
+            || { echo "FAIL: expected OWN001 on the undisposed local in a for loop"; exit 1; }
+          # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
+          # disposable is disposed after it (`looped`, balanced), and a balanced
+          # acquire+dispose in a loop (`whileClean`) must stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
           for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
-          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Coverage summary (--stats)
         run: |
           # --stats prints a flow-locals coverage line to stderr and stamps the same

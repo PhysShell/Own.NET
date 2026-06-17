@@ -43,9 +43,9 @@ public class FlowLocalsSample
         clean.Dispose();
     }
 
-    // has a `for` loop (not yet lowered: `for` can declare a resource in its
-    // initializer) -> method honestly skipped, no flow finding. `while`/`foreach`
-    // ARE lowered now (see below).
+    // a `for` loop. `for` is now lowered like `while`/`foreach` (0+ iterations;
+    // init/cond/incr opaque). Here the disposable is declared OUTSIDE the loop and
+    // disposed after it, so it stays balanced -> silent.
     public void HasLoop()
     {
         var looped = new MemoryStream();
@@ -73,6 +73,18 @@ public class FlowLocalsSample
         {
             var foreachLeak = new MemoryStream();
             foreachLeak.WriteByte((byte)it);
+        }
+    }
+
+    // `for` is lowered too -> a per-iteration undisposed local in a `for` leaks, like
+    // the while/foreach cases. Closes the for-loop slice of the oracle's Dispose-class
+    // recall gap (undisposed locals sitting in `for`-looped methods were skipped).
+    public void ForLeak(int n)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            var forLeak = new MemoryStream();
+            forLeak.WriteByte((byte)i);
         }
     }
 

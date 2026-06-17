@@ -335,16 +335,30 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // `foreach` runs its body 0+ times over an (opaque) collection — the same
             // ownership shape as `while`. The loop variable is never a `new`'d
             // candidate and the hidden enumerator is auto-disposed, so modelling the
-            // body as a `while` is sound. (`for`/`do` stay unmodelled below: `for`
-            // can declare a resource in its initializer and `do` runs 1+ times.)
+            // body as a `while` is sound. (`do` stays unmodelled below — it runs 1+
+            // times; `for` is handled next.)
             var bodyNodes = new List<object>();
             if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
         }
+        case ForStatementSyntax fors:
+        {
+            // `for (init; cond; incr) body` runs its body 0+ times — the same
+            // ownership shape as `while`/`foreach`. init/cond/incr are opaque (we
+            // model control flow, not values); the tracked locals are the ones the
+            // BODY declares. A resource declared in the `for` *initializer* is not a
+            // method-body local, so it is never a tracked candidate — no soundness
+            // concern, just a separate (rare) recall gap. `do`/try/switch stay below.
+            var bodyNodes = new List<object>();
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes))
+                return false;
+            nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
+            return true;
+        }
         default:
-            return false;   // unmodelled (for/do/try/switch/...) -> bail the method
+            return false;   // unmodelled (do/try/switch/...) -> bail the method
     }
 }
 

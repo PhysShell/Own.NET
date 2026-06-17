@@ -110,8 +110,12 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   unsubscribed" rule.
 - **Oracle only — 33** — entirely CodeQL's Dispose/RAII class (`cs/local-not-disposed`:
   `OpenFileDialog`/`SaveFileDialog`/`Pen`/`Bitmap`/…, and `cs/dispose-not-called-on-throw`).
-  Own.NET flags none of these — a real recall gap in the *other* class (local
-  IDisposables), a candidate for a later D1 pass.
+  Own.NET flags none — a recall gap in the *other* class, and the cause is **method
+  coverage, not type recognition**: the `--flow-locals` detector skips any method with
+  an unmodelled construct (`for`/`try`/`switch`), and these disposables live in such
+  methods (tell: the `StringReader`/`XmlReader` cases are a *recognised* disposable
+  type, yet still missed). `for` is now lowered too (closing that slice, CI-checked);
+  the `try`-shaped `dispose-not-called-on-throw` cases are the high-value next step.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
