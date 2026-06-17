@@ -35,9 +35,10 @@ on:
         required: false
         default: ""
       include_tests:
-        description: "Also analyse test/benchmark/sample code (optional, default: product code only)"
+        description: "Also analyse test/benchmark/sample code (default: product code only)"
         required: false
-        default: "false"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -169,7 +170,7 @@ jobs:
                 --json report.json)
           # Compare on product code by default: tests/benchmarks pollute the diff
           # (and Infer# only built the product project). include_tests keeps them.
-          [[ "${INCLUDE_TESTS:-false}" == "true" ]] || args+=(--exclude-tests)
+          [[ "${INCLUDE_TESTS,,}" == "true" ]] || args+=(--exclude-tests)
           [[ -f infer-out/report.sarif ]] && args+=(--infersharp infer-out/report.sarif)
           cq=$(find codeql-out -name '*.sarif' -type f 2>/dev/null | head -1 || true)
           [[ -n "$cq" ]] && args+=(--codeql "$cq")

@@ -214,7 +214,8 @@ def _fmt_files(s: set[str], cap: int = 12) -> str:
 
 def render_md(result: dict[str, Any], target: str, commit: str,
               oracles: list[str], tol: int, own_unparsed: int = 0,
-              excluded_tests: int = 0, max_list: int = 50) -> str:
+              excluded_tests: int = 0, exclude_tests_mode: bool = False,
+              max_list: int = 50) -> str:
     """The human-facing comparison report."""
     own_leak = result["own_leak"]
     ora_leak = result["oracle_leak"]
@@ -236,7 +237,7 @@ def render_md(result: dict[str, Any], target: str, commit: str,
     if own_unparsed:
         out.append(f"- **warning:** {own_unparsed} own-check line(s) did not parse "
                    "(format drift?) — Own.NET findings may be incomplete")
-    if excluded_tests:
+    if exclude_tests_mode:
         out.append(f"- scope: **product code only** — {excluded_tests} finding(s) under "
                    "test/benchmark/sample/example paths excluded (set `include_tests` to keep)")
     out += [
@@ -424,7 +425,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(to_json(result, args.target, args.commit), indent=2),
             encoding="utf-8")
     print(render_md(result, args.target, args.commit, present, args.line_tol,
-                    own_unparsed, excluded))
+                    own_unparsed, excluded, args.exclude_tests))
     return 0
 
 
@@ -507,8 +508,12 @@ def _selftest() -> int:
         fails.append("_is_test_path should match test/benchmark trees")
     if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs")):
         fails.append("_is_test_path should not match product paths")
+    # the scope note is gated on mode, not count: a product-only run that excluded
+    # nothing must still say so (else it reads like a full-scope run).
+    if "product code only" not in render_md(r, "o/r", "abc", ["codeql"], 3, 0, 0, True):
+        fails.append("scope note must render when exclude-tests mode is on (even at 0)")
 
-    total = 15
+    total = 16
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")
