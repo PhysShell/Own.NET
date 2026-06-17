@@ -46,38 +46,58 @@ def _load_titles() -> dict[str, str]:
 
 TITLES = _load_titles()
 
-# own-check human line: "<file>:<line>: <sev>: [<CODE>] <msg> [resource: <kind>]"
+# own-check human header: "<file>:<line>: <sev>: [<CODE>] <msg>[ [resource: <kind>]]".
+# The trailing `[resource: kind]` tag is OPTIONAL and, for a multi-line finding (an
+# inline lambda handler echoed across lines), lands on the LAST line — so the header
+# must match with or without it, and `msg` is non-greedy so a tag on the header line
+# is split out rather than swallowed.
 _LINE = re.compile(
     r"^(?P<file>.+?):(?P<line>\d+): (?P<sev>error|warning): "
-    r"\[(?P<code>[A-Z]+\d+)\] (?P<msg>.*) \[resource: (?P<kind>[^\]]*)\]\s*$"
+    r"\[(?P<code>[A-Z]+\d+)\] (?P<msg>.*?)"
+    r"(?: \[resource: (?P<kind>[^\]]*)\])?\s*$"
 )
+# the trailing `[resource: kind]` tag wherever it lands — recovers the kind from the
+# last line of a multi-line finding.
+_RESOURCE_TAIL = re.compile(r"\[resource: (?P<kind>[^\]]*)\]\s*$")
 # the core's trailing chatter ("N findings.", "... ok — no ...") is not a finding.
 _CHATTER = re.compile(r"\b\d+ (finding|error)s?\b|: ok | no ownership| no subscription")
 
 
 def parse(text: str) -> tuple[list[dict[str, Any]], int]:
     """Parse own-check human output into finding dicts; return (findings, unparsed).
-    Build chatter shouldn't reach here (own-check sends it to stderr), but if a
-    stray line does, count it rather than silently dropping it."""
+    A finding may span several lines — an inline lambda handler body is echoed across
+    lines, with the trailing `[resource: kind]` tag (when present) on the last — so a
+    non-header line extends the current finding's message and recovers a late kind,
+    rather than counting as drift. Build chatter shouldn't reach here (own-check sends
+    it to stderr); a stray line that does is counted, not silently dropped."""
     findings: list[dict[str, Any]] = []
     unparsed = 0
+    cur: dict[str, Any] | None = None
     for raw in text.splitlines():
         line = raw.rstrip()
         if not line:
             continue
         m = _LINE.match(line)
         if m is None:
-            if not _CHATTER.search(line):
+            if _CHATTER.search(line):
+                continue
+            if cur is not None:                         # multi-line finding body
+                cur["message"] += "\n" + line
+                tail = _RESOURCE_TAIL.search(line)
+                if tail and not cur["kind"]:
+                    cur["kind"] = tail["kind"]
+            else:
                 unparsed += 1
             continue
-        findings.append({
+        cur = {
             "file": m["file"],
             "line": int(m["line"]),
             "severity": m["sev"],
             "code": m["code"],
             "message": m["msg"],
-            "kind": m["kind"],
-        })
+            "kind": m["kind"] or "",
+        }
+        findings.append(cur)
     return findings, unparsed
 
 

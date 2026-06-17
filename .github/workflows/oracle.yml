@@ -120,14 +120,46 @@ jobs:
           fi
           echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      # Own.NET — no build needed; scans .cs directly.
+      # Framework-type references for own-check. The Roslyn extractor resolves a
+      # `+=` only when the event's declaring type is on its reference set — else the
+      # subscription is an OWN050 "unchecked" note, not a leak. Materialize the
+      # WindowsDesktop ref pack (WPF / WinForms / Microsoft.Win32.SystemEvents) and
+      # export OWN_EXTRA_REF_DIRS so own-check resolves framework events instead of
+      # dropping them — putting it on equal footing with CodeQL, which resolves
+      # types from source. Harmless for non-Windows targets (deduped vs the runtime).
+      - name: Materialize framework reference assemblies
+        continue-on-error: true
+        run: |
+          tmp=$(mktemp -d)
+          printf '%s\n' \
+            '<Project Sdk="Microsoft.NET.Sdk">' \
+            '  <PropertyGroup>' \
+            '    <TargetFramework>net8.0-windows</TargetFramework>' \
+            '    <UseWPF>true</UseWPF>' \
+            '    <UseWindowsForms>true</UseWindowsForms>' \
+            '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
+            '  </PropertyGroup>' \
+            '</Project>' > "$tmp/ref.csproj"
+          dotnet restore "$tmp/ref.csproj" >/dev/null 2>&1 || echo "ref restore failed (continuing)"
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1)
+          if [ -n "$d" ]; then
+            echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+            echo "framework refs: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+          else
+            echo "framework refs not found — own-check resolves runtime types only"
+          fi
+
+      # Own.NET — no build needed; scans .cs directly. --severity warning so the
+      # warning-tier leaks (injected-source subscriptions, e.g. VideoSource) are
+      # included, not just the provable static-source errors. OWN_EXTRA_REF_DIRS
+      # (above) is inherited by the extractor process.
       - name: Own.NET own-check
         env:
           PATHS: ${{ steps.t.outputs.paths }}
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
           set +e
-          scripts/own-check.sh --format human -- "$scan" > own.txt 2> own-extract.log
+          scripts/own-check.sh --format human --severity warning -- "$scan" > own.txt 2> own-extract.log
           echo "own-check rc=$? ; $(wc -l < own.txt) finding line(s)"
 
       # CodeQL — database from source (no build). The dispose/leak queries
