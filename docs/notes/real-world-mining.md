@@ -85,6 +85,10 @@ SystemEvents leak, in `GraphicsConfigurationDialog` / `Troubleshoot`) and the fo
 `VideoSource` view→view-model lambdas (**warning**). Verified by the `wpf-extractor`
 CI job: the `SelfOwnedControlParts` sample asserts both new shapes stay silent.
 
+Both real leaks are locked as regressions: `corpus/real-world/screentogif-loaded-subscription/`
+(VideoSource, warning) and `corpus/real-world/screentogif-systemevents-leak/`
+(SystemEvents, error).
+
 ## Reproduce
 
 Point `mine.yml` (Actions → *mine (corpus)* → Run workflow) at a target; for the

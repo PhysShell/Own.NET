@@ -1,0 +1,17 @@
+// OwnLang model of a real WPF leak found by mining NickeManarin/ScreenToGif
+// (P-004 milestone 1). Microsoft.Win32.SystemEvents is a STATIC, process-lifetime
+// event source: a window that subscribes to DisplaySettingsChanged and never
+// unsubscribes is pinned alive for the whole process. Modelled as a subscription
+// acquire/release, the missing release is the generic OWN001 — and because the
+// source is static (provably outlives the window) the C# extractor rates it an
+// ERROR, not a warning. See notes.md for provenance and the tiering.
+module Corpus
+resource Subscription {
+  acquire Subscribe
+  release Unsubscribe
+  kind "subscription token"
+}
+fn GraphicsConfigurationDialog(systemEvents: int) {
+  let displaySettings = acquire Subscription(systemEvents);  // SystemEvents.DisplaySettingsChanged += handler
+  // no `release displaySettings;` — the static source pins the dialog forever (OWN001)
+}
