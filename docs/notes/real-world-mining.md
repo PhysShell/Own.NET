@@ -29,6 +29,7 @@ report to the job log. The findings were then triaged by reading the flagged
 | `JoshClose/CsvHelper` @33970e5 | 43 × OWN001 | TP: undisposed `StreamReader/Writer/CsvDataReader` **locals in tests**; every `using`-scoped local was correctly skipped. |
 | `NickeManarin/ScreenToGif` @27a49c3 (WPF profile off) | 8 × OWN001, 210 × OWN050 | **flagship** below + a likely-benign `App`→`AppDomain.UnhandledException` (process-lived subscriber). |
 | `NickeManarin/ScreenToGif` @27a49c3 (WPF profile **on**) | 123 × OWN001, 37 × OWN050 | unlock works (OWN050 ↓), but exposes the self-owned-control precision gap below. |
+| `NickeManarin/ScreenToGif` @27a49c3 (WPF **on**, after the self-owned fix) | 36 findings, 40 × OWN050 | self-owned-control FPs gone; survivors are real — 2 × `SystemEvents` leaks (error) + the 4 `VideoSource` flagship warnings. |
 
 **Precision.** Every finding triaged by hand was a *real* undisposed/undetached
 resource — no false positives from `using` (the extractor models it as release),
@@ -64,16 +65,25 @@ The change is **off by default** (`OWN_EXTRA_REF_DIRS` unset → unchanged
 behaviour; the whole existing suite is the guard), so it is a safe, opt-in
 capability add.
 
-But unlocking framework events also jumped **OWN001 8 → 123**, and the new
-findings are dominated by **self-owned controls**: `_thumbBottomLeft.DragDelta +=`
-(a `Thumb` the adorner constructs via `BuildCorner(ref _thumb, …)`),
-`_upButton.Click +=` (a template part fetched with `GetTemplateChild`), etc. A
-class subscribing to a control it *owns* is a collectable cycle — not a leak — but
-the existing self-owned exemption only recognises fields built by a direct
-`field = new …`, so indirect construction (`ref`/`out` params) and template parts
-slip through. **Next step:** extend the self-owned exemption to those two shapes
-before the WPF profile is on by default. This is textbook bug-driven expansion —
-the real-world run defined the next unit of work.
+Unlocking framework events also jumped **OWN001 8 → 123**, dominated by **false
+positives on self-owned controls**: `_thumbBottomLeft.DragDelta +=` (a `Thumb` the
+adorner builds via `BuildCorner(ref _thumb, …)`), `_upButton.Click +=` (a template
+part from `GetTemplateChild`), etc. A class subscribing to a control it *owns* is a
+collectable cycle, not a leak — but the original exemption only recognised a direct
+`field = new …`, so indirect (`ref`/`out`) construction and template parts slipped
+through.
+
+**Fixed** — the bug-driven next unit of work the run defined. The self-owned
+*subscription* exemption now also folds in `ref`/`out`-populated fields and
+`GetTemplateChild`/`FindName` template parts (kept OUT of the disposal detector's
+`constructed` set, so WPF003 still demands disposal of `new`'d fields only).
+Re-mining ScreenToGif with the WPF profile confirms it: **123 → 36 findings** (40
+OWN050), the adorner/template-part noise gone while the *real* leaks survive — two
+`SystemEvents.DisplaySettingsChanged` subscriptions never detached (flagged
+**error**: a static, process-lifetime source is a provable leak — the classic
+SystemEvents leak, in `GraphicsConfigurationDialog` / `Troubleshoot`) and the four
+`VideoSource` view→view-model lambdas (**warning**). Verified by the `wpf-extractor`
+CI job: the `SelfOwnedControlParts` sample asserts both new shapes stay silent.
 
 ## Reproduce
 
