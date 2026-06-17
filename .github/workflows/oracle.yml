@@ -118,11 +118,12 @@ jobs:
             tgt="target/$BUILD"
           else
             # The main library is almost always named after the repo; prefer a
-            # unique <repo>.csproj outside the test/benchmark/sample trees.
+            # unique <repo>.csproj outside the test/benchmark/sample/example trees
+            # (-ipath: case-insensitive, so Tests/ Benchmarks/ etc. are excluded too).
             name="${REPO##*/}"; name="${name%.git}"
-            mapfile -t named < <(find target -name "$name.csproj" \
-              -not -path '*/test/*' -not -path '*/tests/*' -not -path '*/benchmark*' \
-              -not -path '*/sample*' -not -path '*/example*' | sort)
+            mapfile -t named < <(find target -type f -name "$name.csproj" \
+              -not -ipath '*/test/*' -not -ipath '*/tests/*' -not -ipath '*/benchmark*' \
+              -not -ipath '*/sample*' -not -ipath '*/example*' | sort)
             mapfile -t root_slns < <(find target -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' \) | sort)
             mapfile -t all_slns  < <(find target \( -name '*.sln' -o -name '*.slnx' \) | sort)
             if [[ ${#named[@]} -eq 1 ]]; then
