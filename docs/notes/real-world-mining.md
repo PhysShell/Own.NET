@@ -116,8 +116,23 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
 oracle, not just argued**: the tools are complementary (Own.NET on subscription/
-lifetime, CodeQL on Dispose/RAII), overlapping on a single file. For an Infer# data
-point too, a minimal **non-WPF** repro (it builds on Linux) is the clean follow-up.
+lifetime, CodeQL on Dispose/RAII), overlapping on a single file.
+
+**Infer#, via a buildable fixture.** ScreenToGif can't build on Linux, so to get the
+third tool in, a minimal `net8.0` console reproduces both leak classes
+(`corpus/fixtures/systemevents-console/`, fed to the oracle via a `local:` target).
+All three tools run; the diff is a clean 2×2:
+
+| `Program.cs` | leak | Own.NET | CodeQL | Infer# |
+|---|---|:-:|:-:|:-:|
+| `:41` | `new FileStream(…)` never disposed — Dispose/RAII | ✓ | ✓ | ✓ |
+| `:20` | `SystemEvents.DisplaySettingsChanged +=` never `-=` — subscription | ✓ | — | — |
+
+The FileStream leak is **Agree** across all three — the control that proves CodeQL
+*and* Infer# actually run and detect resource leaks on this code. The SystemEvents
+subscription is **Own.NET only**: **Infer# misses it too.** Both mature oracles cover
+the Dispose/RAII class and neither has the subscription-leak class — the
+differentiation, nailed with all three tools.
 
 > Getting a trustworthy diff took fixing two oracle bugs: the comparator dropped
 > multi-line / untagged own-check findings (`scripts/mine_report.py` parser drift —

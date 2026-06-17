@@ -86,8 +86,9 @@ architectural strictness, and the borrow-checker showcase):
    (`OWN_EXTRA_REF_DIRS`) and the self-owned-control precision gap it revealed are
    both closed — the exemption now covers `ref`/`out`-built fields and template
    parts, cutting ScreenToGif's WPF-profile findings 123 → 36 (real leaks intact).
-   The cross-tool oracle confirms the differentiation: CodeQL's leak queries are
-   Dispose/RAII-only and flag none of these subscription leaks (leak-file overlap: 1).
+   The cross-tool oracle confirms the differentiation: CodeQL *and* Infer# (the latter
+   via a buildable fixture) cover the Dispose/RAII class and flag none of these
+   subscription leaks — agreeing with Own.NET only on a Dispose leak, never a subscription.
    See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
