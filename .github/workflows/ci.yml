@@ -116,6 +116,7 @@ jobs:
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/CustomerViewModel.cs \
             frontend/roslyn/samples/LambdaHandlerViewModel.cs \
+            frontend/roslyn/samples/AliasedSourceViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
             frontend/roslyn/samples/TimerViewModel.cs \
             frontend/roslyn/samples/DisposableFieldViewModel.cs \
@@ -150,6 +151,14 @@ jobs:
             || { echo "FAIL: expected the lambda-handler subscription leak (warning)"; exit 1; }
           echo "$out" | grep -q "inline lambda it has no '-=' handle" \
             || { echo "FAIL: expected the lambda no-handle wording"; exit 1; }
+          # P-004 provenance: a local that ALIASES an injected source (var src =
+          # _bus) is NOT method-bounded — it must warn, not be silently dropped. A
+          # local the scope CONSTRUCTS (var owned = new Calc()) IS bounded -> silent.
+          echo "$out" | grep -qE "AliasedSourceViewModel\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: aliased-injected local should warn, not be dropped"; exit 1; }
+          if echo "$out" | grep -q "owned.Changed"; then
+            echo "FAIL: a locally-constructed publisher must be dropped"; exit 1
+          fi
           # WPF002: the started, never-stopped timer leaks with a [resource: timer]
           # tag; the timer stopped in Dispose stays silent.
           echo "$out" | grep -q "TimerViewModel.cs" \

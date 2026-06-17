@@ -169,12 +169,14 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
 // P-004 severity tiering: of the subscriptions that survive the self-owned and
 // static-handler exemptions (and are not timers), how long-lived is the event
 // SOURCE? A static event lives for the whole process, so an undetached handler is
-// a provable leak -> "static". A receiver that resolves to a local variable is
-// bounded by the method and cannot outlive `this` -> "local" (the caller drops it;
-// not a heap leak). Anything else is an instance field / property / injected
-// parameter of UNKNOWN lifetime -> "injected": it MIGHT outlive `this`, but we
-// cannot prove it without ownership modelling, so the core renders it a warning
-// (not a hard error) until that lands.
+// a provable leak -> "static". A local that is CONSTRUCTED right here (`var p =
+// new Publisher(); p.X += h`) dies with the scope -> "local" (the caller drops it;
+// not a heap leak). But a local that merely ALIASES something else (`var src =
+// _bus; src.X += h`) has unknown provenance — it may hold a long-lived injected
+// source — so it is NOT dropped. Everything else (an instance field / property /
+// injected parameter, or such an aliasing local) has UNKNOWN lifetime ->
+// "injected": it MIGHT outlive `this`, but we cannot prove it without ownership
+// modelling, so the core renders it a warning (not a hard error) until that lands.
 static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
                                      SemanticModel model)
 {
@@ -183,8 +185,21 @@ static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
     if (left is MemberAccessExpressionSyntax m)
     {
         var recv = model.GetSymbolInfo(m.Expression).Symbol;
-        if (recv is ILocalSymbol)
-            return "local";
+        if (recv is ILocalSymbol local)
+        {
+            // Method-bounded (droppable) ONLY when the local is the publisher this
+            // scope constructs (`var p = new Publisher()`), which dies with it. A
+            // local initialised from anything else (a field, a parameter, a call)
+            // may alias a long-lived source, so we cannot prove it bounded — fall
+            // through to "injected" and warn rather than silently drop a real leak.
+            var constructedHere = local.DeclaringSyntaxReferences
+                .Select(r => r.GetSyntax())
+                .OfType<VariableDeclaratorSyntax>()
+                .Any(v => v.Initializer?.Value is ObjectCreationExpressionSyntax
+                                               or ImplicitObjectCreationExpressionSyntax);
+            if (constructedHere)
+                return "local";
+        }
         if (recv is IFieldSymbol { IsStatic: true } or IPropertySymbol { IsStatic: true })
             return "static";
     }
