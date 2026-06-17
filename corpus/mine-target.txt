@@ -1,0 +1,5 @@
+# Target for the push-triggered miner (.github/workflows/mine-on-push.yml).
+# First non-comment line: a GitHub "owner/repo" or an https git URL. One repo/run.
+# Optional lines: ref=<branch|tag|sha>, paths=<subdir of the target to scan>.
+# Bump this file (commit + push) to kick off a mine; read the result in the run log.
+DapperLib/Dapper
