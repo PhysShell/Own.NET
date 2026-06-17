@@ -140,21 +140,44 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 
 // P-004 self-owned exemption: is the event SOURCE owned by (and so never longer-
 // lived than) the subscriber? True for a bare instance event on `this`, or a
-// receiver that resolves to a field/local the class constructs (`new`s). Such a
-// `source <-> this` reference cycle is GC-collectable, so the subscription is not
-// a leak. The receiver is resolved to a SYMBOL (not matched by text), and the
-// `constructed` set is AST-based (ObjectCreationExpressionSyntax) — not a regex.
-// NOTE: callers must exclude timers — a *running* timer is rooted by the
-// dispatcher regardless of who owns the field.
+// receiver that resolves to a field/local the class OWNS. "Owns" is the `owned`
+// set the caller computes: fields the class constructs directly (`new`), builds
+// indirectly through a `ref`/`out` helper, or fetches as one of its own template
+// parts. Such a `source <-> this` reference cycle is GC-collectable, so the
+// subscription is not a leak. The receiver is resolved to a SYMBOL (not matched by
+// text), and `owned` is AST-based — not a regex. NOTE: callers must exclude timers
+// — a *running* timer is rooted by the dispatcher regardless of who owns the field.
 static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
-                              SemanticModel model, HashSet<string> constructed)
+                              SemanticModel model, HashSet<string> owned)
 {
     if (left is not MemberAccessExpressionSyntax m)
         return !ev.IsStatic;   // bare event => an instance event on `this`
     if (m.Expression is ThisExpressionSyntax)
         return true;
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
-    return (recv is IFieldSymbol or ILocalSymbol) && constructed.Contains(recv.Name);
+    return (recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name);
+}
+
+// P-004 (ext): a control fetching one of its OWN template parts —
+// `GetTemplateChild("PART_x")` or `[Template.]FindName(...)`, optionally behind a
+// cast or `as` — owns the result (it lives inside the control's own template /
+// visual tree). AST-only (matched by call name), in the spirit of the rest of the
+// file; used to fold template-part fields into the self-owned exemption.
+static bool IsTemplatePartFetch(ExpressionSyntax? expr)
+{
+    expr = expr switch
+    {
+        CastExpressionSyntax c => c.Expression,
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => b.Left,
+        _ => expr,
+    };
+    return expr is InvocationExpressionSyntax inv
+        && (inv.Expression switch
+           {
+               MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+               IdentifierNameSyntax id => id.Identifier.Text,
+               _ => null,
+           }) is "GetTemplateChild" or "FindName";
 }
 
 // P-004 static-handler exemption: a `+= StaticMethod` stores a delegate whose
@@ -486,6 +509,27 @@ foreach (var (file, tree) in parsed)
                 && FieldName(a.Left) is { } fn)
                 constructed.Add(fn);
 
+        // P-004 (extended) self-owned set for the SUBSCRIPTION exemption ONLY. A
+        // field can be owned without a direct `_f = new ...`; fold in two more
+        // shapes the WPF mining run surfaced. Kept OUT of `constructed` so the
+        // WPF003 disposal detector keeps demanding disposal of `new`'d fields only
+        // (you don't dispose a borrowed-by-ref value or a template part):
+        //   * ref/out construction — `BuildCorner(ref _thumb, ...)`: a helper this
+        //     class calls populates the field, so the class owns it;
+        //   * template parts — `_part = GetTemplateChild("PART_x") as T`: a control
+        //     owns the parts of its own template (collectable part<->control cycle).
+        var selfOwned = new HashSet<string>(constructed);
+        foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
+            if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+                 || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+                && FieldName(arg.Expression) is { } rf)
+                selfOwned.Add(rf);
+        foreach (var a in assigns)
+            if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && FieldName(a.Left) is { } tf
+                && IsTemplatePartFetch(a.Right))
+                selfOwned.Add(tf);
+
         var subs = new List<object>();
         foreach (var a in assigns)
         {
@@ -507,7 +551,7 @@ foreach (var (file, tree) in parsed)
                 //    constructs) — the source<->this cycle is GC-collectable;
                 //  - static handler — a static method has a null delegate target,
                 //    so no instance is retained and nothing can leak.
-                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, constructed)
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned)
                                  || IsStaticHandler(a.Right, model)))
                     continue;
                 // P-004 tiering: a local-variable source is method-bounded — it
