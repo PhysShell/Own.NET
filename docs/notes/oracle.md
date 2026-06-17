@@ -37,9 +37,10 @@ Two classes sit **outside** the three-way diff and are reported separately:
   analyses compiled `.dll`+`.pdb`. So the oracle run can fail where ours doesn't
   — that asymmetry is the point, and each oracle step is `continue-on-error` so a
   build failure still yields a partial report. (For Infer#, the workflow
-  auto-builds a lone solution — a root-level `*.sln` preferred, else a unique one
-  anywhere; a repo with several needs the `build` input, since `dotnet build
-  <dir>` is ambiguous otherwise, MSB1050.)
+  auto-builds a lone solution — a root-level `*.sln`/`*.slnx` preferred, else a
+  unique one anywhere; a repo with several needs the `build` input. The shallow
+  clone is deepened before building, since version tools like Nerdbank.GitVersioning
+  need history.)
 - **Path/line matching is deliberately loose.** Tools disagree on the exact line
   (allocation site vs declaration) and on path prefixes. The comparator matches
   on **basename + a line window** (`--line-tol`, default 3). Robust to prefixes;
