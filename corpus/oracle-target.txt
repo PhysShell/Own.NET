@@ -1,13 +1,11 @@
 # Target for the push-triggered oracle (.github/workflows/oracle.yml, push path).
-# Format = mine-target.txt: first non-comment line is "owner/repo" or an https URL.
-# Optional lines: ref=<branch|tag|sha>, paths=<subdir>, build=<proj>, include_tests=<bool>.
-# Bump this file (commit + push) to run the cross-tool oracle. Dev-branch only.
+# Format = mine-target.txt: first non-comment line is "owner/repo", an https URL,
+# or "local:<in-repo path>" (a fixture copied into the oracle's target/).
+# Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Cross-tool validation of the SystemEvents finding: does CodeQL (and Infer#, if the
-# WPF target builds on Linux) also flag the ScreenToGif
-# SystemEvents.DisplaySettingsChanged leak, or is it an Own.NET-only (differentiated)
-# find? Pinned to the commit we mined. (Re-run after the comparator parser fix +
-# own-check framework-refs / --severity warning, so our SystemEvents & VideoSource
-# OWN001 findings are emitted, parsed, and land in "Own.NET only" vs CodeQL.)
-NickeManarin/ScreenToGif
-ref=27a49c3
+# Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
+# included — ScreenToGif's WPF won't build on Linux). Expected 2x2: the FileStream
+# Dispose leak agrees across tools; the SystemEvents subscription leak is Own.NET
+# only. See corpus/fixtures/systemevents-console/README.md.
+local:corpus/fixtures/systemevents-console
+build=SystemEventsLeak.csproj

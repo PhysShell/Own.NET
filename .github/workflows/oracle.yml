@@ -87,8 +87,9 @@ jobs:
             build=$(grep -E '^build=' "$file"        | head -1 | sed 's/^build=//'         | tr -d '[:space:]')
             tests=$(grep -E '^include_tests=' "$file"| head -1 | sed 's/^include_tests=//' | tr -d '[:space:]')
           fi
-          # Allowlist: GitHub owner/repo or an https URL — never an odd scheme.
-          if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ || "$repo" =~ ^https://[A-Za-z0-9./_-]+$ ]]; then
+          # Allowlist: GitHub owner/repo, an https URL, or local:<in-repo path>
+          # (a fixture copied into target/ instead of cloned) — never an odd scheme.
+          if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ || "$repo" =~ ^https://[A-Za-z0-9./_-]+$ || "$repo" =~ ^local:[A-Za-z0-9._/-]+$ ]]; then
             echo "oracle: invalid target '$repo'" >&2; exit 2
           fi
           { echo "repo=$repo"; echo "ref=$ref"; echo "paths=$paths";
@@ -104,21 +105,32 @@ jobs:
           REPO: ${{ steps.t.outputs.repo }}
           REF: ${{ steps.t.outputs.ref }}
         run: |
-          case "$REPO" in
-            http://*|https://*|git@*) url="$REPO" ;;
-            *) url="https://github.com/${REPO}.git" ;;
-          esac
-          if [[ -n "$REF" ]]; then
-            # A blobless clone keeps the full commit/ref graph (blobs fetched on
-            # demand), so ANY ref — branch, tag, or an abbreviated SHA — resolves
-            # locally at checkout. A shallow `fetch origin <short-sha>` does NOT:
-            # servers reject abbreviated / unadvertised SHAs in a want request.
-            git clone --filter=blob:none --quiet "$url" target
-            git -C target checkout --quiet --detach "$REF"
+          if [[ "$REPO" == local:* ]]; then
+            # local:<in-repo path> — copy an in-repo fixture into target/ instead of
+            # cloning, so a tiny buildable repro (where ScreenToGif can't build on
+            # Linux) lets every oracle — including Infer#, which needs binaries — run.
+            src="${REPO#local:}"
+            [[ "$src" != *..* && -d "$src" ]] || { echo "oracle: bad local fixture '$src'" >&2; exit 2; }
+            cp -r "$src" target
+            echo "COMMIT=local@$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+            echo "using in-repo fixture: $src"
           else
-            git clone --depth 1 --quiet "$url" target
+            case "$REPO" in
+              http://*|https://*|git@*) url="$REPO" ;;
+              *) url="https://github.com/${REPO}.git" ;;
+            esac
+            if [[ -n "$REF" ]]; then
+              # A blobless clone keeps the full commit/ref graph (blobs fetched on
+              # demand), so ANY ref — branch, tag, or an abbreviated SHA — resolves
+              # locally at checkout. A shallow `fetch origin <short-sha>` does NOT:
+              # servers reject abbreviated / unadvertised SHAs in a want request.
+              git clone --filter=blob:none --quiet "$url" target
+              git -C target checkout --quiet --detach "$REF"
+            else
+              git clone --depth 1 --quiet "$url" target
+            fi
+            echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
           fi
-          echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
 
       # Framework-type references for own-check. The Roslyn extractor resolves a
       # `+=` only when the event's declaring type is on its reference set — else the
