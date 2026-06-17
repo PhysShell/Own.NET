@@ -57,7 +57,8 @@ TITLES = _load_titles()
 OWN_LEAK = {"OWN001"}                  # owned resource not released on a path
 OWN_USE_AFTER = {"OWN002", "OWN009"}   # use after release (definite / maybe)
 OWN_DOUBLE = {"OWN003"}                # double release
-INFER_LEAK = {"DOTNET_RESOURCE_LEAK", "RESOURCE_LEAK", "MEMORY_LEAK"}
+INFER_LEAK = {"PULSE_RESOURCE_LEAK", "DOTNET_RESOURCE_LEAK", "RESOURCE_LEAK",
+              "MEMORY_LEAK", "PULSE_MEMORY_LEAK"}  # canonical ids; matched by substring
 # CodeQL ids vary by suite/version; match the dispose/leak family by id too.
 CODEQL_LEAK = {
     "cs/local-not-disposed",
@@ -97,7 +98,10 @@ def _own_class(code: str) -> str:
 def _oracle_class(tool: str, rule: str) -> str:
     r = rule or ""
     if tool == "infersharp":
-        return "leak" if r in INFER_LEAK else "other"
+        # Infer's Pulse engine renamed the rule (RESOURCE_LEAK -> PULSE_RESOURCE_LEAK);
+        # match the family by substring so version drift doesn't silence it.
+        ru = r.upper()
+        return "leak" if "RESOURCE_LEAK" in ru or "MEMORY_LEAK" in ru else "other"
     # codeql (and any other SARIF oracle): the dispose/leak family by id.
     rl = r.lower()
     if r in CODEQL_LEAK or "not-disposed" in rl or "dispose" in rl:
@@ -210,6 +214,7 @@ def _fmt_files(s: set[str], cap: int = 12) -> str:
 
 def render_md(result: dict[str, Any], target: str, commit: str,
               oracles: list[str], tol: int, own_unparsed: int = 0,
+              excluded_tests: int = 0, exclude_tests_mode: bool = False,
               max_list: int = 50) -> str:
     """The human-facing comparison report."""
     own_leak = result["own_leak"]
@@ -232,6 +237,9 @@ def render_md(result: dict[str, Any], target: str, commit: str,
     if own_unparsed:
         out.append(f"- **warning:** {own_unparsed} own-check line(s) did not parse "
                    "(format drift?) — Own.NET findings may be incomplete")
+    if exclude_tests_mode:
+        out.append(f"- scope: **product code only** — {excluded_tests} finding(s) under "
+                   "test/benchmark/sample/example paths excluded (set `include_tests` to keep)")
     out += [
         "",
         "Leak / not-disposed class only — the question all three tools can answer. "
@@ -338,6 +346,17 @@ def to_json(result: dict[str, Any], target: str, commit: str) -> dict[str, Any]:
     }
 
 
+def _is_test_path(path: str) -> bool:
+    """True if a finding path lives under a test/benchmark/sample/example tree —
+    non-product code. `--exclude-tests` drops these so the three tools are diffed
+    on the product code only (Infer# builds just the product project, so without
+    this own-check/CodeQL would also count test/benchmark leaks the others can't)."""
+    for seg in path.lower().split("/"):
+        if seg in ("test", "tests") or seg.startswith(("benchmark", "sample", "example")):
+            return True
+    return False
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Diff Own.NET leak findings against Infer#/CodeQL (oracle).")
@@ -352,6 +371,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--commit", default="", help="commit SHA (report header)")
     ap.add_argument("--line-tol", type=int, default=3,
                     help="line window for a cross-tool match (default 3)")
+    ap.add_argument("--exclude-tests", action="store_true",
+                    help="drop findings under test/benchmark/sample/example paths, "
+                         "comparing the product code only across all tools")
     ap.add_argument("--json", dest="json_out", default="",
                     help="also write the structured comparison as JSON")
     ap.add_argument("--selftest", action="store_true",
@@ -387,13 +409,23 @@ def main(argv: list[str] | None = None) -> int:
         present.append(tool)
         oracles += parse_sarif(Path(path).read_text(encoding="utf-8"), tool, args.strip)
 
+    excluded = 0
+    if args.exclude_tests:
+        before = len(own) + len(oracles)
+        own = [f for f in own if not _is_test_path(f.path)]
+        oracles = [g for g in oracles if not _is_test_path(g.path)]
+        excluded = before - len(own) - len(oracles)
+        if excluded:
+            print(f"--exclude-tests: dropped {excluded} finding(s) under "
+                  "test/benchmark/sample/example paths", file=sys.stderr)
+
     result = compare(own, oracles, args.line_tol)
     if args.json_out:
         Path(args.json_out).write_text(
             json.dumps(to_json(result, args.target, args.commit), indent=2),
             encoding="utf-8")
     print(render_md(result, args.target, args.commit, present, args.line_tol,
-                    own_unparsed))
+                    own_unparsed, excluded, args.exclude_tests))
     return 0
 
 
@@ -460,8 +492,28 @@ def _selftest() -> int:
         fails.append(f"parser drift not surfaced: expected 1 unparsed, got {drift}")
     if "warning:" not in render_md(r, "o/r", "abc123", ["infersharp"], 3, drift):
         fails.append("unparsed warning not rendered in header")
+    # Infer#'s Pulse engine emits PULSE_RESOURCE_LEAK (not RESOURCE_LEAK) — it must
+    # still classify as a leak, not out-of-scope context.
+    pulse_sarif = json.dumps({"runs": [{"results": [
+        {"ruleId": "PULSE_RESOURCE_LEAK", "message": {"text": "leak"},
+         "locations": [{"physicalLocation": {
+             "artifactLocation": {"uri": "Dapper/SqlMapper.cs"},
+             "region": {"startLine": 10}}}]}]}]})
+    pulse = parse_sarif(pulse_sarif, "infersharp", [])
+    if [g.cls for g in pulse] != ["leak"]:
+        fails.append(f"PULSE_RESOURCE_LEAK not classed as leak: {[g.cls for g in pulse]}")
+    # --exclude-tests predicate: matches non-product trees, not product code.
+    if not all(_is_test_path(p) for p in
+               ("tests/Foo/Bar.cs", "benchmarks/X/Y.cs", "src/Test/Z.cs")):
+        fails.append("_is_test_path should match test/benchmark trees")
+    if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs")):
+        fails.append("_is_test_path should not match product paths")
+    # the scope note is gated on mode, not count: a product-only run that excluded
+    # nothing must still say so (else it reads like a full-scope run).
+    if "product code only" not in render_md(r, "o/r", "abc", ["codeql"], 3, 0, 0, True):
+        fails.append("scope note must render when exclude-tests mode is on (even at 0)")
 
-    total = 12
+    total = 16
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

@@ -34,6 +34,11 @@ on:
         description: "Project/solution under the target to `dotnet build` for Infer# (optional, default: repo root)"
         required: false
         default: ""
+      include_tests:
+        description: "Also analyse test/benchmark/sample code (default: product code only)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -158,10 +163,14 @@ jobs:
         if: always()
         env:
           REPO: ${{ inputs.repo }}
+          INCLUDE_TESTS: ${{ inputs.include_tests }}
         run: |
           args=(--own own.txt --target "$REPO" --commit "${COMMIT:-}"
                 --strip "$GITHUB_WORKSPACE/target" --strip target
                 --json report.json)
+          # Compare on product code by default: tests/benchmarks pollute the diff
+          # (and Infer# only built the product project). include_tests keeps them.
+          [[ "${INCLUDE_TESTS,,}" == "true" ]] || args+=(--exclude-tests)
           [[ -f infer-out/report.sarif ]] && args+=(--infersharp infer-out/report.sarif)
           cq=$(find codeql-out -name '*.sarif' -type f 2>/dev/null | head -1 || true)
           [[ -n "$cq" ]] && args+=(--codeql "$cq")
