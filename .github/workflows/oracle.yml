@@ -108,11 +108,15 @@ jobs:
             http://*|https://*|git@*) url="$REPO" ;;
             *) url="https://github.com/${REPO}.git" ;;
           esac
-          git clone --depth 1 --quiet "$url" target
           if [[ -n "$REF" ]]; then
-            # --branch only accepts a branch/tag; fetch+checkout also takes a raw SHA.
-            git -C target fetch --depth 1 --quiet origin "$REF"
-            git -C target checkout --quiet --detach FETCH_HEAD
+            # A blobless clone keeps the full commit/ref graph (blobs fetched on
+            # demand), so ANY ref — branch, tag, or an abbreviated SHA — resolves
+            # locally at checkout. A shallow `fetch origin <short-sha>` does NOT:
+            # servers reject abbreviated / unadvertised SHAs in a want request.
+            git clone --filter=blob:none --quiet "$url" target
+            git -C target checkout --quiet --detach "$REF"
+          else
+            git clone --depth 1 --quiet "$url" target
           fi
           echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
 

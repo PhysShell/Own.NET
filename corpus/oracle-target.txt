@@ -6,6 +6,7 @@
 # Cross-tool validation of the SystemEvents finding: does CodeQL (and Infer#, if the
 # WPF target builds on Linux) also flag the ScreenToGif
 # SystemEvents.DisplaySettingsChanged leak, or is it an Own.NET-only (differentiated)
-# find? Pinned to the commit we mined.
+# find? Pinned to the commit we mined. (Re-run after the blobless-clone fix, so the
+# abbreviated SHA below resolves at checkout.)
 NickeManarin/ScreenToGif
 ref=27a49c3
