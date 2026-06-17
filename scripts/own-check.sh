@@ -12,7 +12,7 @@
 #
 # Usage:
 #   scripts/own-check.sh [--format human|github|msbuild] [--severity error|warning]
-#                        [--fail-on-finding] [--legacy] [--root <own.net checkout>]
+#                        [--fail-on-finding] [--legacy] [--stats] [--root <own.net checkout>]
 #                        [--] <path|file> [more ...]
 #
 # Defaults: --format human, --severity error, scans ".", does not fail the shell
@@ -36,6 +36,7 @@ format="human"
 severity="error"
 fail_on_finding=0
 legacy=0
+stats=0
 paths=()
 
 while [[ $# -gt 0 ]]; do
@@ -51,6 +52,7 @@ while [[ $# -gt 0 ]]; do
       severity="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
     --legacy)          legacy=1; shift ;;
+    --stats)           stats=1; shift ;;
     --)                shift; while [[ $# -gt 0 ]]; do paths+=("$1"); shift; done ;;
     -h|--help)         sed -n '2,30p' "$0"; exit 0 ;;
     *)                 paths+=("$1"); shift ;;
@@ -75,6 +77,7 @@ trap 'rm -f "$facts"' EXIT
 # --legacy keeps the flat name-based detector.
 extractor_args=("${paths[@]}" -o "$facts")
 [[ "$legacy" -eq 0 ]] && extractor_args+=(--flow-locals)
+[[ "$stats" -eq 1 ]] && extractor_args+=(--stats)
 dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
 
 # Stage 2: the one checker produces the verdict at the C# location.

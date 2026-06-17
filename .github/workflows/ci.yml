@@ -115,6 +115,8 @@ jobs:
         run: |
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/CustomerViewModel.cs \
+            frontend/roslyn/samples/LambdaHandlerViewModel.cs \
+            frontend/roslyn/samples/AliasedSourceViewModel.cs \
             frontend/roslyn/samples/OrdersViewModel.cs \
             frontend/roslyn/samples/TimerViewModel.cs \
             frontend/roslyn/samples/DisposableFieldViewModel.cs \
@@ -130,12 +132,32 @@ jobs:
         run: |
           out=$(python -m ownlang ownir "$RUNNER_TEMP/facts.json" || true)
           echo "$out"
-          echo "$out" | grep -q "CustomerViewModel.cs" \
-            || { echo "FAIL: expected the CustomerViewModel leak"; exit 1; }
           echo "$out" | grep -q "OWN001" \
             || { echo "FAIL: expected OWN001"; exit 1; }
+          # P-004 tiering: CustomerViewModel subscribes to an INJECTED bus (a ctor
+          # param of unknown lifetime). We cannot prove it outlives the view model,
+          # so the leak is reported at WARNING level (an honest "possible leak"),
+          # not a hard error — until lifetime/ownership modelling lands.
+          echo "$out" | grep -qE "CustomerViewModel\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: expected CustomerViewModel as a WARNING (injected source)"; exit 1; }
+          echo "$out" | grep -q "injected dependency whose lifetime is unknown" \
+            || { echo "FAIL: expected the injected-source wording"; exit 1; }
           if echo "$out" | grep -q "OrdersViewModel.cs"; then
             echo "FAIL: disposed subscription wrongly reported"; exit 1
+          fi
+          # a lambda handler has no stored delegate, so it can NEVER be `-=`'d — the
+          # finding says so. (Same injected source as Customer -> also a warning.)
+          echo "$out" | grep -qE "LambdaHandlerViewModel\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: expected the lambda-handler subscription leak (warning)"; exit 1; }
+          echo "$out" | grep -q "inline lambda it has no '-=' handle" \
+            || { echo "FAIL: expected the lambda no-handle wording"; exit 1; }
+          # P-004 provenance: a local that ALIASES an injected source (var src =
+          # _bus) is NOT method-bounded — it must warn, not be silently dropped. A
+          # local the scope CONSTRUCTS (var owned = new Calc()) IS bounded -> silent.
+          echo "$out" | grep -qE "AliasedSourceViewModel\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: aliased-injected local should warn, not be dropped"; exit 1; }
+          if echo "$out" | grep -q "owned.Changed"; then
+            echo "FAIL: a locally-constructed publisher must be dropped"; exit 1
           fi
           # WPF002: the started, never-stopped timer leaks with a [resource: timer]
           # tag; the timer stopped in Dispose stays silent.
@@ -234,6 +256,30 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: Coverage summary (--stats)
+        run: |
+          # --stats prints a flow-locals coverage line to stderr and stamps the same
+          # counts into the facts JSON: of the methods with a disposable local, how
+          # many were flow-analysed vs honestly skipped (an unmodelled construct).
+          cov=$(dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/FlowLocalsSample.cs --flow-locals --stats \
+            -o "$RUNNER_TEMP/stats.json" 2>&1 >/dev/null)
+          echo "$cov"
+          echo "$cov" | grep -qE '^coverage: [0-9]+/[0-9]+ methods .* flow-analysed' \
+            || { echo "FAIL: expected a --stats coverage line on stderr"; exit 1; }
+          # Parse the JSON (not a substring grep): assert the stats object exists,
+          # all three counters are numbers, and the invariant holds — every method
+          # with a disposable local is either flow-analysed or honestly skipped.
+          jq -e '.stats as $s
+            | ($s.methods_with_local | type == "number")
+              and ($s.methods_flow_analysed | type == "number")
+              and ($s.methods_skipped_unmodelled | type == "number")
+              and ($s.methods_flow_analysed + $s.methods_skipped_unmodelled
+                   == $s.methods_with_local)' \
+            "$RUNNER_TEMP/stats.json" >/dev/null \
+            || { echo "FAIL: stats object missing / non-numeric / invariant violated";
+                 cat "$RUNNER_TEMP/stats.json"; exit 1; }
+          echo "OK: --stats coverage on stderr + valid stats object (invariant holds)"
       - name: Escape-via-projection leak — GTM UnitOfWork (--flow-locals, P-016 B0b/B2)
         run: |
           # A real GTM leak the flat detector misses: a UnitOfWork (IDisposable) used
@@ -289,12 +335,18 @@ jobs:
             || { echo "FAIL: expected the relative path to the Customer leak"; exit 1; }
           echo "$out" | grep -q "title=OWN001" \
             || { echo "FAIL: expected the OWN001 title in the annotation"; exit 1; }
-      - name: MSBuild diagnostic format over the sample tree
+      - name: MSBuild diagnostic format over the sample tree (severity tiering)
         run: |
           out=$(scripts/own-check.sh --format msbuild -- frontend/roslyn/samples)
           echo "--- diagnostics ---"; echo "$out"; echo "-------------------"
-          echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): error OWN001:" \
-            || { echo "FAIL: expected an MSBuild-format error line"; exit 1; }
+          # P-004 tiering at the default severity, both sides: an injected-source
+          # subscription (CustomerViewModel's `bus` is a ctor param of unknown
+          # lifetime) renders as a WARNING, while a provable leak — the started,
+          # never-stopped timer — stays an ERROR.
+          echo "$out" | grep -qE "CustomerViewModel\.cs\([0-9]+\): warning OWN001:" \
+            || { echo "FAIL: expected CustomerViewModel as a warning (injected source)"; exit 1; }
+          echo "$out" | grep -qE "TimerViewModel\.cs\([0-9]+\): error OWN001:" \
+            || { echo "FAIL: expected the timer leak to stay an error"; exit 1; }
       - name: --severity warning renders advisory diagnostics
         run: |
           out=$(scripts/own-check.sh --format msbuild --severity warning -- frontend/roslyn/samples)

@@ -40,17 +40,33 @@ bool emitEvents = true;
 // CFG) so the core checks them path-sensitively (OWN001/002/003). Supersedes the
 // flat D1 local-disposable detector when on. Default off keeps the shipped surface.
 bool flowLocals = false;
+// --stats (coverage): print a one-line flow-locals coverage summary to stderr
+// (of the methods that have a disposable local worth checking, how many were
+// flow-analysed vs honestly skipped for an unmodelled construct) and stamp the
+// same counts into the facts JSON. Turns "0 findings" into "clean vs didn't-reach".
+bool reportStats = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
     else if (args[i] == "--no-event-leaks") emitEvents = false;
     else if (args[i] == "--flow-locals") flowLocals = true;
+    else if (args[i] == "--stats") reportStats = true;
     else rawInputs.Add(args[i]);
 }
 
 if (rawInputs.Count == 0)
 {
     Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir> [...] [-o facts.json]");
+    return 2;
+}
+
+// --stats reports flow-locals coverage; the counters only move inside the
+// --flow-locals pass. Without it they would all be zero and the summary would
+// read "0/0 methods flow-analysed" — the exact ambiguous zero --stats exists to
+// kill (e.g. `own-check.sh --legacy --stats`). Refuse the contradictory combo.
+if (reportStats && !flowLocals)
+{
+    Console.Error.WriteLine("ownsharp-extract: --stats requires --flow-locals");
     return 2;
 }
 
@@ -149,6 +165,52 @@ static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
 static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
     IsHandler(right)
         && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
+
+// P-004 severity tiering: of the subscriptions that survive the self-owned and
+// static-handler exemptions (and are not timers), how long-lived is the event
+// SOURCE? A static event lives for the whole process, so an undetached handler is
+// a provable leak -> "static". A local that is CONSTRUCTED right here (`var p =
+// new Publisher(); p.X += h`) dies with the scope -> "local" (the caller drops it;
+// not a heap leak). But a local that merely ALIASES something else (`var src =
+// _bus; src.X += h`) has unknown provenance — it may hold a long-lived injected
+// source — so it is NOT dropped. Everything else (an instance field / property /
+// injected parameter, or such an aliasing local) has UNKNOWN lifetime ->
+// "injected": it MIGHT outlive `this`, but we cannot prove it without ownership
+// modelling, so the core renders it a warning (not a hard error) until that lands.
+static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
+                                     SemanticModel model)
+{
+    if (ev.IsStatic)
+        return "static";
+    if (left is MemberAccessExpressionSyntax m)
+    {
+        var recv = model.GetSymbolInfo(m.Expression).Symbol;
+        if (recv is ILocalSymbol local)
+        {
+            // Method-bounded (droppable) ONLY when the local is the publisher this
+            // scope constructs (`var p = new Publisher()`), which dies with it. A
+            // local initialised from anything else (a field, a parameter, a call)
+            // may alias a long-lived source, so we cannot prove it bounded — fall
+            // through to "injected" and warn rather than silently drop a real leak.
+            var constructedHere = local.DeclaringSyntaxReferences
+                .Select(r => r.GetSyntax())
+                .OfType<VariableDeclaratorSyntax>()
+                .Any(v => v.Initializer?.Value is ObjectCreationExpressionSyntax
+                                               or ImplicitObjectCreationExpressionSyntax);
+            if (constructedHere)
+                return "local";
+        }
+        if (recv is IFieldSymbol { IsStatic: true } or IPropertySymbol { IsStatic: true })
+            return "static";
+    }
+    return "injected";
+}
+
+// A lambda / anonymous-method handler stores no named delegate, so the
+// subscription can NEVER be undone with `-=` (you would have had to cache the
+// delegate in a field). A particularly sharp leak shape worth calling out.
+static bool IsLambdaHandler(ExpressionSyntax right) =>
+    right is AnonymousFunctionExpressionSyntax;
 
 // --- P-016 B0b/B2: flow lowering for local IDisposables (experimental) ---
 
@@ -362,6 +424,12 @@ var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
+// --flow-locals coverage counters (--stats). A method "with a local" here is one
+// that has a non-escaping `new` IDisposable worth tracking; of those we either
+// flow-analyse it or honestly skip it (an unmodelled for/do/try/switch/async made
+// LowerFlowBody bail). methods_with_local == analysed + skipped.
+int statMethodsWithLocal = 0, statMethodsAnalysed = 0, statMethodsSkipped = 0;
+
 foreach (var (file, tree) in parsed)
 {
     var model = compilation.GetSemanticModel(tree);
@@ -425,6 +493,14 @@ foreach (var (file, tree) in parsed)
                 if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, constructed)
                                  || IsStaticHandler(a.Right, model)))
                     continue;
+                // P-004 tiering: a local-variable source is method-bounded — it
+                // cannot outlive `this`, so it is not a heap leak; drop it (the same
+                // spirit as the self-owned drop above). "static"/"injected" ride
+                // along as a `source` hint so the core can grade the severity.
+                var source = isTimer ? "static"
+                                     : SubscriptionSourceKind(a.Left, ev, model);
+                if (source == "local")
+                    continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
                 subs.Add(new
@@ -434,6 +510,8 @@ foreach (var (file, tree) in parsed)
                     line = LineOf(a.Left),
                     released,
                     resource = isTimer ? "timer" : "subscription",
+                    source,
+                    lambda = !isTimer && IsLambdaHandler(a.Right),
                 });
             }
             else if (leftSymbol is null && IsHandler(a.Right))
@@ -630,9 +708,14 @@ foreach (var (file, tree) in parsed)
                 tracked.ExceptWith(escapedLocals);
                 if (tracked.Count == 0)
                     continue;
+                statMethodsWithLocal++;
                 var fbody = LowerFlowBody(mbody, tracked);
                 if (fbody is null || fbody.Count == 0)
+                {
+                    statMethodsSkipped++;   // unmodelled construct -> honestly skipped
                     continue;
+                }
+                statMethodsAnalysed++;
                 flowFunctions.Add(new
                 {
                     name = $"{cls.Identifier.Text}.{MethodName(method)}",
@@ -648,8 +731,26 @@ foreach (var (file, tree) in parsed)
 
 // ownir_version stamps the fact-schema vocabulary; the Python core rejects a
 // mismatch loudly (ownlang/ownir.py OWNIR_VERSION) rather than mis-reading facts.
-var facts = new { ownir_version = 0, module = "Extracted", components, functions = flowFunctions };
+// `stats` is additive coverage metadata — the core's load() ignores unknown keys.
+var facts = new
+{
+    ownir_version = 0,
+    module = "Extracted",
+    components,
+    functions = flowFunctions,
+    stats = new
+    {
+        methods_with_local = statMethodsWithLocal,
+        methods_flow_analysed = statMethodsAnalysed,
+        methods_skipped_unmodelled = statMethodsSkipped,
+    },
+};
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
+
+if (reportStats)
+    Console.Error.WriteLine(
+        $"coverage: {statMethodsAnalysed}/{statMethodsWithLocal} methods with a "
+        + $"disposable local flow-analysed; {statMethodsSkipped} skipped (unmodelled construct)");
 
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);

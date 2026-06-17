@@ -168,6 +168,12 @@ class Finding:
     # an advisory note (e.g. OWN050 "leakage analysis skipped") rather than a leak
     # verdict: rendered as a warning and excluded from the exit code.
     advisory: bool = False
+    # P-004 tiering: the intrinsic level when the source's lifetime cannot be
+    # proven — "warning" for a subscription whose event SOURCE is an injected
+    # dependency of unknown lifetime, None for a provable leak (shown at the host's
+    # --severity, default error). Still a leak verdict (counts in the exit code);
+    # only the displayed level differs.
+    severity: str | None = None
 
     def render(self, severity: str = "error") -> str:
         return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
@@ -557,6 +563,10 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 kind="disposable"))
             continue
         _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+        # P-004 tiering: only the plain `event += handler` leak (the else branch
+        # below) grades its severity from the source's proven lifetime; every other
+        # resource is a provable leak and stays at the host's --severity (error).
+        fsev: str | None = None
         if rkind == "timer":
             message = (f"timer '{event}' (handler '{handler}') is started but "
                        f"never stopped or detached — the running timer keeps "
@@ -579,13 +589,29 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             message = (f"pooled buffer '{event}' is rented but never returned "
                        f"to the pool (leak)")
         else:
-            message = (f"event '{event}' is subscribed (handler '{handler}') "
-                       f"but never unsubscribed — the source keeps "
-                       f"'{component}' alive (leak)")
+            # The source's lifetime decides the severity (the extractor stamps
+            # `source`): a static event is process-lived -> a provable leak (error);
+            # an injected dependency (ctor param / field / property) has UNKNOWN
+            # lifetime -> a warning ("may outlive this", honest until ownership
+            # modelling can prove it). A lambda handler has no `-=` handle, so it
+            # could never be detached even on purpose — worth spelling out.
+            lam = (" — and being an inline lambda it has no '-=' handle, so it "
+                   "could never be detached") if sub.get("lambda") else ""
+            if sub.get("source") == "injected":
+                fsev = "warning"
+                message = (f"event '{event}' is subscribed (handler '{handler}') "
+                           f"but never unsubscribed; its source is an injected "
+                           f"dependency whose lifetime is unknown, so it may "
+                           f"outlive and keep '{component}' alive (possible "
+                           f"leak{lam})")
+            else:
+                message = (f"event '{event}' is subscribed (handler '{handler}') "
+                           f"but never unsubscribed — the source keeps "
+                           f"'{component}' alive (leak{lam})")
         findings.append(Finding(
             file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
             component=component, event=event, handler=handler,
-            message=message, kind=kind))
+            message=message, kind=kind, severity=fsev))
 
     # DI001 (captive dependency): a separate core analysis over the registration
     # graph, not the acquire/release model — the bridge just routes the facts to

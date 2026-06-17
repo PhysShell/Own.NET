@@ -218,7 +218,16 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     notes = [f for f in findings if f.advisory]
     shown = leaks if verbosity == "quiet" else findings
     for f in shown:
-        print(render_finding(f, fmt, "warning" if f.advisory else severity))
+        # Severity is the weaker of the host's --severity and the finding's own
+        # intrinsic level: an advisory note (OWN050) is always a warning; a global
+        # `--severity warning` downgrades everything; and a finding the extractor
+        # could not prove a leak (an injected-source subscription, f.severity ==
+        # "warning") shows as a warning even at the default error level (P-004).
+        if f.advisory or severity == "warning" or f.severity == "warning":
+            fsev = "warning"
+        else:
+            fsev = severity
+        print(render_finding(f, fmt, fsev))
     if not shown:
         print(f"{path}: ok — no subscription leaks found", file=summary_to)
     n = len(leaks)

@@ -97,7 +97,7 @@ def aggregate(findings: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def render_md(findings: list[dict[str, Any]], unparsed: int, repo: str,
-              commit: str, max_list: int = 60) -> str:
+              commit: str, coverage: str = "", max_list: int = 60) -> str:
     """Render the Markdown report (the human-facing miner output)."""
     agg = aggregate(findings)
     errors = [f for f in findings if f["severity"] == "error"]
@@ -111,14 +111,17 @@ def render_md(findings: list[dict[str, Any]], unparsed: int, repo: str,
         f"({agg['errors']} error / {agg['advisories']} advisory) "
         f"across {agg['files_with_findings']} file(s)"
         + (f"; {unparsed} unparsed line(s)" if unparsed else ""),
-        "",
     ]
+    if coverage:
+        out.append(f"- {coverage}")
+    out.append("")
 
     if agg["total"] == 0:
-        out += ["**Clean** — no findings. (A clean run on real code is a precision "
-                "signal; pair it with the extractor's `--stats` coverage once that "
-                "lands to know how much was actually analysed vs honestly skipped.)",
-                ""]
+        tail = (f" The extractor reports — {coverage}." if coverage else
+                " Pair it with the extractor's `--stats` (analysed vs "
+                "honestly-skipped methods) to know how much was actually looked at.")
+        out += ["**Clean** — no findings. A clean run on real code is a precision "
+                "signal." + tail, ""]
         return "\n".join(out)
 
     out += ["## By code", "", "| code | n | what |", "|---|---:|---|"]
@@ -157,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--commit", default="", help="commit SHA (for the report header)")
     ap.add_argument("--json", dest="json_out", default="",
                     help="also write the raw aggregates as JSON to this path")
+    ap.add_argument("--coverage", default="",
+                    help="extractor --stats coverage line to surface in the report")
     ap.add_argument("--selftest", action="store_true",
                     help="run built-in parser/aggregator checks and exit")
     args = ap.parse_args(argv)
@@ -172,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dump({"repo": args.repo, "commit": args.commit,
                        "unparsed": unparsed, "findings": findings,
                        **aggregate(findings)}, f, indent=2)
-    print(render_md(findings, unparsed, args.repo, args.commit))
+    print(render_md(findings, unparsed, args.repo, args.commit, args.coverage))
     return 0
 
 
@@ -208,9 +213,12 @@ def _selftest() -> int:
     # a clean run renders without crashing and says so.
     if "Clean" not in render_md([], 0, "o/r", "abc123"):
         fails.append("clean render missing 'Clean'")
+    # the --stats coverage line is surfaced when supplied (header + clean note).
+    if "42 methods" not in render_md([], 0, "o/r", "abc123", "coverage: 1/42 methods"):
+        fails.append("coverage line not rendered")
     for f in fails:
         print(f"MINE SELFTEST FAIL: {f}")
-    print(f"mine_report selftest: {7 - len(fails)}/7 checks passed")
+    print(f"mine_report selftest: {8 - len(fails)}/8 checks passed")
     return 1 if fails else 0
 
 
