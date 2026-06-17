@@ -2,4 +2,5 @@
 # First non-comment line: a GitHub "owner/repo" or an https git URL. One repo/run.
 # Optional lines: ref=<branch|tag|sha>, paths=<subdir of the target to scan>.
 # Bump this file (commit + push) to kick off a mine; read the result in the run log.
+# cycle: re-mine WITH the WPF reference pack loaded (OWN_EXTRA_REF_DIRS).
 NickeManarin/ScreenToGif

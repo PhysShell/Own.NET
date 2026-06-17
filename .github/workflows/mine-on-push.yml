@@ -30,15 +30,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - name: Probe WPF reference assemblies (TEMP — for the WPF unlock)
-        continue-on-error: true
+      - name: Materialize WPF reference assemblies (WPF profile)
         run: |
-          root="${DOTNET_ROOT:-/usr/share/dotnet}"
-          echo "DOTNET_ROOT=$root"
-          echo "::group::Already in the SDK packs?"
-          find "$root/packs" -ipath '*WindowsDesktop.App.Ref*' -name 'PresentationFramework.dll' 2>/dev/null | head || echo "(none in SDK packs)"
-          echo "::endgroup::"
-          echo "::group::Restore a net8.0-windows/UseWPF stub (EnableWindowsTargeting)"
+          # The WindowsDesktop ref pack isn't in the Linux SDK, but a net8.0-windows
+          # /UseWPF stub restores it cross-platform (EnableWindowsTargeting). Export
+          # the ref dir so the extractor (OWN_EXTRA_REF_DIRS) can resolve WPF events
+          # and timers instead of dropping them as OWN050.
           tmp=$(mktemp -d)
           printf '%s\n' \
             '<Project Sdk="Microsoft.NET.Sdk">' \
@@ -47,18 +44,15 @@ jobs:
             '    <UseWPF>true</UseWPF>' \
             '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
             '  </PropertyGroup>' \
-            '</Project>' > "$tmp/probe.csproj"
-          dotnet restore "$tmp/probe.csproj" 2>&1 | tail -8 || echo "RESTORE FAILED"
-          echo "::endgroup::"
-          echo "::group::Where did the WPF ref assemblies land?"
-          d=$(find "$root/packs/Microsoft.WindowsDesktop.App.Ref" -type d -name 'net8.0' 2>/dev/null | head -1)
-          [ -z "$d" ] && d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | head -1)
-          echo "WPF ref dir: ${d:-NONE FOUND}"
+            '</Project>' > "$tmp/wpfref.csproj"
+          dotnet restore "$tmp/wpfref.csproj" >/dev/null 2>&1 || echo "wpf-ref restore failed (continuing without)"
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1)
           if [ -n "$d" ]; then
-            echo "count of ref dlls: $(find "$d" -name '*.dll' | wc -l)"
-            ls "$d" | grep -iE 'Presentation|WindowsBase|System.Xaml|System.Windows' | head -20
+            echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+            echo "WPF refs ready: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+          else
+            echo "WPF refs NOT found — the mine will run without them (OWN050 on framework types)"
           fi
-          echo "::endgroup::"
       - name: Read & validate the target
         id: target
         run: |

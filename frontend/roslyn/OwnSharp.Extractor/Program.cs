@@ -415,11 +415,28 @@ foreach (var path in inputs)
 // in-project types and BCL events; external types (WPF/DevExpress) stay
 // unresolved and are surfaced as OWN050 "unchecked", never guessed as leaks.
 // Error-tolerant: compile diagnostics are irrelevant — we only read symbols.
-var references = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? "")
+var tpa = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? "")
     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
     .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-    .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
     .ToList();
+var refNames = new HashSet<string>(tpa.Select(Path.GetFileName), StringComparer.OrdinalIgnoreCase);
+var references = tpa.Select(p => (MetadataReference)MetadataReference.CreateFromFile(p)).ToList();
+// P-004 WPF profile: widen the reference set with assemblies named by the
+// OWN_EXTRA_REF_DIRS env var (colon-separated dirs) — e.g. the WindowsDesktop ref
+// pack — so framework events/timers (Button.Click, DispatcherTimer.Tick) resolve to
+// real symbols instead of surfacing as OWN050 on a WPF app. Additive and best-
+// effort: unset => unchanged behaviour; a DLL whose simple name a TPA reference
+// already provides is skipped so System.* is not double-referenced from two packs.
+foreach (var dir in (Environment.GetEnvironmentVariable("OWN_EXTRA_REF_DIRS") ?? "")
+             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+{
+    if (!Directory.Exists(dir)) continue;
+    var added = 0;
+    foreach (var dll in Directory.EnumerateFiles(dir, "*.dll"))
+        if (refNames.Add(Path.GetFileName(dll)))
+        { references.Add(MetadataReference.CreateFromFile(dll)); added++; }
+    Console.Error.WriteLine($"extractor: +{added} extra references from {dir}");
+}
 var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
