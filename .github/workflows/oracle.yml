@@ -104,29 +104,36 @@ jobs:
           upload: false
 
       # Infer# — needs compiled binaries; build the target into one output dir.
-      # `dotnet build <dir>` errors (MSB1050) when a repo root holds more than one
-      # project/solution, so choose a target: explicit `build` input wins; else a
-      # lone solution (root-preferred, .sln or .slnx); else the dir (-> partial).
+      # Choose what to build: explicit `build` input wins; else the product
+      # library (`<repo>.csproj` outside tests/benchmarks — a leak scan wants the
+      # library, and building the whole solution often drags in unbuildable test
+      # projects); else a lone solution (.sln/.slnx); else the dir (-> partial).
       - name: Build the target (for Infer#)
         env:
           BUILD: ${{ inputs.build }}
+          REPO: ${{ inputs.repo }}
         continue-on-error: true
         run: |
           if [[ -n "$BUILD" ]]; then
             tgt="target/$BUILD"
           else
-            # Prefer a unique solution at the repo root; else a unique one anywhere
-            # (covers a lone deep solution); else fall back to the dir + note.
-            # Match both .sln and the newer XML .slnx (e.g. Dapper).
+            # The main library is almost always named after the repo; prefer a
+            # unique <repo>.csproj outside the test/benchmark/sample trees.
+            name="${REPO##*/}"; name="${name%.git}"
+            mapfile -t named < <(find target -name "$name.csproj" \
+              -not -path '*/test/*' -not -path '*/tests/*' -not -path '*/benchmark*' \
+              -not -path '*/sample*' -not -path '*/example*' | sort)
             mapfile -t root_slns < <(find target -maxdepth 1 \( -name '*.sln' -o -name '*.slnx' \) | sort)
             mapfile -t all_slns  < <(find target \( -name '*.sln' -o -name '*.slnx' \) | sort)
-            if [[ ${#root_slns[@]} -eq 1 ]]; then
+            if [[ ${#named[@]} -eq 1 ]]; then
+              tgt="${named[0]}"
+            elif [[ ${#root_slns[@]} -eq 1 ]]; then
               tgt="${root_slns[0]}"
             elif [[ ${#root_slns[@]} -eq 0 && ${#all_slns[@]} -eq 1 ]]; then
               tgt="${all_slns[0]}"
             else
               tgt="target"
-              echo "note: ${#root_slns[@]} root / ${#all_slns[@]} total solution(s) under target; pass the 'build' input to disambiguate"
+              echo "note: no unique '$name.csproj' and ${#root_slns[@]} root / ${#all_slns[@]} total solution(s); pass the 'build' input to disambiguate"
             fi
           fi
           # Some repos (e.g. those using Nerdbank.GitVersioning) need git history to
