@@ -29,6 +29,20 @@
           "source": "injected"
         }
       ]
+    },
+    {
+      "name": "CleanThemeViewModel",
+      "file": "CleanThemeViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.UserPreferenceChanged",
+          "handler": "OnUserPreferenceChanged",
+          "line": 22,
+          "released": true,
+          "resource": "capture",
+          "source": "static"
+        }
+      ]
     }
   ]
 }

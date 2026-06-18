@@ -2,9 +2,9 @@
 
 - **Status:** in progress (P0) — WPF001 (v0) + **WPF002 (timer)** + **WPF003
   (IDisposable field)** + **WPF004 (ignored Subscribe)** + **self-owned & static-
-  handler exemptions (P-014 Tier A) built**; **WPF005 (escape → OWN014): bridge +
-  core half built** — a `capture` fact routes through the region engine; the
-  extractor pattern-matcher that emits it is the remaining increment
+  handler exemptions (P-014 Tier A) built**; **WPF005 (escape → OWN014) built
+  end-to-end** — the extractor lowers a static-event `+=` to a `capture` fact that
+  the region engine reports as OWN014 (a released `-=` mitigates it -> silent)
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the extractor + OwnIR seam),
   `spec/OwnCore.md`, `spec/Lifetimes.md` (OWN001 leak, OWN014 region escape).
   See [`docs/ROADMAP.md`](../ROADMAP.md) for where this sits (Milestones 1–2).
@@ -34,7 +34,7 @@ ends `ViewModel`/`View`, derives `Window`/`UserControl`/`Page`, implements
 | **WPF002** | `DispatcherTimer`/`Timer` `Tick`/`Elapsed` handler with no `-=` and no `Stop()` | `OWN001` `[resource: timer]` ✅ |
 | **WPF003** | an `IDisposable` field the class `new`s but never disposes | `OWN001` `[resource: disposable field]` ✅ (core of P-005) |
 | **WPF004** | `X.Subscribe(...)` whose `IDisposable` result is ignored (bare statement) | `OWN001` `[resource: subscription token]` ✅ |
-| **WPF005** | strong capture by a longer-lived source (the ViewModel `escapes` to App) | `OWN014` ✅ bridge+core (extractor pending) |
+| **WPF005** | strong capture by a longer-lived source (the ViewModel `escapes` to App) | `OWN014` ✅ end-to-end (extractor emits `capture` for a static-event `+=`) |
 
 Modelled as resource facts (no new magic — the resource is just named
 `Subscription`):
@@ -65,18 +65,21 @@ Samples: `SelfOwnedViewModel.cs` / `StaticHandlerViewModel.cs` (silent) vs
 `Context`'s subscription to the *same* event — the deciding factor is the
 subscriber/handler, not the source.
 
-The corpus already pins three of these against real core codes:
-`corpus/wpf/zombie-viewmodel` (OWN001), `viewmodel-escapes-to-app` (OWN014),
-`handler-use-after-dispose` (OWN002). WPF004 is built; **WPF005's bridge + core
-half is now built too**: a `capture` OwnIR fact (a *tokenless* strong subscription
-tagged with its source's lifetime class) routes through the region engine
-(`ownlang/lifetimes.py`) and surfaces as `OWN014` at the C# line — pinned by
-`tests/fixtures/ownir/capture.facts.json` (a `static`/process-lived source escapes;
-an injected-lifetime source stays conservatively silent). The remaining increment
-is the extractor emitting that fact (a `+=` to a static event); until then it is
-exercised by hand-written facts, exactly as each prior pattern was before its
-matcher landed. This makes the WPF escape a *profile* of the general region model
-(`subscribe self to <source>`), not a bespoke path — the ROADMAP Milestone-2 goal.
+The corpus pins four of these against real core codes: `corpus/wpf/zombie-viewmodel`
+(OWN001), `viewmodel-escapes-to-app` (OWN014), `handler-use-after-dispose` (OWN002),
+and **`systemevents-region-escape` (OWN014)** — the SystemEvents leak seen through
+the region model (the same bug `corpus/real-world/screentogif-systemevents-leak`
+shows through the token model). **WPF004 and WPF005 are now built end-to-end:** the
+extractor lowers a static-source `+=` to a *tokenless* `capture` OwnIR fact, which
+routes through the region engine (`ownlang/lifetimes.py`) and surfaces as `OWN014`
+at the C# line. A `static`/process-lived source escapes; an injected-lifetime source
+stays a token `subscription` (OWN001, severity-tiered); a `capture` with a matching
+`-=` (`released`) is mitigated and stays silent. Exercised by the `capture` fixture
+(`tests/fixtures/ownir/capture.facts.json`) and the `StaticEventEscapeViewModel`
+sample (CI `wpf-extractor`, asserting OWN014 on the instance handler and silence on
+the unsubscribed one). This makes the WPF escape a *profile* of the general region
+model (`subscribe self to <source>`), not a bespoke path — the ROADMAP Milestone-2
+goal.
 
 ## Non-goals
 
@@ -91,19 +94,21 @@ codegen double-returns an `ArrayPool`, only now with `DispatcherObject`. A
 The seam is already built (P-001): Roslyn extractor → versioned OwnIR JSON →
 core → diagnostic at the C# line. This profile = (a) more `acquire`/`release`
 pattern matchers in the extractor (timer start/stop, ignored `Subscribe` result,
-disposable subscription field), and (b) emitting the `owner`/`escapes` lifetime
-facts so OWN014 fires for WPF005.
+disposable subscription field) — built; and (b) emitting the region-escape fact
+(a static-source `+=` → a `capture`) so OWN014 fires for WPF005 — built: a
+static event/static-receiver subscription is the `capture`, the bridge maps its
+`source` to a process-lived region and the engine reports the promotion.
 
 ```text
 *.cs --[extractor: += / Tick+Start / Subscribe / field / escapes]--> facts.json
      --[core]--> OWN001 (leak) / OWN014 (escape) @ C# line
 ```
 
-Land **one pattern per increment** (WPF002/003/004 built — a `Tick`/`Elapsed`
+Land **one pattern per increment** (WPF002/003/004/005 built — a `Tick`/`Elapsed`
 handler is a `Timer`; a `new`'d-and-undisposed `IDisposable` field is a
-`Disposable`; an ignored `X.Subscribe(...)` is a dropped subscription token;
-WPF005 escape next), each with `bad`/`ok` samples, exactly as v0 did.
-WPF003 overlaps the
+`Disposable`; an ignored `X.Subscribe(...)` is a dropped subscription token; a
+static-event `+=` is a `capture` → region escape), each with `bad`/`ok` samples,
+exactly as v0 did. WPF003 overlaps the
 general `IDisposable`-field rule in [P-005](P-005-idisposable-ownership.md); build
 it once in the resource core and let WPF consume it as a profile.
 

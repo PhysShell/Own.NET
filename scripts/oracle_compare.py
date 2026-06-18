@@ -54,7 +54,8 @@ TITLES = _load_titles()
 
 # Which rule of each tool is the comparable "resource leak / not disposed" class.
 # Only these are diffed three ways; everything else is reported as context.
-OWN_LEAK = {"OWN001"}                  # owned resource not released on a path
+OWN_LEAK = {"OWN001", "OWN014"}        # not released on a path / promoted to a
+                                       # longer-lived region (subscription escape)
 OWN_USE_AFTER = {"OWN002", "OWN009"}   # use after release (definite / maybe)
 OWN_DOUBLE = {"OWN003"}                # double release
 INFER_LEAK = {"PULSE_RESOURCE_LEAK", "DOTNET_RESOURCE_LEAK", "RESOURCE_LEAK",

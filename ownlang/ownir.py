@@ -48,8 +48,10 @@ owned-resource records) is an owned resource, discriminated by an optional
     leaks). The source's lifetime class is the entry's `source`: a `static`
     (process-lived) event is the longest region. A source of unknown/shorter
     lifetime is left conservative (no finding) — the region model is precise where
-    the token model (`resource: "subscription"`) only warns. Tag
-    `[resource: subscription token]`.
+    the token model (`resource: "subscription"`) only warns. A `capture` with a
+    matching `-=` (`released: true`) is mitigated and stays silent (the source no
+    longer holds self on close), just as a released token subscription nets to a
+    balanced acquire/release. Tag `[resource: subscription token]`.
   - "local-disposable": a local the method `new`s of an `IDisposable` type,
     never disposed and not guarded by `using` (and not returned/passed out);
     tag `[resource: disposable]`.
@@ -360,10 +362,12 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             # source provably outlives. An unmapped (unknown/shorter) source stays
             # conservative — no node, no finding. Mirrors to_module exactly.
             if rkind == "capture":
+                # a released capture (matching `-=`) is mitigated -> silent; skip
+                # it, mirroring to_module (and a released token subscription).
                 src = sub.get("source")
                 region = _CAPTURE_SOURCE_REGIONS.get(src) \
                     if isinstance(src, str) else None
-                if region is None:
+                if region is None or sub.get("released"):
                     continue
                 handle = f"cap_{gid}"
                 gid += 1
@@ -469,10 +473,14 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # this is inert for the OWN001 ownership pass — only check_lifetimes
             # reads it.
             if rkind == "capture":
+                # A `capture` whose subscription IS torn down (a matching `-=`,
+                # `released: true`) is mitigated: the source no longer holds self
+                # on close, so there is no escape — skip it (silent), exactly as a
+                # released token subscription nets to a balanced acquire/release.
                 src = sub.get("source")
                 region = _CAPTURE_SOURCE_REGIONS.get(src) \
                     if isinstance(src, str) else None
-                if region is None:
+                if region is None or sub.get("released"):
                     continue
                 handle = f"cap_{gid}"
                 gid += 1

@@ -561,6 +561,13 @@ def run() -> int:
     checks += 1
     if any(x.component == "OrdersViewModel" for x in cfindings):
         fails.append("injected-source capture (unprovable) was wrongly reported")
+    # a RELEASED static capture (a matching `-=` on close — the fix shape) is
+    # mitigated and must stay silent: the region lowering skips a released capture,
+    # mirroring a released token subscription. This is what keeps the extractor's
+    # static-source reroute from flagging correctly-unsubscribed code.
+    checks += 1
+    if any(x.component == "CleanThemeViewModel" for x in cfindings):
+        fails.append("a released (unsubscribed) static capture was wrongly reported")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
