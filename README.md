@@ -149,6 +149,14 @@ CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribe
   (handler 'OnCustomerChanged') but never unsubscribed — ... (leak)
   [resource: subscription token]
 ```
+А `+=` со **статическим** событием (например `SystemEvents.*`) — это уже не
+токен-утечка, а *region escape*: экстрактор понижает его в бестокенный
+`capture`-факт, и **то же ядро** выдаёт **OWN014** (объект промотится в
+process-lifetime; парный `-=` снимает находку) — WPF-escape как профиль общей
+region-модели, а не отдельный детектор (P-004 WPF005; сэмпл
+`StaticEventEscapeViewModel`). Источник-инъекция (неизвестное время жизни)
+остаётся OWN001-warning'ом, пока ownership-моделирование не докажет его время жизни.
+
 Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet
 есть лишь в CI (job `wpf-extractor` гоняет экстрактор на сэмплах сквозняком);
 Python-мост тестируется локально (`tests/test_ownir.py`) на рукописных фактах.
@@ -158,9 +166,12 @@ Python-мост тестируется локально (`tests/test_ownir.py`) 
 `after.cs`/`case.own`/expected), прибитый `tests/test_wpf.py`; региональная
 теорема — `tests/test_lifetimes.py` (10 кейсов). Полный план модуля (каталог
 OWN-WPF, границы слайсов, что отложено) — в [`docs/lifetimes.md`](docs/lifetimes.md).
-Честно: `case.own` — hand reduction паттерна, не C#, который чекер съел (C#-фронта
-нет, это поздний слайс); `self`/`source` — это scope самой функции и её параметры,
-без cross-procedural points-to.
+Честно: `case.own` — hand reduction паттерна (region-escape со **статическим**
+источником экстрактор уже эмитит сам — `+=` → `capture` → OWN014, см.
+`StaticEventEscapeViewModel` и `corpus/wpf/systemevents-region-escape`; cross-
+procedural points-to и прочие региональные факты — пока hand reduction);
+`self`/`source` — это scope самой функции и её параметры, без cross-procedural
+points-to.
 
 ### Golden-пример: настоящий ArrayPool
 

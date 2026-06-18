@@ -835,7 +835,18 @@ foreach (var (file, tree) in parsed)
                     handler = a.Right.ToString(),
                     line = LineOf(a.Left),
                     released,
-                    resource = isTimer ? "timer" : "subscription",
+                    // A static-source subscription (a process-lived event, or a
+                    // static-field/property receiver) is a region escape, not a
+                    // token leak: route it through the lifetime engine as a
+                    // `capture` -> OWN014 (the WPF "escape to App"). The bridge
+                    // skips a released capture (a `-=` on close), so a correctly
+                    // unsubscribed static subscription stays silent. An injected/
+                    // unknown source stays a token `subscription` (OWN001,
+                    // severity-tiered); timers are their own kind. (P-004 WPF005;
+                    // see ownlang/ownir.py `capture`.)
+                    resource = isTimer ? "timer"
+                             : source == "static" ? "capture"
+                             : "subscription",
                     source,
                     lambda = !isTimer && IsLambdaHandler(a.Right),
                 });

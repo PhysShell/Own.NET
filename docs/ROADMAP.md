@@ -103,6 +103,19 @@ architectural strictness, and the borrow-checker showcase):
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
    *profile*, not a one-off.
+   ◑ *In progress* — the acquire/release half is the live engine (OWN001 across
+   subscriptions / timers / fields / pools). The **region half is now wired end to
+   end through the C# extractor**: a static-source `+=` is lowered to a *tokenless*
+   `capture` OwnIR fact that routes through the lifetime/region engine and surfaces
+   as **OWN014** (the WPF "escape to App"), so the subscription leak is expressible
+   through the *general* owner/release-region model — not a bespoke detector. It is
+   also more *precise* than the token model: a source that does not provably outlive
+   the subscriber stays silent (no false positive) where the token tier only warns,
+   and a released `-=` mitigates the capture. Proven by the `capture` fixture, the
+   `StaticEventEscapeViewModel` sample (CI `wpf-extractor` → OWN014), and the
+   `corpus/wpf/systemevents-region-escape` reduction (P-004 WPF005 ✅). Remaining:
+   migrating the *injected*-source subscription tier (today an honest OWN001
+   warning) once lifetime modelling can prove or refute those sources.
 3. **DI lifetimes** — registration + constructor graph; captive dependency (P-006).
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
@@ -171,7 +184,7 @@ own scan. Label them as estimates wherever they appear.
 | [P-001](proposals/P-001-csharp-extractor.md) | C# → OwnIR extractor (WPF leak spike) | P0 | in progress (v0 built) |
 | [P-002](proposals/P-002-verification-backend.md) | Verification backend (Boogie/Dafny) | horizon | draft |
 | [P-003](proposals/P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | horizon | draft |
-| [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | draft |
+| [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | in progress (WPF001–005 built) |
 | [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | draft |
 | [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001 core check built) |
 | [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | draft |

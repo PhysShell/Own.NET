@@ -1,0 +1,22 @@
+module SystemEventsRegionEscape
+
+// Lifetime regions. The static `Microsoft.Win32.SystemEvents` class lives for the
+// whole process; a WPF window/dialog that subscribes to it is strictly
+// shorter-lived. This `<` order is exactly what the C# bridge gives a `capture`
+// OwnIR fact whose source is a `static` (process-lived) event — see
+// ownlang/ownir.py (`Subscriber < Process`); the corpus uses the WPF-authentic
+// name `Window` for the short region.
+lifetime Process;             // Microsoft.Win32.SystemEvents — a static, process-lived source
+lifetime Window < Process;    // the dialog/window — strictly shorter-lived
+
+// The window strongly subscribes itself to the process-lived
+// SystemEvents.DisplaySettingsChanged static event and keeps no unsubscribe
+// token. Because Process strictly outlives Window, the strong delegate promotes
+// the window to process lifetime -> it can never be collected while the app runs
+// => OWN014. This is the SAME real bug as
+// corpus/real-world/screentogif-systemevents-leak, seen through the REGION model
+// (escape) rather than the token model (OWN001) — and the precise shape the
+// extractor lowers a static-event `+=` to (the `capture` fact, P-004 WPF005).
+fn GraphicsConfigurationDialog(systemEvents: SystemEvents lifetime Process) lifetime Window {
+    subscribe self to systemEvents;
+}

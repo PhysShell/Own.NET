@@ -1,0 +1,48 @@
+{
+  "ownir_version": 0,
+  "module": "WpfApp",
+  "components": [
+    {
+      "name": "ThemeViewModel",
+      "file": "ThemeViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.UserPreferenceChanged",
+          "handler": "OnUserPreferenceChanged",
+          "line": 18,
+          "released": false,
+          "resource": "capture",
+          "source": "static"
+        }
+      ]
+    },
+    {
+      "name": "OrdersViewModel",
+      "file": "OrdersViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "_bus.OrderPlaced",
+          "handler": "OnOrderPlaced",
+          "line": 9,
+          "released": false,
+          "resource": "capture",
+          "source": "injected"
+        }
+      ]
+    },
+    {
+      "name": "CleanThemeViewModel",
+      "file": "CleanThemeViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.UserPreferenceChanged",
+          "handler": "OnUserPreferenceChanged",
+          "line": 22,
+          "released": true,
+          "resource": "capture",
+          "source": "static"
+        }
+      ]
+    }
+  ]
+}

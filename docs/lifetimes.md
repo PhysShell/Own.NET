@@ -146,9 +146,24 @@ MVP (slice #1) сознательно сводит WPF004/005/002 к уже-ра
   `subscribe self to X;`), region-escape-анализ → `OWN014`; структурная валидация
   порядка (`OWN030`/`OWN031`/`OWN036`). Корпус `corpus/wpf/viewmodel-escapes-to-app`
   + `tests/test_lifetimes.py` (10 кейсов).
-- **slice #3 (далеко):** узкий Roslyn-frontend — pattern matcher (`event +=`,
-  `Subscribe<T>`, `DispatcherTimer`, `IDisposable`-поля) → кормит это же ядро.
-  Не «ингест всего C#» (это человеко-годы), а распознавание известных паттернов.
+- **slice #3 ✅ region-escape конец-в-конец:** узкий Roslyn-frontend — pattern
+  matcher (`event +=`, `Subscribe<T>`, `DispatcherTimer`, `IDisposable`-поля) →
+  кормит это же ядро. Не «ингест всего C#» (это человеко-годы), а распознавание
+  известных паттернов. **Region-escape ветка готова целиком:** экстрактор
+  понижает `+=` со **статическим** источником (static event / static-receiver) в
+  бестокенный OwnIR-факт `capture`; мост (`ownir.to_module`) отображает его
+  `source` в process-lived регион и эмитит `subscribe self to <source>`, а
+  region-движок (`ownlang/lifetimes.py`) докладывает `OWN014` на C#-строке.
+  Источник `static` промотит подписчика; источник неизвестного времени жизни
+  (`injected`) остаётся токен-`subscription` (OWN001, по тиру); `capture` с парным
+  `-=` (`released`) митигирован → молчит. Пинится `capture`-фикстурой
+  (`tests/fixtures/ownir/capture.facts.json`) и сэмплом `StaticEventEscapeViewModel`
+  (CI `wpf-extractor`: OWN014 на instance-handler'е, тишина на отписанном).
+  Корпус: `corpus/wpf/systemevents-region-escape` (тот же баг, что
+  `screentogif-systemevents-leak`, но через регион-модель). Так WPF-escape стал
+  *профилем* общей region-модели (`subscribe self to <source>`), а не one-off —
+  цель Milestone 2 в ROADMAP. Остальные паттерны (`Subscribe<T>` без токена,
+  таймеры, поля) экстрактор уже эмитит как OWN001-формы (slice #1).
 
 ## 7. Открытые развилки (на согласование)
 
