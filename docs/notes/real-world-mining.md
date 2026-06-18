@@ -116,8 +116,12 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   coverage, not type recognition**: the `--flow-locals` detector skips any method with
   an unmodelled construct (`for`/`try`/`switch`), and these disposables live in such
   methods (tell: the `StringReader`/`XmlReader` cases are a *recognised* disposable
-  type, yet still missed). `for` is now lowered too (closing that slice, CI-checked);
-  the `try`-shaped `dispose-not-called-on-throw` cases are the high-value next step.
+  type, yet still missed). `for` **and** `try`/`finally` are now lowered (sequential
+  `A; B`, catch-disposes bailed for soundness), so a plain undisposed local inside a
+  try-method is caught — confirmed on the cross-tool fixture, where a `try`-method
+  `FileStream` leak moved from *Oracle only* into **Agree** (Own.NET + Infer#). Still
+  deferred: the true `dispose-not-called-on-throw` shape (disposed in `try`, not
+  `finally`) needs per-statement exceptional exits, and `switch`/`do` are unmodelled.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
