@@ -187,7 +187,7 @@ jobs:
           source-root: target
           queries: security-and-quality
       - name: CodeQL analyze
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
           category: ownnet-oracle
