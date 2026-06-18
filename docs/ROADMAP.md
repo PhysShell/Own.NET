@@ -96,8 +96,10 @@ architectural strictness, and the borrow-checker showcase):
    throw exit before each may-throw leaf in a `try` (including inside nested branches, with a
    constructor `new` as a throw point and typed/filtered catches handled). That closes the
    `dispose-not-called-on-throw` shape, which now lands in cross-tool **Agree** with
-   CodeQL's dedicated query on the fixture. Deferred: `finally`-before-`return`,
-   `switch`/`do`. See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
+   CodeQL's dedicated query on the fixture. `finally`-before-`return`, `do` and `switch` are
+   lowered too, so the flow detector covers every common control-flow construct (only
+   `goto`/labeled statements and a few exotic forms still bail). See
+   [docs/notes/real-world-mining.md](notes/real-world-mining.md).
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
    *profile*, not a one-off.
