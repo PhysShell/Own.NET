@@ -68,18 +68,31 @@ subscriber/handler, not the source.
 The corpus pins four of these against real core codes: `corpus/wpf/zombie-viewmodel`
 (OWN001), `viewmodel-escapes-to-app` (OWN014), `handler-use-after-dispose` (OWN002),
 and **`systemevents-region-escape` (OWN014)** — the SystemEvents leak seen through
-the region model (the same bug `corpus/real-world/screentogif-systemevents-leak`
-shows through the token model). **WPF004 and WPF005 are now built end-to-end:** the
-extractor lowers a static-source `+=` to a *tokenless* `capture` OwnIR fact, which
-routes through the region engine (`ownlang/lifetimes.py`) and surfaces as `OWN014`
-at the C# line. A `static`/process-lived source escapes; an injected-lifetime source
-stays a token `subscription` (OWN001, severity-tiered); a `capture` with a matching
-`-=` (`released`) is mitigated and stays silent. Exercised by the `capture` fixture
-(`tests/fixtures/ownir/capture.facts.json`) and the `StaticEventEscapeViewModel`
-sample (CI `wpf-extractor`, asserting OWN014 on the instance handler and silence on
-the unsubscribed one). This makes the WPF escape a *profile* of the general region
-model (`subscribe self to <source>`), not a bespoke path — the ROADMAP Milestone-2
-goal.
+the region model, the same bug `corpus/real-world/screentogif-systemevents-leak`
+shows through the token model.
+
+**WPF004 and WPF005 are now built end-to-end.** WPF005's contract splits strictly by
+the source's lifetime — the extractor classifies the `+=`, the core decides — and
+the three cases do **not** overlap:
+
+- **static / process-lived source** (a static event, or a static field/property
+  receiver) → a *tokenless* `capture` fact → the region engine promotes the
+  subscriber to the longer region → **OWN014** (a hard leak). The engine would stay
+  silent for an equal-or-shorter-lived source, but the extractor only routes
+  provably-longer (process-lived) sources into it, so every emitted `capture`
+  escapes unless released.
+- **injected / unknown-lifetime source** → stays a token `subscription` → **OWN001
+  at the WARNING tier** — an honest "may outlive this", **not** silent and **not**
+  OWN014 — until ownership modelling can prove or refute the source's lifetime.
+- **a matching `-=` (`released`)**, on either path → mitigated → **silent**.
+
+So a reader should infer neither that OWN014 applies to every subscription, nor that
+an injected subscription is silent: the source kind picks the path. Exercised by the
+`capture` fixture (`tests/fixtures/ownir/capture.facts.json`) and the
+`StaticEventEscapeViewModel` sample (CI `wpf-extractor`, asserting OWN014 on the
+instance handler and silence on the unsubscribed one). This makes the WPF escape a
+*profile* of the general region model (`subscribe self to <source>`), not a bespoke
+path — the ROADMAP Milestone-2 goal.
 
 ## Non-goals
 
@@ -116,8 +129,8 @@ it once in the resource core and let WPF consume it as a profile.
 
 1. Heuristic vs annotation for "this class is a lifetime-bound component"
    (name/base/interface heuristic for v0; `[OwnComponent]` opt-in later).
-2. Where does the release region end — accept `Dispose`/`OnClosed`/`Unloaded`/
-   `Unloaded` only, or any method named `Dispose*`? (Conservative set first.)
+2. Where does the release region end — accept `Dispose`/`OnClosed`/`Unloaded`
+   only, or any method named `Dispose*`? (Conservative set first.)
 3. WPF005 needs a lifetime ordering (`Subscriber < Process`). **Resolved for the
    first source class:** the bridge *infers* it from the source kind — a `static`/
    process-lived event is the longest region and strictly outlives any subscriber,
