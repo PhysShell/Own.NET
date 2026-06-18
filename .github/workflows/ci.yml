@@ -263,10 +263,14 @@ jobs:
             || { echo "FAIL: expected OWN001 on the undisposed local in a foreach loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'forLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a for loop"; exit 1; }
-          # `try`/`finally` lowered sequentially (try-methods no longer skipped): a
-          # local never disposed inside a try is now caught.
+          # `try`/`finally` lowered with exception edges (try-methods no longer skipped):
+          # a local never disposed inside a try is caught...
           echo "$out" | grep -qE "OWN001.*'tfLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a try-method"; exit 1; }
+          # ...and so is dispose-not-called-on-throw: `dot` is disposed inside the try
+          # after a may-throw call, so it leaks on the exceptional path (matches CodeQL).
+          echo "$out" | grep -qE "OWN001.*'dot'" \
+            || { echo "FAIL: expected OWN001 on the dispose-not-called-on-throw local"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,

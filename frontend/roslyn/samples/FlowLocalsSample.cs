@@ -136,6 +136,17 @@ public class FlowLocalsSample
         catch (Exception) { tfNull?.Dispose(); }
     }
 
+    // dispose-not-called-on-throw: `dot` is disposed INSIDE the try (not a finally),
+    // after a may-throw call. If WriteByte throws, the Dispose is skipped and `dot`
+    // leaks on the exceptional path — the exception-edge model now catches this (OWN001),
+    // matching CodeQL's cs/dispose-not-called-on-throw.
+    public void DisposeOnThrow()
+    {
+        var dot = new MemoryStream();
+        try { dot.WriteByte(1); dot.Dispose(); }
+        catch (Exception) { /* swallowed, no dispose */ }
+    }
+
     // acquire + dispose within the loop body is balanced -> silent (no false
     // positive now that loops are analysed rather than skipped).
     public void WhileClean(int n)
