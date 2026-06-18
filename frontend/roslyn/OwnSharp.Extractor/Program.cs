@@ -313,27 +313,33 @@ static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>
 // itself a dispose, OR it creates an object (`new` — a constructor can throw, leaking a
 // PRIOR owned resource whose dispose it would then skip). Creating the resource being
 // acquired here is harmless: the edge lands before its `acquire`, where it is not yet owned.
+// Does NOT descend into lambda / anonymous-method bodies: a `new` (or call) inside `() => …`
+// runs when the delegate is INVOKED, not where it is declared, so the declaring statement is
+// not a throw point — counting it would inject a phantom edge that falsely flags a prior
+// resource disposed after the `try`. An immediately-invoked lambda is still caught: the outer
+// invocation is itself the throw point.
 static bool StatementMayThrow(StatementSyntax st) =>
-    st.DescendantNodes().Any(n =>
+    st.DescendantNodes(descendIntoChildren: n => n is not AnonymousFunctionExpressionSyntax)
+      .Any(n =>
         (n is InvocationExpressionSyntax i && !IsDisposeShaped(i))
         || n is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax);
 
 // A catch clause that catches EVERY exception and so always continues to the post-try
 // code: `catch { }` (no declaration) or `catch (Exception)` / `catch (System.Exception)` —
 // with NO `when` filter (a filter may evaluate false, letting the exception propagate). A
-// typed catch (`catch (IOException)`) or any filtered catch continues for only SOME
-// exceptions; the rest propagate out, skipping the post-try dispose, so the resource still
-// leaks on those paths. Syntax-only (no semantic model): an alias of System.Exception reads
-// as typed — a negligible, documented residual recall gap, never a false positive.
+// typed catch (`catch (IOException)`, or a qualified DOMAIN type like `catch (Foo.Exception)`
+// whose rightmost name is `Exception` but is not System.Exception) or any filtered catch
+// continues for only SOME exceptions; the rest propagate out, skipping the post-try dispose,
+// so the resource still leaks on those paths. Match the canonical System.Exception spellings
+// by full text — a rightmost-name match would misread a domain `Foo.Exception` as catch-all
+// and suppress a real leak. Syntax-only (no semantic model): the inverse pathology — an
+// exotic alias making a typed-looking name resolve to System.Exception — is never written.
 static bool IsCatchAll(CatchClauseSyntax cc) =>
     cc.Filter is null
     && (cc.Declaration is not { } decl
-        || (decl.Type switch
-            {
-                IdentifierNameSyntax id => id.Identifier.Text,
-                QualifiedNameSyntax q => q.Right.Identifier.Text,
-                _ => (string?)null,
-            }) is "Exception");
+        || decl.Type.ToString() is "Exception"
+                               or "System.Exception"
+                               or "global::System.Exception");
 
 // Lower a method block to OwnIR flow nodes (acquire/use/release/if/return) for the
 // `tracked` local IDisposables. Returns null on any UNMODELLED statement

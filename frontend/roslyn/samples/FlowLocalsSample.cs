@@ -237,6 +237,35 @@ public class FlowLocalsSample
         typedLeak.Dispose();
     }
 
+    // recall (qualified typed catch): `DomainErrors.Exception` is a DOMAIN exception — its
+    // rightmost name is `Exception` but it is NOT System.Exception, so it catches only its own
+    // type and other exceptions propagate past the post-try `qualLeak.Dispose()` and leak.
+    // IsCatchAll matches the canonical System.Exception spellings by full text (not just the
+    // rightmost name), so this is treated as typed and the edge is injected -> OWN001
+    // (CodeRabbit review on PR #33: a rightmost-name match wrongly suppressed this leak).
+    public void QualifiedTypedCatchLeaks()
+    {
+        var qualLeak = new MemoryStream();
+        try { qualLeak.WriteByte(1); }
+        catch (DomainErrors.Exception) { /* domain type, not System.Exception */ }
+        qualLeak.Dispose();
+    }
+
+    // NOT a leak: the `new` lives in a LAMBDA body, so it runs only when the delegate is
+    // invoked (never here) — declaring `make` is not a throw point. Without excluding deferred
+    // bodies, the statement would get a phantom throw edge that skips the post-try
+    // `lamPrior.Dispose()` and falsely flag it. Must stay silent (Codex review on PR #33).
+    public void CtorInLambdaNotThrow()
+    {
+        var lamPrior = new MemoryStream();
+        try
+        {
+            Func<Stream> make = () => new MemoryStream();
+        }
+        finally { }
+        lamPrior.Dispose();
+    }
+
     private static void MayThrow() { }
 
     // acquire + dispose within the loop body is balanced -> silent (no false
@@ -296,4 +325,13 @@ public class FlowLocalsSample
         asyncDisposedCfg.WriteByte(1);
         await asyncDisposedCfg.DisposeAsync().ConfigureAwait(false);
     }
+}
+
+// A domain exception type literally named `Exception`, in a non-System namespace — the
+// fixture for QualifiedTypedCatchLeaks. `catch (DomainErrors.Exception)` catches only this
+// type, so IsCatchAll must classify it as TYPED (not a catch-all) by full-text match, not by
+// its rightmost name alone.
+namespace DomainErrors
+{
+    public class Exception : System.Exception { }
 }

@@ -282,6 +282,11 @@ jobs:
             || { echo "FAIL: expected OWN001 on the constructor-throw prior-resource leak"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'typedLeak'" \
             || { echo "FAIL: expected OWN001 on the typed-catch uncaught-path leak"; exit 1; }
+          # ...and a qualified DOMAIN catch (`catch (DomainErrors.Exception)` — rightmost name
+          # `Exception` but NOT System.Exception) is typed too, so its uncaught types leak
+          # ('qualLeak'); IsCatchAll matches only the canonical spellings (CodeRabbit review).
+          echo "$out" | grep -qE "OWN001.*'qualLeak'" \
+            || { echo "FAIL: expected OWN001 on the qualified-typed-catch leak"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
@@ -295,7 +300,10 @@ jobs:
           # disposed on every path, so all must stay silent (were false OWN001 before).
           # `ctorLater` is acquired AFTER the constructor-throw edge in CtorThrowLeaksPrior, so
           # it is never live at that edge and must stay silent (only `ctorPrior` leaks there).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater; do
+          # `lamPrior`: a `new` inside a LAMBDA body is deferred (runs on invoke, not at the
+          # declaration), so the lambda statement is not a throw point -> no phantom edge skips
+          # its post-try dispose -> silent (Codex review: don't descend into lambda bodies).
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
