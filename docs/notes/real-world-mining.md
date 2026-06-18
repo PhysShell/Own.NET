@@ -127,9 +127,13 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   edges are injected only where sound — when the caught path's continuation is end-of-
   method (no catch, or the `try` is the body's tail); a swallowing catch with a Dispose
   *after* the try/catch (continuation disposes the resource) lowers sequentially instead,
-  to avoid a false leak (PR #32 review). Still deferred: exception edges inside nested
-  `try` bodies (only top-level `try` statements get an edge today), `finally`-before-
-  `return` threading (bailed today), and `switch`/`do`.
+  to avoid a false leak (PR #32 review). Still deferred — all **sound recall gaps** (missed
+  leaks, never false ones), to be tackled as a dedicated exception-edge recall slice with
+  its own oracle re-validation: exception edges inside nested `try` bodies (only top-level
+  `try` statements get an edge today); object creation (`new`) as a throw point (it can leak
+  a prior owned resource whose dispose it skips); typed/filtered catches (a non-tail catch
+  suppresses edges even when it only continues for *some* exception types — the uncaught-type
+  paths really do leak); `finally`-before-`return` threading (bailed today); and `switch`/`do`.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the

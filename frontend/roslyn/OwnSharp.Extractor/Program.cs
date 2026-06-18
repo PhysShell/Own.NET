@@ -305,9 +305,10 @@ static bool EdgeEligible(StatementSyntax st) =>
     st is ExpressionStatementSyntax or LocalDeclarationStatementSyntax;
 
 // A statement that can raise an exception part-way through: it makes a call that is not
-// itself a dispose. (A `new` can throw too, but then the resource is never acquired, so
-// it is not a leak point — only non-dispose CALLS create an exceptional exit worth
-// modelling for dispose-not-called-on-throw.)
+// itself a dispose. (A `new` can throw too — and would leak a PRIOR owned resource whose
+// dispose it skips — but modelling object creation as a throw point is a deferred recall
+// slice; today only non-dispose CALLS create an exceptional exit. Both omissions are sound:
+// a missed leak, never a false one.)
 static bool StatementMayThrow(StatementSyntax st) =>
     st.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => !IsDisposeShaped(i));
 
@@ -438,6 +439,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // there would falsely flag it (dispose-after-try). In that case skip the edges
             // and lower the try sequentially — a never-disposed local is still caught at
             // end-of-function; only dispose-on-throw is forgone for this shape.
+            // Conservative: ANY non-tail catch suppresses the edges, even a typed/filtered
+            // catch that only continues for some exception types — the uncaught-type paths
+            // really do leak, but distinguishing catch-all from typed/filtered is a deferred
+            // recall slice. Suppressing is sound: a missed leak, never a false one.
             var edgesSound = trys.Catches.Count == 0 || IsBodyTail(trys);
             foreach (var stmt in trys.Block.Statements)
             {
