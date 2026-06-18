@@ -274,7 +274,7 @@ jobs:
           # stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch; do
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

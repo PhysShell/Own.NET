@@ -116,6 +116,26 @@ public class FlowLocalsSample
         catch (Exception) { tfCatch.Dispose(); }
     }
 
+    // a `return` inside a try-with-finally: the finally still disposes (SAFE), but the
+    // model can't yet place the finally before the return — so it bails rather than
+    // falsely flag the resource as leaked on the return path -> silent.
+    public void TryFinallyReturn(bool c)
+    {
+        var tfRet = new MemoryStream();
+        try { tfRet.WriteByte(1); if (c) return; tfRet.WriteByte(2); }
+        finally { tfRet.Dispose(); }
+    }
+
+    // the catch-dispose bail also covers conditional access: `catch { x?.Dispose(); }`
+    // (a member-binding, not member-access) is still recognised, so the method is
+    // skipped rather than risk a false leak -> silent.
+    public void CatchNullCondDispose()
+    {
+        var tfNull = new MemoryStream();
+        try { tfNull.WriteByte(1); }
+        catch (Exception) { tfNull?.Dispose(); }
+    }
+
     // acquire + dispose within the loop body is balanced -> silent (no false
     // positive now that loops are analysed rather than skipped).
     public void WhileClean(int n)

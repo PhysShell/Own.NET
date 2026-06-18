@@ -14,8 +14,8 @@ The leaks (`Program.cs`):
 | 2 | `new FileStream(…)` local, never disposed | Dispose / RAII | **all three** (the control) |
 | 3 | `new FileStream(…)` never disposed, inside a `try`-method | Dispose / RAII | **all three** (closed by `try`-lowering) |
 
-#2 is the agreement that proves the RAII oracles ran on the fixture; #1 is the
-differentiator — Own.NET flags it, CodeQL / Infer# have no query for the
+Leak `#2` is the agreement that proves the RAII oracles ran on the fixture; `#1` is
+the differentiator — Own.NET flags it, CodeQL / Infer# have no query for the
 subscription-leak class. #3 is the recall slice: before `try`/`finally` was lowered,
 Own.NET skipped any method containing a `try`, so this leak was *Oracle only*; now it
 joins #2 in **Agree** across all three tools.
