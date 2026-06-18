@@ -4,8 +4,8 @@
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
 # Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
-# included — ScreenToGif's WPF won't build on Linux). Expected 2x2: the FileStream
-# Dispose leak agrees across tools; the SystemEvents subscription leak is Own.NET
-# only. See corpus/fixtures/systemevents-console/README.md.
+# included — ScreenToGif's WPF won't build on Linux). Re-run after aligning the
+# codeql-action analyze@v4 with init@v4 (the v3/v4 mismatch broke CodeQL last run);
+# expect the 3rd leak (try-method) in "Agree" across all THREE now. See the README.
 local:corpus/fixtures/systemevents-console
 build=SystemEventsLeak.csproj

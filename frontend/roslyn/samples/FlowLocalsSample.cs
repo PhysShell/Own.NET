@@ -88,6 +88,54 @@ public class FlowLocalsSample
         }
     }
 
+    // `try`/`finally` lowered sequentially: a stream acquired in `try` and disposed in
+    // `finally` is balanced -> silent (the safe dispose pattern). Before, the `try`
+    // made the whole method skip.
+    public void TryFinallyClean()
+    {
+        var tfClean = new MemoryStream();
+        try { tfClean.WriteByte(1); }
+        finally { tfClean.Dispose(); }
+    }
+
+    // the recall win: a local never disposed, sitting in a try-method whose catch only
+    // logs -> now caught (OWN001), where the `try` used to make the method skip.
+    public void TryNeverDisposed()
+    {
+        var tfLeak = new MemoryStream();
+        try { tfLeak.WriteByte(1); }
+        catch (Exception) { /* logged, not disposed */ }
+    }
+
+    // sound bail: a `catch` that disposes a local is not lowered (we'd lose that
+    // release), so the method is skipped rather than risk a false leak -> silent.
+    public void CatchDisposesSkipped()
+    {
+        var tfCatch = new MemoryStream();
+        try { tfCatch.WriteByte(1); }
+        catch (Exception) { tfCatch.Dispose(); }
+    }
+
+    // a `return` inside a try-with-finally: the finally still disposes (SAFE), but the
+    // model can't yet place the finally before the return — so it bails rather than
+    // falsely flag the resource as leaked on the return path -> silent.
+    public void TryFinallyReturn(bool c)
+    {
+        var tfRet = new MemoryStream();
+        try { tfRet.WriteByte(1); if (c) return; tfRet.WriteByte(2); }
+        finally { tfRet.Dispose(); }
+    }
+
+    // the catch-dispose bail also covers conditional access: `catch { x?.Dispose(); }`
+    // (a member-binding, not member-access) is still recognised, so the method is
+    // skipped rather than risk a false leak -> silent.
+    public void CatchNullCondDispose()
+    {
+        var tfNull = new MemoryStream();
+        try { tfNull.WriteByte(1); }
+        catch (Exception) { tfNull?.Dispose(); }
+    }
+
     // acquire + dispose within the loop body is balanced -> silent (no false
     // positive now that loops are analysed rather than skipped).
     public void WhileClean(int n)

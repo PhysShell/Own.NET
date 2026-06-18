@@ -357,8 +357,45 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
             return true;
         }
+        case TryStatementSyntax trys:
+        {
+            // try { A } [catch { C }...] [finally { B }]: lower A then B SEQUENTIALLY
+            // (no exception edges yet). A resource acquired in `try` and released in
+            // `finally` stays balanced -> silent (the safe dispose pattern); one never
+            // released anywhere leaks -> caught. This un-skips try-methods, the big
+            // recall slice (a plain undisposed local living inside a try). NOT modelled
+            // yet: dispose-on-throw (released in `try`, not `finally`) reads as released
+            // here — that needs per-statement exceptional exits (a later slice).
+            //
+            // A `return` inside the try makes a finally's release UNREACHABLE in this
+            // sequential model (the core treats `return` as terminal), which would
+            // FALSELY flag a resource the finally disposes. Until finally-before-return
+            // is modelled, bail when a try-with-finally contains a return: the common
+            // `try { …; return x; } finally { r.Dispose(); }` is safe anyway, so skipping
+            // it is sound (a real leak in that shape is rare).
+            if (trys.Finally is not null
+                && trys.Block.DescendantNodes().OfType<ReturnStatementSyntax>().Any())
+                return false;
+            // Catch bodies are not lowered; to stay SOUND, bail if any catch disposes, so
+            // a release that only happens in a catch is never missed (no false leak). Match
+            // both `x.Dispose()` (member access) and `x?.Dispose()` (member binding).
+            foreach (var cc in trys.Catches)
+                if (cc.Block.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                      .Any(i => (i.Expression switch
+                                 {
+                                     MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+                                     MemberBindingExpressionSyntax mb => mb.Name.Identifier.Text,
+                                     _ => (string?)null,
+                                 }) is "Dispose" or "Close" or "DisposeAsync"))
+                    return false;
+            if (!LowerFlowStmt(trys.Block, tracked, nodes))
+                return false;
+            if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, nodes))
+                return false;
+            return true;
+        }
         default:
-            return false;   // unmodelled (do/try/switch/...) -> bail the method
+            return false;   // unmodelled (do/switch/...) -> bail the method
     }
 }
 
