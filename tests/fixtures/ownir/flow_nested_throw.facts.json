@@ -1,0 +1,51 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "comment": "Exception-edge RECALL slice: the IR the extractor now emits for three try shapes. (1) NestedThrowLeaks: the throw edge recurses into the `if` and lands before MayThrow() (a nested LEAF), where nestedLeak is still owned -> leaks. (2) DisposeInsideIfWithThrow: the same recursion, but the dispose precedes the throw in each branch, so cif is already released at the edge -> silent. (3) CtorThrowLeaksPrior: a `new` is a throw point; the edge before `var ctorLater = new ...` finds ctorPrior owned -> leaks, while ctorLater (acquired after the edge) is silent.",
+  "components": [],
+  "functions": [
+    {
+      "name": "FlowLocalsSample.NestedThrowLeaks",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "nestedLeak", "line": 201},
+        {"op": "if", "line": 204, "then": [
+          {"op": "if", "line": 204, "then": [
+            {"op": "return", "var": null, "line": 202}
+          ], "else": []},
+          {"op": "release", "var": "nestedLeak", "line": 204}
+        ], "else": [
+          {"op": "release", "var": "nestedLeak", "line": 205}
+        ]}
+      ]
+    },
+    {
+      "name": "FlowLocalsSample.DisposeInsideIfWithThrow",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "cif", "line": 185},
+        {"op": "if", "line": 188, "then": [
+          {"op": "release", "var": "cif", "line": 188},
+          {"op": "if", "line": 188, "then": [
+            {"op": "return", "var": null, "line": 186}
+          ], "else": []}
+        ], "else": [
+          {"op": "release", "var": "cif", "line": 189}
+        ]}
+      ]
+    },
+    {
+      "name": "FlowLocalsSample.CtorThrowLeaksPrior",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "ctorPrior", "line": 217},
+        {"op": "if", "line": 220, "then": [
+          {"op": "return", "var": null, "line": 218}
+        ], "else": []},
+        {"op": "acquire", "var": "ctorLater", "line": 220},
+        {"op": "release", "var": "ctorPrior", "line": 221},
+        {"op": "release", "var": "ctorLater", "line": 222}
+      ]
+    }
+  ]
+}

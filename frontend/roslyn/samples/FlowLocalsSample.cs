@@ -173,13 +173,13 @@ public class FlowLocalsSample
         catch (Exception) { /* swallowed */ }
     }
 
-    // NOT a leak: `cif` is disposed on every real path (both branches of the `if`). A
-    // may-throw call sits in one branch after the dispose, but the exception edge must NOT
-    // be injected before the whole `if` (where `cif` is still owned) — edges go only before
-    // LEAF statements (expression / local-declaration), never compound ones, else the
-    // resource is falsely flagged though every path disposes it. Must stay silent (was a
-    // false OWN001 — PR #32 Codex review). The nested may-throw is the deferred nested-try
-    // slice (a sound recall gap, not a leak).
+    // NOT a leak: `cif` is disposed on every real path (both branches of the `if`), with the
+    // may-throw call AFTER the dispose in its branch. Exception edges now recurse into nested
+    // compound statements (the nested-try recall slice), but land before the LEAF — so the
+    // edge sits after `cif.Dispose()`, where `cif` is already released, and nothing is flagged.
+    // That leaf-level placement is exactly what makes nesting sound: a coarse edge before the
+    // whole `if` (where `cif` is still owned) would have falsely flagged it. Must stay silent
+    // (was a false OWN001 before the leaf-level placement — PR #32 Codex review).
     public void DisposeInsideIfWithThrow(bool c)
     {
         var cif = new MemoryStream();
@@ -189,6 +189,52 @@ public class FlowLocalsSample
             else { cif.Dispose(); }
         }
         catch (Exception) { /* swallowed */ }
+    }
+
+    // recall (nested-try): the may-throw call sits in a nested `if` branch BEFORE the dispose,
+    // so `nestedLeak` is still owned when it throws -> it leaks on that path. The exception
+    // edge is injected before the nested LEAF (`MayThrow()`), where ownership is exact — caught
+    // now that edges recurse into compound statements (cf. DisposeInsideIfWithThrow, which
+    // stays silent because there the dispose precedes the throw in every branch). OWN001.
+    public void NestedThrowLeaks(bool c)
+    {
+        var nestedLeak = new MemoryStream();
+        try
+        {
+            if (c) { MayThrow(); nestedLeak.Dispose(); }
+            else { nestedLeak.Dispose(); }
+        }
+        catch (Exception) { /* swallowed */ }
+    }
+
+    // recall (constructor-throw): a `new` can throw, and if it does a PRIOR owned resource is
+    // leaked. `ctorPrior` is owned when `new MemoryStream()` (for `ctorLater`) runs inside the
+    // try; if that constructor throws, `ctorPrior.Dispose()` is skipped -> `ctorPrior` leaks on
+    // the exceptional path (OWN001). `ctorLater` is acquired only AFTER that throw point (the
+    // edge sits before its acquire), so it never leaks and must stay silent.
+    public void CtorThrowLeaksPrior()
+    {
+        var ctorPrior = new MemoryStream();
+        try
+        {
+            var ctorLater = new MemoryStream();
+            ctorPrior.Dispose();
+            ctorLater.Dispose();
+        }
+        catch (Exception) { /* swallowed */ }
+    }
+
+    // recall (typed/filtered catch): a non-tail `try` whose catch is TYPED handles only some
+    // exceptions; an uncaught type propagates past the post-try `typedLeak.Dispose()`, so the
+    // resource leaks on that path. Edges used to be suppressed for ANY non-tail catch; they are
+    // now injected unless a catch is a genuine catch-all -> OWN001 (matches CodeQL's
+    // cs/dispose-not-called-on-throw on the uncaught-exception path).
+    public void TypedCatchLeaks()
+    {
+        var typedLeak = new MemoryStream();
+        try { typedLeak.WriteByte(1); }
+        catch (IOException) { /* only IO handled; other exceptions propagate */ }
+        typedLeak.Dispose();
     }
 
     private static void MayThrow() { }

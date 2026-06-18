@@ -271,6 +271,17 @@ jobs:
           # after a may-throw call, so it leaks on the exceptional path (matches CodeQL).
           echo "$out" | grep -qE "OWN001.*'dot'" \
             || { echo "FAIL: expected OWN001 on the dispose-not-called-on-throw local"; exit 1; }
+          # exception-edge RECALL slice — three sound recall wins, each matching CodeQL's
+          # cs/dispose-not-called-on-throw: a may-throw in a nested `if` branch BEFORE the
+          # dispose ('nestedLeak'); a constructor (`new`) as a throw point that skips a PRIOR
+          # owned resource's dispose ('ctorPrior'); and a TYPED catch whose uncaught exception
+          # types propagate past a post-try dispose ('typedLeak').
+          echo "$out" | grep -qE "OWN001.*'nestedLeak'" \
+            || { echo "FAIL: expected OWN001 on the nested-throw leak"; exit 1; }
+          echo "$out" | grep -qE "OWN001.*'ctorPrior'" \
+            || { echo "FAIL: expected OWN001 on the constructor-throw prior-resource leak"; exit 1; }
+          echo "$out" | grep -qE "OWN001.*'typedLeak'" \
+            || { echo "FAIL: expected OWN001 on the typed-catch uncaught-path leak"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
@@ -282,7 +293,9 @@ jobs:
           # an `await DisposeAsync().ConfigureAwait(false)` INSIDE a try (daci), and a Dispose
           # inside both branches of an `if` in a try alongside a may-throw call (cif) — all
           # disposed on every path, so all must stay silent (were false OWN001 before).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif; do
+          # `ctorLater` is acquired AFTER the constructor-throw edge in CtorThrowLeaksPrior, so
+          # it is never live at that edge and must stay silent (only `ctorPrior` leaks there).
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

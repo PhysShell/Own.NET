@@ -56,6 +56,8 @@ _WHILE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "flow_while.facts.json")
 _TWO_EXITS_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                   "ownir", "flow_leak_two_exits.facts.json")
+_NESTED_THROW_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                     "ownir", "flow_nested_throw.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -355,6 +357,23 @@ def run() -> int:
     if [(x.event, x.code, x.line) for x in tefindings] != [("tfLeak", "OWN001", 105)]:
         fails.append(f"expected exactly one OWN001 on 'tfLeak'@105 (two leaking exits "
                      f"deduped), got {[(x.event, x.code, x.line) for x in tefindings]}")
+
+    # --- exception-edge RECALL slice: the edge now recurses into nested compound statements,
+    #     treats a constructor (`new`) as a throw point, and fires under a TYPED catch. The
+    #     core must flag the nested throw-before-dispose ('nestedLeak') and the prior resource
+    #     a throwing constructor skips ('ctorPrior'), while the dispose-before-throw nested
+    #     case ('cif', disposed in every branch before the throw) and the not-yet-acquired
+    #     later resource ('ctorLater', acquired after the edge) stay silent. Pins the verdict
+    #     on the exact IR the new lowering emits (the C# lowering itself is covered in CI).
+    with open(_NESTED_THROW_FIXTURE, encoding="utf-8") as f:
+        ntfacts = json.load(f)
+    ntfindings = check_facts(ntfacts)
+    checks += 1
+    got = sorted((x.event, x.code, x.line) for x in ntfindings)
+    if got != [("ctorPrior", "OWN001", 217), ("nestedLeak", "OWN001", 201)]:
+        fails.append(f"expected OWN001 on 'nestedLeak'@201 and 'ctorPrior'@217 only "
+                     f"(nested clean 'cif' and later-acquired 'ctorLater' stay silent), "
+                     f"got {got}")
 
     # --- P-016 A1 reaches the frontend: a `while` flow body (the extractor now
     #     lowers loops instead of skipping the method) routes through the core's

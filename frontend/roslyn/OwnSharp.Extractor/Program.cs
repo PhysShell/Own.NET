@@ -294,23 +294,46 @@ static bool IsBodyTail(StatementSyntax st) =>
     && b.Statements.Count > 0 && b.Statements[^1] == st
     && b.Parent is not StatementSyntax;
 
-// An exceptional exit before a try-body statement is sound only for a LEAF statement whose
-// may-throw call sits at the statement's own level — an expression statement (`x.Foo();`)
-// or a local declaration (`var x = Foo();`). A COMPOUND statement (if/loop/block/…) may
-// dispose a resource in a nested branch before throwing deeper inside; an edge placed before
-// the WHOLE statement (where that resource is still owned) would falsely flag it as leaked
-// though every real path disposes it. So edges are skipped for compound statements — the
-// nested may-throw is the deferred nested-try slice, a sound recall gap rather than an FP.
-static bool EdgeEligible(StatementSyntax st) =>
-    st is ExpressionStatementSyntax or LocalDeclarationStatementSyntax;
+// Inject an exceptional-exit edge `if(*){ onThrow }` before a LEAF may-throw statement
+// (an expression statement or a local declaration) inside a `try` body. `onThrow` is the
+// continuation a throw here runs to leave the method — this try's `finally`, then any
+// enclosing tries' finallys, then `return` (built in the try lowering). A resource owned
+// at this point and not released by that continuation leaks on the throw path. Called for
+// LEAF statements only; a COMPOUND statement (if/loop/block) is recursed into so the edge
+// lands before the nested leaf — at the point the resource's ownership is exact (after any
+// in-branch dispose), which is what makes nesting sound rather than a false leak.
+static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>? onThrow)
+{
+    if (onThrow is not null && StatementMayThrow(st))
+        nodes.Add(new { op = "if", line = LineOf(st),
+                        then = new List<object>(onThrow), @else = new List<object>() });
+}
 
 // A statement that can raise an exception part-way through: it makes a call that is not
-// itself a dispose. (A `new` can throw too — and would leak a PRIOR owned resource whose
-// dispose it skips — but modelling object creation as a throw point is a deferred recall
-// slice; today only non-dispose CALLS create an exceptional exit. Both omissions are sound:
-// a missed leak, never a false one.)
+// itself a dispose, OR it creates an object (`new` — a constructor can throw, leaking a
+// PRIOR owned resource whose dispose it would then skip). Creating the resource being
+// acquired here is harmless: the edge lands before its `acquire`, where it is not yet owned.
 static bool StatementMayThrow(StatementSyntax st) =>
-    st.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => !IsDisposeShaped(i));
+    st.DescendantNodes().Any(n =>
+        (n is InvocationExpressionSyntax i && !IsDisposeShaped(i))
+        || n is ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax);
+
+// A catch clause that catches EVERY exception and so always continues to the post-try
+// code: `catch { }` (no declaration) or `catch (Exception)` / `catch (System.Exception)` —
+// with NO `when` filter (a filter may evaluate false, letting the exception propagate). A
+// typed catch (`catch (IOException)`) or any filtered catch continues for only SOME
+// exceptions; the rest propagate out, skipping the post-try dispose, so the resource still
+// leaks on those paths. Syntax-only (no semantic model): an alias of System.Exception reads
+// as typed — a negligible, documented residual recall gap, never a false positive.
+static bool IsCatchAll(CatchClauseSyntax cc) =>
+    cc.Filter is null
+    && (cc.Declaration is not { } decl
+        || (decl.Type switch
+            {
+                IdentifierNameSyntax id => id.Identifier.Text,
+                QualifiedNameSyntax q => q.Right.Identifier.Text,
+                _ => (string?)null,
+            }) is "Exception");
 
 // Lower a method block to OwnIR flow nodes (acquire/use/release/if/return) for the
 // `tracked` local IDisposables. Returns null on any UNMODELLED statement
@@ -324,16 +347,23 @@ static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
     return nodes;
 }
 
-static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<object> nodes)
+// `canEscape`: can a throw at the current position leave the METHOD (no enclosing
+// catch-all swallows it)? `onThrow`: the continuation a throw here runs to leave the
+// method (finally-stack + return), or null when no exception edge should be injected
+// (method level, or a region an enclosing catch-all swallows). Both default to the
+// method-body context: a throw escapes, but no edge is injected until a `try` sets one.
+static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<object> nodes,
+                          bool canEscape = true, List<object>? onThrow = null)
 {
     switch (st)
     {
         case BlockSyntax b:
             foreach (var s2 in b.Statements)
-                if (!LowerFlowStmt(s2, tracked, nodes))
+                if (!LowerFlowStmt(s2, tracked, nodes, canEscape, onThrow))
                     return false;
             return true;
         case LocalDeclarationStatementSyntax ld:
+            InjectThrowEdge(ld, nodes, onThrow);
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
                     if (tracked.Contains(v.Identifier.Text)
@@ -342,15 +372,16 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
             return true;
         case ExpressionStatementSyntax es:
+            InjectThrowEdge(es, nodes, onThrow);
             EmitFlowExpr(es.Expression, tracked, nodes);
             return true;
         case IfStatementSyntax ifs:
         {
             var thenNodes = new List<object>();
-            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes))
+            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes, canEscape, onThrow))
                 return false;
             var elseNodes = new List<object>();
-            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes))
+            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes, canEscape, onThrow))
                 return false;
             nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
             return true;
@@ -358,7 +389,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
         case UsingStatementSyntax us:
             // using(...) {body}: the using local is auto-disposed (untracked); still
             // lower the body so a tracked plain local used inside is seen.
-            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes);
+            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes, canEscape, onThrow);
         case ReturnStatementSyntax rs:
             // a tracked local never escapes (excluded), so a returned value is not a
             // tracked resource — model it as a bare return (a CFG exit edge).
@@ -372,7 +403,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // double-release). The condition is opaque (we model control flow, not
             // values). If the body has an unmodelled statement, bail the method.
             var bodyNodes = new List<object>();
-            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes))
+            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes, canEscape, onThrow))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(ws), body = bodyNodes });
             return true;
@@ -385,7 +416,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // body as a `while` is sound. (`do` stays unmodelled below — it runs 1+
             // times; `for` is handled next.)
             var bodyNodes = new List<object>();
-            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes))
+            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes, canEscape, onThrow))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
@@ -399,21 +430,21 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // method-body local, so it is never a tracked candidate — no soundness
             // concern, just a separate (rare) recall gap. `do`/try/switch stay below.
             var bodyNodes = new List<object>();
-            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes))
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes, canEscape, onThrow))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
             return true;
         }
         case TryStatementSyntax trys:
         {
-            // try { A } [catch { C }...] [finally { B }] with EXCEPTION EDGES. Any
-            // statement in A that makes a (non-dispose) call can throw; before each such
-            // statement we insert an exceptional exit `if(*){ B; return }` — throw here,
-            // run the finally, leave. A resource owned at that point and NOT released by
-            // the finally leaks on the exceptional path: dispose-not-called-on-throw (a
-            // dispose placed in the try, not the finally). A dispose IN the finally runs
-            // on every exceptional exit, so the safe pattern stays silent; `acquire;
-            // dispose;` with no call between has no exit, so no false leak.
+            // try { A } [catch { C }...] [finally { B }] with EXCEPTION EDGES. Any LEAF
+            // statement in A (at any nesting depth) that can throw gets an exceptional exit
+            // `if(*){ B; … ; return }` injected before it — throw here, run the finally(s),
+            // leave. A resource owned at that point and NOT released by the finally leaks on
+            // the exceptional path: dispose-not-called-on-throw (a dispose placed in the try,
+            // not the finally). A dispose IN the finally runs on every exceptional exit, so
+            // the safe pattern stays silent; `acquire; dispose;` with no throw between has no
+            // live edge, so no false leak.
             //
             // Catch bodies are not lowered; to stay SOUND, bail if any catch disposes, so
             // a release that only happens in a catch is never missed. Matches `x.Dispose()`
@@ -431,30 +462,34 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             var finallyNodes = new List<object>();
             if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, finallyNodes))
                 return false;
-            // The exceptional exit `if(*){ B; return }` models the exception LEAVING the
-            // method — sound only when the caught path's continuation IS end-of-method:
-            // no catch (it propagates out past any post-try code), or the try is the body's
-            // tail (nothing runs after the catch). With a catch AND post-try code, a
-            // resource the post-try code disposes runs on the caught path too, so a return
-            // there would falsely flag it (dispose-after-try). In that case skip the edges
-            // and lower the try sequentially — a never-disposed local is still caught at
-            // end-of-function; only dispose-on-throw is forgone for this shape.
-            // Conservative: ANY non-tail catch suppresses the edges, even a typed/filtered
-            // catch that only continues for some exception types — the uncaught-type paths
-            // really do leak, but distinguishing catch-all from typed/filtered is a deferred
-            // recall slice. Suppressing is sound: a missed leak, never a false one.
-            var edgesSound = trys.Catches.Count == 0 || IsBodyTail(trys);
-            foreach (var stmt in trys.Block.Statements)
+            // Does a throw in THIS body escape to method exit (so the edge — leave running
+            // only the finally — models a real execution)? Sound when there is no catch (it
+            // propagates out past any post-try code), the try is the body's tail (nothing
+            // runs after), OR no catch is a genuine catch-all — a typed/filtered catch lets
+            // the uncaught exception types propagate, skipping the post-try dispose, so the
+            // resource still leaks on those paths. The one shape that SUPPRESSES the edges is
+            // a catch-all on a non-tail try: every throw is caught and continues to (and may
+            // dispose in) the post-try code, so a return there would falsely flag a resource
+            // that path disposes. `canEscape` carries the same fact down through ENCLOSING
+            // tries: a catch-all higher up already swallows these throws, so they never reach
+            // method exit -> no edges in the region nested under it.
+            bool escapesThisTry = trys.Catches.Count == 0
+                || IsBodyTail(trys)
+                || !trys.Catches.Any(IsCatchAll);
+            bool bodyCanEscape = canEscape && escapesThisTry;
+            // The continuation an escaping throw runs: this finally, then the enclosing
+            // exceptional path (its finallys, ending in the method `return`), or just a
+            // `return` when this is the outermost try. Null when suppressed -> no edges.
+            List<object>? bodyOnThrow = null;
+            if (bodyCanEscape)
             {
-                if (edgesSound && EdgeEligible(stmt) && StatementMayThrow(stmt))
-                {
-                    var ex = new List<object>(finallyNodes)
-                        { new { op = "return", var = (string?)null, line = LineOf(stmt) } };
-                    nodes.Add(new { op = "if", line = LineOf(stmt), then = ex, @else = new List<object>() });
-                }
-                if (!LowerFlowStmt(stmt, tracked, nodes))
-                    return false;
+                bodyOnThrow = new List<object>(finallyNodes);
+                bodyOnThrow.AddRange(onThrow ?? new List<object>
+                    { new { op = "return", var = (string?)null, line = LineOf(trys) } });
             }
+            foreach (var stmt in trys.Block.Statements)
+                if (!LowerFlowStmt(stmt, tracked, nodes, bodyCanEscape, bodyOnThrow))
+                    return false;
             nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
         }
