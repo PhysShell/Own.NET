@@ -147,6 +147,32 @@ public class FlowLocalsSample
         catch (Exception) { /* swallowed, no dispose */ }
     }
 
+    // NOT a leak: the catch swallows and the Dispose runs AFTER the try/catch, so on the
+    // thrown path control reaches `cda.Dispose()` too — disposed on every path. The
+    // exception-edge model's synthetic exit can't represent that caught-then-continue
+    // path, so when a `try` has a catch and is NOT the method's tail statement the edges
+    // are skipped (the body still lowers sequentially). Must stay silent (was a false
+    // OWN001 before — PR #32 Codex review).
+    public void CatchThenDisposeAfter()
+    {
+        var cda = new MemoryStream();
+        try { cda.WriteByte(1); }
+        catch (Exception) { /* swallowed */ }
+        cda.Dispose();
+    }
+
+    // NOT a leak: `await x.DisposeAsync().ConfigureAwait(false)` INSIDE a try is the
+    // release. IsDisposeShaped now unwraps the `.ConfigureAwait(false)`, so the statement
+    // is recognised as a dispose (not a may-throw call) and no false exceptional-leak edge
+    // is injected before it. Must stay silent (was a false OWN001 before — PR #32
+    // CodeRabbit review).
+    public async Task DisposeAsyncConfiguredInTry()
+    {
+        var daci = new MemoryStream();
+        try { await daci.DisposeAsync().ConfigureAwait(false); }
+        catch (Exception) { /* swallowed */ }
+    }
+
     // acquire + dispose within the loop body is balanced -> silent (no false
     // positive now that loops are analysed rather than skipped).
     public void WhileClean(int n)

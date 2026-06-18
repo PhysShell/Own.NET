@@ -266,14 +266,33 @@ static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 };
 
 // A `Dispose()`/`Close()`/`DisposeAsync()` call — through member access (`x.Dispose()`)
-// or member binding (`x?.Dispose()`).
-static bool IsDisposeShaped(InvocationExpressionSyntax i) =>
-    (i.Expression switch
+// or member binding (`x?.Dispose()`), and seen through a trailing `.ConfigureAwait(false)`
+// (the idiomatic `await x.DisposeAsync().ConfigureAwait(false)` is the release, not a
+// throwing call). Mirrors the unwrap in EmitFlowExpr so StatementMayThrow does not inject
+// a false exceptional-leak edge before an async dispose.
+static bool IsDisposeShaped(InvocationExpressionSyntax i)
+{
+    var callee = i.Expression;
+    if (callee is MemberAccessExpressionSyntax cfg
+        && cfg.Name.Identifier.Text == "ConfigureAwait"
+        && cfg.Expression is InvocationExpressionSyntax innerInv)
+        callee = innerInv.Expression;
+    return (callee switch
     {
         MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
         MemberBindingExpressionSyntax mb => mb.Name.Identifier.Text,
         _ => (string?)null,
     }) is "Dispose" or "Close" or "DisposeAsync";
+}
+
+// True when `st` is the LAST statement of a method/accessor/constructor body block — its
+// block's parent is a member declaration, not a nested statement (a BlockSyntax is itself
+// a StatementSyntax, so this also excludes nested blocks). Used to decide whether a
+// `try`'s exceptional-exit edges are sound (see the try lowering).
+static bool IsBodyTail(StatementSyntax st) =>
+    st.Parent is BlockSyntax b
+    && b.Statements.Count > 0 && b.Statements[^1] == st
+    && b.Parent is not StatementSyntax;
 
 // A statement that can raise an exception part-way through: it makes a call that is not
 // itself a dispose. (A `new` can throw too, but then the resource is never acquired, so
@@ -401,9 +420,18 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             var finallyNodes = new List<object>();
             if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, finallyNodes))
                 return false;
+            // The exceptional exit `if(*){ B; return }` models the exception LEAVING the
+            // method — sound only when the caught path's continuation IS end-of-method:
+            // no catch (it propagates out past any post-try code), or the try is the body's
+            // tail (nothing runs after the catch). With a catch AND post-try code, a
+            // resource the post-try code disposes runs on the caught path too, so a return
+            // there would falsely flag it (dispose-after-try). In that case skip the edges
+            // and lower the try sequentially — a never-disposed local is still caught at
+            // end-of-function; only dispose-on-throw is forgone for this shape.
+            var edgesSound = trys.Catches.Count == 0 || IsBodyTail(trys);
             foreach (var stmt in trys.Block.Statements)
             {
-                if (StatementMayThrow(stmt))
+                if (edgesSound && StatementMayThrow(stmt))
                 {
                     var ex = new List<object>(finallyNodes)
                         { new { op = "return", var = (string?)null, line = LineOf(stmt) } };
