@@ -124,16 +124,19 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   `finally`: the throw skips the `Dispose`). Both confirmed on the cross-tool fixture:
   the plain `try`-method leak and the dispose-on-throw leak both land in **Agree** across
   all three tools (the latter matching CodeQL's `cs/dispose-not-called-on-throw`). The
-  edges are injected only where sound — when the caught path's continuation is end-of-
-  method (no catch, or the `try` is the body's tail); a swallowing catch with a Dispose
-  *after* the try/catch (continuation disposes the resource) lowers sequentially instead,
-  to avoid a false leak (PR #32 review). Still deferred — all **sound recall gaps** (missed
-  leaks, never false ones), to be tackled as a dedicated exception-edge recall slice with
-  its own oracle re-validation: exception edges inside nested `try` bodies (only top-level
-  `try` statements get an edge today); object creation (`new`) as a throw point (it can leak
-  a prior owned resource whose dispose it skips); typed/filtered catches (a non-tail catch
-  suppresses edges even when it only continues for *some* exception types — the uncaught-type
-  paths really do leak); `finally`-before-`return` threading (bailed today); and `switch`/`do`.
+  edges are injected only where sound, and the recall slice has now landed: they reach into
+  **nested compound statements** (the edge lands before the nested LEAF, where ownership is
+  exact — after any in-branch dispose — so a nested dispose-before-throw stays silent while a
+  throw-before-dispose in a branch is caught); a **constructor (`new`) counts as a throw
+  point** (a throwing ctor skips a prior owned resource's dispose); and a **typed/filtered
+  catch no longer suppresses the edges** — only a genuine catch-all (`catch {}` / `catch
+  (Exception)`, no `when`) on a non-tail `try` does, since the uncaught exception types of a
+  typed catch propagate past the post-try dispose and really do leak. A swallowing catch-all
+  with a Dispose *after* the try/catch (the caught path disposes the resource) still lowers
+  sequentially, to avoid a false leak (PR #32 review). The three recall wins are pinned in CI
+  (`nestedLeak`, `ctorPrior`, `typedLeak`) and on the core's IR (the `flow_nested_throw`
+  fixture). Still deferred — both **sound recall gaps** (missed leaks, never false ones):
+  `finally`-before-`return` threading (bailed today) and `switch`/`do`.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the

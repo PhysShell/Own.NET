@@ -93,7 +93,8 @@ architectural strictness, and the borrow-checker showcase):
    The oracle also drove down the *other*-class recall gap (Dispose leaks Own.NET missed
    because the flow detector skipped methods with unmodelled constructs): `for` and `try`
    are now lowered — sequentially, then with an **exception-edge** model that injects a
-   throw exit before each may-throw statement in a `try`. That closes the
+   throw exit before each may-throw leaf in a `try` (including inside nested branches, with a
+   constructor `new` as a throw point and typed/filtered catches handled). That closes the
    `dispose-not-called-on-throw` shape, which now lands in cross-tool **Agree** with
    CodeQL's dedicated query on the fixture. Deferred: `finally`-before-`return`,
    `switch`/`do`. See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
