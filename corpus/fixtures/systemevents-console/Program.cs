@@ -30,6 +30,7 @@ public static class Program
     {
         _ = new DisplayWatcher();
         LeakAFile();
+        LeakInTry();
     }
 
     // (2) DISPOSE leak — CodeQL's / Infer#'s class, and the control: a local
@@ -41,5 +42,17 @@ public static class Program
         var stream = new FileStream("scratch.bin", FileMode.Create);
         stream.WriteByte(0x42);
         // ...no Dispose()/using -> resource leak
+    }
+
+    // (3) DISPOSE leak inside a TRY-METHOD — the `try`-lowering recall slice. Before
+    // try/finally was lowered, Own.NET skipped any method containing a `try`, so this
+    // leak was "Oracle only" (only CodeQL / Infer# caught it). Now Own.NET lowers
+    // try/finally and catches it too -> it should land in "Agree" across all three.
+    private static void LeakInTry()
+    {
+        var tried = new FileStream("scratch2.bin", FileMode.Create);
+        try { tried.WriteByte(0x42); }
+        catch (Exception) { /* logged, not disposed */ }
+        // ...no Dispose()/using -> resource leak, now seen despite the `try`
     }
 }
