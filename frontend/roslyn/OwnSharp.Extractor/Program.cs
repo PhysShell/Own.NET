@@ -612,6 +612,20 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<ob
         nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
         return;
     }
+    // x?.Dispose()/x?.Close()/x?.DisposeAsync() (null-conditional) is the release too — the
+    // call is a member BINDING under a conditional access, not a member access. Mirrors
+    // IsDisposeShaped so a `?.` dispose (e.g. in a finally) is not mistaken for a bare use,
+    // which would otherwise falsely flag the resource as leaked.
+    if (expr is ConditionalAccessExpressionSyntax cond
+        && cond.Expression is IdentifierNameSyntax cid
+        && tracked.Contains(cid.Identifier.Text)
+        && cond.WhenNotNull is InvocationExpressionSyntax condInv
+        && condInv.Expression is MemberBindingExpressionSyntax mb
+        && mb.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync")
+    {
+        nodes.Add(new { op = "release", var = cid.Identifier.Text, line = LineOf(cond) });
+        return;
+    }
     // any other reference to a tracked local -> use (once per local in this expr).
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())

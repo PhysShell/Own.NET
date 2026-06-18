@@ -281,6 +281,17 @@ public class FlowLocalsSample
         earlyRet.Dispose();
     }
 
+    // `ncf?.Dispose()` (null-conditional) in a finally IS a release — EmitFlowExpr recognizes
+    // the member-binding form, not just `ncf.Dispose()`. With the return threaded through the
+    // finally, `ncf` is disposed on the early-return path too -> silent (Codex review on PR #34:
+    // a `?.Dispose()` in a now-threaded finally must not be mistaken for a bare use -> false leak).
+    public void NullCondFinallyDispose(bool c)
+    {
+        var ncf = new MemoryStream();
+        try { if (c) return; ncf.WriteByte(1); }
+        finally { ncf?.Dispose(); }
+    }
+
     // `do { B } while(c)` runs B 1+ times -> desugared to `B; while(c){ B }`. A local acquired
     // in the body and never disposed leaks per iteration -> OWN001 on `doLeak`.
     public void DoLeak(bool c)
