@@ -90,7 +90,13 @@ architectural strictness, and the borrow-checker showcase):
    The cross-tool oracle confirms the differentiation: CodeQL *and* Infer# (the latter
    via a buildable fixture) cover the Dispose/RAII class and flag none of these
    subscription leaks — agreeing with Own.NET only on a Dispose leak, never a subscription.
-   See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
+   The oracle also drove down the *other*-class recall gap (Dispose leaks Own.NET missed
+   because the flow detector skipped methods with unmodelled constructs): `for` and `try`
+   are now lowered — sequentially, then with an **exception-edge** model that injects a
+   throw exit before each may-throw statement in a `try`. That closes the
+   `dispose-not-called-on-throw` shape, which now lands in cross-tool **Agree** with
+   CodeQL's dedicated query on the fixture. Deferred: `finally`-before-`return`,
+   `switch`/`do`. See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
    *profile*, not a one-off.

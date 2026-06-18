@@ -116,12 +116,15 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   coverage, not type recognition**: the `--flow-locals` detector skips any method with
   an unmodelled construct (`for`/`try`/`switch`), and these disposables live in such
   methods (tell: the `StringReader`/`XmlReader` cases are a *recognised* disposable
-  type, yet still missed). `for` **and** `try`/`finally` are now lowered (sequential
-  `A; B`, catch-disposes bailed for soundness), so a plain undisposed local inside a
-  try-method is caught — confirmed on the cross-tool fixture, where a `try`-method
-  `FileStream` leak moved from *Oracle only* into **Agree** (Own.NET + Infer#). Still
-  deferred: the true `dispose-not-called-on-throw` shape (disposed in `try`, not
-  `finally`) needs per-statement exceptional exits, and `switch`/`do` are unmodelled.
+  type, yet still missed). `for` **and** `try` are now lowered, in two slices: first
+  sequential `A; B` (catch-disposes bailed for soundness), so a plain undisposed local
+  inside a try-method is caught; then the **exception-edge** model — before each
+  may-throw statement in a `try`, inject an exceptional exit (`if(*){ <finally>; return }`)
+  — which catches the true `dispose-not-called-on-throw` shape (disposed in `try`, not
+  `finally`: the throw skips the `Dispose`). Both confirmed on the cross-tool fixture:
+  the plain `try`-method leak and the dispose-on-throw leak both land in **Agree** across
+  all three tools (the latter matching CodeQL's `cs/dispose-not-called-on-throw`). Still
+  deferred: `finally`-before-`return` threading (bailed today), and `switch`/`do`.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
@@ -129,20 +132,31 @@ oracle, not just argued**: the tools are complementary (Own.NET on subscription/
 lifetime, CodeQL on Dispose/RAII), overlapping on a single file.
 
 **Infer#, via a buildable fixture.** ScreenToGif can't build on Linux, so to get the
-third tool in, a minimal `net8.0` console reproduces both leak classes
+third tool in, a minimal `net8.0` console reproduces the leak classes
 (`corpus/fixtures/systemevents-console/`, fed to the oracle via a `local:` target).
-All three tools run; the diff is a clean 2×2:
+All three tools run; the diff (latest run) is:
 
-| `Program.cs` | leak | Own.NET | CodeQL | Infer# |
-|---|---|:-:|:-:|:-:|
-| `:41` | `new FileStream(…)` never disposed — Dispose/RAII | ✓ | ✓ | ✓ |
-| `:20` | `SystemEvents.DisplaySettingsChanged +=` never `-=` — subscription | ✓ | — | — |
+| `Program.cs` | leak | class | Own.NET | CodeQL | Infer# |
+|---|---|---|:-:|:-:|:-:|
+| `:43` | `new FileStream(…)` never disposed | Dispose/RAII | ✓ | ✓ | ✓ |
+| `:54` | undisposed local inside a `try`-method | Dispose/RAII (try-lowering) | ✓ | ✓ | ✓ |
+| `:77` | `Dispose()` in `try` after a may-throw call — skipped on the throw path | dispose-on-throw (exception-edge) | ✓ | ✓ | ✓ |
+| `:20` | `SystemEvents.DisplaySettingsChanged +=` never `-=` | subscription | ✓ | — | — |
 
-The FileStream leak is **Agree** across all three — the control that proves CodeQL
-*and* Infer# actually run and detect resource leaks on this code. The SystemEvents
-subscription is **Own.NET only**: **Infer# misses it too.** Both mature oracles cover
-the Dispose/RAII class and neither has the subscription-leak class — the
-differentiation, nailed with all three tools.
+The three Dispose/RAII leaks are **Agree** across all three tools — the controls that
+prove CodeQL *and* Infer# actually run and detect resource leaks on this code — and the
+bottom two are the recall slices: the plain `try`-method leak (sequential lowering) and
+the dispose-on-throw leak (exception-edge), the latter matching CodeQL's dedicated
+`cs/dispose-not-called-on-throw` query. **Oracle-only is empty** — no Dispose/RAII leak
+on this fixture is missed. The `SystemEvents` subscription is **Own.NET only**: **Infer#
+misses it too.** Both mature oracles cover the Dispose/RAII class and neither has the
+subscription-leak class — the differentiation, nailed with all three tools.
+
+> The exception-edge slice also surfaced a hygiene bug it then fixed: a local that
+> leaks on *both* the injected exceptional exit *and* the normal end produced two
+> identical OWN001s (every flow-local diagnostic remaps to the acquire line, so they
+> collapse). The bridge now drops byte-identical findings (`ownir.py`), pinned by
+> `tests/fixtures/ownir/flow_leak_two_exits.facts.json`. One leak, one finding.
 
 > Getting a trustworthy diff took fixing two oracle bugs: the comparator dropped
 > multi-line / untagged own-check findings (`scripts/mine_report.py` parser drift —
