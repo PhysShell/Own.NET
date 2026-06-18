@@ -125,6 +125,7 @@ jobs:
             frontend/roslyn/samples/LocalDisposableSample.cs \
             frontend/roslyn/samples/SelfOwnedViewModel.cs \
             frontend/roslyn/samples/SelfOwnedControlParts.cs \
+            frontend/roslyn/samples/ExternalRefSubscription.cs \
             frontend/roslyn/samples/StaticHandlerViewModel.cs \
             frontend/roslyn/samples/SampleTypes.cs \
             -o "$RUNNER_TEMP/facts.json"
@@ -223,6 +224,11 @@ jobs:
           if echo "$out" | grep -q "SelfOwnedControlParts.cs"; then
             echo "FAIL: a self-owned (ref-built / template-part) subscription was wrongly reported"; exit 1
           fi
+          # P-004 (ref/out narrowing, Codex P2): a field populated by an EXTERNAL
+          # class's ref method (not this class's own helper) is NOT self-owned — the
+          # subscription must still be reported, not silently suppressed.
+          echo "$out" | grep -qE "ExternalRefSubscription\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: expected OWN001 on the external-ref subscription (must not be exempted)"; exit 1; }
           # P-004 static-handler exemption: a static-method handler has a null
           # delegate target — no instance retained, so not a leak — silent.
           if echo "$out" | grep -q "StaticHandlerViewModel.cs"; then

@@ -75,7 +75,9 @@ collectable cycle, not a leak — but the original exemption only recognised a d
 through.
 
 **Fixed** — the bug-driven next unit of work the run defined. The self-owned
-*subscription* exemption now also folds in `ref`/`out`-populated fields and
+*subscription* exemption now also folds in `ref`/`out`-populated fields (only when
+the populating helper is the class's *own* method — an external `TryResolve(out _bus)`
+stays a leak candidate) and
 `GetTemplateChild`/`FindName` template parts (kept OUT of the disposal detector's
 `constructed` set, so WPF003 still demands disposal of `new`'d fields only).
 Re-mining ScreenToGif with the WPF profile confirms it: **123 → 36 findings** (40

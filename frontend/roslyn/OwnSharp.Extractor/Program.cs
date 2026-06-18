@@ -527,22 +527,32 @@ foreach (var (file, tree) in parsed)
         // field can be owned without a direct `_f = new ...`; fold in two more
         // shapes the WPF mining run surfaced. Kept OUT of `constructed` so the
         // WPF003 disposal detector keeps demanding disposal of `new`'d fields only
-        // (you don't dispose a borrowed-by-ref value or a template part):
-        //   * ref/out construction — `BuildCorner(ref _thumb, ...)`: a helper this
-        //     class calls populates the field, so the class owns it;
+        // (you don't dispose a borrowed-by-ref value or a template part). Both paths
+        // require an actual FIELD (a `ref`/`out` local or parameter is not owned):
+        //   * ref/out construction by one of THIS class's OWN helpers —
+        //     `BuildCorner(ref _thumb, ...)`: the class populates the field itself,
+        //     so it owns it. A `ref`/`out` to an EXTERNAL method
+        //     (`container.TryResolve(out _bus)`, `Interlocked.Exchange(ref _bus, ..)`)
+        //     only proves the callee CAN assign it — it may be an injected, longer-
+        //     lived publisher — so it is NOT exempted, else a real leak is suppressed.
         //   * template parts — `_part = GetTemplateChild("PART_x") as T`: a control
         //     owns the parts of its own template (collectable part<->control cycle).
+        var clsSymbol = model.GetDeclaredSymbol(cls);
         var selfOwned = new HashSet<string>(constructed);
         foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
             if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
                  || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
-                && FieldName(arg.Expression) is { } rf)
-                selfOwned.Add(rf);
+                && model.GetSymbolInfo(arg.Expression).Symbol is IFieldSymbol rf
+                && arg.Parent?.Parent is InvocationExpressionSyntax callInv
+                && model.GetSymbolInfo(callInv).Symbol is IMethodSymbol callee
+                && clsSymbol is not null
+                && SymbolEqualityComparer.Default.Equals(callee.ContainingType, clsSymbol))
+                selfOwned.Add(rf.Name);
         foreach (var a in assigns)
             if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
-                && FieldName(a.Left) is { } tf
+                && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol tf
                 && IsTemplatePartFetch(a.Right))
-                selfOwned.Add(tf);
+                selfOwned.Add(tf.Name);
 
         var subs = new List<object>();
         foreach (var a in assigns)

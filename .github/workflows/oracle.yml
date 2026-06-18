@@ -153,7 +153,7 @@ jobs:
             '  </PropertyGroup>' \
             '</Project>' > "$tmp/ref.csproj"
           dotnet restore "$tmp/ref.csproj" >/dev/null 2>&1 || echo "ref restore failed (continuing)"
-          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1)
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1 || true)
           if [ -n "$d" ]; then
             echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
             echo "framework refs: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"

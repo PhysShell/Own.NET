@@ -84,7 +84,8 @@ architectural strictness, and the borrow-checker showcase):
    a view→view-model subscription (`VideoSource`) and two `SystemEvents` leaks, plus
    precise/clean results on disciplined code. The WPF reference unlock
    (`OWN_EXTRA_REF_DIRS`) and the self-owned-control precision gap it revealed are
-   both closed — the exemption now covers `ref`/`out`-built fields and template
+   both closed — the exemption now covers `ref`/`out`-built fields (via the class's
+   own helper) and template
    parts, cutting ScreenToGif's WPF-profile findings 123 → 36 (real leaks intact).
    The cross-tool oracle confirms the differentiation: CodeQL *and* Infer# (the latter
    via a buildable fixture) cover the Dispose/RAII class and flag none of these
