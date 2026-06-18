@@ -4,9 +4,12 @@
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
 # Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
-# included — ScreenToGif's WPF won't build on Linux). Re-run for the EXCEPTION-EDGE
-# slice: leak #4 (Dispose() inside try, after a may-throw call -> skipped on the throw
-# path) should now land in "Agree" with CodeQL's cs/dispose-not-called-on-throw, where
-# Own.NET used to miss it. Expect #2/#3/#4 in "Agree", #1 Own.NET-only. See the README.
+# included — ScreenToGif's WPF won't build on Linux). Re-run #2 of the EXCEPTION-EDGE
+# slice after the first run surfaced two artifacts: (a) #3 (tfLeak) was double-reported
+# — a never-disposed local in a try leaks on BOTH the injected exceptional exit and the
+# normal end; now deduped in the bridge; (b) #4's anchors were >3 lines apart (Own.NET
+# acquire / CodeQL Dispose / Infer# last-access) so the ±3 window split it — the try is
+# now a one-liner adjacent to the acquire. Expect #2/#3/#4 in "Agree" (no dup), #1
+# Own.NET-only, 0 oracle-only. See the README.
 local:corpus/fixtures/systemevents-console
 build=SystemEventsLeak.csproj

@@ -66,14 +66,16 @@ public static class Program
     // disposed-somewhere looked balanced — until the exception-edge model put a throw
     // edge before each may-throw statement; it now flags it too -> should join (2)/(3)
     // in "Agree".
+    //
+    // The try is kept a ONE-LINER (like LeakInTry) on purpose: the three tools anchor
+    // this one leak at different points — Own.NET at the acquire, CodeQL at the Dispose,
+    // Infer# at last-access — so a spread-out method puts them >3 lines apart and the
+    // oracle's ±3 line window splits one leak into own-only + oracle-only. Keeping the
+    // acquire and the try adjacent pulls the anchors back inside the window.
     private static void DisposeOnThrow()
     {
         var onThrow = new FileStream("scratch3.bin", FileMode.Create);
-        try
-        {
-            onThrow.WriteByte(0x42); // may throw -> the Dispose below is skipped on that path
-            onThrow.Dispose();
-        }
+        try { onThrow.WriteByte(0x42); onThrow.Dispose(); }
         catch (Exception) { /* swallowed, no dispose */ }
     }
 }

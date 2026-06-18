@@ -623,6 +623,23 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
 
+    # A resource that leaks on more than one exit yields one core OWN001 per exit:
+    # e.g. the try-lowering injects an exceptional exit before each may-throw
+    # statement, so a local never disposed leaks on BOTH that exit and the normal
+    # fall-through. For a flow-local every such diagnostic remaps to the same acquire
+    # line (sub["line"]) above, collapsing to byte-identical findings — keep one.
+    # The key includes `line`, so genuinely distinct leak sites stay distinct.
+    seen: set[tuple[Any, ...]] = set()
+    deduped: list[Finding] = []
+    for f in findings:
+        key = (f.file, f.line, f.code, f.component, f.event, f.handler,
+               f.message, f.kind, f.advisory, f.severity)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(f)
+    findings = deduped
+
     findings.sort(key=lambda f: (f.file, f.line, f.code))
     return findings
 
