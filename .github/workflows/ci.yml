@@ -278,10 +278,11 @@ jobs:
           # stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
-          # PR #32 FP fixes: a swallowing catch with a Dispose AFTER the try/catch (cda)
-          # and an `await DisposeAsync().ConfigureAwait(false)` INSIDE a try (daci) — both
-          # disposed on every path, so both must stay silent (were false OWN001 before).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci; do
+          # PR #32 FP fixes: a swallowing catch with a Dispose AFTER the try/catch (cda),
+          # an `await DisposeAsync().ConfigureAwait(false)` INSIDE a try (daci), and a Dispose
+          # inside both branches of an `if` in a try alongside a may-throw call (cif) — all
+          # disposed on every path, so all must stay silent (were false OWN001 before).
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

@@ -173,6 +173,26 @@ public class FlowLocalsSample
         catch (Exception) { /* swallowed */ }
     }
 
+    // NOT a leak: `cif` is disposed on every real path (both branches of the `if`). A
+    // may-throw call sits in one branch after the dispose, but the exception edge must NOT
+    // be injected before the whole `if` (where `cif` is still owned) — edges go only before
+    // LEAF statements (expression / local-declaration), never compound ones, else the
+    // resource is falsely flagged though every path disposes it. Must stay silent (was a
+    // false OWN001 — PR #32 Codex review). The nested may-throw is the deferred nested-try
+    // slice (a sound recall gap, not a leak).
+    public void DisposeInsideIfWithThrow(bool c)
+    {
+        var cif = new MemoryStream();
+        try
+        {
+            if (c) { cif.Dispose(); MayThrow(); }
+            else { cif.Dispose(); }
+        }
+        catch (Exception) { /* swallowed */ }
+    }
+
+    private static void MayThrow() { }
+
     // acquire + dispose within the loop body is balanced -> silent (no false
     // positive now that loops are analysed rather than skipped).
     public void WhileClean(int n)

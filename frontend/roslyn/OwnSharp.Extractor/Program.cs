@@ -294,6 +294,16 @@ static bool IsBodyTail(StatementSyntax st) =>
     && b.Statements.Count > 0 && b.Statements[^1] == st
     && b.Parent is not StatementSyntax;
 
+// An exceptional exit before a try-body statement is sound only for a LEAF statement whose
+// may-throw call sits at the statement's own level — an expression statement (`x.Foo();`)
+// or a local declaration (`var x = Foo();`). A COMPOUND statement (if/loop/block/…) may
+// dispose a resource in a nested branch before throwing deeper inside; an edge placed before
+// the WHOLE statement (where that resource is still owned) would falsely flag it as leaked
+// though every real path disposes it. So edges are skipped for compound statements — the
+// nested may-throw is the deferred nested-try slice, a sound recall gap rather than an FP.
+static bool EdgeEligible(StatementSyntax st) =>
+    st is ExpressionStatementSyntax or LocalDeclarationStatementSyntax;
+
 // A statement that can raise an exception part-way through: it makes a call that is not
 // itself a dispose. (A `new` can throw too, but then the resource is never acquired, so
 // it is not a leak point — only non-dispose CALLS create an exceptional exit worth
@@ -431,7 +441,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             var edgesSound = trys.Catches.Count == 0 || IsBodyTail(trys);
             foreach (var stmt in trys.Block.Statements)
             {
-                if (edgesSound && StatementMayThrow(stmt))
+                if (edgesSound && EdgeEligible(stmt) && StatementMayThrow(stmt))
                 {
                     var ex = new List<object>(finallyNodes)
                         { new { op = "return", var = (string?)null, line = LineOf(stmt) } };
