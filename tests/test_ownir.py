@@ -66,6 +66,8 @@ _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "unresolved.facts.json")
 _CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                 "ownir", "capture.facts.json")
+_DI_CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                   "ownir", "di_capture.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -568,6 +570,60 @@ def run() -> int:
     checks += 1
     if any(x.component == "CleanThemeViewModel" for x in cfindings):
         fails.append("a released (unsubscribed) static capture was wrongly reported")
+
+    # --- P-006 + P-004: DI-sourced region escape. An injected subscription whose
+    #     source TYPE resolves (via the `services` graph) to a longer-lived DI
+    #     registration than the subscriber is a PROVABLE region escape -> OWN014,
+    #     not the honest OWN001 warning the unresolved case gets. A singleton source
+    #     captured by an un-registered UI VM escapes; a transient source is proven
+    #     SAFE by the SAME registration order and stays silent (the precision win).
+    #     This unifies the DI-lifetime model (di.py) with the region engine —
+    #     lifetimes the intra-procedural model cannot know locally now come from the
+    #     registration graph. The lowered sketch still parses.
+    with open(_DI_CAPTURE_FIXTURE, encoding="utf-8") as f:
+        dcfacts = json.load(f)
+    dcsrc, _ = to_own(dcfacts)
+    checks += 1
+    try:
+        parse(dcsrc)
+    except Exception as e:
+        fails.append(f"lowered di-capture facts do not parse: {e}")
+    dcfindings = check_facts(dcfacts)
+    checks += 1
+    if [(x.component, x.line, x.code) for x in dcfindings] != \
+            [("CustomerViewModel", 14, "OWN014")]:
+        fails.append(f"expected one DI region escape (CustomerViewModel@14 OWN014), "
+                     f"got {[(x.component, x.line, x.code) for x in dcfindings]}")
+    else:
+        d0 = dcfindings[0]
+        checks += 1
+        if d0.severity is not None:
+            fails.append(f"DI region escape should be error-tier (None), got "
+                         f"{d0.severity!r}")
+        if "singleton" not in d0.message or "IEventBus" not in d0.message:
+            fails.append(f"DI-escape message missing singleton/type: {d0.message!r}")
+        if "captive" not in d0.message:
+            fails.append(f"DI-escape message should name the captive escape: "
+                         f"{d0.message!r}")
+        if "[resource: subscription token]" not in d0.render():
+            fails.append(f"DI-escape finding missing kind tag: {d0.render()!r}")
+    # the transient-sourced subscription is PROVEN SAFE by the same DI order (a
+    # transient source cannot outlive the subscriber) -> silent, not a warning.
+    checks += 1
+    if any(x.component == "ProbeViewModel" for x in dcfindings):
+        fails.append("a transient-sourced injected subscription (proven safe) "
+                     "was wrongly reported")
+    # regression: the SAME injected subscription with NO source_type / no services
+    # keeps the honest OWN001 WARNING (the unresolved-lifetime hedge) — additive,
+    # nothing escalates without the DI graph.
+    checks += 1
+    warn = check_facts({"module": "M", "components": [
+        {"name": "Vm", "file": "Vm.cs", "subscriptions": [
+            {"event": "bus.X", "handler": "h", "line": 5, "released": False,
+             "resource": "subscription", "source": "injected"}]}]})
+    if [(x.code, x.severity) for x in warn] != [("OWN001", "warning")]:
+        fails.append(f"injected sub without DI info should stay an OWN001 warning, "
+                     f"got {[(x.code, x.severity) for x in warn]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives

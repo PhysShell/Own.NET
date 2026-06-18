@@ -1,0 +1,40 @@
+{
+  "ownir_version": 0,
+  "module": "DiZombie",
+  "components": [
+    {
+      "name": "CustomerViewModel",
+      "file": "CustomerViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "_bus.CustomerChanged",
+          "handler": "OnCustomerChanged",
+          "line": 14,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "IEventBus"
+        }
+      ]
+    },
+    {
+      "name": "ProbeViewModel",
+      "file": "ProbeViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "_probe.Pinged",
+          "handler": "OnPinged",
+          "line": 9,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "IProbe"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {"name": "IEventBus", "lifetime": "singleton", "deps": [], "file": "Startup.cs", "line": 10},
+    {"name": "IProbe", "lifetime": "transient", "deps": [], "file": "Startup.cs", "line": 11}
+  ]
+}
