@@ -103,6 +103,16 @@ architectural strictness, and the borrow-checker showcase):
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
    *profile*, not a one-off.
+   ◑ *In progress* — the acquire/release half is the live engine (OWN001 across
+   subscriptions / timers / fields / pools). The **region half is now wired to the
+   C# bridge**: a `capture` OwnIR fact (a *tokenless* strong subscription) routes
+   through the lifetime/region engine and surfaces as **OWN014** (the WPF "escape to
+   App"), so the subscription leak is expressible through the *general* owner/
+   release-region model — not a bespoke detector. It is also more *precise* than the
+   token model: a source that does not provably outlive the subscriber stays silent
+   (no false positive) where the token tier only warns. Pinned by
+   `tests/fixtures/ownir/capture.facts.json`; the extractor emitting the fact is the
+   remaining increment (P-004 WPF005).
 3. **DI lifetimes** — registration + constructor graph; captive dependency (P-006).
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.

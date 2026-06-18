@@ -144,5 +144,11 @@ def _check_fn(fn: A.FnDecl, names: set[str],
                 f"'{sub.source}' (lifetime '{src_lt}') outlives the captured "
                 f"object '{fn.name}' (lifetime '{self_lt}'); the strong "
                 f"subscription promotes '{fn.name}' to '{src_lt}' and it leaks "
-                f"(no release path)", sub.line))
+                f"(no release path)", sub.line,
+                # a stable identity (source#line) of the captured-by source, so a
+                # consumer can attribute the escape by symbol rather than scraping
+                # the message — the OwnIR bridge maps OWN014 back to the original
+                # C# subscription off exactly this (ownir._handle_of). Invisible to
+                # rendering, which keys its caret off the message.
+                subject=f"{sub.source}#{sub.line}"))
     return out

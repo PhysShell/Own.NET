@@ -39,6 +39,17 @@ owned-resource records) is an owned resource, discriminated by an optional
   - "subscribe": a `X.Subscribe(...)` whose `IDisposable` result is ignored (a
     bare statement, not captured/disposed) — always a leak; tag
     `[resource: subscription token]`.
+  - "capture": a *tokenless* strong subscription (`event += handler` with no
+    token to release) whose event SOURCE provably outlives the subscriber. This
+    is NOT an acquire/release owned resource — it lowers to the lifetime engine's
+    `subscribe self to <source>` (ownlang/lifetimes.py) with the source's region,
+    so a source that strictly outlives the captured component yields OWN014 (the
+    region escape — the captured object is promoted to the longer lifetime and
+    leaks). The source's lifetime class is the entry's `source`: a `static`
+    (process-lived) event is the longest region. A source of unknown/shorter
+    lifetime is left conservative (no finding) — the region model is precise where
+    the token model (`resource: "subscription"`) only warns. Tag
+    `[resource: subscription token]`.
   - "local-disposable": a local the method `new`s of an `IDisposable` type,
     never disposed and not guarded by `using` (and not returned/passed out);
     tag `[resource: disposable]`.
@@ -52,7 +63,10 @@ owned-resource records) is an owned resource, discriminated by an optional
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
 `line`. The `resource`/`type` fields are additive and optional, so they do NOT
 bump `ownir_version`: an older core just reads every entry as a subscription.
-Region escape (OWN014) is later (see docs/proposals/P-004).
+A `capture` entry instead routes through the lifetime/region engine and surfaces
+as OWN014 (region escape) when its source provably outlives — see docs/proposals/
+P-004 and docs/lifetimes.md (the C# facts now reach the region core, not only the
+`.own` DSL).
 
 An optional top-level `services` array carries the DI registration graph for the
 DI001 captive-dependency check (P-006) — a separate core analysis (ownlang/di.py)
@@ -79,12 +93,16 @@ from .ast_nodes import (
     FnDecl,
     If,
     Let,
+    LifetimeDecl,
     Module,
+    Param,
     Release,
     ResourceDecl,
     ResourceMember,
     Return,
     Stmt,
+    Subscribe,
+    TypeRef,
     Use,
     While,
 )
@@ -153,6 +171,29 @@ _RESOURCES = {
     "local-disposable": ("Disposable", "disposable"),
     "pool": ("PooledBuffer", "pooled buffer"),
 }
+
+# --- P-004 region escape (the `capture` resource kind) ----------------------
+# A `capture` is a tokenless strong subscription routed NOT through the
+# acquire/release ownership model but through the lifetime/region engine
+# (ownlang/lifetimes.py): the captured component lives in a short region, its
+# event source in a longer one, and `subscribe self to <source>` promotes the
+# component to the longer lifetime -> OWN014. The map below turns the extractor's
+# `source` kind into the source's region; only *provably longer* sources are
+# mapped, so an unknown/shorter source produces no node and no finding (the region
+# model is conservative — no false positive). `_SUBSCRIBER_REGION` is the shorter
+# region every captured component lives in, declared strictly inside every mapped
+# source region by `_CAPTURE_LIFETIMES` (added to the module once when any capture
+# is present). Slice #1 models the one provable case — a process-lived `static`
+# event; further source classes (singletons, parent scopes) are a later slice.
+_SUBSCRIBER_REGION = "Subscriber"
+_CAPTURE_SOURCE_REGIONS = {
+    "static": "Process",   # a static event (e.g. SystemEvents.*) lives for the
+                           # whole process -> strictly longer than any subscriber.
+}
+_CAPTURE_LIFETIMES = [
+    LifetimeDecl("Process", None, 0),
+    LifetimeDecl(_SUBSCRIBER_REGION, "Process", 0),   # Subscriber strictly < Process
+]
 
 
 @dataclass(frozen=True)
@@ -287,8 +328,9 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     `release` iff the extractor found a matching unsubscribe. Handles are globally
     unique so a diagnostic naming one maps straight back to its C# location."""
     handles: dict[str, dict[str, Any]] = {}
-    lines = [f"module {facts.get('module', 'Extracted')}", "", _PRELUDE]
     gid = 0
+    any_capture = False
+    comp_lines: list[str] = []
     components = facts.get("components", [])
     if not isinstance(components, list):
         raise OwnIRError("OwnIR 'components' must be a JSON array")
@@ -296,30 +338,67 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
         if not isinstance(comp, dict):
             raise OwnIRError("each OwnIR component must be a JSON object")
         cname = comp.get("name", f"Component{gid}")
-        lines.append(f"fn {cname}() {{")
         subscriptions = comp.get("subscriptions", [])
         if not isinstance(subscriptions, list):
             raise OwnIRError("component 'subscriptions' must be a JSON array")
+        cap_params: list[str] = []     # `<handle>: EventSource lifetime <region>`
+        cap_handles: list[str] = []    # sources for `subscribe self to <handle>;`
+        owned_lines: list[str] = []    # `let <handle> = acquire <R>();` (+ release)
         for sub in subscriptions:
             if not isinstance(sub, dict):
                 raise OwnIRError("each subscription must be a JSON object")
+            rkind = sub.get("resource", "subscription")
             # An "unresolved-subscription" marker is not an owned resource (the
             # extractor could not bind the LHS to an event). Do not lower it to an
             # acquire — that would become a phantom OWN001 leak. It is surfaced as
             # an advisory OWN050 note by _unresolved_findings instead.
-            if sub.get("resource") == "unresolved-subscription":
+            if rkind == "unresolved-subscription":
+                continue
+            # A `capture` is the tokenless region-escape shape: it does NOT acquire
+            # a token (no OWN001); it lowers to `subscribe self to <source>` with
+            # the source's region, so the lifetime engine reports OWN014 when the
+            # source provably outlives. An unmapped (unknown/shorter) source stays
+            # conservative — no node, no finding. Mirrors to_module exactly.
+            if rkind == "capture":
+                src = sub.get("source")
+                region = _CAPTURE_SOURCE_REGIONS.get(src) \
+                    if isinstance(src, str) else None
+                if region is None:
+                    continue
+                handle = f"cap_{gid}"
+                gid += 1
+                handles[handle] = {**sub, "component": cname,
+                                   "file": comp.get("file", "?")}
+                cap_params.append(f"{handle}: EventSource lifetime {region}")
+                cap_handles.append(handle)
+                any_capture = True
                 continue
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
-            rtype, _ = _RESOURCES.get(sub.get("resource", "subscription"),
-                                      _RESOURCES["subscription"])
-            lines.append(f"    let {handle} = acquire {rtype}();")
+            rtype, _ = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+            owned_lines.append(f"    let {handle} = acquire {rtype}();")
             if sub.get("released"):
-                lines.append(f"    release {handle};")
-        lines.append("}")
-        lines.append("")
+                owned_lines.append(f"    release {handle};")
+        sig = ", ".join(cap_params)
+        lt = f" lifetime {_SUBSCRIBER_REGION}" if cap_handles else ""
+        comp_lines.append(f"fn {cname}({sig}){lt} {{")
+        comp_lines.extend(owned_lines)
+        for handle in cap_handles:
+            comp_lines.append(f"    subscribe self to {handle};")
+        comp_lines.append("}")
+        comp_lines.append("")
+    # The region order the captures reference — emitted once, only when needed, so
+    # a capture-free fact set lowers to byte-identical output as before.
+    lifetime_lines: list[str] = []
+    if any_capture:
+        for d in _CAPTURE_LIFETIMES:
+            lifetime_lines.append(f"lifetime {d.name};" if d.longer is None
+                                  else f"lifetime {d.name} < {d.longer};")
+        lifetime_lines.append("")
+    lines = [f"module {facts.get('module', 'Extracted')}", "", _PRELUDE,
+             *lifetime_lines, *comp_lines]
     return "\n".join(lines), handles
 
 
@@ -357,6 +436,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
     handles: dict[str, dict[str, Any]] = {}
     functions: list[FnDecl] = []
     gid = 0
+    any_capture = False
     components = facts.get("components", [])
     if not isinstance(components, list):
         raise OwnIRError("OwnIR 'components' must be a JSON array")
@@ -365,27 +445,56 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             raise OwnIRError("each OwnIR component must be a JSON object")
         cname = comp.get("name", f"Component{gid}")
         body: list[Stmt] = []
+        params: list[Param] = []      # capture sources, carrying their region
+        fn_lt: str | None = None      # the subscriber region, set iff a capture
         subscriptions = comp.get("subscriptions", [])
         if not isinstance(subscriptions, list):
             raise OwnIRError("component 'subscriptions' must be a JSON array")
         for sub in subscriptions:
             if not isinstance(sub, dict):
                 raise OwnIRError("each subscription must be a JSON object")
+            rkind = sub.get("resource", "subscription")
             # an unresolved-subscription marker is not an owned resource — it is
             # surfaced as an advisory OWN050 note, never lowered (see to_own).
-            if sub.get("resource") == "unresolved-subscription":
+            if rkind == "unresolved-subscription":
+                continue
+            # P-004 region escape: a `capture` is a tokenless strong subscription
+            # whose source provably outlives the subscriber. Lower it to the
+            # lifetime engine (`subscribe self to <source>` + the source's region)
+            # -> OWN014, NOT to an acquire/release token. The source becomes a
+            # param carrying its (longer) region; the function carries the shorter
+            # subscriber region. A source of unknown/shorter lifetime stays
+            # conservative (no node emitted, hence no finding). cfg.lower_stmt
+            # treats Subscribe as a no-op and a non-resource param as PLAIN, so
+            # this is inert for the OWN001 ownership pass — only check_lifetimes
+            # reads it.
+            if rkind == "capture":
+                src = sub.get("source")
+                region = _CAPTURE_SOURCE_REGIONS.get(src) \
+                    if isinstance(src, str) else None
+                if region is None:
+                    continue
+                handle = f"cap_{gid}"
+                gid += 1
+                handles[handle] = {**sub, "component": cname,
+                                   "file": comp.get("file", "?")}
+                line = _as_int(sub.get("line", 0))
+                params.append(Param(handle, TypeRef("EventSource", False, False, 0),
+                                    0, lifetime=region))
+                body.append(Subscribe(handle, line))
+                fn_lt = _SUBSCRIBER_REGION
+                any_capture = True
                 continue
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
-            rtype, _ = _RESOURCES.get(sub.get("resource", "subscription"),
-                                      _RESOURCES["subscription"])
+            rtype, _ = _RESOURCES.get(rkind, _RESOURCES["subscription"])
             line = _as_int(sub.get("line", 0))
             body.append(Let(handle, Acquire(rtype, [], line), line))
             if sub.get("released"):
                 body.append(Release(handle, line))
-        functions.append(FnDecl(cname, [], None, body, 0))
+        functions.append(FnDecl(cname, params, None, body, 0, lifetime=fn_lt))
     # P-016 B0b/B2: per-method flow bodies for local IDisposables (acquire / use /
     # release / if / return over a CFG). The core checks them path-sensitively
     # (OWN001 not-released-on-all-paths, OWN002 use-after-release, OWN003 double-
@@ -408,7 +517,8 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             fbody = _lower_flow(nodes, ffile, fname, handles, loc, {}, released)
             functions.append(FnDecl(fname, [], None, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
-                   resources=_prelude_resources(), functions=functions),
+                   resources=_prelude_resources(), functions=functions,
+                   lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
             handles)
 
 
@@ -561,6 +671,27 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="disposable"))
+            continue
+        if rkind == "capture":
+            # OWN014 region escape (P-004): the lifetime engine proved the event
+            # SOURCE outlives the subscriber, so the strong (tokenless) subscription
+            # promotes '{component}' to the source's longer lifetime and it can
+            # never be collected. This is the `event += handler` fire-and-forget;
+            # the mitigation — a disposable token released on close — would be a
+            # `resource: "subscription"` (OWN001), not this. A provable leak, so it
+            # stays error-tier (severity None).
+            src = sub.get("source", "?")
+            origin = ("a static (process-lived) event source" if src == "static"
+                      else f"a longer-lived source ('{src}')")
+            message = (f"event '{event}' is subscribed (handler '{handler}') to "
+                       f"{origin} that outlives '{component}'; the strong "
+                       f"subscription promotes '{component}' to the source's "
+                       f"lifetime, so it can never be collected — a region escape "
+                       f"(leak, no release path)")
+            findings.append(Finding(
+                file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+                component=component, event=event, handler=handler,
+                message=message, kind="subscription token"))
             continue
         _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
         # P-004 tiering: only the plain `event += handler` leak (the else branch

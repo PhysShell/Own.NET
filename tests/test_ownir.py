@@ -64,6 +64,8 @@ _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "unresolved.facts.json")
+_CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                "ownir", "capture.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -512,6 +514,53 @@ def run() -> int:
     if len(uleaks) != 1 or uleaks[0].advisory:
         fails.append(f"expected 1 real OWN001 leak (non-advisory), got "
                      f"{[(x.code, x.advisory) for x in ufindings]}")
+
+    # --- P-004 region escape (OWN014): a `capture` (a TOKENLESS strong
+    #     subscription) whose event SOURCE provably outlives the subscriber routes
+    #     through the lifetime/region engine and lands as OWN014 at the C# site —
+    #     proving C# subscription facts reach the region core (docs/lifetimes.md
+    #     slice #3), not only the hand-written `.own` DSL. An injected-source
+    #     capture (unknown lifetime) stays SILENT: the region model is conservative
+    #     where it cannot prove the source outlives — precise where the token model
+    #     (resource:"subscription") only warns. The lowered sketch still parses.
+    with open(_CAPTURE_FIXTURE, encoding="utf-8") as f:
+        cfacts = json.load(f)
+    csrc, _ = to_own(cfacts)
+    checks += 1
+    try:
+        parse(csrc)
+    except Exception as e:
+        fails.append(f"lowered capture facts do not parse: {e}")
+    # a capture must NOT be lowered to an acquire STATEMENT (`= acquire`, the token
+    # model -> OWN001); it lowers to `subscribe self to ...` under a lifetime
+    # region. (The resource PRELUDE legitimately contains the word "acquire" as a
+    # member keyword, so match the `= acquire` statement form, not bare "acquire".)
+    checks += 1
+    if "= acquire" in csrc or "subscribe self to cap_0" not in csrc \
+            or "lifetime Subscriber < Process" not in csrc:
+        fails.append(f"capture lowered to the wrong shape (want subscribe+lifetime, "
+                     f"no acquire statement): {csrc!r}")
+    cfindings = check_facts(cfacts)
+    checks += 1
+    if [(x.component, x.line, x.code) for x in cfindings] != \
+            [("ThemeViewModel", 18, "OWN014")]:
+        fails.append(f"expected one OWN014 region escape (ThemeViewModel@18), got "
+                     f"{[(x.component, x.line, x.code) for x in cfindings]}")
+    else:
+        c0 = cfindings[0]
+        checks += 1
+        if c0.severity is not None:
+            fails.append(f"region escape should be error-tier (None), got "
+                         f"{c0.severity!r}")
+        if "region escape" not in c0.message or \
+                "UserPreferenceChanged" not in c0.message:
+            fails.append(f"region-escape message wrong: {c0.message!r}")
+        if "[resource: subscription token]" not in c0.render():
+            fails.append(f"region-escape finding missing kind tag: {c0.render()!r}")
+    # the injected-source capture (unknown lifetime) must NOT be reported.
+    checks += 1
+    if any(x.component == "OrdersViewModel" for x in cfindings):
+        fails.append("injected-source capture (unprovable) was wrongly reported")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
