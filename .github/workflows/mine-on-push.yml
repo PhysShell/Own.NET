@@ -1,0 +1,105 @@
+name: mine (on push)
+
+# Autonomous corpus mining for the eval loop. When corpus/mine-target.txt changes
+# on the dev branch, clone the named public C# repo and run the Own.NET leak check
+# over it — same tooling as mine.yml (docs/notes/mining.md), but push-triggered so
+# the loop needs no manual workflow_dispatch. The target is read from the committed
+# sentinel file and ALLOWLIST-validated before use (never interpolated raw into a
+# shell; passed to the miner via env). One repo per run. Dev-branch only — remove
+# before merging to main.
+
+on:
+  push:
+    branches:
+      - claude/zen-pasteur-76hfs1
+    paths:
+      - corpus/mine-target.txt
+
+permissions:
+  contents: read
+
+jobs:
+  mine:
+    name: mine (sentinel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Materialize WPF reference assemblies (WPF profile)
+        run: |
+          # The WindowsDesktop ref pack isn't in the Linux SDK, but a net8.0-windows
+          # /UseWPF stub restores it cross-platform (EnableWindowsTargeting). Export
+          # the ref dir so the extractor (OWN_EXTRA_REF_DIRS) can resolve WPF events
+          # and timers instead of dropping them as OWN050.
+          tmp=$(mktemp -d)
+          printf '%s\n' \
+            '<Project Sdk="Microsoft.NET.Sdk">' \
+            '  <PropertyGroup>' \
+            '    <TargetFramework>net8.0-windows</TargetFramework>' \
+            '    <UseWPF>true</UseWPF>' \
+            '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
+            '  </PropertyGroup>' \
+            '</Project>' > "$tmp/wpfref.csproj"
+          dotnet restore "$tmp/wpfref.csproj" >/dev/null 2>&1 || echo "wpf-ref restore failed (continuing without)"
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1 || true)
+          if [ -n "$d" ]; then
+            echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+            echo "WPF refs ready: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+          else
+            echo "WPF refs NOT found — the mine will run without them (OWN050 on framework types)"
+          fi
+      - name: Read & validate the target
+        id: target
+        run: |
+          file=corpus/mine-target.txt
+          # First non-comment, non-empty line: "owner/repo" or an https git URL.
+          target=$(grep -vE '^[[:space:]]*(#|$)' "$file" | head -1 | tr -d '[:space:]')
+          ref=$(grep -E '^ref=' "$file" | head -1 | sed 's/^ref=//' | tr -d '[:space:]')
+          paths=$(grep -E '^paths=' "$file" | head -1 | sed 's/^paths=//' | tr -d '[:space:]')
+          # Allowlist: GitHub owner/repo, or an https git URL. Reject anything else
+          # so a stray sentinel value can't smuggle shell or an odd scheme.
+          if ! [[ "$target" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ || "$target" =~ ^https://[A-Za-z0-9./_-]+$ ]]; then
+            echo "mine-on-push: invalid target '$target' in $file" >&2; exit 2
+          fi
+          { echo "target=$target"; echo "ref=$ref"; echo "paths=$paths"; } >> "$GITHUB_OUTPUT"
+          echo "mine-on-push: $target (ref='${ref:-HEAD}' paths='${paths:-*}')"
+      - name: Mine the target
+        env:
+          REPO: ${{ steps.target.outputs.target }}
+          REF: ${{ steps.target.outputs.ref }}
+          PATHS: ${{ steps.target.outputs.paths }}
+        run: |
+          args=()
+          [[ -n "$REF" ]]   && args+=(--ref "$REF")
+          [[ -n "$PATHS" ]] && args+=(--paths "$PATHS")
+          scripts/mine.sh "${args[@]}" "$REPO"
+      - name: Surface the report (log + summary)
+        if: always()
+        run: |
+          report=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
+          findings=$(find corpus/mined -name findings.txt -type f 2>/dev/null | head -1 || true)
+          if [[ -n "$report" ]]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo "::group::report.md"; cat "$report"; echo "::endgroup::"
+          else
+            echo "no report produced (see the Mine step log)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [[ -n "$findings" ]]; then
+            echo "::group::findings.txt"; cat "$findings"; echo "::endgroup::"
+          fi
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mine-report
+          path: |
+            corpus/mined/*/report.md
+            corpus/mined/*/report.json
+            corpus/mined/*/findings.txt
+            corpus/mined/*/extract.log
+          if-no-files-found: warn

@@ -1,0 +1,16 @@
+// OwnLang model of a real WPF view->view-model leak found by mining
+// NickeManarin/ScreenToGif (P-004 milestone 1). In VideoSource.xaml.cs the
+// Window's Loaded handler subscribes lambdas to its view-model's events and
+// never detaches them. A subscription is acquire/release (subscribe/unsubscribe);
+// the missing release is the generic OWN001 — see notes.md for the real finding,
+// its provenance, and why the C# extractor rates it a *warning* (injected source).
+module Corpus
+resource Subscription {
+  acquire Subscribe
+  release Unsubscribe
+  kind "subscription token"
+}
+fn Window_Loaded(viewModel: int) {
+  let showError = acquire Subscription(viewModel);   // _viewModel.ShowErrorRequested += (_, e) => ...
+  // no `release showError;` — Window_Closing never does `-=` -> handler leak (OWN001)
+}

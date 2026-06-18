@@ -39,6 +39,14 @@ on:
         required: false
         type: boolean
         default: false
+  # Dev-loop fallback (the automation token can't `workflow_dispatch`): bump the
+  # sentinel corpus/oracle-target.txt to run the oracle push-triggered, reading the
+  # target from that file. Dev-branch only — remove before merging to main.
+  push:
+    branches:
+      - claude/zen-pasteur-76hfs1
+    paths:
+      - corpus/oracle-target.txt
 
 permissions:
   contents: read
@@ -57,35 +65,113 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      # Resolve the target: workflow_dispatch inputs win; on push, read the
+      # sentinel corpus/oracle-target.txt (same format/allowlist as mine-on-push).
+      # Everything downstream reads steps.t.outputs.* so both triggers share steps.
+      - name: Resolve target
+        id: t
+        env:
+          IN_REPO: ${{ inputs.repo }}
+          IN_REF: ${{ inputs.ref }}
+          IN_PATHS: ${{ inputs.paths }}
+          IN_BUILD: ${{ inputs.build }}
+          IN_TESTS: ${{ inputs.include_tests }}
+        run: |
+          file=corpus/oracle-target.txt
+          if [[ -n "$IN_REPO" ]]; then
+            repo="$IN_REPO"; ref="$IN_REF"; paths="$IN_PATHS"; build="$IN_BUILD"; tests="$IN_TESTS"
+          else
+            repo=$(grep -vE '^[[:space:]]*(#|$)' "$file" | head -1 | tr -d '[:space:]')
+            ref=$(grep -E '^ref=' "$file"           | head -1 | sed 's/^ref=//'           | tr -d '[:space:]')
+            paths=$(grep -E '^paths=' "$file"        | head -1 | sed 's/^paths=//'         | tr -d '[:space:]')
+            build=$(grep -E '^build=' "$file"        | head -1 | sed 's/^build=//'         | tr -d '[:space:]')
+            tests=$(grep -E '^include_tests=' "$file"| head -1 | sed 's/^include_tests=//' | tr -d '[:space:]')
+          fi
+          # Allowlist: GitHub owner/repo, an https URL, or local:<in-repo path>
+          # (a fixture copied into target/ instead of cloned) — never an odd scheme.
+          if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ || "$repo" =~ ^https://[A-Za-z0-9./_-]+$ || "$repo" =~ ^local:[A-Za-z0-9._/-]+$ ]]; then
+            echo "oracle: invalid target '$repo'" >&2; exit 2
+          fi
+          { echo "repo=$repo"; echo "ref=$ref"; echo "paths=$paths";
+            echo "build=$build"; echo "tests=${tests:-false}"; } >> "$GITHUB_OUTPUT"
+          echo "oracle target: $repo (ref='${ref:-HEAD}' paths='${paths:-*}' build='${build:-auto}' tests='${tests:-false}')"
+
       # Fast fail: the diff logic is unit-tested before we clone/build anything.
       - name: Comparator selftest
         run: python scripts/oracle_compare.py --selftest
 
       - name: Clone the target
         env:
-          REPO: ${{ inputs.repo }}
-          REF: ${{ inputs.ref }}
+          REPO: ${{ steps.t.outputs.repo }}
+          REF: ${{ steps.t.outputs.ref }}
         run: |
-          case "$REPO" in
-            http://*|https://*|git@*) url="$REPO" ;;
-            *) url="https://github.com/${REPO}.git" ;;
-          esac
-          git clone --depth 1 --quiet "$url" target
-          if [[ -n "$REF" ]]; then
-            # --branch only accepts a branch/tag; fetch+checkout also takes a raw SHA.
-            git -C target fetch --depth 1 --quiet origin "$REF"
-            git -C target checkout --quiet --detach FETCH_HEAD
+          if [[ "$REPO" == local:* ]]; then
+            # local:<in-repo path> — copy an in-repo fixture into target/ instead of
+            # cloning, so a tiny buildable repro (where ScreenToGif can't build on
+            # Linux) lets every oracle — including Infer#, which needs binaries — run.
+            src="${REPO#local:}"
+            [[ "$src" != *..* && -d "$src" ]] || { echo "oracle: bad local fixture '$src'" >&2; exit 2; }
+            cp -r "$src" target
+            echo "COMMIT=local@$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+            echo "using in-repo fixture: $src"
+          else
+            case "$REPO" in
+              http://*|https://*|git@*) url="$REPO" ;;
+              *) url="https://github.com/${REPO}.git" ;;
+            esac
+            if [[ -n "$REF" ]]; then
+              # A blobless clone keeps the full commit/ref graph (blobs fetched on
+              # demand), so ANY ref — branch, tag, or an abbreviated SHA — resolves
+              # locally at checkout. A shallow `fetch origin <short-sha>` does NOT:
+              # servers reject abbreviated / unadvertised SHAs in a want request.
+              git clone --filter=blob:none --quiet "$url" target
+              git -C target checkout --quiet --detach "$REF"
+            else
+              git clone --depth 1 --quiet "$url" target
+            fi
+            echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
           fi
-          echo "COMMIT=$(git -C target rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      # Own.NET — no build needed; scans .cs directly.
+      # Framework-type references for own-check. The Roslyn extractor resolves a
+      # `+=` only when the event's declaring type is on its reference set — else the
+      # subscription is an OWN050 "unchecked" note, not a leak. Materialize the
+      # WindowsDesktop ref pack (WPF / WinForms / Microsoft.Win32.SystemEvents) and
+      # export OWN_EXTRA_REF_DIRS so own-check resolves framework events instead of
+      # dropping them — putting it on equal footing with CodeQL, which resolves
+      # types from source. Harmless for non-Windows targets (deduped vs the runtime).
+      - name: Materialize framework reference assemblies
+        continue-on-error: true
+        run: |
+          tmp=$(mktemp -d)
+          printf '%s\n' \
+            '<Project Sdk="Microsoft.NET.Sdk">' \
+            '  <PropertyGroup>' \
+            '    <TargetFramework>net8.0-windows</TargetFramework>' \
+            '    <UseWPF>true</UseWPF>' \
+            '    <UseWindowsForms>true</UseWindowsForms>' \
+            '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
+            '  </PropertyGroup>' \
+            '</Project>' > "$tmp/ref.csproj"
+          dotnet restore "$tmp/ref.csproj" >/dev/null 2>&1 || echo "ref restore failed (continuing)"
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1 || true)
+          if [ -n "$d" ]; then
+            echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+            echo "framework refs: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+          else
+            echo "framework refs not found — own-check resolves runtime types only"
+          fi
+
+      # Own.NET — no build needed; scans .cs directly. --severity warning so the
+      # warning-tier leaks (injected-source subscriptions, e.g. VideoSource) are
+      # included, not just the provable static-source errors. OWN_EXTRA_REF_DIRS
+      # (above) is inherited by the extractor process.
       - name: Own.NET own-check
         env:
-          PATHS: ${{ inputs.paths }}
+          PATHS: ${{ steps.t.outputs.paths }}
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
           set +e
-          scripts/own-check.sh --format human -- "$scan" > own.txt 2> own-extract.log
+          scripts/own-check.sh --format human --severity warning -- "$scan" > own.txt 2> own-extract.log
           echo "own-check rc=$? ; $(wc -l < own.txt) finding line(s)"
 
       # CodeQL — database from source (no build). The dispose/leak queries
@@ -115,8 +201,8 @@ jobs:
       # projects); else a lone solution (.sln/.slnx); else the dir (-> partial).
       - name: Build the target (for Infer#)
         env:
-          BUILD: ${{ inputs.build }}
-          REPO: ${{ inputs.repo }}
+          BUILD: ${{ steps.t.outputs.build }}
+          REPO: ${{ steps.t.outputs.repo }}
         continue-on-error: true
         run: |
           if [[ -n "$BUILD" ]]; then
@@ -162,8 +248,8 @@ jobs:
       - name: Diff Own.NET vs the oracles
         if: always()
         env:
-          REPO: ${{ inputs.repo }}
-          INCLUDE_TESTS: ${{ inputs.include_tests }}
+          REPO: ${{ steps.t.outputs.repo }}
+          INCLUDE_TESTS: ${{ steps.t.outputs.tests }}
         run: |
           args=(--own own.txt --target "$REPO" --commit "${COMMIT:-}"
                 --strip "$GITHUB_WORKSPACE/target" --strip target

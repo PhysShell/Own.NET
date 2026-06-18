@@ -140,21 +140,44 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 
 // P-004 self-owned exemption: is the event SOURCE owned by (and so never longer-
 // lived than) the subscriber? True for a bare instance event on `this`, or a
-// receiver that resolves to a field/local the class constructs (`new`s). Such a
-// `source <-> this` reference cycle is GC-collectable, so the subscription is not
-// a leak. The receiver is resolved to a SYMBOL (not matched by text), and the
-// `constructed` set is AST-based (ObjectCreationExpressionSyntax) — not a regex.
-// NOTE: callers must exclude timers — a *running* timer is rooted by the
-// dispatcher regardless of who owns the field.
+// receiver that resolves to a field/local the class OWNS. "Owns" is the `owned`
+// set the caller computes: fields the class constructs directly (`new`), builds
+// indirectly through a `ref`/`out` helper, or fetches as one of its own template
+// parts. Such a `source <-> this` reference cycle is GC-collectable, so the
+// subscription is not a leak. The receiver is resolved to a SYMBOL (not matched by
+// text), and `owned` is AST-based — not a regex. NOTE: callers must exclude timers
+// — a *running* timer is rooted by the dispatcher regardless of who owns the field.
 static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
-                              SemanticModel model, HashSet<string> constructed)
+                              SemanticModel model, HashSet<string> owned)
 {
     if (left is not MemberAccessExpressionSyntax m)
         return !ev.IsStatic;   // bare event => an instance event on `this`
     if (m.Expression is ThisExpressionSyntax)
         return true;
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
-    return (recv is IFieldSymbol or ILocalSymbol) && constructed.Contains(recv.Name);
+    return (recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name);
+}
+
+// P-004 (ext): a control fetching one of its OWN template parts —
+// `GetTemplateChild("PART_x")` or `[Template.]FindName(...)`, optionally behind a
+// cast or `as` — owns the result (it lives inside the control's own template /
+// visual tree). AST-only (matched by call name), in the spirit of the rest of the
+// file; used to fold template-part fields into the self-owned exemption.
+static bool IsTemplatePartFetch(ExpressionSyntax? expr)
+{
+    expr = expr switch
+    {
+        CastExpressionSyntax c => c.Expression,
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => b.Left,
+        _ => expr,
+    };
+    return expr is InvocationExpressionSyntax inv
+        && (inv.Expression switch
+           {
+               MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+               IdentifierNameSyntax id => id.Identifier.Text,
+               _ => null,
+           }) is "GetTemplateChild" or "FindName";
 }
 
 // P-004 static-handler exemption: a `+= StaticMethod` stores a delegate whose
@@ -312,16 +335,30 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // `foreach` runs its body 0+ times over an (opaque) collection — the same
             // ownership shape as `while`. The loop variable is never a `new`'d
             // candidate and the hidden enumerator is auto-disposed, so modelling the
-            // body as a `while` is sound. (`for`/`do` stay unmodelled below: `for`
-            // can declare a resource in its initializer and `do` runs 1+ times.)
+            // body as a `while` is sound. (`do` stays unmodelled below — it runs 1+
+            // times; `for` is handled next.)
             var bodyNodes = new List<object>();
             if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
         }
+        case ForStatementSyntax fors:
+        {
+            // `for (init; cond; incr) body` runs its body 0+ times — the same
+            // ownership shape as `while`/`foreach`. init/cond/incr are opaque (we
+            // model control flow, not values); the tracked locals are the ones the
+            // BODY declares. A resource declared in the `for` *initializer* is not a
+            // method-body local, so it is never a tracked candidate — no soundness
+            // concern, just a separate (rare) recall gap. `do`/try/switch stay below.
+            var bodyNodes = new List<object>();
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes))
+                return false;
+            nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
+            return true;
+        }
         default:
-            return false;   // unmodelled (for/do/try/switch/...) -> bail the method
+            return false;   // unmodelled (do/try/switch/...) -> bail the method
     }
 }
 
@@ -415,11 +452,28 @@ foreach (var path in inputs)
 // in-project types and BCL events; external types (WPF/DevExpress) stay
 // unresolved and are surfaced as OWN050 "unchecked", never guessed as leaks.
 // Error-tolerant: compile diagnostics are irrelevant — we only read symbols.
-var references = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? "")
+var tpa = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string) ?? "")
     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
     .Where(p => p.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-    .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
     .ToList();
+var refNames = new HashSet<string>(tpa.Select(Path.GetFileName), StringComparer.OrdinalIgnoreCase);
+var references = tpa.Select(p => (MetadataReference)MetadataReference.CreateFromFile(p)).ToList();
+// P-004 WPF profile: widen the reference set with assemblies named by the
+// OWN_EXTRA_REF_DIRS env var (colon-separated dirs) — e.g. the WindowsDesktop ref
+// pack — so framework events/timers (Button.Click, DispatcherTimer.Tick) resolve to
+// real symbols instead of surfacing as OWN050 on a WPF app. Additive and best-
+// effort: unset => unchanged behaviour; a DLL whose simple name a TPA reference
+// already provides is skipped so System.* is not double-referenced from two packs.
+foreach (var dir in (Environment.GetEnvironmentVariable("OWN_EXTRA_REF_DIRS") ?? "")
+             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+{
+    if (!Directory.Exists(dir)) continue;
+    var added = 0;
+    foreach (var dll in Directory.EnumerateFiles(dir, "*.dll"))
+        if (refNames.Add(Path.GetFileName(dll)))
+        { references.Add(MetadataReference.CreateFromFile(dll)); added++; }
+    Console.Error.WriteLine($"extractor: +{added} extra references from {dir}");
+}
 var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -469,6 +523,37 @@ foreach (var (file, tree) in parsed)
                 && FieldName(a.Left) is { } fn)
                 constructed.Add(fn);
 
+        // P-004 (extended) self-owned set for the SUBSCRIPTION exemption ONLY. A
+        // field can be owned without a direct `_f = new ...`; fold in two more
+        // shapes the WPF mining run surfaced. Kept OUT of `constructed` so the
+        // WPF003 disposal detector keeps demanding disposal of `new`'d fields only
+        // (you don't dispose a borrowed-by-ref value or a template part). Both paths
+        // require an actual FIELD (a `ref`/`out` local or parameter is not owned):
+        //   * ref/out construction by one of THIS class's OWN helpers —
+        //     `BuildCorner(ref _thumb, ...)`: the class populates the field itself,
+        //     so it owns it. A `ref`/`out` to an EXTERNAL method
+        //     (`container.TryResolve(out _bus)`, `Interlocked.Exchange(ref _bus, ..)`)
+        //     only proves the callee CAN assign it — it may be an injected, longer-
+        //     lived publisher — so it is NOT exempted, else a real leak is suppressed.
+        //   * template parts — `_part = GetTemplateChild("PART_x") as T`: a control
+        //     owns the parts of its own template (collectable part<->control cycle).
+        var clsSymbol = model.GetDeclaredSymbol(cls);
+        var selfOwned = new HashSet<string>(constructed);
+        foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
+            if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+                 || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+                && model.GetSymbolInfo(arg.Expression).Symbol is IFieldSymbol rf
+                && arg.Parent?.Parent is InvocationExpressionSyntax callInv
+                && model.GetSymbolInfo(callInv).Symbol is IMethodSymbol callee
+                && clsSymbol is not null
+                && SymbolEqualityComparer.Default.Equals(callee.ContainingType, clsSymbol))
+                selfOwned.Add(rf.Name);
+        foreach (var a in assigns)
+            if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol tf
+                && IsTemplatePartFetch(a.Right))
+                selfOwned.Add(tf.Name);
+
         var subs = new List<object>();
         foreach (var a in assigns)
         {
@@ -490,7 +575,7 @@ foreach (var (file, tree) in parsed)
                 //    constructs) — the source<->this cycle is GC-collectable;
                 //  - static handler — a static method has a null delegate target,
                 //    so no instance is retained and nothing can leak.
-                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, constructed)
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned)
                                  || IsStaticHandler(a.Right, model)))
                     continue;
                 // P-004 tiering: a local-variable source is method-bounded — it

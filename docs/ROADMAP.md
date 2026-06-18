@@ -80,6 +80,17 @@ architectural strictness, and the borrow-checker showcase):
 ### Milestones
 
 1. **WPF leak spike** — find 1–3 real subscription/timer leaks in real code (P-004).
+   ✔ *Done* — mining real OSS C# surfaced real leaks in `NickeManarin/ScreenToGif`:
+   a view→view-model subscription (`VideoSource`) and two `SystemEvents` leaks, plus
+   precise/clean results on disciplined code. The WPF reference unlock
+   (`OWN_EXTRA_REF_DIRS`) and the self-owned-control precision gap it revealed are
+   both closed — the exemption now covers `ref`/`out`-built fields (via the class's
+   own helper) and template
+   parts, cutting ScreenToGif's WPF-profile findings 123 → 36 (real leaks intact).
+   The cross-tool oracle confirms the differentiation: CodeQL *and* Infer# (the latter
+   via a buildable fixture) cover the Dispose/RAII class and flag none of these
+   subscription leaks — agreeing with Own.NET only on a Dispose leak, never a subscription.
+   See [docs/notes/real-world-mining.md](notes/real-world-mining.md).
 2. **Resource core** — generalise WPF subscriptions + `IDisposable` into one
    acquire/release/owner/release-region model (P-004 ∪ P-005), so WPF is a
    *profile*, not a one-off.

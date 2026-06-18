@@ -46,38 +46,70 @@ def _load_titles() -> dict[str, str]:
 
 TITLES = _load_titles()
 
-# own-check human line: "<file>:<line>: <sev>: [<CODE>] <msg> [resource: <kind>]"
+# own-check human header: "<file>:<line>: <sev>: [<CODE>] <msg>[ [resource: <kind>]]".
+# The trailing `[resource: kind]` tag is OPTIONAL and, for a multi-line finding (an
+# inline lambda handler echoed across lines), lands on the LAST line — so the header
+# must match with or without it, and `msg` is non-greedy so a tag on the header line
+# is split out rather than swallowed.
 _LINE = re.compile(
     r"^(?P<file>.+?):(?P<line>\d+): (?P<sev>error|warning): "
-    r"\[(?P<code>[A-Z]+\d+)\] (?P<msg>.*) \[resource: (?P<kind>[^\]]*)\]\s*$"
+    r"\[(?P<code>[A-Z]+\d+)\] (?P<msg>.*?)"
+    r"(?: \[resource: (?P<kind>[^\]]*)\])?\s*$"
 )
+# the trailing `[resource: kind]` tag wherever it lands — recovers the kind from the
+# last line of a multi-line finding.
+_RESOURCE_TAIL = re.compile(r"\[resource: (?P<kind>[^\]]*)\]\s*$")
 # the core's trailing chatter ("N findings.", "... ok — no ...") is not a finding.
 _CHATTER = re.compile(r"\b\d+ (finding|error)s?\b|: ok | no ownership| no subscription")
 
 
+def _net_open(s: str) -> int:
+    """Net unclosed (){}[] in `s`. A multi-line finding's header (an inline lambda
+    handler echoed across lines) is left unbalanced; a complete finding is balanced —
+    so this distinguishes a continuation line from stray drift after a finished one."""
+    return (s.count("(") - s.count(")")
+            + s.count("{") - s.count("}")
+            + s.count("[") - s.count("]"))
+
+
 def parse(text: str) -> tuple[list[dict[str, Any]], int]:
     """Parse own-check human output into finding dicts; return (findings, unparsed).
-    Build chatter shouldn't reach here (own-check sends it to stderr), but if a
-    stray line does, count it rather than silently dropping it."""
+    A finding may span several lines — an inline lambda handler body is echoed across
+    lines, with the trailing `[resource: kind]` tag (when present) on the last. A
+    non-header line extends the current finding's message ONLY while that message's
+    brackets are still unbalanced (i.e. we are inside the lambda body); once balanced,
+    the finding is complete and a further non-matching line is stray drift, counted —
+    not silently absorbed. Build chatter shouldn't reach here (own-check sends it to
+    stderr); a stray line that does and isn't chatter is counted, not dropped."""
     findings: list[dict[str, Any]] = []
     unparsed = 0
+    cur: dict[str, Any] | None = None
+    cur_open = 0
     for raw in text.splitlines():
         line = raw.rstrip()
         if not line:
             continue
         m = _LINE.match(line)
         if m is None:
-            if not _CHATTER.search(line):
+            if cur is not None and cur_open > 0:        # inside a multi-line body
+                cur["message"] += "\n" + line
+                cur_open += _net_open(line)
+                tail = _RESOURCE_TAIL.search(line)
+                if tail and not cur["kind"]:
+                    cur["kind"] = tail["kind"]
+            elif not _CHATTER.search(line):
                 unparsed += 1
             continue
-        findings.append({
+        cur = {
             "file": m["file"],
             "line": int(m["line"]),
             "severity": m["sev"],
             "code": m["code"],
             "message": m["msg"],
-            "kind": m["kind"],
-        })
+            "kind": m["kind"] or "",
+        }
+        cur_open = _net_open(m["msg"])
+        findings.append(cur)
     return findings, unparsed
 
 

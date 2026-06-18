@@ -1,0 +1,11 @@
+# Target for the push-triggered oracle (.github/workflows/oracle.yml, push path).
+# Format = mine-target.txt: first non-comment line is "owner/repo", an https URL,
+# or "local:<in-repo path>" (a fixture copied into the oracle's target/).
+# Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
+#
+# Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
+# included — ScreenToGif's WPF won't build on Linux). Expected 2x2: the FileStream
+# Dispose leak agrees across tools; the SystemEvents subscription leak is Own.NET
+# only. See corpus/fixtures/systemevents-console/README.md.
+local:corpus/fixtures/systemevents-console
+build=SystemEventsLeak.csproj

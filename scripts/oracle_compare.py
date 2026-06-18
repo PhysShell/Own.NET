@@ -492,6 +492,24 @@ def _selftest() -> int:
         fails.append(f"parser drift not surfaced: expected 1 unparsed, got {drift}")
     if "warning:" not in render_md(r, "o/r", "abc123", ["infersharp"], 3, drift):
         fails.append("unparsed warning not rendered in header")
+    # multi-line findings (an inline lambda handler echoed across lines) parse as ONE
+    # finding, with the kind recovered from the last line; a missing/optional
+    # `[resource:]` tag is fine. Neither shape counts as drift — this is the own-check
+    # format that silently broke the ScreenToGif oracle run (38 lines "unparsed").
+    ml_txt = (
+        "src/V.xaml.cs:50: warning: [OWN001] event 'x' subscribed (handler '(_, e) =>\n"
+        "        {\n"
+        "            Do();\n"
+        "        }') but never unsubscribed [resource: subscription token]\n"
+        "src/N.cs:7: error: [OWN001] field 'f' is never released\n"
+    )
+    ml, ml_drift = build_own(ml_txt, [])
+    if len(ml) != 2:
+        fails.append(f"multi-line/untagged: expected 2 findings, got {len(ml)}")
+    if ml_drift != 0:
+        fails.append(f"multi-line finding miscounted as drift: {ml_drift}")
+    if not any(f.rule == "OWN001" and f.fkey == "v.xaml.cs" for f in ml):
+        fails.append("multi-line finding lost its file/line/code")
     # Infer#'s Pulse engine emits PULSE_RESOURCE_LEAK (not RESOURCE_LEAK) — it must
     # still classify as a leak, not out-of-scope context.
     pulse_sarif = json.dumps({"runs": [{"results": [
@@ -513,7 +531,7 @@ def _selftest() -> int:
     if "product code only" not in render_md(r, "o/r", "abc", ["codeql"], 3, 0, 0, True):
         fails.append("scope note must render when exclude-tests mode is on (even at 0)")
 
-    total = 16
+    total = 19
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

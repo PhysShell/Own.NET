@@ -124,6 +124,8 @@ jobs:
             frontend/roslyn/samples/PooledBufferSample.cs \
             frontend/roslyn/samples/LocalDisposableSample.cs \
             frontend/roslyn/samples/SelfOwnedViewModel.cs \
+            frontend/roslyn/samples/SelfOwnedControlParts.cs \
+            frontend/roslyn/samples/ExternalRefSubscription.cs \
             frontend/roslyn/samples/StaticHandlerViewModel.cs \
             frontend/roslyn/samples/SampleTypes.cs \
             -o "$RUNNER_TEMP/facts.json"
@@ -215,6 +217,18 @@ jobs:
           if echo "$out" | grep -q "SelfOwnedViewModel.cs"; then
             echo "FAIL: a self-owned subscription was wrongly reported"; exit 1
           fi
+          # P-004 self-owned (extended): a field built indirectly via a `ref`/`out`
+          # helper, or fetched as one of the control's own template parts
+          # (GetTemplateChild), is owned just like a `new`'d field — both
+          # subscriptions in SelfOwnedControlParts are collectable cycles -> silent.
+          if echo "$out" | grep -q "SelfOwnedControlParts.cs"; then
+            echo "FAIL: a self-owned (ref-built / template-part) subscription was wrongly reported"; exit 1
+          fi
+          # P-004 (ref/out narrowing, Codex P2): a field populated by an EXTERNAL
+          # class's ref method (not this class's own helper) is NOT self-owned — the
+          # subscription must still be reported, not silently suppressed.
+          echo "$out" | grep -qE "ExternalRefSubscription\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: expected OWN001 on the external-ref subscription (must not be exempted)"; exit 1; }
           # P-004 static-handler exemption: a static-method handler has a null
           # delegate target — no instance retained, so not a leak — silent.
           if echo "$out" | grep -q "StaticHandlerViewModel.cs"; then
@@ -241,21 +255,23 @@ jobs:
             || { echo "FAIL: expected the never-disposed wording for the 0-release Timer"; exit 1; }
           echo "$out" | grep -qE "'leak' may not be disposed on every path" \
             || { echo "FAIL: expected the partial-path wording for LeakOnElse"; exit 1; }
-          # P-016 A1 reached the frontend: `while`/`foreach` bodies are now lowered
-          # (not skipped), so a per-iteration leak in one is caught.
+          # P-016 A1 reached the frontend: `while`/`foreach`/`for` bodies are now
+          # lowered (not skipped), so a per-iteration leak in one is caught.
           echo "$out" | grep -qE "OWN001.*'whileLeak' is never disposed" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a while loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'foreachLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a foreach loop"; exit 1; }
-          # dispose-optional (Task), disposed/escaping locals, a `for` loop (still
-          # skipped: `looped`), and a balanced acquire+dispose in a loop (`whileClean`)
-          # must stay silent:
+          echo "$out" | grep -qE "OWN001.*'forLeak'" \
+            || { echo "FAIL: expected OWN001 on the undisposed local in a for loop"; exit 1; }
+          # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
+          # disposable is disposed after it (`looped`, balanced), and a balanced
+          # acquire+dispose in a loop (`whileClean`) must stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
           for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
-          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Coverage summary (--stats)
         run: |
           # --stats prints a flow-locals coverage line to stderr and stamps the same
