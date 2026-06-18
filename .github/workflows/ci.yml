@@ -263,15 +263,21 @@ jobs:
             || { echo "FAIL: expected OWN001 on the undisposed local in a foreach loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'forLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a for loop"; exit 1; }
+          # `try`/`finally` lowered sequentially (try-methods no longer skipped): a
+          # local never disposed inside a try is now caught.
+          echo "$out" | grep -qE "OWN001.*'tfLeak'" \
+            || { echo "FAIL: expected OWN001 on the undisposed local in a try-method"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
-          # disposable is disposed after it (`looped`, balanced), and a balanced
-          # acquire+dispose in a loop (`whileClean`) must stay silent:
+          # disposable is disposed after it (`looped`, balanced), a balanced
+          # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
+          # balanced) and a catch-disposes method (`tfCatch`, soundly skipped) must
+          # stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg; do
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
-          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Coverage summary (--stats)
         run: |
           # --stats prints a flow-locals coverage line to stderr and stamps the same
