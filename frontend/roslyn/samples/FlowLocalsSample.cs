@@ -116,9 +116,10 @@ public class FlowLocalsSample
         catch (Exception) { tfCatch.Dispose(); }
     }
 
-    // a `return` inside a try-with-finally: the finally still disposes (SAFE), but the
-    // model can't yet place the finally before the return — so it bails rather than
-    // falsely flag the resource as leaked on the return path -> silent.
+    // a `return` inside a try-with-finally: the finally is now threaded BEFORE the return
+    // (onReturn), so `tfRet.Dispose()` runs on the early-return path too -> disposed on every
+    // path -> silent. (Previously the whole method bailed to avoid a false leak; now it is
+    // analysed, and an early return that skipped a dispose would be caught — see EarlyReturnLeak.)
     public void TryFinallyReturn(bool c)
     {
         var tfRet = new MemoryStream();
@@ -264,6 +265,83 @@ public class FlowLocalsSample
         }
         finally { }
         lamPrior.Dispose();
+    }
+
+    // finally-before-return: the early `return` runs the finally (disposing `other`) FIRST,
+    // then exits — so `other` is released on the return path and stays silent. But `earlyRet`
+    // is disposed only AFTER the try, which the early return (and the throw on WriteByte) skip
+    // -> it leaks on those paths (OWN001). The try-with-finally + return used to bail the whole
+    // method; it is now threaded and analysed.
+    public void EarlyReturnLeak(bool c)
+    {
+        var earlyRet = new MemoryStream();
+        var other = new MemoryStream();
+        try { if (c) return; earlyRet.WriteByte(1); }
+        finally { other.Dispose(); }
+        earlyRet.Dispose();
+    }
+
+    // `ncf?.Dispose()` (null-conditional) in a finally IS a release — EmitFlowExpr recognizes
+    // the member-binding form, not just `ncf.Dispose()`. With the return threaded through the
+    // finally, `ncf` is disposed on the early-return path too -> silent (Codex review on PR #34:
+    // a `?.Dispose()` in a now-threaded finally must not be mistaken for a bare use -> false leak).
+    public void NullCondFinallyDispose(bool c)
+    {
+        var ncf = new MemoryStream();
+        try { if (c) return; ncf.WriteByte(1); }
+        finally { ncf?.Dispose(); }
+    }
+
+    // `do { B } while(c)` runs B 1+ times -> desugared to `B; while(c){ B }`. A local acquired
+    // in the body and never disposed leaks per iteration -> OWN001 on `doLeak`.
+    public void DoLeak(bool c)
+    {
+        do
+        {
+            var doLeak = new MemoryStream();
+            doLeak.WriteByte(1);
+        }
+        while (c);
+    }
+
+    // acquire + dispose within a `do` body is balanced every iteration -> silent. The desugar
+    // keeps the guaranteed first iteration; a naive 0+-trip `while` would have falsely leaked a
+    // body-released resource on the phantom 0-trip path.
+    public void DoClean(bool c)
+    {
+        do
+        {
+            var doClean = new MemoryStream();
+            doClean.WriteByte(1);
+            doClean.Dispose();
+        }
+        while (c);
+    }
+
+    // `switch` modelled as opaque mutually-exclusive branches. Every case disposes `swAll` and
+    // there is NO default -> the last case is the tail (no empty no-match branch), so an
+    // exhaustive switch is not falsely flagged -> silent. (A genuinely non-exhaustive no-match
+    // leak is only missed when EVERY case disposes — a sound recall gap, never a false leak.)
+    public void SwitchAllDispose(int mode)
+    {
+        var swAll = new MemoryStream();
+        switch (mode)
+        {
+            case 0: swAll.WriteByte(1); swAll.Dispose(); break;
+            case 1: swAll.Dispose(); break;
+        }
+    }
+
+    // a `switch` whose default branch does NOT dispose `swLeak` -> it leaks on that path
+    // (OWN001). The case-0 branch disposes it; the default (the chain's tail) does not.
+    public void SwitchOneLeak(int mode)
+    {
+        var swLeak = new MemoryStream();
+        switch (mode)
+        {
+            case 0: swLeak.Dispose(); break;
+            default: swLeak.WriteByte(1); break;
+        }
     }
 
     private static void MayThrow() { }

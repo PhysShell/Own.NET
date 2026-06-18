@@ -342,8 +342,9 @@ static bool IsCatchAll(CatchClauseSyntax cc) =>
                                or "global::System.Exception");
 
 // Lower a method block to OwnIR flow nodes (acquire/use/release/if/return) for the
-// `tracked` local IDisposables. Returns null on any UNMODELLED statement
-// (loop/try/switch/...): the method is then honestly skipped, not guessed.
+// `tracked` local IDisposables. Returns null on any UNMODELLED statement (a `goto`, labeled
+// statement, local function, `lock`/`fixed`, …): the method is then honestly skipped, not
+// guessed. Loops, `try`, `do` and `switch` ARE modelled below.
 static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
 {
     var nodes = new List<object>();
@@ -356,16 +357,19 @@ static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
 // `canEscape`: can a throw at the current position leave the METHOD (no enclosing
 // catch-all swallows it)? `onThrow`: the continuation a throw here runs to leave the
 // method (finally-stack + return), or null when no exception edge should be injected
-// (method level, or a region an enclosing catch-all swallows). Both default to the
-// method-body context: a throw escapes, but no edge is injected until a `try` sets one.
+// (method level, or a region an enclosing catch-all swallows). `onReturn`: the continuation
+// a `return` here runs FIRST — the enclosing `finally`(s), then the exit — so a resource a
+// finally disposes is released on the return path; null = a bare return (outside any try).
+// Defaults are the method-body context: throws escape, nothing is injected, returns are bare.
 static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<object> nodes,
-                          bool canEscape = true, List<object>? onThrow = null)
+                          bool canEscape = true, List<object>? onThrow = null,
+                          List<object>? onReturn = null)
 {
     switch (st)
     {
         case BlockSyntax b:
             foreach (var s2 in b.Statements)
-                if (!LowerFlowStmt(s2, tracked, nodes, canEscape, onThrow))
+                if (!LowerFlowStmt(s2, tracked, nodes, canEscape, onThrow, onReturn))
                     return false;
             return true;
         case LocalDeclarationStatementSyntax ld:
@@ -384,10 +388,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
         case IfStatementSyntax ifs:
         {
             var thenNodes = new List<object>();
-            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes, canEscape, onThrow))
+            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes, canEscape, onThrow, onReturn))
                 return false;
             var elseNodes = new List<object>();
-            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes, canEscape, onThrow))
+            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
             return true;
@@ -395,11 +399,16 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
         case UsingStatementSyntax us:
             // using(...) {body}: the using local is auto-disposed (untracked); still
             // lower the body so a tracked plain local used inside is seen.
-            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes, canEscape, onThrow);
+            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes, canEscape, onThrow, onReturn);
         case ReturnStatementSyntax rs:
-            // a tracked local never escapes (excluded), so a returned value is not a
-            // tracked resource — model it as a bare return (a CFG exit edge).
-            nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
+            // a tracked local never escapes (excluded), so a returned value is not a tracked
+            // resource. A `return` first runs any enclosing `finally`(s) — threaded as
+            // `onReturn`, so a resource the finally disposes is released on the return path —
+            // then exits; outside a try it is a bare CFG exit edge.
+            if (onReturn is not null)
+                nodes.AddRange(onReturn);
+            else
+                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
             return true;
         case WhileStatementSyntax ws:
         {
@@ -409,7 +418,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // double-release). The condition is opaque (we model control flow, not
             // values). If the body has an unmodelled statement, bail the method.
             var bodyNodes = new List<object>();
-            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes, canEscape, onThrow))
+            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(ws), body = bodyNodes });
             return true;
@@ -419,10 +428,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // `foreach` runs its body 0+ times over an (opaque) collection — the same
             // ownership shape as `while`. The loop variable is never a `new`'d
             // candidate and the hidden enumerator is auto-disposed, so modelling the
-            // body as a `while` is sound. (`do` stays unmodelled below — it runs 1+
-            // times; `for` is handled next.)
+            // body as a `while` is sound. (`for` and `do` are handled below; `do` runs 1+
+            // times, so it is desugared rather than modelled as a bare 0+-trip `while`.)
             var bodyNodes = new List<object>();
-            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes, canEscape, onThrow))
+            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
@@ -434,9 +443,9 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // model control flow, not values); the tracked locals are the ones the
             // BODY declares. A resource declared in the `for` *initializer* is not a
             // method-body local, so it is never a tracked candidate — no soundness
-            // concern, just a separate (rare) recall gap. `do`/try/switch stay below.
+            // concern, just a separate (rare) recall gap.
             var bodyNodes = new List<object>();
-            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes, canEscape, onThrow))
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
             return true;
@@ -458,13 +467,6 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             foreach (var cc in trys.Catches)
                 if (cc.Block.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(IsDisposeShaped))
                     return false;
-            // A `return` in a try-WITH-finally isn't threaded through the exceptional exits
-            // below (finally-before-return), so its finally release would be unreachable ->
-            // bail to stay sound. The common `try { …; return; } finally { dispose }` is
-            // safe anyway, so skipping it loses no real catch.
-            if (trys.Finally is not null
-                && trys.Block.DescendantNodes().OfType<ReturnStatementSyntax>().Any())
-                return false;
             var finallyNodes = new List<object>();
             if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, finallyNodes))
                 return false;
@@ -493,15 +495,98 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
                 bodyOnThrow.AddRange(onThrow ?? new List<object>
                     { new { op = "return", var = (string?)null, line = LineOf(trys) } });
             }
+            // A `return` inside the body runs THIS finally, then the enclosing return path
+            // (its finallys), then exits — independent of catches (a `return` is never caught,
+            // unlike a throw), so it is threaded even where the throw edges are suppressed. The
+            // finally release thus runs before the return: `try { …; return; } finally { d }`
+            // disposes on the return path instead of being bailed.
+            var bodyOnReturn = new List<object>(finallyNodes);
+            bodyOnReturn.AddRange(onReturn ?? new List<object>
+                { new { op = "return", var = (string?)null, line = LineOf(trys) } });
             foreach (var stmt in trys.Block.Statements)
-                if (!LowerFlowStmt(stmt, tracked, nodes, bodyCanEscape, bodyOnThrow))
+                if (!LowerFlowStmt(stmt, tracked, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
                     return false;
             nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
         }
+        case DoStatementSyntax dos:
+        {
+            // do { B } while(c)  ≡  B; while(c) { B }  — the body runs 1+ times. Lower B once
+            // unconditionally (the guaranteed first iteration), then a `while` of B (0+ more).
+            // Modelling it as a plain `while` (0+ trips) would be UNSOUND: a resource released
+            // only in the body but acquired before the loop would falsely leak on the phantom
+            // 0-trip path. Bail (like the loops) if the body has an unmodelled statement.
+            if (dos.Statement is null
+                || !LowerFlowStmt(dos.Statement, tracked, nodes, canEscape, onThrow, onReturn))
+                return false;
+            var bodyNodes = new List<object>();
+            if (!LowerFlowStmt(dos.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
+                return false;
+            nodes.Add(new { op = "while", line = LineOf(dos), body = bodyNodes });
+            return true;
+        }
+        case SwitchStatementSyntax sw:
+        {
+            // switch(e) { (case L: | default:) section … } modelled as a chain of opaque,
+            // mutually-exclusive branches: `if(*){ s1 } else { if(*){ s2 } else { … } }` — one
+            // per section, value-opaque (we model control flow, not the matched value). A
+            // trailing `break` ends a section (stripped); a section doing anything the model
+            // can't place here (a nested `break`, `goto case`, `throw`) bails the method.
+            List<object>? defaultNodes = null;
+            var cases = new List<List<object>>();
+            foreach (var section in sw.Sections)
+            {
+                var secNodes = new List<object>();
+                if (!LowerSwitchSection(section, tracked, secNodes, canEscape, onThrow, onReturn))
+                    return false;
+                if (section.Labels.Any(l => l is DefaultSwitchLabelSyntax))
+                    defaultNodes = secNodes;
+                else
+                    cases.Add(secNodes);
+            }
+            // The chain's tail — the "no earlier case matched" branch. A `default` IS that
+            // branch. With NO default we do NOT model an empty no-match path: that would falsely
+            // flag a resource disposed in every case of an EXHAUSTIVE switch (e.g. over an enum)
+            // as leaking on a path that cannot occur. Instead the LAST case becomes the tail
+            // (assume some branch runs) — sound: a genuinely non-exhaustive no-match leak is only
+            // missed when EVERY case disposes the resource (a recall gap, never a false positive).
+            List<object> chain;
+            if (defaultNodes is not null)
+                chain = defaultNodes;
+            else if (cases.Count == 0)
+                return true;                         // empty switch -> no flow effect
+            else
+            {
+                chain = cases[^1];
+                cases.RemoveAt(cases.Count - 1);
+            }
+            for (int k = cases.Count - 1; k >= 0; k--)
+                chain = new List<object>
+                    { new { op = "if", line = LineOf(sw), then = cases[k], @else = chain } };
+            nodes.AddRange(chain);
+            return true;
+        }
         default:
-            return false;   // unmodelled (do/switch/...) -> bail the method
+            return false;   // unmodelled (goto/labeled/throw/...) -> bail the method
     }
+}
+
+// Lower one `switch` section's statements, treating a top-level `break` as the section
+// terminator (it just exits the switch, so it is stripped). Bails (false) on any statement the
+// flow model doesn't handle here — including a `break` nested inside an `if`/loop, which reaches
+// the unmodelled default and conservatively skips the whole method.
+static bool LowerSwitchSection(SwitchSectionSyntax section, HashSet<string> tracked,
+                               List<object> nodes, bool canEscape,
+                               List<object>? onThrow, List<object>? onReturn)
+{
+    foreach (var stmt in section.Statements)
+    {
+        if (stmt is BreakStatementSyntax)
+            break;
+        if (!LowerFlowStmt(stmt, tracked, nodes, canEscape, onThrow, onReturn))
+            return false;
+    }
+    return true;
 }
 
 static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<object> nodes)
@@ -525,6 +610,20 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<ob
         && tracked.Contains(rid.Identifier.Text))
     {
         nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
+        return;
+    }
+    // x?.Dispose()/x?.Close()/x?.DisposeAsync() (null-conditional) is the release too — the
+    // call is a member BINDING under a conditional access, not a member access. Mirrors
+    // IsDisposeShaped so a `?.` dispose (e.g. in a finally) is not mistaken for a bare use,
+    // which would otherwise falsely flag the resource as leaked.
+    if (expr is ConditionalAccessExpressionSyntax cond
+        && cond.Expression is IdentifierNameSyntax cid
+        && tracked.Contains(cid.Identifier.Text)
+        && cond.WhenNotNull is InvocationExpressionSyntax condInv
+        && condInv.Expression is MemberBindingExpressionSyntax mb
+        && mb.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync")
+    {
+        nodes.Add(new { op = "release", var = cid.Identifier.Text, line = LineOf(cond) });
         return;
     }
     // any other reference to a tracked local -> use (once per local in this expr).

@@ -58,6 +58,8 @@ _TWO_EXITS_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                   "ownir", "flow_leak_two_exits.facts.json")
 _NESTED_THROW_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                      "ownir", "flow_nested_throw.facts.json")
+_FINALLY_SWITCH_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                       "ownir", "flow_finally_switch.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -374,6 +376,23 @@ def run() -> int:
         fails.append(f"expected OWN001 on 'nestedLeak'@201 and 'ctorPrior'@217 only "
                      f"(nested clean 'cif' and later-acquired 'ctorLater' stay silent), "
                      f"got {got}")
+
+    # --- finally-before-return + switch lowering: a `return` inside a try-with-finally runs
+    #     the finally first (a finally-disposed resource is released on the return path ->
+    #     silent), an early return that skips a later dispose leaks ('r2'), a no-default switch
+    #     where every case disposes stays silent (last case is the tail — no phantom no-match
+    #     leak, the Model-A soundness choice for exhaustive switches), and a switch whose
+    #     else/default branch leaks is flagged ('s2'). Pins the verdicts on the IR the new
+    #     lowering emits (the C# lowering itself is covered in CI).
+    with open(_FINALLY_SWITCH_FIXTURE, encoding="utf-8") as f:
+        fsfacts = json.load(f)
+    fsfindings = check_facts(fsfacts)
+    checks += 1
+    fsgot = sorted((x.event, x.code, x.line) for x in fsfindings)
+    if fsgot != [("r2", "OWN001", 20), ("s2", "OWN001", 40)]:
+        fails.append(f"expected OWN001 on 'r2'@20 (early-return leak) and 's2'@40 (switch "
+                     f"else-branch leak) only — clean 'r' (finally before return) and 's' "
+                     f"(switch all-dispose) stay silent — got {fsgot}")
 
     # --- P-016 A1 reaches the frontend: a `while` flow body (the extractor now
     #     lowers loops instead of skipping the method) routes through the core's

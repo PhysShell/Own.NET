@@ -135,8 +135,14 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   with a Dispose *after* the try/catch (the caught path disposes the resource) still lowers
   sequentially, to avoid a false leak (PR #32 review). The three recall wins are pinned in CI
   (`nestedLeak`, `ctorPrior`, `typedLeak`) and on the core's IR (the `flow_nested_throw`
-  fixture). Still deferred — both **sound recall gaps** (missed leaks, never false ones):
-  `finally`-before-`return` threading (bailed today) and `switch`/`do`.
+  fixture). The remaining control-flow gaps are now closed too: `finally`-before-`return`
+  (the finally is threaded BEFORE the return instead of bailing the method), `do` (desugared
+  to `B; while(c){B}` — the body runs 1+ times, so a plain 0+-trip `while` would falsely leak
+  a body-released resource), and `switch` (opaque mutually-exclusive branches; with no
+  `default` the last case is the tail rather than an empty no-match path, so an *exhaustive*
+  switch is never falsely flagged — a non-exhaustive no-match leak is only missed when every
+  case disposes, a sound recall gap). The flow detector now models every common control-flow
+  construct; only `goto`/labeled statements and a few exotic forms still honestly bail.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the

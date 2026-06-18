@@ -1,0 +1,55 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "comment": "IR the extractor now emits for finally-before-return and switch lowering. (1) FinallyReturnClean: a `return` inside try-with-finally runs the finally (release r) FIRST, so r is released on the return path -> silent (was bailed before). (2) FinallyReturnLeak: an early return with the dispose AFTER the try (empty finally) leaks on that path. (3) SwitchAllDispose: a no-default switch where every case disposes — modelled with the last case as the tail (no empty no-match branch), so it stays silent (Model A: no phantom-leak FP on an exhaustive switch). (4) SwitchOneLeak: a switch whose default/else branch leaks.",
+  "components": [],
+  "functions": [
+    {
+      "name": "FlowLocalsSample.FinallyReturnClean",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "r", "line": 10},
+        {"op": "if", "line": 11, "then": [
+          {"op": "release", "var": "r", "line": 11},
+          {"op": "return", "var": null, "line": 11}
+        ], "else": []},
+        {"op": "release", "var": "r", "line": 12}
+      ]
+    },
+    {
+      "name": "FlowLocalsSample.FinallyReturnLeak",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "r2", "line": 20},
+        {"op": "if", "line": 21, "then": [
+          {"op": "return", "var": null, "line": 21}
+        ], "else": []},
+        {"op": "release", "var": "r2", "line": 23}
+      ]
+    },
+    {
+      "name": "FlowLocalsSample.SwitchAllDispose",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 30},
+        {"op": "if", "line": 31, "then": [
+          {"op": "release", "var": "s", "line": 31}
+        ], "else": [
+          {"op": "release", "var": "s", "line": 32}
+        ]}
+      ]
+    },
+    {
+      "name": "FlowLocalsSample.SwitchOneLeak",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "s2", "line": 40},
+        {"op": "if", "line": 41, "then": [
+          {"op": "release", "var": "s2", "line": 41}
+        ], "else": [
+          {"op": "use", "var": "s2", "line": 42}
+        ]}
+      ]
+    }
+  ]
+}
