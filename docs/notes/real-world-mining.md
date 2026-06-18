@@ -123,8 +123,13 @@ Their leak findings are **nearly disjoint** (file overlap: **1**):
   — which catches the true `dispose-not-called-on-throw` shape (disposed in `try`, not
   `finally`: the throw skips the `Dispose`). Both confirmed on the cross-tool fixture:
   the plain `try`-method leak and the dispose-on-throw leak both land in **Agree** across
-  all three tools (the latter matching CodeQL's `cs/dispose-not-called-on-throw`). Still
-  deferred: `finally`-before-`return` threading (bailed today), and `switch`/`do`.
+  all three tools (the latter matching CodeQL's `cs/dispose-not-called-on-throw`). The
+  edges are injected only where sound — when the caught path's continuation is end-of-
+  method (no catch, or the `try` is the body's tail); a swallowing catch with a Dispose
+  *after* the try/catch (continuation disposes the resource) lowers sequentially instead,
+  to avoid a false leak (PR #32 review). Still deferred: exception edges inside nested
+  `try` bodies (only top-level `try` statements get an edge today), `finally`-before-
+  `return` threading (bailed today), and `switch`/`do`.
 - **Agree — 1** (`HttpHelper.cs`).
 
 So the SystemEvents and VideoSource findings are **differentiated — confirmed by the
