@@ -263,10 +263,14 @@ jobs:
             || { echo "FAIL: expected OWN001 on the undisposed local in a foreach loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'forLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a for loop"; exit 1; }
-          # `try`/`finally` lowered sequentially (try-methods no longer skipped): a
-          # local never disposed inside a try is now caught.
+          # `try`/`finally` lowered with exception edges (try-methods no longer skipped):
+          # a local never disposed inside a try is caught...
           echo "$out" | grep -qE "OWN001.*'tfLeak'" \
             || { echo "FAIL: expected OWN001 on the undisposed local in a try-method"; exit 1; }
+          # ...and so is dispose-not-called-on-throw: `dot` is disposed inside the try
+          # after a may-throw call, so it leaks on the exceptional path (matches CodeQL).
+          echo "$out" | grep -qE "OWN001.*'dot'" \
+            || { echo "FAIL: expected OWN001 on the dispose-not-called-on-throw local"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
@@ -274,7 +278,11 @@ jobs:
           # stay silent:
           # released via `await x.DisposeAsync()` (asyncDisposed) and the chained
           # `.ConfigureAwait(false)` form (asyncDisposedCfg) -> both must stay silent.
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull; do
+          # PR #32 FP fixes: a swallowing catch with a Dispose AFTER the try/catch (cda),
+          # an `await DisposeAsync().ConfigureAwait(false)` INSIDE a try (daci), and a Dispose
+          # inside both branches of an `if` in a try alongside a may-throw call (cif) — all
+          # disposed on every path, so all must stay silent (were false OWN001 before).
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

@@ -54,6 +54,8 @@ _LEAK_ON_ELSE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                      "ownir", "flow_leak_on_else.facts.json")
 _WHILE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                               "ownir", "flow_while.facts.json")
+_TWO_EXITS_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                  "ownir", "flow_leak_two_exits.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -338,6 +340,21 @@ def run() -> int:
         if "is never disposed" in e0.message:
             fails.append(f"partial-release leak wrongly used the never-disposed "
                          f"wording: {e0.message!r}")
+
+    # --- one leak, one finding: the exception-edge try-lowering injects an
+    #     exceptional exit (a bare `return` while the local is live) before each
+    #     may-throw statement. A local never disposed then leaks on BOTH that exit and
+    #     the normal fall-through, so the core emits OWN001 twice for the same local.
+    #     Every flow-local diagnostic remaps to the acquire line, so the two collapse
+    #     to byte-identical findings — the bridge must keep exactly one (TryNeverDisposed
+    #     'tfLeak'). Without the dedup this returns 2.
+    with open(_TWO_EXITS_FIXTURE, encoding="utf-8") as f:
+        tefacts = json.load(f)
+    tefindings = check_facts(tefacts)
+    checks += 1
+    if [(x.event, x.code, x.line) for x in tefindings] != [("tfLeak", "OWN001", 105)]:
+        fails.append(f"expected exactly one OWN001 on 'tfLeak'@105 (two leaking exits "
+                     f"deduped), got {[(x.event, x.code, x.line) for x in tefindings]}")
 
     # --- P-016 A1 reaches the frontend: a `while` flow body (the extractor now
     #     lowers loops instead of skipping the method) routes through the core's

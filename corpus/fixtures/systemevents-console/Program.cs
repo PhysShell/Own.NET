@@ -31,6 +31,7 @@ public static class Program
         _ = new DisplayWatcher();
         LeakAFile();
         LeakInTry();
+        DisposeOnThrow();
     }
 
     // (2) DISPOSE leak — CodeQL's / Infer#'s class, and the control: a local
@@ -54,5 +55,27 @@ public static class Program
         try { tried.WriteByte(0x42); }
         catch (Exception) { /* logged, not disposed */ }
         // ...no Dispose()/using -> resource leak, now seen despite the `try`
+    }
+
+    // (4) DISPOSE-NOT-CALLED-ON-THROW — the exception-edge slice. Unlike (2)/(3), this
+    // stream IS disposed; but the Dispose() sits INSIDE the try, after a may-throw call
+    // (WriteByte). On the normal path it's disposed; if WriteByte throws, control jumps
+    // to the catch and the Dispose is skipped -> the stream leaks on the exceptional
+    // path. CodeQL has a dedicated query for exactly this (cs/dispose-not-called-on-throw,
+    // and cs/local-not-disposed also models exceptional flow). Own.NET used to miss it —
+    // disposed-somewhere looked balanced — until the exception-edge model put a throw
+    // edge before each may-throw statement; it now flags it too -> should join (2)/(3)
+    // in "Agree".
+    //
+    // The try is kept a ONE-LINER (like LeakInTry) on purpose: the three tools anchor
+    // this one leak at different points — Own.NET at the acquire, CodeQL at the Dispose,
+    // Infer# at last-access — so a spread-out method puts them >3 lines apart and the
+    // oracle's ±3 line window splits one leak into own-only + oracle-only. Keeping the
+    // acquire and the try adjacent pulls the anchors back inside the window.
+    private static void DisposeOnThrow()
+    {
+        var onThrow = new FileStream("scratch3.bin", FileMode.Create);
+        try { onThrow.WriteByte(0x42); onThrow.Dispose(); }
+        catch (Exception) { /* swallowed, no dispose */ }
     }
 }

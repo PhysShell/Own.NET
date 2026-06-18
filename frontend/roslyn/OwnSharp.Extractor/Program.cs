@@ -265,6 +265,53 @@ static string MethodName(BaseMethodDeclarationSyntax m) => m switch
     _ => "?",
 };
 
+// A `Dispose()`/`Close()`/`DisposeAsync()` call — through member access (`x.Dispose()`)
+// or member binding (`x?.Dispose()`), and seen through a trailing `.ConfigureAwait(false)`
+// (the idiomatic `await x.DisposeAsync().ConfigureAwait(false)` is the release, not a
+// throwing call). Mirrors the unwrap in EmitFlowExpr so StatementMayThrow does not inject
+// a false exceptional-leak edge before an async dispose.
+static bool IsDisposeShaped(InvocationExpressionSyntax i)
+{
+    var callee = i.Expression;
+    if (callee is MemberAccessExpressionSyntax cfg
+        && cfg.Name.Identifier.Text == "ConfigureAwait"
+        && cfg.Expression is InvocationExpressionSyntax innerInv)
+        callee = innerInv.Expression;
+    return (callee switch
+    {
+        MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+        MemberBindingExpressionSyntax mb => mb.Name.Identifier.Text,
+        _ => (string?)null,
+    }) is "Dispose" or "Close" or "DisposeAsync";
+}
+
+// True when `st` is the LAST statement of a method/accessor/constructor body block — its
+// block's parent is a member declaration, not a nested statement (a BlockSyntax is itself
+// a StatementSyntax, so this also excludes nested blocks). Used to decide whether a
+// `try`'s exceptional-exit edges are sound (see the try lowering).
+static bool IsBodyTail(StatementSyntax st) =>
+    st.Parent is BlockSyntax b
+    && b.Statements.Count > 0 && b.Statements[^1] == st
+    && b.Parent is not StatementSyntax;
+
+// An exceptional exit before a try-body statement is sound only for a LEAF statement whose
+// may-throw call sits at the statement's own level — an expression statement (`x.Foo();`)
+// or a local declaration (`var x = Foo();`). A COMPOUND statement (if/loop/block/…) may
+// dispose a resource in a nested branch before throwing deeper inside; an edge placed before
+// the WHOLE statement (where that resource is still owned) would falsely flag it as leaked
+// though every real path disposes it. So edges are skipped for compound statements — the
+// nested may-throw is the deferred nested-try slice, a sound recall gap rather than an FP.
+static bool EdgeEligible(StatementSyntax st) =>
+    st is ExpressionStatementSyntax or LocalDeclarationStatementSyntax;
+
+// A statement that can raise an exception part-way through: it makes a call that is not
+// itself a dispose. (A `new` can throw too — and would leak a PRIOR owned resource whose
+// dispose it skips — but modelling object creation as a throw point is a deferred recall
+// slice; today only non-dispose CALLS create an exceptional exit. Both omissions are sound:
+// a missed leak, never a false one.)
+static bool StatementMayThrow(StatementSyntax st) =>
+    st.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => !IsDisposeShaped(i));
+
 // Lower a method block to OwnIR flow nodes (acquire/use/release/if/return) for the
 // `tracked` local IDisposables. Returns null on any UNMODELLED statement
 // (loop/try/switch/...): the method is then honestly skipped, not guessed.
@@ -359,39 +406,56 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
         }
         case TryStatementSyntax trys:
         {
-            // try { A } [catch { C }...] [finally { B }]: lower A then B SEQUENTIALLY
-            // (no exception edges yet). A resource acquired in `try` and released in
-            // `finally` stays balanced -> silent (the safe dispose pattern); one never
-            // released anywhere leaks -> caught. This un-skips try-methods, the big
-            // recall slice (a plain undisposed local living inside a try). NOT modelled
-            // yet: dispose-on-throw (released in `try`, not `finally`) reads as released
-            // here — that needs per-statement exceptional exits (a later slice).
+            // try { A } [catch { C }...] [finally { B }] with EXCEPTION EDGES. Any
+            // statement in A that makes a (non-dispose) call can throw; before each such
+            // statement we insert an exceptional exit `if(*){ B; return }` — throw here,
+            // run the finally, leave. A resource owned at that point and NOT released by
+            // the finally leaks on the exceptional path: dispose-not-called-on-throw (a
+            // dispose placed in the try, not the finally). A dispose IN the finally runs
+            // on every exceptional exit, so the safe pattern stays silent; `acquire;
+            // dispose;` with no call between has no exit, so no false leak.
             //
-            // A `return` inside the try makes a finally's release UNREACHABLE in this
-            // sequential model (the core treats `return` as terminal), which would
-            // FALSELY flag a resource the finally disposes. Until finally-before-return
-            // is modelled, bail when a try-with-finally contains a return: the common
-            // `try { …; return x; } finally { r.Dispose(); }` is safe anyway, so skipping
-            // it is sound (a real leak in that shape is rare).
+            // Catch bodies are not lowered; to stay SOUND, bail if any catch disposes, so
+            // a release that only happens in a catch is never missed. Matches `x.Dispose()`
+            // and `x?.Dispose()`.
+            foreach (var cc in trys.Catches)
+                if (cc.Block.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(IsDisposeShaped))
+                    return false;
+            // A `return` in a try-WITH-finally isn't threaded through the exceptional exits
+            // below (finally-before-return), so its finally release would be unreachable ->
+            // bail to stay sound. The common `try { …; return; } finally { dispose }` is
+            // safe anyway, so skipping it loses no real catch.
             if (trys.Finally is not null
                 && trys.Block.DescendantNodes().OfType<ReturnStatementSyntax>().Any())
                 return false;
-            // Catch bodies are not lowered; to stay SOUND, bail if any catch disposes, so
-            // a release that only happens in a catch is never missed (no false leak). Match
-            // both `x.Dispose()` (member access) and `x?.Dispose()` (member binding).
-            foreach (var cc in trys.Catches)
-                if (cc.Block.DescendantNodes().OfType<InvocationExpressionSyntax>()
-                      .Any(i => (i.Expression switch
-                                 {
-                                     MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
-                                     MemberBindingExpressionSyntax mb => mb.Name.Identifier.Text,
-                                     _ => (string?)null,
-                                 }) is "Dispose" or "Close" or "DisposeAsync"))
+            var finallyNodes = new List<object>();
+            if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, finallyNodes))
+                return false;
+            // The exceptional exit `if(*){ B; return }` models the exception LEAVING the
+            // method — sound only when the caught path's continuation IS end-of-method:
+            // no catch (it propagates out past any post-try code), or the try is the body's
+            // tail (nothing runs after the catch). With a catch AND post-try code, a
+            // resource the post-try code disposes runs on the caught path too, so a return
+            // there would falsely flag it (dispose-after-try). In that case skip the edges
+            // and lower the try sequentially — a never-disposed local is still caught at
+            // end-of-function; only dispose-on-throw is forgone for this shape.
+            // Conservative: ANY non-tail catch suppresses the edges, even a typed/filtered
+            // catch that only continues for some exception types — the uncaught-type paths
+            // really do leak, but distinguishing catch-all from typed/filtered is a deferred
+            // recall slice. Suppressing is sound: a missed leak, never a false one.
+            var edgesSound = trys.Catches.Count == 0 || IsBodyTail(trys);
+            foreach (var stmt in trys.Block.Statements)
+            {
+                if (edgesSound && EdgeEligible(stmt) && StatementMayThrow(stmt))
+                {
+                    var ex = new List<object>(finallyNodes)
+                        { new { op = "return", var = (string?)null, line = LineOf(stmt) } };
+                    nodes.Add(new { op = "if", line = LineOf(stmt), then = ex, @else = new List<object>() });
+                }
+                if (!LowerFlowStmt(stmt, tracked, nodes))
                     return false;
-            if (!LowerFlowStmt(trys.Block, tracked, nodes))
-                return false;
-            if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, nodes))
-                return false;
+            }
+            nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
         }
         default:

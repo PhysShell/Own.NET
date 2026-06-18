@@ -1,0 +1,18 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "functions": [
+    {
+      "name": "FlowLocalsSample.TryNeverDisposed",
+      "file": "FlowLocalsSample.cs",
+      "body": [
+        {"op": "acquire", "var": "tfLeak", "line": 105},
+        {"op": "if", "line": 106, "then": [
+          {"op": "return", "var": null, "line": 106}
+        ], "else": []},
+        {"op": "use", "var": "tfLeak", "line": 106}
+      ]
+    }
+  ]
+}
