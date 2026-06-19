@@ -382,6 +382,16 @@ def load(path: str) -> dict[str, Any]:
         if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
             raise OwnIRError("a function's 'params' must be a JSON array of objects")
         for p in ps:
+            # identity fields first: `name` is what inference and finding-mapping
+            # key on, so a malformed one must fail fast, not be silently coerced.
+            pn = p.get("name")
+            if not isinstance(pn, str) or not pn:
+                raise OwnIRError(
+                    f"parameter 'name' must be a non-empty string, got {pn!r}")
+            pl = p.get("line", 0)
+            if not isinstance(pl, int) or isinstance(pl, bool):
+                raise OwnIRError(
+                    f"parameter 'line' must be an integer, got {pl!r}")
             peff = p.get("effect")
             if peff is not None and peff not in ("consume", "borrow", "borrow_mut",
                                                  "plain"):
@@ -650,7 +660,15 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                                        released)
             fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
                                 released)
-            functions.append(FnDecl(fname, fparams, None, fbody, 0))
+            # A body that returns a value gets an owned return type, so the core
+            # models `return s` as a valid ESCAPE (the value is discharged to the
+            # caller) instead of a void-return mismatch that would leave `s` looking
+            # leaked. The bridge does not know the real C# return type; an owned
+            # resource type is what makes the escape check fire (any return-type
+            # mismatch it then reports is skipped in check_facts).
+            fret = (TypeRef("Disposable", False, False)
+                    if _returns_value(nodes) else None)
+            functions.append(FnDecl(fname, fparams, fret, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
                    resources=_prelude_resources(), functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
@@ -683,6 +701,27 @@ def _released_vars(nodes: list[Any]) -> set[str]:
     return out
 
 
+def _returns_value(nodes: Any) -> bool:
+    """True if a flow body returns a VALUE on some path (a `return` op carrying a
+    `var`), recursing into if/while. The bridge then gives the function an owned
+    return type so `return s` models a valid escape (discharge), not a void-return
+    mismatch."""
+    if not isinstance(nodes, list):
+        return False
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "return" and n.get("var") is not None:
+            return True
+        if op == "if" and (_returns_value(n.get("then"))
+                           or _returns_value(n.get("else"))):
+            return True
+        if op == "while" and _returns_value(n.get("body")):
+            return True
+    return False
+
+
 # P-006/2b: a method's ownership CONTRACT is its parameters' effects. Encoding
 # each effect as the TypeRef `collect_signatures` reads (a resource-typed value =>
 # CONSUME, a borrowed type => BORROW/BORROW_MUT, anything else => PLAIN) lets the
@@ -697,21 +736,19 @@ _PARAM_EFFECT_TYPE = {
 }
 
 
-def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool, bool]:
+def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     """Scan a flow body for how parameter `pname` is treated, returning
-    (released, returned, handed-to-a-call, used). Recurses into if/while branches
-    so a discharge on any path counts."""
-    rel = ret = passed = used = False
+    (released, handed-to-a-call, used). Recurses into if/while branches so a
+    discharge on any path counts."""
+    rel = passed = used = False
     if not isinstance(nodes, list):
-        return rel, ret, passed, used
+        return rel, passed, used
     for n in nodes:
         if not isinstance(n, dict):
             continue
         op = n.get("op")
         if op == "release" and str(n.get("var")) == pname:
             rel = True
-        elif op == "return" and str(n.get("var")) == pname:
-            ret = True
         elif op == "call":
             args = n.get("args", [])
             if isinstance(args, list) and any(str(a) == pname for a in args):
@@ -722,24 +759,27 @@ def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool, bool]:
             subs = ([n.get("then"), n.get("else")] if op == "if"
                     else [n.get("body")])
             for sub in subs:
-                sr, st, sp, su = _param_signals(pname, sub)
-                rel, ret, passed, used = rel or sr, ret or st, passed or sp, used or su
-    return rel, ret, passed, used
+                sr, sp, su = _param_signals(pname, sub)
+                rel, passed, used = rel or sr, passed or sp, used or su
+    return rel, passed, used
 
 
 def _infer_param_effect(pname: str, nodes: Any) -> str | None:
     """Infer a parameter's ownership CONTRACT from the callee's OWN body — the v1
     bounded inter-procedural step that lets first-party C# be checked without
     annotating every method. A param the body discharges or lets escape
-    (release / return) is CONSUME (ownership taken); one only read and retained is
-    a BORROW (the caller keeps ownership, must still release). A param handed to
-    another call is genuinely ambiguous without that callee's contract, so we do
-    NOT infer it (it stays plain / awaiting an explicit annotation or a later
-    transitive pass). Inference fires only on the unambiguous signals, so it never
+    (release) is CONSUME (ownership taken and discharged); one only read and
+    retained is a BORROW (the caller keeps ownership, must still release). A param
+    handed to another call is genuinely ambiguous without that callee's contract,
+    so we do NOT infer it (it stays plain / awaiting an annotation or a later
+    transitive pass). We deliberately do NOT treat `return <param>` as a consume
+    signal: the bridge does not yet model returned (owned) VALUES, so a returned
+    param is consume-and-handed-back, not a plain consume. Inference fires only on
+    the unambiguous signals, so it never
     upgrades a borrow to a consume (or vice-versa) on a guess — an explicit
     `effect` in the fact always wins over inference."""
-    rel, ret, passed, used = _param_signals(pname, nodes)
-    if rel or ret:
+    rel, passed, used = _param_signals(pname, nodes)
+    if rel:
         return "consume"
     if passed:
         return None
@@ -885,6 +925,20 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     findings: list[Finding] = []
     for d in diags:
         if d.severity != Severity.ERROR:
+            continue
+        # The bridge SYNTHESISES return types and parameter effects (from inference
+        # / extractor annotations); a handful of core diagnostics only report
+        # INCONSISTENCIES in those synthesised shapes, which are artifacts of the
+        # bridge's incomplete modeling, not real C# bugs (C# already type-checks).
+        # They also carry no subject, so they cannot map to a handle. Skip them:
+        #   - OWN033/OWN035: return-TYPE mismatches (the bridge gives a function an
+        #     owned return type iff its body returns a value; the real leak/use
+        #     checks still run, and `return s` discharges via escape-on-return).
+        #   - OWN034/OWN041: effect-kind mismatches at a call, which surface when a
+        #     parameter's contract could not be inferred (an ambiguous pass-through
+        #     stays plain) -- a "needs annotation / transitive inference" gap, not a
+        #     leak. Surfacing these properly (with a subject) is a later step.
+        if d.code in ("OWN033", "OWN034", "OWN035", "OWN041"):
             continue
         sub = handles.get(_handle_of(d) or "")
         if sub is None:

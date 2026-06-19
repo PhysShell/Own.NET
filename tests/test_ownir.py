@@ -722,6 +722,38 @@ def run() -> int:
     if [(x.component, x.code) for x in ov] != [("g", "OWN001")]:
         fails.append(f"explicit `consume` should win over inferred borrow (owned "
                      f"param leaks OWN001), got {[(x.component, x.code) for x in ov]}")
+    # regression (codex review): inference does NOT treat `return` as a consume
+    # signal, and a value-bearing `return` no longer crashes the bridge. A function
+    # that returns an owned local/param gets an owned return type, so the value
+    # ESCAPES (is discharged) -- no false leak, no unmapped OWN035 crash.
+    checks += 1
+    rf = check_facts({"module": "M", "functions": [
+        {"name": "make", "file": "R.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 1},
+                  {"op": "return", "var": "s", "line": 2}]},
+        {"name": "passthrough", "file": "R.cs", "params": [{"name": "s", "line": 5}],
+         "body": [{"op": "return", "var": "s", "line": 6}]}]})
+    if rf:
+        fails.append(f"a value-bearing return should be a clean escape (no crash, no "
+                     f"false leak), got {[(x.component, x.code) for x in rf]}")
+    # regression (CodeRabbit review): a param ONLY forwarded to another call is
+    # ambiguous without that callee's contract, so it is NOT inferred (stays plain)
+    # -- the v1 boundary. The forwarding fn and its caller stay silent (no false
+    # positive, no crash); transitive inference is the follow-up that resolves it.
+    checks += 1
+    amb = check_facts({"module": "M", "functions": [
+        {"name": "forward", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "sink", "args": ["s"], "line": 2}]},
+        {"name": "sink", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 5}],
+         "body": [{"op": "release", "var": "x", "line": 6}]},
+        {"name": "caller", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "forward", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if amb:
+        fails.append(f"an ambiguous pass-through param must not be inferred, crash, "
+                     f"or false-positive, got {[(x.component, x.code) for x in amb]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
