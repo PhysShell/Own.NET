@@ -6,10 +6,11 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
-    python -m ownlang ownir  facts.json --format github|msbuild|human [--severity error|warning]
+    python -m ownlang ownir  facts.json --format github|msbuild|human|sarif
 
 `--format` (ownir only) selects the finding surface: `human` (default CLI line),
-`github` (CI annotations on the PR diff), or `msbuild` (VS Error List).
+`github` (CI annotations on the PR diff), `msbuild` (VS Error List), or `sarif`
+(a SARIF 2.1.0 log — GitHub code scanning, and the cross-tool oracle reads it too).
 `--severity` (ownir only) picks how the host shows a finding — `error` (default,
 fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
@@ -195,11 +196,12 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
               verbosity: str = "normal") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
     the same core, surfacing findings at their C# locations (P-001). `fmt`
-    selects the surface: human (CLI), github (CI annotations), msbuild (VS);
+    selects the surface: human (CLI), github (CI annotations), msbuild (VS),
+    sarif (SARIF 2.1.0 log);
     `severity` picks how the host shows them (error/warning); `verbosity` is
     `quiet` (errors only — hide the advisory OWN050 notes), `normal` (default), or
     `verbose` (also print a per-code breakdown)."""
-    from .ownir import OwnIRError, check_facts, load, render_finding
+    from .ownir import OwnIRError, build_sarif, check_facts, load, render_finding
     try:
         findings = check_facts(load(path))
     except OwnIRError as e:
@@ -209,7 +211,7 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     # In a machine format, stdout carries only the annotations/diagnostics a host
     # (GitHub, MSBuild/VS) parses; the human summary goes to stderr so it cannot
     # pollute that stream.
-    machine = fmt in {"github", "msbuild"}
+    machine = fmt in {"github", "msbuild", "sarif"}
     summary_to = sys.stderr if machine else sys.stdout
     # OWN050 "leakage analysis skipped" notes are advisory (P-014 Tier A): always
     # shown as warnings regardless of --severity, and never affect the exit code —
@@ -217,17 +219,25 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     leaks = [f for f in findings if not f.advisory]
     notes = [f for f in findings if f.advisory]
     shown = leaks if verbosity == "quiet" else findings
-    for f in shown:
-        # Severity is the weaker of the host's --severity and the finding's own
-        # intrinsic level: an advisory note (OWN050) is always a warning; a global
-        # `--severity warning` downgrades everything; and a finding the extractor
-        # could not prove a leak (an injected-source subscription, f.severity ==
-        # "warning") shows as a warning even at the default error level (P-004).
-        if f.advisory or severity == "warning" or f.severity == "warning":
-            fsev = "warning"
-        else:
-            fsev = severity
-        print(render_finding(f, fmt, fsev))
+    if fmt == "sarif":
+        # SARIF is one document for the whole run (not a line per finding): stdout
+        # carries only the JSON; the summary goes to stderr like the other machine
+        # formats. build_sarif applies the same per-finding severity policy below.
+        import json
+        print(json.dumps(build_sarif(shown, severity), indent=2))
+    else:
+        for f in shown:
+            # Severity is the weaker of the host's --severity and the finding's own
+            # intrinsic level: an advisory note (OWN050) is always a warning; a
+            # global `--severity warning` downgrades everything; and a finding the
+            # extractor could not prove a leak (an injected-source subscription,
+            # f.severity == "warning") shows as a warning even at the default error
+            # level (P-004).
+            if f.advisory or severity == "warning" or f.severity == "warning":
+                fsev = "warning"
+            else:
+                fsev = severity
+            print(render_finding(f, fmt, fsev))
     if not shown:
         print(f"{path}: ok — no subscription leaks found", file=summary_to)
     n = len(leaks)
@@ -245,7 +255,7 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     return 1 if leaks else 0
 
 
-_FORMATS = {"human", "github", "msbuild"}
+_FORMATS = {"human", "github", "msbuild", "sarif"}
 _SEVERITIES = {"error", "warning"}
 _VERBOSITY = {"quiet", "normal", "verbose"}
 

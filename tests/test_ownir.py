@@ -25,10 +25,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import tempfile
 
+from ownlang.diagnostics import TITLES
 from ownlang.ownir import (
     OWNIR_VERSION,
     Finding,
     OwnIRError,
+    build_sarif,
     check_facts,
     load,
     render_finding,
@@ -836,6 +838,75 @@ def run() -> int:
     # the default stays error (no accidental severity drift).
     if not render_finding(fnd, "msbuild").startswith("src/A.cs(42): error OWN001:"):
         fails.append("msbuild default severity should remain error")
+
+    # --- SARIF 2.1.0 export (build_sarif) ------------------------------------
+    canon = check_facts(facts)  # the canonical one-leak CustomerViewModel fixture
+    sf = build_sarif(canon)
+    checks += 1
+    if sf.get("version") != "2.1.0" or "$schema" not in sf or len(sf["runs"]) != 1:
+        fails.append(f"SARIF envelope wrong: version={sf.get('version')!r}")
+    driver = sf["runs"][0]["tool"]["driver"]
+    checks += 1
+    if driver.get("name") != "Own.NET":
+        fails.append(f"SARIF tool.driver.name wrong: {driver.get('name')!r}")
+    checks += 1
+    if [(r["id"], r["shortDescription"]["text"]) for r in driver["rules"]] != \
+            [("OWN001", TITLES["OWN001"])]:
+        fails.append(f"SARIF rules catalogue wrong: {driver['rules']}")
+    checks += 1
+    if len(sf["runs"][0]["results"]) != len(canon):
+        fails.append(f"SARIF results {len(sf['runs'][0]['results'])} != "
+                     f"findings {len(canon)}")
+    else:
+        res0 = sf["runs"][0]["results"][0]
+        pl = res0["locations"][0]["physicalLocation"]
+        checks += 1
+        if (res0["ruleId"], res0["level"], pl["artifactLocation"]["uri"],
+                pl["region"]["startLine"]) != \
+                ("OWN001", "error", "CustomerViewModel.cs", 12):
+            fails.append(f"SARIF result0 wrong: {res0['ruleId']} {res0['level']} "
+                         f"{pl['artifactLocation']['uri']}:{pl['region']['startLine']}")
+        checks += 1
+        if "[resource: subscription token]" not in res0["message"]["text"]:
+            fails.append("SARIF result0 message lost the resource tag")
+        checks += 1
+        if res0["properties"].get("resourceKind") != "subscription token" or \
+                res0["properties"].get("event") != "bus.CustomerChanged":
+            fails.append(f"SARIF result0 properties wrong: {res0['properties']}")
+
+    # level mapping: advisory -> note, intrinsic-warning -> warning, else error;
+    # a --severity warning host downgrades a hard leak (advisory stays a note).
+    _adv = Finding(file="A.cs", line=3, code="OWN050", component="", event="",
+                   handler="", message="skip", kind="subscription token", advisory=True)
+    _wrn = Finding(file="A.cs", line=4, code="OWN001", component="C", event="e",
+                   handler="h", message="leak", kind="subscription token",
+                   severity="warning")
+    _err = Finding(file="A.cs", line=5, code="OWN001", component="C", event="e",
+                   handler="h", message="leak", kind="subscription token")
+    checks += 1
+    if [r["level"] for r in build_sarif([_adv, _wrn, _err])["runs"][0]["results"]] != \
+            ["note", "warning", "error"]:
+        fails.append("SARIF level mapping (advisory/warning/error) wrong")
+    checks += 1
+    if [r["level"] for r in build_sarif([_adv, _err], "warning")["runs"][0]["results"]] != \
+            ["note", "warning"]:
+        fails.append("SARIF --severity warning should downgrade a hard leak")
+    # empty findings -> a valid, empty SARIF run (no crash, no bogus rules).
+    checks += 1
+    empty = build_sarif([])
+    if empty["runs"][0]["results"] or empty["runs"][0]["tool"]["driver"]["rules"]:
+        fails.append("SARIF empty run should have no results/rules")
+
+    # the thesis: own-check SARIF is read by the oracle's EXISTING SARIF parser and
+    # classified as a leak — own joins the cross-tool diff with no bespoke text parser.
+    checks += 1
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    import oracle_compare as _oc
+    rt = _oc.parse_sarif(json.dumps(build_sarif(canon)), "own", [])
+    if [(p.path, p.line, p.rule, p.cls) for p in rt] != \
+            [("CustomerViewModel.cs", 12, "OWN001", "leak")]:
+        fails.append("SARIF oracle round-trip wrong: "
+                     f"{[(p.path, p.line, p.rule, p.cls) for p in rt]}")
 
     for f in fails:
         print(f"OWNIR FAIL: {f}")

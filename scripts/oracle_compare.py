@@ -98,6 +98,11 @@ def _own_class(code: str) -> str:
 
 def _oracle_class(tool: str, rule: str) -> str:
     r = rule or ""
+    if tool == "own":
+        # own-check emitting SARIF (--format sarif): classify by OWN code, exactly
+        # like the human-text path (build_own), so the two own input formats bucket
+        # identically.
+        return _own_class(r)
     if tool == "infersharp":
         # Infer's Pulse engine renamed the rule (RESOURCE_LEAK -> PULSE_RESOURCE_LEAK);
         # match the family by substring so version drift doesn't silence it.
@@ -130,9 +135,18 @@ def norm_path(raw: str, strips: list[str]) -> str:
 
 
 def build_own(text: str, strips: list[str]) -> tuple[list[Finding], int]:
-    """Parse own-check human output into Findings (reusing the miner's parser).
-    Also returns the unparsed-line count, so drift in the own-check format is
-    surfaced rather than silently dropped (which would inflate `oracle-only`)."""
+    """Parse own-check output into Findings, in either format it emits:
+
+    - **SARIF** (own-check `--format sarif`): read through the *same* `parse_sarif`
+      as the Infer#/CodeQL oracles. No bespoke text parser, so no parser-drift —
+      the class of bug that silently dropped 38 lines on the ScreenToGif run.
+    - **human text** (legacy default): the miner's regex parser.
+
+    The second tuple element is the unparsed-line count (always 0 for SARIF), so
+    text-format drift is surfaced rather than silently dropped (which would inflate
+    `oracle-only`)."""
+    if text.lstrip().startswith("{"):
+        return parse_sarif(text, "own", strips), 0
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from mine_report import parse  # local import: scripts/ is on the path now
     raw, unparsed = parse(text)
@@ -361,7 +375,8 @@ def _is_test_path(path: str) -> bool:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Diff Own.NET leak findings against Infer#/CodeQL (oracle).")
-    ap.add_argument("--own", help="own-check human output file")
+    ap.add_argument("--own",
+                    help="own-check output — human text or a --format sarif log")
     ap.add_argument("--infersharp", help="Infer# SARIF (e.g. infer-out/report.sarif)")
     ap.add_argument("--codeql", help="CodeQL SARIF")
     ap.add_argument("--sarif", action="append", default=[], metavar="TOOL=PATH",
@@ -532,7 +547,37 @@ def _selftest() -> int:
     if "product code only" not in render_md(r, "o/r", "abc", ["codeql"], 3, 0, 0, True):
         fails.append("scope note must render when exclude-tests mode is on (even at 0)")
 
-    total = 19
+    # own-check can now emit SARIF (--format sarif); build_own reads it through the
+    # SAME parser as the oracles — no bespoke text parser, no drift. The shape
+    # mirrors ownlang.ownir.build_sarif. Codes must classify exactly like the text
+    # path, SARIF never reports "unparsed", and it diffs against an oracle the same.
+    own_sarif = json.dumps({"version": "2.1.0", "runs": [{"tool": {"driver":
+        {"name": "Own.NET"}}, "results": [
+        {"ruleId": "OWN001", "level": "error",
+         "message": {"text": "leak [resource: disposable]"}, "locations":
+         [{"physicalLocation": {"artifactLocation": {"uri": "src/A.cs"},
+                                "region": {"startLine": 12}}}]},
+        {"ruleId": "OWN003", "level": "error",
+         "message": {"text": "double [resource: disposable]"}, "locations":
+         [{"physicalLocation": {"artifactLocation": {"uri": "src/C.cs"},
+                                "region": {"startLine": 9}}}]},
+        {"ruleId": "OWN050", "level": "note", "message": {"text": "skipped"},
+         "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/D.cs"},
+                                             "region": {"startLine": 3}}}]},
+    ]}]})
+    own_s, own_s_drift = build_own(own_sarif, [])
+    if own_s_drift != 0:
+        fails.append(f"own SARIF must never report unparsed, got {own_s_drift}")
+    cls_by_rule = {f.rule: f.cls for f in own_s}
+    if cls_by_rule != {"OWN001": "leak", "OWN003": "double", "OWN050": "other"}:
+        fails.append(f"own SARIF classes wrong: {cls_by_rule}")
+    r_s = compare(own_s, parse_sarif(infer, "infersharp", []), tol=3)
+    if len(r_s["agree"]) != 1 or (r_s["agree"] and r_s["agree"][0][0].fkey != "a.cs"):
+        fails.append(f"own SARIF agree wrong: {[f.fkey for f, _ in r_s['agree']]}")
+    if [f.rule for f in r_s["own_unique"]] != ["OWN003"]:
+        fails.append(f"own SARIF own_unique wrong: {[f.rule for f in r_s['own_unique']]}")
+
+    total = 23
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")
