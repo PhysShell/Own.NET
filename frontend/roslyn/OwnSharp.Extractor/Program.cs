@@ -235,6 +235,53 @@ static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
 static bool IsLambdaHandler(ExpressionSyntax right) =>
     right is AnonymousFunctionExpressionSyntax;
 
+// P-004 source-lifetime tier for an ignored `.Subscribe()` chain (WPF004). A
+// self-rooted `this.WhenAnyValue(p => p.SelfProp)` watches the component's OWN
+// property: the observable, its handler and `this` form one cycle the GC collects
+// together, so it is NOT a leak. We classify ONLY this unambiguous self-cycle
+// (the bridge drops a `source: "self"` subscribe). Any other root — an external
+// receiver, `EventBus.Subscribe`, an injected field, or a NESTED path
+// `p => p.A.B` that roots through `A` — stays unclassified so it remains a flagged
+// leak (conservative: silence nothing we are not sure about). Purely syntactic.
+static bool IsSelfRootedWhenAny(ExpressionSyntax chain)
+{
+    // Walk left down the fluent chain (`.Op(args)` / `.Member`) to the leftmost
+    // invocation; `root` ends as `<recv>.Method(args)` at the head of the chain.
+    var e = chain;
+    InvocationExpressionSyntax? root = null;
+    while (true)
+    {
+        if (e is InvocationExpressionSyntax iv
+            && iv.Expression is MemberAccessExpressionSyntax ma)
+        {
+            root = iv;
+            e = ma.Expression;
+        }
+        else if (e is MemberAccessExpressionSyntax ma2)
+        {
+            e = ma2.Expression;
+        }
+        else
+        {
+            break;
+        }
+    }
+    // `this.WhenAnyValue(p => p.Member)` — head is WhenAnyValue on `this`, with a
+    // single-hop self-member lambda (`p => p.Member`, not `p => p.A.B`).
+    if (root is null
+        || root.Expression is not MemberAccessExpressionSyntax head
+        || head.Name.Identifier.Text != "WhenAnyValue"
+        || head.Expression is not ThisExpressionSyntax
+        || root.ArgumentList.Arguments.Count != 1
+        || root.ArgumentList.Arguments[0].Expression is not SimpleLambdaExpressionSyntax lam
+        || lam.Body is not MemberAccessExpressionSyntax body
+        || body.Expression is not IdentifierNameSyntax pid)
+    {
+        return false;
+    }
+    return pid.Identifier.Text == lam.Parameter.Identifier.Text;
+}
+
 // --- P-016 B0b/B2: flow lowering for local IDisposables (experimental) ---
 
 // A type that implements System.IDisposable (semantic) — the flow lowering tracks
@@ -912,6 +959,10 @@ foreach (var (file, tree) in parsed)
                     line = LineOf(inv),
                     released = false,
                     resource = "subscribe",
+                    // A self-rooted `this.WhenAnyValue(p => p.SelfProp)` chain is a
+                    // GC-collectible self-cycle: the bridge drops `source: "self"`.
+                    // Any other (external) source stays a flagged leak (null source).
+                    source = IsSelfRootedWhenAny(m.Expression) ? "self" : null,
                 });
 
         // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
