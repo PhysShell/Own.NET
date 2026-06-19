@@ -101,6 +101,8 @@ from typing import Any
 
 from .ast_nodes import (
     Acquire,
+    Call,
+    Expr,
     FnDecl,
     If,
     Let,
@@ -115,6 +117,7 @@ from .ast_nodes import (
     Subscribe,
     TypeRef,
     Use,
+    VarRef,
     While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
@@ -370,6 +373,19 @@ def load(path: str) -> dict[str, Any]:
     fns = result.get("functions", [])
     if not isinstance(fns, list) or not all(isinstance(f, dict) for f in fns):
         raise OwnIRError("OwnIR 'functions' must be a JSON array of objects")
+    for f in fns:
+        # Optional ownership CONTRACT (P-006/2b): params + their effects. Additive
+        # and optional — an older core just reads functions without contracts.
+        ps = f.get("params", [])
+        if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
+            raise OwnIRError("a function's 'params' must be a JSON array of objects")
+        for p in ps:
+            peff = p.get("effect")
+            if peff is not None and peff not in ("consume", "borrow", "borrow_mut",
+                                                 "plain"):
+                raise OwnIRError(
+                    f"parameter 'effect' must be consume/borrow/borrow_mut/plain, "
+                    f"got {peff!r}")
     return result
 
 
@@ -619,8 +635,14 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # wording distinguish "never disposed" (no release at all) from "not
             # disposed on every path" (released on some branch, leaked on another).
             released = _released_vars(nodes)
-            fbody = _lower_flow(nodes, ffile, fname, handles, loc, {}, released)
-            functions.append(FnDecl(fname, [], None, fbody, 0))
+            # ownership contract params first (they seed `localmap` so the body's
+            # uses/releases and call arguments resolve to them), then the flow body.
+            localmap: dict[str, str] = {}
+            fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
+                                       released)
+            fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
+                                released)
+            functions.append(FnDecl(fname, fparams, None, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
                    resources=_prelude_resources(), functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
@@ -650,6 +672,53 @@ def _released_vars(nodes: list[Any]) -> set[str]:
             b = n.get("body", [])
             if isinstance(b, list):
                 out |= _released_vars(b)
+    return out
+
+
+# P-006/2b: a method's ownership CONTRACT is its parameters' effects. Encoding
+# each effect as the TypeRef `collect_signatures` reads (a resource-typed value =>
+# CONSUME, a borrowed type => BORROW/BORROW_MUT, anything else => PLAIN) lets the
+# SAME core signature table + `lower_call` resolve a call's per-argument effects —
+# so cross-method ownership transfer is checked compositionally (the inter-
+# procedural island) with NO new checker. The resource name is the prelude
+# `Disposable` (any prelude resource would do; what matters is that it is owned).
+_PARAM_EFFECT_TYPE = {
+    "consume": TypeRef("Disposable", False, False),   # takes ownership
+    "borrow": TypeRef("Disposable", True, False),     # shared loan, noescape
+    "borrow_mut": TypeRef("Disposable", True, True),  # exclusive loan, noescape
+}
+
+
+def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
+                     handles: dict[str, dict[str, Any]], loc: list[int],
+                     localmap: dict[str, str],
+                     released_vars: set[str]) -> list[Param]:
+    """Lower a function's declared ownership parameters into core Params. Each
+    gets a globally-unique synthetic symbol (`parg_<n>`) so a finding maps back to
+    its C# location; `localmap` resolves later references (and call arguments) by
+    the C# name. A `consume` parameter is an owned obligation in the callee — the
+    same Param the `.own` front-end produces — so an undischarged one leaks (the
+    obligation having moved in from the caller)."""
+    out: list[Param] = []
+    raw = fn.get("params", [])
+    if not isinstance(raw, list):
+        return out
+    for p in raw:
+        if not isinstance(p, dict):
+            continue
+        cname = str(p.get("name", "?"))
+        eff = p.get("effect")
+        tref = _PARAM_EFFECT_TYPE.get(eff) if isinstance(eff, str) else None
+        if tref is None:
+            tref = TypeRef("int", False, False)   # a plain (non-owned) parameter
+        sym = f"parg_{loc[0]}"
+        loc[0] += 1
+        line = _as_int(p.get("line", 0))
+        localmap[cname] = sym
+        handles[sym] = {"file": ffile, "line": line, "event": cname,
+                        "component": fname, "resource": "flow-local",
+                        "ever_released": cname in released_vars}
+        out.append(Param(sym, tref, line))
     return out
 
 
@@ -703,6 +772,21 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             body_b = _lower_flow(bn if isinstance(bn, list) else [],
                                  ffile, fname, handles, loc, localmap, released_vars)
             body.append(While("?", body_b, line))
+        elif op == "call":
+            # A call to a CONTRACTED callee (a function/extern whose signature the
+            # bridge also lowered). `lower_call` resolves each argument's effect
+            # from that signature: a `consume` parameter moves ownership across the
+            # call (so a later use is OWN002), a `borrow` lends it. This is the
+            # compositional island — the caller is checked against the callee's
+            # contract, not its body. Arguments resolve C# locals/params via
+            # `localmap`; an uncontracted call is simply not emitted by the
+            # extractor (it is an escape, surfaced separately).
+            callee = str(n.get("callee", ""))
+            raw_args = n.get("args", [])
+            if callee and isinstance(raw_args, list):
+                arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
+                                        for a in raw_args]
+                body.append(Call(callee, arg_refs, line))
     return body
 
 

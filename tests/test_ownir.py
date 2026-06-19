@@ -68,6 +68,8 @@ _CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                 "ownir", "capture.facts.json")
 _DI_CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "di_capture.facts.json")
+_HANDOFF_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                "ownir", "handoff_contract.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -624,6 +626,38 @@ def run() -> int:
     if [(x.code, x.severity) for x in warn] != [("OWN001", "warning")]:
         fails.append(f"injected sub without DI info should stay an OWN001 warning, "
                      f"got {[(x.code, x.severity) for x in warn]}")
+
+    # --- P-006/2b: COMPOSITIONAL ownership transfer through the bridge. A C#
+    #     method's ownership contract (a `consume`/`borrow` parameter) lowers to a
+    #     core signature; a `call` op lowers to the core's Call, whose effects
+    #     `lower_call` resolves from that signature. So cross-method handoff is
+    #     checked compositionally by the SAME analyze() — no new checker, and no
+    #     whole-program analysis (the signature is the cut). `archive(consume s)`
+    #     takes ownership; `run` uses `s` after handing it off (OWN002); `leak`
+    #     never discharges (OWN001); `run_ok` hands off correctly and is NOT a
+    #     false leak though it never releases (the obligation moved to archive).
+    with open(_HANDOFF_FIXTURE, encoding="utf-8") as f:
+        hfacts = json.load(f)
+    hfindings = check_facts(hfacts)
+    checks += 1
+    got = sorted((x.component, x.line, x.code) for x in hfindings)
+    if got != [("leak", 18, "OWN001"), ("run", 24, "OWN002")]:
+        fails.append(f"expected compositional handoff verdicts "
+                     f"[leak@18 OWN001, run@24 OWN002], got {got}")
+    # the correct consumer (archive) and the correct handoff (run_ok) must be
+    # SILENT — the contract discharges the caller's obligation, no false leak.
+    checks += 1
+    if any(x.component in ("archive", "run_ok") for x in hfindings):
+        fails.append("a correct consume contract / handoff was wrongly reported "
+                     "(false positive on the compositional path)")
+    # the use-after-handoff is OWN002 (use after the resource was consumed by the
+    # callee), the same code .own produces for use-after-consume.
+    checks += 1
+    run_f = [x for x in hfindings if x.component == "run"]
+    if not (run_f and "after it is disposed" in run_f[0].message
+            and "[resource: disposable]" in run_f[0].render()):
+        fails.append(f"use-after-handoff should read as use-after-disposal, got "
+                     f"{[x.render() for x in run_f]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
