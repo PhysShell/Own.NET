@@ -16,8 +16,18 @@ The first public pitch is **not** "we're building a borrow checker for C#". It i
 > leaks, missing `Dispose`, DI lifetime mismatch, and pooled-buffer misuse.
 
 That is concrete, painful, and shippable without a five-year R&D detour. The
-borrow checker is the *first combat module*, not the whole universe. The
-long-term identity the backlog is aiming at:
+borrow checker is the *first combat module*, not the whole universe.
+
+Read structurally, Own.NET is **one resource/lifetime analyzer with profiles** —
+subscriptions, timers, `IDisposable`, DI lifetimes, pooled buffers — and **WPF is
+the first configured profile, not the identity.** The engine emits domain-neutral
+core verdicts (`OWN001/002/003/014`); a profile only contributes the lifetime facts
+(WPF's `ViewModel < Window < App`, `Loaded`/`Closed` = release regions) and a label.
+Code names that still read `WPFxxx` are pattern-catalog IDs, not emitted codes — the
+catalog rename (`SUB`/`TMR`/`DISP`) and the other consolidation items are recorded in
+[docs/notes/consolidation-and-positioning.md](notes/consolidation-and-positioning.md).
+
+The long-term identity the backlog is aiming at:
 
 > **An external static-contract layer for C#/.NET** that adds ownership,
 > typestate, effects, capabilities, and domain-specific types **without
@@ -46,12 +56,25 @@ long-term identity the backlog is aiming at:
 
 ### What the C# frontend deliberately does NOT touch yet
 
-`async`/`await`, full generics, LINQ, closures/lambdas, interprocedural analysis,
-virtual dispatch, whole-program analysis, source generators, `unsafe` pointer
-arithmetic, the XAML/binding engine. Not "never" — just not *before* the tool has
-found its first real bug. An `async` method in v0 is honestly skipped (or flagged
+`async`/`await`, full generics, LINQ, general closure/dataflow analysis, virtual
+dispatch, whole-program analysis, source generators, `unsafe` pointer arithmetic,
+the XAML/binding engine. Not "never" — just not *before* the tool has found its
+first real bug. An `async` method in v0 is honestly skipped (or flagged
 "unsupported"), because honestly skipping beats confidently lying; the market for
 confident-but-wrong tooling is already saturated.
+
+Two honest exceptions have since been carved out, because a real bug needed each:
+
+- **Syntactic lambda-event-handler classification.** General closure analysis stays
+  out, but the frontend *does* recognise an inline `evt += (s,a) => …` handler — an
+  inline handler caches no delegate, so it can never be `-=`'d, which is part of the
+  subscription-leak profile. It is the syntactic *shape*, not dataflow over captures.
+- **Bounded, *modular* interprocedural — in the core, not the frontend.** The
+  frontend still extracts facts one method at a time. But the core now checks
+  ownership *across* methods **compositionally, against a callee's contract**
+  (`consume`/`borrow`, inferred from its body when unannotated) — the signature is
+  the cut point, never whole-program points-to (P-006/2b). "Interprocedural" in the
+  exclusion above means the intractable *whole-program* kind, which stays out.
 
 ## Priorities
 
