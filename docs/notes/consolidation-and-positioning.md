@@ -28,7 +28,8 @@ this list: it is running the differentiation oracle on more real repos.
   (contracts/inference) **in the core, not the frontend**.
 - **Positioning sharpened.** ROADMAP framing now states plainly: Own.NET is one
   resource/lifetime analyzer **with profiles**, WPF is the *first* profile, the
-  engine emits core `OWNxxx` codes + a profile label.
+  engine emits core `OWNxxx` codes + a `[resource: …]` kind tag (a dedicated
+  `[profile: …]` label is itself one of the deferred items below).
 - **Naming convention noted** in `docs/lifetimes.md`: `WPFxxx` are pattern-catalog
   IDs, not emitted codes.
 

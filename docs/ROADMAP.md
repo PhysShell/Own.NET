@@ -21,8 +21,10 @@ borrow checker is the *first combat module*, not the whole universe.
 Read structurally, Own.NET is **one resource/lifetime analyzer with profiles** —
 subscriptions, timers, `IDisposable`, DI lifetimes, pooled buffers — and **WPF is
 the first configured profile, not the identity.** The engine emits domain-neutral
-core verdicts (`OWN001/002/003/014`); a profile only contributes the lifetime facts
-(WPF's `ViewModel < Window < App`, `Loaded`/`Closed` = release regions) and a label.
+core verdicts (`OWN001/002/003/014`) plus a `[resource: …]` kind tag; a profile only
+contributes the lifetime facts (WPF's `ViewModel < Window < App`, `Loaded`/`Closed`
+= release regions). (A dedicated `[profile: …]` label is **not** emitted today — it
+is a consolidation-backlog item.)
 Code names that still read `WPFxxx` are pattern-catalog IDs, not emitted codes — the
 catalog rename (`SUB`/`TMR`/`DISP`) and the other consolidation items are recorded in
 [docs/notes/consolidation-and-positioning.md](notes/consolidation-and-positioning.md).
