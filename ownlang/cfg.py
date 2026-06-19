@@ -280,6 +280,12 @@ class _Builder:
                 sym = self.declare(p.name, Kind.PLAIN, p.line)
             sym.type_name = p.type.name
             sym.resource_kind = self.resource_kinds.get(p.type.name)
+            # a parameter can be the SUBJECT of a diagnostic (an owned/consume param
+            # that leaks -> OWN001, a borrow misused -> OWN013/OWN004), so give it a
+            # stable origin (name#line) just like an acquired local. Without it the
+            # diagnostic carries subject=None and a consumer that maps findings by
+            # origin (the OwnIR bridge) cannot attribute it.
+            sym.origin = f"{p.name}#{p.line}"
             self.params.append(sym)
 
         entry = self.new_block("entry")

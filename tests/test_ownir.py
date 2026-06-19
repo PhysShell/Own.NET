@@ -659,6 +659,35 @@ def run() -> int:
         fails.append(f"use-after-handoff should read as use-after-disposal, got "
                      f"{[x.render() for x in run_f]}")
 
+    # regression (codex review): an undischarged `consume` parameter must MAP to a
+    # finding AT the parameter, not crash check_facts. Before params carried an
+    # origin, the core's OWN001 on the owned param had subject=None and the bridge
+    # raised "cannot map back" instead of reporting the leak.
+    checks += 1
+    pf = check_facts({"module": "M", "functions": [
+        {"name": "bad", "file": "X.cs",
+         "params": [{"name": "s", "effect": "consume", "line": 5}],
+         "body": [{"op": "use", "var": "s", "line": 6}]}]})
+    if [(x.component, x.line, x.code) for x in pf] != [("bad", 5, "OWN001")]:
+        fails.append(f"undischarged consume param should map to OWN001@5, got "
+                     f"{[(x.component, x.line, x.code) for x in pf]}")
+
+    # regression (CodeRabbit review): the DI region-escape reroute is scoped to
+    # subscriptions. A non-subscription resource (here a timer) with an incidental
+    # injected source/source_type must keep its OWN resource path, not be rerouted
+    # into the DI escape (OWN014).
+    checks += 1
+    tf = check_facts({"module": "M",
+        "components": [{"name": "Vm", "file": "Vm.cs", "subscriptions": [
+            {"event": "t.Elapsed", "handler": "h", "line": 7, "released": False,
+             "resource": "timer", "source": "injected", "source_type": "IBus"}]}],
+        "services": [{"name": "IBus", "lifetime": "singleton", "deps": [],
+                      "file": "S.cs", "line": 1}]})
+    if [(x.code, x.kind) for x in tf] != [("OWN001", "timer")]:
+        fails.append(f"timer with incidental injected source should stay a timer "
+                     f"leak (OWN001/timer), not reroute to OWN014: "
+                     f"{[(x.code, x.kind) for x in tf]}")
+
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
     #     in the core (one checker), so the Action/script stay thin wrappers.

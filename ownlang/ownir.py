@@ -448,7 +448,10 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
                 continue
             # DI-sourced escape (mirrors to_module): an injected source with a KNOWN
             # DI lifetime lowers to `subscribe self to <source>` under its DI region.
-            if sub.get("source") == "injected" and not sub.get("released"):
+            # Only subscriptions reroute here — a non-subscription resource with an
+            # incidental `source`/`source_type` keeps its own analysis path.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and not sub.get("released")):
                 st = sub.get("source_type")
                 src_life = di_life.get(st) if isinstance(st, str) else None
                 if src_life is not None:
@@ -588,8 +591,11 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # the registration order — no honest-warning hedge once the lifetime is
             # known). An unregistered/unknown source (src_life None) falls through to
             # the token path below and keeps the OWN001 warning. A released `-=`
-            # mitigates it (same as any capture).
-            if sub.get("source") == "injected" and not sub.get("released"):
+            # mitigates it (same as any capture). Only subscriptions reroute here —
+            # a non-subscription resource with an incidental `source`/`source_type`
+            # keeps its own (timer/disposable/...) analysis path.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and not sub.get("released")):
                 st = sub.get("source_type")
                 src_life = di_life.get(st) if isinstance(st, str) else None
                 if src_life is not None:
