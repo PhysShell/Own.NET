@@ -6,7 +6,7 @@
 # spot-check, not a crawler. Be a good citizen.
 #
 # Usage:
-#   scripts/mine.sh [--ref <branch|tag|sha>] [--paths <subdir>] [--format human]
+#   scripts/mine.sh [--ref <branch|tag|sha>] [--paths <subdir>] [--format sarif|human]
 #                   [--out <dir>] [--keep-src] <owner/repo | git-url>
 #
 # Output goes to corpus/mined/<slug>/ (gitignored): findings.txt, extract.log,
@@ -18,7 +18,11 @@ set -euo pipefail
 
 ref=""
 subpaths=""
-format="human"
+# SARIF by default: mine_report.py reads it structurally (no regex, no parser
+# drift — the class of bug that silently dropped findings on the ScreenToGif run).
+# findings.txt then holds a SARIF log; the human view is report.md. `--format human`
+# still works (mine_report sniffs the format).
+format="sarif"
 outdir=""
 keep_src=0
 target=""

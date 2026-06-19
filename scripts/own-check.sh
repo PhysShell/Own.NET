@@ -11,7 +11,7 @@
 # only extracts facts.
 #
 # Usage:
-#   scripts/own-check.sh [--format human|github|msbuild] [--severity error|warning]
+#   scripts/own-check.sh [--format human|github|msbuild|sarif] [--severity error|warning]
 #                        [--fail-on-finding] [--legacy] [--stats] [--root <own.net checkout>]
 #                        [--] <path|file> [more ...]
 #
