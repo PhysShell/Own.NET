@@ -254,6 +254,16 @@ static bool IsSelfPreservingOp(string name) =>
         or "WhereNotNull" or "Cast" or "OfType" or "StartWith" or "Scan"
         or "Finally" or "AsObservable" or "Synchronize" or "Timestamp";
 
+// One WhenAnyValue selector `p => p.Member` rooted at the lambda parameter — a
+// single-hop self property. NOT `p => p.A.B` (a path through a possibly-injected
+// object that can keep `this` alive — a real leak), and NOT a result-combiner
+// lambda (`(a, b) => ...`). Purely syntactic.
+static bool IsSelfMemberSelector(ArgumentSyntax arg) =>
+    arg.Expression is SimpleLambdaExpressionSyntax lam
+        && lam.Body is MemberAccessExpressionSyntax body
+        && body.Expression is IdentifierNameSyntax pid
+        && pid.Identifier.Text == lam.Parameter.Identifier.Text;
+
 static bool IsSelfRootedWhenAny(ExpressionSyntax chain)
 {
     // Walk the fluent chain leftwards. The HEAD must be `this.WhenAnyValue(...)`;
@@ -266,15 +276,20 @@ static bool IsSelfRootedWhenAny(ExpressionSyntax chain)
     {
         if (ma.Expression is ThisExpressionSyntax)
         {
-            // Head: `this.<op>(...)`. A self-cycle requires WhenAnyValue with a
-            // single-hop self-member lambda (`p => p.Member`, not `p => p.A.B`,
-            // not multi-arg).
-            return ma.Name.Identifier.Text == "WhenAnyValue"
-                && iv.ArgumentList.Arguments.Count == 1
-                && iv.ArgumentList.Arguments[0].Expression is SimpleLambdaExpressionSyntax lam
-                && lam.Body is MemberAccessExpressionSyntax body
-                && body.Expression is IdentifierNameSyntax pid
-                && pid.Identifier.Text == lam.Parameter.Identifier.Text;
+            // Head: `this.WhenAnyValue(p => p.Member[, q => q.Other, ...])`. A
+            // self-cycle requires WhenAnyValue with one-or-more single-hop
+            // self-member selectors — each roots at `this`. `p => p.A.B` (a path
+            // through a possibly-injected object) and a result-combiner overload
+            // (`..., (a, b) => ...`) stay flagged. Multi-arg over own properties
+            // observes only `this`, the SAME self-cycle as single-arg (see
+            // docs/notes/self-whenany-precision.md).
+            if (ma.Name.Identifier.Text != "WhenAnyValue"
+                || iv.ArgumentList.Arguments.Count < 1)
+                return false;
+            foreach (var arg in iv.ArgumentList.Arguments)
+                if (!IsSelfMemberSelector(arg))
+                    return false;
+            return true;
         }
         if (!IsSelfPreservingOp(ma.Name.Identifier.Text))
             return false;          // a combinator / unknown op -> possibly external

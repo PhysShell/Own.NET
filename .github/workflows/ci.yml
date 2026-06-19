@@ -131,6 +131,7 @@ jobs:
             frontend/roslyn/samples/ExternalRefSubscription.cs \
             frontend/roslyn/samples/StaticHandlerViewModel.cs \
             frontend/roslyn/samples/StaticEventEscapeViewModel.cs \
+            frontend/roslyn/samples/WhenAnyValueViewModel.cs \
             frontend/roslyn/samples/SampleTypes.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -233,6 +234,25 @@ jobs:
           # subscription must still be reported, not silently suppressed.
           echo "$out" | grep -qE "ExternalRefSubscription\.cs:[0-9]+: warning: \[OWN001\]" \
             || { echo "FAIL: expected OWN001 on the external-ref subscription (must not be exempted)"; exit 1; }
+          # P-004 self-WhenAnyValue classifier (docs/notes/self-whenany-precision.md):
+          # `this.WhenAnyValue(p => p.SelfProp[, q => q.Other]).Subscribe` over the
+          # component's OWN single-hop properties is a collectable self-cycle ->
+          # silent; a nested path through an INJECTED object, or a combinator that
+          # mixes in an EXTERNAL observable, stays a flagged leak (OWN001).
+          echo "$out" | grep -q "x.Svc.Name" \
+            || { echo "FAIL: nested-path WhenAnyValue (injected Svc) must leak"; exit 1; }
+          echo "$out" | grep -q "CombineLatest" \
+            || { echo "FAIL: combinator WhenAnyValue (external observable) must leak"; exit 1; }
+          # the multi-arg single-hop self chain must be SILENCED (the fix): `x => x.B`
+          # appears only in that chain, so it must not surface anywhere.
+          if echo "$out" | grep -q "x => x.B"; then
+            echo "FAIL: multi-arg single-hop self WhenAnyValue must be silenced"; exit 1
+          fi
+          # exactly two WhenAnyValueViewModel leaks (nested + combinator) — the three
+          # self-rooted chains produce nothing.
+          n=$(echo "$out" | grep -cE "WhenAnyValueViewModel\.cs:[0-9]+:.*\[OWN001\]")
+          [ "$n" = "2" ] \
+            || { echo "FAIL: expected exactly 2 WhenAnyValueViewModel leaks, got $n"; exit 1; }
           # P-004 static-handler exemption: a static-method handler has a null
           # delegate target — no instance retained, so not a leak — silent.
           if echo "$out" | grep -q "StaticHandlerViewModel.cs"; then
