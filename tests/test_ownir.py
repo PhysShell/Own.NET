@@ -70,6 +70,8 @@ _DI_CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "di_capture.facts.json")
 _HANDOFF_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                 "ownir", "handoff_contract.facts.json")
+_INFER_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                              "ownir", "contract_inference.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -687,6 +689,71 @@ def run() -> int:
         fails.append(f"timer with incidental injected source should stay a timer "
                      f"leak (OWN001/timer), not reroute to OWN014: "
                      f"{[(x.code, x.kind) for x in tf]}")
+
+    # --- P-006/2b v1: CONTRACT INFERENCE. A callee's ownership contract is derived
+    #     from its OWN body when no `effect` is annotated -- the bounded inter-
+    #     procedural step that lets first-party C# be checked without annotating
+    #     every method. `archive` releases its param -> inferred CONSUME (caller
+    #     `run` then trips use-after-handoff OWN002); `peek` only reads its param ->
+    #     inferred BORROW (caller `keep` keeps ownership and leaks OWN001 when it
+    #     forgets to release; `ok` is clean when it releases). NO effect appears in
+    #     the fixture -- every contract here is inferred.
+    with open(_INFER_FIXTURE, encoding="utf-8") as f:
+        ifacts = json.load(f)
+    ifindings = check_facts(ifacts)
+    checks += 1
+    got = sorted((x.component, x.line, x.code) for x in ifindings)
+    if got != [("keep", 31, "OWN001"), ("run", 24, "OWN002")]:
+        fails.append(f"contract inference verdicts wrong: expected [keep@31 OWN001 "
+                     f"(borrow inferred -> caller owns), run@24 OWN002 (consume "
+                     f"inferred -> use after handoff)], got {got}")
+    checks += 1
+    if any(x.component in ("archive", "peek", "ok") for x in ifindings):
+        fails.append("contract inference produced a false positive on a correct "
+                     "callee/handoff (archive/peek/ok must be silent)")
+    # an EXPLICIT effect always wins over inference: `consume` declared on a param
+    # whose body only USES it (which would INFER borrow) keeps the owned obligation,
+    # so the undischarged param leaks OWN001 rather than being silently borrowed.
+    checks += 1
+    ov = check_facts({"module": "M", "functions": [
+        {"name": "g", "file": "G.cs",
+         "params": [{"name": "s", "effect": "consume", "line": 1}],
+         "body": [{"op": "use", "var": "s", "line": 2}]}]})
+    if [(x.component, x.code) for x in ov] != [("g", "OWN001")]:
+        fails.append(f"explicit `consume` should win over inferred borrow (owned "
+                     f"param leaks OWN001), got {[(x.component, x.code) for x in ov]}")
+    # regression (codex review): inference does NOT treat `return` as a consume
+    # signal, and a value-bearing `return` no longer crashes the bridge. A function
+    # that returns an owned local/param gets an owned return type, so the value
+    # ESCAPES (is discharged) -- no false leak, no unmapped OWN035 crash.
+    checks += 1
+    rf = check_facts({"module": "M", "functions": [
+        {"name": "make", "file": "R.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 1},
+                  {"op": "return", "var": "s", "line": 2}]},
+        {"name": "passthrough", "file": "R.cs", "params": [{"name": "s", "line": 5}],
+         "body": [{"op": "return", "var": "s", "line": 6}]}]})
+    if rf:
+        fails.append(f"a value-bearing return should be a clean escape (no crash, no "
+                     f"false leak), got {[(x.component, x.code) for x in rf]}")
+    # regression (CodeRabbit review): a param ONLY forwarded to another call is
+    # ambiguous without that callee's contract, so it is NOT inferred (stays plain)
+    # -- the v1 boundary. The forwarding fn and its caller stay silent (no false
+    # positive, no crash); transitive inference is the follow-up that resolves it.
+    checks += 1
+    amb = check_facts({"module": "M", "functions": [
+        {"name": "forward", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "sink", "args": ["s"], "line": 2}]},
+        {"name": "sink", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 5}],
+         "body": [{"op": "release", "var": "x", "line": 6}]},
+        {"name": "caller", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "forward", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if amb:
+        fails.append(f"an ambiguous pass-through param must not be inferred, crash, "
+                     f"or false-positive, got {[(x.component, x.code) for x in amb]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
