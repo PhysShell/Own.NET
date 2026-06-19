@@ -161,18 +161,21 @@ jobs:
             echo "framework refs not found — own-check resolves runtime types only"
           fi
 
-      # Own.NET — no build needed; scans .cs directly. --severity warning so the
-      # warning-tier leaks (injected-source subscriptions, e.g. VideoSource) are
-      # included, not just the provable static-source errors. OWN_EXTRA_REF_DIRS
-      # (above) is inherited by the extractor process.
+      # Own.NET — no build needed; scans .cs directly. --format sarif so the diff
+      # reads our findings through the SAME parser as the Infer#/CodeQL SARIF (no
+      # bespoke text parser, no parser drift; own.txt holds a SARIF log — the
+      # comparator sniffs the format). --severity warning so the warning-tier leaks
+      # (injected-source subscriptions, e.g. VideoSource) are included, not just the
+      # provable static-source errors. OWN_EXTRA_REF_DIRS (above) is inherited by the
+      # extractor process.
       - name: Own.NET own-check
         env:
           PATHS: ${{ steps.t.outputs.paths }}
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
           set +e
-          scripts/own-check.sh --format human --severity warning -- "$scan" > own.txt 2> own-extract.log
-          echo "own-check rc=$? ; $(wc -l < own.txt) finding line(s)"
+          scripts/own-check.sh --format sarif --severity warning -- "$scan" > own.txt 2> own-extract.log
+          echo "own-check rc=$? ; own.txt is a SARIF log ($(wc -c < own.txt) bytes)"
 
       # CodeQL — database from source (no build). The dispose/leak queries
       # (cs/local-not-disposed & friends) are *quality* queries, absent from the

@@ -28,8 +28,9 @@ scripts/mine.sh DapperLib/Dapper                 # whole repo
 scripts/mine.sh --paths src JoshClose/CsvHelper  # focus a subdir
 ```
 
-Output → `corpus/mined/<slug>/` (gitignored): `findings.txt`, `extract.log`,
-`report.md`, `report.json`. Seed targets live in `corpus/targets.txt`.
+Output → `corpus/mined/<slug>/` (gitignored): `findings.txt` (a SARIF 2.1.0 log
+by default — `mine_report` reads it structurally; see `sarif-export.md`),
+`extract.log`, `report.md`, `report.json`. Seed targets live in `corpus/targets.txt`.
 
 ## What the report says — and how to read it
 

@@ -2,21 +2,21 @@
 """
 Mining report aggregator — corpus mining (see docs/notes/mining.md).
 
-Reads the human-format findings that `own-check` prints over a real C# repo and
-turns them into a structured Markdown summary: counts by OWN code, severity
-(errors = candidate leaks, warnings = advisory / OWN050 "unchecked"), resource
-kind, the noisiest files, and a triage list of the error-severity findings to
-eyeball.
+Reads own-check findings — its human text **or** a `--format sarif` log — over a
+real C# repo and turns them into a structured Markdown summary: counts by OWN
+code, severity (errors = candidate leaks, warnings = advisory / OWN050
+"unchecked"), resource kind, the noisiest files, and a triage list of the
+error-severity findings to eyeball.
 
 This is evaluation tooling for the analyser itself: a clean run is a precision
 signal; a pile of OWN001s is either real bugs or a false-positive pattern to
 harden; a high OWN050 count flags a coverage gap (unresolved external refs).
 
-dotnet-free: the extractor (own-check) runs upstream; this only reads its text.
+dotnet-free: the extractor (own-check) runs upstream; this only reads its output.
 
 Usage:
-  own-check.sh --format human -- <repo> | mine_report.py --repo owner/name --commit SHA
-  mine_report.py findings.txt --repo owner/name --commit SHA [--json out.json]
+  own-check.sh --format sarif -- <repo> | mine_report.py --repo owner/name --commit SHA
+  mine_report.py findings.{txt,sarif} --repo owner/name --commit SHA [--json out.json]
   mine_report.py --selftest
 """
 
@@ -72,15 +72,84 @@ def _net_open(s: str) -> int:
             + s.count("[") - s.count("]"))
 
 
+def _as_dict(x: Any) -> dict[str, Any]:
+    """`x` if it is a dict, else an empty one — lets the SARIF field walk be written
+    as plain `.get()` chains that degrade (rather than crash) on a malformed node,
+    since the findings file is external input."""
+    return x if isinstance(x, dict) else {}
+
+
+def _sarif_finding(res: dict[str, Any]) -> dict[str, Any]:
+    """Turn one SARIF result into the same finding dict the human-text parser yields
+    (file / line / severity / code / message / kind), so the aggregation is
+    format-agnostic. The SARIF level maps to the human severity (`error` -> error,
+    `warning`/`note` -> warning), so an advisory OWN050 `note` and an injected-source
+    `warning` both count as advisory exactly as in the text path; the resource kind
+    comes from `properties.resourceKind`, and a trailing ` [resource: kind]` is split
+    off the message for parity with the human format. Every access is shape-guarded
+    so a garbage sub-node yields a default, not a crash."""
+    locs = res.get("locations")
+    first = locs[0] if isinstance(locs, list) and locs else {}
+    phys = _as_dict(_as_dict(first).get("physicalLocation"))
+    uri = _as_dict(phys.get("artifactLocation")).get("uri", "")
+    line = _as_dict(phys.get("region")).get("startLine", 0)
+    msg = _as_dict(res.get("message")).get("text")
+    msg = msg if isinstance(msg, str) else ""
+    kind = _as_dict(res.get("properties")).get("resourceKind")
+    kind = kind if isinstance(kind, str) else ""
+    tail = _RESOURCE_TAIL.search(msg)
+    if tail:
+        kind = kind or tail["kind"]
+        msg = msg[:tail.start()].rstrip()
+    code = res.get("ruleId")
+    return {
+        "file": uri if isinstance(uri, str) else "",
+        "line": line if isinstance(line, int) else 0,
+        "severity": "error" if res.get("level") == "error" else "warning",
+        "code": code if isinstance(code, str) else "",
+        "message": msg,
+        "kind": kind,
+    }
+
+
+def _parse_sarif(doc: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every result across every run of a SARIF log, as finding dicts. Malformed
+    nodes (a non-dict run/result, a non-list `results`) are skipped rather than
+    crashed on — own-check emits well-formed SARIF, but the input file is external."""
+    out: list[dict[str, Any]] = []
+    runs = doc.get("runs")
+    if not isinstance(runs, list):
+        return out
+    for run in runs:
+        results = run.get("results") if isinstance(run, dict) else None
+        if not isinstance(results, list):
+            continue
+        out.extend(_sarif_finding(res) for res in results if isinstance(res, dict))
+    return out
+
+
 def parse(text: str) -> tuple[list[dict[str, Any]], int]:
-    """Parse own-check human output into finding dicts; return (findings, unparsed).
-    A finding may span several lines — an inline lambda handler body is echoed across
-    lines, with the trailing `[resource: kind]` tag (when present) on the last. A
-    non-header line extends the current finding's message ONLY while that message's
-    brackets are still unbalanced (i.e. we are inside the lambda body); once balanced,
-    the finding is complete and a further non-matching line is stray drift, counted —
-    not silently absorbed. Build chatter shouldn't reach here (own-check sends it to
-    stderr); a stray line that does and isn't chatter is counted, not dropped."""
+    """Parse own-check output into finding dicts; return (findings, unparsed).
+
+    Accepts either format own-check emits. **SARIF** (`--format sarif`, a `{`-leading
+    log with a `runs` array) is read structurally — no regex, `unparsed` is always 0.
+    Otherwise the **human text**: a finding may span several lines — an inline lambda
+    handler body is echoed across lines, with the trailing `[resource: kind]` tag
+    (when present) on the last. A non-header line extends the current finding's message
+    ONLY while that message's brackets are still unbalanced (i.e. we are inside the
+    lambda body); once balanced, the finding is complete and a further non-matching
+    line is stray drift, counted — not silently absorbed. Build chatter shouldn't reach
+    here (own-check sends it to stderr); a stray line that does and isn't chatter is
+    counted, not dropped."""
+    if text.lstrip().startswith("{"):
+        try:
+            doc = json.loads(text)
+        except json.JSONDecodeError:
+            doc = None
+        if isinstance(doc, dict) and isinstance(doc.get("runs"), list):
+            return _parse_sarif(doc), 0
+        # {-leading but not a SARIF log: fall through to the text parser, which
+        # surfaces it as unparsed drift rather than silently reporting "clean".
     findings: list[dict[str, Any]] = []
     unparsed = 0
     cur: dict[str, Any] | None = None
@@ -248,9 +317,59 @@ def _selftest() -> int:
     # the --stats coverage line is surfaced when supplied (header + clean note).
     if "42 methods" not in render_md([], 0, "o/r", "abc123", "coverage: 1/42 methods"):
         fails.append("coverage line not rendered")
+
+    # own-check can also feed SARIF (--format sarif); parse() sniffs it and yields the
+    # SAME finding dicts as the human path, so the aggregation is identical. The shape
+    # mirrors ownlang.ownir.build_sarif (note level = advisory OWN050).
+    def _res(code: str, level: str, uri: str, line: int, kind: str) -> dict[str, Any]:
+        return {"ruleId": code, "level": level,
+                "message": {"text": f"a leak [resource: {kind}]"},
+                "locations": [{"physicalLocation": {
+                    "artifactLocation": {"uri": uri}, "region": {"startLine": line}}}],
+                "properties": {"resourceKind": kind}}
+    sarif_text = json.dumps({"version": "2.1.0", "runs": [{"tool": {"driver":
+        {"name": "Own.NET"}}, "results": [
+        _res("OWN001", "error", "src/A.cs", 12, "disposable"),
+        _res("OWN001", "error", "src/A.cs", 40, "disposable"),
+        _res("OWN002", "error", "src/A.cs", 30, "disposable"),
+        _res("OWN050", "note", "src/B.cs", 5, "unresolved reference"),
+    ]}]})
+    sf, sf_unparsed = parse(sarif_text)
+    sagg = aggregate(sf)
+    if sf_unparsed != 0:
+        fails.append(f"SARIF input must not report unparsed, got {sf_unparsed}")
+    if sagg["by_code"] != {"OWN001": 2, "OWN002": 1, "OWN050": 1}:
+        fails.append(f"SARIF by_code wrong: {sagg['by_code']}")
+    if (sagg["errors"], sagg["advisories"]) != (3, 1):
+        fails.append(f"SARIF severity split wrong: {sagg['errors']}/{sagg['advisories']}")
+    if sagg["by_kind"].get("disposable") != 3 or sagg["by_file"].get("src/A.cs") != 3:
+        fails.append(f"SARIF by_kind/by_file wrong: {sagg['by_kind']} {sagg['by_file']}")
+    a0 = next(f for f in sf if f["code"] == "OWN050")
+    if a0["kind"] != "unresolved reference" or "[resource:" in a0["message"]:
+        fails.append(f"SARIF message/kind split wrong: {a0}")
+    # a {-leading input that is NOT a SARIF log falls through to the text parser and
+    # surfaces as unparsed drift, not a silent clean read.
+    _, ns_drift = parse('{"notruns": 1}\n')
+    if ns_drift != 1:
+        fails.append(f"non-SARIF JSON should surface as drift, got {ns_drift} unparsed")
+    # malformed SARIF nodes (non-dict run/result, non-list results, garbage
+    # sub-fields) are skipped, not crashed on — valid results still come through.
+    malformed = json.dumps({"runs": [
+        1,                  # non-dict run -> skipped
+        {"results": 7},     # non-list results -> skipped
+        {"results": [
+            2,              # non-dict result -> skipped
+            {"ruleId": "OWN001", "level": "error", "message": "m",
+             "locations": "nope", "properties": 5},  # garbage sub-fields -> defaults
+        ]},
+    ]})
+    mf, mf_drift = parse(malformed)
+    if mf_drift != 0 or [f["code"] for f in mf] != ["OWN001"]:
+        fails.append(f"malformed SARIF not handled gracefully: {mf_drift} {mf}")
+
     for f in fails:
         print(f"MINE SELFTEST FAIL: {f}")
-    print(f"mine_report selftest: {8 - len(fails)}/8 checks passed")
+    print(f"mine_report selftest: {15 - len(fails)}/15 checks passed")
     return 1 if fails else 0
 
 

@@ -51,17 +51,31 @@ apart, which error/warning cannot. Leak verdicts still map error / warning
 (intrinsic-warning, e.g. an injected-source subscription) / and downgrade under a
 `--severity warning` host.
 
-## Follow-ups (recorded, not done here)
+## Follow-up pass — SARIF is now the live path
 
-- **Flip the `oracle.yml` workflow to feed SARIF.** The comparator now accepts
-  both formats, so this is a backward-compatible 2-line CI edit (own-check
-  `--format sarif` → `own.sarif`, `--own own.sarif`). Left out of this PR to
-  avoid changing CI blind; the capability + selftests land first.
-- **`mine_report.py`: parser → aggregator-over-SARIF.** The aggregation/triage
-  half (counts by code/severity/kind, noisiest files, triage list) stays useful;
-  re-point it at SARIF input so the regex parser is retired everywhere, not just
-  in the oracle.
-- **GitHub code-scanning upload.** Add a CI step that uploads the SARIF, and
-  decide whether to keep the bespoke `::warning` annotation emitter or drop it.
+The two internal follow-ups are done (a second slice):
+
+- **`mine_report.py` reads SARIF.** `parse()` sniffs a `{`-leading `runs` log and
+  yields the same finding dicts as the text path (level → severity: `error` →
+  error, `warning`/`note` → advisory, so OWN050 stays advisory and an
+  injected-source warning stays advisory; kind from `properties.resourceKind`; the
+  trailing `[resource: …]` split off the message), so the aggregation is identical
+  between formats. The regex parser is now off the default path for **both**
+  consumers — the oracle (slice 2 above) and the miner. Pinned by a SARIF selftest
+  (14/14) and a human-vs-SARIF aggregation-parity check.
+- **The producers emit SARIF.** `mine.sh` now defaults to `--format sarif` and
+  `oracle.yml` runs own-check `--format sarif`; the intermediate (`findings.txt` /
+  `own.txt`) carries a SARIF log and the human-facing output stays the rendered
+  `report.md`. Both consumers sniff the format, so it is backward-compatible (a
+  text intermediate still parses). This retires the documented parser-drift bug on
+  the **live** eval paths, not just in capability. (Filenames kept to keep the CI
+  edit minimal; the content, not the extension, is what the consumers read.)
+
+Still open:
+
+- **GitHub code-scanning upload.** Deferred deliberately: this repo's C# is test
+  fixtures, so uploading own-check SARIF to *its own* Security tab is low-value.
+  Code scanning belongs in the consumer-facing distribution surface (P-013), run
+  on a real target — not here.
 - **Per-rule `helpUri`.** Once a stable per-code docs anchor exists, point each
   `rules[]` entry at it (intentionally omitted now rather than link a 404).
