@@ -55,11 +55,19 @@ redirect. Two places we are already **ahead of the doc's own roadmap**:
   half of spec mining is **done**; only the boundary-API (BCL/NuGet) half is
   open. See the dedicated LLM section below for why that ordering matters.
 - **Differentiation is already demonstrated, not hypothetical.** The doc asks
-  for an oracle and a benchmark; we already ran the 3-way oracle (Own.NET vs
-  Infer# vs CodeQL) on WalletWasabi and have an own-only subscription-leak set
-  (CodeQL ships no subscription-token query). So the benchmark ask is *formalize
-  what we already did*, not net-new research. See `docs/notes/oracle.md` and
-  `docs/notes/real-world-mining.md`.
+  for an oracle and a benchmark; the 3-way oracle (Own.NET vs Infer# vs CodeQL)
+  has already run on real C# and produced an own-only subscription-leak set. On
+  ScreenToGif it flags `SystemEvents.DisplaySettingsChanged` (error) and the four
+  `VideoSource` view→view-model lambdas (warning) that **CodeQL flags none of** —
+  its query set has no "event subscribed, never unsubscribed" rule — and that
+  Infer# misses too. So the benchmark ask is *formalize what we already did* into
+  a labeled corpus, not net-new research. The harness and the agree/own-only/
+  oracle-only buckets are in `docs/notes/oracle.md`; the ScreenToGif run is
+  written up in `docs/notes/real-world-mining.md` ("Cross-tool validation"). A
+  larger reactive-code run (WalletWasabi) has been exercised through the same CI
+  harness but is **not yet distilled into a committed corpus artifact** — that
+  distillation is exactly the benchmark-corpus backlog item below, not a
+  documented result to lean on here.
 
 ## The LLM layer — our position (the load-bearing section)
 
@@ -119,11 +127,14 @@ Ordered by leverage; each annotated with where it attaches and its real cost.
   and — the under-sold reason — *scientific reproducibility* (frozen, diffable
   run artifacts). Cheap, high-leverage. **Attaches to** P-012 / the distribution
   surface (P-013).
-- **Benchmark corpus as a first-class artifact.** Formalize the WalletWasabi
-  mining + oracle into a labeled (bug / no-bug / unknown), before/after,
+- **Benchmark corpus as a first-class artifact.** Formalize the existing mining
+  + oracle runs — the documented ScreenToGif differentiation
+  (`real-world-mining.md`) plus the larger WalletWasabi run that currently lives
+  only in CI artifacts — into a labeled (bug / no-bug / unknown), before/after,
   SARIF-harnessed corpus. This is the survey's strongest "this is a research
-  contribution, not a hobby tool" lever, and we are already ~70% there (miner +
-  oracle exist). **Extends** P-012. Highest research-value item on the shelf.
+  contribution, not a hobby tool" lever, and we are already partway there (miner
+  + oracle exist; what is missing is the committed, labeled artifact). **Extends**
+  P-012. Highest research-value item on the shelf.
 - **Metamorphic robustness harness.** Semantically-equivalent mutants (rename
   handlers, `lambda ↔ method-group`, reorder under no-semantic-change, add
   harmless branches) must yield **invariant** diagnostics modulo location. This
