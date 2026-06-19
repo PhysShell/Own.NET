@@ -59,7 +59,7 @@ The two internal follow-ups are done (a second slice):
   yields the same finding dicts as the text path (level → severity: `error` →
   error, `warning`/`note` → advisory, so OWN050 stays advisory and an
   injected-source warning stays advisory; kind from `properties.resourceKind`; the
-  trailing ` [resource: …]` split off the message), so the aggregation is identical
+  trailing `[resource: …]` split off the message), so the aggregation is identical
   between formats. The regex parser is now off the default path for **both**
   consumers — the oracle (slice 2 above) and the miner. Pinned by a SARIF selftest
   (14/14) and a human-vs-SARIF aggregation-parity check.

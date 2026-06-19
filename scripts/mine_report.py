@@ -72,6 +72,13 @@ def _net_open(s: str) -> int:
             + s.count("[") - s.count("]"))
 
 
+def _as_dict(x: Any) -> dict[str, Any]:
+    """`x` if it is a dict, else an empty one — lets the SARIF field walk be written
+    as plain `.get()` chains that degrade (rather than crash) on a malformed node,
+    since the findings file is external input."""
+    return x if isinstance(x, dict) else {}
+
+
 def _sarif_finding(res: dict[str, Any]) -> dict[str, Any]:
     """Turn one SARIF result into the same finding dict the human-text parser yields
     (file / line / severity / code / message / kind), so the aggregation is
@@ -79,31 +86,46 @@ def _sarif_finding(res: dict[str, Any]) -> dict[str, Any]:
     `warning`/`note` -> warning), so an advisory OWN050 `note` and an injected-source
     `warning` both count as advisory exactly as in the text path; the resource kind
     comes from `properties.resourceKind`, and a trailing ` [resource: kind]` is split
-    off the message for parity with the human format."""
-    loc = (res.get("locations") or [{}])[0].get("physicalLocation") or {}
-    uri = (loc.get("artifactLocation") or {}).get("uri", "")
-    line = (loc.get("region") or {}).get("startLine", 0)
-    msg = (res.get("message") or {}).get("text") or ""
-    kind = (res.get("properties") or {}).get("resourceKind", "")
+    off the message for parity with the human format. Every access is shape-guarded
+    so a garbage sub-node yields a default, not a crash."""
+    locs = res.get("locations")
+    first = locs[0] if isinstance(locs, list) and locs else {}
+    phys = _as_dict(_as_dict(first).get("physicalLocation"))
+    uri = _as_dict(phys.get("artifactLocation")).get("uri", "")
+    line = _as_dict(phys.get("region")).get("startLine", 0)
+    msg = _as_dict(res.get("message")).get("text")
+    msg = msg if isinstance(msg, str) else ""
+    kind = _as_dict(res.get("properties")).get("resourceKind")
+    kind = kind if isinstance(kind, str) else ""
     tail = _RESOURCE_TAIL.search(msg)
     if tail:
         kind = kind or tail["kind"]
         msg = msg[:tail.start()].rstrip()
+    code = res.get("ruleId")
     return {
-        "file": uri,
+        "file": uri if isinstance(uri, str) else "",
         "line": line if isinstance(line, int) else 0,
         "severity": "error" if res.get("level") == "error" else "warning",
-        "code": res.get("ruleId", ""),
+        "code": code if isinstance(code, str) else "",
         "message": msg,
         "kind": kind,
     }
 
 
 def _parse_sarif(doc: dict[str, Any]) -> list[dict[str, Any]]:
-    """Every result across every run of a SARIF log, as finding dicts."""
-    return [_sarif_finding(res)
-            for run in doc.get("runs", [])
-            for res in run.get("results", [])]
+    """Every result across every run of a SARIF log, as finding dicts. Malformed
+    nodes (a non-dict run/result, a non-list `results`) are skipped rather than
+    crashed on — own-check emits well-formed SARIF, but the input file is external."""
+    out: list[dict[str, Any]] = []
+    runs = doc.get("runs")
+    if not isinstance(runs, list):
+        return out
+    for run in runs:
+        results = run.get("results") if isinstance(run, dict) else None
+        if not isinstance(results, list):
+            continue
+        out.extend(_sarif_finding(res) for res in results if isinstance(res, dict))
+    return out
 
 
 def parse(text: str) -> tuple[list[dict[str, Any]], int]:
@@ -330,10 +352,24 @@ def _selftest() -> int:
     _, ns_drift = parse('{"notruns": 1}\n')
     if ns_drift != 1:
         fails.append(f"non-SARIF JSON should surface as drift, got {ns_drift} unparsed")
+    # malformed SARIF nodes (non-dict run/result, non-list results, garbage
+    # sub-fields) are skipped, not crashed on — valid results still come through.
+    malformed = json.dumps({"runs": [
+        1,                  # non-dict run -> skipped
+        {"results": 7},     # non-list results -> skipped
+        {"results": [
+            2,              # non-dict result -> skipped
+            {"ruleId": "OWN001", "level": "error", "message": "m",
+             "locations": "nope", "properties": 5},  # garbage sub-fields -> defaults
+        ]},
+    ]})
+    mf, mf_drift = parse(malformed)
+    if mf_drift != 0 or [f["code"] for f in mf] != ["OWN001"]:
+        fails.append(f"malformed SARIF not handled gracefully: {mf_drift} {mf}")
 
     for f in fails:
         print(f"MINE SELFTEST FAIL: {f}")
-    print(f"mine_report selftest: {14 - len(fails)}/14 checks passed")
+    print(f"mine_report selftest: {15 - len(fails)}/15 checks passed")
     return 1 if fails else 0
 
 
