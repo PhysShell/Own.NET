@@ -82,6 +82,15 @@ over who is registered with which lifetime and who they depend on::
 
 A singleton that reaches a scoped service (directly, or through a transient) is a
 DI001 finding at its registration site. The block is additive/optional too.
+
+The `services` graph also feeds the region engine (P-006 + P-004): a subscription
+with `source: "injected"` may carry `source_type` (the source's declared type). If
+that type is registered here, its DI lifetime IS a region — singleton (application)
+> scoped > transient — so an injected subscription whose source provably outlives
+the subscriber surfaces as OWN014 (the captive/zombie escape), and one proven
+shorter-or-equal stays silent. An unresolved `source_type` keeps the honest OWN001
+warning. This is how lifetimes the intra-procedural model cannot know locally reach
+the region check — from the registration graph.
 """
 
 from __future__ import annotations
@@ -92,6 +101,8 @@ from typing import Any
 
 from .ast_nodes import (
     Acquire,
+    Call,
+    Expr,
     FnDecl,
     If,
     Let,
@@ -106,6 +117,7 @@ from .ast_nodes import (
     Subscribe,
     TypeRef,
     Use,
+    VarRef,
     While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
@@ -183,19 +195,54 @@ _RESOURCES = {
 # `source` kind into the source's region; only *provably longer* sources are
 # mapped, so an unknown/shorter source produces no node and no finding (the region
 # model is conservative — no false positive). `_SUBSCRIBER_REGION` is the shorter
-# region every captured component lives in, declared strictly inside every mapped
-# source region by `_CAPTURE_LIFETIMES` (added to the module once when any capture
-# is present). Slice #1 models the one provable case — a process-lived `static`
-# event; further source classes (singletons, parent scopes) are a later slice.
+# region an un-registered UI subscriber (a Window/VM the framework owns) lives in.
+#
+# P-006 + P-004 (DI-sourced escape): a DI-registered source's lifetime IS a region
+# too. The .NET DI order — singleton (application) > scoped (request) > transient
+# (per-resolution) — is the same kind of partial order, so an *injected*
+# subscription whose source's REGISTERED lifetime strictly outlives the
+# subscriber's is the same region escape (the captive/zombie case). A `singleton`
+# shares the long `Process` region with a static event (both app/process-lived); a
+# subscriber that is itself DI-registered carries its own region. The lifetimes the
+# intra-procedural model could not know locally come from the registration graph —
+# we only escalate when the source's lifetime is KNOWN there; an unregistered
+# source keeps the honest OWN001 warning.
 _SUBSCRIBER_REGION = "Subscriber"
 _CAPTURE_SOURCE_REGIONS = {
     "static": "Process",   # a static event (e.g. SystemEvents.*) lives for the
                            # whole process -> strictly longer than any subscriber.
 }
+# .NET DI lifetime -> region. `singleton` is the long `Process` region (app-lived,
+# shared with static events); `scoped`/`transient` are strictly shorter.
+_DI_REGION = {"singleton": "Process", "scoped": "scoped", "transient": "transient"}
 _CAPTURE_LIFETIMES = [
-    LifetimeDecl("Process", None, 0),
-    LifetimeDecl(_SUBSCRIBER_REGION, "Process", 0),   # Subscriber strictly < Process
+    LifetimeDecl("Process", None, 0),               # app/process/singleton lifetime
+    LifetimeDecl("scoped", "Process", 0),           # scoped strictly < Process
+    LifetimeDecl("transient", "scoped", 0),         # transient strictly < scoped
+    LifetimeDecl(_SUBSCRIBER_REGION, "Process", 0),  # un-registered VM < Process
 ]
+
+
+def _di_life_map(facts: dict[str, Any]) -> dict[str, str]:
+    """Map each DI-registered service name -> its lifetime (singleton/scoped/
+    transient) from the optional `services` graph. The bridge cross-references a
+    subscription's `source_type` (and the subscriber's own name) against this to
+    derive regions for the lifetime engine."""
+    out: dict[str, str] = {}
+    raw = facts.get("services", [])
+    if isinstance(raw, list):
+        for s in raw:
+            if isinstance(s, dict) and isinstance(s.get("name"), str) \
+                    and s.get("lifetime") in DI_LIFETIMES:
+                out[s["name"]] = s["lifetime"]
+    return out
+
+
+def _subscriber_region(cname: str, di_life: dict[str, str]) -> str:
+    """The region a subscriber component lives in: its own DI-registered lifetime's
+    region if it is registered, else the short un-registered `Subscriber` region (a
+    Window/VM the UI framework owns, never a heap root)."""
+    return _DI_REGION.get(di_life.get(cname, ""), _SUBSCRIBER_REGION)
 
 
 @dataclass(frozen=True)
@@ -292,6 +339,13 @@ def load(path: str) -> dict[str, Any]:
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(
                     f"subscription 'type' must be a string, got {t!r}")
+            # `source_type` (P-006 + P-004): the declared type of an injected event
+            # source, cross-referenced against the `services` graph to derive its
+            # DI lifetime/region. Additive/optional; an older core ignores it.
+            stp = s.get("source_type")
+            if stp is not None and not isinstance(stp, str):
+                raise OwnIRError(
+                    f"subscription 'source_type' must be a string, got {stp!r}")
     # Optional DI registration graph (DI001 — captive dependency, P-006). Additive
     # and optional: an older core simply ignores it.
     svcs = result.get("services", [])
@@ -319,6 +373,19 @@ def load(path: str) -> dict[str, Any]:
     fns = result.get("functions", [])
     if not isinstance(fns, list) or not all(isinstance(f, dict) for f in fns):
         raise OwnIRError("OwnIR 'functions' must be a JSON array of objects")
+    for f in fns:
+        # Optional ownership CONTRACT (P-006/2b): params + their effects. Additive
+        # and optional — an older core just reads functions without contracts.
+        ps = f.get("params", [])
+        if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
+            raise OwnIRError("a function's 'params' must be a JSON array of objects")
+        for p in ps:
+            peff = p.get("effect")
+            if peff is not None and peff not in ("consume", "borrow", "borrow_mut",
+                                                 "plain"):
+                raise OwnIRError(
+                    f"parameter 'effect' must be consume/borrow/borrow_mut/plain, "
+                    f"got {peff!r}")
     return result
 
 
@@ -333,6 +400,7 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
     gid = 0
     any_capture = False
     comp_lines: list[str] = []
+    di_life = _di_life_map(facts)   # DI registrations: service name -> lifetime
     components = facts.get("components", [])
     if not isinstance(components, list):
         raise OwnIRError("OwnIR 'components' must be a JSON array")
@@ -340,6 +408,7 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
         if not isinstance(comp, dict):
             raise OwnIRError("each OwnIR component must be a JSON object")
         cname = comp.get("name", f"Component{gid}")
+        self_region = _subscriber_region(cname, di_life)
         subscriptions = comp.get("subscriptions", [])
         if not isinstance(subscriptions, list):
             raise OwnIRError("component 'subscriptions' must be a JSON array")
@@ -377,6 +446,25 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
                 cap_handles.append(handle)
                 any_capture = True
                 continue
+            # DI-sourced escape (mirrors to_module): an injected source with a KNOWN
+            # DI lifetime lowers to `subscribe self to <source>` under its DI region.
+            # Only subscriptions reroute here — a non-subscription resource with an
+            # incidental `source`/`source_type` keeps its own analysis path.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and not sub.get("released")):
+                st = sub.get("source_type")
+                src_life = di_life.get(st) if isinstance(st, str) else None
+                if src_life is not None:
+                    handle = f"cap_{gid}"
+                    gid += 1
+                    handles[handle] = {**sub, "component": cname,
+                                       "file": comp.get("file", "?"),
+                                       "di_source_life": src_life}
+                    cap_params.append(
+                        f"{handle}: EventSource lifetime {_DI_REGION[src_life]}")
+                    cap_handles.append(handle)
+                    any_capture = True
+                    continue
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
@@ -386,7 +474,7 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             if sub.get("released"):
                 owned_lines.append(f"    release {handle};")
         sig = ", ".join(cap_params)
-        lt = f" lifetime {_SUBSCRIBER_REGION}" if cap_handles else ""
+        lt = f" lifetime {self_region}" if cap_handles else ""
         comp_lines.append(f"fn {cname}({sig}){lt} {{")
         comp_lines.extend(owned_lines)
         for handle in cap_handles:
@@ -441,6 +529,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
     functions: list[FnDecl] = []
     gid = 0
     any_capture = False
+    di_life = _di_life_map(facts)   # DI registrations: service name -> lifetime
     components = facts.get("components", [])
     if not isinstance(components, list):
         raise OwnIRError("OwnIR 'components' must be a JSON array")
@@ -451,6 +540,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
         body: list[Stmt] = []
         params: list[Param] = []      # capture sources, carrying their region
         fn_lt: str | None = None      # the subscriber region, set iff a capture
+        self_region = _subscriber_region(cname, di_life)
         subscriptions = comp.get("subscriptions", [])
         if not isinstance(subscriptions, list):
             raise OwnIRError("component 'subscriptions' must be a JSON array")
@@ -490,9 +580,38 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                 params.append(Param(handle, TypeRef("EventSource", False, False, 0),
                                     0, lifetime=region))
                 body.append(Subscribe(handle, line))
-                fn_lt = _SUBSCRIBER_REGION
+                fn_lt = self_region
                 any_capture = True
                 continue
+            # P-006 + P-004 DI-sourced escape: an injected subscription whose source
+            # TYPE resolves (via the `services` graph) to a KNOWN DI lifetime routes
+            # through the SAME region engine. singleton/scoped/transient become the
+            # source's region; the engine reports OWN014 iff it strictly outlives the
+            # subscriber's region, and stays silent when it cannot (proven SAFE by
+            # the registration order — no honest-warning hedge once the lifetime is
+            # known). An unregistered/unknown source (src_life None) falls through to
+            # the token path below and keeps the OWN001 warning. A released `-=`
+            # mitigates it (same as any capture). Only subscriptions reroute here —
+            # a non-subscription resource with an incidental `source`/`source_type`
+            # keeps its own (timer/disposable/...) analysis path.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and not sub.get("released")):
+                st = sub.get("source_type")
+                src_life = di_life.get(st) if isinstance(st, str) else None
+                if src_life is not None:
+                    handle = f"cap_{gid}"
+                    gid += 1
+                    handles[handle] = {**sub, "component": cname,
+                                       "file": comp.get("file", "?"),
+                                       "di_source_life": src_life}
+                    line = _as_int(sub.get("line", 0))
+                    params.append(Param(handle,
+                                        TypeRef("EventSource", False, False, 0),
+                                        0, lifetime=_DI_REGION[src_life]))
+                    body.append(Subscribe(handle, line))
+                    fn_lt = self_region
+                    any_capture = True
+                    continue
             handle = f"sub_{gid}"
             gid += 1
             handles[handle] = {**sub, "component": cname,
@@ -522,8 +641,14 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # wording distinguish "never disposed" (no release at all) from "not
             # disposed on every path" (released on some branch, leaked on another).
             released = _released_vars(nodes)
-            fbody = _lower_flow(nodes, ffile, fname, handles, loc, {}, released)
-            functions.append(FnDecl(fname, [], None, fbody, 0))
+            # ownership contract params first (they seed `localmap` so the body's
+            # uses/releases and call arguments resolve to them), then the flow body.
+            localmap: dict[str, str] = {}
+            fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
+                                       released)
+            fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
+                                released)
+            functions.append(FnDecl(fname, fparams, None, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
                    resources=_prelude_resources(), functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
@@ -553,6 +678,53 @@ def _released_vars(nodes: list[Any]) -> set[str]:
             b = n.get("body", [])
             if isinstance(b, list):
                 out |= _released_vars(b)
+    return out
+
+
+# P-006/2b: a method's ownership CONTRACT is its parameters' effects. Encoding
+# each effect as the TypeRef `collect_signatures` reads (a resource-typed value =>
+# CONSUME, a borrowed type => BORROW/BORROW_MUT, anything else => PLAIN) lets the
+# SAME core signature table + `lower_call` resolve a call's per-argument effects —
+# so cross-method ownership transfer is checked compositionally (the inter-
+# procedural island) with NO new checker. The resource name is the prelude
+# `Disposable` (any prelude resource would do; what matters is that it is owned).
+_PARAM_EFFECT_TYPE = {
+    "consume": TypeRef("Disposable", False, False),   # takes ownership
+    "borrow": TypeRef("Disposable", True, False),     # shared loan, noescape
+    "borrow_mut": TypeRef("Disposable", True, True),  # exclusive loan, noescape
+}
+
+
+def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
+                     handles: dict[str, dict[str, Any]], loc: list[int],
+                     localmap: dict[str, str],
+                     released_vars: set[str]) -> list[Param]:
+    """Lower a function's declared ownership parameters into core Params. Each
+    gets a globally-unique synthetic symbol (`parg_<n>`) so a finding maps back to
+    its C# location; `localmap` resolves later references (and call arguments) by
+    the C# name. A `consume` parameter is an owned obligation in the callee — the
+    same Param the `.own` front-end produces — so an undischarged one leaks (the
+    obligation having moved in from the caller)."""
+    out: list[Param] = []
+    raw = fn.get("params", [])
+    if not isinstance(raw, list):
+        return out
+    for p in raw:
+        if not isinstance(p, dict):
+            continue
+        cname = str(p.get("name", "?"))
+        eff = p.get("effect")
+        tref = _PARAM_EFFECT_TYPE.get(eff) if isinstance(eff, str) else None
+        if tref is None:
+            tref = TypeRef("int", False, False)   # a plain (non-owned) parameter
+        sym = f"parg_{loc[0]}"
+        loc[0] += 1
+        line = _as_int(p.get("line", 0))
+        localmap[cname] = sym
+        handles[sym] = {"file": ffile, "line": line, "event": cname,
+                        "component": fname, "resource": "flow-local",
+                        "ever_released": cname in released_vars}
+        out.append(Param(sym, tref, line))
     return out
 
 
@@ -606,6 +778,21 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             body_b = _lower_flow(bn if isinstance(bn, list) else [],
                                  ffile, fname, handles, loc, localmap, released_vars)
             body.append(While("?", body_b, line))
+        elif op == "call":
+            # A call to a CONTRACTED callee (a function/extern whose signature the
+            # bridge also lowered). `lower_call` resolves each argument's effect
+            # from that signature: a `consume` parameter moves ownership across the
+            # call (so a later use is OWN002), a `borrow` lends it. This is the
+            # compositional island — the caller is checked against the callee's
+            # contract, not its body. Arguments resolve C# locals/params via
+            # `localmap`; an uncontracted call is simply not emitted by the
+            # extractor (it is an escape, surfaced separately).
+            callee = str(n.get("callee", ""))
+            raw_args = n.get("args", [])
+            if callee and isinstance(raw_args, list):
+                arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
+                                        for a in raw_args]
+                body.append(Call(callee, arg_refs, line))
     return body
 
 
@@ -679,6 +866,30 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="disposable"))
+            continue
+        if sub.get("di_source_life"):
+            # OWN014 region escape sourced from the DI graph (P-006 + P-004): the
+            # injected event SOURCE is registered with a lifetime that the engine
+            # proved strictly outlives the subscriber, so the strong subscription
+            # promotes '{component}' to the source's lifetime and it can never be
+            # collected — the captive/zombie case, now PROVEN (not the honest OWN001
+            # warning an unresolved-lifetime source gets). Error-tier.
+            life = sub["di_source_life"]
+            st = sub.get("source_type", "?")
+            nice = {
+                "singleton": "a DI singleton (application-lifetime) service",
+                "scoped": "a DI scoped service",
+                "transient": "a DI transient service",
+            }.get(life, f"a DI {life} service")
+            message = (f"event '{event}' is subscribed (handler '{handler}') to "
+                       f"'{st}' — {nice} that outlives '{component}'; the strong "
+                       f"subscription promotes '{component}' to the source's "
+                       f"lifetime, so it can never be collected — a captive/region "
+                       f"escape (leak, no release path)")
+            findings.append(Finding(
+                file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+                component=component, event=event, handler=handler,
+                message=message, kind="subscription token"))
             continue
         if rkind == "capture":
             # OWN014 region escape (P-004): the lifetime engine proved the event

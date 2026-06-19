@@ -1,0 +1,40 @@
+{
+  "ownir_version": 0,
+  "module": "HandoffBridge",
+  "functions": [
+    {
+      "name": "archive",
+      "file": "Archiver.cs",
+      "params": [{"name": "s", "effect": "consume", "line": 10}],
+      "body": [
+        {"op": "use", "var": "s", "line": 12},
+        {"op": "release", "var": "s", "line": 13}
+      ]
+    },
+    {
+      "name": "leak",
+      "file": "Archiver.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 18},
+        {"op": "use", "var": "s", "line": 19}
+      ]
+    },
+    {
+      "name": "run",
+      "file": "Archiver.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 24},
+        {"op": "call", "callee": "archive", "args": ["s"], "line": 25},
+        {"op": "use", "var": "s", "line": 26}
+      ]
+    },
+    {
+      "name": "run_ok",
+      "file": "Archiver.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 31},
+        {"op": "call", "callee": "archive", "args": ["s"], "line": 32}
+      ]
+    }
+  ]
+}

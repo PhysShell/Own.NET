@@ -1,0 +1,36 @@
+// OwnLang model of an inter-procedural ownership HANDOFF. `acquire`/`release`
+// == a Stream's open/Dispose. `archive` takes the stream BY VALUE (a resource
+// type => CONSUME): ownership MOVES into it and it closes the stream, so a
+// caller must not touch the stream after the handoff.
+//
+// This is the compositional island: `run`/`run_ok` are verified against
+// `archive`'s CONTRACT (consume), not its body -- the release obligation
+// travels across the call. No whole-program analysis: the signature is the cut.
+module Corpus
+resource Stream {
+  acquire open
+  release close
+}
+// first-party consumer: it OWNS the stream (CONSUME) and closes it.
+fn archive(s: Stream) {
+  use s;
+  release s;
+}
+// BUG: an owned stream that is neither closed nor handed to a consumer leaks.
+fn leak() {
+  let s = acquire Stream();
+  use s;
+}
+// BUG: the stream is used after ownership was moved into `archive`.
+fn run() {
+  let s = acquire Stream();
+  archive(s);          // ownership consumed by archive (moves across the call)
+  use s;               // <-- touch after handoff
+}
+// happy path: same handoff, nothing touches the stream afterwards. The
+// obligation travelled to `archive`; `run_ok` neither uses nor releases it,
+// and that is correctly NOT a leak -- the contract discharged it.
+fn run_ok() {
+  let s = acquire Stream();
+  archive(s);
+}

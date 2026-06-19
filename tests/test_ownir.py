@@ -66,6 +66,10 @@ _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                    "ownir", "unresolved.facts.json")
 _CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                 "ownir", "capture.facts.json")
+_DI_CAPTURE_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                   "ownir", "di_capture.facts.json")
+_HANDOFF_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                "ownir", "handoff_contract.facts.json")
 
 
 def _write_facts(obj: dict) -> str:
@@ -568,6 +572,121 @@ def run() -> int:
     checks += 1
     if any(x.component == "CleanThemeViewModel" for x in cfindings):
         fails.append("a released (unsubscribed) static capture was wrongly reported")
+
+    # --- P-006 + P-004: DI-sourced region escape. An injected subscription whose
+    #     source TYPE resolves (via the `services` graph) to a longer-lived DI
+    #     registration than the subscriber is a PROVABLE region escape -> OWN014,
+    #     not the honest OWN001 warning the unresolved case gets. A singleton source
+    #     captured by an un-registered UI VM escapes; a transient source is proven
+    #     SAFE by the SAME registration order and stays silent (the precision win).
+    #     This unifies the DI-lifetime model (di.py) with the region engine —
+    #     lifetimes the intra-procedural model cannot know locally now come from the
+    #     registration graph. The lowered sketch still parses.
+    with open(_DI_CAPTURE_FIXTURE, encoding="utf-8") as f:
+        dcfacts = json.load(f)
+    dcsrc, _ = to_own(dcfacts)
+    checks += 1
+    try:
+        parse(dcsrc)
+    except Exception as e:
+        fails.append(f"lowered di-capture facts do not parse: {e}")
+    dcfindings = check_facts(dcfacts)
+    checks += 1
+    if [(x.component, x.line, x.code) for x in dcfindings] != \
+            [("CustomerViewModel", 14, "OWN014")]:
+        fails.append(f"expected one DI region escape (CustomerViewModel@14 OWN014), "
+                     f"got {[(x.component, x.line, x.code) for x in dcfindings]}")
+    else:
+        d0 = dcfindings[0]
+        checks += 1
+        if d0.severity is not None:
+            fails.append(f"DI region escape should be error-tier (None), got "
+                         f"{d0.severity!r}")
+        if "singleton" not in d0.message or "IEventBus" not in d0.message:
+            fails.append(f"DI-escape message missing singleton/type: {d0.message!r}")
+        if "captive" not in d0.message:
+            fails.append(f"DI-escape message should name the captive escape: "
+                         f"{d0.message!r}")
+        if "[resource: subscription token]" not in d0.render():
+            fails.append(f"DI-escape finding missing kind tag: {d0.render()!r}")
+    # the transient-sourced subscription is PROVEN SAFE by the same DI order (a
+    # transient source cannot outlive the subscriber) -> silent, not a warning.
+    checks += 1
+    if any(x.component == "ProbeViewModel" for x in dcfindings):
+        fails.append("a transient-sourced injected subscription (proven safe) "
+                     "was wrongly reported")
+    # regression: the SAME injected subscription with NO source_type / no services
+    # keeps the honest OWN001 WARNING (the unresolved-lifetime hedge) — additive,
+    # nothing escalates without the DI graph.
+    checks += 1
+    warn = check_facts({"module": "M", "components": [
+        {"name": "Vm", "file": "Vm.cs", "subscriptions": [
+            {"event": "bus.X", "handler": "h", "line": 5, "released": False,
+             "resource": "subscription", "source": "injected"}]}]})
+    if [(x.code, x.severity) for x in warn] != [("OWN001", "warning")]:
+        fails.append(f"injected sub without DI info should stay an OWN001 warning, "
+                     f"got {[(x.code, x.severity) for x in warn]}")
+
+    # --- P-006/2b: COMPOSITIONAL ownership transfer through the bridge. A C#
+    #     method's ownership contract (a `consume`/`borrow` parameter) lowers to a
+    #     core signature; a `call` op lowers to the core's Call, whose effects
+    #     `lower_call` resolves from that signature. So cross-method handoff is
+    #     checked compositionally by the SAME analyze() — no new checker, and no
+    #     whole-program analysis (the signature is the cut). `archive(consume s)`
+    #     takes ownership; `run` uses `s` after handing it off (OWN002); `leak`
+    #     never discharges (OWN001); `run_ok` hands off correctly and is NOT a
+    #     false leak though it never releases (the obligation moved to archive).
+    with open(_HANDOFF_FIXTURE, encoding="utf-8") as f:
+        hfacts = json.load(f)
+    hfindings = check_facts(hfacts)
+    checks += 1
+    got = sorted((x.component, x.line, x.code) for x in hfindings)
+    if got != [("leak", 18, "OWN001"), ("run", 24, "OWN002")]:
+        fails.append(f"expected compositional handoff verdicts "
+                     f"[leak@18 OWN001, run@24 OWN002], got {got}")
+    # the correct consumer (archive) and the correct handoff (run_ok) must be
+    # SILENT — the contract discharges the caller's obligation, no false leak.
+    checks += 1
+    if any(x.component in ("archive", "run_ok") for x in hfindings):
+        fails.append("a correct consume contract / handoff was wrongly reported "
+                     "(false positive on the compositional path)")
+    # the use-after-handoff is OWN002 (use after the resource was consumed by the
+    # callee), the same code .own produces for use-after-consume.
+    checks += 1
+    run_f = [x for x in hfindings if x.component == "run"]
+    if not (run_f and "after it is disposed" in run_f[0].message
+            and "[resource: disposable]" in run_f[0].render()):
+        fails.append(f"use-after-handoff should read as use-after-disposal, got "
+                     f"{[x.render() for x in run_f]}")
+
+    # regression (codex review): an undischarged `consume` parameter must MAP to a
+    # finding AT the parameter, not crash check_facts. Before params carried an
+    # origin, the core's OWN001 on the owned param had subject=None and the bridge
+    # raised "cannot map back" instead of reporting the leak.
+    checks += 1
+    pf = check_facts({"module": "M", "functions": [
+        {"name": "bad", "file": "X.cs",
+         "params": [{"name": "s", "effect": "consume", "line": 5}],
+         "body": [{"op": "use", "var": "s", "line": 6}]}]})
+    if [(x.component, x.line, x.code) for x in pf] != [("bad", 5, "OWN001")]:
+        fails.append(f"undischarged consume param should map to OWN001@5, got "
+                     f"{[(x.component, x.line, x.code) for x in pf]}")
+
+    # regression (CodeRabbit review): the DI region-escape reroute is scoped to
+    # subscriptions. A non-subscription resource (here a timer) with an incidental
+    # injected source/source_type must keep its OWN resource path, not be rerouted
+    # into the DI escape (OWN014).
+    checks += 1
+    tf = check_facts({"module": "M",
+        "components": [{"name": "Vm", "file": "Vm.cs", "subscriptions": [
+            {"event": "t.Elapsed", "handler": "h", "line": 7, "released": False,
+             "resource": "timer", "source": "injected", "source_type": "IBus"}]}],
+        "services": [{"name": "IBus", "lifetime": "singleton", "deps": [],
+                      "file": "S.cs", "line": 1}]})
+    if [(x.code, x.kind) for x in tf] != [("OWN001", "timer")]:
+        fails.append(f"timer with incidental injected source should stay a timer "
+                     f"leak (OWN001/timer), not reroute to OWN014: "
+                     f"{[(x.code, x.kind) for x in tf]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
