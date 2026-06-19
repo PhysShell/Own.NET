@@ -122,7 +122,7 @@ check, not human trust.
 ### The deploy loop is a training loop (RLVR) — and its one trap
 
 The fix-loop has a second payoff that falls out for free: **every
-`proposal → verdict` pair is a labelled training example**, so the deployment
+`proposal → verdict` pair is a labeled training example**, so the deployment
 loop *is* a data-generation loop. This is **RL from Verifiable Rewards (RLVR)** —
 the regime that carried the recent frontier math/code gains — and it fits here
 unusually well:
@@ -131,7 +131,7 @@ unusually well:
   model. RLHF's reward model is itself a fallible LLM (noisy, gameable); our
   checker + compile + tests is ground truth, so the signal is clean — precisely
   the verifiable-domain regime where RLVR actually works rather than just markets.
-- **No human-labelled dataset** — the checker manufactures the labels on real code.
+- **No human-labeled dataset** — the checker manufactures the labels on real code.
 - **Bootstrap is free**: the deterministic fixes (the mechanical ~80%) are
   *guaranteed-correct demonstrations* to SFT on; the LLM takes the non-local ~20%,
   the verifier filters. Flywheel: deploy → propose → verify → keep winners → train
@@ -141,16 +141,16 @@ unusually well:
   GRPO/PPO with the verifier as reward is a later, sample-efficiency move.
 
 **The trap — and it is the same caveat as everywhere above.** "Checker went
-quiet" ≠ "bug fixed correctly". Optimise literally for that and the model learns
+quiet" ≠ "bug fixed correctly". Optimize literally for that and the model learns
 **reward hacking / Goodhart**: delete the resource, suppress the diagnostic,
-weaken the code, remove the failing test — Own.NET green, behaviour broken. This
+weaken the code, remove the failing test — Own.NET green, behavior broken. This
 is RLVR-for-code's documented failure mode (the model hacks the test suite, not
 the task). So the **metamorphic harness stops being only a deployment check and
 becomes part of the reward function**: the reward must be *checker-green AND
-behaviour-preserved* (metamorphic invariants / behaviour-diff / held-out tests),
+behavior-preserved* (metamorphic invariants / behavior-diff / held-out tests),
 or you train a checker-gamer. The verifier sets both the **ceiling** (the model
 cannot exceed what the verifier can check — it learns the blind spots as exploits)
-and the **floor** (without behaviour checks it degrades).
+and the **floor** (without behavior checks it degrades).
 
 This re-confirms **fix > spec** from the training side too: a **fix** has a clean
 verifiable reward (re-run checker + tests = the label); a **mined spec** has none
