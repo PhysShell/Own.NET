@@ -39,6 +39,7 @@ jobs:
           python scripts/mine_report.py --selftest
           python scripts/oracle_compare.py --selftest
           python scripts/metamorphic.py --selftest
+          python scripts/metamorphic_facts.py --selftest
 
   tests:
     name: tests (py${{ matrix.python-version }})

@@ -49,33 +49,43 @@ text below were caught by codex on the first cut — see PR #45.)
   control flow / borrow blocks and any pair that shares a variable, so it never
   emits an unsound swap.)
 
-### The result so far
+### The result so far — two targets
 
-The whole `.own` corpus (gallery + examples + corpus, 28 programs) is **invariant
-under both transforms** — the expected baseline for a core built on symbol
-identity + dataflow (it *should* be name/order-agnostic). That is a real, if
-modest, robustness result, and the framework now ratchets it. The harness is not
-vacuous: a **teeth test** asserts the (code, line) key actually distinguishes a
-leak from a clean run, and that the transforms genuinely fire.
+**Core (`.own`, `metamorphic.py`).** The whole `.own` corpus (gallery + examples +
+corpus, 28 programs) is **invariant under both transforms** — the expected baseline
+for a core built on symbol identity + dataflow (it *should* be name/order-agnostic).
+
+**Bridge (OwnIR facts, `metamorphic_facts.py`).** The same idea one level down: the
+JSON the extractor emits is a *set of records* (components, their resources, DI
+services, contracts), so **reversing** any record list or **consistently renaming**
+a component/service identifier cannot change which leaks exist. All **18** committed
+fact fixtures (plus a captive-DI set) are invariant under `check_facts` — including
+`DI001` (a singleton capturing a scoped service), which holds under both service
+reordering *and* a consistent rename of the dependency graph. Higher-signal than the
+core, since the bridge carries the incidental complexity (DI graph, finding dedup,
+source-lifetime tiering) — and still dotnet-free.
+
+Both are real, if modest, robustness results, and the framework now ratchets them.
+Neither harness is vacuous: a **teeth test** asserts the code key actually
+distinguishes a leak from a clean run, and that the transforms genuinely fire.
 
 ## Run it
 
 ```sh
-python scripts/metamorphic.py examples corpus   # sweep, report any non-invariance
-python scripts/metamorphic.py --selftest        # corpus invariance + teeth test (CI)
+python scripts/metamorphic.py examples corpus            # core: sweep .own
+python scripts/metamorphic.py --selftest                 # core: invariance + teeth (CI)
+python scripts/metamorphic_facts.py tests/fixtures/ownir # bridge: sweep *.facts.json
+python scripts/metamorphic_facts.py --selftest           # bridge: invariance + teeth (CI)
 ```
 
-`--selftest` runs on every push (CI `script selftests` job), beside the miner and
-oracle selftests.
+Both `--selftest`s run on every push (CI `script selftests` job), beside the miner
+and oracle selftests.
 
 ## Follow-ups (where the bug-finding power grows)
 
-- **More sound transforms** — dead-branch wrapping for statements that bind no
-  later-used name; a redundant borrow/`use`; statement reorder into nested bodies.
-- **OwnIR-fact target** — mutate the JSON facts (reorder a component's resource
-  records, rename component/event/handler symbols) and re-run `check_facts`. The
-  bridge has more incidental complexity than the core, so this is higher-signal —
-  and still dotnet-free.
+- **More sound transforms** — core: dead-branch wrapping for statements that bind
+  no later-used name, a redundant borrow/`use`, reorder into nested bodies; bridge:
+  splitting independent components, or inserting a no-op released record.
 - **C# source target** — mutate `.cs` (rename locals, reorder members) → re-run
   the extractor → check. This tests the *extractor*, where the syntactic-FP bugs
   actually lived — but it needs the Roslyn frontend, so it is CI-only.
