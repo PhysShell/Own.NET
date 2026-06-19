@@ -14,14 +14,16 @@ captive-dependency graph, finding dedup, source-lifetime tiering).
 Sound transforms (v1), each meaning-preserving:
   - **reverse**: reverse a list of records — the top-level component/service/function
     lists, a component's resource list, a service's deps. Independent records commute.
-  - **rename**: consistently rename a component/service identifier everywhere it
-    appears as a full string value (references in `deps`/`source_type`/… move with
-    it) — alpha-equivalence over the fact graph.
+  - **rename**: consistently rename a component/service identifier at the fact
+    graph's *identifier* sites only (a `name`/`source_type` field, a `deps` entry) —
+    alpha-equivalence over the fact graph. Semantic literals (a `lifetime`, a
+    `source` kind, an `event`/`handler`) are never touched, so a name equal to such
+    a literal stays sound.
 
 Compared on the **multiset of diagnostic codes** (not lines — same reasoning as the
 core harness: a record's line is intrinsic, but order/name must not move a *code*).
 
-dotnet-free: drives the same bridge (`ownlang.ownir.check_facts`) the CLI uses.
+dotnet-free: drives the same bridge entry the CLI uses — `check_facts(load(path))`.
 
 Usage:
   metamorphic_facts.py <file-or-dir> ...   # sweep *.facts.json; report non-invariance
@@ -32,18 +34,24 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ownlang.ownir import OwnIRError, check_facts
+from ownlang.ownir import OwnIRError, check_facts, load
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
 _LIST_KEYS = ("components", "services", "functions")
+# Fact-graph sites that hold a component/service *identifier* (vs a semantic literal
+# like a `lifetime` or a `source` kind). A rename only ever touches these.
+_NAME_KEYS = ("name", "source_type")   # scalar identifier fields
+_DEP_KEY = "deps"                       # a list of identifier references
 
 
 def code_key(facts: dict[str, Any]) -> tuple[str, ...]:
@@ -63,24 +71,32 @@ def _strings(node: Any) -> set[str]:
     return set()
 
 
-def _rename(node: Any, old: str, new: str) -> Any:
-    """A deep copy of `node` with every string *equal to* `old` replaced by `new`.
-    Exact-match (not substring), so it is a consistent rename of one identifier
-    across the whole fact graph — a reference in `deps`/`source_type` moves with it,
-    while an unrelated string (a `.cs` file, an event name) is left alone."""
-    if isinstance(node, str):
-        return new if node == old else node
+def _rename_id(node: Any, old: str, new: str) -> Any:
+    """A deep copy of `node` with the identifier `old` renamed to `new` only at the
+    fact graph's *identifier* sites — a component/service `name`, a `source_type`
+    reference, or an entry of a `deps` list. A semantic literal under any other key
+    (a `lifetime`, a `source` kind, an `event`/`handler`/`file`) is left untouched,
+    so the rename stays meaning-preserving even if a name equals such a literal."""
     if isinstance(node, dict):
-        return {k: _rename(v, old, new) for k, v in node.items()}
+        out: dict[str, Any] = {}
+        for k, v in node.items():
+            if k in _NAME_KEYS and v == old:
+                out[k] = new
+            elif k == _DEP_KEY and isinstance(v, list):
+                out[k] = [new if x == old else x for x in v]
+            else:
+                out[k] = _rename_id(v, old, new)
+        return out
     if isinstance(node, list):
-        return [_rename(v, old, new) for v in node]
+        return [_rename_id(x, old, new) for x in node]
     return node
 
 
 def reverse_variants(facts: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
     """Reverse each list of records: the top-level component/service/function lists,
     each component's resource list, and each service's deps. Records are a set, so
-    their order is not meaning."""
+    their order is not meaning. Each variant reverses its *own* (deep-copied) list,
+    never aliasing the source graph."""
     for key in _LIST_KEYS:
         seq = facts.get(key)
         if isinstance(seq, list) and len(seq) > 1:
@@ -93,7 +109,8 @@ def reverse_variants(facts: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any
             subs = c.get("subscriptions") if isinstance(c, dict) else None
             if isinstance(subs, list) and len(subs) > 1:
                 v = copy.deepcopy(facts)
-                v["components"][i]["subscriptions"] = list(reversed(subs))
+                v["components"][i]["subscriptions"] = list(
+                    reversed(v["components"][i]["subscriptions"]))
                 yield (f"reverse components[{i}].subscriptions", v)
     svcs = facts.get("services")
     if isinstance(svcs, list):
@@ -101,7 +118,7 @@ def reverse_variants(facts: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any
             deps = s.get("deps") if isinstance(s, dict) else None
             if isinstance(deps, list) and len(deps) > 1:
                 v = copy.deepcopy(facts)
-                v["services"][i]["deps"] = list(reversed(deps))
+                v["services"][i]["deps"] = list(reversed(v["services"][i]["deps"]))
                 yield (f"reverse services[{i}].deps", v)
 
 
@@ -118,25 +135,23 @@ def _identifiers(facts: dict[str, Any]) -> list[str]:
 
 def rename_variants(facts: dict[str, Any]) -> Iterator[tuple[str, dict[str, Any]]]:
     """One variant per component/service name, consistently renamed to a fresh name
-    across the whole fact graph. The verdict must not depend on the identifier."""
+    at the fact graph's identifier sites. The verdict must not depend on the name."""
     used = _strings(facts)
     for name in _identifiers(facts):
         fresh = f"{name}_mr"
         while fresh in used:
             fresh += "x"
-        yield (f"rename {name}->{fresh}", _rename(facts, name, fresh))
+        yield (f"rename {name}->{fresh}", _rename_id(facts, name, fresh))
 
 
 _TRANSFORMS = (reverse_variants, rename_variants)
 
 
 def violations(facts: dict[str, Any]) -> list[str]:
-    """Every metamorphic violation for one fact set: a meaning-preserving variant
-    whose code multiset differs from the original. Empty == invariant."""
-    try:
-        base = code_key(copy.deepcopy(facts))
-    except OwnIRError:
-        return []  # malformed facts are out of scope, not a finding
+    """Every metamorphic violation for one *validated* fact set (the caller loads it
+    through `ownir.load`): a meaning-preserving variant whose code multiset differs
+    from the original. Empty == invariant."""
+    base = code_key(copy.deepcopy(facts))
     out: list[str] = []
     for transform in _TRANSFORMS:
         for label, variant in transform(facts):
@@ -152,43 +167,49 @@ def violations(facts: dict[str, Any]) -> list[str]:
 
 def sweep(paths: list[str]) -> int:
     """Run the harness over every *.facts.json under the given files/dirs. Returns a
-    0/1 exit status (0 == every fact set invariant)."""
+    process exit status: 0 only if at least one file loaded and every loaded fact set
+    is invariant; 1 on any violation, any load error, or an empty input set (so a
+    sweep that evaluated nothing is not a false green)."""
     files: list[Path] = []
     for p in paths:
         pp = Path(p)
         files.extend(sorted(pp.rglob("*.facts.json")) if pp.is_dir() else [pp])
-    bad = 0
+    bad = load_errors = loaded = 0
     for f in files:
         try:
-            facts = json.loads(f.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:
+            facts = load(str(f))  # the real pipeline's entry — validates the schema
+        except (OSError, OwnIRError) as e:
             print(f"{f}: cannot load ({e})")
+            load_errors += 1
             continue
+        loaded += 1
         vs = violations(facts)
         if vs:
             bad += 1
             print(f"\n{f.name}: {len(vs)} violation(s):")
             for v in vs:
                 print(f"  - {v}")
-    n = len(files)
-    print(f"\nmetamorphic-facts: {n - bad}/{n} fact set(s) invariant under "
-          f"{len(_TRANSFORMS)} transform class(es).")
-    return 1 if bad else 0
+    print(f"\nmetamorphic-facts: {loaded - bad}/{loaded} loaded fact set(s) invariant "
+          f"under {len(_TRANSFORMS)} transform class(es).")
+    if not loaded:
+        print("metamorphic-facts: no loadable *.facts.json inputs")
+    return 1 if (bad or load_errors or not loaded) else 0
 
 
 def _selftest() -> int:
     fails: list[str] = []
     repo = Path(__file__).resolve().parent.parent
 
-    # 1) Robustness: every committed fact fixture must load and be invariant.
+    # 1) Robustness: every committed fact fixture must load *through the validator*
+    #    and be invariant. A fixture that no longer loads is a loud failure.
     fix = repo / "tests" / "fixtures" / "ownir"
     files = sorted(fix.rglob("*.facts.json")) if fix.exists() else []
     bad: list[str] = []
     for f in files:
         try:
-            facts = json.loads(f.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:
-            bad.append(f"{f.name}: load {e}")
+            facts = load(str(f))
+        except OwnIRError as e:
+            bad.append(f"{f.name}: does not load ({e})")
             continue
         vs = violations(facts)
         if vs:
@@ -196,7 +217,7 @@ def _selftest() -> int:
     if not files:
         fails.append("no .facts.json fixtures found to sweep")
     elif bad:
-        fails.append(f"fixtures not all invariant: {len(bad)} file(s), e.g. {bad[0]}")
+        fails.append(f"fixtures not all loadable+invariant: {len(bad)} file(s), e.g. {bad[0]}")
 
     # 2) Teeth: the code key must distinguish a leak from a clean run.
     leak = {"module": "M", "components": [{"name": "Vm", "file": "Vm.cs",
@@ -228,9 +249,37 @@ def _selftest() -> int:
     if violations(multi):
         fails.append(f"multi-component/service set should be invariant: {violations(multi)}")
 
+    # 4) rename stays sound when an identifier collides with a semantic literal: a
+    #    service *named* "scoped" must not have its `lifetime: "scoped"` rewritten.
+    collide = {"module": "M", "components": [],
+               "services": [{"name": "scoped", "lifetime": "scoped", "file": "S.cs",
+                             "line": 1, "deps": []}]}
+    collide_ok = False
+    for _lbl, mod in rename_variants(collide):
+        svcs = mod.get("services")
+        if isinstance(svcs, list) and svcs and isinstance(svcs[0], dict):
+            collide_ok = svcs[0].get("lifetime") == "scoped"
+    if not collide_ok:
+        fails.append("rename clobbered a semantic literal (lifetime) that equals a name")
+
+    # 5) The harness drives the real pipeline (load -> check_facts), so a
+    #    schema-invalid fact set (a future ownir_version) is rejected at the gate,
+    #    not silently swept as "invariant" (codex #46).
+    fd, p = tempfile.mkstemp(suffix=".facts.json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump({"ownir_version": 999, "module": "M", "components": []}, fh)
+        try:
+            load(p)
+            fails.append("load() should reject a future ownir_version")
+        except OwnIRError:
+            pass
+    finally:
+        os.unlink(p)
+
     for msg in fails:
         print(f"METAMORPHIC-FACTS SELFTEST FAIL: {msg}")
-    total = 6
+    total = 8
     print(f"metamorphic-facts selftest: {total - len(fails)}/{total} checks passed "
           f"(swept {len(files)} fixture(s))")
     return 1 if fails else 0
