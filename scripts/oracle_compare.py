@@ -146,7 +146,15 @@ def build_own(text: str, strips: list[str]) -> tuple[list[Finding], int]:
     text-format drift is surfaced rather than silently dropped (which would inflate
     `oracle-only`)."""
     if text.lstrip().startswith("{"):
-        return parse_sarif(text, "own", strips), 0
+        try:
+            doc = json.loads(text)
+        except json.JSONDecodeError:
+            doc = None
+        if isinstance(doc, dict) and isinstance(doc.get("runs"), list):
+            return parse_sarif(text, "own", strips), 0
+        # {-leading but not a SARIF log (wrong file? malformed JSON): fall through
+        # to the text parser, which surfaces it as unparsed drift rather than
+        # silently reporting "clean" (0 findings, 0 unparsed).
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from mine_report import parse  # local import: scripts/ is on the path now
     raw, unparsed = parse(text)
@@ -576,8 +584,15 @@ def _selftest() -> int:
         fails.append(f"own SARIF agree wrong: {[f.fkey for f, _ in r_s['agree']]}")
     if [f.rule for f in r_s["own_unique"]] != ["OWN003"]:
         fails.append(f"own SARIF own_unique wrong: {[f.rule for f in r_s['own_unique']]}")
+    # a {-leading input that is NOT a SARIF log (wrong file / malformed JSON) must
+    # not be silently treated as "clean" — it falls through to the text parser and
+    # surfaces as unparsed drift, not 0 findings / 0 unparsed.
+    not_sarif, ns_drift = build_own('{"notruns": []}\n', [])
+    if not_sarif or ns_drift < 1:
+        fails.append(f"non-SARIF JSON masked as clean: {len(not_sarif)} findings, "
+                     f"{ns_drift} unparsed")
 
-    total = 23
+    total = 24
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

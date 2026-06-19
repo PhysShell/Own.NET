@@ -10,8 +10,9 @@ of the `SARIF exporter` backlog item from `docs/notes/research-landscape-2026.md
    `scripts/oracle_compare.py` was asymmetric: Infer# and CodeQL were read with
    `parse_sarif`, but *our own* findings went through a regex over human text
    (`mine_report.parse`), which carries an explicit "unparsed-line" failure
-   bucket — the class of bug that silently dropped 38 of ~36 findings on the
-   ScreenToGif run (`real-world-mining.md`). With own-check emitting SARIF, the
+   bucket — the class of bug that silently left 38 lines unparsed, so only 3 of
+   ~36 findings reached the diff on the ScreenToGif run (`real-world-mining.md`).
+   With own-check emitting SARIF, the
    oracle reads **all three tools through one reader**. The fragile parser stops
    being on the critical path.
 2. **GitHub code-scanning native.** A SARIF log uploads straight to code scanning
