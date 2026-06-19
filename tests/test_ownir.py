@@ -172,6 +172,41 @@ def run() -> int:
     if "inline lambda" not in lam.message or "-=" not in lam.message:
         fails.append(f"lambda handler should note the missing -= handle: {lam.message!r}")
 
+    # --- P-004 source-lifetime tiering for `subscribe` (ignored `.Subscribe()`
+    #     result) — the WalletWasabi precision win. A SELF-rooted subscribe
+    #     (`this.WhenAnyValue(x => x.SelfProp)`) is a GC-collectible self-cycle ->
+    #     silent (not a leak); an `injected` source -> warning (unknown lifetime);
+    #     a `static`/external/unannotated source -> a leak (error). Mirrors `+=`.
+    def _sub(source: str | None) -> list[Finding]:
+        s: dict[str, object] = {
+            "event": "this.WhenAnyValue(x => x.Foo).Subscribe", "handler": "",
+            "line": 7, "released": False, "resource": "subscribe"}
+        if source is not None:
+            s["source"] = source
+        return check_facts({"module": "M", "components": [
+            {"name": "Vm", "file": "Vm.cs", "subscriptions": [s]}]})
+
+    # self-rooted -> silent (the cycle the GC collects); the 118->real win.
+    checks += 1
+    if _sub("self"):
+        fails.append(f"a self-rooted subscribe must be silent (self-cycle), got "
+                     f"{[(x.code, x.severity) for x in _sub('self')]}")
+    # injected source -> OWN001 WARNING (unknown lifetime, may outlive).
+    checks += 1
+    si = _sub("injected")
+    if [(x.code, x.severity) for x in si] != [("OWN001", "warning")]:
+        fails.append(f"injected subscribe should be an OWN001 warning, got "
+                     f"{[(x.code, x.severity) for x in si]}")
+    elif "may outlive" not in si[0].message:
+        fails.append(f"injected subscribe message missing wording: {si[0].message!r}")
+    # external (static) and UNANNOTATED -> OWN001 error (unchanged — no regression).
+    checks += 1
+    for src in ("static", None):
+        se = _sub(src)
+        if [(x.code, x.severity) for x in se] != [("OWN001", None)]:
+            fails.append(f"subscribe source={src!r} should stay an OWN001 error, "
+                         f"got {[(x.code, x.severity) for x in se]}")
+
     # the fixture carries the current schema version (the contract is stamped).
     checks += 1
     if facts.get("ownir_version") != OWNIR_VERSION:

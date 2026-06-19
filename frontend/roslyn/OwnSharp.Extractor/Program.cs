@@ -235,6 +235,54 @@ static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
 static bool IsLambdaHandler(ExpressionSyntax right) =>
     right is AnonymousFunctionExpressionSyntax;
 
+// P-004 source-lifetime tier for an ignored `.Subscribe()` chain (WPF004). A
+// self-rooted `this.WhenAnyValue(p => p.SelfProp).<self-preserving ops>.Subscribe`
+// watches the component's OWN property: the observable, its handler and `this`
+// form one cycle the GC collects together, so it is NOT a leak. We classify ONLY
+// this unambiguous self-cycle (the bridge drops a `source: "self"` subscribe).
+// Anything else stays a flagged leak (conservative). Purely syntactic.
+
+// A single-source operator whose arguments are only funcs / schedulers / scalars,
+// so it cannot mix in an EXTERNAL observable. A combinator NOT listed here
+// (CombineLatest, Merge, SelectMany, WithLatestFrom, Zip, Switch, Concat, ...), an
+// operator with an observable-taking overload (Throttle/Buffer/Sample/TakeUntil/
+// Window), or any unknown operator is treated as possibly external -> the chain
+// stays flagged. (Conservative: an unrecognised op never silences a real leak.)
+static bool IsSelfPreservingOp(string name) =>
+    name is "Select" or "Where" or "Do" or "Skip" or "Take" or "SkipWhile"
+        or "TakeWhile" or "ObserveOn" or "SubscribeOn" or "DistinctUntilChanged"
+        or "WhereNotNull" or "Cast" or "OfType" or "StartWith" or "Scan"
+        or "Finally" or "AsObservable" or "Synchronize" or "Timestamp";
+
+static bool IsSelfRootedWhenAny(ExpressionSyntax chain)
+{
+    // Walk the fluent chain leftwards. The HEAD must be `this.WhenAnyValue(...)`;
+    // EVERY downstream operator must be self-preserving (no external observable),
+    // else a later `.CombineLatest(_bus.X)` / `.SelectMany(_ => _bus.Y)` roots the
+    // subscription externally and it must stay flagged (codex P1).
+    var e = chain;
+    while (e is InvocationExpressionSyntax iv
+           && iv.Expression is MemberAccessExpressionSyntax ma)
+    {
+        if (ma.Expression is ThisExpressionSyntax)
+        {
+            // Head: `this.<op>(...)`. A self-cycle requires WhenAnyValue with a
+            // single-hop self-member lambda (`p => p.Member`, not `p => p.A.B`,
+            // not multi-arg).
+            return ma.Name.Identifier.Text == "WhenAnyValue"
+                && iv.ArgumentList.Arguments.Count == 1
+                && iv.ArgumentList.Arguments[0].Expression is SimpleLambdaExpressionSyntax lam
+                && lam.Body is MemberAccessExpressionSyntax body
+                && body.Expression is IdentifierNameSyntax pid
+                && pid.Identifier.Text == lam.Parameter.Identifier.Text;
+        }
+        if (!IsSelfPreservingOp(ma.Name.Identifier.Text))
+            return false;          // a combinator / unknown op -> possibly external
+        e = ma.Expression;
+    }
+    return false;                  // not a `this.WhenAnyValue(...)`-headed chain
+}
+
 // --- P-016 B0b/B2: flow lowering for local IDisposables (experimental) ---
 
 // A type that implements System.IDisposable (semantic) — the flow lowering tracks
@@ -912,6 +960,10 @@ foreach (var (file, tree) in parsed)
                     line = LineOf(inv),
                     released = false,
                     resource = "subscribe",
+                    // A self-rooted `this.WhenAnyValue(p => p.SelfProp)` chain is a
+                    // GC-collectible self-cycle: the bridge drops `source: "self"`.
+                    // Any other (external) source stays a flagged leak (null source).
+                    source = IsSelfRootedWhenAny(m.Expression) ? "self" : null,
                 });
 
         // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
