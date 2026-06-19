@@ -125,7 +125,7 @@ from .ast_nodes import (
 )
 from .di import LIFETIMES as DI_LIFETIMES
 from .di import Service, find_captive_dependencies
-from .diagnostics import Severity
+from .diagnostics import TITLES, Severity
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
 # vocabulary changes incompatibly; the extractor stamps the same number so a
@@ -301,6 +301,88 @@ def render_finding(f: Finding, fmt: str, severity: str = "error") -> str:
     if fmt == "msbuild":
         return f.render_msbuild(severity)
     return f.render(severity)
+
+
+# SARIF 2.1.0 — the OASIS-standard static-analysis interchange format. Unlike the
+# line-per-finding surfaces above, a SARIF log is ONE document for the whole run,
+# so it is built from the finding *list*, not rendered per finding.
+_SARIF_SCHEMA = (
+    "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/"
+    "Schemata/sarif-schema-2.1.0.json"
+)
+_SARIF_INFO_URI = "https://github.com/PhysShell/Own.NET"
+
+
+def _sarif_level(f: Finding, severity: str) -> str:
+    """The SARIF result level for a finding. Mirrors the CLI's per-finding severity
+    (an advisory OWN050 and an intrinsic-warning finding both stay sub-error), but
+    uses SARIF's dedicated `note` level for the advisory coverage notes — so a
+    consumer can tell a *skip* ("could not check this") from a real warning-tier
+    leak, which the flat error/warning surfaces cannot express."""
+    if f.advisory:
+        return "note"
+    if severity == "warning" or f.severity == "warning":
+        return "warning"
+    return "error"
+
+
+def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
+    """One SARIF `result` for a finding: the OWN code is the `ruleId`, the C#
+    location is a `physicalLocation`, and the resource kind / subscription triple
+    ride along in `properties` for any consumer that wants them."""
+    phys: dict[str, Any] = {
+        "artifactLocation": {"uri": f.file.replace("\\", "/")},
+    }
+    if f.line >= 1:  # SARIF region.startLine is 1-based; omit it for a file-level finding
+        phys["region"] = {"startLine": f.line}
+    props: dict[str, Any] = {"resourceKind": f.kind}
+    for key, val in (("component", f.component), ("event", f.event),
+                     ("handler", f.handler)):
+        if val:
+            props[key] = val
+    return {
+        "ruleId": f.code,
+        "level": _sarif_level(f, severity),
+        "message": {"text": f"{f.message} [resource: {f.kind}]"},
+        "locations": [{"physicalLocation": phys}],
+        "properties": props,
+    }
+
+
+def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, Any]:
+    """Render the findings as a single SARIF 2.1.0 log: one `run` whose
+    `tool.driver` is Own.NET (with a `rules` catalogue of the OWN codes present and
+    their titles) and whose `results` carry each finding's code, C# location,
+    message and resource kind. `severity` is the same presentation choice as the
+    other surfaces (it only sets each result's `level`).
+
+    SARIF earns its place three ways: it is GitHub code-scanning native, it is a
+    frozen/diffable run artifact (reproducibility), and it is the *same* shape
+    `scripts/oracle_compare.py` already parses for Infer# and CodeQL — so own-check
+    can join the cross-tool diff through one SARIF reader instead of the bespoke
+    text parser (the parser-drift class of bug it documents)."""
+    codes = sorted({f.code for f in findings})
+    rules = [
+        {"id": code, "shortDescription": {"text": TITLES.get(code, code)}}
+        for code in codes
+    ]
+    return {
+        "$schema": _SARIF_SCHEMA,
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "Own.NET",
+                        "informationUri": _SARIF_INFO_URI,
+                        "rules": rules,
+                        "properties": {"ownirSchemaVersion": OWNIR_VERSION},
+                    },
+                },
+                "results": [_sarif_result(f, severity) for f in findings],
+            },
+        ],
+    }
 
 
 def load(path: str) -> dict[str, Any]:

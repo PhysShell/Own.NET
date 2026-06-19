@@ -81,9 +81,13 @@ python scripts/oracle_compare.py \
   --target DapperLib/Dapper --commit "$SHA" --json report.json
 ```
 
-`--own` is `own-check`'s human output (same format the miner reads). The two
-oracle inputs are SARIF — Infer# and CodeQL both emit it, so one parser handles
-both. Extra SARIF oracles can be added with `--sarif tool=path`.
+`--own` is `own-check`'s output — either its human text (the format the miner
+reads) **or** a SARIF 2.1.0 log (`own-check … --format sarif`), which is read
+through the *same* `parse_sarif` as the oracles below, so own-check joins the
+diff with no bespoke text parser and no parser-drift (`build_own` sniffs the
+format; see `docs/notes/sarif-export.md`). The two oracle inputs are SARIF —
+Infer# and CodeQL both emit it, so one parser handles both. Extra SARIF oracles
+can be added with `--sarif tool=path`.
 
 ## What "agree" buys us, concretely
 
