@@ -37,7 +37,10 @@ owned-resource records) is an owned resource, discriminated by an optional
     (optional `type` names the field's declared type); tag
     `[resource: disposable field]`.
   - "subscribe": a `X.Subscribe(...)` whose `IDisposable` result is ignored (a
-    bare statement, not captured/disposed) — always a leak; tag
+    bare statement, not captured/disposed). Tiered by `source` like a `+=`: a
+    self-rooted `this.WhenAnyValue(x => x.SelfProp)` chain (`source: "self"`) is a
+    GC-collectible self-cycle, not a leak (silent); an `injected` source is a
+    warning (unknown lifetime); a `static`/external/unknown source is a leak. Tag
     `[resource: subscription token]`.
   - "capture": a *tokenless* strong subscription (`event += handler` with no
     token to release) whose event SOURCE provably outlives the subscriber. This
@@ -437,6 +440,13 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             # an advisory OWN050 note by _unresolved_findings instead.
             if rkind == "unresolved-subscription":
                 continue
+            # A `subscribe` (ignored `.Subscribe()` result) whose SOURCE is `self`
+            # is a self-rooted `this.WhenAnyValue(x => x.SelfProp)` cycle — the
+            # observable, its handler and `this` form one cycle the GC collects
+            # together, so it is NOT a leak. Skip it (silent); only an EXTERNAL
+            # source holds the component from a longer-lived root. Mirrors to_module.
+            if rkind == "subscribe" and sub.get("source") == "self":
+                continue
             # A `capture` is the tokenless region-escape shape: it does NOT acquire
             # a token (no OWN001); it lowers to `subscribe self to <source>` with
             # the source's region, so the lifetime engine reports OWN014 when the
@@ -563,6 +573,12 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # an unresolved-subscription marker is not an owned resource — it is
             # surfaced as an advisory OWN050 note, never lowered (see to_own).
             if rkind == "unresolved-subscription":
+                continue
+            # A self-rooted `subscribe` (ignored `.Subscribe()` on a
+            # `this.WhenAnyValue(x => x.SelfProp)` chain) is a GC-collectible
+            # self-cycle, not a leak — skip it (silent), like a released
+            # subscription. Only an EXTERNAL source holds the component.
+            if rkind == "subscribe" and sub.get("source") == "self":
                 continue
             # P-004 region escape: a `capture` is a tokenless strong subscription
             # whose source provably outlives the subscriber. Lower it to the
@@ -1042,9 +1058,21 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             message = (f"local IDisposable '{event}'{of_type} is created but "
                        f"never disposed (leak)")
         elif rkind == "subscribe":
-            message = (f"the result of '{event}' is ignored — the IDisposable "
-                       f"subscription is never disposed, leaking "
-                       f"'{component}' (leak)")
+            # source-lifetime tiering (P-004), mirroring the `+=` else branch: a
+            # self-rooted subscribe is already dropped in to_module (silent); an
+            # injected source has UNKNOWN lifetime -> warning ("may outlive"); a
+            # static/external/unknown source stays a provable leak (error).
+            if sub.get("source") == "injected":
+                fsev = "warning"
+                message = (f"the result of '{event}' is ignored — its IDisposable "
+                           f"subscription is never disposed; the source is an "
+                           f"injected dependency whose lifetime is unknown, so it "
+                           f"may outlive and keep '{component}' alive (possible "
+                           f"leak)")
+            else:
+                message = (f"the result of '{event}' is ignored — the IDisposable "
+                           f"subscription is never disposed, leaking "
+                           f"'{component}' (leak)")
         elif rkind == "pool":
             message = (f"pooled buffer '{event}' is rented but never returned "
                        f"to the pool (leak)")
