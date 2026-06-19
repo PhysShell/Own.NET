@@ -32,6 +32,7 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import sys
 from collections import Counter
 from dataclasses import replace
@@ -67,11 +68,16 @@ if TYPE_CHECKING:
 # --- diagnostic key: what must stay invariant ------------------------------
 
 
-def diag_key(mod: Module) -> tuple[tuple[str, int], ...]:
-    """The (code, line) multiset the checker produces, as a sorted tuple. This is
-    the property a meaning-preserving rewrite must not change."""
+def diag_key(mod: Module) -> tuple[str, ...]:
+    """The multiset of diagnostic **codes** the checker produces, sorted. This is
+    the property a meaning-preserving rewrite must not change. We compare *codes*,
+    not (code, line): a sound reorder can legitimately move an end-of-function
+    diagnostic's line — it anchors to the *last statement* — without changing which
+    diagnostics fire, so including the line would false-positive a correct checker
+    (caught by codex on #45). What a meaning-preserving rewrite must hold is *which*
+    diagnostics fire, i.e. the code multiset."""
     from ownlang.__main__ import check_module  # local: avoid an import cycle at load
-    return tuple(sorted((d.code, d.line) for d in check_module(mod)))
+    return tuple(sorted(d.code for d in check_module(mod)))
 
 
 # --- name occurrences (for substitution and independence) ------------------
@@ -108,6 +114,14 @@ def _sub_expr(e: Expr, old: str, new: str) -> Expr:
     return e  # IntLit
 
 
+def _sub_cond(text: str, old: str, new: str) -> str:
+    """Rename the identifier `old` to `new` inside an opaque condition's source text
+    (word-boundary, so `flagged` is untouched). The checker treats the condition as
+    opaque, but a *valid* alpha-rename must keep it consistent — otherwise the
+    variant references a name that no longer exists (codex, #45)."""
+    return re.sub(rf"\b{re.escape(old)}\b", new, text)
+
+
 def _sub_stmt(s: Stmt, old: str, new: str) -> Stmt:
     """`s` with every occurrence of the name `old` (binding or reference) renamed."""
     if isinstance(s, Let):
@@ -125,10 +139,12 @@ def _sub_stmt(s: Stmt, old: str, new: str) -> Stmt:
                        binding=new if s.binding == old else s.binding,
                        body=[_sub_stmt(x, old, new) for x in s.body])
     if isinstance(s, If):
-        return replace(s, then_body=[_sub_stmt(x, old, new) for x in s.then_body],
+        return replace(s, cond_text=_sub_cond(s.cond_text, old, new),
+                       then_body=[_sub_stmt(x, old, new) for x in s.then_body],
                        else_body=[_sub_stmt(x, old, new) for x in s.else_body])
     if isinstance(s, While):
-        return replace(s, body=[_sub_stmt(x, old, new) for x in s.body])
+        return replace(s, cond_text=_sub_cond(s.cond_text, old, new),
+                       body=[_sub_stmt(x, old, new) for x in s.body])
     if isinstance(s, Return):
         return replace(s, var=new) if s.var == old else s
     if isinstance(s, Subscribe):
@@ -280,8 +296,9 @@ def violations(src: str) -> list[str]:
 
 
 def sweep(paths: list[str]) -> int:
-    """Run the harness over every .own file under the given files/dirs. Returns the
-    number of files with a violation (0 == all robust)."""
+    """Run the harness over every .own file under the given files/dirs. Returns a
+    process exit status: 0 if every file is invariant, else 1 (the count of
+    violating files is printed)."""
     files: list[Path] = []
     for p in paths:
         pp = Path(p)
@@ -311,49 +328,76 @@ def _selftest() -> int:
     fails: list[str] = []
     repo = Path(__file__).resolve().parent.parent
 
-    # 1) Robustness: the gallery + examples + corpus must be invariant under every
-    #    transform. (Deduped by resolved path so a nested dir isn't swept twice.)
+    # 1) Robustness: the whole .own corpus (examples/ — which contains gallery/ — and
+    #    corpus/, deduped by resolved path) must *parse* and be invariant under every
+    #    transform. A file that stops parsing is a loud failure, not a silent pass.
     roots = [repo / "examples", repo / "corpus"]
     files = sorted({f.resolve() for r in roots if r.exists() for f in r.rglob("*.own")})
-    total_files = len(files)
+    bad: list[str] = []
     for f in files:
-        vs = violations(f.read_text(encoding="utf-8"))
+        src = f.read_text(encoding="utf-8")
+        try:
+            parse(src)
+        except (ParseError, LexError) as e:
+            bad.append(f"{f.name}: does not parse ({type(e).__name__})")
+            continue
+        vs = violations(src)
         if vs:
-            fails.append(f"{f.name} not invariant: {vs[0]}")
-    if total_files == 0:
+            bad.append(f"{f.name}: {vs[0]}")
+    if not files:
         fails.append("no corpus .own files found to sweep")
+    elif bad:
+        fails.append(f"corpus not all parseable+invariant: {len(bad)} file(s), e.g. {bad[0]}")
 
-    # 2) Teeth: the (code, line) key must actually distinguish a leak from a clean
-    #    run — otherwise "zero violations" would be vacuous (a blind, constant key).
+    # 2) Teeth: the code multiset must distinguish a leak from a clean run — else
+    #    "zero violations" would be vacuous (a blind, constant key).
     leak = "module M\nresource R { acquire a release r }\nfn f() { let x = acquire R(1); }\n"
     clean = ("module M\nresource R { acquire a release r }\n"
              "fn f() { let x = acquire R(1); release x; }\n")
     if diag_key(parse(leak)) == diag_key(parse(clean)):
         fails.append("teeth: key does not distinguish a leak from a clean run")
-    if not any(c == "OWN001" for c, _ in diag_key(parse(leak))):
+    if "OWN001" not in diag_key(parse(leak)):
         fails.append("teeth: expected OWN001 on the leak fixture")
 
-    # 3) The transforms actually fire (a rename + a reorder are generated on a
-    #    program that admits them) — so the sweep is not silently a no-op.
+    # 3) The transforms fire on a program that admits them (so the sweep is not a
+    #    silent no-op), and that program is invariant (x and y are independent leaks).
     prog = ("module M\nresource R { acquire a release r }\nextern fn S(borrow R);\n"
             "fn f() { let x = acquire R(1); let y = acquire R(2); "
             "release x; release y; }\n")
     m = parse(prog)
-    n_alpha = sum(1 for _ in alpha_rename_variants(m))
-    n_reorder = sum(1 for _ in reorder_variants(m))
-    if n_alpha < 2:
-        fails.append(f"expected >=2 alpha-rename variants, got {n_alpha}")
-    if n_reorder < 1:
-        fails.append(f"expected >=1 reorder variant, got {n_reorder}")
-    # and that program is itself invariant (x and y are independent leaks).
+    if sum(1 for _ in alpha_rename_variants(m)) < 2:
+        fails.append("expected >=2 alpha-rename variants")
+    if sum(1 for _ in reorder_variants(m)) < 1:
+        fails.append("expected >=1 reorder variant")
     if violations(prog):
         fails.append(f"two-independent-leaks program should be invariant: {violations(prog)}")
 
+    # 4) alpha-rename keeps an opaque condition consistent (codex #45): renaming a
+    #    variable used in `if (v)` must rewrite cond_text too, else the variant
+    #    references a vanished name and is not a valid rename.
+    condp = parse("module M\nresource R { acquire a release r }\n"
+                  "fn f(flag: int) { if (flag) { let x = acquire R(flag); release x; } }\n")
+    cond_ok = False
+    for lbl, mod in alpha_rename_variants(condp):
+        first = mod.functions[0].body[0]
+        if "rename flag" in lbl and isinstance(first, If):
+            cond_ok = first.cond_text != "flag"
+    if not cond_ok:
+        fails.append("alpha-rename did not rewrite the condition text")
+
+    # 5) reorder must NOT false-positive on an end-of-function leak whose line moves
+    #    with the last statement (codex #45): swapping trailing independent statements
+    #    changes only the reported line, not the code multiset.
+    endline = ("module M\nresource R { acquire a release r }\nextern fn U(borrow R);\n"
+               "fn f(p: R, q: R) { let x = acquire R(1); U(p); U(q); }\n")
+    if violations(endline):
+        fails.append(f"reorder false-positive on an end-of-function line: {violations(endline)}")
+
     for msg in fails:
         print(f"METAMORPHIC SELFTEST FAIL: {msg}")
-    passed = 6 - len(fails)
-    print(f"metamorphic selftest: {passed}/6 checks passed "
-          f"(swept {total_files} corpus file(s))")
+    total = 8
+    print(f"metamorphic selftest: {total - len(fails)}/{total} checks passed "
+          f"(swept {len(files)} corpus file(s))")
     return 1 if fails else 0
 
 

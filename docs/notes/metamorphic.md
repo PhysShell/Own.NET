@@ -30,15 +30,20 @@ that is a bonus; the standalone value above stands without any LLM.
 ## How
 
 `parse(.own)` → mutate the **AST** (`dataclasses.replace`, the nodes are frozen)
-→ `check_module` → compare the **(code, line) multiset**. dotnet-free: it drives
-the same parser + core the CLI uses. The (code, line) key is the right invariant
-because the v1 transforms can only move a caret *column* (alpha-rename) or keep
-each node's own *line* (reorder) — a *correct* checker yields the identical set.
+→ `check_module` → compare the **multiset of diagnostic codes**. dotnet-free: it
+drives the same parser + core the CLI uses. We compare *codes*, not (code, line):
+a sound reorder can legitimately move an end-of-function diagnostic's *line* — it
+anchors to the last statement — without changing which diagnostics fire, so a line
+would false-positive a *correct* checker. What a meaning-preserving rewrite must
+hold is *which* diagnostics fire: the code multiset. (Both this and the condition
+text below were caught by codex on the first cut — see PR #45.)
 
 ### v1 transforms (each provably meaning-preserving)
 
 - **alpha-rename** — rename a local **bound exactly once** (so it cannot be
-  shadowing anything) and every one of its references; pure alpha-equivalence.
+  shadowing anything) and every one of its references — *including the identifier
+  inside an opaque `if`/`while` condition*, so the variant stays a valid rename;
+  pure alpha-equivalence.
 - **reorder** — swap two adjacent **simple** statements whose touched-variable
   sets are **disjoint**; independent statements commute. (Conservative: it skips
   control flow / borrow blocks and any pair that shares a variable, so it never
