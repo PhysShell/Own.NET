@@ -375,7 +375,9 @@ def load(path: str) -> dict[str, Any]:
         raise OwnIRError("OwnIR 'functions' must be a JSON array of objects")
     for f in fns:
         # Optional ownership CONTRACT (P-006/2b): params + their effects. Additive
-        # and optional — an older core just reads functions without contracts.
+        # and optional — an older core just reads functions without contracts. An
+        # omitted `effect` is INFERRED from the body (v1 contract inference), so the
+        # field is a hint/override, not a requirement.
         ps = f.get("params", [])
         if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
             raise OwnIRError("a function's 'params' must be a JSON array of objects")
@@ -695,6 +697,57 @@ _PARAM_EFFECT_TYPE = {
 }
 
 
+def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool, bool]:
+    """Scan a flow body for how parameter `pname` is treated, returning
+    (released, returned, handed-to-a-call, used). Recurses into if/while branches
+    so a discharge on any path counts."""
+    rel = ret = passed = used = False
+    if not isinstance(nodes, list):
+        return rel, ret, passed, used
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "release" and str(n.get("var")) == pname:
+            rel = True
+        elif op == "return" and str(n.get("var")) == pname:
+            ret = True
+        elif op == "call":
+            args = n.get("args", [])
+            if isinstance(args, list) and any(str(a) == pname for a in args):
+                passed = True
+        elif op == "use" and str(n.get("var")) == pname:
+            used = True
+        elif op in ("if", "while"):
+            subs = ([n.get("then"), n.get("else")] if op == "if"
+                    else [n.get("body")])
+            for sub in subs:
+                sr, st, sp, su = _param_signals(pname, sub)
+                rel, ret, passed, used = rel or sr, ret or st, passed or sp, used or su
+    return rel, ret, passed, used
+
+
+def _infer_param_effect(pname: str, nodes: Any) -> str | None:
+    """Infer a parameter's ownership CONTRACT from the callee's OWN body — the v1
+    bounded inter-procedural step that lets first-party C# be checked without
+    annotating every method. A param the body discharges or lets escape
+    (release / return) is CONSUME (ownership taken); one only read and retained is
+    a BORROW (the caller keeps ownership, must still release). A param handed to
+    another call is genuinely ambiguous without that callee's contract, so we do
+    NOT infer it (it stays plain / awaiting an explicit annotation or a later
+    transitive pass). Inference fires only on the unambiguous signals, so it never
+    upgrades a borrow to a consume (or vice-versa) on a guess — an explicit
+    `effect` in the fact always wins over inference."""
+    rel, ret, passed, used = _param_signals(pname, nodes)
+    if rel or ret:
+        return "consume"
+    if passed:
+        return None
+    if used:
+        return "borrow"
+    return None
+
+
 def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
                      handles: dict[str, dict[str, Any]], loc: list[int],
                      localmap: dict[str, str],
@@ -704,7 +757,8 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     its C# location; `localmap` resolves later references (and call arguments) by
     the C# name. A `consume` parameter is an owned obligation in the callee — the
     same Param the `.own` front-end produces — so an undischarged one leaks (the
-    obligation having moved in from the caller)."""
+    obligation having moved in from the caller). A parameter with no explicit
+    `effect` has its contract INFERRED from the body (`_infer_param_effect`)."""
     out: list[Param] = []
     raw = fn.get("params", [])
     if not isinstance(raw, list):
@@ -714,6 +768,8 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
             continue
         cname = str(p.get("name", "?"))
         eff = p.get("effect")
+        if not isinstance(eff, str):
+            eff = _infer_param_effect(cname, fn.get("body", []))   # contract inference
         tref = _PARAM_EFFECT_TYPE.get(eff) if isinstance(eff, str) else None
         if tref is None:
             tref = TypeRef("int", False, False)   # a plain (non-owned) parameter

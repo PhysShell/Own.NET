@@ -1,0 +1,49 @@
+{
+  "ownir_version": 0,
+  "module": "InferBridge",
+  "functions": [
+    {
+      "name": "archive",
+      "file": "Infer.cs",
+      "params": [{"name": "s", "line": 10}],
+      "body": [
+        {"op": "use", "var": "s", "line": 12},
+        {"op": "release", "var": "s", "line": 13}
+      ]
+    },
+    {
+      "name": "peek",
+      "file": "Infer.cs",
+      "params": [{"name": "s", "line": 18}],
+      "body": [
+        {"op": "use", "var": "s", "line": 19}
+      ]
+    },
+    {
+      "name": "run",
+      "file": "Infer.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 24},
+        {"op": "call", "callee": "archive", "args": ["s"], "line": 25},
+        {"op": "use", "var": "s", "line": 26}
+      ]
+    },
+    {
+      "name": "keep",
+      "file": "Infer.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 31},
+        {"op": "call", "callee": "peek", "args": ["s"], "line": 32}
+      ]
+    },
+    {
+      "name": "ok",
+      "file": "Infer.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 37},
+        {"op": "call", "callee": "peek", "args": ["s"], "line": 38},
+        {"op": "release", "var": "s", "line": 39}
+      ]
+    }
+  ]
+}
