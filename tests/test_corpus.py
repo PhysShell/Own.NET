@@ -11,9 +11,11 @@ This module runs every case.own and asserts its diagnostics match the
 expected-diagnostics.txt next to it, so the corpus stays honest: if the checker
 ever stops catching one of these real patterns, the suite goes red.
 
-NOTE: case.own is a hand reduction of the C# pattern, not C# the checker
-ingested -- OwnLang has no C# front-end. The corpus shows the ownership *logic*
-maps onto real bugs, not that the tool scanned real C#.
+NOTE: case.own is a hand reduction of the C# pattern; this test checks the
+ownership *logic* maps onto the real bug. The actual before.cs/after.cs are now
+also scanned end-to-end (extractor + core) by scripts/benchmark.py — the
+real-C# recall/specificity benchmark — which runs in the dotnet-backed
+`corpus-benchmark` CI job (this Python-only test needs no SDK).
 
 Run:  python tests/test_corpus.py
       python tests/run_tests.py     (runs it as part of the suite)

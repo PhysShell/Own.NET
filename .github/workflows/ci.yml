@@ -34,12 +34,13 @@ jobs:
       # analyzer tester) carry embedded fixtures / sweep the .own corpus; run their
       # selftests here so the parsers/aggregators and the robustness invariants stay
       # honest on every push, not only on workflow_dispatch.
-      - name: script selftests (miner + oracle + metamorphic)
+      - name: script selftests (miner + oracle + metamorphic + benchmark)
         run: |
           python scripts/mine_report.py --selftest
           python scripts/oracle_compare.py --selftest
           python scripts/metamorphic.py --selftest
           python scripts/metamorphic_facts.py --selftest
+          python scripts/benchmark.py --selftest
 
   tests:
     name: tests (py${{ matrix.python-version }})
@@ -578,4 +579,49 @@ jobs:
         with:
           sarif_file: ${{ steps.own.outputs.sarif-file }}
           category: own-net-samples
+
+  # P-012 slice 1: score the checker against the labeled corpus on REAL C# — not
+  # just the .own reduction tests/test_corpus.py checks. Per case: the bug must be
+  # CAUGHT in before.cs (recall) and the fix must be SILENT in after.cs
+  # (specificity / no false alarm). A defensible, regression-pinned number — and
+  # the RLVR reward scaffold: a deterministic verifier over labeled real-C# data.
+  corpus-benchmark:
+    name: corpus benchmark (real C# recall + specificity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      # Some corpus cases subscribe to framework events (WPF Window, Microsoft.Win32
+      # SystemEvents); the type-aware extractor needs those refs to bind a `+=` to an
+      # event (else an OWN050 note, not a leak). Materialize the WindowsDesktop ref
+      # pack and export OWN_EXTRA_REF_DIRS — same mechanism as the oracle/mine jobs.
+      # Harmless for the self-contained cases (deduped against the runtime TPA).
+      - name: Materialize framework reference assemblies
+        continue-on-error: true
+        run: |
+          tmp=$(mktemp -d)
+          printf '%s\n' \
+            '<Project Sdk="Microsoft.NET.Sdk">' \
+            '  <PropertyGroup>' \
+            '    <TargetFramework>net8.0-windows</TargetFramework>' \
+            '    <UseWPF>true</UseWPF>' \
+            '    <UseWindowsForms>true</UseWindowsForms>' \
+            '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
+            '  </PropertyGroup>' \
+            '</Project>' > "$tmp/ref.csproj"
+          dotnet restore "$tmp/ref.csproj" >/dev/null 2>&1 || echo "ref restore failed (continuing)"
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' 2>/dev/null | sort | tail -1 || true)
+          if [ -n "$d" ]; then
+            echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+            echo "framework refs: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+          else
+            echo "framework refs not found — own-check resolves runtime types only"
+          fi
+      - name: Score the corpus on real C#
+        run: python scripts/benchmark.py
 

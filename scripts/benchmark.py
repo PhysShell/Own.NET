@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+Corpus benchmark — score the checker against the labeled real-world corpus.
+
+Each ``corpus/<area>/<case>/`` holds a real bug: ``before.cs`` (buggy),
+``after.cs`` (fixed), ``expected-diagnostics.txt`` (the codes), ``case.own`` (a
+reduction) and ``notes.md``. ``tests/test_corpus.py`` checks the ``.own``
+*reduction*; this harness runs the **actual C#** through the extractor + core
+(``own-check.sh``) and measures the two things the ``.own`` check cannot:
+
+  - **recall** — the bug is *caught* in the real ``before.cs`` (>= 1 verdict);
+  - **specificity** — the real ``after.cs`` (the fix) is *silent* (0 verdicts, i.e.
+    no false alarm on correct code).
+
+The aggregate is one defensible line: *"N cases - caught C/N in real C# - clean
+K/N fixes - F false positives"*. That is the RLVR reward scaffold: a deterministic
+verifier over labeled real-C# data.
+
+A *verdict* is any SARIF result at error/warning level. The advisory note level
+(``OWN050`` "resolution skipped") is coverage honesty, not a verdict, so it counts
+as neither a catch nor a false positive. The catch/clean metric is deliberately
+code-agnostic: a leak reported as OWN001 vs OWN014 both count as "caught", so the
+benchmark survives a classifier reclassification that ``test_corpus.py``'s
+exact-code match would not.
+
+Needs a .NET SDK (``own-check.sh`` runs the extractor); some WPF cases also need
+``OWN_EXTRA_REF_DIRS`` to resolve framework events. ``--selftest`` validates the
+scoring + SARIF-parsing logic with no SDK (embedded fixtures), so the lint job
+keeps the harness honest on every push.
+
+Usage:
+  python scripts/benchmark.py [--root REPO] [--corpus DIR ...]   # run the benchmark
+  python scripts/benchmark.py --selftest                          # logic check (no SDK)
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from dataclasses import dataclass
+
+# A verdict is a real finding; these SARIF levels are not (note = the advisory
+# OWN050 "resolution skipped"; none = suppressed) — neither a catch nor an FP.
+_NONVERDICT_LEVELS = frozenset({"note", "none"})
+
+
+def sarif_codes(sarif_text: str) -> set[str]:
+    """The set of *verdict* rule codes in a SARIF log: results at error/warning
+    level. A note-level result (OWN050 resolution-skipped) is advisory coverage
+    honesty, not a verdict, so it is excluded. Malformed input yields no codes
+    (the caller treats that as "no verdict", surfaced as a missed catch)."""
+    try:
+        doc = json.loads(sarif_text)
+    except (json.JSONDecodeError, ValueError):
+        return set()
+    if not isinstance(doc, dict):
+        return set()
+    codes: set[str] = set()
+    runs = doc.get("runs")
+    for run in runs if isinstance(runs, list) else []:
+        if not isinstance(run, dict):
+            continue
+        results = run.get("results")
+        for res in results if isinstance(results, list) else []:
+            if not isinstance(res, dict):
+                continue
+            # SARIF's default level is "warning" — a result without one is a verdict.
+            level = res.get("level", "warning")
+            rid = res.get("ruleId")
+            if isinstance(rid, str) and level not in _NONVERDICT_LEVELS:
+                codes.add(rid)
+    return codes
+
+
+@dataclass
+class CaseScore:
+    """One corpus case scored on real C#: the expected codes, and the verdict
+    codes found on ``before.cs`` (buggy) and ``after.cs`` (fixed)."""
+
+    name: str
+    expected: set[str]
+    before: set[str]
+    after: set[str]
+
+    @property
+    def caught(self) -> bool:
+        """The bug is caught in the real ``before.cs``: at least one verdict."""
+        return bool(self.before)
+
+    @property
+    def clean(self) -> bool:
+        """The real fix (``after.cs``) is silent: no verdict (no false alarm)."""
+        return not self.after
+
+    @property
+    def expected_hit(self) -> bool:
+        """Secondary signal: the specific expected code(s) appear on ``before``
+        (a stronger match than "some verdict"). Not part of the gate, so a sound
+        reclassification of the leak code does not fail the benchmark."""
+        return bool(self.expected) and self.expected <= self.before
+
+
+def summarize(scores: list[CaseScore]) -> tuple[int, int, int, int]:
+    """``(caught, clean, total, false_positives)`` over the scored cases."""
+    caught = sum(1 for s in scores if s.caught)
+    clean = sum(1 for s in scores if s.clean)
+    fps = sum(len(s.after) for s in scores)
+    return caught, clean, len(scores), fps
+
+
+# ---- the SDK-backed half (the real run) --------------------------------------
+
+def _own_check(root: str, cs_file: str) -> str:
+    """Run ``own-check.sh --format sarif`` over one .cs file; return its SARIF
+    stdout (build chatter goes to stderr, so stdout is a clean SARIF log)."""
+    script = os.path.join(root, "scripts", "own-check.sh")
+    proc = subprocess.run(
+        [script, "--root", root, "--format", "sarif", "--", cs_file],
+        capture_output=True, text=True,
+    )
+    return proc.stdout
+
+
+def discover(corpus_dirs: list[str]) -> list[str]:
+    """Case directories carrying before.cs/after.cs/expected-diagnostics.txt."""
+    cases: list[str] = []
+    for base in corpus_dirs:
+        if not os.path.isdir(base):
+            continue
+        for name in sorted(os.listdir(base)):
+            d = os.path.join(base, name)
+            if (os.path.isdir(d)
+                    and os.path.exists(os.path.join(d, "before.cs"))
+                    and os.path.exists(os.path.join(d, "after.cs"))
+                    and os.path.exists(os.path.join(d, "expected-diagnostics.txt"))):
+                cases.append(d)
+    return cases
+
+
+def score_corpus(root: str, corpus_dirs: list[str]) -> list[CaseScore]:
+    """Run the extractor + core over every case's before.cs and after.cs."""
+    scores: list[CaseScore] = []
+    for d in discover(corpus_dirs):
+        with open(os.path.join(d, "expected-diagnostics.txt"), encoding="utf-8") as f:
+            expected = {w for w in f.read().split() if w}
+        before = sarif_codes(_own_check(root, os.path.join(d, "before.cs")))
+        after = sarif_codes(_own_check(root, os.path.join(d, "after.cs")))
+        scores.append(CaseScore(os.path.basename(d), expected, before, after))
+    return scores
+
+
+def run(root: str, corpus_dirs: list[str]) -> int:
+    """Score the corpus on real C# and print the scorecard. The gate: every real
+    bug caught and every real fix silent (recall + specificity at 100%)."""
+    scores = score_corpus(root, corpus_dirs)
+    if not scores:
+        print("BENCHMARK FAIL: no corpus cases found")
+        return 1
+    width = max(len(s.name) for s in scores)
+    print("corpus benchmark (real C# through the extractor + core):")
+    for s in scores:
+        catch = "caught" if s.caught else "MISSED"
+        clean = "clean" if s.clean else f"FP:{','.join(sorted(s.after))}"
+        note = ("" if s.expected_hit
+                else f"  (expected {sorted(s.expected)}, got {sorted(s.before)})")
+        print(f"  {s.name:<{width}}  before[{catch}: {','.join(sorted(s.before)) or '-'}]"
+              f"  after[{clean}]{note}")
+    caught, clean, total, fps = summarize(scores)
+    print(f"benchmark: {caught}/{total} bugs caught in real C# · "
+          f"{clean}/{total} fixes clean · {fps} false positive(s) on fixes")
+    if caught != total or clean != total:
+        print("BENCHMARK FAIL: recall or specificity below the corpus baseline "
+              "(every before.cs must be caught and every after.cs must be silent)")
+        return 1
+    return 0
+
+
+# ---- selftest (no SDK) -------------------------------------------------------
+
+def _selftest() -> int:
+    fails: list[str] = []
+
+    # 1) sarif_codes: verdict levels counted (deduped), note level excluded, junk safe.
+    sarif = json.dumps({"runs": [{"results": [
+        {"ruleId": "OWN001", "level": "error"},
+        {"ruleId": "OWN001", "level": "warning"},   # dedupes with the above
+        {"ruleId": "DI001", "level": "error"},
+        {"ruleId": "OWN050", "level": "note"},       # advisory -> excluded
+        {"ruleId": "OWN999", "level": "none"},       # suppressed -> excluded
+    ]}]})
+    got = sarif_codes(sarif)
+    if got != {"OWN001", "DI001"}:
+        fails.append(f"sarif_codes: expected {{OWN001,DI001}}, got {sorted(got)}")
+    for bad in ("not json", "{}", "[]", json.dumps({"runs": [{"results": []}]})):
+        if sarif_codes(bad) != set():
+            fails.append(f"sarif_codes: {bad!r} must yield no codes")
+    # a result with no level defaults to a verdict (SARIF's default is "warning").
+    if sarif_codes(json.dumps({"runs": [{"results": [{"ruleId": "OWN001"}]}]})) != {"OWN001"}:
+        fails.append("sarif_codes: a level-less result must count as a verdict")
+
+    # 2) scoring + aggregation.
+    cases = [
+        CaseScore("hit_clean", {"OWN001"}, {"OWN001"}, set()),       # caught + clean + hit
+        CaseScore("drift_clean", {"OWN001"}, {"OWN014"}, set()),     # caught + clean, drifted
+        CaseScore("missed", {"OWN003"}, set(), set()),               # not caught
+        CaseScore("leaky_fix", {"OWN001"}, {"OWN001"}, {"OWN001"}),  # caught, fix has an FP
+    ]
+    checks = [
+        (cases[0].caught and cases[0].clean and cases[0].expected_hit, "hit_clean misjudged"),
+        (cases[1].caught and cases[1].clean and not cases[1].expected_hit,
+         "drift case must be caught+clean but not an expected_hit"),
+        (not cases[2].caught and cases[2].clean, "missed case must be not-caught but clean"),
+        (cases[3].caught and not cases[3].clean, "leaky_fix must be caught but not clean"),
+    ]
+    for ok, msg in checks:
+        if not ok:
+            fails.append(f"scoring: {msg}")
+    if summarize(cases) != (3, 3, 4, 1):
+        fails.append(f"summarize: expected (3,3,4,1), got {summarize(cases)}")
+
+    for f in fails:
+        print(f"SELFTEST FAIL: {f}")
+    print(f"benchmark selftest: {'OK' if not fails else 'FAIL'} "
+          f"— sarif-parse + scoring/aggregation ({len(checks) + 2} checks)")
+    return 1 if fails else 0
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description="Corpus benchmark for the Own.NET checker.")
+    ap.add_argument("--selftest", action="store_true",
+                    help="validate the harness logic with no .NET SDK")
+    ap.add_argument("--root", default=None, help="repo root (default: this script's repo)")
+    ap.add_argument("--corpus", action="append", default=None, metavar="DIR",
+                    help="corpus base dir(s) (default: corpus/real-world + corpus/wpf)")
+    args = ap.parse_args(argv)
+    if args.selftest:
+        return _selftest()
+    root = args.root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    corpus_dirs = args.corpus or [os.path.join(root, "corpus", "real-world"),
+                                  os.path.join(root, "corpus", "wpf")]
+    return run(root, corpus_dirs)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
