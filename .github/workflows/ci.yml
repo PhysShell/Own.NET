@@ -625,10 +625,12 @@ jobs:
       - name: Score the corpus on real C#
         # Precision is gated absolutely (every fix silent, zero false positives);
         # recall is pinned at the measured floor and ratchets up as the extractor
-        # improves. Now 6/9 — pooled buffers are routed through the path-sensitive
-        # flow engine (Rent = acquire, Return = release), so double-return (OWN003)
-        # and use-after-return (OWN002) join the already-caught subscription/region
-        # class. Remaining backlog: interprocedural handoff, cross-method
-        # use-after-dispose, a region-escape shape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 6
+        # improves. Now 7/10 — pooled buffers ride the path-sensitive flow engine
+        # (Rent = acquire, Return = release: OWN003/OWN002), and pool recognition is
+        # now resolved through the Roslyn SemanticModel, so a double-return reached via
+        # an ALIASED pool receiver (`var p = ArrayPool<int>.Shared; p.Return(buf)`) — a
+        # miss for the old text heuristic — is caught. Remaining backlog: interprocedural
+        # handoff, cross-method use-after-dispose, a region-escape shape. A drop below
+        # the floor is a regression.
+        run: python scripts/benchmark.py --min-recall 7
 

@@ -408,11 +408,11 @@ static bool IsCatchAll(CatchClauseSyntax cc) =>
 // `tracked` local IDisposables. Returns null on any UNMODELLED statement (a `goto`, labeled
 // statement, local function, `lock`/`fixed`, …): the method is then honestly skipped, not
 // guessed. Loops, `try`, `do` and `switch` ARE modelled below.
-static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
+static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked, SemanticModel model)
 {
     var nodes = new List<object>();
     foreach (var st in block.Statements)
-        if (!LowerFlowStmt(st, tracked, nodes))
+        if (!LowerFlowStmt(st, tracked, model, nodes))
             return null;
     return nodes;
 }
@@ -424,7 +424,7 @@ static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked)
 // a `return` here runs FIRST — the enclosing `finally`(s), then the exit — so a resource a
 // finally disposes is released on the return path; null = a bare return (outside any try).
 // Defaults are the method-body context: throws escape, nothing is injected, returns are bare.
-static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<object> nodes,
+static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticModel model, List<object> nodes,
                           bool canEscape = true, List<object>? onThrow = null,
                           List<object>? onReturn = null)
 {
@@ -432,7 +432,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
     {
         case BlockSyntax b:
             foreach (var s2 in b.Statements)
-                if (!LowerFlowStmt(s2, tracked, nodes, canEscape, onThrow, onReturn))
+                if (!LowerFlowStmt(s2, tracked, model, nodes, canEscape, onThrow, onReturn))
                     return false;
             return true;
         case LocalDeclarationStatementSyntax ld:
@@ -442,20 +442,20 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
                     if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
-                            || IsPoolRent(v.Initializer?.Value)))   // ArrayPool/MemoryPool Rent
+                            || IsPoolRent(v.Initializer?.Value, model)))   // ArrayPool<T> Rent
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
             return true;
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow);
-            EmitFlowExpr(es.Expression, tracked, nodes);
+            EmitFlowExpr(es.Expression, tracked, model, nodes);
             return true;
         case IfStatementSyntax ifs:
         {
             var thenNodes = new List<object>();
-            if (!LowerFlowStmt(ifs.Statement, tracked, thenNodes, canEscape, onThrow, onReturn))
+            if (!LowerFlowStmt(ifs.Statement, tracked, model, thenNodes, canEscape, onThrow, onReturn))
                 return false;
             var elseNodes = new List<object>();
-            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, elseNodes, canEscape, onThrow, onReturn))
+            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, model, elseNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
             return true;
@@ -463,7 +463,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
         case UsingStatementSyntax us:
             // using(...) {body}: the using local is auto-disposed (untracked); still
             // lower the body so a tracked plain local used inside is seen.
-            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes, canEscape, onThrow, onReturn);
+            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn);
         case ReturnStatementSyntax rs:
             // A tracked local READ in the return value is a use at the return point —
             // e.g. `return BuildResult(buf)` after `pool.Return(buf)` is a use-after-
@@ -473,7 +473,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // — threaded as `onReturn`, so a resource the finally releases is released
             // on the return path — then exits; outside a try it is a bare CFG exit.
             if (rs.Expression is { } rexpr)
-                EmitFlowExpr(rexpr, tracked, nodes);
+                EmitFlowExpr(rexpr, tracked, model, nodes);
             if (onReturn is not null)
                 nodes.AddRange(onReturn);
             else
@@ -487,7 +487,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // double-release). The condition is opaque (we model control flow, not
             // values). If the body has an unmodelled statement, bail the method.
             var bodyNodes = new List<object>();
-            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
+            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(ws), body = bodyNodes });
             return true;
@@ -500,7 +500,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // body as a `while` is sound. (`for` and `do` are handled below; `do` runs 1+
             // times, so it is desugared rather than modelled as a bare 0+-trip `while`.)
             var bodyNodes = new List<object>();
-            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
+            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
@@ -514,7 +514,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // method-body local, so it is never a tracked candidate — no soundness
             // concern, just a separate (rare) recall gap.
             var bodyNodes = new List<object>();
-            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
             return true;
@@ -537,7 +537,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
                 if (cc.Block.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(IsDisposeShaped))
                     return false;
             var finallyNodes = new List<object>();
-            if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, finallyNodes))
+            if (trys.Finally is { } fin && !LowerFlowStmt(fin.Block, tracked, model, finallyNodes))
                 return false;
             // Does a throw in THIS body escape to method exit (so the edge — leave running
             // only the finally — models a real execution)? Sound when there is no catch (it
@@ -573,7 +573,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             bodyOnReturn.AddRange(onReturn ?? new List<object>
                 { new { op = "return", var = (string?)null, line = LineOf(trys) } });
             foreach (var stmt in trys.Block.Statements)
-                if (!LowerFlowStmt(stmt, tracked, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
+                if (!LowerFlowStmt(stmt, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
                     return false;
             nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
@@ -586,10 +586,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // only in the body but acquired before the loop would falsely leak on the phantom
             // 0-trip path. Bail (like the loops) if the body has an unmodelled statement.
             if (dos.Statement is null
-                || !LowerFlowStmt(dos.Statement, tracked, nodes, canEscape, onThrow, onReturn))
+                || !LowerFlowStmt(dos.Statement, tracked, model, nodes, canEscape, onThrow, onReturn))
                 return false;
             var bodyNodes = new List<object>();
-            if (!LowerFlowStmt(dos.Statement, tracked, bodyNodes, canEscape, onThrow, onReturn))
+            if (!LowerFlowStmt(dos.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(dos), body = bodyNodes });
             return true;
@@ -606,7 +606,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             foreach (var section in sw.Sections)
             {
                 var secNodes = new List<object>();
-                if (!LowerSwitchSection(section, tracked, secNodes, canEscape, onThrow, onReturn))
+                if (!LowerSwitchSection(section, tracked, model, secNodes, canEscape, onThrow, onReturn))
                     return false;
                 if (section.Labels.Any(l => l is DefaultSwitchLabelSyntax))
                     defaultNodes = secNodes;
@@ -645,20 +645,20 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
 // flow model doesn't handle here — including a `break` nested inside an `if`/loop, which reaches
 // the unmodelled default and conservatively skips the whole method.
 static bool LowerSwitchSection(SwitchSectionSyntax section, HashSet<string> tracked,
-                               List<object> nodes, bool canEscape,
+                               SemanticModel model, List<object> nodes, bool canEscape,
                                List<object>? onThrow, List<object>? onReturn)
 {
     foreach (var stmt in section.Statements)
     {
         if (stmt is BreakStatementSyntax)
             break;
-        if (!LowerFlowStmt(stmt, tracked, nodes, canEscape, onThrow, onReturn))
+        if (!LowerFlowStmt(stmt, tracked, model, nodes, canEscape, onThrow, onReturn))
             return false;
     }
     return true;
 }
 
-static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<object> nodes)
+static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
 {
     // `await x.DisposeAsync()` is the IAsyncDisposable release — look through the
     // await to the inner call so it counts as disposal, not a bare use.
@@ -698,7 +698,7 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<ob
     // XPool.Return(buf) on a tracked pooled buffer -> release. The buffer is the
     // ARGUMENT (the pool is the receiver), unlike Dispose where the local is the
     // receiver; `return` early so the argument is not also counted as a use.
-    if (PoolReturnBuffer(expr) is { } pbuf && tracked.Contains(pbuf))
+    if (PoolReturnBuffer(expr, model) is { } pbuf && tracked.Contains(pbuf))
     {
         nodes.Add(new { op = "release", var = pbuf, line = LineOf(expr) });
         return;
@@ -720,22 +720,40 @@ static string? FieldName(ExpressionSyntax expr) => expr switch
     _ => null,
 };
 
-// An ArrayPool/MemoryPool `Rent(...)` call — the acquire of a pooled buffer. The
-// receiver carries "Pool" (`ArrayPool<T>.Shared`, `MemoryPool<T>.Shared`, `_pool`).
-static bool IsPoolRent(ExpressionSyntax? e) =>
-    e is InvocationExpressionSyntax i
-    && i.Expression is MemberAccessExpressionSyntax m
-    && m.Name.Identifier.Text == "Rent"
-    && (m.Expression.ToString().Contains("Pool") || m.Expression.ToString().Contains("pool"));
+// Is `t` the System.Buffers.ArrayPool<T> type — the Return-based pool we model?
+// Checked on the resolved SYMBOL, not the receiver's text, so an aliased receiver
+// (`ArrayPool<int> p = ArrayPool<int>.Shared; p.Rent(n)`) binds correctly and an
+// unrelated API with "pool" in its name does not false-match. ArrayPool-specific by
+// design: MemoryPool<T>.Rent hands back an IMemoryOwner<T> released by Dispose (there
+// is no MemoryPool.Return), so a pooled MemoryPool owner rides the IDisposable path,
+// not this Return-based one.
+static bool IsArrayPoolType(INamedTypeSymbol? t)
+{
+    if (t is null || t.Name != "ArrayPool")
+        return false;
+    INamespaceSymbol? ns = t.ContainingNamespace;
+    if (ns is null || ns.Name != "Buffers")
+        return false;
+    ns = ns.ContainingNamespace;   // System.Buffers -> System
+    return ns is not null && ns.Name == "System"
+        && ns.ContainingNamespace is { IsGlobalNamespace: true };
+}
 
-// An ArrayPool/MemoryPool `Return(buf)` call — the RELEASE of the pooled buffer
-// `buf`. Unlike Dispose (where the tracked local is the receiver), the buffer is
-// the first ARGUMENT and the pool is the receiver. Returns the buffer name or null.
-static string? PoolReturnBuffer(ExpressionSyntax e) =>
+// An ArrayPool<T> `Rent(...)` call — the acquire of a pooled buffer. Resolved via the
+// SemanticModel (`model`), so the receiver may be any expression of ArrayPool<T> type.
+static bool IsPoolRent(ExpressionSyntax? e, SemanticModel model) =>
     e is InvocationExpressionSyntax i
-        && i.Expression is MemberAccessExpressionSyntax m
-        && m.Name.Identifier.Text == "Return"
-        && (m.Expression.ToString().Contains("Pool") || m.Expression.ToString().Contains("pool"))
+    && model.GetSymbolInfo(i).Symbol is IMethodSymbol { Name: "Rent" } sym
+    && IsArrayPoolType(sym.ContainingType);
+
+// An ArrayPool<T> `Return(buf)` call — the RELEASE of the pooled buffer `buf`. Unlike
+// Dispose (where the tracked local is the receiver), the buffer is the first ARGUMENT
+// and the pool is the receiver. Resolved via the SemanticModel. Returns the buffer
+// name (a plain local) or null.
+static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
+    e is InvocationExpressionSyntax i
+        && model.GetSymbolInfo(i).Symbol is IMethodSymbol { Name: "Return" } sym
+        && IsArrayPoolType(sym.ContainingType)
         && i.ArgumentList.Arguments.Count > 0
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
@@ -1152,8 +1170,11 @@ foreach (var (file, tree) in parsed)
                     source = IsSelfRootedWhenAny(m.Expression) ? "self" : null,
                 });
 
-        // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
-        // matched per member so a `buf` returned in one method does not mask a
+        // POOL001: an ArrayPool<T> buffer `Rent`ed but never `Return`ed, the Rent
+        // recognised via the shared semantic `IsPoolRent` (so an aliased pool receiver
+        // binds and a non-pool `.Rent` does not false-match — one definition, the flow
+        // pass below is the other consumer). Matched per member so a `buf` returned in
+        // one method does not mask a
         // leak of a same-named `buf` in another. Under --flow-locals the
         // path-sensitive flow detector supersedes this for buffers held in LOCALS
         // (and additionally catches double-return / use-after-return) — but it only
@@ -1164,10 +1185,7 @@ foreach (var (file, tree) in parsed)
         {
             var rented = new List<(string Name, int Line)>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
-                if (inv.Expression is MemberAccessExpressionSyntax m
-                    && m.Name.Identifier.Text == "Rent"
-                    && (m.Expression.ToString().Contains("Pool")
-                        || m.Expression.ToString().Contains("pool")))
+                if (IsPoolRent(inv, model))
                 {
                     string? name = inv.Parent switch
                     {
@@ -1267,7 +1285,7 @@ foreach (var (file, tree) in parsed)
                 if (method.Body is not { } mbody)
                     continue;
                 var candidates = new HashSet<string>();
-                var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool/MemoryPool buffers
+                var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -1278,7 +1296,7 @@ foreach (var (file, tree) in parsed)
                             && model.GetTypeInfo(init.Value).Type is { } dt
                             && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
                             candidates.Add(v.Identifier.Text);
-                        else if (IsPoolRent(v.Initializer?.Value))   // an ArrayPool/MemoryPool buffer
+                        else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {
                             candidates.Add(v.Identifier.Text);
                             poolBuffers.Add(v.Identifier.Text);
@@ -1308,7 +1326,7 @@ foreach (var (file, tree) in parsed)
                 if (tracked.Count == 0)
                     continue;
                 statMethodsWithLocal++;
-                var fbody = LowerFlowBody(mbody, tracked);
+                var fbody = LowerFlowBody(mbody, tracked, model);
                 if (fbody is null || fbody.Count == 0)
                 {
                     statMethodsSkipped++;   // unmodelled construct -> honestly skipped

@@ -6,12 +6,16 @@
   (the bug is caught) and specificity (the fix is silent), gated in the
   `corpus-benchmark` CI job. This is the measurement spine — the defensible number,
   and the verifiable reward for any future learning loop. First measurement **3/9
-  caught · 9/9 clean · 0 FP**, ratcheted to **6/9** over two steps: (1) a *fixture*
+  caught · 9/9 clean · 0 FP**, ratcheted to **7/10** over three steps: (1) a *fixture*
   was understating us — `screentogif-loaded-subscription` referenced an undeclared VM
   type → `OWN050`, fixed by making it self-contained; (2) a real *capability* —
   pooled buffers are now routed through the path-sensitive flow engine (Rent =
   acquire, Return = release), so double-return (`OWN003`) and use-after-return
-  (`OWN002`) are caught *soundly* (not "count Returns", which FPs). Perfect precision
+  (`OWN002`) are caught *soundly* (not "count Returns", which FPs); (3) pool
+  recognition moved off the receiver-text heuristic onto the **Roslyn SemanticModel**
+  (binding `System.Buffers.ArrayPool<T>`), so a double-return through an *aliased* pool
+  receiver (`var p = ArrayPool<int>.Shared; p.Return(buf)`) — a miss for the text
+  heuristic — is caught (`arraypool-aliased-receiver`, +1 row). Perfect precision
   throughout. The remaining 3 misses are genuine frontend extraction gaps
   (interprocedural handoff, a cross-method use-after-dispose, a region-escape shape)
   — the tracked recall backlog the floor ratchets up to. Still ahead: those, GitHub
