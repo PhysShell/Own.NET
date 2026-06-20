@@ -623,5 +623,10 @@ jobs:
             echo "framework refs not found — own-check resolves runtime types only"
           fi
       - name: Score the corpus on real C#
-        run: python scripts/benchmark.py
+        # Precision is gated absolutely (every fix silent, zero false positives);
+        # recall is pinned at the measured floor (the frontend catches the
+        # subscription/region class; pool/dispose/handoff shapes are the itemized
+        # extraction backlog) and ratchets up as the extractor grows. Raise the
+        # floor whenever recall improves — a drop below it is a regression.
+        run: python scripts/benchmark.py --min-recall 3
 
