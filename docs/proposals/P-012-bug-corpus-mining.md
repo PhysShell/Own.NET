@@ -1,6 +1,17 @@
 # P-012 — Real-world bug corpus & mining pipeline
 
-- **Status:** draft
+- **Status:** in progress — the **corpus benchmark** (slice 1) is built:
+  `scripts/benchmark.py` scores the checker against the labeled corpus on the
+  *real* `before.cs`/`after.cs` (not just the `.own` reduction), measuring recall
+  (the bug is caught) and specificity (the fix is silent), gated in the
+  `corpus-benchmark` CI job. This is the measurement spine — the defensible number,
+  and the verifiable reward for any future learning loop. **First measurement: 3/9
+  caught · 9/9 fixes clean · 0 false positives** — perfect precision, and the C#
+  *frontend's* recall debt is now a tracked number (the `.own` reductions all fire;
+  the 6 missed are pool/dispose/handoff shapes the extractor does not yet lower —
+  the itemized extraction backlog). Still ahead: raising recall case-by-case, GitHub
+  mining at scale (stage 1) and the 50–100-repo prevalence scan (stage 2). See
+  [docs/notes/corpus-benchmark.md](../notes/corpus-benchmark.md).
 - **Depends on:** P-001 (C# → OwnIR extractor — the scanner that does stage 2);
   the existing `corpus/` layout (`before.cs`, `after.cs`,
   `expected-diagnostics.txt`, `notes.md`/`source.md`).
