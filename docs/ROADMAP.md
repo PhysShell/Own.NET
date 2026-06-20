@@ -97,8 +97,8 @@ architectural strictness, and the borrow-checker showcase):
 1. `WPF001` — event/subscription `+=` without `-=` (the WPF spike; P-001 v0 ✅)
 2. `WPF002` — `DispatcherTimer`/`Timer` `Tick`/`Elapsed` without stop/detach ✅
 3. `OWN001` — `IDisposable` field the class `new`s but never disposes ✅
-4. `DI001` — singleton captures a scoped dependency ✅ (core check built;
-   C# registration-graph extractor pending)
+4. `DI001` — singleton captures a scoped dependency ✅ (core check + C#
+   registration-graph extractor built; end-to-end on real C#)
 5. `POOL001` — `ArrayPool` buffer `Rent`ed but never `Return`ed ✅
    (`POOL002` `Span`/view used after `Return` next)
 
@@ -142,6 +142,12 @@ architectural strictness, and the borrow-checker showcase):
    migrating the *injected*-source subscription tier (today an honest OWN001
    warning) once lifetime modelling can prove or refute those sources.
 3. **DI lifetimes** — registration + constructor graph; captive dependency (P-006).
+   ◑ *In progress* — DI001 lands end to end: the C# extractor builds the
+   registration + constructor graph from `Add{Singleton,Scoped,Transient}` (generic
+   and `typeof(...)` forms) and the core flags the captive — direct, transitive
+   through a transient, or through an interface registration — CI-validated on
+   `DiCaptiveSample.cs`. Remaining: DI002 (weak-ref), DI003 (transient-`IDisposable`
+   from root), and the consuming-constructor anchor.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
@@ -211,7 +217,7 @@ own scan. Label them as estimates wherever they appear.
 | [P-003](proposals/P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | horizon | draft |
 | [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | in progress (WPF001–005 built) |
 | [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | draft |
-| [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001 core check built) |
+| [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001 end-to-end: core + extractor) |
 | [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | draft |
 | [P-008](proposals/P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | P1/P2 | draft |
 | [P-009](proposals/P-009-nogc-regions.md) | No-GC / allocation-free regions | horizon | draft |

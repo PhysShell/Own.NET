@@ -718,6 +718,126 @@ static bool IsDisposableType(string t) =>
     || t.EndsWith("Stream") || t.EndsWith("Reader") || t.EndsWith("Writer")
     || t.EndsWith("Subscription");
 
+// --- P-006: DI registration + constructor graph (DI001 captive dependency) ---
+// A syntactic pass over the same trees, independent of the event/disposable
+// detectors: collect each class's constructor parameter types (the dependency
+// graph), then each conventional IServiceCollection registration
+// (Add{Singleton,Scoped,Transient}, the generic `<TService[, TImpl]>` form or the
+// `typeof(...)` form) and emit `services` facts {name, lifetime, deps, file, line}
+// that ownlang/di.py checks for captive dependencies. The registration's `name`
+// is the SERVICE type others inject; `deps` are the IMPLEMENTATION's constructor
+// parameter types. Factory/reflection/open-generic shapes we cannot read are
+// recorded as unknown-dep nodes (deps: []) — silent, never guessed (P-006 scope).
+static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
+{
+    // 1. class name -> its widest constructor's parameter type names (the DI ctor).
+    var ctorDeps = new Dictionary<string, List<string>>();
+    foreach (var (_, tree) in parsed)
+        foreach (var node in tree.GetRoot().DescendantNodes())
+        {
+            if (node is not ClassDeclarationSyntax cls)
+                continue;
+            ConstructorDeclarationSyntax? widest = null;
+            foreach (var m in cls.Members)
+                if (m is ConstructorDeclarationSyntax ctor
+                    && (widest is null
+                        || ctor.ParameterList.Parameters.Count
+                           > widest.ParameterList.Parameters.Count))
+                    widest = ctor;
+            var deps = new List<string>();
+            if (widest is not null)
+                foreach (var p in widest.ParameterList.Parameters)
+                {
+                    var tn = p.Type is null ? null : DiTypeName(p.Type);
+                    if (tn is not null)
+                        deps.Add(tn);
+                }
+            ctorDeps[cls.Identifier.Text] = deps;   // last decl wins (core dedups by name)
+        }
+
+    // 2. registrations -> service facts at the registration site.
+    var services = new List<object>();
+    foreach (var (file, tree) in parsed)
+        foreach (var node in tree.GetRoot().DescendantNodes())
+        {
+            if (node is not InvocationExpressionSyntax inv
+                || inv.Expression is not MemberAccessExpressionSyntax ma)
+                continue;
+            var lifetime = RegistrationLifetime(ma.Name.Identifier.Text);
+            if (lifetime is null)
+                continue;
+            ResolveRegistration(ma.Name, inv.ArgumentList, out var service, out var impl);
+            if (service is null)        // not a conventional typed registration -> skip
+                continue;
+            var deps = impl is not null && ctorDeps.TryGetValue(impl, out var d)
+                ? d : new List<string>();
+            services.Add(new
+            {
+                name = service,
+                lifetime,
+                deps,
+                file,
+                line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+            });
+        }
+    return services;
+}
+
+// The DI lifetime for an IServiceCollection registration method, or null when the
+// method name is not one of the three conventional registrations.
+static string? RegistrationLifetime(string method) => method switch
+{
+    "AddSingleton" => "singleton",
+    "AddScoped" => "scoped",
+    "AddTransient" => "transient",
+    _ => null,
+};
+
+// Service + implementation type for a registration, from the generic type
+// arguments (`Add*<TService[, TImpl]>`) or the `typeof(...)` arguments
+// (`Add*(typeof(TService)[, typeof(TImpl)])`). A null service means it is not a
+// typed registration we can read (a bare instance / factory) -> the caller skips.
+static void ResolveRegistration(SimpleNameSyntax name, ArgumentListSyntax args,
+                                out string? service, out string? impl)
+{
+    service = null;
+    impl = null;
+    if (name is GenericNameSyntax gen)
+    {
+        var targs = gen.TypeArgumentList.Arguments;
+        if (targs.Count >= 1)
+            service = DiTypeName(targs[0]);
+        impl = targs.Count >= 2 ? DiTypeName(targs[1]) : service;
+        return;
+    }
+    string? first = null, second = null;
+    var seen = 0;
+    foreach (var a in args.Arguments)
+        if (a.Expression is TypeOfExpressionSyntax tof)
+        {
+            if (seen == 0) first = DiTypeName(tof.Type);
+            else if (seen == 1) second = DiTypeName(tof.Type);
+            seen++;
+        }
+    if (first is not null)
+    {
+        service = first;
+        impl = second ?? first;
+    }
+}
+
+// The simple (rightmost) name of a type, for matching a registration's service
+// type to a constructor parameter's type. A generic name drops its arguments
+// (`ILogger<T>` -> `ILogger`); a predefined type (`int`) yields null.
+static string? DiTypeName(TypeSyntax t) => t switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    GenericNameSyntax g => g.Identifier.Text,
+    QualifiedNameSyntax q => DiTypeName(q.Right),
+    AliasQualifiedNameSyntax aq => DiTypeName(aq.Name),
+    _ => null,
+};
+
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
@@ -1141,6 +1261,9 @@ var facts = new
     ownir_version = 0,
     module = "Extracted",
     components,
+    // P-006: the DI registration + ctor graph (empty when the scan has no
+    // Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
+    services = ExtractServices(parsed),
     functions = flowFunctions,
     stats = new
     {

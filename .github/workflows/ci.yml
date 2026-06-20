@@ -132,6 +132,7 @@ jobs:
             frontend/roslyn/samples/StaticHandlerViewModel.cs \
             frontend/roslyn/samples/StaticEventEscapeViewModel.cs \
             frontend/roslyn/samples/WhenAnyValueViewModel.cs \
+            frontend/roslyn/samples/DiCaptiveSample.cs \
             frontend/roslyn/samples/SampleTypes.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -273,7 +274,34 @@ jobs:
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
             echo "FAIL: an unsubscribed (released) static-event subscription was wrongly reported"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) at the C# location"
+          # P-006 DI001 (captive dependency): the registration + constructor graph
+          # extracted from DiCaptiveSample.cs feeds ownlang/di.py. A singleton that
+          # captures a scoped service — directly, transitively through a transient,
+          # or through an interface registration — is flagged at the registration
+          # site; a singleton->singleton edge and the clean registrations stay silent.
+          echo "$out" | grep -q "DI001" \
+            || { echo "FAIL: expected DI001 captive-dependency findings"; exit 1; }
+          echo "$out" | grep -q "singleton 'EmailSender' captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected the direct captive (singleton EmailSender -> scoped AppDbContext)"; exit 1; }
+          # the transitive capture must thread through the transient UnitOfWork.
+          echo "$out" | grep -q "ReportService -> UnitOfWork -> AppDbContext" \
+            || { echo "FAIL: expected the transitive captive path via the transient UnitOfWork"; exit 1; }
+          # the interface registration (AddScoped<IRepo, Repo>) must map so the
+          # singleton consuming IRepo is caught.
+          echo "$out" | grep -q "singleton 'CacheService' captures scoped service 'IRepo'" \
+            || { echo "FAIL: expected the interface-registration captive (CacheService -> IRepo)"; exit 1; }
+          echo "$out" | grep -q "DiCaptiveSample.cs" \
+            || { echo "FAIL: expected the DI001 findings at the DiCaptiveSample.cs registration site"; exit 1; }
+          # singleton -> singleton (Metrics -> Clock) and the clean leaves must NOT
+          # be reported as captives (Clock/Metrics are singletons, never scoped).
+          if echo "$out" | grep -qE "captures scoped service '(Clock|Metrics)'"; then
+            echo "FAIL: a singleton->singleton or clean registration was wrongly flagged captive"; exit 1
+          fi
+          # exactly three captive dependencies from the sample (direct + transitive + interface).
+          nd=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI001\]")
+          [ "$nd" = "3" ] \
+            || { echo "FAIL: expected exactly 3 DI001 captive findings, got $nd"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
