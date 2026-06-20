@@ -14,7 +14,10 @@ inputs:
     required: false
     default: "."
   format:
-    description: "Finding surface: github (PR annotations), msbuild, or human."
+    description: >-
+      Finding surface: github (PR annotations), msbuild, human, or sarif — a SARIF
+      2.1.0 log for GitHub code scanning, written to a file and exposed as the
+      sarif-file output (feed it to github/codeql-action/upload-sarif).
     required: false
     default: "github"
   severity:
@@ -33,6 +36,20 @@ inputs:
     description: "The .NET SDK version for the Roslyn extractor."
     required: false
     default: "8.0.x"
+  sarif-file:
+    description: >-
+      Where to write the SARIF log when format: sarif (default:
+      $RUNNER_TEMP/own-net.sarif). The chosen path is echoed back as the
+      sarif-file output regardless.
+    required: false
+    default: ""
+
+outputs:
+  sarif-file:
+    description: >-
+      Path to the SARIF 2.1.0 log — set only when format: sarif. Hand it to
+      github/codeql-action/upload-sarif to publish to code scanning.
+    value: ${{ steps.own.outputs.sarif-file }}
 
 runs:
   using: "composite"
@@ -48,6 +65,7 @@ runs:
         dotnet-version: ${{ inputs.dotnet-version }}
 
     - name: Own.NET leak check
+      id: own
       shell: bash
       env:
         # Pass user-controlled inputs through the environment (data), not by
@@ -58,9 +76,47 @@ runs:
         OWN_FORMAT: ${{ inputs.format }}
         OWN_SEVERITY: ${{ inputs.severity }}
         OWN_FAIL_ON_FINDING: ${{ inputs.fail-on-finding }}
+        OWN_SARIF_FILE: ${{ inputs.sarif-file }}
       run: |
+        check="${{ github.action_path }}/scripts/own-check.sh"
+        if [ "$OWN_FORMAT" = "sarif" ]; then
+          # The code-scanning surface: write a SARIF 2.1.0 log to a file and expose
+          # its path as an output, so the caller hands it to
+          # github/codeql-action/upload-sarif. Code scanning renders inline PR
+          # annotations *and* the Security tab — it subsumes the `github` format,
+          # so this stays a single own-check run, not two. --fail-on-finding is
+          # passed so the true exit code (0 clean / 1 findings / >=2 hard error) is
+          # captured *after* the file is written; whether a finding fails the step
+          # is the action's own fail-on-finding (default: let code scanning gate).
+          sarif="${OWN_SARIF_FILE:-$RUNNER_TEMP/own-net.sarif}"
+          set +e
+          "$check" --root "${{ github.action_path }}" --format sarif \
+            --severity "$OWN_SEVERITY" --fail-on-finding -- "$OWN_PATH" > "$sarif"
+          rc=$?
+          set -e
+          echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
+          echo "Own.NET wrote SARIF to $sarif ($(wc -c < "$sarif" 2>/dev/null || echo 0) bytes; own-check rc=$rc)"
+          if [ "$rc" -ge 2 ]; then
+            echo "::error::Own.NET hard error (bad facts / drifted contract)"
+            cat "$sarif" >&2 || true
+            exit "$rc"
+          fi
+          # Below the hard-error tier the log must exist and be non-empty. A
+          # missing/empty file with rc<2 means the *write* failed, not that there
+          # were findings — e.g. a custom sarif-file whose parent dir is absent
+          # fails the redirection (exit 1, outside own-check's 0/1/>=2 contract).
+          # Surface it; never let it pass as a gated-off finding with no SARIF.
+          if [ ! -s "$sarif" ]; then
+            echo "::error::Own.NET produced no SARIF at $sarif (own-check rc=$rc) — the run or its redirection failed"
+            exit 1
+          fi
+          if [ "$OWN_FAIL_ON_FINDING" = "true" ] && [ "$rc" -eq 1 ]; then
+            exit 1
+          fi
+          exit 0
+        fi
         args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT" --severity "$OWN_SEVERITY")
         if [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
           args+=(--fail-on-finding)
         fi
-        "${{ github.action_path }}/scripts/own-check.sh" "${args[@]}" -- "$OWN_PATH"
+        "$check" "${args[@]}" -- "$OWN_PATH"

@@ -71,11 +71,53 @@ The two internal follow-ups are done (a second slice):
   the **live** eval paths, not just in capability. (Filenames kept to keep the CI
   edit minimal; the content, not the extension, is what the consumers read.)
 
+## Shipped — code-scanning upload (the consumer surface)
+
+The composite action now has a **fourth surface, `format: sarif`**: it writes a
+SARIF 2.1.0 log to a file and exposes the path as the **`sarif-file` output**, so a
+consumer hands it straight to code scanning. Code scanning *subsumes* the `github`
+PR-annotation format — it renders inline PR annotations **and** the Security tab —
+so this stays a single own-check run, not two. A consumer wires it in three steps:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write          # to upload to code scanning
+steps:
+  - uses: actions/checkout@v4
+  - uses: PhysShell/Own.NET@main  # pin to a tag or SHA in production
+    id: ownnet
+    with:
+      path: src
+      format: sarif
+      fail-on-finding: "false"    # let code scanning be the gate, not the step
+  - uses: github/codeql-action/upload-sarif@v4
+    with:
+      sarif_file: ${{ steps.ownnet.outputs.sarif-file }}
+      category: own-net
+```
+
+### Why it is dog-fooded here (the deferral reversed)
+
+The earlier draft deferred this — *"this repo's C# is test fixtures, so uploading
+to its own Security tab is low-value."* That weighed the *findings* (intentional
+fixture leaks — yes, low news value). It mis-weighed the *integration*: the repo is
+**public**, so code scanning is free, and a live upload is the one thing a local
+schema check cannot give — **proof that GitHub itself accepts the SARIF**
+(`upload-sarif` waits for processing and fails the job if the log is rejected). So
+CI validates the exporter on two levels:
+
+- **structure** (`own-check-surface`): a `jq` contract over a freshly-emitted log —
+  `version 2.1.0`, the `Own.NET` driver, and *every* result carrying a catalogue
+  ruleId and a located file (the shape GitHub's ingest enforces). No upload, no
+  permissions — runs everywhere.
+- **end-to-end** (`own-check-codescan`): the composite action `format: sarif` over
+  the sample tree, then `upload-sarif` under a *scoped* `security-events: write`
+  (the only non-`contents:read` job in CI). The sample alerts ride a dedicated
+  `own-net-samples` category and are real-if-intentional — they double as the live
+  demo of the Security-tab surface this exporter was built for.
+
 Still open:
 
-- **GitHub code-scanning upload.** Deferred deliberately: this repo's C# is test
-  fixtures, so uploading own-check SARIF to *its own* Security tab is low-value.
-  Code scanning belongs in the consumer-facing distribution surface (P-013), run
-  on a real target — not here.
 - **Per-rule `helpUri`.** Once a stable per-code docs anchor exists, point each
   `rules[]` entry at it (intentionally omitted now rather than link a 404).
