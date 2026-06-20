@@ -26,7 +26,7 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-## Ratchet → 7/10 (three ratchets)
+## Ratchet → 8/10 (four ratchets)
 
 ### → 4/9: a fixture was understating us
 
@@ -75,11 +75,28 @@ fixture — `arraypool-aliased-receiver`, a double-return reached through `var p
 heuristic's failure mode was recall-leaning (a missed alias is a missed catch, never a false alarm),
 so the upgrade only adds — precision stays absolute. **Recall is now 7/10.**
 
-The remaining three misses are genuine **frontend extraction gaps** — the interprocedural
-ownership-handoff (`OWN001`+`OWN002`), a field/cross-method use-after-dispose, and a
-region-escape shape — the `.own` reductions all catch them, the C# extractor does not yet.
-That is the itemized recall backlog; each is a real capability the floor will ratchet up to
-as it lands.
+### → 8/10: factory acquires, not just `new`
+
+The extractor only ever treated `new X()` as *acquiring* an owned disposable — so a stream
+opened by a **factory**, `var s = File.OpenRead(path)`, was invisible, and the leak arm of
+`ownership-handoff-consume` (a stream neither disposed nor handed off → a real `OWN001`)
+scored a miss. `File.Open*` / `Create*` hand back a fresh `FileStream` the caller owns
+exactly as if it had `new`'d one, so a local bound to one is an acquire. `IsOwningFactory`
+recognises them off the resolved **symbol** against a curated `System.IO.File` set (precision
+over recall — the set grows only where ownership is certain, so a borrowed/cached disposable
+handed back by some other API is never mistaken for an acquire). With it the leak arm fires
+`OWN001` (the fix's `using var` stays silent), so the case flips to caught — **recall is now
+8/10**. The blast radius is exactly one file: nothing else in the corpus or the samples opens
+a `File.*` stream, so no `after.cs` and no dog-food scan can newly cry wolf.
+
+The remaining gaps are genuine **frontend extraction** islands. The *use-after-handoff*
+(`OWN002`) arm of `ownership-handoff-consume` — caught only as the leak today — needs the
+inter-procedural **consume** contract (a method that disposes a by-value parameter, checked at
+call sites like Rust's move; the cut is the *signature*, no whole-program points-to). A
+field/cross-method use-after-dispose needs cross-method field-state. And the injected-source
+region-escape (`viewmodel-escapes-to-app`) needs the source's lifetime *proven* — its DI
+registration — which the fixture does not even carry. The `.own` reductions catch all three;
+the C# extractor does not yet. Each is a real capability the floor will ratchet up to as it lands.
 
 ## Why catch/clean, not exact-code match
 

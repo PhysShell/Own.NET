@@ -44,6 +44,16 @@ points-to is involved: the signature `consume Stream` is the cut point, exactly
 as Rust's borrow checker is modular against function signatures.
 
 As with every corpus case, `case.own` is a faithful hand reduction of the C#
-pattern in `before.cs` / `after.cs`, **not** C# the checker ingested — OwnLang
-has no C# front-end. The corpus shows the ownership *logic* maps onto real bugs,
-not that the tool scanned real C#.
+pattern in `before.cs` / `after.cs`, **not** C# the `.own` checker ingested —
+OwnLang has no C# front-end. The corpus shows the ownership *logic* maps onto
+real bugs, not that the `.own` tool scanned real C#.
+
+**Extractor status (real C#, the `corpus-benchmark` path).** The benchmark now
+catches the **leak arm** (`Leak` → `OWN001`) end-to-end: `IsOwningFactory`
+recognises `File.OpenRead` as an *owned acquire* (a factory, not `new`), so the
+un-disposed stream is flagged exactly as a `new`'d one would be, and the
+`using var` fix stays silent. The **use-after-handoff arm** (`Run` → `OWN002`) is
+still extractor-future — it needs the inter-procedural *consume* contract:
+recognise that `Archive` disposes its by-value parameter, then model `Archive(s)`
+as a *release* of `s` so the later `s.Length` is a use-after-release. The `.own`
+reduction proves both arms today; the C# front-end catches the leak.
