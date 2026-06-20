@@ -95,11 +95,20 @@ runs:
           rc=$?
           set -e
           echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
-          echo "Own.NET wrote SARIF to $sarif ($(wc -c < "$sarif") bytes; own-check rc=$rc)"
+          echo "Own.NET wrote SARIF to $sarif ($(wc -c < "$sarif" 2>/dev/null || echo 0) bytes; own-check rc=$rc)"
           if [ "$rc" -ge 2 ]; then
             echo "::error::Own.NET hard error (bad facts / drifted contract)"
             cat "$sarif" >&2 || true
             exit "$rc"
+          fi
+          # Below the hard-error tier the log must exist and be non-empty. A
+          # missing/empty file with rc<2 means the *write* failed, not that there
+          # were findings — e.g. a custom sarif-file whose parent dir is absent
+          # fails the redirection (exit 1, outside own-check's 0/1/>=2 contract).
+          # Surface it; never let it pass as a gated-off finding with no SARIF.
+          if [ ! -s "$sarif" ]; then
+            echo "::error::Own.NET produced no SARIF at $sarif (own-check rc=$rc) — the run or its redirection failed"
+            exit 1
           fi
           if [ "$OWN_FAIL_ON_FINDING" = "true" ] && [ "$rc" -eq 1 ]; then
             exit 1

@@ -513,6 +513,11 @@ jobs:
   own-check-codescan:
     name: own-check SARIF -> GitHub code scanning (dog-food)
     runs-on: ubuntu-latest
+    # Skip on fork PRs: GitHub downgrades GITHUB_TOKEN to read-only for a
+    # pull_request from a fork, so security-events:write is never granted and the
+    # upload would fail — red CI for an external contributor through no fault of
+    # their own. Same-repo pushes and PRs (where the token keeps write) still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     # The one job that writes: scoped to security-events so it can upload to code
     # scanning. Every other job stays contents:read (the workflow-level default).
     permissions:
