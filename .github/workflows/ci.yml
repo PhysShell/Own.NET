@@ -624,9 +624,11 @@ jobs:
           fi
       - name: Score the corpus on real C#
         # Precision is gated absolutely (every fix silent, zero false positives);
-        # recall is pinned at the measured floor (the frontend catches the
-        # subscription/region class; pool/dispose/handoff shapes are the itemized
-        # extraction backlog) and ratchets up as the extractor grows. Raise the
-        # floor whenever recall improves — a drop below it is a regression.
-        run: python scripts/benchmark.py --min-recall 3
+        # recall is pinned at the measured floor and ratchets up as the extractor
+        # (and the corpus fixtures) improve. Now 4/9 — the loaded-subscription case
+        # was understated (its reduction referenced an undeclared VM type -> OWN050,
+        # not a verdict); with a self-contained fixture our subscription detection
+        # catches it. pool/dispose/handoff shapes are the remaining backlog. Raise
+        # the floor whenever recall improves — a drop below it is a regression.
+        run: python scripts/benchmark.py --min-recall 4
 
