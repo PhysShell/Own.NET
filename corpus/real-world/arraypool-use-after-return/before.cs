@@ -20,5 +20,7 @@ static class PoolUseAfterReturn
 
     static int Size(int n) => n;
     static void Compute(int[] buffer, int a, int b) { }
-    static int[] BuildResult(int[] buffer) => buffer;
+    // Returns a distinct copy (mirrors after.cs); the BUG here is reading `buffer`
+    // in the return *after* it was returned to the pool — a use-after-return.
+    static int[] BuildResult(int[] buffer) => (int[])buffer.Clone();
 }

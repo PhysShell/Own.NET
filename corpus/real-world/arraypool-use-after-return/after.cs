@@ -15,5 +15,7 @@ static class PoolUseAfterReturn
 
     static int Size(int n) => n;
     static void Compute(int[] buffer, int a, int b) { }
-    static int[] BuildResult(int[] buffer) => buffer;
+    // Materialize a DISTINCT result (a copy) so it does not alias the pooled buffer:
+    // the fix must hand back its own array, never the array it returns to the pool.
+    static int[] BuildResult(int[] buffer) => (int[])buffer.Clone();
 }

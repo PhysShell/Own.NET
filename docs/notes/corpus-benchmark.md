@@ -26,9 +26,9 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-### Ratchet → 6/9 (two ratchets)
+## Ratchet → 6/9 (two ratchets)
 
-#### → 4/9: a fixture was understating us
+### → 4/9: a fixture was understating us
 
 The first thing the number bought was a *diagnosis*. `screentogif-loaded-subscription`
 is a **subscription** leak — our strongest class — yet it scored a miss. The cause
@@ -43,7 +43,7 @@ ScreenToGif repo. **Recall is now 4/9** and the floor is raised to match. (Lesso
 benchmark fixture that references an undeclared type silently degrades to `OWN050`;
 self-contained fixtures, like the samples, measure honestly.)
 
-#### → 6/9: pooled buffers join the flow engine
+### → 6/9: pooled buffers join the flow engine
 
 The next two misses were a real **capability** gap, not a fixture: `arraypool-double-return`
 (`OWN003`) and `arraypool-use-after-return` (`OWN002`). The extractor's pool pass was

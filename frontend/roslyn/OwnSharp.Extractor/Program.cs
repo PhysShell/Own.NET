@@ -1154,11 +1154,12 @@ foreach (var (file, tree) in parsed)
 
         // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
         // matched per member so a `buf` returned in one method does not mask a
-        // leak of a same-named `buf` in another. Suppressed under --flow-locals,
-        // where the path-sensitive flow detector now tracks pooled buffers too
-        // (acquire = Rent, release = Return) and supersedes it — also catching
-        // double-return (OWN003) and use-after-return (OWN002), without double-report.
-        if (!flowLocals)
+        // leak of a same-named `buf` in another. Under --flow-locals the
+        // path-sensitive flow detector supersedes this for buffers held in LOCALS
+        // (and additionally catches double-return / use-after-return) — but it only
+        // tracks local declarations, so field/assignment-backed rents still need
+        // this syntactic pass; the local-declaration rents are skipped below to
+        // avoid double-reporting them (Codex).
         foreach (var member in cls.Members)
         {
             var rented = new List<(string Name, int Line)>();
@@ -1170,8 +1171,12 @@ foreach (var (file, tree) in parsed)
                 {
                     string? name = inv.Parent switch
                     {
+                        // a local-declaration rent is the flow pass's job under
+                        // --flow-locals; skip it here so it is not double-reported.
                         EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
-                            => vd.Identifier.Text,
+                            => flowLocals ? null : vd.Identifier.Text,
+                        // a field/assignment rent (`_buf = pool.Rent(...)`) is NOT a
+                        // flow candidate, so this pass keeps it in both modes.
                         AssignmentExpressionSyntax asg => FieldName(asg.Left),
                         _ => null,
                     };
