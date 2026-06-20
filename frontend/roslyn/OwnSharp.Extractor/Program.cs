@@ -442,7 +442,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
-                            || IsPoolRent(v.Initializer?.Value, model)))   // ArrayPool<T> Rent
+                            || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
+                            || IsOwningFactory(v.Initializer?.Value, model)))   // File.Open*/Create* factory
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
             return true;
         case ExpressionStatementSyntax es:
@@ -757,6 +758,30 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
         && i.ArgumentList.Arguments.Count > 0
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
+
+// A factory call that CREATES and hands back a fresh owned IDisposable the caller must
+// release — recognised via the resolved symbol (curated, the same spirit as
+// IsDisposableType is for `new`). System.IO.File.Open*/Create*/*Text return a NEW
+// FileStream / StreamReader / StreamWriter that the caller owns exactly as if it had
+// `new`'d one, so a local bound to one is an acquire. Curated + symbol-resolved, so a
+// borrowed/cached disposable handed back by some other API is never mistaken for an
+// owned acquire (precision over recall — the set grows only as ownership is certain).
+static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
+{
+    if (e is not InvocationExpressionSyntax i
+        || model.GetSymbolInfo(i).Symbol is not IMethodSymbol sym
+        || sym.Name is not ("OpenRead" or "OpenWrite" or "Open" or "Create"
+                         or "OpenText" or "CreateText" or "AppendText"))
+        return false;
+    INamedTypeSymbol? ct = sym.ContainingType;
+    if (ct is null || ct.Name != "File")
+        return false;
+    INamespaceSymbol? ns = ct.ContainingNamespace;   // System.IO.File -> IO
+    if (ns is null || ns.Name != "IO")
+        return false;
+    ns = ns.ContainingNamespace;                     // IO -> System
+    return ns is { Name: "System" } && ns.ContainingNamespace is { IsGlobalNamespace: true };
+}
 
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
 // semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
@@ -1301,6 +1326,8 @@ foreach (var (file, tree) in parsed)
                             candidates.Add(v.Identifier.Text);
                             poolBuffers.Add(v.Identifier.Text);
                         }
+                        else if (IsOwningFactory(v.Initializer?.Value, model))   // File.Open*/Create* factory
+                            candidates.Add(v.Identifier.Text);
                 }
                 if (candidates.Count == 0)
                     continue;
