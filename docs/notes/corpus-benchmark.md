@@ -26,7 +26,7 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-## Ratchet → 6/9 (two ratchets)
+## Ratchet → 7/10 (three ratchets)
 
 ### → 4/9: a fixture was understating us
 
@@ -58,6 +58,22 @@ a *use*. The core's CFG analysis then flags the double-release and the use-after
 *soundly*, path-sensitive. Pooled buffers deliberately do **not** escape on arg-passing (the
 ArrayPool convention is the renter returns), and the syntactic `POOL001` is suppressed under
 `--flow-locals` so there is no double-report. **Recall is now 6/9.**
+
+### → 7/10: pool recognition goes semantic
+
+The pool pass recognised a `Rent`/`Return` by the **text** of the receiver — `Contains("Pool")` —
+which is structurally blind to an *aliased* receiver: `ArrayPool<int> p = ArrayPool<int>.Shared;
+p.Rent(...); p.Return(buf);` spells the receiver `p`, with no "Pool" in it, so the buffer was
+invisible and a double-return through it was a **miss** (the symmetric hazard is a false match on
+an unrelated `_connectionPool.Rent()`). Both are gone now that `IsPoolRent` / `PoolReturnBuffer`
+bind the call through the **Roslyn SemanticModel** to `System.Buffers.ArrayPool<T>` — the receiver
+may be spelled any way. That one definition is shared by the syntactic `POOL001` pass and the flow
+engine (no divergence between the two), and it is ArrayPool-specific on purpose: `MemoryPool<T>.Rent`
+hands back an `IMemoryOwner<T>` released by `Dispose`, so there is no `Return` to model. A new
+fixture — `arraypool-aliased-receiver`, a double-return reached through `var p = ArrayPool<int>.Shared`
+— is a *miss* under the old text heuristic and a *catch* (`OWN003`) under the semantic one. The
+heuristic's failure mode was recall-leaning (a missed alias is a missed catch, never a false alarm),
+so the upgrade only adds — precision stays absolute. **Recall is now 7/10.**
 
 The remaining three misses are genuine **frontend extraction gaps** — the interprocedural
 ownership-handoff (`OWN001`+`OWN002`), a field/cross-method use-after-dispose, and a

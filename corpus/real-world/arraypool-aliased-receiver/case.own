@@ -1,0 +1,17 @@
+// OwnLang model: the same buffer returned twice is a double `release` -> OWN003. The C#
+// reduction reaches the pool through an aliased receiver (`ArrayPool<int> p = ArrayPool<
+// int>.Shared`), which the extractor binds via the SemanticModel; the ownership logic is
+// identical to arraypool-double-return.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "int[]"
+  emit_acquire "p.Rent({args})"
+  emit_release "p.Return({0})"
+}
+fn run(n: int) {
+  let rented = acquire Buffer(n);   // p.Rent
+  release rented;                   // p.Return
+  release rented;                   // returned again -> OWN003
+}
