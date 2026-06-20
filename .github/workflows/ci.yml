@@ -290,17 +290,23 @@ jobs:
           # singleton consuming IRepo is caught.
           echo "$out" | grep -q "singleton 'CacheService' captures scoped service 'IRepo'" \
             || { echo "FAIL: expected the interface-registration captive (CacheService -> IRepo)"; exit 1; }
+          # C# 12 primary-constructor injection (deps on the class declaration, not a
+          # ctor member) must be read too.
+          echo "$out" | grep -q "singleton 'PrimaryCtorService' captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected the primary-constructor captive (PrimaryCtorService -> AppDbContext)"; exit 1; }
           echo "$out" | grep -q "DiCaptiveSample.cs" \
             || { echo "FAIL: expected the DI001 findings at the DiCaptiveSample.cs registration site"; exit 1; }
-          # singleton -> singleton (Metrics -> Clock) and the clean leaves must NOT
-          # be reported as captives (Clock/Metrics are singletons, never scoped).
-          if echo "$out" | grep -qE "captures scoped service '(Clock|Metrics)'"; then
-            echo "FAIL: a singleton->singleton or clean registration was wrongly flagged captive"; exit 1
+          # NOT captive: singleton->singleton (Metrics->Clock), and PublicCtorOnly —
+          # DI resolves its public parameterless ctor, so the wider PRIVATE ctor's
+          # scoped dependency is never used. None of these may be flagged.
+          if echo "$out" | grep -qE "captures scoped service '(Clock|Metrics)'" \
+             || echo "$out" | grep -q "'PublicCtorOnly'"; then
+            echo "FAIL: a singleton->singleton, public-ctor-only, or clean registration was wrongly flagged captive"; exit 1
           fi
-          # exactly three captive dependencies from the sample (direct + transitive + interface).
+          # exactly four captive dependencies (direct + transitive + interface + primary-ctor).
           nd=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI001\]")
-          [ "$nd" = "3" ] \
-            || { echo "FAIL: expected exactly 3 DI001 captive findings, got $nd"; exit 1; }
+          [ "$nd" = "4" ] \
+            || { echo "FAIL: expected exactly 4 DI001 captive findings, got $nd"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |

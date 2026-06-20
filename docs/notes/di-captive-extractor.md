@@ -28,8 +28,11 @@ The core rule (`di.py`, unchanged):
 A purely **syntactic** pass over the same parsed trees (no SemanticModel needed —
 in the spirit of the narrow frontend), in two steps:
 
-1. **Constructor graph** — every class's widest constructor's parameter types
-   (the dependency edges).
+1. **Constructor graph** — every class's widest **public** constructor's parameter
+   types (the dependency edges), including a C# 12 **primary constructor**
+   (`class Foo(Dep d)`, whose parameters live on the declaration, not a ctor
+   member). DI's default provider resolves through public ctors only, so a wider
+   non-public ctor's parameters are deliberately not counted (no false captive).
 2. **Registrations** — every conventional `IServiceCollection` call:
    `AddSingleton` / `AddScoped` / `AddTransient`, in the generic
    `Add*<TService[, TImpl]>` form or the `Add*(typeof(TService)[, typeof(TImpl)])`
@@ -58,15 +61,18 @@ non-goals: report the conventional shape, stay silent (not wrong) on the rest.
 ## Validation
 
 - **Bridge-side, locally** — the `services` facts the extractor emits, fed through
-  the real core, produce exactly the three expected DI001s (direct, transitive,
-  interface) and stay silent on the singleton→singleton edge. (No local .NET SDK,
-  so the C#→facts step itself is validated in CI, like the rest of the frontend.)
+  the real core, produce exactly the four expected DI001s (direct, transitive,
+  interface, primary-ctor) and stay silent on the singleton→singleton edge and the
+  public-ctor-only service. (No local .NET SDK, so the C#→facts step itself is
+  validated in CI, like the rest of the frontend.)
 - **End-to-end, in CI** — `frontend/roslyn/samples/DiCaptiveSample.cs` is wired
   into the `wpf-extractor` job. The assertions pin: a direct capture
   (`EmailSender -> AppDbContext`), a transitive one through a transient
   (`ReportService -> UnitOfWork -> AppDbContext`), an interface-registration one
-  (`CacheService -> IRepo`), **exactly three** findings, and silence on
-  `Metrics -> Clock` (singleton→singleton) and the clean leaves.
+  (`CacheService -> IRepo`), a C# 12 primary-constructor one
+  (`PrimaryCtorService -> AppDbContext`), **exactly four** findings, and silence on
+  `Metrics -> Clock` (singleton→singleton) and `PublicCtorOnly` (DI uses its public
+  parameterless ctor; the wider private ctor's scoped dep is never resolved).
 
 ## Why it matters for differentiation
 

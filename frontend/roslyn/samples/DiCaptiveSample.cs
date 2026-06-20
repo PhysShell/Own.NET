@@ -28,6 +28,19 @@ namespace Sample
     public sealed class CacheService { public CacheService(IRepo repo) { } }        // -> IRepo (scoped)
     public sealed class Metrics { public Metrics(Clock clock) { } }                 // -> singleton (clean)
 
+    // primary-constructor (C# 12) injection — the dependency is on the class
+    // declaration, not a ConstructorDeclarationSyntax member.
+    public sealed class PrimaryCtorService(AppDbContext db)                          // -> scoped (direct, primary ctor)
+    { public AppDbContext Db { get; } = db; }
+
+    // DI's default provider uses the PUBLIC ctor (no deps); the wider PRIVATE ctor's
+    // scoped dependency is never resolved, so it must not be a captive.
+    public sealed class PublicCtorOnly
+    {
+        public PublicCtorOnly() { }
+        private PublicCtorOnly(AppDbContext db) { }
+    }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -46,6 +59,13 @@ namespace Sample
 
             // FLAGGED — through the interface registration: singleton -> IRepo (scoped).
             services.AddSingleton<CacheService>();
+
+            // FLAGGED — primary-constructor injection: singleton -> scoped AppDbContext.
+            services.AddSingleton<PrimaryCtorService>();
+
+            // SILENT — DI resolves the public parameterless ctor; the private ctor's
+            // scoped dependency is never used (no false captive).
+            services.AddSingleton<PublicCtorOnly>();
 
             // SILENT — singleton -> singleton (Clock); the typeof(...) registration form.
             services.AddSingleton(typeof(Metrics), typeof(Metrics));

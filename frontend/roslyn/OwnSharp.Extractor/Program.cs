@@ -737,16 +737,23 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
         {
             if (node is not ClassDeclarationSyntax cls)
                 continue;
-            ConstructorDeclarationSyntax? widest = null;
+            // Candidate parameter lists: the C# 12 primary constructor (on the
+            // class declaration itself) plus the PUBLIC explicit constructors —
+            // take the widest. Primary-constructor injection (`class Foo(Dep d)`)
+            // has no ConstructorDeclarationSyntax member, so it must be read off
+            // the declaration or DI001 misses modern .NET 8 services; and the
+            // default IServiceProvider only uses public constructors, so a wider
+            // non-public ctor's parameters must not count as real deps (Codex).
+            ParameterListSyntax? widest = cls.ParameterList;
             foreach (var m in cls.Members)
                 if (m is ConstructorDeclarationSyntax ctor
+                    && IsPublicCtor(ctor.Modifiers)
                     && (widest is null
-                        || ctor.ParameterList.Parameters.Count
-                           > widest.ParameterList.Parameters.Count))
-                    widest = ctor;
+                        || ctor.ParameterList.Parameters.Count > widest.Parameters.Count))
+                    widest = ctor.ParameterList;
             var deps = new List<string>();
             if (widest is not null)
-                foreach (var p in widest.ParameterList.Parameters)
+                foreach (var p in widest.Parameters)
                 {
                     var tn = p.Type is null ? null : DiTypeName(p.Type);
                     if (tn is not null)
@@ -837,6 +844,16 @@ static string? DiTypeName(TypeSyntax t) => t switch
     AliasQualifiedNameSyntax aq => DiTypeName(aq.Name),
     _ => null,
 };
+
+// DI's default IServiceProvider resolves through PUBLIC constructors only — an
+// explicit ctor with no access modifier defaults to private and DI never uses it.
+static bool IsPublicCtor(SyntaxTokenList modifiers)
+{
+    foreach (var m in modifiers)
+        if (m.IsKind(SyntaxKind.PublicKeyword))
+            return true;
+    return false;
+}
 
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
