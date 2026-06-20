@@ -467,10 +467,76 @@ jobs:
             echo "FAIL: a tree with leaks should exit non-zero under --fail-on-finding"; exit 1
           fi
           echo "OK: --fail-on-finding surfaced the leaks as a non-zero exit"
+      - name: SARIF surface is a valid 2.1.0 log (the structure code scanning enforces)
+        run: |
+          # The contract GitHub's code-scanning ingest enforces, checked locally so
+          # the upload (own-check-codescan job) is never the first place a drift is
+          # found: a single-run 2.1.0 log, the Own.NET driver, and every result
+          # carrying a catalogue ruleId + a located file. No upload, no permissions.
+          out="$RUNNER_TEMP/own.sarif"
+          scripts/own-check.sh --format sarif --severity warning -- frontend/roslyn/samples > "$out"
+          echo "wrote $(wc -c < "$out") bytes"
+          jq -e '.version == "2.1.0" and ((.runs | length) == 1)' "$out" >/dev/null \
+            || { echo "FAIL: not a single-run SARIF 2.1.0 log"; exit 1; }
+          jq -e '.runs[0].tool.driver.name == "Own.NET"' "$out" >/dev/null \
+            || { echo "FAIL: tool.driver.name is not Own.NET"; exit 1; }
+          # A dangling ruleId or an unlocated result is the #1 reason GitHub rejects
+          # a SARIF; startLine is optional (a file-level finding omits it -> // 1).
+          jq -e '
+            (.runs[0].tool.driver.rules | map(.id)) as $ids
+            | .runs[0].results
+            | (length > 0)
+              and all(.[];
+                  (.ruleId | type == "string")
+                  and ((([.ruleId] - $ids) | length) == 0)
+                  and (.locations[0].physicalLocation.artifactLocation.uri | type == "string")
+                  and ((.locations[0].physicalLocation.region.startLine // 1) | type == "number"))
+          ' "$out" >/dev/null \
+            || { echo "FAIL: a result is unlocated or references an undeclared rule"; exit 1; }
+          echo "OK: SARIF 2.1.0 — Own.NET driver, every result rule-backed + located"
       - name: The composite action runs end-to-end (non-failing)
         uses: ./
         with:
           path: frontend/roslyn/samples
           format: github
           fail-on-finding: "false"
+
+  # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
+  # with format: sarif over the sample tree, then upload the log to GitHub code
+  # scanning. The repo is public, so code scanning is free — this is the live proof
+  # that GitHub *accepts* our SARIF (upload-sarif waits for processing and fails the
+  # job if the log is rejected), not just that it is schema-valid (the surface job
+  # above). It also lights up the Security tab + inline PR annotations — the
+  # consumer-facing payoff the exporter was built for. The samples are intentional
+  # leak fixtures, so the alerts are real-if-intentional; a dedicated
+  # `own-net-samples` category keeps them from colliding with anything else.
+  own-check-codescan:
+    name: own-check SARIF -> GitHub code scanning (dog-food)
+    runs-on: ubuntu-latest
+    # The one job that writes: scoped to security-events so it can upload to code
+    # scanning. Every other job stays contents:read (the workflow-level default).
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Own.NET leak check (SARIF surface)
+        id: own
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: sarif
+          severity: warning          # include the injected-source (warning-tier) leaks
+          fail-on-finding: "false"   # let code scanning be the gate, not the step
+      - name: The action exposes the SARIF path
+        run: |
+          f="${{ steps.own.outputs.sarif-file }}"
+          test -n "$f" || { echo "FAIL: action did not set the sarif-file output"; exit 1; }
+          test -s "$f" || { echo "FAIL: sarif-file '$f' is missing or empty"; exit 1; }
+          echo "OK: action wrote $(wc -c < "$f") bytes to $f"
+      - name: Upload to GitHub code scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ steps.own.outputs.sarif-file }}
+          category: own-net-samples
 
