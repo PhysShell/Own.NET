@@ -32,3 +32,19 @@ public partial class VideoSource : Window
     private void OnHideError(object sender, EventArgs e) => StatusBand.Hide();
     private void OnClose(object sender, EventArgs e) => DialogResult = true;
 }
+
+// Minimal in-file stand-ins so the reduction is self-contained (mirrors before.cs).
+// With the events resolvable, the matching `-=` in Window_Closing releases each
+// subscription, so the extractor stays silent — the fix is clean.
+public sealed class VideoSourceViewModel
+{
+    public event EventHandler ShowErrorRequested;
+    public event EventHandler HideErrorRequested;
+    public event EventHandler CloseRequested;
+}
+
+internal static class StatusBand
+{
+    public static void Error(string message) { }
+    public static void Hide() { }
+}

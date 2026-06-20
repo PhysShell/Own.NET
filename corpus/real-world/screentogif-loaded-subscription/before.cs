@@ -30,3 +30,23 @@ public partial class VideoSource : Window
     // Present in the real file, but it does NOT detach the handlers above.
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) { }
 }
+
+// Minimal in-file stand-ins so the reduction is self-contained. The real
+// VideoSourceViewModel lives elsewhere in ScreenToGif, so in isolation the
+// type-aware extractor cannot bind `_viewModel.ShowErrorRequested` to an event
+// and honestly emits OWN050 (unresolved) instead of the OWN001 subscription leak
+// — which the benchmark scored as a miss. With the type resolvable, the extractor
+// flags the leak (warning-tier: an injected `DataContext` source it cannot prove
+// outlives the window), exactly as it does on the full repo.
+public sealed class VideoSourceViewModel
+{
+    public event EventHandler ShowErrorRequested;
+    public event EventHandler HideErrorRequested;
+    public event EventHandler CloseRequested;
+}
+
+internal static class StatusBand
+{
+    public static void Error(string message) { }
+    public static void Hide() { }
+}

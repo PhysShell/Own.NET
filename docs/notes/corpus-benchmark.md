@@ -22,15 +22,31 @@ benchmark: 3/9 bugs caught in real C# · 9/9 fixes clean · 0 false positive(s) 
 
 That is the honest day-one number, and it is *sharp*: **specificity is perfect**
 (every real fix is silent, zero false positives — the checker does not cry wolf on
-correct code), and **recall is 3/9** — the three caught are exactly the
+correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
-OWN001, two static-event escapes → OWN014). The six missed
-(`arraypool-double-return`, `arraypool-use-after-return`, `ownership-handoff-consume`,
-`screentogif-loaded-subscription`, `handler-use-after-dispose`,
-`viewmodel-escapes-to-app`) are cases the `.own` reductions *all* catch but the C#
-**frontend** does not yet extract — pool double-return/use-after-return,
-ownership-handoff, and a few dispose/escape shapes. The benchmark just quantified
-the frontend's recall debt and turned it into an itemized to-do list.
+OWN001, two static-event escapes → OWN014).
+
+### Ratchet → 4/9: a fixture was understating us
+
+The first thing the number bought was a *diagnosis*. `screentogif-loaded-subscription`
+is a **subscription** leak — our strongest class — yet it scored a miss. The cause
+was not the extractor: the reduction's `before.cs` subscribed to
+`_viewModel.ShowErrorRequested` but **never declared `VideoSourceViewModel`**, so
+the type-aware extractor could not bind the `+=` to an event and honestly emitted
+`OWN050` (unresolved) — a `note`, not a verdict. The fixture was understating our own
+detection. Making the reduction self-contained (a minimal `VideoSourceViewModel` with
+the three events, mirrored in `after.cs`) lets the extractor resolve it and flag the
+leak (warning-tier — an injected `DataContext` source) exactly as it does on the full
+ScreenToGif repo. **Recall is now 4/9** and the floor is raised to match. (Lesson: a
+benchmark fixture that references an undeclared type silently degrades to `OWN050`;
+self-contained fixtures, like the samples, measure honestly.)
+
+The remaining five misses are genuine **frontend extraction gaps** — pool
+double-return (`OWN003`) and use-after-return (`OWN002`), the interprocedural
+ownership-handoff (`OWN001`+`OWN002`), a field/cross-method use-after-dispose, and a
+region-escape shape — the `.own` reductions all catch them, the C# extractor does not
+yet. That is the itemized recall backlog; each is a real capability the floor will
+ratchet up to as it lands.
 
 ## Why catch/clean, not exact-code match
 

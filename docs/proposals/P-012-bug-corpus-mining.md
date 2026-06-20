@@ -5,12 +5,16 @@
   *real* `before.cs`/`after.cs` (not just the `.own` reduction), measuring recall
   (the bug is caught) and specificity (the fix is silent), gated in the
   `corpus-benchmark` CI job. This is the measurement spine — the defensible number,
-  and the verifiable reward for any future learning loop. **First measurement: 3/9
-  caught · 9/9 fixes clean · 0 false positives** — perfect precision, and the C#
-  *frontend's* recall debt is now a tracked number (the `.own` reductions all fire;
-  the 6 missed are pool/dispose/handoff shapes the extractor does not yet lower —
-  the itemized extraction backlog). Still ahead: raising recall case-by-case, GitHub
-  mining at scale (stage 1) and the 50–100-repo prevalence scan (stage 2). See
+  and the verifiable reward for any future learning loop. First measurement **3/9
+  caught · 9/9 clean · 0 FP**, already ratcheted to **4/9**: the
+  `screentogif-loaded-subscription` miss was a *fixture* understating us (its
+  reduction referenced an undeclared VM type → `OWN050`, not a verdict); a
+  self-contained fixture lets our subscription detection catch it. Perfect precision
+  throughout. The remaining 5 misses are genuine frontend extraction gaps
+  (pool double-return/use-after-return, interprocedural handoff, a cross-method
+  use-after-dispose, a region-escape shape) — the tracked recall backlog the floor
+  ratchets up to. Still ahead: more case-by-case recall, GitHub mining at scale
+  (stage 1) and the 50–100-repo prevalence scan (stage 2). See
   [docs/notes/corpus-benchmark.md](../notes/corpus-benchmark.md).
 - **Depends on:** P-001 (C# → OwnIR extractor — the scanner that does stage 2);
   the existing `corpus/` layout (`before.cs`, `after.cs`,
