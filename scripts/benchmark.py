@@ -112,15 +112,41 @@ def summarize(scores: list[CaseScore]) -> tuple[int, int, int, int]:
 
 # ---- the SDK-backed half (the real run) --------------------------------------
 
-def _own_check(root: str, cs_file: str) -> str:
-    """Run ``own-check.sh --format sarif`` over one .cs file; return its SARIF
-    stdout (build chatter goes to stderr, so stdout is a clean SARIF log)."""
+class BenchmarkError(RuntimeError):
+    """own-check could not analyze a file — a hard failure (extractor crash, no
+    .NET SDK, drifted/bad facts: a non-zero return). The benchmark must fail
+    loudly rather than score an unanalyzed file as 'clean' and pass on output that
+    never actually ran."""
+
+
+def _verdicts_or_raise(stdout: str, returncode: int, cs_file: str,
+                       stderr: str = "") -> set[str]:
+    """Verdict codes from a *completed* own-check run. own-check exits 0 for clean
+    AND for findings (it is run without --fail-on-finding), so any non-zero return
+    means the file was not analyzed — raise rather than treat empty/partial output
+    as 'no verdict' (Codex: a silent analysis failure must not read as a clean fix
+    or a hidden sub-floor miss)."""
+    if returncode != 0:
+        detail = stderr.strip()
+        raise BenchmarkError(
+            f"own-check failed (rc={returncode}) on {cs_file}"
+            + (f"\n{detail}" if detail else ""))
+    return sarif_codes(stdout)
+
+
+def _scan(root: str, cs_file: str, timeout: int = 300) -> set[str]:
+    """Run own-check.sh over one .cs file and return its verdict codes (build
+    chatter goes to stderr, so stdout is a clean SARIF log). Raises BenchmarkError
+    on a hard own-check failure or a timeout (a hung extractor must not stall CI)."""
     script = os.path.join(root, "scripts", "own-check.sh")
-    proc = subprocess.run(
-        [script, "--root", root, "--format", "sarif", "--", cs_file],
-        capture_output=True, text=True,
-    )
-    return proc.stdout
+    try:
+        proc = subprocess.run(
+            [script, "--root", root, "--format", "sarif", "--", cs_file],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as e:
+        raise BenchmarkError(f"own-check timed out ({e.timeout}s) on {cs_file}") from e
+    return _verdicts_or_raise(proc.stdout, proc.returncode, cs_file, proc.stderr)
 
 
 def discover(corpus_dirs: list[str]) -> list[str]:
@@ -145,8 +171,8 @@ def score_corpus(root: str, corpus_dirs: list[str]) -> list[CaseScore]:
     for d in discover(corpus_dirs):
         with open(os.path.join(d, "expected-diagnostics.txt"), encoding="utf-8") as f:
             expected = {w for w in f.read().split() if w}
-        before = sarif_codes(_own_check(root, os.path.join(d, "before.cs")))
-        after = sarif_codes(_own_check(root, os.path.join(d, "after.cs")))
+        before = _scan(root, os.path.join(d, "before.cs"))
+        after = _scan(root, os.path.join(d, "after.cs"))
         scores.append(CaseScore(os.path.basename(d), expected, before, after))
     return scores
 
@@ -173,7 +199,13 @@ def gate(caught: int, clean: int, total: int, fps: int, min_recall: int) -> list
 
 def run(root: str, corpus_dirs: list[str], min_recall: int = 0) -> int:
     """Score the corpus on real C#, print the scorecard, and apply the gate."""
-    scores = score_corpus(root, corpus_dirs)
+    try:
+        scores = score_corpus(root, corpus_dirs)
+    except BenchmarkError as e:
+        # A hard own-check failure (extractor crash / no SDK / timeout) must fail
+        # the benchmark loudly — never pass on output that never actually ran.
+        print(f"BENCHMARK FAIL: {e}")
+        return 1
     if not scores:
         print("BENCHMARK FAIL: no corpus cases found")
         return 1
@@ -252,11 +284,39 @@ def _selftest() -> int:
         if not ok:
             fails.append(f"gate: {msg}")
 
+    # 4) fail-fast guards: a hard own-check failure must raise, not score as clean;
+    #    a negative recall floor must be rejected at the CLI.
+    ok_sarif = json.dumps({"runs": [{"results": [{"ruleId": "OWN001", "level": "error"}]}]})
+    if _verdicts_or_raise(ok_sarif, 0, "f.cs") != {"OWN001"}:
+        fails.append("verdicts_or_raise: rc==0 must return the parsed codes")
+    try:
+        _verdicts_or_raise("", 2, "f.cs", "drifted facts")
+        fails.append("verdicts_or_raise: a non-zero own-check must raise BenchmarkError")
+    except BenchmarkError:
+        pass
+    if _non_negative_int("3") != 3:
+        fails.append("_non_negative_int: must accept a non-negative value")
+    try:
+        _non_negative_int("-1")
+        fails.append("_non_negative_int: must reject a negative value")
+    except argparse.ArgumentTypeError:
+        pass
+
     for f in fails:
         print(f"SELFTEST FAIL: {f}")
     print(f"benchmark selftest: {'OK' if not fails else 'FAIL'} "
-          f"— sarif-parse + scoring + gate ({len(checks) + len(gate_checks) + 2} checks)")
+          f"— sarif-parse + scoring + gate + guards "
+          f"({len(checks) + len(gate_checks) + 6} checks)")
     return 1 if fails else 0
+
+
+def _non_negative_int(value: str) -> int:
+    """An argparse int type that rejects negatives — a negative recall floor would
+    trivially pass the gate and quietly weaken the regression contract."""
+    n = int(value)
+    if n < 0:
+        raise argparse.ArgumentTypeError("--min-recall must be a non-negative integer")
+    return n
 
 
 def main(argv: list[str]) -> int:
@@ -266,7 +326,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--root", default=None, help="repo root (default: this script's repo)")
     ap.add_argument("--corpus", action="append", default=None, metavar="DIR",
                     help="corpus base dir(s) (default: corpus/real-world + corpus/wpf)")
-    ap.add_argument("--min-recall", type=int, default=0, metavar="N",
+    ap.add_argument("--min-recall", type=_non_negative_int, default=0, metavar="N",
                     help="fail if fewer than N before.cs cases are caught (the pinned "
                          "recall floor; specificity + zero-FP are always required)")
     args = ap.parse_args(argv)

@@ -16,7 +16,7 @@ extractor + core (`own-check.sh --format sarif`) and measures the two things the
 
 The aggregate is one defensible line. The **first measurement** (9 cases):
 
-```
+```text
 benchmark: 3/9 bugs caught in real C# · 9/9 fixes clean · 0 false positive(s) on fixes
 ```
 
