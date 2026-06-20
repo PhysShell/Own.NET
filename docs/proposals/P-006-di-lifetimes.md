@@ -2,10 +2,15 @@
 
 - **Status:** in progress (P0 — clean lifetime model, little R&D, sells to
   ASP.NET). DI001 captive-dependency check built in the core (`ownlang/di.py`)
-  over an OwnIR `services` registration graph, surfaced through the bridge with
-  hand-written facts + tests. Next: the C# extractor that builds the registration
-  graph from `services.Add{Singleton,Scoped,Transient}` + constructor injection
-  (CI-only, like the rest of the extractor).
+  over an OwnIR `services` registration graph, surfaced through the bridge. The
+  C# extractor now **builds that graph from real code** — `services.Add{Singleton,
+  Scoped,Transient}` (the generic `<TService[, TImpl]>` and `typeof(...)` forms)
+  plus each implementation's constructor parameters — so **DI001 fires end-to-end
+  on C#**, CI-validated on `frontend/roslyn/samples/DiCaptiveSample.cs` (direct,
+  transitive-via-transient, and interface-registration captures flagged;
+  singleton→singleton and clean registrations silent). See
+  [docs/notes/di-captive-extractor.md](../notes/di-captive-extractor.md). Next:
+  DI002 (weak-ref) and DI003 (transient-`IDisposable`-from-root).
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
