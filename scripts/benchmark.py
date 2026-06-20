@@ -131,6 +131,17 @@ def _verdicts_or_raise(stdout: str, returncode: int, cs_file: str,
         raise BenchmarkError(
             f"own-check failed (rc={returncode}) on {cs_file}"
             + (f"\n{detail}" if detail else ""))
+    # rc==0 means clean OR findings — either way own-check emits a well-formed SARIF
+    # log (build_sarif always writes runs:[{...}], possibly with empty results). If
+    # stdout is not parseable SARIF, the file was not really analyzed; fail loudly
+    # rather than let the permissive parser score garbage as a clean 'no verdict'
+    # (CodeRabbit). A valid log with zero results is the legitimate clean case.
+    try:
+        doc = json.loads(stdout)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise BenchmarkError(f"own-check emitted invalid SARIF on {cs_file}") from e
+    if not isinstance(doc, dict) or not isinstance(doc.get("runs"), list):
+        raise BenchmarkError(f"own-check emitted malformed SARIF (no runs) on {cs_file}")
     return sarif_codes(stdout)
 
 
@@ -146,6 +157,10 @@ def _scan(root: str, cs_file: str, timeout: int = 300) -> set[str]:
         )
     except subprocess.TimeoutExpired as e:
         raise BenchmarkError(f"own-check timed out ({e.timeout}s) on {cs_file}") from e
+    except OSError as e:
+        # own-check.sh missing / not executable / no interpreter — a launch failure
+        # must fail loud like any other, not escape run()'s BenchmarkError handler.
+        raise BenchmarkError(f"own-check could not start on {cs_file}: {e}") from e
     return _verdicts_or_raise(proc.stdout, proc.returncode, cs_file, proc.stderr)
 
 
@@ -284,14 +299,29 @@ def _selftest() -> int:
         if not ok:
             fails.append(f"gate: {msg}")
 
-    # 4) fail-fast guards: a hard own-check failure must raise, not score as clean;
-    #    a negative recall floor must be rejected at the CLI.
+    # 4) fail-fast guards: a hard own-check failure (bad rc, malformed SARIF, or a
+    #    launch failure) must raise — never score garbage as clean; a valid empty
+    #    log is the legitimate clean case; a negative recall floor is rejected.
     ok_sarif = json.dumps({"runs": [{"results": [{"ruleId": "OWN001", "level": "error"}]}]})
+    empty_sarif = json.dumps({"runs": [{"results": []}]})
     if _verdicts_or_raise(ok_sarif, 0, "f.cs") != {"OWN001"}:
-        fails.append("verdicts_or_raise: rc==0 must return the parsed codes")
-    try:
-        _verdicts_or_raise("", 2, "f.cs", "drifted facts")
-        fails.append("verdicts_or_raise: a non-zero own-check must raise BenchmarkError")
+        fails.append("verdicts_or_raise: rc==0 valid SARIF must return parsed codes")
+    if _verdicts_or_raise(empty_sarif, 0, "f.cs") != set():
+        fails.append("verdicts_or_raise: a valid empty SARIF is a clean 'no verdict'")
+    raise_cases = [
+        ("non-zero exit", ("", 2, "f.cs", "drift")),
+        ("invalid SARIF json", ("not json", 0, "f.cs")),
+        ("SARIF without runs", ("{}", 0, "f.cs")),
+    ]
+    for label, vargs in raise_cases:
+        try:
+            _verdicts_or_raise(*vargs)
+            fails.append(f"verdicts_or_raise: {label} must raise BenchmarkError")
+        except BenchmarkError:
+            pass
+    try:  # a missing own-check.sh (launch failure) must also fail loud
+        _scan(os.path.join(os.sep, "no", "such", "ownnet-root"), "x.cs", timeout=5)
+        fails.append("_scan: a missing own-check.sh must raise BenchmarkError")
     except BenchmarkError:
         pass
     if _non_negative_int("3") != 3:
@@ -302,11 +332,12 @@ def _selftest() -> int:
     except argparse.ArgumentTypeError:
         pass
 
+    guard_count = 2 + len(raise_cases) + 1 + 2
     for f in fails:
         print(f"SELFTEST FAIL: {f}")
     print(f"benchmark selftest: {'OK' if not fails else 'FAIL'} "
           f"— sarif-parse + scoring + gate + guards "
-          f"({len(checks) + len(gate_checks) + 6} checks)")
+          f"({len(checks) + len(gate_checks) + guard_count} checks)")
     return 1 if fails else 0
 
 
