@@ -3,12 +3,22 @@
 // path): a rented buffer is returned to the pool, then a slice of it is still
 // read while building the result. Representative of the pattern, not verbatim
 // from one PR.
+//
+// Wrapped in a class so the extractor's per-class flow pass visits it; helpers
+// stubbed so the reduction is self-contained.
 using System.Buffers;
 
-static int[] Divide(int dividend, int divisor)
+static class PoolUseAfterReturn
 {
-    int[] quotient = ArrayPool<int>.Shared.Rent(Size(dividend));
-    Compute(quotient, dividend, divisor);
-    ArrayPool<int>.Shared.Return(quotient);   // <-- returned to the pool here ...
-    return BuildResult(quotient);             // <-- ... but still read here (UAF)
+    static int[] Divide(int dividend, int divisor)
+    {
+        int[] quotient = ArrayPool<int>.Shared.Rent(Size(dividend));
+        Compute(quotient, dividend, divisor);
+        ArrayPool<int>.Shared.Return(quotient);   // <-- returned to the pool here ...
+        return BuildResult(quotient);             // <-- ... but still read here (UAF)
+    }
+
+    static int Size(int n) => n;
+    static void Compute(int[] buffer, int a, int b) { }
+    static int[] BuildResult(int[] buffer) => buffer;
 }
