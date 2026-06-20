@@ -440,8 +440,9 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
                     if (tracked.Contains(v.Identifier.Text)
-                        && v.Initializer?.Value is ObjectCreationExpressionSyntax
-                                                or ImplicitObjectCreationExpressionSyntax)
+                        && (v.Initializer?.Value is ObjectCreationExpressionSyntax
+                                                 or ImplicitObjectCreationExpressionSyntax
+                            || IsPoolRent(v.Initializer?.Value)))   // ArrayPool/MemoryPool Rent
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
             return true;
         case ExpressionStatementSyntax es:
@@ -464,10 +465,15 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, List<obje
             // lower the body so a tracked plain local used inside is seen.
             return us.Statement is null || LowerFlowStmt(us.Statement, tracked, nodes, canEscape, onThrow, onReturn);
         case ReturnStatementSyntax rs:
-            // a tracked local never escapes (excluded), so a returned value is not a tracked
-            // resource. A `return` first runs any enclosing `finally`(s) — threaded as
-            // `onReturn`, so a resource the finally disposes is released on the return path —
-            // then exits; outside a try it is a bare CFG exit edge.
+            // A tracked local READ in the return value is a use at the return point —
+            // e.g. `return BuildResult(buf)` after `pool.Return(buf)` is a use-after-
+            // return. A tracked local *itself* returned is excluded upstream as an
+            // escape, so lowering the return expression only adds uses, never a
+            // spurious escape. Then: a `return` first runs any enclosing `finally`(s)
+            // — threaded as `onReturn`, so a resource the finally releases is released
+            // on the return path — then exits; outside a try it is a bare CFG exit.
+            if (rs.Expression is { } rexpr)
+                EmitFlowExpr(rexpr, tracked, nodes);
             if (onReturn is not null)
                 nodes.AddRange(onReturn);
             else
@@ -689,6 +695,14 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, List<ob
         nodes.Add(new { op = "release", var = cid.Identifier.Text, line = LineOf(cond) });
         return;
     }
+    // XPool.Return(buf) on a tracked pooled buffer -> release. The buffer is the
+    // ARGUMENT (the pool is the receiver), unlike Dispose where the local is the
+    // receiver; `return` early so the argument is not also counted as a use.
+    if (PoolReturnBuffer(expr) is { } pbuf && tracked.Contains(pbuf))
+    {
+        nodes.Add(new { op = "release", var = pbuf, line = LineOf(expr) });
+        return;
+    }
     // any other reference to a tracked local -> use (once per local in this expr).
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
@@ -705,6 +719,26 @@ static string? FieldName(ExpressionSyntax expr) => expr switch
     MemberAccessExpressionSyntax m => m.Name.Identifier.Text,
     _ => null,
 };
+
+// An ArrayPool/MemoryPool `Rent(...)` call — the acquire of a pooled buffer. The
+// receiver carries "Pool" (`ArrayPool<T>.Shared`, `MemoryPool<T>.Shared`, `_pool`).
+static bool IsPoolRent(ExpressionSyntax? e) =>
+    e is InvocationExpressionSyntax i
+    && i.Expression is MemberAccessExpressionSyntax m
+    && m.Name.Identifier.Text == "Rent"
+    && (m.Expression.ToString().Contains("Pool") || m.Expression.ToString().Contains("pool"));
+
+// An ArrayPool/MemoryPool `Return(buf)` call — the RELEASE of the pooled buffer
+// `buf`. Unlike Dispose (where the tracked local is the receiver), the buffer is
+// the first ARGUMENT and the pool is the receiver. Returns the buffer name or null.
+static string? PoolReturnBuffer(ExpressionSyntax e) =>
+    e is InvocationExpressionSyntax i
+        && i.Expression is MemberAccessExpressionSyntax m
+        && m.Name.Identifier.Text == "Return"
+        && (m.Expression.ToString().Contains("Pool") || m.Expression.ToString().Contains("pool"))
+        && i.ArgumentList.Arguments.Count > 0
+        && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
+        ? buf.Identifier.Text : null;
 
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
 // semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
@@ -1120,7 +1154,11 @@ foreach (var (file, tree) in parsed)
 
         // POOL001: an ArrayPool/MemoryPool buffer `Rent`ed but never `Return`ed,
         // matched per member so a `buf` returned in one method does not mask a
-        // leak of a same-named `buf` in another.
+        // leak of a same-named `buf` in another. Suppressed under --flow-locals,
+        // where the path-sensitive flow detector now tracks pooled buffers too
+        // (acquire = Rent, release = Return) and supersedes it — also catching
+        // double-return (OWN003) and use-after-return (OWN002), without double-report.
+        if (!flowLocals)
         foreach (var member in cls.Members)
         {
             var rented = new List<(string Name, int Line)>();
@@ -1224,6 +1262,7 @@ foreach (var (file, tree) in parsed)
                 if (method.Body is not { } mbody)
                     continue;
                 var candidates = new HashSet<string>();
+                var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool/MemoryPool buffers
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -1234,17 +1273,31 @@ foreach (var (file, tree) in parsed)
                             && model.GetTypeInfo(init.Value).Type is { } dt
                             && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
                             candidates.Add(v.Identifier.Text);
+                        else if (IsPoolRent(v.Initializer?.Value))   // an ArrayPool/MemoryPool buffer
+                        {
+                            candidates.Add(v.Identifier.Text);
+                            poolBuffers.Add(v.Identifier.Text);
+                        }
                 }
                 if (candidates.Count == 0)
                     continue;
-                // a local that escapes (returned / passed as arg / assigned out) is
-                // conservatively not tracked — its disposal may be the callee's job.
+                // A local that escapes (returned / assigned out) is conservatively not
+                // tracked — its release may be the caller's job. For an IDisposable,
+                // passing it as an argument is an ambiguous ownership transfer too; for
+                // a pooled buffer the convention is the RENTER returns it, so arg-passing
+                // is a borrow (a use), not an escape — else `pool.Return(buf)` and
+                // `Work(buf)` would untrack it and hide the double-return / use-after-return.
                 var escapedLocals = new HashSet<string>();
                 foreach (var idn in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
-                    if (candidates.Contains(idn.Identifier.Text)
-                        && (idn.Parent is ReturnStatementSyntax or ArgumentSyntax
-                            || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)))
-                        escapedLocals.Add(idn.Identifier.Text);
+                {
+                    var nm = idn.Identifier.Text;
+                    if (!candidates.Contains(nm))
+                        continue;
+                    if (idn.Parent is ReturnStatementSyntax
+                        || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
+                        || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm)))
+                        escapedLocals.Add(nm);
+                }
                 var tracked = new HashSet<string>(candidates);
                 tracked.ExceptWith(escapedLocals);
                 if (tracked.Count == 0)

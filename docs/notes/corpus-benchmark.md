@@ -26,7 +26,9 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-### Ratchet → 4/9: a fixture was understating us
+### Ratchet → 6/9 (two ratchets)
+
+#### → 4/9: a fixture was understating us
 
 The first thing the number bought was a *diagnosis*. `screentogif-loaded-subscription`
 is a **subscription** leak — our strongest class — yet it scored a miss. The cause
@@ -41,12 +43,27 @@ ScreenToGif repo. **Recall is now 4/9** and the floor is raised to match. (Lesso
 benchmark fixture that references an undeclared type silently degrades to `OWN050`;
 self-contained fixtures, like the samples, measure honestly.)
 
-The remaining five misses are genuine **frontend extraction gaps** — pool
-double-return (`OWN003`) and use-after-return (`OWN002`), the interprocedural
+#### → 6/9: pooled buffers join the flow engine
+
+The next two misses were a real **capability** gap, not a fixture: `arraypool-double-return`
+(`OWN003`) and `arraypool-use-after-return` (`OWN002`). The extractor's pool pass was
+purely syntactic — *"was this buffer `Return`ed anywhere?"* — so it only ever produced
+`POOL001` (rent-without-return); a second `Return` or a read after `Return` was invisible.
+Counting `Return`s would be unsound (it false-positives on `if (x) Return(b); else Return(b);`),
+and **precision is sacred** here. So instead pooled buffers are now **routed through the
+path-sensitive flow engine** that already proves `OWN002`/`OWN003` for IDisposable locals:
+a `*Pool.Rent(...)` local is an *acquire*, `*Pool.Return(buf)` is a *release* (the buffer is
+the argument, not the receiver), and a read of the buffer — including in a `return` value — is
+a *use*. The core's CFG analysis then flags the double-release and the use-after-release
+*soundly*, path-sensitive. Pooled buffers deliberately do **not** escape on arg-passing (the
+ArrayPool convention is the renter returns), and the syntactic `POOL001` is suppressed under
+`--flow-locals` so there is no double-report. **Recall is now 6/9.**
+
+The remaining three misses are genuine **frontend extraction gaps** — the interprocedural
 ownership-handoff (`OWN001`+`OWN002`), a field/cross-method use-after-dispose, and a
-region-escape shape — the `.own` reductions all catch them, the C# extractor does not
-yet. That is the itemized recall backlog; each is a real capability the floor will
-ratchet up to as it lands.
+region-escape shape — the `.own` reductions all catch them, the C# extractor does not yet.
+That is the itemized recall backlog; each is a real capability the floor will ratchet up to
+as it lands.
 
 ## Why catch/clean, not exact-code match
 

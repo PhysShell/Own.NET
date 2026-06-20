@@ -6,15 +6,16 @@
   (the bug is caught) and specificity (the fix is silent), gated in the
   `corpus-benchmark` CI job. This is the measurement spine — the defensible number,
   and the verifiable reward for any future learning loop. First measurement **3/9
-  caught · 9/9 clean · 0 FP**, already ratcheted to **4/9**: the
-  `screentogif-loaded-subscription` miss was a *fixture* understating us (its
-  reduction referenced an undeclared VM type → `OWN050`, not a verdict); a
-  self-contained fixture lets our subscription detection catch it. Perfect precision
-  throughout. The remaining 5 misses are genuine frontend extraction gaps
-  (pool double-return/use-after-return, interprocedural handoff, a cross-method
-  use-after-dispose, a region-escape shape) — the tracked recall backlog the floor
-  ratchets up to. Still ahead: more case-by-case recall, GitHub mining at scale
-  (stage 1) and the 50–100-repo prevalence scan (stage 2). See
+  caught · 9/9 clean · 0 FP**, ratcheted to **6/9** over two steps: (1) a *fixture*
+  was understating us — `screentogif-loaded-subscription` referenced an undeclared VM
+  type → `OWN050`, fixed by making it self-contained; (2) a real *capability* —
+  pooled buffers are now routed through the path-sensitive flow engine (Rent =
+  acquire, Return = release), so double-return (`OWN003`) and use-after-return
+  (`OWN002`) are caught *soundly* (not "count Returns", which FPs). Perfect precision
+  throughout. The remaining 3 misses are genuine frontend extraction gaps
+  (interprocedural handoff, a cross-method use-after-dispose, a region-escape shape)
+  — the tracked recall backlog the floor ratchets up to. Still ahead: those, GitHub
+  mining at scale (stage 1) and the 50–100-repo prevalence scan (stage 2). See
   [docs/notes/corpus-benchmark.md](../notes/corpus-benchmark.md).
 - **Depends on:** P-001 (C# → OwnIR extractor — the scanner that does stage 2);
   the existing `corpus/` layout (`before.cs`, `after.cs`,
