@@ -1,0 +1,28 @@
+// OwnLang model of a TRANSITIVE inter-procedural use-after-handoff. `take` does not close the
+// stream itself -- it FORWARDS it to `inner`, which owns and closes it. So `take` consumes its
+// parameter TRANSITIVELY (the obligation travels one hop further), and `run` touching the
+// stream after `take(s)` is a use-after-handoff -> OWN002. The signature is still the cut: the
+// caller is checked against `take`'s (transitively inferred) contract, not its body -- no
+// whole-program analysis. (`consume` is an OwnLang keyword, so the reduction names the
+// consumers `take`/`inner`; the C# consumers are `Consume`/`Inner`.)
+module Corpus
+resource Stream {
+  acquire open
+  release close
+}
+// direct consumer: it OWNS the stream and closes it.
+fn inner(s: Stream) {
+  use s;
+  release s;
+}
+// transitive consumer: it forwards ownership to `inner` (does NOT close it itself), so it
+// consumes `s` one hop down the chain.
+fn take(s: Stream) {
+  inner(s);
+}
+// BUG: the stream is used after ownership moved into `take` (-> inner, which closed it).
+fn run() {
+  let s = acquire Stream();
+  take(s);             // ownership consumed transitively (take -> inner)
+  use s;               // <-- touched after handoff -> OWN002
+}

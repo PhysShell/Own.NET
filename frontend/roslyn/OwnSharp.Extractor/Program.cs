@@ -860,29 +860,20 @@ static bool IsInNamespace(INamedTypeSymbol? t, params string[] parts)
 }
 
 // The local names of arguments handed to a first-party CONSUMER at this call — a method
-// whose own body disposes the by-value IDisposable parameter the argument binds to. Such
-// an argument's ownership moves into the callee and is discharged there, so the handoff is
-// modelled as a RELEASE of the argument at the call site (the same shape as pool
-// `Return(buf)`); a later use is then a use-after-handoff (OWN002). Inspecting the callee's
-// OWN body means no cross-call signature table and no dangling-callee crash — a callee with
-// no body (interface / abstract / extern) or that does not dispose the param contributes
-// nothing, and the argument stays an ordinary escape. Arguments resolve to parameters by
-// NAME when `name:` is used, else by position; partial declarations are scanned for a body.
+// that takes ownership of the by-value IDisposable parameter the argument binds to and
+// discharges it: either by disposing it directly, or by forwarding it to another first-party
+// consumer (the transitive case, `ConsumesParam`). Such an argument's ownership moves into
+// the callee and is discharged there, so the handoff is modelled as a RELEASE of the argument
+// at the call site (the same shape as pool `Return(buf)`); a later use is then a
+// use-after-handoff (OWN002). Inspecting each callee's OWN body means no cross-call signature
+// table and no dangling-callee crash — a callee with no body (interface / abstract / extern)
+// or that does not consume the param contributes nothing, and the argument stays an ordinary
+// escape. Arguments resolve to parameters by NAME when `name:` is used, else by position.
 static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
 {
     var consumed = new List<string>();
     if (e is not InvocationExpressionSyntax inv
         || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym)
-        return consumed;
-    SyntaxNode? body = null;
-    foreach (var r in sym.DeclaringSyntaxReferences)
-        if (r.GetSyntax() is BaseMethodDeclarationSyntax d
-            && ((SyntaxNode?)d.Body ?? d.ExpressionBody) is { } b)
-        {
-            body = b;
-            break;
-        }
-    if (body is null)
         return consumed;
     var args = inv.ArgumentList.Arguments;
     for (int i = 0; i < args.Count; i++)
@@ -891,12 +882,68 @@ static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
         var p = args[i].NameColon is { } nc
             ? sym.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
             : (i < sym.Parameters.Length ? sym.Parameters[i] : null);
-        if (p is { RefKind: RefKind.None } && ImplementsIDisposable(p.Type)
-            && DisposesLocal(body, p.Name)
-            && args[i].Expression is IdentifierNameSyntax aid)
+        if (p is not null
+            && args[i].Expression is IdentifierNameSyntax aid
+            && ConsumesParam(sym, p, model,
+                             new HashSet<ISymbol>(SymbolEqualityComparer.Default)))
             consumed.Add(aid.Identifier.Text);
     }
     return consumed;
+}
+
+// The body of a first-party method (block or expression-bodied), scanning partial
+// declarations; null for an interface/abstract/extern method (no body to inspect).
+static SyntaxNode? ConsumerBody(IMethodSymbol sym)
+{
+    foreach (var r in sym.DeclaringSyntaxReferences)
+        if (r.GetSyntax() is BaseMethodDeclarationSyntax d
+            && ((SyntaxNode?)d.Body ?? d.ExpressionBody) is { } b)
+            return b;
+    return null;
+}
+
+// Does `method` CONSUME (take ownership of and discharge) its by-value IDisposable
+// parameter `param`? Either (a) the body disposes it directly (`param.Dispose()`), or
+// (b) — the transitive step — the body hands it to ANOTHER first-party consumer that
+// consumes it (`Inner(param)` where `Inner` consumes its matching parameter). So a
+// forwarding chain `Consume(sink) => Inner(sink) => sink.Dispose()` is recognised, and a
+// caller's `Consume(s)` is still a handoff (a call-site release). Inspecting each callee's
+// own body keeps it inter-procedural without a signature table; `visited` (keyed on the
+// parameter) guards recursion on cyclic call graphs. Conservative: a param handed to an
+// unknown/borrowing callee yields false (no release, no false OWN002).
+static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
+                          SemanticModel model, HashSet<ISymbol> visited)
+{
+    if (param.RefKind != RefKind.None || !ImplementsIDisposable(param.Type))
+        return false;
+    if (!visited.Add(param.OriginalDefinition))
+        return false;                          // cycle guard (per parameter)
+    if (ConsumerBody(method) is not { } body)
+        return false;                          // no body -> contributes nothing
+    var name = param.Name;
+    if (DisposesLocal(body, name))             // (a) disposes the parameter directly
+        return true;
+    // (b) transitive: the parameter is handed to another first-party consumer. The body may
+    // live in another file, so bind its calls with that tree's OWN model (a SemanticModel only
+    // resolves nodes in its own tree); the Compilation is shared across all parsed inputs.
+    var bodyModel = model.Compilation.GetSemanticModel(body.SyntaxTree);
+    foreach (var inv in body.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
+    {
+        if (bodyModel.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
+            continue;
+        var cargs = inv.ArgumentList.Arguments;
+        for (int i = 0; i < cargs.Count; i++)
+        {
+            if (cargs[i].Expression is not IdentifierNameSyntax aid || aid.Identifier.Text != name)
+                continue;
+            var cp = cargs[i].NameColon is { } nc
+                ? callee.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
+                : (i < callee.Parameters.Length ? callee.Parameters[i] : null);
+            if (cp is not null && ConsumesParam(callee, cp, model, visited))
+                return true;
+        }
+    }
+    return false;
 }
 
 // Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /

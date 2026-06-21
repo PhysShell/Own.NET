@@ -780,9 +780,12 @@ jobs:
         # (Rent/Return: OWN003/OWN002, pool resolved via the Roslyn SemanticModel so an
         # ALIASED receiver is caught), factory acquires (System.IO.File.Open*/Create*) are
         # recognised alongside `new`, and the inter-procedural CONSUME contract is modelled:
-        # a first-party method owning a by-value IDisposable param is a handoff (a `call`
-        # op), so a use after the handoff trips OWN002 (the cut is the signature, like
-        # Rust's move). Remaining backlog: a cross-method use-after-dispose and an
-        # injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 10
+        # a first-party method that owns a by-value IDisposable param — by disposing it
+        # directly OR by forwarding it to another first-party consumer (the TRANSITIVE chain,
+        # `ConsumesParam`) — is a handoff that releases the argument at the call site, so a use
+        # after the handoff trips OWN002 (the cut is the signature, like Rust's move). Remaining
+        # backlog: a FIELD-mediated cross-method use-after-dispose (dispose in one method, use in
+        # another via shared state) and an injected-source region-escape. A drop below the floor
+        # is a regression.
+        run: python scripts/benchmark.py --min-recall 11
 
