@@ -322,7 +322,8 @@ static bool IsDisposeOptional(ITypeSymbol t)
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
-// base chain). WinForms owns a *modeless* form's lifetime — see IsModelessShownForm.
+// base chain). A modeless `Form.Show()` transfers ownership to the framework, which
+// disposes the form on close — EmitFlowExpr models that show as a release.
 static bool DerivesFromWinFormsForm(ITypeSymbol? t)
 {
     for (var b = t; b is not null; b = b.BaseType)
@@ -330,20 +331,6 @@ static bool DerivesFromWinFormsForm(ITypeSymbol? t)
             return true;
     return false;
 }
-
-// A local of WinForms Form-derived type shown *modeless* (`local.Show()`) somewhere
-// in the method body. The framework owns a modeless form: it disposes it when the
-// user closes it, so an undisposed local is not a leak — exempt it. A *modal* dialog
-// (`local.ShowDialog()`) is deliberately not matched here, so it stays tracked: the
-// caller owns a ShowDialog'd form and must dispose it (the real-leak case).
-static bool IsModelessShownForm(string name, BlockSyntax body, ITypeSymbol type) =>
-    DerivesFromWinFormsForm(type)
-    && body.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(inv =>
-        inv.Expression is MemberAccessExpressionSyntax
-        {
-            Name.Identifier.Text: "Show",
-            Expression: IdentifierNameSyntax { Identifier.Text: var recv },
-        } && recv == name);
 
 static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 {
@@ -704,6 +691,25 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         && tracked.Contains(rid.Identifier.Text))
     {
         nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
+        return;
+    }
+    // x.Show() on a tracked WinForms Form-derived local -> release: a modeless form's
+    // ownership transfers to the framework, which disposes it when the user closes it.
+    // Modeled as a release AT THE SHOW SITE (not a method-wide exemption), so it stays
+    // path-sensitive — a form shown only on one branch still leaks on the branch that
+    // never shows it (Codex review on PR #57). ShowDialog() is a *modal* show and is
+    // NOT matched: the caller owns a ShowDialog'd form and must dispose it, so it stays
+    // a tracked use (a real leak if never disposed). Guarded by the Form-derived type so
+    // an unrelated IDisposable with a Show() method is not mistaken for an ownership
+    // transfer.
+    if (expr is InvocationExpressionSyntax sinv
+        && sinv.Expression is MemberAccessExpressionSyntax sma
+        && sma.Name.Identifier.Text == "Show"
+        && sma.Expression is IdentifierNameSyntax sid
+        && tracked.Contains(sid.Identifier.Text)
+        && DerivesFromWinFormsForm(model.GetTypeInfo(sma.Expression).Type))
+    {
+        nodes.Add(new { op = "release", var = sid.Identifier.Text, line = LineOf(sinv) });
         return;
     }
     // x?.Dispose()/x?.Close()/x?.DisposeAsync() (null-conditional) is the release too — the
@@ -1420,8 +1426,7 @@ foreach (var (file, tree) in parsed)
                         if (v.Initializer is { Value: ObjectCreationExpressionSyntax
                                                    or ImplicitObjectCreationExpressionSyntax } init
                             && model.GetTypeInfo(init.Value).Type is { } dt
-                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt)
-                            && !IsModelessShownForm(v.Identifier.Text, mbody, dt))
+                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
                             candidates.Add(v.Identifier.Text);
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {

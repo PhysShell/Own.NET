@@ -2,9 +2,14 @@ using System;
 
 // P-016 precision (--flow-locals): WinForms owns a *modeless* form's lifetime.
 // A form shown modeless via Form.Show() is disposed by the framework when the user
-// closes it, so an undisposed local is NOT a leak — the flow detector exempts it
-// (IsModelessShownForm in the extractor). A *modal* dialog shown via ShowDialog() is
-// the caller's to dispose: it stays tracked, and an undisposed one is a real OWN001.
+// closes it, so the extractor models that Show() as a RELEASE at the show site —
+// ownership transfers to the framework there (the same call-site release shape as
+// pool Return and the consume contract). Because it is modeled per-path, not as a
+// method-wide exemption, a form shown only on one branch still leaks on the branch
+// that never shows it (see OpenModelessConditional). A *modal* dialog shown via
+// ShowDialog() is the caller's to dispose: ShowDialog is NOT a release, so it stays
+// tracked, and an undisposed one is a real OWN001.
+//
 // Reduced from a false positive found mining ShareX (WinForms), where our WPF-tuned
 // local-disposable detector over-fired on the idiomatic `new SomeForm().Show()`.
 //
@@ -14,16 +19,29 @@ using System;
 // the base chain, so these stubs reproduce the real shape exactly.
 public class WinFormsModelessSample
 {
-    // NOT a leak: a modeless form (`.Show()`) is owned by the framework, which
-    // disposes it on close -> silent (the precision fix; was a false OWN001 before).
+    // NOT a leak: a modeless form (`.Show()`) transfers ownership to the framework
+    // on that path -> acquire+release balanced -> silent (the precision fix; was a
+    // false OWN001 before).
     public void OpenModeless()
     {
         var modeless = new ModelessForm();
         modeless.Show();
     }
 
+    // OWN001 (recall, Codex review on PR #57): a form shown only on ONE branch leaks
+    // on the path that never shows it. Show() is a release AT THE SHOW SITE, so the
+    // `open == false` path — construct, never shown, never disposed — is correctly
+    // caught ('condForm' may not be disposed on every path). A method-wide exemption
+    // would have wrongly silenced this.
+    public void OpenModelessConditional(bool open)
+    {
+        var condForm = new ModelessForm();
+        if (open)
+            condForm.Show();
+    }
+
     // OWN001: a modal dialog (`.ShowDialog()`) is the caller's to dispose; this one
-    // never is -> real leak. The Show()-only exemption deliberately does not cover it.
+    // never is -> real leak. ShowDialog() is NOT modeled as a release (only Show is).
     public void OpenModalLeak()
     {
         var modalLeak = new ModalDialog();
