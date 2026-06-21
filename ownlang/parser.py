@@ -19,8 +19,9 @@ Grammar (informal):
   param       := IDENT ":" type ("lifetime" IDENT)?
   type        := "&" "mut"? IDENT | IDENT
   block       := "{" stmt* "}"
-  stmt        := let | release | use | call | borrow | if | while | return | subscribe
+  stmt        := let | release | use | overspan | call | borrow | if | while | return | subscribe
   subscribe   := "subscribe" "self" "to" IDENT ";"  // self/to contextual
+  overspan    := "overspan" IDENT ";"               // full-length pooled view (POOL005)
   let         := "let" IDENT "=" rhs ";"
   rhs         := "acquire" IDENT "(" args? ")" | "move" IDENT
                | bufferintent | IDENT | INT
@@ -300,6 +301,8 @@ class Parser:
             return self.parse_release()
         if self.at(Tok.USE):
             return self.parse_use()
+        if self.at(Tok.OVERSPAN):
+            return self.parse_overspan()
         if self.at(Tok.BORROW) or self.at(Tok.BORROW_MUT):
             return self.parse_borrow()
         if self.at(Tok.IF):
@@ -418,6 +421,12 @@ class Parser:
         v = self.eat(Tok.IDENT)
         self.eat(Tok.SEMI)
         return A.Use(var=v.text, line=kw.line)
+
+    def parse_overspan(self) -> A.Overspan:
+        kw = self.eat(Tok.OVERSPAN)
+        v = self.eat(Tok.IDENT)
+        self.eat(Tok.SEMI)
+        return A.Overspan(var=v.text, line=kw.line)
 
     def parse_call(self) -> A.Call:
         nm = self.eat(Tok.IDENT)

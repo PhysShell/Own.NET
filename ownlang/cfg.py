@@ -118,6 +118,15 @@ class Use:
 
 
 @dataclass
+class Overspan:
+    """A full-length view (`Span`/`Memory`) taken over the whole pooled buffer
+    `sym`, reaching past the logical length it was rented for (POOL005). Carries
+    no state transition — the owner stays OWNED; it only raises OWN025 at `line`."""
+    sym: Symbol
+    line: int
+
+
+@dataclass
 class Invoke:
     """A resolved call. `args` pairs each argument's resolved Symbol (or None
     for a literal / unresolved) with the ownership Effect the callee applies."""
@@ -148,7 +157,7 @@ class Return:
     line: int
 
 
-Instr = (Acquire | AcquireBuffer | MoveInto | Release | Use | Invoke
+Instr = (Acquire | AcquireBuffer | MoveInto | Release | Use | Overspan | Invoke
          | BorrowStart | BorrowEnd | Return)
 
 
@@ -331,6 +340,17 @@ class _Builder:
             sym = self.lookup(st.var, st.line)
             if sym is not None:
                 cur.instrs.append(Use(sym, st.line))
+            return cur
+        if isinstance(st, A.Overspan):
+            sym = self.lookup(st.var, st.line)
+            if sym is not None:
+                if sym.kind != Kind.OWNED:
+                    self.diags.append(Diagnostic(
+                        "OWN034",
+                        f"cannot take a full-length view of '{st.var}': it is not "
+                        f"an owned resource ({sym.kind.name.lower()})", st.line))
+                else:
+                    cur.instrs.append(Overspan(sym, st.line))
             return cur
         if isinstance(st, A.Call):
             return self.lower_call(st, cur)

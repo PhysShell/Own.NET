@@ -1042,6 +1042,20 @@ def run() -> int:
     if amb:
         fails.append(f"an ambiguous pass-through param must not be inferred, crash, "
                      f"or false-positive, got {[(x.component, x.code) for x in amb]}")
+    # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
+    # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
+    # the buffer is still returned, so there is no OWN001 leak. Routes through the
+    # same core op the `.own` `overspan` statement lowers to.
+    checks += 1
+    osp = check_facts({"module": "M", "functions": [
+        {"name": "Framer.Frame", "file": "Framer.cs",
+         "body": [{"op": "acquire", "var": "buf", "line": 10},
+                  {"op": "overspan", "var": "buf", "line": 12},
+                  {"op": "release", "var": "buf", "line": 14}]}]})
+    if [(x.code, x.line, x.kind) for x in osp] != [("OWN025", 12, "pooled buffer")]:
+        fails.append(f"an `overspan` fact should raise OWN025 at the view line (12) "
+                     f"tagged a pooled buffer, got "
+                     f"{[(x.code, x.line, x.kind) for x in osp]}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives

@@ -103,6 +103,9 @@ CASES: list[tuple[str, str, str]] = [
      "module M\nfn f(flag: bool) { let b = Buffer.stack(flag); }"),
     ("Buffer-B8", "OWN030",
      "module M\npolicy P { bogus = 1; }"),
+    ("Buffer-B9", "OWN025",
+     f"module M\n{_BUF}\n"
+     "fn f() { let b = acquire Buf(); overspan b; release b; }"),
     # structural
     ("Struct-OWN031", "OWN031",
      f"module M\n{_BUF}\n"

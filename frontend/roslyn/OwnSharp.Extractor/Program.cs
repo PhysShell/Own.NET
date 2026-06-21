@@ -450,12 +450,19 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             InjectThrowEdge(ld, nodes, onThrow);
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
+                {
                     if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
                             || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
+                    // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
+                    // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
+                    // called on a non-acquire initializer, so scan it here for the overspan (Codex review).
+                    if (v.Initializer?.Value is { } vinit)
+                        EmitOverspans(vinit, tracked, model, nodes);
+                }
             return true;
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow);
@@ -796,6 +803,25 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     }
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
+    // POOL005: a full-length view of a pooled buffer anywhere in this expression -> overspan/OWN025.
+    EmitOverspans(expr, tracked, model, nodes);
+}
+
+// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` takes a FULL-LENGTH view of
+// (no length bound) — the core raises OWN025. Walks the whole expression so a view nested in a call
+// (`Sink.Write(buf.AsSpan())`), a chain (`buf.AsSpan().ToArray()`), or a local-declaration
+// initializer (`var copy = buf.AsSpan().ToArray();`) is found; a BOUNDED view (`buf.AsSpan(0, n)`)
+// is not matched (FullViewOwner returns null). Among `tracked` locals only pooled buffers are the
+// arrays the BCL AsSpan/Span symbols bind to, so this never fires on a tracked IDisposable / factory
+// result. Shared by the expression-statement and local-declaration lowering paths.
+static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
+{
+    var overspanned = new SortedSet<string>(StringComparer.Ordinal);
+    foreach (var node in expr.DescendantNodesAndSelf().OfType<ExpressionSyntax>())
+        if (FullViewOwner(node, model) is { } owner && tracked.Contains(owner))
+            overspanned.Add(owner);
+    foreach (var o in overspanned)
+        nodes.Add(new { op = "overspan", var = o, line = LineOf(expr) });
 }
 
 // The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
@@ -866,6 +892,35 @@ static string? ViewOwner(ExpressionSyntax? e, SemanticModel model)
         return recv.Identifier.Text;
     if (e is BaseObjectCreationExpressionSyntax oc          // explicit OR target-typed `new(buf, …)`
         && oc.ArgumentList is { Arguments.Count: > 0 }
+        && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg
+        && model.GetSymbolInfo(oc).Symbol is IMethodSymbol
+            { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }
+        && IsInNamespace(sct, "System"))
+        return arg.Identifier.Text;
+    return null;
+}
+
+// The tracked owner buffer a FULL-LENGTH view spans (no length bound), else null. POOL005:
+// `buf.AsSpan()` / `buf.AsMemory()` taken with NO arguments span `[0, Length)` — the WHOLE backing
+// array — and `new Span<T>(buf)` / `new Memory<T>(buf)` with only the array argument do the same. A
+// pooled array is oversized (`ArrayPool.Rent(n)` returns `Length >= n`), so such a view reaches past
+// the logical length `n` into the stale `[n, Length)` tail (a previous renter's bytes): reading or
+// copying through it processes that stale data — a correctness bug and a potential disclosure. A
+// BOUNDED view (`buf.AsSpan(0, n)`, `new Span<T>(buf, 0, n)`) has a length argument and returns null
+// here — it does not over-read. Recognised by the SAME resolved BCL symbols as `ViewOwner`, so a
+// project's own `AsSpan`/`Span` look-alike is not mistaken for the over-read.
+static string? FullViewOwner(ExpressionSyntax? e, SemanticModel model)
+{
+    if (e is InvocationExpressionSyntax inv
+        && inv.Expression is MemberAccessExpressionSyntax m
+        && m.Name.Identifier.Text is "AsSpan" or "AsMemory"
+        && inv.ArgumentList.Arguments.Count == 0                       // no start/length -> whole array
+        && m.Expression is IdentifierNameSyntax recv
+        && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ContainingType: { Name: "MemoryExtensions" } mct }
+        && IsInNamespace(mct, "System"))
+        return recv.Identifier.Text;
+    if (e is BaseObjectCreationExpressionSyntax oc
+        && oc.ArgumentList is { Arguments.Count: 1 }                   // only the array -> whole array
         && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg
         && model.GetSymbolInfo(oc).Symbol is IMethodSymbol
             { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }

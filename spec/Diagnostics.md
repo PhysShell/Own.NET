@@ -42,6 +42,7 @@ See [BufferPolicies.md](BufferPolicies.md).
 | OWN021 | stack allocation requires a statically known bound |
 | OWN023 | scratch fallback forbidden but the size may exceed the inline limit |
 | OWN024 | sensitive buffer is not cleared on release |
+| OWN025 | full-length view of a pooled buffer reaches past its logical length |
 
 ## Unsupported
 

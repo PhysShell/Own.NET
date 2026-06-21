@@ -58,6 +58,7 @@ from .cfg import (
     Invoke,
     Kind,
     MoveInto,
+    Overspan,
     Release,
     Return,
     Symbol,
@@ -368,6 +369,18 @@ class _Analyzer:
                     self.err("OWN004",
                              f"borrow '{ins.sym.name}' used outside its live "
                              f"region", ins.line)
+            return
+
+        if isinstance(ins, Overspan):
+            # POOL005: a full-length view over the whole pooled array reaches past
+            # the logical length it was rented for (the oversized [n, Length) tail).
+            # A property of the view-creation site, not of the owner's flow state —
+            # so it raises regardless of OWNED/RELEASED and changes no state.
+            self.err("OWN025",
+                     f"'{ins.sym.name}' is viewed at its full backing length, past "
+                     f"the logical length it was rented for (over-read / "
+                     f"over-clear)", ins.line, subject=ins.sym.origin,
+                     resource_kind=ins.sym.resource_kind)
             return
 
         if isinstance(ins, Invoke):
