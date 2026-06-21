@@ -403,6 +403,44 @@ public class FlowLocalsSample
         asyncDisposedCfg.WriteByte(1);
         await asyncDisposedCfg.DisposeAsync().ConfigureAwait(false);
     }
+
+    // NOT a leak (precision): a SemaphoreSlim captured into an async lambda whose Task is
+    // returned outlives the method — the caller awaits it, so it cannot be disposed at
+    // method scope. A local referenced inside a closure (lambda / anonymous method / local
+    // function) is treated as escaped, exactly like a returned/out-passed local. Reduced
+    // from a ShareX false positive (Helpers.ForEachAsync's `throttler` captured by the async
+    // lambdas of a returned Task.WhenAll). Silent.
+    public Task ThrottlerCaptured(int max)
+    {
+        var captured = new SemaphoreSlim(max, max);
+        Func<Task> run = async () =>
+        {
+            await captured.WaitAsync();
+            captured.Release();
+        };
+        return run();
+    }
+
+    // control (must still leak): a SemaphoreSlim NOT captured by any closure and never
+    // disposed -> OWN001. Proves the exemption is about CLOSURE CAPTURE (escape), not
+    // SemaphoreSlim being blanket dispose-optional — it is not (accessing AvailableWaitHandle
+    // allocates a handle Dispose must release), so it must stay tracked when method-bounded.
+    public void SemaphoreLeaks()
+    {
+        var semLeak = new SemaphoreSlim(1, 1);
+        semLeak.Wait();
+    }
+
+    // OWN001 (Codex review on #59): a `nameof(x)` operand inside a lambda exposes an
+    // identifier under the closure, but `nameof` is a compile-time string — it captures
+    // nothing. `nofLeak` is only mentioned via nameof, so it is still method-bounded and
+    // never disposed -> a real leak. The nameof operand must not be mistaken for a capture.
+    public void NameofInLambda()
+    {
+        var nofLeak = new MemoryStream();
+        Action log = () => System.Console.WriteLine(nameof(nofLeak));
+        log();
+    }
 }
 
 // A domain exception type literally named `Exception`, in a non-System namespace — the
