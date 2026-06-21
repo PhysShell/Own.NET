@@ -2,11 +2,12 @@
 // ShareX.UploadersLib/FileUploaders/Vault_ooo.cs:216 (the Vault.ooo file uploader's
 // DeriveCryptoData), found by mining (docs/notes/real-world-mining.md).
 //
-// Two crypto IDisposables are created on the upload path and never disposed:
-//   * Rfc2898DeriveBytes — the PBKDF2 deriver, which holds an HMAC -> CAUGHT (OWN001);
-//   * RandomNumberGenerator.Create() — a FACTORY-acquired IDisposable the extractor
-//     does not yet recognise (it knows `new` and File.Open*/Create*, not arbitrary
-//     `X.Create()` factories) -> a known recall gap, see notes.md.
+// Two crypto IDisposables are created on the upload path and never disposed, both now
+// CAUGHT (OWN001):
+//   * Rfc2898DeriveBytes — the PBKDF2 deriver, which holds an HMAC (a `new` acquire);
+//   * RandomNumberGenerator.Create() — a static crypto FACTORY acquire (the extractor
+//     recognises System.Security.Cryptography `Create*` factories that return an
+//     IDisposable, alongside `new` and File.Open*/Create*; see notes.md).
 //
 // It is a genuine oversight, not a deliberate pattern: the sibling EncryptBytes() in
 // the same file wraps its aes / MemoryStream / CryptoStream in `using`. The deriver
