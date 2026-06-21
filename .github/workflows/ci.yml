@@ -665,8 +665,9 @@ jobs:
           fi
       - name: Score the corpus on real C#
         # Precision is gated absolutely (every fix silent, zero false positives);
-        # recall is pinned at the measured floor and ratchets up as the extractor
-        # improves. Now 9/11 — pooled buffers ride the path-sensitive flow engine
+        # recall is pinned at the measured floor (the --min-recall value below, bumped
+        # per ratchet) and climbs as the extractor improves — pooled buffers ride the
+        # path-sensitive flow engine
         # (Rent/Return: OWN003/OWN002, pool resolved via the Roslyn SemanticModel so an
         # ALIASED receiver is caught), factory acquires (System.IO.File.Open*/Create*) are
         # recognised alongside `new`, and the inter-procedural CONSUME contract is modelled:
@@ -674,5 +675,5 @@ jobs:
         # op), so a use after the handoff trips OWN002 (the cut is the signature, like
         # Rust's move). Remaining backlog: a cross-method use-after-dispose and an
         # injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 9
+        run: python scripts/benchmark.py --min-recall 10
 
