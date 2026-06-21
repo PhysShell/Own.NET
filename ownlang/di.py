@@ -33,6 +33,17 @@ TRANSIENT = "transient"
 LIFETIMES = frozenset({SINGLETON, SCOPED, TRANSIENT})
 
 
+def _consumed_suffix(singleton: str, file: str, line: int) -> str:
+    """The ` [consumed by the '<singleton>' constructor at <file>:<line>]` tail a captive
+    finding appends so it names **both** the registration site (its primary anchor) and the
+    *consuming constructor* where the capture is introduced (P-006 open question #1). Empty
+    when the ctor location is unknown (an older extractor / hand-authored facts), so the
+    message degrades cleanly to just the registration-anchored form."""
+    if line < 1:
+        return ""
+    return f" [consumed by the '{singleton}' constructor at {file}:{line}]"
+
+
 @dataclass(frozen=True)
 class Service:
     """One DI registration: a service `name`, its `lifetime`, and the service
@@ -59,6 +70,12 @@ class Service:
     # resolved this way is tracked to app shutdown: DI004. Off the registration graph (it is
     # a call site, not a ctor edge); declared LAST, after `weak_deps`, for the same reason.
     root_resolves: tuple[str, ...] = ()
+    # the **consuming constructor** of this service's implementation — the ctor that injects
+    # the captive dependency (P-006 open question #1). `file`/`line` above point at the
+    # *registration* site; these point at the *code* where the capture is introduced, so a
+    # captive finding can name both. Declared LAST (positional-contract safe), default unknown.
+    ctor_file: str = "?"
+    ctor_line: int = 0
 
 
 @dataclass(frozen=True)
@@ -71,12 +88,15 @@ class CaptiveDependency:
     path: tuple[str, ...]
     file: str
     line: int
+    consumed_file: str = "?"
+    consumed_line: int = 0
 
     @property
     def message(self) -> str:
         chain = " -> ".join(self.path)
         return (f"singleton '{self.singleton}' captures scoped service "
-                f"'{self.captured}' (captive dependency: {chain})")
+                f"'{self.captured}' (captive dependency: {chain})"
+                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
 
 
 def find_captive_dependencies(services: list[Service]) -> list[CaptiveDependency]:
@@ -109,7 +129,8 @@ def find_captive_dependencies(services: list[Service]) -> list[CaptiveDependency
                         reported.add(dep)
                         findings.append(CaptiveDependency(
                             singleton=s.name, captured=dep, path=npath,
-                            file=s.file, line=s.line))
+                            file=s.file, line=s.line,
+                            consumed_file=s.ctor_file, consumed_line=s.ctor_line))
                     continue  # the violating edge is found; don't recurse past it
                 if dnode.lifetime == TRANSIENT and dep not in visited:
                     visited.add(dep)
@@ -133,6 +154,8 @@ class WeakCaptiveDependency:
     path: tuple[str, ...]
     file: str
     line: int
+    consumed_file: str = "?"
+    consumed_line: int = 0
 
     @property
     def message(self) -> str:
@@ -141,7 +164,8 @@ class WeakCaptiveDependency:
                 f"'{self.captured}' (WeakReference): '{self.captured}' is still resolved "
                 f"from the root provider and promoted to application lifetime — the weak "
                 f"reference avoids pinning it for the GC but does not fix the "
-                f"captive-dependency lifetime violation ({chain})")
+                f"captive-dependency lifetime violation ({chain})"
+                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
 
 
 def find_weak_captive_dependencies(
@@ -174,7 +198,8 @@ def find_weak_captive_dependencies(
                     reported.add(cur)
                     findings.append(WeakCaptiveDependency(
                         singleton=s.name, captured=cur, path=path,
-                        file=s.file, line=s.line))
+                        file=s.file, line=s.line,
+                        consumed_file=s.ctor_file, consumed_line=s.ctor_line))
                 continue  # the violating scoped edge is found; don't recurse past it
             if cnode.lifetime == TRANSIENT and cur not in visited:
                 visited.add(cur)
@@ -197,13 +222,16 @@ class CapturedTransientDisposable:
     path: tuple[str, ...]
     file: str
     line: int
+    consumed_file: str = "?"
+    consumed_line: int = 0
 
     @property
     def message(self) -> str:
         chain = " -> ".join(self.path)
         return (f"singleton '{self.singleton}' captures transient IDisposable "
                 f"'{self.captured}': it is promoted to application lifetime and "
-                f"disposed only when the root provider is disposed ({chain})")
+                f"disposed only when the root provider is disposed ({chain})"
+                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
 
 
 def find_captured_transient_disposables(
@@ -236,7 +264,8 @@ def find_captured_transient_disposables(
                     reported.add(dep)
                     findings.append(CapturedTransientDisposable(
                         singleton=s.name, captured=dep, path=npath,
-                        file=s.file, line=s.line))
+                        file=s.file, line=s.line,
+                        consumed_file=s.ctor_file, consumed_line=s.ctor_line))
                 if dep not in visited:
                     visited.add(dep)
                     stack.append((dep, npath))

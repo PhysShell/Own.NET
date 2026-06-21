@@ -175,9 +175,36 @@ end-to-end by `DiCaptiveSample.cs` — `ConnectionResolver` (block ctor), `ExprB
 `wpf-extractor` CI job, and at the graph level by `tests/test_ownir.py`. No general-purpose
 analyzer models this DI-container resolution contract.
 
+## The consuming-constructor anchor (DI001/2/3, shipped)
+
+A captive finding's primary anchor is the **registration site** — where you wire the
+lifetime, and one place to fix it. But the capture is *introduced* somewhere else: the
+**consuming constructor** that injects the captive dependency (P-006 open question #1, now
+answered "both"). So each DI001/DI002/DI003 finding now also names that constructor —
+
+- in the **message tail**: `… [consumed by the 'EmailSender' constructor at EmailSender.cs:25]`
+  (visible on every surface — human, GitHub annotation, MSBuild, SARIF), and
+- as a structured **SARIF `relatedLocation`** (a `Finding.related` triple), which GitHub code
+  scanning renders as a second, clickable, labelled location — **cross-file** (the registration
+  may live in `Startup.cs`, the ctor in `EmailSender.cs`).
+
+The extractor records each implementation's ctor location — the widest **public** constructor's
+declaration, or the class declaration for a C# 12 primary / implicit constructor — into
+`ctor_file` / `ctor_line` on the service fact (`classCtorLoc`). The core appends the anchor when
+the location is known and **degrades cleanly** (no tail, no related location) when it is not, so
+hand-authored facts and an older extractor still produce the registration-anchored form. The
+finding is on the **singleton**, so the consuming constructor is the singleton's — the entry of
+the (possibly transitive) capture chain the path already spells out. Pinned end-to-end by
+`DiCaptiveSample.cs` (the explicit-ctor `EmailSender:25`, the primary-ctor `PrimaryCtorService:33`,
+`ConnectionWarmer:50`, `WeakCache:57`) in the `wpf-extractor` CI job, the cross-file case by the
+`tests/fixtures/ownir/di.facts.json` fixture, and the SARIF related location by `tests/test_ownir.py`.
+
 ## Next (separate slices)
-- Anchoring the finding at the **consuming constructor** (DI001/2/3) or the **resolution call
-  site** (DI004) as well as the registration site (P-006 open question #1), with the path shown.
+- The same **consumer anchor for DI004**, whose consumer is a **resolution call site**
+  (`GetRequiredService<T>()`), not a constructor — the call-site location needs threading
+  through `root_resolves`; until then DI004 keeps its registration-site anchor.
+- Per-**parameter** precision for the captive anchor (the specific injecting parameter, not just
+  the constructor).
 - The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms, and a
   directly-injected `IServiceScopeFactory` as the recognised fix (DI004 currently reads the
   generic singular `Get(Required)Service<T>()` and the `CreateScope()` → scope-provider form).

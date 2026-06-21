@@ -953,7 +953,12 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
     // through a scope (`scope.ServiceProvider.GetRequiredService<T>()`) has a different
     // receiver and is deliberately NOT recorded — that pattern is correct.
     var classRootResolves = new Dictionary<string, List<string>>();
-    foreach (var (_, tree) in parsed)
+    // class name -> its CONSUMING CONSTRUCTOR location (file, 1-based line): the widest
+    // public ctor (or the class/primary-ctor declaration), where a captive dependency is
+    // injected. A captive finding anchors at the registration site but names this too, so
+    // the developer is pointed at the code, not just the wiring (P-006 open question #1).
+    var classCtorLoc = new Dictionary<string, (string file, int line)>();
+    foreach (var (ctorFile, tree) in parsed)
         foreach (var node in tree.GetRoot().DescendantNodes())
         {
             if (node is not ClassDeclarationSyntax cls)
@@ -988,6 +993,12 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 }
             ctorDeps[cls.Identifier.Text] = deps;        // last decl wins (core dedups by name)
             ctorWeakDeps[cls.Identifier.Text] = weakDeps;
+            // the consuming-constructor anchor: the widest public ctor's declaration (its
+            // Parent), or the class declaration for a primary/implicit ctor. Points at the
+            // code that injects the captive, surfaced as a finding's related location.
+            var ctorNode = widest?.Parent ?? cls;
+            classCtorLoc[cls.Identifier.Text] = (ctorFile,
+                ctorNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
             // OR across partial declarations: any part that names IDisposable makes the
             // type disposable, so a later `partial class C { }` (no base list, e.g. a
             // generated/designer file) cannot clear an earlier `partial class C : IDisposable`.
@@ -1061,6 +1072,8 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 ? wd : new List<string>();
             var rootResolves = impl is not null && classRootResolves.TryGetValue(impl, out var rr)
                 ? rr : new List<string>();
+            var (ctorFile, ctorLine) = impl is not null && classCtorLoc.TryGetValue(impl, out var cl)
+                ? cl : ("?", 0);
             services.Add(new
             {
                 name = service,
@@ -1076,6 +1089,10 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 root_resolves = rootResolves,
                 file,
                 line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
+                // the IMPLEMENTATION's consuming-constructor location (P-006 Q#1): where the
+                // captive is injected, a finding's second anchor beside the registration site.
+                ctor_file = ctorFile,
+                ctor_line = ctorLine,
             });
         }
     return services;
