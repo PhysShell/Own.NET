@@ -904,8 +904,12 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                         deps.Add(tn);
                 }
             ctorDeps[cls.Identifier.Text] = deps;   // last decl wins (core dedups by name)
-            ctorDisposable[cls.Identifier.Text] = cls.BaseList is { } bl
-                && bl.Types.Any(bt => DiTypeName(bt.Type) is "IDisposable" or "IAsyncDisposable");
+            // OR across partial declarations: any part that names IDisposable makes the
+            // type disposable, so a later `partial class C { }` (no base list, e.g. a
+            // generated/designer file) cannot clear an earlier `partial class C : IDisposable`.
+            ctorDisposable[cls.Identifier.Text] = ctorDisposable.GetValueOrDefault(cls.Identifier.Text)
+                || (cls.BaseList is { } bl
+                    && bl.Types.Any(bt => DiTypeName(bt.Type) is "IDisposable" or "IAsyncDisposable"));
         }
 
     // 2. registrations -> service facts at the registration site.

@@ -1232,7 +1232,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             name=str(s.get("name", "?")),
             lifetime=str(s.get("lifetime", "")),
             deps=tuple(s.get("deps", [])),
-            disposable=bool(s.get("disposable", False)),
+            # only the JSON boolean `true` counts — a stray string ("false") or other
+            # type from a non-extractor producer must not coerce to a disposable=True.
+            disposable=s.get("disposable") is True,
             file=str(s.get("file", "?")),
             line=_as_int(s.get("line", 0)),
         )
