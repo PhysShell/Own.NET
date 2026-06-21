@@ -589,9 +589,11 @@ def run() -> int:
     #     scope-resolved, scoped-class, or non-disposable+scoped-dep-only resolution stays silent.
     from ownlang.di import find_explicit_root_resolutions
     rsvcs = [
-        Service("Resolver", "singleton", deps=(), root_resolves=("Conn",)),  # direct: DI004
+        Service("Resolver", "singleton", deps=(), root_resolves=("Conn",),
+                root_resolve_sites=(("Conn", "R.cs", 42),)),  # direct: DI004, call site 42
         Service("Conn", "transient", (), disposable=True),
-        Service("Wrap", "singleton", deps=(), root_resolves=("Mid",)),  # transitive: DI004
+        Service("Wrap", "singleton", deps=(), root_resolves=("Mid",),
+                root_resolve_sites=(("Mid", "R.cs", 88),)),  # transitive: DI004, entry call site 88
         Service("Mid", "transient", ("Pool",)),  # non-disposable wrapper -> disposable
         Service("Pool", "transient", (), disposable=True),
         Service("Plain", "singleton", deps=(), root_resolves=("Uow",)),  # silent: scoped dep only
@@ -614,11 +616,25 @@ def run() -> int:
     checks += 1
     if not di4 or not all("service-locator" in c.message for c in di4):
         fails.append("DI004 message missing 'service-locator'")
-    # bridge: DI004 surfaces as a WARNING; `root_resolves` is parsed and checked.
+    checks += 1
+    # DI004 anchors at the GetRequiredService CALL SITE: the direct case at its own site (42),
+    # and the transitive case at the ENTRY type's site (Mid@88), NOT the dragged-in disposable.
+    direct4 = next((c for c in di4 if c.singleton == "Resolver"), None)
+    trans4 = next((c for c in di4 if c.singleton == "Wrap"), None)
+    if direct4 is None or "[resolved at R.cs:42]" not in direct4.message:
+        fails.append(f"DI004 direct call-site anchor wrong: "
+                     f"{direct4.message if direct4 else None!r}")
+    checks += 1
+    t4loc = (trans4.resolved_file, trans4.resolved_line) if trans4 else None
+    if trans4 is None or "[resolved at R.cs:88]" not in trans4.message or t4loc != ("R.cs", 88):
+        fails.append(f"DI004 transitive call-site anchor wrong: {t4loc!r}")
+    # bridge: DI004 surfaces as a WARNING; `root_resolves` + `root_resolve_sites` parsed, and
+    # the call site rides into the Finding.related (-> SARIF relatedLocations), like #66's ctor.
     di4facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "Resolver", "lifetime": "singleton", "deps": [],
-                     "root_resolves": ["Conn"], "file": "S.cs", "line": 5},
+                     "root_resolves": ["Conn"], "file": "S.cs", "line": 5,
+                     "root_resolve_sites": [{"type": "Conn", "file": "R.cs", "line": 42}]},
                     {"name": "Conn", "lifetime": "transient", "deps": [],
                      "disposable": True, "file": "S.cs", "line": 6},
                 ]}
@@ -626,9 +642,10 @@ def run() -> int:
     checks += 1
     di4only = [x for x in di4b if x.code == "DI004"]
     if (len(di4only) != 1 or di4only[0].severity != "warning"
-            or di4only[0].component != "Resolver"):
+            or di4only[0].component != "Resolver"
+            or di4only[0].related != (("R.cs", 42, "service-location call site"),)):
         fails.append("DI004 bridge finding wrong: "
-                     f"{[(x.component, x.severity) for x in di4only]}")
+                     f"{[(x.component, x.severity, x.related) for x in di4only]}")
     checks += 1
     # the explicit root resolution is a CALL SITE, not a registration-graph edge: it must not
     # also produce a DI001/DI002/DI003 (the singleton has no scoped/transient ctor dependency).
@@ -746,6 +763,12 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "ctor_type": 5}]}):
         fails.append("a non-string service ctor_type did not raise OwnIRError")
+    checks += 1
+    # root_resolve_sites (DI004 call-site metadata) must be an array of {type,file,line} objects.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "root_resolve_sites": [{"type": "T", "line": "NaN"}]}]}):
+        fails.append("a malformed service root_resolve_sites did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it

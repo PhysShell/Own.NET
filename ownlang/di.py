@@ -85,6 +85,11 @@ class Service:
     # ctor is `Foo`'s — so the finding must name `Foo`, not the interface (Codex). Empty when
     # unknown, in which case the suffix names "the constructor" without a (wrong) type.
     ctor_type: str = ""
+    # for DI004 (service-location): where each `root_resolves` type was resolved by hand —
+    # `(type, file, line)` triples for the `GetService<T>()` / `GetRequiredService<T>()` call
+    # site. The consumer of a DI004 leak is this call site (not a ctor), so the finding anchors
+    # at it; optional presentation metadata, declared LAST (positional-contract safe).
+    root_resolve_sites: tuple[tuple[str, str, int], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -305,16 +310,22 @@ class ExplicitRootResolution:
     path: tuple[str, ...]
     file: str
     line: int
+    # the GetService/GetRequiredService call site that hand-resolved the entry type (DI004's
+    # actual consumer, distinct from the registration-site anchor `file`/`line`). Unknown -> 0.
+    resolved_file: str = "?"
+    resolved_line: int = 0
 
     @property
     def message(self) -> str:
         chain = " -> ".join(self.path)
+        site = (f" [resolved at {self.resolved_file}:{self.resolved_line}]"
+                if self.resolved_line >= 1 else "")
         return (f"singleton '{self.singleton}' resolves transient IDisposable "
                 f"'{self.resolved}' by hand from its injected root IServiceProvider "
                 f"(GetService/GetRequiredService — the service-locator anti-pattern): the "
                 f"root provider tracks every IDisposable it resolves and frees them only at "
                 f"application shutdown, so each call leaks a transient that should be "
-                f"scope-lived — resolve it from an IServiceScope instead ({chain})")
+                f"scope-lived — resolve it from an IServiceScope instead ({chain}){site}")
 
 
 def find_explicit_root_resolutions(
@@ -340,6 +351,8 @@ def find_explicit_root_resolutions(
     for s in services:
         if s.lifetime != SINGLETON:
             continue
+        # the hand-resolution call site for each entry type (path[1]) — the DI004 consumer.
+        sites = {t: (f, ln) for (t, f, ln) in s.root_resolve_sites}
         reported: set[str] = set()
         visited: set[str] = set()
         # DFS rooted at each explicitly resolved type, following the transient deps the root
@@ -353,9 +366,12 @@ def find_explicit_root_resolutions(
                 continue  # only transients are root-built/tracked (scoped is DI001's)
             if node.disposable and cur not in reported:
                 reported.add(cur)
+                # the call site is where the ENTRY type (path[1]) was hand-resolved, even when
+                # the leaked disposable is dragged in transitively below it.
+                rf, rl = sites.get(path[1], ("?", 0)) if len(path) >= 2 else ("?", 0)
                 findings.append(ExplicitRootResolution(
                     singleton=s.name, resolved=cur, path=path,
-                    file=s.file, line=s.line))
+                    file=s.file, line=s.line, resolved_file=rf, resolved_line=rl))
             if cur not in visited:
                 visited.add(cur)
                 for dep in node.deps:   # the root builds the transient's deps too

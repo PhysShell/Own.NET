@@ -490,6 +490,16 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError("service 'ctor_line' must be an integer")
         if not isinstance(s.get("ctor_type", ""), str):
             raise OwnIRError("service 'ctor_type' must be a string")
+        # DI004 call-site metadata (optional): an array of {type, file, line} objects.
+        sites = s.get("root_resolve_sites", [])
+        if not isinstance(sites, list) or not all(
+                isinstance(x, dict) and isinstance(x.get("type", ""), str)
+                and isinstance(x.get("file", "?"), str)
+                and isinstance(x.get("line", 0), int) and not isinstance(x.get("line", 0), bool)
+                for x in sites):
+            raise OwnIRError(
+                "service 'root_resolve_sites' must be an array of "
+                "{type:str, file:str, line:int} objects")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -1272,6 +1282,27 @@ def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
     return ()
 
 
+def _resolution_related(c: Any) -> tuple[tuple[str, int, str], ...]:
+    """The DI004 service-location **call site** (the `GetRequiredService<T>()` invocation) as a
+    structured related location, or empty when the extractor did not record it. DI004's consumer
+    is this call site, not a constructor — the second anchor beside the registration site."""
+    if getattr(c, "resolved_line", 0) >= 1:
+        return ((c.resolved_file, c.resolved_line, "service-location call site"),)
+    return ()
+
+
+def _resolve_sites(raw: Any) -> tuple[tuple[str, str, int], ...]:
+    """Parse a service's optional `root_resolve_sites` (DI004 call-site metadata) into
+    `(type, file, line)` triples. Tolerant for direct `check_facts` callers; `load()` does the
+    strict shape check."""
+    if not isinstance(raw, list):
+        return ()
+    return tuple(
+        (str(x.get("type", "")), str(x.get("file", "?")), _as_int(x.get("line", 0)))
+        for x in raw if isinstance(x, dict)
+    )
+
+
 def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     """Run the DI captive-dependency check over the facts' `services` graph and
     map each result to a DI001 Finding at its registration site."""
@@ -1301,6 +1332,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # the IMPLEMENTATION type owning that ctor — named in the finding instead of the
             # (possibly interface) service name, which would point at a ctor-less type (Codex).
             ctor_type=str(s.get("ctor_type", "")),
+            # DI004 call-site metadata: where each root_resolves type was hand-resolved, so the
+            # finding can anchor at the GetRequiredService call site (its real consumer).
+            root_resolve_sites=_resolve_sites(s.get("root_resolve_sites", [])),
         )
         for s in raw if isinstance(s, dict)
     ]
@@ -1346,7 +1380,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
         Finding(
             file=c.file, line=c.line, code="DI004",
             component=c.singleton, event=c.resolved, handler="",
-            message=c.message, kind="DI lifetime", severity="warning")
+            message=c.message, kind="DI lifetime", severity="warning",
+            related=_resolution_related(c))
         for c in find_explicit_root_resolutions(services)
     ]
     return out
