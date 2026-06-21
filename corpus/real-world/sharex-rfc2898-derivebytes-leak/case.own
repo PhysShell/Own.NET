@@ -1,0 +1,22 @@
+// OwnLang model of a real disposable leak found by mining ShareX @ ed2a864
+// (ShareX.UploadersLib/FileUploaders/Vault_ooo.cs:216, DeriveCryptoData). An
+// Rfc2898DeriveBytes (the PBKDF2 deriver) is created on the upload path, used to
+// derive the AES Key + IV, and never disposed — it holds an HMAC, so the leak is real.
+// Modelled as a disposable acquire/release; the missing `release` is the generic
+// OWN001 leak. The deriver does not escape (only the derived byte[]s are returned),
+// so it stays tracked. See notes.md for provenance, the second (factory) leak the
+// extractor still misses, and the honesty caveat.
+module Corpus
+resource Deriver {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Rfc2898DeriveBytes"
+  emit_acquire "new Rfc2898DeriveBytes({args})"
+  emit_release "{0}.Dispose()"
+}
+fn DeriveCryptoData(key: int) {
+  let rfcDeriver = acquire Deriver(key);   // new Rfc2898DeriveBytes(key, salt, 10000, SHA256)
+  // derive Key + IV via rfcDeriver.GetBytes(...)
+  // no `release rfcDeriver;` — the deriver is never disposed (OWN001)
+}
