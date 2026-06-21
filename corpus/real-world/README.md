@@ -43,5 +43,6 @@ exception-path (анализ не моделирует исключения), co
 |------|-----|------------------|
 | `arraypool-use-after-return` | OWN002 | rented-буфер вернули в пул, потом ещё читали slice |
 | `arraypool-double-return` | OWN003 | один и тот же массив вернули в ArrayPool дважды ([#33767](https://github.com/dotnet/runtime/issues/33767)) |
+| `arraypool-span-view-after-return` | OWN002 | `Span`-вью пула (`buf.AsSpan()`) записали ПОСЛЕ `Return` — заём пережил владельца (borrow-checker) |
 | `ownership-handoff-use` | OWN002 | поток отдали потребителю (он его закрыл), потом ещё читали — use-after-handoff |
 | `ownership-handoff-use-transitive` | OWN002 | то же, но потребитель не закрывает сам, а **пробрасывает** владение дальше (transitive consume) |
