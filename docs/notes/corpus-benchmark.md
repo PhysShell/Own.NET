@@ -94,18 +94,22 @@ a `File.*` stream, so no `after.cs` and no dog-food scan can newly cry wolf.
 The last handoff gap was the *use-after-handoff* arm — a stream handed to a consumer that
 disposes it, then touched again (`OWN002`). The extractor treated every argument-pass as an
 *escape* (untracked), so the handed-off stream vanished and the later read was invisible. Now
-a first-party method owning a by-value `IDisposable` parameter is recognised as carrying an
-ownership **contract**: passing a tracked local to it is a **handoff** (lowered to a `call`
-op, not an escape), and the OwnIR bridge — whose consume machinery was already built and
-tested (`handoff_contract.facts.json`) — **moves ownership** across the call per the callee's
-inferred contract (a body that releases its param ⇒ consume). A use after the move then trips
-`OWN002`. The cut is the **signature**, not whole-program points-to — the modular handoff the
-`.own` reduction proves, like Rust's move. A new fixture `ownership-handoff-use` (a *pure*
-use-after-handoff, no leak arm) is a miss before the contract and a catch after, so **recall
-is now 9/11**; `ownership-handoff-consume` now fires both its arms (`OWN001`+`OWN002`). The
-bridge half was pinned locally (hand-built facts → `check_facts` → the exact verdicts), and
-the blast radius is the two handoff fixtures — the consumer shape (a by-value `IDisposable`
-parameter) appears nowhere else in the corpus or samples, so nothing else can newly fire.
+a call to a first-party **consumer** — a method whose own body disposes a by-value
+`IDisposable` parameter — is modelled as a **release of the argument at the call site**, the
+same shape as pool `Return(buf)` (the resource leaves the caller's hands right there). A use of
+the argument *after* that call is then a use-after-release, `OWN002`; the matching argument is
+exempted from the escape set so it stays tracked through the handoff. It is inter-procedural —
+the signal is the *callee's own body* — but there is **no cross-call signature table**, so a
+callee with no body to inspect (interface / abstract / extern) or that doesn't dispose the
+parameter yields nothing and the argument stays an ordinary escape. Crucially there is no
+dangling `call` op to a method the flow pass never lowered (the early call-op design crashed
+the bridge on exactly that — `UnitOfWorkFlowSample`'s consumer, whose body the pass skips), and
+the escape exemption is gated on the *same* body-inspection as the release, so an argument is
+exempted **iff** it is also released — never a tracked-but-unreleased local that would read as a
+false leak. A new fixture `ownership-handoff-use` (a *pure* use-after-handoff, no leak arm) is a
+miss before and a catch after, so **recall is now 9/11**; `ownership-handoff-consume` now fires
+both its arms (`OWN001`+`OWN002`). The verdicts were pinned locally (hand-built facts →
+`check_facts` → the exact `OWN001`/`OWN002` and silence on the fixes).
 
 The remaining gaps are genuine **frontend extraction** islands: a field/cross-method
 use-after-dispose needs cross-method field-state, and the injected-source region-escape

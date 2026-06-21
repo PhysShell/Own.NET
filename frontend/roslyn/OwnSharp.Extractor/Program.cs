@@ -448,20 +448,6 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             return true;
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow);
-            // A call to a first-party method that takes ownership of an IDisposable
-            // parameter is an inter-procedural HANDOFF: lower it to a `call` op so the
-            // bridge moves ownership per the callee's contract (consume => the arg is
-            // released here; a later use is OWN002). Other calls fall through to use/escape.
-            if (es.Expression is InvocationExpressionSyntax callInv
-                && ContractedCallee(callInv, model) is { } callee)
-            {
-                var callArgs = callInv.ArgumentList.Arguments
-                    .Select(a => a.Expression is IdentifierNameSyntax aid
-                        ? aid.Identifier.Text : a.Expression.ToString())
-                    .ToList();
-                nodes.Add(new { op = "call", callee, args = callArgs, line = LineOf(callInv) });
-                return true;
-            }
             EmitFlowExpr(es.Expression, tracked, model, nodes);
             return true;
         case IfStatementSyntax ifs:
@@ -718,6 +704,15 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         nodes.Add(new { op = "release", var = pbuf, line = LineOf(expr) });
         return;
     }
+    // Foo(s) where Foo consumes (disposes) its by-value IDisposable parameter -> the
+    // handoff RELEASES the argument here (the inter-procedural consume contract, modelled
+    // at the call site like pool Return). A later use of the argument is then a
+    // use-after-handoff (OWN002); `return` early so it is not also counted as a use.
+    if (ConsumeReleaseArg(expr, model) is { } carg && tracked.Contains(carg))
+    {
+        nodes.Add(new { op = "release", var = carg, line = LineOf(expr) });
+        return;
+    }
     // any other reference to a tracked local -> use (once per local in this expr).
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
@@ -797,29 +792,45 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
     return ns is { Name: "System" } && ns.ContainingNamespace is { IsGlobalNamespace: true };
 }
 
-// The qualified name (`Class.Method`) of a first-party method this call targets, IF that
-// method takes a by-value IDisposable parameter — i.e. it carries an ownership CONTRACT
-// the bridge resolves from the callee's own lowered body (release of the param => consume).
-// Passing a tracked local to such a method is an inter-procedural HANDOFF (lowered to a
-// `call` op), not an escape: the bridge moves ownership for a consume param, so a later use
-// is OWN002. Returns null for BCL / uncontracted calls — the extractor emits a `call` op
-// only for callees it also lowers as functions (else the bridge has no signature for them).
-static string? ContractedCallee(ExpressionSyntax e, SemanticModel model)
+// `Foo(s)` where Foo is a first-party method that CONSUMES a by-value IDisposable
+// parameter — its own body disposes that parameter — takes ownership of the matching
+// argument. The handoff is modelled as a RELEASE of the argument at the call site (the
+// same shape as pool `Return(buf)`): a use of the argument after the call is then a
+// use-after-handoff (OWN002). The inspection is the callee's OWN body, so there is no
+// cross-call signature table and no dangling-callee crash — a method with no body
+// (interface / abstract / extern) or that does not dispose the param yields null and the
+// argument simply stays an escape. Returns the consumed argument's local name, or null.
+static string? ConsumeReleaseArg(ExpressionSyntax e, SemanticModel model)
 {
     if (e is not InvocationExpressionSyntax inv
         || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym
-        || sym.DeclaringSyntaxReferences.Length == 0)   // first-party (declared in source)
+        || sym.DeclaringSyntaxReferences.Length == 0
+        || sym.DeclaringSyntaxReferences[0].GetSyntax() is not BaseMethodDeclarationSyntax decl)
         return null;
-    var owns = false;
-    foreach (var p in sym.Parameters)
-        if (p.RefKind == RefKind.None && ImplementsIDisposable(p.Type))
-        {
-            owns = true;
-            break;
-        }
-    if (!owns)
+    SyntaxNode? body = decl.Body ?? (SyntaxNode?)decl.ExpressionBody;
+    if (body is null)
         return null;
-    return sym.ContainingType is { } ct ? $"{ct.Name}.{sym.Name}" : sym.Name;
+    for (int i = 0; i < sym.Parameters.Length && i < inv.ArgumentList.Arguments.Count; i++)
+    {
+        var p = sym.Parameters[i];
+        if (p.RefKind == RefKind.None && ImplementsIDisposable(p.Type)
+            && DisposesLocal(body, p.Name)
+            && inv.ArgumentList.Arguments[i].Expression is IdentifierNameSyntax aid)
+            return aid.Identifier.Text;
+    }
+    return null;
+}
+
+// Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /
+// `.DisposeAsync()` call (the consume signal)?
+static bool DisposesLocal(SyntaxNode body, string name)
+{
+    foreach (var i in body.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
+        if (i.Expression is MemberAccessExpressionSyntax m
+            && m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
+            && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name)
+            return true;
+    return false;
 }
 
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
@@ -1350,16 +1361,6 @@ foreach (var (file, tree) in parsed)
                     continue;
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
-                // By-value IDisposable PARAMETERS are owned obligations handed in from the
-                // caller (the consume/borrow side of an inter-procedural handoff). Track them
-                // so the body's use / Dispose of the param lowers to use / release — the bridge
-                // infers the param's contract (released => consume) from that body, and a leak
-                // of an undischarged consume param maps back to the parameter.
-                var resourceParams = new List<(string Name, int Line)>();
-                foreach (var pp in method.ParameterList.Parameters)
-                    if (pp.Modifiers.Count == 0 && pp.Type is { } ppt
-                        && model.GetTypeInfo(ppt).Type is { } ppts && ImplementsIDisposable(ppts))
-                        resourceParams.Add((pp.Identifier.Text, LineOf(pp)));
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -1378,7 +1379,7 @@ foreach (var (file, tree) in parsed)
                         else if (IsOwningFactory(v.Initializer?.Value, model))   // File.Open*/Create* factory
                             candidates.Add(v.Identifier.Text);
                 }
-                if (candidates.Count == 0 && resourceParams.Count == 0)
+                if (candidates.Count == 0)
                     continue;
                 // A local that escapes (returned / assigned out) is conservatively not
                 // tracked — its release may be the caller's job. For an IDisposable,
@@ -1392,13 +1393,18 @@ foreach (var (file, tree) in parsed)
                     var nm = idn.Identifier.Text;
                     if (!candidates.Contains(nm))
                         continue;
-                    // ... unless it is passed to a CONSUME/BORROW contract (a first-party
-                    // method owning an IDisposable param): that is a handoff modelled by a
-                    // `call` op, not an escape (else the use-after-handoff would be hidden).
+                    // ... unless it is handed to a CONSUMER (a first-party method that
+                    // disposes a by-value IDisposable param) as a bare `Consume(s);`
+                    // statement: that is a handoff RELEASED at the call site, not an escape
+                    // (else the use-after-handoff would be hidden). Tied to the statement
+                    // form the flow pass lowers, so a local is never exempted without a
+                    // matching release (a `var n = Consume(s)` initializer is NOT lowered
+                    // here, so it stays an escape rather than a false leak).
                     bool consumedArg = idn.Parent is ArgumentSyntax
                         && idn.Parent.Parent is ArgumentListSyntax
                         && idn.Parent.Parent.Parent is InvocationExpressionSyntax cinv
-                        && ContractedCallee(cinv, model) is not null;
+                        && cinv.Parent is ExpressionStatementSyntax
+                        && ConsumeReleaseArg(cinv, model) == nm;
                     if (idn.Parent is ReturnStatementSyntax
                         || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg))
@@ -1406,8 +1412,6 @@ foreach (var (file, tree) in parsed)
                 }
                 var tracked = new HashSet<string>(candidates);
                 tracked.ExceptWith(escapedLocals);
-                foreach (var (rp, _) in resourceParams)
-                    tracked.Add(rp);   // owned obligations handed in from the caller
                 if (tracked.Count == 0)
                     continue;
                 statMethodsWithLocal++;
@@ -1422,7 +1426,6 @@ foreach (var (file, tree) in parsed)
                 {
                     name = $"{cls.Identifier.Text}.{MethodName(method)}",
                     file,
-                    @params = resourceParams.Select(rp => new { name = rp.Name, line = rp.Line }).ToList(),
                     body = fbody,
                 });
             }

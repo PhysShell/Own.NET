@@ -12,13 +12,14 @@ stream, hand it to a sink that owns it, then accidentally read it once more (an
 
 **Why this case exists (the consume-contract proof).** The extractor used to treat any
 argument-passing as an *escape* (untracked), so a stream handed to `Consume(s)` simply
-vanished and the later `s.Length` was invisible — a **miss**. With the inter-procedural
-**consume contract**, a first-party method owning a by-value `IDisposable` parameter is
-recognised, the handoff `Consume(s)` lowers to a `call` op, and the bridge **moves
-ownership** across it — the cut is the *signature*, not whole-program points-to, exactly like
-Rust's move. The use after the move then trips **OWN002**. This fixture is a *miss* before the
-contract and a *catch* after; `ownership-handoff-consume` is caught for its leak arm either
-way, so this is the row that makes the use-after-handoff capability a measurable ratchet.
+vanished and the later `s.Length` was invisible — a **miss**. Now a call to a first-party
+**consumer** — a method whose own body disposes a by-value `IDisposable` parameter — is
+modelled as a **release of the argument at the call site**, the same shape as pool
+`Return(buf)` (the resource leaves the caller's hands right there). The use *after* that
+release then trips **OWN002**. The signal is the callee's own body, so it is inter-procedural
+without a cross-call signature table (and so without a dangling-callee crash). This fixture is
+a *miss* before and a *catch* after; `ownership-handoff-consume` is caught for its leak arm
+either way, so this is the row that makes the use-after-handoff capability a measurable ratchet.
 
 **Honesty / scope.** `case.own` is a faithful hand reduction of the C# pattern, not C# the
 `.own` checker ingested. `before.cs` / `after.cs` are representative of the bug and its fix,

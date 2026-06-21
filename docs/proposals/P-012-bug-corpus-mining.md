@@ -18,10 +18,12 @@
   heuristic — is caught (`arraypool-aliased-receiver`, +1 row); (4) ownership-transferring
   **factory acquires** (`System.IO.File.Open*`/`Create*`) are recognised alongside `new`,
   so the leak arm of the interprocedural-handoff case fires `OWN001`; (5) the inter-procedural
-  **consume contract** — a first-party method owning a by-value `IDisposable` param is a
-  handoff (lowered to a `call` op), so the bridge moves ownership across it and a use after the
-  handoff trips `OWN002` (the cut is the signature, like Rust's move; `ownership-handoff-use`,
-  +1 row). Perfect precision throughout. The remaining gaps: a cross-method use-after-dispose,
+  **consume handoff** — a call to a first-party consumer (a method whose own body disposes a
+  by-value `IDisposable` param) is modelled as a *release* of the argument at the call site (the
+  pool-`Return` shape), so a use after the handoff trips `OWN002`; the signal is the callee's
+  own body, so there is no cross-call signature table and no dangling-callee crash
+  (`ownership-handoff-use`, +1 row). Perfect precision throughout. The remaining gaps: a
+  cross-method use-after-dispose,
   and an injected-source region-escape — the tracked recall backlog the floor ratchets up to.
   Still ahead: those, GitHub mining at scale (stage 1) and the 50–100-repo prevalence
   scan (stage 2). See
