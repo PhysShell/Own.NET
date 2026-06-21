@@ -380,6 +380,13 @@ jobs:
             || { echo "FAIL: expected OWN001 on the undisposed local in a do-while loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'swLeak'" \
             || { echo "FAIL: expected OWN001 on the switch default-branch leak"; exit 1; }
+          # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
+          # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
+          # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->
+          # OWN001 ('semLeak'), proving the exemption is closure-capture, not a blanket
+          # SemaphoreSlim dispose-optional (reduced from a ShareX FP — Helpers.ForEachAsync).
+          echo "$out" | grep -qE "OWN001.*'semLeak' is never disposed" \
+            || { echo "FAIL: expected OWN001 on the non-captured SemaphoreSlim leak"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
@@ -401,7 +408,7 @@ jobs:
           # case disposes (no default) -> last case is the tail, no phantom no-match leak.
           # `ncf`: `ncf?.Dispose()` (null-conditional) in a threaded finally IS a release
           # (member-binding form), so it is disposed on the return path -> silent (Codex review).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf; do
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

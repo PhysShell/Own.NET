@@ -1450,6 +1450,25 @@ foreach (var (file, tree) in parsed)
                     var nm = idn.Identifier.Text;
                     if (!candidates.Contains(nm))
                         continue;
+                    // Captured into a CLOSURE (lambda / anonymous method / local function):
+                    // the closure can outlive the method — stored, returned, or run async —
+                    // so the local is no longer method-bounded and cannot be disposed at
+                    // method scope. Conservatively treat the capture as an escape (don't
+                    // flag it), the same way a returned/out-passed local is untracked.
+                    // Reduced from a ShareX false positive: a SemaphoreSlim throttler captured
+                    // by the async lambdas of a returned `Task.WhenAll(...)` (Helpers.ForEachAsync).
+                    var capturedInClosure = false;
+                    for (var a = idn.Parent; a is not null && a != mbody; a = a.Parent)
+                        if (a is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
+                        {
+                            capturedInClosure = true;
+                            break;
+                        }
+                    if (capturedInClosure)
+                    {
+                        escapedLocals.Add(nm);
+                        continue;
+                    }
                     // ... unless it is handed to a CONSUMER (a first-party method that
                     // disposes a by-value IDisposable param) as a bare `Consume(s);`
                     // statement: that is a handoff RELEASED at the call site, not an escape
