@@ -279,7 +279,8 @@ def find_captured_transient_disposables(
                     findings.append(CapturedTransientDisposable(
                         singleton=s.name, captured=dep, path=npath,
                         file=s.file, line=s.line,
-                        consumed_file=s.ctor_file, consumed_line=s.ctor_line))
+                        consumed_file=s.ctor_file, consumed_line=s.ctor_line,
+                        consumed_type=s.ctor_type))
                 if dep not in visited:
                     visited.add(dep)
                     stack.append((dep, npath))

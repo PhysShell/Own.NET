@@ -493,7 +493,8 @@ def run() -> int:
     #     AND disposable; a non-disposable transient and a scoped capture stay silent.
     from ownlang.di import find_captured_transient_disposables
     dsvcs = [
-        Service("Cache", "singleton", ("Conn",)),  # -> transient disposable: DI003
+        Service("Cache", "singleton", ("Conn",),  # -> transient disposable: DI003
+                ctor_file="Cache.cs", ctor_line=4, ctor_type="Cache"),
         Service("Conn", "transient", (), disposable=True),
         Service("Warm", "singleton", ("Mid",)),  # -> transient -> disposable
         Service("Mid", "transient", ("Pool",), disposable=False),
@@ -511,6 +512,14 @@ def run() -> int:
     checks += 1
     if any("IDisposable" not in c.message for c in di3):
         fails.append("DI003 message missing 'IDisposable'")
+    checks += 1
+    # DI003 carries the consuming-constructor anchor too, naming the IMPL that owns the ctor
+    # (regression guard: the DI003 collector must pass consumed_type, like DI001/DI002).
+    cache3 = next((c for c in di3 if c.singleton == "Cache"), None)
+    c3want = "[consumed by the 'Cache' constructor at Cache.cs:4]"
+    if cache3 is None or c3want not in cache3.message:
+        fails.append(f"DI003 message missing consuming-constructor anchor: "
+                     f"{cache3.message if cache3 else None!r}")
     # bridge: DI003 surfaces as a WARNING-severity finding; `disposable` is parsed.
     di3facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
                 "services": [
