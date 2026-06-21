@@ -321,6 +321,30 @@ static bool IsDisposeOptional(ITypeSymbol t)
         || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
 }
 
+// A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
+// base chain). WinForms owns a *modeless* form's lifetime — see IsModelessShownForm.
+static bool DerivesFromWinFormsForm(ITypeSymbol? t)
+{
+    for (var b = t; b is not null; b = b.BaseType)
+        if (b.Name == "Form" && b.ContainingNamespace?.ToString() == "System.Windows.Forms")
+            return true;
+    return false;
+}
+
+// A local of WinForms Form-derived type shown *modeless* (`local.Show()`) somewhere
+// in the method body. The framework owns a modeless form: it disposes it when the
+// user closes it, so an undisposed local is not a leak — exempt it. A *modal* dialog
+// (`local.ShowDialog()`) is deliberately not matched here, so it stays tracked: the
+// caller owns a ShowDialog'd form and must dispose it (the real-leak case).
+static bool IsModelessShownForm(string name, BlockSyntax body, ITypeSymbol type) =>
+    DerivesFromWinFormsForm(type)
+    && body.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(inv =>
+        inv.Expression is MemberAccessExpressionSyntax
+        {
+            Name.Identifier.Text: "Show",
+            Expression: IdentifierNameSyntax { Identifier.Text: var recv },
+        } && recv == name);
+
 static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 {
     MethodDeclarationSyntax md => md.Identifier.Text,
@@ -1396,7 +1420,8 @@ foreach (var (file, tree) in parsed)
                         if (v.Initializer is { Value: ObjectCreationExpressionSyntax
                                                    or ImplicitObjectCreationExpressionSyntax } init
                             && model.GetTypeInfo(init.Value).Type is { } dt
-                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
+                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt)
+                            && !IsModelessShownForm(v.Identifier.Text, mbody, dt))
                             candidates.Add(v.Identifier.Text);
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {

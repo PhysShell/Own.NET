@@ -455,6 +455,32 @@ jobs:
             fi
           done
           echo "OK: escape-via-projection UnitOfWork leak -> OWN001 'never disposed'; materialize + ownership-transfer fixes stay silent"
+      - name: WinForms modeless-form precision (--flow-locals, P-016)
+        run: |
+          # WinForms owns a *modeless* form's lifetime: a form shown via Form.Show()
+          # is disposed by the framework on close, so an undisposed local is NOT a
+          # leak (the extractor's IsModelessShownForm exempts it). A *modal* dialog
+          # shown via ShowDialog() is the caller's to dispose -> stays tracked, and an
+          # undisposed one is a real OWN001. Reduced from a ShareX (WinForms) false
+          # positive: our WPF-tuned local-disposable detector over-fired on the
+          # idiomatic `new SomeForm().Show()`.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/WinFormsModelessSample.cs --flow-locals -o "$RUNNER_TEMP/winforms.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/winforms.json" || true)
+          echo "$out"
+          # the modal dialog never disposed is a real leak (ShowDialog is caller-owned):
+          echo "$out" | grep -qE "OWN001.*'modalLeak' is never disposed" \
+            || { echo "FAIL: expected OWN001 on the undisposed ShowDialog modal dialog"; exit 1; }
+          echo "$out" | grep -q "WinFormsModelessSample.cs" \
+            || { echo "FAIL: expected the finding at the C# sample location"; exit 1; }
+          # the precision fix: a modeless form (`.Show()`, framework-owned) must stay
+          # silent, and so must a properly-disposed modal dialog (modalOk):
+          for ok in modeless modalOk; do
+            if echo "$out" | grep -q "'$ok'"; then
+              echo "FAIL: silent/exempt case '$ok' was reported (WinForms precision)"; exit 1
+            fi
+          done
+          echo "OK: WinForms modeless Form.Show() exempt (framework-owned); modal ShowDialog() leak caught; disposed modal silent"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
