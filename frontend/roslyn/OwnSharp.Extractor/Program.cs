@@ -454,7 +454,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
-                            || IsOwningFactory(v.Initializer?.Value, model)))   // File.Open*/Create* factory
+                            || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
             return true;
         case ExpressionStatementSyntax es:
@@ -801,26 +801,46 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
 
 // A factory call that CREATES and hands back a fresh owned IDisposable the caller must
 // release — recognised via the resolved symbol (curated, the same spirit as
-// IsDisposableType is for `new`). System.IO.File.Open*/Create*/*Text return a NEW
-// FileStream / StreamReader / StreamWriter that the caller owns exactly as if it had
-// `new`'d one, so a local bound to one is an acquire. Curated + symbol-resolved, so a
-// borrowed/cached disposable handed back by some other API is never mistaken for an
-// owned acquire (precision over recall — the set grows only as ownership is certain).
+// IsDisposableType is for `new`). Two families:
+//   * System.IO.File.Open*/Create*/*Text -> a NEW FileStream / StreamReader / StreamWriter
+//     the caller owns exactly as if it had `new`'d one.
+//   * System.Security.Cryptography static `Create*` factories -> a NEW owned IDisposable:
+//     RandomNumberGenerator.Create(), Aes.Create(), SHA256.Create(), RSA.Create(),
+//     IncrementalHash.CreateHash(), ... (guarded by static + Create-prefixed + the RESULT
+//     implementing IDisposable + the crypto namespace, so an instance `CreateEncryptor()` or
+//     a non-IDisposable `CreateFromName()` is never mistaken for one).
+// Curated + symbol-resolved, so a borrowed/cached disposable handed back by some other API is
+// never mistaken for an owned acquire (precision over recall — the set grows only as
+// ownership is certain).
 static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
 {
     if (e is not InvocationExpressionSyntax i
-        || model.GetSymbolInfo(i).Symbol is not IMethodSymbol sym
-        || sym.Name is not ("OpenRead" or "OpenWrite" or "Open" or "Create"
-                         or "OpenText" or "CreateText" or "AppendText"))
+        || model.GetSymbolInfo(i).Symbol is not IMethodSymbol sym)
         return false;
-    INamedTypeSymbol? ct = sym.ContainingType;
-    if (ct is null || ct.Name != "File")
-        return false;
-    INamespaceSymbol? ns = ct.ContainingNamespace;   // System.IO.File -> IO
-    if (ns is null || ns.Name != "IO")
-        return false;
-    ns = ns.ContainingNamespace;                     // IO -> System
-    return ns is { Name: "System" } && ns.ContainingNamespace is { IsGlobalNamespace: true };
+    if (sym.Name is "OpenRead" or "OpenWrite" or "Open" or "Create"
+                 or "OpenText" or "CreateText" or "AppendText"
+        && sym.ContainingType is { Name: "File" } ft
+        && IsInNamespace(ft, "System", "IO"))
+        return true;
+    if (sym.IsStatic
+        && sym.Name.StartsWith("Create", StringComparison.Ordinal)
+        && ImplementsIDisposable(sym.ReturnType)
+        && IsInNamespace(sym.ContainingType, "System", "Security", "Cryptography"))
+        return true;
+    return false;
+}
+
+// Is the type `t` declared in the namespace named by `parts` (outermost-first), e.g.
+// IsInNamespace(t, "System", "IO") for System.IO? Walks the containing-namespace chain
+// and requires it to bottom out at the global namespace (so `System.IO` matches but a
+// nested `Foo.System.IO` would not).
+static bool IsInNamespace(INamedTypeSymbol? t, params string[] parts)
+{
+    var ns = t?.ContainingNamespace;
+    for (var k = parts.Length - 1; k >= 0; k--, ns = ns?.ContainingNamespace)
+        if (ns is null || ns.Name != parts[k])
+            return false;
+    return ns is { IsGlobalNamespace: true };
 }
 
 // The local names of arguments handed to a first-party CONSUMER at this call — a method
@@ -1433,7 +1453,7 @@ foreach (var (file, tree) in parsed)
                             candidates.Add(v.Identifier.Text);
                             poolBuffers.Add(v.Identifier.Text);
                         }
-                        else if (IsOwningFactory(v.Initializer?.Value, model))   // File.Open*/Create* factory
+                        else if (IsOwningFactory(v.Initializer?.Value, model))   // File / crypto Create* factory
                             candidates.Add(v.Identifier.Text);
                 }
                 if (candidates.Count == 0)

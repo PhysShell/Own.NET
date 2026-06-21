@@ -45,15 +45,16 @@ Vault_ooo.cs:216: error: [OWN001] IDisposable local 'rfcDeriver' is never dispos
 `Dispose()`. Because the deriver is never released on any path the wording is
 "is never disposed" (vs the partial-path "may not be disposed on every path").
 
-## The honest caveat — a second leak the extractor misses (recall gap)
+## The second leak — also caught (crypto owning-factory)
 
-`DeriveCryptoData` actually leaks **two** crypto disposables. The extractor flags
-`rfcDeriver` (acquired via `new`) but **not** `rng = RandomNumberGenerator.Create()`,
-an `IDisposable` acquired via a static **factory**. The flow detector recognises `new`
-and the `System.IO.File.Open*/Create*` factories (`IsOwningFactory`), but not arbitrary
-`X.Create()` factories. Extending the owning-factory set to the common BCL crypto
-factories (`RandomNumberGenerator.Create()`, `SHA256.Create()`, `Aes.Create()`, …) is a
-separate recall slice; `after.cs` disposes both so the fix is genuinely clean.
+`DeriveCryptoData` leaks **two** crypto disposables: `rfcDeriver` (acquired via `new`)
+and `rng = RandomNumberGenerator.Create()` (acquired via a static **factory**). The flow
+detector now catches both — `IsOwningFactory` recognises the
+`System.Security.Cryptography` static `Create*` factories that return an `IDisposable`
+(`RandomNumberGenerator.Create()`, `SHA256.Create()`, `Aes.Create()`, …) alongside `new`
+and the `System.IO.File.Open*/Create*` factories. (Originally `rng` was a documented
+recall gap; the crypto owning-factory slice closed it.) `after.cs` disposes both, so the
+fix is genuinely clean.
 
 ## Files
 

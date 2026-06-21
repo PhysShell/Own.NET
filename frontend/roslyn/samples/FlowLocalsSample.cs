@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -440,6 +441,26 @@ public class FlowLocalsSample
         var nofLeak = new MemoryStream();
         Action log = () => System.Console.WriteLine(nameof(nofLeak));
         log();
+    }
+
+    // OWN001 (recall): a crypto IDisposable acquired via a static FACTORY, not `new` — the
+    // extractor recognises System.Security.Cryptography `Create*` factories that return an
+    // IDisposable as owning acquires (like File.Open*/Create*). `rngLeak` is created and never
+    // disposed -> leak. Reduced from the SECOND, previously-missed leak in ShareX's
+    // DeriveCryptoData (RandomNumberGenerator.Create()).
+    public void CryptoFactoryLeaks()
+    {
+        var rngLeak = RandomNumberGenerator.Create();
+        rngLeak.GetBytes(new byte[8]);
+    }
+
+    // clean: the same kind of factory acquire, disposed on every path -> silent (it is an
+    // acquire exactly like `new`, so a matching Dispose balances it; not a false positive).
+    public void CryptoFactoryDisposed()
+    {
+        var shaClean = SHA256.Create();
+        shaClean.ComputeHash(new byte[1]);
+        shaClean.Dispose();
     }
 }
 
