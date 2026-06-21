@@ -329,9 +329,14 @@ jobs:
           # is unwrapped, so the scoped service is still seen (CodeRabbit review on #63).
           echo "$out" | grep -qE "\[DI002\].*'WeakCacheOpt' weakly captures scoped service 'AppDbContext'" \
             || { echo "FAIL: expected DI002 on the nullable WeakReference (WeakCacheOpt)"; exit 1; }
+          # transitive DI002: a singleton weakly holds the transient UnitOfWork, which strongly
+          # drags in scoped AppDbContext (WeakReport -> UnitOfWork -> AppDbContext). The weak DFS
+          # follows the transient's strong edges like DI001 does.
+          echo "$out" | grep -qE "\[DI002\].*'WeakReport' weakly captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected transitive DI002 (WeakReport -> UnitOfWork -> AppDbContext)"; exit 1; }
           nwk=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI002\]")
-          [ "$nwk" = "2" ] \
-            || { echo "FAIL: expected exactly 2 DI002 findings, got $nwk"; exit 1; }
+          [ "$nwk" = "3" ] \
+            || { echo "FAIL: expected exactly 3 DI002 findings, got $nwk"; exit 1; }
           if echo "$out" | grep -q "WeakClockHolder"; then
             echo "FAIL: a weak ref to a singleton (WeakClockHolder) was wrongly flagged"; exit 1
           fi

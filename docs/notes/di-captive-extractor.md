@@ -108,18 +108,18 @@ fix."* A **warning** (`severity="warning"` — real, shown soft), distinct from 
 DI001 capture. The extractor reads a `WeakReference<X>` constructor parameter (`WeakRefInner`)
 into a **separate `weak_deps`** list, deliberately kept **off** the DI001 strong graph, so the
 same scoped service is either a strong captive (DI001) or a weak captive (DI002), never both;
-`ownlang/di.py` `find_weak_captive_dependencies` flags a singleton whose `weak_deps` names a
-scoped service. Pinned end-to-end by `DiCaptiveSample.cs` (`WeakCache` →
-`WeakReference<AppDbContext>`, with `WeakClockHolder → WeakReference<Clock>` staying silent —
-a weak ref to a singleton is no mismatch) in the `wpf-extractor` CI job, and at the graph
-level by `tests/test_ownir.py`. It is a contract no general-purpose analyzer models — even the
-developer's WeakReference "fix" is still flagged, which is the key differentiation.
+`ownlang/di.py` `find_weak_captive_dependencies` flags a singleton that *reaches* a scoped
+service from a weak dep — directly (`WeakReference<Scoped>`) or **transitively** through a
+weakly-held transient that strongly drags in the scoped, the same strong-edge DFS DI001 runs
+but rooted at the weak edge. Pinned end-to-end by `DiCaptiveSample.cs` — `WeakCache` /
+`WeakCacheOpt` (`WeakReference<AppDbContext>`, the second nullable), and `WeakReport`
+(`WeakReference<UnitOfWork>` → scoped `AppDbContext`, the transitive case); `WeakClockHolder →
+WeakReference<Clock>` stays silent (a weak ref to a singleton is no mismatch) — in the
+`wpf-extractor` CI job, and at the graph level by `tests/test_ownir.py`. It is a contract no
+general-purpose analyzer models — even the developer's WeakReference "fix" is still flagged,
+which is the key differentiation.
 
 ## Next (separate slices)
-
-- **DI002, the transitive form** — a singleton holding a `WeakReference<Transient>` whose
-  transient *drags in* a scoped service (the weak edge is one hop above the scoped); the
-  shipped slice flags the common **direct** `WeakReference<Scoped>` shape.
 - **DI003, the explicit form** — a transient `IDisposable` resolved by hand from the
   **root** provider (`root.GetService<T>()`), which the graph form above does not see (it
   needs the resolution call sites, not just the registration graph).
