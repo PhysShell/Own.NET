@@ -41,7 +41,7 @@ MANIFEST = [
     ("08_stack_buffer_escapes.own",  "OWN015", "returned a Span over a stackalloc (dangling)"),
     ("09_untracked_call.own",        "OWN040", "ownership laundered through an opaque call"),
     ("10_leak_in_loop.own",          "OWN001", "acquired in a loop, never released (while)"),
-    ("11_overspan_full_view.own",    "OWN025", "took the whole pooled array (buf.AsSpan()) past its rented length"),
+    ("11_overspan_full_view.own",    "OWN025", "full view buf.AsSpan() past the rented length"),
 ]
 
 
