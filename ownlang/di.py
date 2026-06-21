@@ -140,27 +140,41 @@ class WeakCaptiveDependency:
 
 def find_weak_captive_dependencies(
         services: list[Service]) -> list[WeakCaptiveDependency]:
-    """Return every scoped service a singleton holds via `WeakReference<T>` (DI002).
-    The direct form: a singleton whose `weak_deps` names a scoped service. The weak
-    reference keeps it off the DI001 strong-capture graph, but the scoped instance is
-    still root-resolved and app-lived — a lifetime-contract violation, surfaced as a
-    warning. (Weakly-held transients that *drag in* a scoped are a separate, rarer
-    slice — not followed here, the direct weak-scoped edge is the common 'I wrapped my
-    captive in WeakReference' shape.)"""
+    """Return every scoped service a singleton reaches via `WeakReference<T>` (DI002).
+    From each weak dependency, walk the STRONG dependency chain exactly as DI001 does: the
+    weak edge enters a service the singleton holds weakly, and a scoped service it reaches —
+    directly (`WeakReference<Scoped>`) or transitively through a weakly-held transient that
+    strongly depends on it — is still root-resolved and app-lived, a lifetime-contract
+    violation surfaced as a warning. Transients are followed (a transient resolved through
+    the singleton drags its scoped dep along); a singleton edge is another singleton's own
+    pass. Cycles are guarded. The weak entry edge keeps it off the DI001 strong graph."""
     by_name = {s.name: s for s in services}
     findings: list[WeakCaptiveDependency] = []
     for s in services:
         if s.lifetime != SINGLETON:
             continue
         reported: set[str] = set()
-        for dep in s.weak_deps:
-            dnode = by_name.get(dep)
-            if dnode is None or dnode.lifetime != SCOPED or dep in reported:
+        visited: set[str] = set()
+        # DFS rooted at the WEAK deps, then following STRONG transient edges (DI001-style).
+        stack: list[tuple[str, tuple[str, ...]]] = [
+            (dep, (s.name, dep)) for dep in s.weak_deps]
+        while stack:
+            cur, path = stack.pop()
+            cnode = by_name.get(cur)
+            if cnode is None:
                 continue
-            reported.add(dep)
-            findings.append(WeakCaptiveDependency(
-                singleton=s.name, captured=dep, path=(s.name, dep),
-                file=s.file, line=s.line))
+            if cnode.lifetime == SCOPED:
+                if cur not in reported:
+                    reported.add(cur)
+                    findings.append(WeakCaptiveDependency(
+                        singleton=s.name, captured=cur, path=path,
+                        file=s.file, line=s.line))
+                continue  # the violating scoped edge is found; don't recurse past it
+            if cnode.lifetime == TRANSIENT and cur not in visited:
+                visited.add(cur)
+                for d in cnode.deps:   # follow the transient's STRONG deps
+                    stack.append((d, (*path, d)))
+            # a singleton edge is safe here (the inner singleton is reported on its own pass)
     findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
     return findings
 

@@ -58,6 +58,11 @@ namespace Sample
     // a NULLABLE weak reference (`WeakReference<AppDbContext>?`) is the same weak captive — the
     // `?` annotation does not change the service type, so it is DI002 too (CodeRabbit review).
     public sealed class WeakCacheOpt { public WeakCacheOpt(WeakReference<AppDbContext>? db) { } }
+    // DI002 transitive — a singleton weakly holds a TRANSIENT (UnitOfWork) that strongly
+    // depends on a scoped service (AppDbContext). The weak edge enters the transient, but the
+    // scoped it drags in is still root-resolved and app-lived: DI002 (path WeakReport ->
+    // UnitOfWork -> AppDbContext). NOT a DI001 (the entry edge is weak).
+    public sealed class WeakReport { public WeakReport(WeakReference<UnitOfWork> uow) { } }
     // control: a weak reference to a SINGLETON is no lifetime mismatch -> SILENT.
     public sealed class WeakClockHolder { public WeakClockHolder(WeakReference<Clock> clock) { } }
 
@@ -104,6 +109,9 @@ namespace Sample
             // FLAGGED (DI002) — a NULLABLE WeakReference<AppDbContext>? is the same weak captive
             // (the `?` annotation is unwrapped, so the scoped service is still seen).
             services.AddSingleton<WeakCacheOpt>();
+            // FLAGGED (DI002, transitive) — singleton weakly holds the transient UnitOfWork,
+            // which strongly drags in scoped AppDbContext (WeakReport -> UnitOfWork -> AppDbContext).
+            services.AddSingleton<WeakReport>();
             // SILENT — a weak reference to the SINGLETON Clock is no lifetime mismatch.
             services.AddSingleton<WeakClockHolder>();
         }

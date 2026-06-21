@@ -530,17 +530,24 @@ def run() -> int:
     #     graph; a weak ref to a singleton is no mismatch, so it stays silent.
     from ownlang.di import find_weak_captive_dependencies
     wsvcs = [
-        Service("WeakCache", "singleton", deps=(), weak_deps=("Db",)),   # weak -> scoped: DI002
+        Service("WeakCache", "singleton", deps=(), weak_deps=("Db",)),   # weak->scoped: DI002
         Service("Db", "scoped", ()),
-        Service("Strong", "singleton", deps=("Db",)),                    # strong -> scoped: DI001
+        Service("Strong", "singleton", deps=("Db",)),                    # strong->scoped: DI001
+        Service("WeakReport", "singleton", deps=(), weak_deps=("Uow",)),  # weak->transient->scoped
+        Service("Uow", "transient", deps=("Db",)),
         Service("WeakClock", "singleton", deps=(), weak_deps=("Clk",)),  # weak -> singleton: safe
         Service("Clk", "singleton", ()),
     ]
     di2 = find_weak_captive_dependencies(wsvcs)
     checks += 1
     got2 = sorted((c.singleton, c.captured) for c in di2)
-    if got2 != [("WeakCache", "Db")]:
+    if got2 != [("WeakCache", "Db"), ("WeakReport", "Db")]:
         fails.append(f"DI002 set wrong: {got2}")
+    checks += 1
+    # the transitive weak captive carries the full path through the weakly-held transient.
+    wpath = next((c.path for c in di2 if c.singleton == "WeakReport"), None)
+    if wpath != ("WeakReport", "Uow", "Db"):
+        fails.append(f"DI002 transitive path wrong: {wpath}")
     checks += 1
     # the weak captive must NOT also be a strong DI001 (weak edge is off the strong graph).
     if any(c.singleton == "WeakCache" for c in find_captive_dependencies(wsvcs)):
