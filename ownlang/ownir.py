@@ -128,6 +128,7 @@ from .di import (
     Service,
     find_captive_dependencies,
     find_captured_transient_disposables,
+    find_explicit_root_resolutions,
     find_weak_captive_dependencies,
 )
 from .diagnostics import TITLES, Severity
@@ -456,6 +457,10 @@ def load(path: str) -> dict[str, Any]:
         weak_deps = s.get("weak_deps", [])
         if not isinstance(weak_deps, list) or not all(isinstance(d, str) for d in weak_deps):
             raise OwnIRError("service 'weak_deps' must be an array of strings")
+        root_resolves = s.get("root_resolves", [])
+        if not isinstance(root_resolves, list) or not all(
+                isinstance(d, str) for d in root_resolves):
+            raise OwnIRError("service 'root_resolves' must be an array of strings")
         if not isinstance(s.get("file", "?"), str):
             raise OwnIRError("service 'file' must be a string")
         ln = s.get("line", 0)
@@ -1243,6 +1248,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # services injected via WeakReference<T> — held weakly, off the DI001 strong
             # graph, but a weakly-held scoped service is still a captive (DI002).
             weak_deps=tuple(s.get("weak_deps", [])),
+            # types resolved by hand from an injected IServiceProvider (GetService<T>) —
+            # the service-locator call sites a singleton uses, checked for DI004.
+            root_resolves=tuple(s.get("root_resolves", [])),
             # only the JSON boolean `true` counts — a stray string ("false") or other
             # type from a non-extractor producer must not coerce to a disposable=True.
             disposable=s.get("disposable") is True,
@@ -1279,6 +1287,20 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             component=c.singleton, event=c.captured, handler="",
             message=c.message, kind="DI lifetime", severity="warning")
         for c in find_weak_captive_dependencies(services)
+    ]
+    # DI004: a singleton that resolves a transient IDisposable BY HAND from its injected
+    # root IServiceProvider (GetService<T>/GetRequiredService<T> — the service-locator
+    # anti-pattern). The root tracks every disposable it resolves and frees them only at
+    # app shutdown, so each call leaks a transient. A warning (the framework allows it; the
+    # call-site lifetime promotion is the smell), and a CALL SITE the registration graph
+    # (DI001/002/003) cannot see — only resolutions off the injected provider, never a
+    # scope's, so the correct scope-resolution pattern stays silent.
+    out += [
+        Finding(
+            file=c.file, line=c.line, code="DI004",
+            component=c.singleton, event=c.resolved, handler="",
+            message=c.message, kind="DI lifetime", severity="warning")
+        for c in find_explicit_root_resolutions(services)
     ]
     return out
 

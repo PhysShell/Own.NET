@@ -53,6 +53,12 @@ class Service:
     # contract (name, lifetime, deps, disposable, file, line) is preserved — callers pass
     # `disposable`/etc. positionally, so a new field before them would shift their meaning.
     weak_deps: tuple[str, ...] = ()
+    # service types this class resolves BY HAND from an injected `IServiceProvider`
+    # (`GetService<T>()` / `GetRequiredService<T>()`) — the service-locator pattern. For a
+    # SINGLETON the injected provider is the root container, so a transient `IDisposable`
+    # resolved this way is tracked to app shutdown: DI004. Off the registration graph (it is
+    # a call site, not a ctor edge); declared LAST, after `weak_deps`, for the same reason.
+    root_resolves: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -235,4 +241,60 @@ def find_captured_transient_disposables(
                     visited.add(dep)
                     stack.append((dep, npath))
     findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
+    return findings
+
+
+@dataclass(frozen=True)
+class ExplicitRootResolution:
+    """A singleton that resolves a transient `IDisposable` BY HAND from its injected
+    **root** `IServiceProvider` — `GetService<T>()` / `GetRequiredService<T>()` (DI004, the
+    service-locator-from-root anti-pattern). For a singleton the injected provider *is* the
+    root container; the root tracks every `IDisposable` it resolves and disposes them only at
+    application shutdown, so each such call accumulates a transient that its `transient`
+    registration says should be short-lived — an unbounded leak the registration graph cannot
+    see (it is a call site, not a constructor edge). The correct shape — create an
+    `IServiceScope` and resolve from *its* provider — keeps the receiver off this list."""
+
+    singleton: str
+    resolved: str
+    file: str
+    line: int
+
+    @property
+    def message(self) -> str:
+        return (f"singleton '{self.singleton}' resolves transient IDisposable "
+                f"'{self.resolved}' by hand from its injected root IServiceProvider "
+                f"(GetService/GetRequiredService — the service-locator anti-pattern): the "
+                f"root provider tracks every IDisposable it resolves and frees them only at "
+                f"application shutdown, so each call leaks a transient that should be "
+                f"scope-lived — resolve it from an IServiceScope instead")
+
+
+def find_explicit_root_resolutions(
+        services: list[Service]) -> list[ExplicitRootResolution]:
+    """Return every transient `IDisposable` a singleton resolves by hand from its injected
+    root `IServiceProvider` (DI004). Only **singletons** are considered: a singleton's
+    injected provider is the root container, whereas a scoped/transient service's injected
+    provider is its request scope (which disposes what it resolves — no leak, so it is left
+    silent). The extractor records only resolutions whose receiver is the injected provider
+    itself, never a scope's `.ServiceProvider`, so the service-locator-from-root pattern is
+    isolated from the correct scope-resolution pattern. Target = transient ∧ disposable: a
+    non-disposable transient is not tracked by the provider, so it does not leak."""
+    by_name = {s.name: s for s in services}
+    findings: list[ExplicitRootResolution] = []
+    for s in services:
+        if s.lifetime != SINGLETON:
+            continue
+        reported: set[str] = set()
+        for t in s.root_resolves:
+            if t in reported:
+                continue
+            tnode = by_name.get(t)
+            if tnode is None:
+                continue
+            if tnode.lifetime == TRANSIENT and tnode.disposable:
+                reported.add(t)
+                findings.append(ExplicitRootResolution(
+                    singleton=s.name, resolved=t, file=s.file, line=s.line))
+    findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.resolved))
     return findings
