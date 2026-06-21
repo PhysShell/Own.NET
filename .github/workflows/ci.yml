@@ -694,5 +694,5 @@ jobs:
         # op), so a use after the handoff trips OWN002 (the cut is the signature, like
         # Rust's move). Remaining backlog: a cross-method use-after-dispose and an
         # injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 10
+        run: python scripts/benchmark.py --min-recall 12
 

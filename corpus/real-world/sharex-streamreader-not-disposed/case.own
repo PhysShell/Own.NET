@@ -1,0 +1,19 @@
+// OwnLang model of a real disposable leak found by mining ShareX @ ed2a864
+// (ShareX.HelpersLib/Helpers/Helpers.cs:854). A StreamReader wraps a MemoryStream to read it
+// back to a string and is never disposed — StreamReader is a separate IDisposable from the
+// (using-scoped) stream. Modelled as a disposable acquire with no release -> OWN001. See
+// notes.md.
+module Corpus
+resource Reader {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "StreamReader"
+  emit_acquire "new StreamReader({args})"
+  emit_release "{0}.Dispose()"
+}
+fn ToText() {
+  let sReader = acquire Reader(0);   // new StreamReader(ms)
+  // ReadToEnd() is a use
+  // no `release sReader;` -> never disposed (OWN001)
+}

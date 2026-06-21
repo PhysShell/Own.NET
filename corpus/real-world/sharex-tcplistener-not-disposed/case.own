@@ -1,0 +1,19 @@
+// OwnLang model of a real disposable leak found by mining ShareX @ ed2a864
+// (ShareX.HelpersLib/Helpers/WebHelpers.cs:191, GetRandomUnusedPort). A TcpListener is
+// Start()'d and Stop()'d but never disposed — Stop() is not Dispose(), and TcpListener is
+// IDisposable, so the listen socket handle leaks. Modelled as a disposable acquire with no
+// release -> the generic OWN001. See notes.md.
+module Corpus
+resource Listener {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "TcpListener"
+  emit_acquire "new TcpListener({args})"
+  emit_release "{0}.Dispose()"
+}
+fn GetRandomUnusedPort() {
+  let listener = acquire Listener(0);   // new TcpListener(IPAddress.Loopback, 0)
+  // Start() / LocalEndpoint / Stop() are uses; Stop() is NOT Dispose()
+  // no `release listener;` -> never disposed (OWN001)
+}
