@@ -573,6 +573,59 @@ def run() -> int:
     if any(x.code == "DI001" for x in di2b):
         fails.append("DI002 bridge wrongly also produced a DI001")
 
+    # --- DI004 (P-006): a transient IDisposable resolved BY HAND from a singleton's injected
+    #     root IServiceProvider (the service-locator anti-pattern, warning). Only singletons are
+    #     considered; the resolved type's transient subtree is walked like DI003, so a disposable
+    #     reached directly OR through a non-disposable transient wrapper is reported. A
+    #     scope-resolved, scoped-class, or non-disposable+scoped-dep-only resolution stays silent.
+    from ownlang.di import find_explicit_root_resolutions
+    rsvcs = [
+        Service("Resolver", "singleton", deps=(), root_resolves=("Conn",)),  # direct: DI004
+        Service("Conn", "transient", (), disposable=True),
+        Service("Wrap", "singleton", deps=(), root_resolves=("Mid",)),  # transitive: DI004
+        Service("Mid", "transient", ("Pool",)),  # non-disposable wrapper -> disposable
+        Service("Pool", "transient", (), disposable=True),
+        Service("Plain", "singleton", deps=(), root_resolves=("Uow",)),  # silent: scoped dep only
+        Service("Uow", "transient", ("Db",)),
+        Service("Db", "scoped", ()),
+        Service("Req", "scoped", deps=(), root_resolves=("Conn",)),  # silent: scoped class
+        Service("Hold", "singleton", deps=(), root_resolves=("Clk",)),  # silent: ->singleton
+        Service("Clk", "singleton", ()),
+    ]
+    di4 = find_explicit_root_resolutions(rsvcs)
+    checks += 1
+    got4 = sorted((c.singleton, c.resolved) for c in di4)
+    if got4 != [("Resolver", "Conn"), ("Wrap", "Pool")]:
+        fails.append(f"DI004 set wrong: {got4}")
+    checks += 1
+    # the transitive resolution carries the full path through the non-disposable wrapper.
+    rpath = next((c.path for c in di4 if c.singleton == "Wrap"), None)
+    if rpath != ("Wrap", "Mid", "Pool"):
+        fails.append(f"DI004 transitive path wrong: {rpath}")
+    checks += 1
+    if not di4 or not all("service-locator" in c.message for c in di4):
+        fails.append("DI004 message missing 'service-locator'")
+    # bridge: DI004 surfaces as a WARNING; `root_resolves` is parsed and checked.
+    di4facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                "services": [
+                    {"name": "Resolver", "lifetime": "singleton", "deps": [],
+                     "root_resolves": ["Conn"], "file": "S.cs", "line": 5},
+                    {"name": "Conn", "lifetime": "transient", "deps": [],
+                     "disposable": True, "file": "S.cs", "line": 6},
+                ]}
+    di4b = check_facts(di4facts)
+    checks += 1
+    di4only = [x for x in di4b if x.code == "DI004"]
+    if (len(di4only) != 1 or di4only[0].severity != "warning"
+            or di4only[0].component != "Resolver"):
+        fails.append("DI004 bridge finding wrong: "
+                     f"{[(x.component, x.severity) for x in di4only]}")
+    checks += 1
+    # the explicit root resolution is a CALL SITE, not a registration-graph edge: it must not
+    # also produce a DI001/DI002/DI003 (the singleton has no scoped/transient ctor dependency).
+    if any(x.code in ("DI001", "DI002", "DI003") for x in di4b):
+        fails.append("DI004 wrongly also produced a graph DI00x finding")
+
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
     with open(_DI_FIXTURE, encoding="utf-8") as f:
@@ -612,6 +665,12 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "weak_deps": "abc"}]}):
         fails.append("a non-array service weak_deps did not raise OwnIRError")
+    checks += 1
+    # root_resolves (DI004) is validated the same way — a non-array must raise at load.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "root_resolves": "abc"}]}):
+        fails.append("a non-array service root_resolves did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it

@@ -344,7 +344,35 @@ jobs:
           if echo "$out" | grep -q "WeakClockHolder"; then
             echo "FAIL: a weak ref to a singleton (WeakClockHolder) was wrongly flagged"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) at the C# location"
+          # P-006 DI004 (transient IDisposable resolved BY HAND from the root IServiceProvider,
+          # WARNING): a singleton that service-locates a transient IDisposable off its injected
+          # root provider — tracked to app shutdown. This is a CALL SITE the registration graph
+          # (DI001/2/3) cannot see, so it is the unique slice. Three flagged shapes:
+          #   - ConnectionResolver  -> PooledConnection            (block-bodied ctor, direct)
+          #   - ExprBodiedResolver  -> PooledConnection            (EXPRESSION-bodied ctor; Codex)
+          #   - WrapperResolver -> MidConnection -> PooledConnection (TRANSITIVE: the root builds
+          #     the non-disposable wrapper's transient subtree; the DFS mirrors DI003; Codex)
+          echo "$out" | grep -qE "\[DI004\].*'ConnectionResolver' resolves transient IDisposable 'PooledConnection'" \
+            || { echo "FAIL: expected DI004 (ConnectionResolver service-locates PooledConnection)"; exit 1; }
+          echo "$out" | grep -qE "\[DI004\].*'ExprBodiedResolver' resolves transient IDisposable 'PooledConnection'" \
+            || { echo "FAIL: expected DI004 on the expression-bodied ctor (ExprBodiedResolver)"; exit 1; }
+          echo "$out" | grep -qE "\[DI004\].*'WrapperResolver' resolves transient IDisposable 'PooledConnection'" \
+            || { echo "FAIL: expected transitive DI004 (WrapperResolver -> MidConnection -> PooledConnection)"; exit 1; }
+          # pin the rendered transitive PATH (not just the finding), like the DI002 transitive case.
+          echo "$out" | grep -q "WrapperResolver -> MidConnection -> PooledConnection" \
+            || { echo "FAIL: expected the transitive DI004 path text"; exit 1; }
+          n4=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI004\]")
+          [ "$n4" = "3" ] \
+            || { echo "FAIL: expected exactly 3 DI004 findings, got $n4"; exit 1; }
+          # the three controls each pin one precision guard and must stay SILENT: ScopedResolver
+          # resolves from a SCOPE it creates (scope.ServiceProvider — the correct shape);
+          # PlainResolver resolves a NON-disposable transient whose only dep is scoped (the root
+          # does not track it); RequestResolver is SCOPED (its injected provider is the request
+          # scope, not the root). MidConnection itself (a transient wrapper) is not a singleton.
+          if echo "$out" | grep -qE "(ScopedResolver|PlainResolver|RequestResolver)"; then
+            echo "FAIL: a correct/non-leaking resolver (scope-resolved, non-disposable, or scoped) was wrongly flagged DI004"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1

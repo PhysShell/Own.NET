@@ -946,6 +946,13 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
     // disposable (`: Stream`) is not seen, so DI003 fires only on an explicitly
     // disposable impl, never a guessed one (precision over recall).
     var ctorDisposable = new Dictionary<string, bool>();
+    // class name -> service types it resolves BY HAND off an injected IServiceProvider
+    // (`provider.GetService<T>()` / `GetRequiredService<T>()`). For a SINGLETON that
+    // provider is the root container, so a transient IDisposable resolved this way is
+    // tracked to app shutdown: DI004 (the service-locator anti-pattern). A resolution
+    // through a scope (`scope.ServiceProvider.GetRequiredService<T>()`) has a different
+    // receiver and is deliberately NOT recorded — that pattern is correct.
+    var classRootResolves = new Dictionary<string, List<string>>();
     foreach (var (_, tree) in parsed)
         foreach (var node in tree.GetRoot().DescendantNodes())
         {
@@ -987,6 +994,51 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
             ctorDisposable[cls.Identifier.Text] = ctorDisposable.GetValueOrDefault(cls.Identifier.Text)
                 || (cls.BaseList is { } bl
                     && bl.Types.Any(bt => DiTypeName(bt.Type) is "IDisposable" or "IAsyncDisposable"));
+            // DI004 — the names that refer to an injected IServiceProvider (the ROOT provider
+            // for a singleton): the ctor parameters of type IServiceProvider (usable directly
+            // in a primary-ctor class), plus any real class field assigned one of them. A
+            // `name.GetService<T>()` / `GetRequiredService<T>()` call on such a name is then a
+            // hand resolution off the root; a `scope.ServiceProvider.Get...` call has a
+            // member-access receiver that is NOT one of these names, so it stays silent.
+            var providerNames = new HashSet<string>();
+            // the real class fields, so a ctor LOCAL alias can never enter providerNames: a
+            // bare-identifier assignment LHS that is not a field would otherwise false-match a
+            // same-named receiver in another scope and mint a DI004 false positive (CodeRabbit).
+            var classFieldNames = new HashSet<string>(
+                cls.Members.OfType<FieldDeclarationSyntax>()
+                   .SelectMany(f => f.Declaration.Variables)
+                   .Select(v => v.Identifier.Text));
+            if (widest is not null)
+                foreach (var p in widest.Parameters)
+                    if (p.Type is not null && DiTypeName(p.Type) == "IServiceProvider")
+                        providerNames.Add(p.Identifier.Text);
+            // `_field = sp;` in any ctor — BLOCK- or EXPRESSION-bodied (an expression-bodied
+            // ctor has a null Body, so scan the whole ctor's descendants, not just Body; Codex),
+            // restricted to a real field so a local alias never matches.
+            foreach (var mem in cls.Members)
+                if (mem is ConstructorDeclarationSyntax ctorDecl)
+                    foreach (var asg in ctorDecl.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                        if (asg.Right is IdentifierNameSyntax rhs
+                            && providerNames.Contains(rhs.Identifier.Text)
+                            && AssignedFieldName(asg.Left) is { } fld
+                            && classFieldNames.Contains(fld))
+                            providerNames.Add(fld);
+            // field initializers that capture an injected provider param (the primary-ctor
+            // shape, e.g. `private readonly IServiceProvider _sp = sp;`).
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var v in fdecl.Declaration.Variables)
+                    if (v.Initializer?.Value is IdentifierNameSyntax fInit
+                        && providerNames.Contains(fInit.Identifier.Text))
+                        providerNames.Add(v.Identifier.Text);
+            var rootResolves = new List<string>();
+            if (providerNames.Count > 0)
+            {
+                var seenResolve = new HashSet<string>();
+                foreach (var resolved in RootResolvedTypes(cls, providerNames))
+                    if (seenResolve.Add(resolved))
+                        rootResolves.Add(resolved);
+            }
+            classRootResolves[cls.Identifier.Text] = rootResolves;
         }
 
     // 2. registrations -> service facts at the registration site.
@@ -1007,6 +1059,8 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 ? d : new List<string>();
             var weakDeps = impl is not null && ctorWeakDeps.TryGetValue(impl, out var wd)
                 ? wd : new List<string>();
+            var rootResolves = impl is not null && classRootResolves.TryGetValue(impl, out var rr)
+                ? rr : new List<string>();
             services.Add(new
             {
                 name = service,
@@ -1017,6 +1071,9 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 // disposes the impl, so a transient-disposable impl captured by a
                 // singleton is held to app exit (DI003).
                 disposable = impl is not null && ctorDisposable.TryGetValue(impl, out var disp) && disp,
+                // the IMPLEMENTATION's by-hand resolutions off its injected provider — for a
+                // singleton, the root; a transient IDisposable resolved this way is DI004.
+                root_resolves = rootResolves,
                 file,
                 line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
             });
@@ -1102,6 +1159,50 @@ static string? WeakRefInner(TypeSyntax t)
            && g.TypeArgumentList.Arguments.Count == 1
         ? DiTypeName(g.TypeArgumentList.Arguments[0]) : null;
 }
+
+// The field a ctor assignment targets — `_field = ...` or `this._field = ...` — so a
+// `_provider = provider;` copy of an injected IServiceProvider is tracked as a provider
+// reference. A more complex LHS (indexer, nested member) is not a simple field -> null.
+static string? AssignedFieldName(ExpressionSyntax lhs) => lhs switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax, Name: IdentifierNameSyntax n }
+        => n.Identifier.Text,
+    _ => null,
+};
+
+// The service types a class resolves BY HAND off an injected IServiceProvider: every
+// `recv.GetService<T>()` / `recv.GetRequiredService<T>()` whose receiver is one of the
+// injected-provider names (DI004). Single type argument only (the generic resolve form);
+// a `scope.ServiceProvider.Get...` receiver is excluded by ReceiverIsProvider, so the
+// correct scope-resolution pattern is never recorded.
+static IEnumerable<string> RootResolvedTypes(
+    ClassDeclarationSyntax cls, HashSet<string> providerNames)
+{
+    foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+    {
+        if (inv.Expression is not MemberAccessExpressionSyntax ma
+            || ma.Name is not GenericNameSyntax gen
+            || gen.TypeArgumentList.Arguments.Count != 1
+            || gen.Identifier.Text is not ("GetService" or "GetRequiredService")
+            || !ReceiverIsProvider(ma.Expression, providerNames))
+            continue;
+        if (DiTypeName(gen.TypeArgumentList.Arguments[0]) is { } t)
+            yield return t;
+    }
+}
+
+// Is the call receiver one of the injected-provider names — `provider` / `_provider`
+// (identifier) or `this._provider` (this-qualified field)? A `scope.ServiceProvider`
+// receiver is a member access NOT qualified by `this`, so it returns false: only the
+// injected ROOT provider, never a scope's provider, is treated as a root resolution.
+static bool ReceiverIsProvider(ExpressionSyntax recv, HashSet<string> providerNames) => recv switch
+{
+    IdentifierNameSyntax id => providerNames.Contains(id.Identifier.Text),
+    MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax, Name: IdentifierNameSyntax n }
+        => providerNames.Contains(n.Identifier.Text),
+    _ => false,
+};
 
 // DI's default IServiceProvider resolves through PUBLIC constructors only — an
 // explicit ctor with no access modifier defaults to private and DI never uses it.

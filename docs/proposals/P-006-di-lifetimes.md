@@ -13,7 +13,11 @@
   (a transient `IDisposable` captured by a singleton — promoted to application lifetime)
   and **DI002** (a scoped service held by a singleton via `WeakReference<T>` — still a
   captive: the weak ref hides the GC symptom, not the lifetime violation) now also fire
-  end-to-end as **warnings**, CI-validated on the same sample.
+  end-to-end as **warnings**, CI-validated on the same sample. **DI004** (a transient
+  `IDisposable` resolved by hand from a singleton's injected **root** `IServiceProvider` —
+  `GetService<T>()` / `GetRequiredService<T>()`, the service-locator anti-pattern) extends
+  the family to a **call site** the registration graph cannot see, also a CI-validated
+  warning on the same sample.
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
@@ -52,8 +56,22 @@ to a longer-lived region) already models it.
   disposed only at root disposal — held far longer than its `transient` registration
   implies. The same registration-graph DFS as DI001 (target = transient ∧ disposable);
   the extractor marks a service `disposable` from its impl's own `: IDisposable` base.
-  (The explicit `root.GetService<T>()` resolution-site form is a later slice — it needs
-  the call sites, not just the graph.)
+- **DI004 (warning) — shipped:** the **explicit / service-locator** form of the
+  transient-`IDisposable` leak — a singleton that resolves it **by hand** from its injected
+  **root** `IServiceProvider` (`GetService<T>()` / `GetRequiredService<T>()`), which the
+  registration graph cannot see (it is a resolution call site, not a constructor edge). The
+  extractor records the injected-provider names per class (ctor params of type
+  `IServiceProvider` plus the real class fields assigned from them — in a block- or
+  expression-bodied ctor, or a field initializer) and reads each resolution off them into a
+  `root_resolves` list; `find_explicit_root_resolutions` walks the resolved type's transient
+  subtree exactly as DI003 does (so a non-disposable transient *wrapper* that drags in a
+  transient `IDisposable` is caught too) and flags the singleton. Filed as a **distinct code**
+  (not "DI003 explicit"): different detection, different fix (resolve from an `IServiceScope`).
+  Precision is held by guards — singleton-only, the injected provider (never a scope's
+  `.ServiceProvider`), transient ∧ disposable (scoped edges not followed), and alias capture
+  restricted to real fields (no local-alias false match) — each pinned by a control on
+  `DiCaptiveSample.cs` (`ConnectionResolver` / `ExprBodiedResolver` / transitive `WrapperResolver`
+  flagged; `ScopedResolver` / `PlainResolver` / `RequestResolver` silent).
 
 Suggested fix attached to DI001/DI002: inject `IServiceScopeFactory`, and per
 operation `using var scope = factory.CreateScope();` then resolve the scoped
@@ -82,8 +100,8 @@ then checks the same region ordering it already uses for OWN014: a longer-lived
 region (Singleton) must not retain a value from a shorter-lived region (Scoped).
 
 ```text
-Startup.cs / Program.cs --[extractor: registrations + ctor graph]--> facts.json
-     --[core: region ordering (OWN014 family)]--> DI001/DI002/DI003 @ registration site
+Startup.cs / Program.cs --[extractor: registrations + ctor graph + resolution call sites]--> facts.json
+     --[core: region ordering (OWN014 family)]--> DI001/DI002/DI003/DI004 @ registration site
 ```
 
 Could be its own `Own.DI` profile sharing the lifetime core. Factory and
@@ -98,6 +116,11 @@ rather than guessed.
 2. How far to chase transitive captures through the constructor graph before the
    dynamic cases make it unreliable? (Bounded depth; stop at unknown edges.)
 3. Is `IServiceScopeFactory` usage inside a singleton recognised as the *fix*
-   (so we stay silent), as it should be?
-4. Treat transient-`IDisposable`-from-root (DI003) as warning or error? (Warning
-   — it is a slow leak, not always a bug.)
+   (so we stay silent), as it should be? (For the explicit form (DI004): **yes**, by
+   construction — DI004 records only `GetService<T>()` / `GetRequiredService<T>()` on the
+   injected `IServiceProvider` names and **excludes** a scope's `.ServiceProvider` receiver, so
+   resolving from a scope created with `CreateScope()` is silent. Modelling a directly-injected
+   `IServiceScopeFactory` is not yet implemented — a natural future extension.)
+4. Treat transient-`IDisposable`-from-root (DI003/DI004) as warning or error? (Warning
+   — it is a slow leak, not always a bug. DI004's call-site form is repeated at runtime,
+   arguably worse, but kept a warning for consistency with DI003.)

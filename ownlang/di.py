@@ -53,6 +53,12 @@ class Service:
     # contract (name, lifetime, deps, disposable, file, line) is preserved — callers pass
     # `disposable`/etc. positionally, so a new field before them would shift their meaning.
     weak_deps: tuple[str, ...] = ()
+    # service types this class resolves BY HAND from an injected `IServiceProvider`
+    # (`GetService<T>()` / `GetRequiredService<T>()`) — the service-locator pattern. For a
+    # SINGLETON the injected provider is the root container, so a transient `IDisposable`
+    # resolved this way is tracked to app shutdown: DI004. Off the registration graph (it is
+    # a call site, not a ctor edge); declared LAST, after `weak_deps`, for the same reason.
+    root_resolves: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -235,4 +241,80 @@ def find_captured_transient_disposables(
                     visited.add(dep)
                     stack.append((dep, npath))
     findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
+    return findings
+
+
+@dataclass(frozen=True)
+class ExplicitRootResolution:
+    """A singleton that resolves a transient `IDisposable` BY HAND from its injected
+    **root** `IServiceProvider` — `GetService<T>()` / `GetRequiredService<T>()` (DI004, the
+    service-locator-from-root anti-pattern). For a singleton the injected provider *is* the
+    root container; the root tracks every `IDisposable` it resolves and disposes them only at
+    application shutdown, so each such call accumulates a transient that its `transient`
+    registration says should be short-lived — an unbounded leak the registration graph cannot
+    see (it is a call site, not a constructor edge). The disposable may be the resolved type
+    itself or a transient it drags in (the root builds the whole transient subtree); `path`
+    is the service-location chain (singleton -> resolved -> ... -> disposable)."""
+
+    singleton: str
+    resolved: str
+    path: tuple[str, ...]
+    file: str
+    line: int
+
+    @property
+    def message(self) -> str:
+        chain = " -> ".join(self.path)
+        return (f"singleton '{self.singleton}' resolves transient IDisposable "
+                f"'{self.resolved}' by hand from its injected root IServiceProvider "
+                f"(GetService/GetRequiredService — the service-locator anti-pattern): the "
+                f"root provider tracks every IDisposable it resolves and frees them only at "
+                f"application shutdown, so each call leaks a transient that should be "
+                f"scope-lived — resolve it from an IServiceScope instead ({chain})")
+
+
+def find_explicit_root_resolutions(
+        services: list[Service]) -> list[ExplicitRootResolution]:
+    """Return every transient `IDisposable` a singleton resolves by hand from its injected
+    root `IServiceProvider` (DI004). Only **singletons** are considered: a singleton's
+    injected provider is the root container, whereas a scoped/transient service's injected
+    provider is its request scope (which disposes what it resolves — no leak, so it is left
+    silent). The extractor records only resolutions whose receiver is the injected provider
+    itself, never a scope's `.ServiceProvider`, so the service-locator-from-root pattern is
+    isolated from the correct scope-resolution pattern.
+
+    From each resolved type, walk the STRONG transient graph exactly as DI003 does, but rooted
+    at the service-location call site instead of a constructor edge: the root provider builds
+    the resolved type's whole transient subtree, so a transient `IDisposable` reached directly
+    (`GetRequiredService<Disposable>()`) or through a non-disposable transient wrapper
+    (`GetRequiredService<Mid>()` where `Mid` depends on a transient `IDisposable`) is tracked
+    to app shutdown and reported. A scoped edge is not followed (resolving scoped from the root
+    is DI001's concern / a runtime scope-validation error); a singleton edge is its own pass.
+    Cycles are guarded."""
+    by_name = {s.name: s for s in services}
+    findings: list[ExplicitRootResolution] = []
+    for s in services:
+        if s.lifetime != SINGLETON:
+            continue
+        reported: set[str] = set()
+        visited: set[str] = set()
+        # DFS rooted at each explicitly resolved type, following the transient deps the root
+        # provider builds and tracks (DI003's DFS, entered at the resolution call site).
+        stack: list[tuple[str, tuple[str, ...]]] = [
+            (t, (s.name, t)) for t in s.root_resolves]
+        while stack:
+            cur, path = stack.pop()
+            node = by_name.get(cur)
+            if node is None or node.lifetime != TRANSIENT:
+                continue  # only transients are root-built/tracked (scoped is DI001's)
+            if node.disposable and cur not in reported:
+                reported.add(cur)
+                findings.append(ExplicitRootResolution(
+                    singleton=s.name, resolved=cur, path=path,
+                    file=s.file, line=s.line))
+            if cur not in visited:
+                visited.add(cur)
+                for dep in node.deps:   # the root builds the transient's deps too
+                    stack.append((dep, (*path, dep)))
+    findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.resolved))
     return findings

@@ -66,6 +66,77 @@ namespace Sample
     // control: a weak reference to a SINGLETON is no lifetime mismatch -> SILENT.
     public sealed class WeakClockHolder { public WeakClockHolder(WeakReference<Clock> clock) { } }
 
+    // DI004 — a singleton that resolves a TRANSIENT IDisposable from its injected ROOT
+    // IServiceProvider BY HAND (the service-locator anti-pattern). For a singleton the
+    // injected provider IS the root container; the root tracks every IDisposable it resolves
+    // and frees them only at app shutdown, so each GetRequiredService call accumulates a
+    // PooledConnection — an unbounded leak the registration graph (DI001/2/3) cannot see: it
+    // is a call site, not a constructor edge. A warning, read from the resolution call site.
+    public sealed class ConnectionResolver
+    {
+        private readonly IServiceProvider _sp;
+        public ConnectionResolver(IServiceProvider sp) { _sp = sp; }
+        public void Warm() { var c = _sp.GetRequiredService<PooledConnection>(); }            // DI004
+    }
+
+    // control: a singleton that resolves the transient IDisposable from a SCOPE it creates
+    // (`scope.ServiceProvider`) — the CORRECT pattern; the scope owns and disposes it. The
+    // receiver is `scope.ServiceProvider`, not the injected provider, so DI004 stays SILENT.
+    public sealed class ScopedResolver
+    {
+        private readonly IServiceProvider _sp;
+        public ScopedResolver(IServiceProvider sp) { _sp = sp; }
+        public void Warm()
+        {
+            using var scope = _sp.CreateScope();
+            var c = scope.ServiceProvider.GetRequiredService<PooledConnection>();             // SILENT (scope-resolved)
+        }
+    }
+
+    // control: a singleton that resolves a NON-disposable transient (UnitOfWork) from the
+    // root — the root does not track non-disposables, so nothing leaks. SILENT (the target
+    // must be transient AND disposable).
+    public sealed class PlainResolver
+    {
+        private readonly IServiceProvider _sp;
+        public PlainResolver(IServiceProvider sp) { _sp = sp; }
+        public void Make() { var u = _sp.GetRequiredService<UnitOfWork>(); }                  // SILENT (not disposable)
+    }
+
+    // control: a SCOPED service resolving the transient IDisposable from its injected provider
+    // — that provider is the request scope (not the root), which disposes what it resolves.
+    // SILENT (only a SINGLETON's injected provider is the root).
+    public sealed class RequestResolver
+    {
+        private readonly IServiceProvider _sp;
+        public RequestResolver(IServiceProvider sp) { _sp = sp; }
+        public void Warm() { var c = _sp.GetRequiredService<PooledConnection>(); }            // SILENT (scoped class)
+    }
+
+    // DI004 (expression-bodied ctor) — the same leak as ConnectionResolver, but the injected
+    // provider is stored via an EXPRESSION-bodied constructor (`=> _sp = sp;`, whose Body is
+    // null), so the alias collection must scan the whole ctor, not just a block body (Codex).
+    public sealed class ExprBodiedResolver
+    {
+        private readonly IServiceProvider _sp;
+        public ExprBodiedResolver(IServiceProvider sp) => _sp = sp;
+        public void Warm() { var c = _sp.GetRequiredService<PooledConnection>(); }            // DI004
+    }
+
+    // a NON-disposable transient that depends on the transient IDisposable PooledConnection —
+    // resolving it from the root still makes the root build and track PooledConnection.
+    public sealed class MidConnection { public MidConnection(PooledConnection c) { } }        // transient wrapper
+
+    // DI004 (transitive) — a singleton that service-locates the non-disposable transient wrapper
+    // MidConnection off the root; the root builds its whole transient subtree, so the disposable
+    // PooledConnection it drags in is tracked to app shutdown (WrapperResolver -> MidConnection ->
+    // PooledConnection). The root provider is captured by a primary-ctor FIELD INITIALIZER.
+    public sealed class WrapperResolver(IServiceProvider sp)
+    {
+        private readonly IServiceProvider _sp = sp;
+        public void Warm() { var m = _sp.GetRequiredService<MidConnection>(); }               // DI004 (transitive)
+    }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -114,6 +185,24 @@ namespace Sample
             services.AddSingleton<WeakReport>();
             // SILENT — a weak reference to the SINGLETON Clock is no lifetime mismatch.
             services.AddSingleton<WeakClockHolder>();
+
+            // FLAGGED (DI004, warning) — singleton ConnectionResolver resolves the transient
+            // IDisposable PooledConnection by hand off its injected ROOT IServiceProvider
+            // (service locator), tracked to app shutdown. A call site, not a ctor edge.
+            services.AddSingleton<ConnectionResolver>();
+            // SILENT — resolves from a SCOPE it creates (scope.ServiceProvider), the correct shape.
+            services.AddSingleton<ScopedResolver>();
+            // SILENT — resolves a NON-disposable transient (UnitOfWork) from the root (untracked).
+            services.AddSingleton<PlainResolver>();
+            // SILENT — a SCOPED service's injected provider is the request scope, not the root.
+            services.AddScoped<RequestResolver>();
+
+            // FLAGGED (DI004) — an expression-bodied ctor stores the injected root provider; same leak.
+            services.AddSingleton<ExprBodiedResolver>();
+            // FLAGGED (DI004, transitive) — service-locates the non-disposable transient MidConnection
+            // off the root, which drags in the transient IDisposable PooledConnection (tracked to app exit).
+            services.AddTransient<MidConnection>();
+            services.AddSingleton<WrapperResolver>();
         }
     }
 
@@ -129,5 +218,17 @@ namespace Sample
         public static IServiceCollection AddScoped<TService, TImpl>(this IServiceCollection s) => s;
         public static IServiceCollection AddTransient<T>(this IServiceCollection s) => s;
         public static IServiceCollection AddSingleton(this IServiceCollection s, Type service, Type impl) => s;
+    }
+
+    // Stand-ins for the IServiceProvider resolution surface (DI004). `IServiceProvider` is the
+    // real System interface; the generic GetService/GetRequiredService and CreateScope are the
+    // Microsoft.Extensions.DependencyInjection extensions — provided here so the sample binds.
+    public interface IServiceScope : IDisposable { IServiceProvider ServiceProvider { get; } }
+
+    public static class ServiceProviderExtensions
+    {
+        public static T GetRequiredService<T>(this IServiceProvider sp) => default!;
+        public static T GetService<T>(this IServiceProvider sp) => default!;
+        public static IServiceScope CreateScope(this IServiceProvider sp) => null!;
     }
 }
