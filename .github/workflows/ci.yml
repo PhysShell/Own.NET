@@ -334,6 +334,10 @@ jobs:
           # follows the transient's strong edges like DI001 does.
           echo "$out" | grep -qE "\[DI002\].*'WeakReport' weakly captures scoped service 'AppDbContext'" \
             || { echo "FAIL: expected transitive DI002 (WeakReport -> UnitOfWork -> AppDbContext)"; exit 1; }
+          # pin the rendered transitive PATH (not just the finding), so a path-rendering
+          # regression fails CI (CodeRabbit review on #64).
+          echo "$out" | grep -q "WeakReport -> UnitOfWork -> AppDbContext" \
+            || { echo "FAIL: expected the transitive DI002 path text"; exit 1; }
           nwk=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI002\]")
           [ "$nwk" = "3" ] \
             || { echo "FAIL: expected exactly 3 DI002 findings, got $nwk"; exit 1; }
