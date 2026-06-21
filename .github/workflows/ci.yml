@@ -308,7 +308,16 @@ jobs:
           nd=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI001\]")
           [ "$nd" = "4" ] \
             || { echo "FAIL: expected exactly 4 DI001 captive findings, got $nd"; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) at the C# location"
+          # P-006 DI003 (transient IDisposable captured by a singleton, WARNING): the
+          # singleton ConnectionWarmer holds the transient IDisposable PooledConnection
+          # for the app lifetime (disposed only at root disposal). A warning, distinct
+          # from a DI001 — the "exactly 4 DI001" count above proves it is not miscounted.
+          echo "$out" | grep -qE "\[DI003\].*'ConnectionWarmer' captures transient IDisposable 'PooledConnection'" \
+            || { echo "FAIL: expected DI003 (ConnectionWarmer captures transient IDisposable PooledConnection)"; exit 1; }
+          nw=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI003\]")
+          [ "$nw" = "1" ] \
+            || { echo "FAIL: expected exactly 1 DI003 finding, got $nw"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI003 (transient IDisposable captured by a singleton) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
