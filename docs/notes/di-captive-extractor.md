@@ -83,12 +83,27 @@ Infer# cover the Dispose/RAII family; neither flags these). It is also a clean
 reuse win: a whole new diagnostic class on real C# with **zero core changes** —
 the frontend just produces the `services` facts the lifetime core already checks.
 
+## DI003 — transient `IDisposable` captured by a singleton (shipped)
+
+A **transient `IDisposable` captured by a singleton** is resolved from the root (via the
+singleton), promoted to the application lifetime, and disposed only when the root provider
+is disposed — held far longer than its `transient` registration implies. Detected by the
+same registration-graph DFS as DI001 (`ownlang/di.py` `find_captured_transient_disposables`,
+target = *transient ∧ disposable*), surfaced as a **warning** (`severity="warning"` — a real
+verdict shown soft; the framework allows it, the lifetime promotion is the smell). The
+extractor marks a service `disposable` when its implementation's **own** base list names
+`IDisposable`/`IAsyncDisposable` (syntactic — an inherited disposable is not guessed, so the
+warning fires only where ownership is certain). Pinned end-to-end by `DiCaptiveSample.cs`
+(`ConnectionWarmer` → transient `PooledConnection`) in the `wpf-extractor` CI job, and at the
+graph level by `tests/test_ownir.py`.
+
 ## Next (separate slices)
 
 - **DI002** — a singleton capturing a scoped dependency *weakly*
   (`WeakReference<Scoped>`): a warning, since a weak reference fixes retention but
   not the lifetime-contract violation.
-- **DI003** — a transient `IDisposable` resolved from the **root** provider, never
-  disposed until the app exits (a slow leak).
+- **DI003, the explicit form** — a transient `IDisposable` resolved by hand from the
+  **root** provider (`root.GetService<T>()`), which the graph form above does not see (it
+  needs the resolution call sites, not just the registration graph).
 - Anchoring the finding at the **consuming constructor** as well as the
   registration site (P-006 open question #1), with the capture path shown.

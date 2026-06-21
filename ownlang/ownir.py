@@ -124,7 +124,7 @@ from .ast_nodes import (
     While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
-from .di import Service, find_captive_dependencies
+from .di import Service, find_captive_dependencies, find_captured_transient_disposables
 from .diagnostics import TITLES, Severity
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
@@ -1232,18 +1232,33 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             name=str(s.get("name", "?")),
             lifetime=str(s.get("lifetime", "")),
             deps=tuple(s.get("deps", [])),
+            # only the JSON boolean `true` counts — a stray string ("false") or other
+            # type from a non-extractor producer must not coerce to a disposable=True.
+            disposable=s.get("disposable") is True,
             file=str(s.get("file", "?")),
             line=_as_int(s.get("line", 0)),
         )
         for s in raw if isinstance(s, dict)
     ]
-    return [
+    out = [
         Finding(
             file=c.file, line=c.line, code="DI001",
             component=c.singleton, event=c.captured, handler="",
             message=c.message, kind="DI lifetime")
         for c in find_captive_dependencies(services)
     ]
+    # DI003: a transient IDisposable captured by a singleton is promoted to application
+    # lifetime and disposed only at root disposal (P-006). A real verdict, but shown at
+    # `warning` level — the framework allows it; the lifetime promotion is the smell.
+    # Not `advisory` (that is for "not checked"): this IS checked and found.
+    out += [
+        Finding(
+            file=c.file, line=c.line, code="DI003",
+            component=c.singleton, event=c.captured, handler="",
+            message=c.message, kind="DI lifetime", severity="warning")
+        for c in find_captured_transient_disposables(services)
+    ]
+    return out
 
 
 def _unresolved_findings(facts: dict[str, Any]) -> list[Finding]:

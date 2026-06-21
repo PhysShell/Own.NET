@@ -9,8 +9,10 @@
   on C#**, CI-validated on `frontend/roslyn/samples/DiCaptiveSample.cs` (direct,
   transitive-via-transient, and interface-registration captures flagged;
   singleton→singleton and clean registrations silent). See
-  [docs/notes/di-captive-extractor.md](../notes/di-captive-extractor.md). Next:
-  DI002 (weak-ref) and DI003 (transient-`IDisposable`-from-root).
+  [docs/notes/di-captive-extractor.md](../notes/di-captive-extractor.md). **DI003**
+  (a transient `IDisposable` captured by a singleton — promoted to application lifetime)
+  now also fires end-to-end as a **warning**, CI-validated on the same sample. Next:
+  DI002 (weak-ref).
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
@@ -43,8 +45,13 @@ to a longer-lived region) already models it.
   scope and may be disposed mid-use. Message: *"`WeakReference` does not make a
   scoped service safe to use outside its scope; resolve it inside a fresh scope
   via `IServiceScopeFactory`, or make the consumer scoped."*
-- **DI003 (warning):** a transient `IDisposable` resolved from the **root**
-  provider — never disposed until the app exits (a slow leak).
+- **DI003 (warning) — shipped:** a transient `IDisposable` **captured by a singleton**
+  is resolved from the root (via the singleton), promoted to application lifetime, and
+  disposed only at root disposal — held far longer than its `transient` registration
+  implies. The same registration-graph DFS as DI001 (target = transient ∧ disposable);
+  the extractor marks a service `disposable` from its impl's own `: IDisposable` base.
+  (The explicit `root.GetService<T>()` resolution-site form is a later slice — it needs
+  the call sites, not just the graph.)
 
 Suggested fix attached to DI001/DI002: inject `IServiceScopeFactory`, and per
 operation `using var scope = factory.CreateScope();` then resolve the scoped

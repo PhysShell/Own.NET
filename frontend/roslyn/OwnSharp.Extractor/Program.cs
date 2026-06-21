@@ -871,6 +871,11 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
 {
     // 1. class name -> its widest constructor's parameter type names (the DI ctor).
     var ctorDeps = new Dictionary<string, List<string>>();
+    // class name -> does it implement IDisposable/IAsyncDisposable (so the container
+    // owns its disposal)? Syntactic — its OWN base list names it; an inherited
+    // disposable (`: Stream`) is not seen, so DI003 fires only on an explicitly
+    // disposable impl, never a guessed one (precision over recall).
+    var ctorDisposable = new Dictionary<string, bool>();
     foreach (var (_, tree) in parsed)
         foreach (var node in tree.GetRoot().DescendantNodes())
         {
@@ -899,6 +904,12 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                         deps.Add(tn);
                 }
             ctorDeps[cls.Identifier.Text] = deps;   // last decl wins (core dedups by name)
+            // OR across partial declarations: any part that names IDisposable makes the
+            // type disposable, so a later `partial class C { }` (no base list, e.g. a
+            // generated/designer file) cannot clear an earlier `partial class C : IDisposable`.
+            ctorDisposable[cls.Identifier.Text] = ctorDisposable.GetValueOrDefault(cls.Identifier.Text)
+                || (cls.BaseList is { } bl
+                    && bl.Types.Any(bt => DiTypeName(bt.Type) is "IDisposable" or "IAsyncDisposable"));
         }
 
     // 2. registrations -> service facts at the registration site.
@@ -922,6 +933,10 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 name = service,
                 lifetime,
                 deps,
+                // the IMPLEMENTATION's disposability — the container constructs and
+                // disposes the impl, so a transient-disposable impl captured by a
+                // singleton is held to app exit (DI003).
+                disposable = impl is not null && ctorDisposable.TryGetValue(impl, out var disp) && disp,
                 file,
                 line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
             });

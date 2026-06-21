@@ -41,6 +41,14 @@ namespace Sample
         private PublicCtorOnly(AppDbContext db) { }
     }
 
+    // DI003 — a singleton that captures a TRANSIENT IDisposable. The container builds
+    // the connection once with the singleton and holds it for the whole app; it is
+    // disposed only at root disposal, not per use. A warning (the lifetime promotion is
+    // the smell), distinct from the DI001 captives above. `PooledConnection` is
+    // `: IDisposable`, so the extractor marks its service `disposable`.
+    public sealed class PooledConnection : System.IDisposable { public void Dispose() { } } // transient, IDisposable
+    public sealed class ConnectionWarmer { public ConnectionWarmer(PooledConnection c) { } } // singleton -> captures it
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -69,6 +77,12 @@ namespace Sample
 
             // SILENT — singleton -> singleton (Clock); the typeof(...) registration form.
             services.AddSingleton(typeof(Metrics), typeof(Metrics));
+
+            // FLAGGED (DI003, warning) — singleton ConnectionWarmer captures the
+            // transient IDisposable PooledConnection: promoted to application lifetime,
+            // disposed only at root disposal. NOT a DI001 (no scoped captured).
+            services.AddTransient<PooledConnection>();
+            services.AddSingleton<ConnectionWarmer>();
         }
     }
 

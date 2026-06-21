@@ -488,6 +488,43 @@ def run() -> int:
     if cpath != ("C", "T", "B"):
         fails.append(f"transitive captive path wrong: {cpath}")
 
+    # --- DI003 (P-006): a transient IDisposable captured by a singleton is promoted
+    #     to application lifetime (warning). The same DFS as DI001, target = transient
+    #     AND disposable; a non-disposable transient and a scoped capture stay silent.
+    from ownlang.di import find_captured_transient_disposables
+    dsvcs = [
+        Service("Cache", "singleton", ("Conn",)),  # -> transient disposable: DI003
+        Service("Conn", "transient", (), disposable=True),
+        Service("Warm", "singleton", ("Mid",)),  # -> transient -> disposable
+        Service("Mid", "transient", ("Pool",), disposable=False),
+        Service("Pool", "transient", (), disposable=True),
+        Service("Plain", "singleton", ("Plumb",)),  # transient, not disposable: silent
+        Service("Plumb", "transient", (), disposable=False),
+        Service("Cap", "singleton", ("Db",)),  # singleton -> scoped: DI001, not DI003
+        Service("Db", "scoped", (), disposable=True),
+    ]
+    di3 = find_captured_transient_disposables(dsvcs)
+    checks += 1
+    got3 = sorted((c.singleton, c.captured) for c in di3)
+    if got3 != [("Cache", "Conn"), ("Warm", "Pool")]:
+        fails.append(f"DI003 set wrong: {got3}")
+    checks += 1
+    if any("IDisposable" not in c.message for c in di3):
+        fails.append("DI003 message missing 'IDisposable'")
+    # bridge: DI003 surfaces as a WARNING-severity finding; `disposable` is parsed.
+    di3facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                "services": [
+                    {"name": "Cache", "lifetime": "singleton", "deps": ["Conn"],
+                     "file": "S.cs", "line": 7},
+                    {"name": "Conn", "lifetime": "transient", "deps": [],
+                     "disposable": True, "file": "S.cs", "line": 8},
+                ]}
+    di3b = [x for x in check_facts(di3facts) if x.code == "DI003"]
+    checks += 1
+    if len(di3b) != 1 or di3b[0].severity != "warning" or di3b[0].component != "Cache":
+        fails.append(f"DI003 bridge finding wrong: "
+                     f"{[(x.component, x.severity) for x in di3b]}")
+
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
     with open(_DI_FIXTURE, encoding="utf-8") as f:

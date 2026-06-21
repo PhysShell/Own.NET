@@ -146,8 +146,9 @@ architectural strictness, and the borrow-checker showcase):
    registration + constructor graph from `Add{Singleton,Scoped,Transient}` (generic
    and `typeof(...)` forms) and the core flags the captive — direct, transitive
    through a transient, or through an interface registration — CI-validated on
-   `DiCaptiveSample.cs`. Remaining: DI002 (weak-ref), DI003 (transient-`IDisposable`
-   from root), and the consuming-constructor anchor.
+   `DiCaptiveSample.cs`. **DI003** (a transient `IDisposable` captured by a singleton,
+   warning) now also fires on the same sample. Remaining: DI002 (weak-ref), the explicit
+   root-`GetService` form of DI003, and the consuming-constructor anchor.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
