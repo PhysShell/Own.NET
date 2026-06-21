@@ -1,7 +1,11 @@
 # P-007 — ArrayPool / Span borrow-view profile
 
-- **Status:** in progress (P1) — **POOL001 (rented-not-returned) built**;
-  POOL002–005 (views, escape, double-return) next
+- **Status:** in progress (P1) — **POOL001 (rented-not-returned) built**; **POOL002
+  (Span/ReadOnlySpan view used after `Return` → OWN002) first slice built** — a
+  `buf.AsSpan()` / `new Span<T>(buf)` view is a ref-struct borrow lowered to a use of the
+  owner (`ViewOwnerOf` in the extractor; corpus `arraypool-span-view-after-return`); the
+  borrow checker's first bite on real C#. POOL003–005 (double-return via flow already
+  catches OWN003, `Memory<T>`/escaping views, clear-past-length) next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
