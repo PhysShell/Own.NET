@@ -190,11 +190,15 @@ answered "both"). So each DI001/DI002/DI003 finding now also names that construc
 
 The extractor records each implementation's ctor location — the widest **public** constructor's
 declaration, or the class declaration for a C# 12 primary / implicit constructor — into
-`ctor_file` / `ctor_line` on the service fact (`classCtorLoc`). The core appends the anchor when
-the location is known and **degrades cleanly** (no tail, no related location) when it is not, so
-hand-authored facts and an older extractor still produce the registration-anchored form. The
-finding is on the **singleton**, so the consuming constructor is the singleton's — the entry of
-the (possibly transitive) capture chain the path already spells out. Pinned end-to-end by
+`ctor_file` / `ctor_line` on the service fact (`classCtorLoc`), plus the **implementation type**
+that owns it in `ctor_type`. The core appends the anchor when the location is known and
+**degrades cleanly** (no tail, no related location) when it is not, so hand-authored facts and an
+older extractor still produce the registration-anchored form. The owner named is the *impl*, not
+the service name: for an interface registration (`AddSingleton<IFoo, Foo>`) the captor's service
+name is the ctor-less interface `IFoo`, but the consuming ctor is `Foo`'s — so the finding names
+`Foo` (a Codex review catch). The finding is on the **singleton**, so the consuming constructor is
+the singleton implementation's — the entry of the (possibly transitive) capture chain the path
+already spells out. Pinned end-to-end by
 `DiCaptiveSample.cs` (the explicit-ctor `EmailSender:25`, the primary-ctor `PrimaryCtorService:33`,
 `ConnectionWarmer:50`, `WeakCache:57`) in the `wpf-extractor` CI job, the cross-file case by the
 `tests/fixtures/ownir/di.facts.json` fixture, and the SARIF related location by `tests/test_ownir.py`.

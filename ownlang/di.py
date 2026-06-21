@@ -33,15 +33,19 @@ TRANSIENT = "transient"
 LIFETIMES = frozenset({SINGLETON, SCOPED, TRANSIENT})
 
 
-def _consumed_suffix(singleton: str, file: str, line: int) -> str:
-    """The ` [consumed by the '<singleton>' constructor at <file>:<line>]` tail a captive
-    finding appends so it names **both** the registration site (its primary anchor) and the
-    *consuming constructor* where the capture is introduced (P-006 open question #1). Empty
-    when the ctor location is unknown (an older extractor / hand-authored facts), so the
-    message degrades cleanly to just the registration-anchored form."""
+def _consumed_suffix(ctor_type: str, file: str, line: int) -> str:
+    """The ` [consumed by the '<impl>' constructor at <file>:<line>]` tail a captive finding
+    appends so it names **both** the registration site (its primary anchor) and the *consuming
+    constructor* where the capture is introduced (P-006 open question #1). The owner named is
+    the **implementation** type whose ctor it is — for an interface registration that is the
+    impl, never the (ctor-less) service interface (Codex). Empty when the ctor location is
+    unknown (older extractor / hand-authored facts); the type name is dropped (not guessed)
+    when only the location is known, so the message always degrades cleanly."""
     if line < 1:
         return ""
-    return f" [consumed by the '{singleton}' constructor at {file}:{line}]"
+    owner = (f"the '{ctor_type}' constructor"
+             if ctor_type and ctor_type != "?" else "the constructor")
+    return f" [consumed by {owner} at {file}:{line}]"
 
 
 @dataclass(frozen=True)
@@ -76,6 +80,11 @@ class Service:
     # captive finding can name both. Declared LAST (positional-contract safe), default unknown.
     ctor_file: str = "?"
     ctor_line: int = 0
+    # the IMPLEMENTATION type that owns that constructor. For an interface registration
+    # (`AddSingleton<IFoo, Foo>`) `name` is the service `IFoo` (no ctor), but the consuming
+    # ctor is `Foo`'s — so the finding must name `Foo`, not the interface (Codex). Empty when
+    # unknown, in which case the suffix names "the constructor" without a (wrong) type.
+    ctor_type: str = ""
 
 
 @dataclass(frozen=True)
@@ -90,13 +99,14 @@ class CaptiveDependency:
     line: int
     consumed_file: str = "?"
     consumed_line: int = 0
+    consumed_type: str = ""
 
     @property
     def message(self) -> str:
         chain = " -> ".join(self.path)
         return (f"singleton '{self.singleton}' captures scoped service "
                 f"'{self.captured}' (captive dependency: {chain})"
-                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
+                + _consumed_suffix(self.consumed_type, self.consumed_file, self.consumed_line))
 
 
 def find_captive_dependencies(services: list[Service]) -> list[CaptiveDependency]:
@@ -130,7 +140,8 @@ def find_captive_dependencies(services: list[Service]) -> list[CaptiveDependency
                         findings.append(CaptiveDependency(
                             singleton=s.name, captured=dep, path=npath,
                             file=s.file, line=s.line,
-                            consumed_file=s.ctor_file, consumed_line=s.ctor_line))
+                            consumed_file=s.ctor_file, consumed_line=s.ctor_line,
+                            consumed_type=s.ctor_type))
                     continue  # the violating edge is found; don't recurse past it
                 if dnode.lifetime == TRANSIENT and dep not in visited:
                     visited.add(dep)
@@ -156,6 +167,7 @@ class WeakCaptiveDependency:
     line: int
     consumed_file: str = "?"
     consumed_line: int = 0
+    consumed_type: str = ""
 
     @property
     def message(self) -> str:
@@ -165,7 +177,7 @@ class WeakCaptiveDependency:
                 f"from the root provider and promoted to application lifetime — the weak "
                 f"reference avoids pinning it for the GC but does not fix the "
                 f"captive-dependency lifetime violation ({chain})"
-                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
+                + _consumed_suffix(self.consumed_type, self.consumed_file, self.consumed_line))
 
 
 def find_weak_captive_dependencies(
@@ -199,7 +211,8 @@ def find_weak_captive_dependencies(
                     findings.append(WeakCaptiveDependency(
                         singleton=s.name, captured=cur, path=path,
                         file=s.file, line=s.line,
-                        consumed_file=s.ctor_file, consumed_line=s.ctor_line))
+                        consumed_file=s.ctor_file, consumed_line=s.ctor_line,
+                        consumed_type=s.ctor_type))
                 continue  # the violating scoped edge is found; don't recurse past it
             if cnode.lifetime == TRANSIENT and cur not in visited:
                 visited.add(cur)
@@ -224,6 +237,7 @@ class CapturedTransientDisposable:
     line: int
     consumed_file: str = "?"
     consumed_line: int = 0
+    consumed_type: str = ""
 
     @property
     def message(self) -> str:
@@ -231,7 +245,7 @@ class CapturedTransientDisposable:
         return (f"singleton '{self.singleton}' captures transient IDisposable "
                 f"'{self.captured}': it is promoted to application lifetime and "
                 f"disposed only when the root provider is disposed ({chain})"
-                + _consumed_suffix(self.singleton, self.consumed_file, self.consumed_line))
+                + _consumed_suffix(self.consumed_type, self.consumed_file, self.consumed_line))
 
 
 def find_captured_transient_disposables(

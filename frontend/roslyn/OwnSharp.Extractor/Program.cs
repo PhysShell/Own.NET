@@ -1093,6 +1093,9 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 // captive is injected, a finding's second anchor beside the registration site.
                 ctor_file = ctorFile,
                 ctor_line = ctorLine,
+                // the IMPLEMENTATION type that owns that ctor — named in the finding instead of
+                // the (possibly interface) service `name`, which has no constructor (Codex).
+                ctor_type = impl ?? service,
             });
         }
     return services;

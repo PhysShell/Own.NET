@@ -654,7 +654,7 @@ def run() -> int:
                      f"{em.message if em else None!r}")
     checks += 1
     if em is None or em.related != (("EmailSender.cs", 5,
-                                     "consuming constructor of singleton 'EmailSender'"),):
+                                     "consuming constructor of 'EmailSender'"),):
         fails.append(f"DI001 related (consuming ctor) location wrong: "
                      f"{em.related if em else None!r}")
     checks += 1
@@ -678,6 +678,26 @@ def run() -> int:
     if cap is None or "consumed by the" in cap.message or cap.related != ():
         fails.append(f"DI001 without ctor loc should omit the consuming-ctor anchor: "
                      f"{(cap.message, cap.related) if cap else None!r}")
+    checks += 1
+    # an INTERFACE registration (AddSingleton<IBilling, Billing>): the singleton is 'IBilling'
+    # (no ctor) but the consuming ctor is 'Billing's, so the finding must name the IMPL Billing,
+    # never the interface (Codex). ctor_type carries the impl through the fact.
+    ifacef = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                          "services": [
+                              {"name": "IBilling", "lifetime": "singleton", "deps": ["Db"],
+                               "file": "Startup.cs", "line": 8, "ctor_file": "Billing.cs",
+                               "ctor_line": 11, "ctor_type": "Billing"},
+                              {"name": "Db", "lifetime": "scoped", "deps": [],
+                               "file": "Startup.cs", "line": 9}]})
+    ib = next((x for x in ifacef if x.code == "DI001"), None)
+    if ib is None or "[consumed by the 'Billing' constructor at Billing.cs:11]" not in ib.message:
+        fails.append(f"DI001 interface-registration must name the IMPL ctor (Billing), not "
+                     f"the interface: {ib.message if ib else None!r}")
+    checks += 1
+    if ib is None or "'IBilling' constructor" in ib.message \
+            or ib.related != (("Billing.cs", 11, "consuming constructor of 'Billing'"),):
+        fails.append(f"DI001 interface-registration named the interface ctor or wrong related: "
+                     f"{(ib.message, ib.related) if ib else None!r}")
     checks += 1
     # an unknown lifetime must fail loudly at load (external input).
     if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
@@ -711,6 +731,12 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "ctor_line": "NaN"}]}):
         fails.append("a non-integer service ctor_line did not raise OwnIRError")
+    checks += 1
+    # ctor_type (the impl owning the ctor) is validated as a string.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "ctor_type": 5}]}):
+        fails.append("a non-string service ctor_type did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it

@@ -488,6 +488,8 @@ def load(path: str) -> dict[str, Any]:
         cln = s.get("ctor_line", 0)
         if not isinstance(cln, int) or isinstance(cln, bool):
             raise OwnIRError("service 'ctor_line' must be an integer")
+        if not isinstance(s.get("ctor_type", ""), str):
+            raise OwnIRError("service 'ctor_type' must be a string")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -1259,10 +1261,14 @@ def _as_int(v: Any) -> int:
 def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
     """The captive finding's **consuming constructor** as a structured related location
     (file, line, label), or empty when the extractor did not record a ctor location. The
-    primary anchor stays the registration site; this is the second, code-side anchor."""
+    primary anchor stays the registration site; this is the second, code-side anchor. The
+    label names the **implementation** type that owns the ctor (not the possibly-interface
+    service name — Codex), falling back to a plain label when the impl type is unknown."""
     if getattr(c, "consumed_line", 0) >= 1:
-        return ((c.consumed_file, c.consumed_line,
-                 f"consuming constructor of singleton '{c.singleton}'"),)
+        owner = getattr(c, "consumed_type", "") or ""
+        label = (f"consuming constructor of '{owner}'" if owner and owner != "?"
+                 else "consuming constructor")
+        return ((c.consumed_file, c.consumed_line, label),)
     return ()
 
 
@@ -1292,6 +1298,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # secondary anchor distinct from the registration site above (P-006 Q#1).
             ctor_file=str(s.get("ctor_file", "?")),
             ctor_line=_as_int(s.get("ctor_line", 0)),
+            # the IMPLEMENTATION type owning that ctor — named in the finding instead of the
+            # (possibly interface) service name, which would point at a ctor-less type (Codex).
+            ctor_type=str(s.get("ctor_type", "")),
         )
         for s in raw if isinstance(s, dict)
     ]
