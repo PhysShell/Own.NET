@@ -121,7 +121,12 @@ a CFG-carrying bridge, and the existing core checks real code.
   slice; do it before the general case.
 - **B3 — Move / ownership transfer.** `return disposable`, or passing it to a callee
   that consumes it → move / escape (P-005 D5). Intraprocedural, driven by declared
-  signatures, not whole-program tracing.
+  signatures, not whole-program tracing. *Landed (consume handoff):* a call to a
+  first-party consumer — a method that disposes a by-value `IDisposable` parameter
+  **directly, or by forwarding it to another first-party consumer** (the transitive
+  chain, `ConsumesParam`) — releases the argument at the call site, so a use after the
+  handoff trips OWN002 (`corpus/real-world/ownership-handoff-use{,-transitive}`). The
+  signal is each callee's own body, so it is inter-procedural without a signature table.
 - **B4 — Borrow / Span.** `Rent` → view → `Return`, `Span`/`ref` aliasing (P-007) —
   the borrow checker's crown jewel, hardest on C# (ref structs, Span lifetimes).
 - **B5 — Lifetime ordering.** WPF005 escape (`OWN014`) and DI captive (P-006,
