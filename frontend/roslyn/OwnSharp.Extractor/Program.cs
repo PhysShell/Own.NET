@@ -321,6 +321,17 @@ static bool IsDisposeOptional(ITypeSymbol t)
         || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
 }
 
+// A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
+// base chain). A modeless `Form.Show()` transfers ownership to the framework, which
+// disposes the form on close — EmitFlowExpr models that show as a release.
+static bool DerivesFromWinFormsForm(ITypeSymbol? t)
+{
+    for (var b = t; b is not null; b = b.BaseType)
+        if (b.Name == "Form" && b.ContainingNamespace?.ToString() == "System.Windows.Forms")
+            return true;
+    return false;
+}
+
 static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 {
     MethodDeclarationSyntax md => md.Identifier.Text,
@@ -680,6 +691,25 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         && tracked.Contains(rid.Identifier.Text))
     {
         nodes.Add(new { op = "release", var = rid.Identifier.Text, line = LineOf(inv) });
+        return;
+    }
+    // x.Show() on a tracked WinForms Form-derived local -> release: a modeless form's
+    // ownership transfers to the framework, which disposes it when the user closes it.
+    // Modeled as a release AT THE SHOW SITE (not a method-wide exemption), so it stays
+    // path-sensitive — a form shown only on one branch still leaks on the branch that
+    // never shows it (Codex review on PR #57). ShowDialog() is a *modal* show and is
+    // NOT matched: the caller owns a ShowDialog'd form and must dispose it, so it stays
+    // a tracked use (a real leak if never disposed). Guarded by the Form-derived type so
+    // an unrelated IDisposable with a Show() method is not mistaken for an ownership
+    // transfer.
+    if (expr is InvocationExpressionSyntax sinv
+        && sinv.Expression is MemberAccessExpressionSyntax sma
+        && sma.Name.Identifier.Text == "Show"
+        && sma.Expression is IdentifierNameSyntax sid
+        && tracked.Contains(sid.Identifier.Text)
+        && DerivesFromWinFormsForm(model.GetTypeInfo(sma.Expression).Type))
+    {
+        nodes.Add(new { op = "release", var = sid.Identifier.Text, line = LineOf(sinv) });
         return;
     }
     // x?.Dispose()/x?.Close()/x?.DisposeAsync() (null-conditional) is the release too — the
