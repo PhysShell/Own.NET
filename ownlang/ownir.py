@@ -1282,12 +1282,22 @@ def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
     return ()
 
 
-def _resolution_related(c: Any) -> tuple[tuple[str, int, str], ...]:
-    """The DI004 service-location **call site** (the `GetRequiredService<T>()` invocation) as a
-    structured related location, or empty when the extractor did not record it. DI004's consumer
-    is this call site, not a constructor — the second anchor beside the registration site."""
+def _di004_primary(c: Any) -> tuple[str, int]:
+    """DI004's primary anchor — the `GetRequiredService<T>()` **call site** (where the leak is
+    and where it is fixed), falling back to the registration site when the extractor did not
+    record the call. Unlike DI001/2/3 (a registration-graph property, anchored at the
+    registration), DI004 is a call-site property, so the call site is the primary (Codex)."""
     if getattr(c, "resolved_line", 0) >= 1:
-        return ((c.resolved_file, c.resolved_line, "service-location call site"),)
+        return (c.resolved_file, c.resolved_line)
+    return (c.file, c.line)
+
+
+def _di004_related(c: Any) -> tuple[tuple[str, int, str], ...]:
+    """The DI004 **registration** site as a structured related location — the secondary anchor,
+    beside the call-site primary. Empty when the call site is unknown (then the registration is
+    already the primary) or the registration line is unknown."""
+    if getattr(c, "resolved_line", 0) >= 1 and getattr(c, "line", 0) >= 1:
+        return ((c.file, c.line, f"registration of singleton '{c.singleton}'"),)
     return ()
 
 
@@ -1376,14 +1386,13 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     # call-site lifetime promotion is the smell), and a CALL SITE the registration graph
     # (DI001/002/003) cannot see — only resolutions off the injected provider, never a
     # scope's, so the correct scope-resolution pattern stays silent.
-    out += [
-        Finding(
-            file=c.file, line=c.line, code="DI004",
+    for c in find_explicit_root_resolutions(services):
+        pf, pl = _di004_primary(c)   # the call site (its real consumer), or registration if unknown
+        out.append(Finding(
+            file=pf, line=pl, code="DI004",
             component=c.singleton, event=c.resolved, handler="",
             message=c.message, kind="DI lifetime", severity="warning",
-            related=_resolution_related(c))
-        for c in find_explicit_root_resolutions(services)
-    ]
+            related=_di004_related(c)))
     return out
 
 

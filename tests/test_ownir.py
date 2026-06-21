@@ -617,19 +617,20 @@ def run() -> int:
     if not di4 or not all("service-locator" in c.message for c in di4):
         fails.append("DI004 message missing 'service-locator'")
     checks += 1
-    # DI004 anchors at the GetRequiredService CALL SITE: the direct case at its own site (42),
-    # and the transitive case at the ENTRY type's site (Mid@88), NOT the dragged-in disposable.
+    # DI004 records the GetRequiredService CALL SITE: the direct case its own site (42), and the
+    # transitive case the ENTRY type's site (Mid@88), NOT the dragged-in disposable's.
     direct4 = next((c for c in di4 if c.singleton == "Resolver"), None)
     trans4 = next((c for c in di4 if c.singleton == "Wrap"), None)
-    if direct4 is None or "[resolved at R.cs:42]" not in direct4.message:
-        fails.append(f"DI004 direct call-site anchor wrong: "
-                     f"{direct4.message if direct4 else None!r}")
+    d4loc = (direct4.resolved_file, direct4.resolved_line) if direct4 else None
+    if direct4 is None or d4loc != ("R.cs", 42):
+        fails.append(f"DI004 direct call-site (resolved_*) wrong: {d4loc!r}")
     checks += 1
     t4loc = (trans4.resolved_file, trans4.resolved_line) if trans4 else None
-    if trans4 is None or "[resolved at R.cs:88]" not in trans4.message or t4loc != ("R.cs", 88):
-        fails.append(f"DI004 transitive call-site anchor wrong: {t4loc!r}")
-    # bridge: DI004 surfaces as a WARNING; `root_resolves` + `root_resolve_sites` parsed, and
-    # the call site rides into the Finding.related (-> SARIF relatedLocations), like #66's ctor.
+    if trans4 is None or t4loc != ("R.cs", 88):
+        fails.append(f"DI004 transitive call-site (resolved_*) wrong: {t4loc!r}")
+    # bridge: DI004 surfaces as a WARNING, anchored at the CALL SITE (R.cs:42) — its real
+    # consumer (Codex) — with the REGISTRATION (S.cs:5) as the Finding.related secondary and
+    # named in the message tail. (registration site S.cs:5 differs from the call site R.cs:42.)
     di4facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
                 "services": [
                     {"name": "Resolver", "lifetime": "singleton", "deps": [],
@@ -642,10 +643,11 @@ def run() -> int:
     checks += 1
     di4only = [x for x in di4b if x.code == "DI004"]
     if (len(di4only) != 1 or di4only[0].severity != "warning"
-            or di4only[0].component != "Resolver"
-            or di4only[0].related != (("R.cs", 42, "service-location call site"),)):
+            or (di4only[0].file, di4only[0].line) != ("R.cs", 42)
+            or di4only[0].related != (("S.cs", 5, "registration of singleton 'Resolver'"),)
+            or "[singleton registered at S.cs:5]" not in di4only[0].message):
         fails.append("DI004 bridge finding wrong: "
-                     f"{[(x.component, x.severity, x.related) for x in di4only]}")
+                     f"{[(x.file, x.line, x.related) for x in di4only]}")
     checks += 1
     # the explicit root resolution is a CALL SITE, not a registration-graph edge: it must not
     # also produce a DI001/DI002/DI003 (the singleton has no scoped/transient ctor dependency).

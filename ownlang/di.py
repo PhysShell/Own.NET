@@ -310,22 +310,25 @@ class ExplicitRootResolution:
     path: tuple[str, ...]
     file: str
     line: int
-    # the GetService/GetRequiredService call site that hand-resolved the entry type (DI004's
-    # actual consumer, distinct from the registration-site anchor `file`/`line`). Unknown -> 0.
+    # the GetService/GetRequiredService call site that hand-resolved the entry type — DI004's
+    # actual consumer (the leak *is* this call), so the bridge makes it the finding's PRIMARY
+    # anchor; `file`/`line` (the registration site) become the secondary. Unknown -> 0.
     resolved_file: str = "?"
     resolved_line: int = 0
 
     @property
     def message(self) -> str:
         chain = " -> ".join(self.path)
-        site = (f" [resolved at {self.resolved_file}:{self.resolved_line}]"
-                if self.resolved_line >= 1 else "")
+        # the call site is the primary anchor (set by the bridge); name the registration site
+        # (the secondary) in the tail when both it and the call site are known.
+        reg = (f" [singleton registered at {self.file}:{self.line}]"
+               if self.resolved_line >= 1 and self.line >= 1 else "")
         return (f"singleton '{self.singleton}' resolves transient IDisposable "
                 f"'{self.resolved}' by hand from its injected root IServiceProvider "
                 f"(GetService/GetRequiredService — the service-locator anti-pattern): the "
                 f"root provider tracks every IDisposable it resolves and frees them only at "
                 f"application shutdown, so each call leaks a transient that should be "
-                f"scope-lived — resolve it from an IServiceScope instead ({chain}){site}")
+                f"scope-lived — resolve it from an IServiceScope instead ({chain}){reg}")
 
 
 def find_explicit_root_resolutions(
