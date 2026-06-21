@@ -1,0 +1,17 @@
+// OwnLang model. `acquire` == ArrayPool.Rent, `release` == ArrayPool.Return. The C# stores a Span
+// VIEW of the buffer in a local (`Span<byte> view = buf.AsSpan()`) and writes through it AFTER the
+// buffer was returned. A Span is a ref-struct BORROW of the buffer that cannot outlive the method,
+// so the extractor lowers a use of the view to a use of the OWNER buffer — the write after
+// `release` is the generic use-after-return (OWN002), the same code reading the buffer directly
+// would give. The borrow is resolved to its owner in the extractor; the core sees a plain
+// use-after-release.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+}
+fn scramble(n: int) {
+  let buf = acquire Buffer(n);   // ArrayPool.Rent
+  release buf;                   // ArrayPool.Return  <-- too early
+  use buf;                       // write through the Span view AFTER return -> OWN002
+}

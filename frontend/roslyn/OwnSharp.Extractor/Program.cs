@@ -760,11 +760,23 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         if (tracked.Contains(c))
             nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
     // any other reference to a tracked local -> use (once per local; a consumed arg is a
-    // release above, never also a use).
+    // release above, never also a use). A Span/ReadOnlySpan VIEW of a tracked buffer is a BORROW:
+    // a reference to the view is a use of the OWNER, so using it after the owner was
+    // Returned/Disposed trips OWN002 (the ref-struct view cannot outlive the method, so this is a
+    // genuine use-after-release of the owner — `Span<byte> v = buf.AsSpan(); Return(buf); v[0]=…`).
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
-        if (tracked.Contains(idn.Identifier.Text) && !consumed.Contains(idn.Identifier.Text))
-            used.Add(idn.Identifier.Text);
+    {
+        var nm = idn.Identifier.Text;
+        if (tracked.Contains(nm))
+        {
+            if (!consumed.Contains(nm))
+                used.Add(nm);
+        }
+        else if (ViewOwnerOf(idn, model) is { } owner
+                 && tracked.Contains(owner) && !consumed.Contains(owner))
+            used.Add(owner);
+    }
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
 }
@@ -814,6 +826,42 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
         && i.ArgumentList.Arguments.Count > 0
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
+
+// The owner buffer a Span/ReadOnlySpan VIEW expression borrows from: `owner.AsSpan(...)`
+// (resolved via the symbol so it is the BCL Span-returning extension, not an unrelated method
+// named AsSpan) or `new Span<T>(owner, …)` / `new ReadOnlySpan<T>(owner)`, where the source is a
+// local identifier. Returns the owner local name, else null. A Span is a ref-struct BORROW — it
+// cannot escape the method — so a use of the view after the owner is released is a use of the
+// owner after its release.
+static string? SpanViewOwner(ExpressionSyntax? e, SemanticModel model)
+{
+    if (e is InvocationExpressionSyntax inv
+        && inv.Expression is MemberAccessExpressionSyntax m
+        && m.Name.Identifier.Text == "AsSpan"
+        && m.Expression is IdentifierNameSyntax recv
+        && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ReturnType.Name: "Span" or "ReadOnlySpan" })
+        return recv.Identifier.Text;
+    if (e is ObjectCreationExpressionSyntax oc
+        && oc.Type is GenericNameSyntax { Identifier.Text: "Span" or "ReadOnlySpan" }
+        && oc.ArgumentList is { Arguments.Count: > 0 }
+        && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg)
+        return arg.Identifier.Text;
+    return null;
+}
+
+// If `idn` references a Span/ReadOnlySpan VIEW local declared from an owner buffer
+// (`Span<T> view = owner.AsSpan(…)`), the owner buffer's local name — so a use of the view lowers
+// to a use of the owner (the borrow). Resolved through the view local's own declaration, so it is
+// inert for any identifier that is not such a view (returns null -> ordinary handling).
+static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
+{
+    if (model.GetSymbolInfo(idn).Symbol is not ILocalSymbol sym)
+        return null;
+    foreach (var r in sym.DeclaringSyntaxReferences)
+        if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init })
+            return SpanViewOwner(init, model);
+    return null;
+}
 
 // A factory call that CREATES and hands back a fresh owned IDisposable the caller must
 // release — recognised via the resolved symbol (curated, the same spirit as
