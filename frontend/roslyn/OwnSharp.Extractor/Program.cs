@@ -891,16 +891,31 @@ static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
     return consumed;
 }
 
-// The body of a first-party method (block or expression-bodied), scanning partial
-// declarations; null for an interface/abstract/extern method (no body to inspect).
+// The body of a first-party method or LOCAL FUNCTION (block or expression-bodied), scanning
+// partial declarations; null for an interface/abstract/extern method (no body to inspect). A
+// directly-called local function runs synchronously, so a forwarding chain through one must be
+// followed too (CodeRabbit) — `LocalFunctionStatementSyntax` carries the same Body/ExpressionBody.
 static SyntaxNode? ConsumerBody(IMethodSymbol sym)
 {
     foreach (var r in sym.DeclaringSyntaxReferences)
-        if (r.GetSyntax() is BaseMethodDeclarationSyntax d
-            && ((SyntaxNode?)d.Body ?? d.ExpressionBody) is { } b)
-            return b;
+        switch (r.GetSyntax())
+        {
+            case BaseMethodDeclarationSyntax d when ((SyntaxNode?)d.Body ?? d.ExpressionBody) is { } b:
+                return b;
+            case LocalFunctionStatementSyntax l when ((SyntaxNode?)l.Body ?? l.ExpressionBody) is { } lb:
+                return lb;
+        }
     return null;
 }
+
+// The invocations that run IMMEDIATELY when `body` executes — excluding those inside a nested
+// lambda / local-function body, which run deferred (when the delegate is later invoked), not at
+// this method's call boundary. The same deferred-body rule the flow lowering already uses, so a
+// dispose/forward stored in a callback is not mistaken for an immediate discharge (Codex/CodeRabbit).
+static IEnumerable<InvocationExpressionSyntax> ImmediateInvocations(SyntaxNode body) =>
+    body.DescendantNodes(n => n is not (AnonymousFunctionExpressionSyntax
+                                        or LocalFunctionStatementSyntax))
+        .OfType<InvocationExpressionSyntax>();
 
 // Does `method` CONSUME (take ownership of and discharge) its by-value IDisposable
 // parameter `param`? Either (a) the body disposes it directly (`param.Dispose()`), or
@@ -923,16 +938,12 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
     var name = param.Name;
     if (DisposesLocal(body, name))             // (a) disposes the parameter directly
         return true;
-    // (b) transitive: the parameter is handed to another first-party consumer. The body may
-    // live in another file, so bind its calls with that tree's OWN model (a SemanticModel only
-    // resolves nodes in its own tree); the Compilation is shared across all parsed inputs. Do
-    // NOT descend into nested lambda / local-function bodies: a forward there runs deferred,
-    // not at this call site, so it is not a handoff (Codex — same rule as the flow lowering).
+    // (b) transitive: the parameter is handed to another first-party consumer at an IMMEDIATE
+    // call (not one deferred in a nested lambda/local function). The body may live in another
+    // file, so bind its calls with that tree's OWN model (a SemanticModel only resolves nodes in
+    // its own tree); the Compilation is shared across all parsed inputs.
     var bodyModel = model.Compilation.GetSemanticModel(body.SyntaxTree);
-    foreach (var inv in body
-                 .DescendantNodesAndSelf(n => n is not (AnonymousFunctionExpressionSyntax
-                                                        or LocalFunctionStatementSyntax))
-                 .OfType<InvocationExpressionSyntax>())
+    foreach (var inv in ImmediateInvocations(body))
     {
         if (bodyModel.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
             continue;
@@ -952,15 +963,12 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
 }
 
 // Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /
-// `.DisposeAsync()` call (the consume signal)? Nested lambda / local-function bodies are NOT
-// descended into: a `name.Dispose()` inside a stored callback runs deferred, not at this call
-// site, so it is not a discharge here (Codex — the same deferred-body rule as the flow lowering).
+// `.DisposeAsync()` call (the consume signal)? Only IMMEDIATE calls count (`ImmediateInvocations`
+// excludes nested lambda / local-function bodies): a `name.Dispose()` inside a stored callback
+// runs deferred, not at this call site, so it is not a discharge here.
 static bool DisposesLocal(SyntaxNode body, string name)
 {
-    foreach (var i in body
-                 .DescendantNodesAndSelf(n => n is not (AnonymousFunctionExpressionSyntax
-                                                        or LocalFunctionStatementSyntax))
-                 .OfType<InvocationExpressionSyntax>())
+    foreach (var i in ImmediateInvocations(body))
         if (i.Expression is MemberAccessExpressionSyntax m
             && m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
             && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name)

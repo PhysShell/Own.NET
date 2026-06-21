@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -485,23 +486,21 @@ public class FlowLocalsSample
         tcpLeak.Start();
     }
 
-    // a "consumer" whose dispose of the parameter lives ONLY inside a nested lambda — it runs
-    // DEFERRED (when the delegate is invoked), not at the call site, so the method is NOT a
-    // consumer of `s` at its boundary (the transitive-consume inference must not descend into
-    // nested function bodies).
-    private static void DeferredConsumer(Stream s)
-    {
-        Action discharge = () => s.Dispose();   // deferred — not a consume at the call site
-        discharge();
-    }
+    // a registry of deferred disposers: the parameter's dispose is captured in a STORED callback
+    // that runs LATER (when the registry is drained), not at this method's call boundary — so
+    // storing it does NOT consume the parameter here (the transitive-consume inference must not
+    // descend into nested lambda bodies). Intentionally not drained in this sample, so nothing is
+    // actually disposed via the callback — `defer` below is disposed only by its own Dispose().
+    private static readonly List<Action> _deferredDisposers = new();
+    private static void DeferredConsumer(Stream s) => _deferredDisposers.Add(() => s.Dispose());
 
-    // control (Codex review on PR #68): passing a local to DeferredConsumer is NOT a handoff
-    // (the dispose is deferred in a lambda), so the later use must NOT be a phantom
-    // use-after-handoff — no false OWN002. `defer` is disposed normally here, so it stays SILENT.
+    // control (Codex/CodeRabbit on PR #68): passing a local to DeferredConsumer only STORES a
+    // deferred disposer (it does not dispose at the call site), so the later use must NOT be a
+    // phantom use-after-handoff — no false OWN002. `defer` is disposed normally here -> SILENT.
     public void DeferredHandoffNoFalsePositive()
     {
         var defer = new MemoryStream();
-        DeferredConsumer(defer);                 // NOT a release here (deferred lambda dispose)
+        DeferredConsumer(defer);                 // stores a deferred disposer -> NOT a release here
         defer.WriteByte(1);                      // must NOT trip OWN002 (it would, without the fix)
         defer.Dispose();                         // disposed here -> balanced -> silent
     }
