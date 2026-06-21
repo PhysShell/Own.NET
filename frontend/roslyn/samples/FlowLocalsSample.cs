@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -461,6 +463,26 @@ public class FlowLocalsSample
         var shaClean = SHA256.Create();
         shaClean.ComputeHash(new byte[1]);
         shaClean.Dispose();
+    }
+
+    // NOT a leak (precision): TcpListener.Stop() IS the cleanup — TcpListener.Dispose() just
+    // delegates to Stop(), which disposes the listen socket. So a Stop()'d listener holds no
+    // resource; the extractor models Stop() on a TcpListener as a release. Reduced from a
+    // ShareX false positive (WebHelpers.GetRandomUnusedPort, Codex review on #61). Silent.
+    public void TcpListenerStopped()
+    {
+        var stopped = new TcpListener(IPAddress.Loopback, 0);
+        stopped.Start();
+        stopped.Stop();
+    }
+
+    // control (must still leak): a TcpListener never Stop()'d (nor Disposed) holds the listen
+    // socket -> OWN001. Proves the release is Stop()-specific, not a blanket TcpListener
+    // exemption (a Timer/Process Stop() would NOT release).
+    public void TcpListenerNeverStopped()
+    {
+        var tcpLeak = new TcpListener(IPAddress.Loopback, 0);
+        tcpLeak.Start();
     }
 }
 

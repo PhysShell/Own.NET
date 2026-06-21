@@ -712,6 +712,22 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         nodes.Add(new { op = "release", var = sid.Identifier.Text, line = LineOf(sinv) });
         return;
     }
+    // x.Stop() on a tracked System.Net.Sockets.TcpListener -> release: TcpListener.Dispose()
+    // just delegates to Stop() (which disposes the listen socket and clears it), so a
+    // Stop()'d listener holds no resource and is not a leak (Codex review on PR #61). It is
+    // TcpListener-specific, resolved via the method symbol — Stop() on a Timer / Process / etc.
+    // does NOT dispose, so it stays a tracked use; a listener never Stop()'d (nor Disposed)
+    // still leaks.
+    if (expr is InvocationExpressionSyntax tlinv
+        && tlinv.Expression is MemberAccessExpressionSyntax
+            { Name.Identifier.Text: "Stop", Expression: IdentifierNameSyntax tlid }
+        && tracked.Contains(tlid.Identifier.Text)
+        && model.GetSymbolInfo(tlinv).Symbol is IMethodSymbol { ContainingType: { Name: "TcpListener" } tct }
+        && IsInNamespace(tct, "System", "Net", "Sockets"))
+    {
+        nodes.Add(new { op = "release", var = tlid.Identifier.Text, line = LineOf(tlinv) });
+        return;
+    }
     // x?.Dispose()/x?.Close()/x?.DisposeAsync() (null-conditional) is the release too — the
     // call is a member BINDING under a conditional access, not a member access. Mirrors
     // IsDisposeShaped so a `?.` dispose (e.g. in a finally) is not mistaken for a bare use,
