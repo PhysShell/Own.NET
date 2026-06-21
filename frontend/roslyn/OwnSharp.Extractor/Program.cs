@@ -450,12 +450,19 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             InjectThrowEdge(ld, nodes, onThrow);
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
+                {
                     if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
                             || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
+                    // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
+                    // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
+                    // called on a non-acquire initializer, so scan it here for the overspan (Codex review).
+                    if (v.Initializer?.Value is { } vinit)
+                        EmitOverspans(vinit, tracked, model, nodes);
+                }
             return true;
         case ExpressionStatementSyntax es:
             InjectThrowEdge(es, nodes, onThrow);
@@ -796,13 +803,19 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     }
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
-    // POOL005: a FULL-LENGTH view of a tracked pooled buffer (no length bound) reaches past the
-    // logical length it was Rent'd for — the oversized [n, Length) tail. Emit one `overspan` op per
-    // owner so the core raises OWN025 (a property of the view-creation site, alongside the plain
-    // `use` above). Walks the whole expression so a view nested in a call (`Sink.Write(buf.AsSpan())`)
-    // or a chain (`buf.AsSpan().ToArray()`) is found; a BOUNDED view (`buf.AsSpan(0, n)`) is not
-    // matched (FullViewOwner returns null). Among `tracked` locals only pooled buffers are arrays the
-    // BCL AsSpan/Span symbols bind to, so this never fires on a tracked IDisposable / factory result.
+    // POOL005: a full-length view of a pooled buffer anywhere in this expression -> overspan/OWN025.
+    EmitOverspans(expr, tracked, model, nodes);
+}
+
+// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` takes a FULL-LENGTH view of
+// (no length bound) — the core raises OWN025. Walks the whole expression so a view nested in a call
+// (`Sink.Write(buf.AsSpan())`), a chain (`buf.AsSpan().ToArray()`), or a local-declaration
+// initializer (`var copy = buf.AsSpan().ToArray();`) is found; a BOUNDED view (`buf.AsSpan(0, n)`)
+// is not matched (FullViewOwner returns null). Among `tracked` locals only pooled buffers are the
+// arrays the BCL AsSpan/Span symbols bind to, so this never fires on a tracked IDisposable / factory
+// result. Shared by the expression-statement and local-declaration lowering paths.
+static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
+{
     var overspanned = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var node in expr.DescendantNodesAndSelf().OfType<ExpressionSyntax>())
         if (FullViewOwner(node, model) is { } owner && tracked.Contains(owner))

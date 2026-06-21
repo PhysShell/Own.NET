@@ -9,10 +9,11 @@
   The borrow checker on real C#. **POOL005 (full-length view over-read → OWN025) first slice
   built** — an unbounded `buf.AsSpan()` / `buf.AsMemory()` / `new Span<T>(buf)` over a `Rent`ed
   local reaches past the logical length `n` into the oversized `[n, Length)` tail; the extractor
-  emits an `overspan` fact and the core raises OWN025 `[resource: pooled buffer]` at the view
-  (corpus `arraypool-fullspan-overread`). POOL003 (double-return — flow already catches OWN003), a
-  view stored in a FIELD, and the view-LOCAL / `Array.Clear(buf, 0, buf.Length)` spellings of
-  POOL005 next
+  emits an `overspan` fact and the core raises OWN025 `[resource: pooled buffer]` at the view —
+  both when the view is used in an EXPRESSION (`Emit(buf.AsSpan())`) and when it is a local-decl
+  INITIALIZER (`var copy = buf.AsSpan().ToArray();`, `Span<T> s = buf.AsSpan();`) (corpus
+  `arraypool-fullspan-overread`). POOL003 (double-return — flow already catches OWN003), a view
+  stored in a FIELD, and the `Array.Clear(buf, 0, buf.Length)` spelling of POOL005 next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
@@ -44,7 +45,7 @@ The corpus already pins two real cases (`corpus/real-world/arraypool-double-retu
 | **POOL002** view after return | a `Span`/`Memory` view used after the owner is `Return`ed | `OWN002` |
 | **POOL003** double return | `Return` reachable twice for the same buffer | `OWN003` |
 | **POOL004** view escapes | a borrowed `Span` returned/stored beyond the owner's lifetime | `OWN004`/`OWN008` |
-| **POOL005** clear/copy past length | a full-length view (`buf.AsSpan()`, no bound) reads/copies beyond the logical length of the rented region | `OWN025` `[resource: pooled buffer]` ✅ (view in an expression; view-local / `Array.Clear` next) |
+| **POOL005** clear/copy past length | a full-length view (`buf.AsSpan()`, no bound) reads/copies beyond the logical length of the rented region | `OWN025` `[resource: pooled buffer]` ✅ (view in an expression or initializer; `Array.Clear(buf, 0, buf.Length)` next) |
 
 Resource mapping:
 

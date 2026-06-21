@@ -24,10 +24,12 @@ leak and no OWN002 use-after-return; the only finding is the over-read itself.
 
 **Honesty / scope.** `case.own` is a faithful hand reduction (not C# ingested by the
 checker); `before.cs` / `after.cs` are representative of the bug and its fix, not a
-verbatim PR diff. This first slice catches the unbounded view used in an
-*expression* (`Emit(buf.AsSpan())`, `buf.AsSpan().CopyTo(...)`, `... .ToArray()`).
-A view stored in a local first (`var s = buf.AsSpan(); Use(s);`) and the
-`Array.Clear(buf, 0, buf.Length)` spelling are follow-ups.
+verbatim PR diff. The extractor catches the unbounded view both as an *expression*
+(`Emit(buf.AsSpan())`, `buf.AsSpan().CopyTo(...)`) and in a local-declaration
+*initializer* — the over-copy `var copy = buf.AsSpan().ToArray();` and the
+view-local `Span<byte> s = buf.AsSpan();` alike, since the full view lives in the
+initializer either way. The remaining spelling is `Array.Clear(buf, 0, buf.Length)`
+(a length argument of `buf.Length` rather than an unbounded view), a follow-up.
 
 Reference: [P-007](../../../docs/proposals/P-007-arraypool-span.md); replay target
 AiDotNet.Tensors pooled-buffer over-clear/over-read.

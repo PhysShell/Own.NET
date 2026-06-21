@@ -50,6 +50,7 @@ from ownlang.ast_nodes import (
     Let,
     Module,
     Move,
+    Overspan,
     Release,
     Return,
     Subscribe,
@@ -131,6 +132,8 @@ def _sub_stmt(s: Stmt, old: str, new: str) -> Stmt:
         return replace(s, var=new) if s.var == old else s
     if isinstance(s, Use):
         return replace(s, var=new) if s.var == old else s
+    if isinstance(s, Overspan):
+        return replace(s, var=new) if s.var == old else s
     if isinstance(s, Call):
         return replace(s, args=[_sub_expr(a, old, new) for a in s.args])
     if isinstance(s, BorrowBlock):
@@ -185,7 +188,7 @@ def _all_names(fn: FnDecl) -> set[str]:
             if isinstance(s, Let):
                 names.add(s.name)
                 names.update(_expr_names(s.rhs))
-            elif isinstance(s, (Release, Use)):
+            elif isinstance(s, (Release, Use, Overspan)):
                 names.add(s.var)
             elif isinstance(s, Call):
                 for a in s.args:
@@ -243,7 +246,7 @@ def _touches(s: Stmt) -> set[str] | None:
     simple, reorderable statement (control flow / borrow blocks are excluded)."""
     if isinstance(s, Let):
         return {s.name} | _expr_names(s.rhs)
-    if isinstance(s, (Release, Use)):
+    if isinstance(s, (Release, Use, Overspan)):
         return {s.var}
     if isinstance(s, Call):
         return set().union(set(), *(_expr_names(a) for a in s.args))
