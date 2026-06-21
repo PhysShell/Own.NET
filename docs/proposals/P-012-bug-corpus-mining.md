@@ -6,7 +6,7 @@
   (the bug is caught) and specificity (the fix is silent), gated in the
   `corpus-benchmark` CI job. This is the measurement spine — the defensible number,
   and the verifiable reward for any future learning loop. First measurement **3/9
-  caught · 9/9 clean · 0 FP**, ratcheted to **8/10** over four steps: (1) a *fixture*
+  caught · 9/9 clean · 0 FP**, ratcheted to **9/11** over five steps: (1) a *fixture*
   was understating us — `screentogif-loaded-subscription` referenced an undeclared VM
   type → `OWN050`, fixed by making it self-contained; (2) a real *capability* —
   pooled buffers are now routed through the path-sensitive flow engine (Rent =
@@ -17,10 +17,14 @@
   receiver (`var p = ArrayPool<int>.Shared; p.Return(buf)`) — a miss for the text
   heuristic — is caught (`arraypool-aliased-receiver`, +1 row); (4) ownership-transferring
   **factory acquires** (`System.IO.File.Open*`/`Create*`) are recognised alongside `new`,
-  so the leak arm of the interprocedural-handoff case fires `OWN001`. Perfect precision
-  throughout. The remaining gaps: the use-after-handoff (`OWN002`) arm of that case (needs
-  the inter-procedural *consume* contract), a cross-method use-after-dispose, and an
-  injected-source region-escape — the tracked recall backlog the floor ratchets up to.
+  so the leak arm of the interprocedural-handoff case fires `OWN001`; (5) the inter-procedural
+  **consume handoff** — a call to a first-party consumer (a method whose own body disposes a
+  by-value `IDisposable` param) is modelled as a *release* of the argument at the call site (the
+  pool-`Return` shape), so a use after the handoff trips `OWN002`; the signal is the callee's
+  own body, so there is no cross-call signature table and no dangling-callee crash
+  (`ownership-handoff-use`, +1 row). Perfect precision throughout. The remaining gaps: a
+  cross-method use-after-dispose,
+  and an injected-source region-escape — the tracked recall backlog the floor ratchets up to.
   Still ahead: those, GitHub mining at scale (stage 1) and the 50–100-repo prevalence
   scan (stage 2). See
   [docs/notes/corpus-benchmark.md](../notes/corpus-benchmark.md).

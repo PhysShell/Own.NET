@@ -26,7 +26,7 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-## Ratchet → 8/10 (four ratchets)
+## Ratchet → 9/11 (five ratchets)
 
 ### → 4/9: a fixture was understating us
 
@@ -89,14 +89,33 @@ handed back by some other API is never mistaken for an acquire). With it the lea
 8/10**. The blast radius is exactly one file: nothing else in the corpus or the samples opens
 a `File.*` stream, so no `after.cs` and no dog-food scan can newly cry wolf.
 
-The remaining gaps are genuine **frontend extraction** islands. The *use-after-handoff*
-(`OWN002`) arm of `ownership-handoff-consume` — caught only as the leak today — needs the
-inter-procedural **consume** contract (a method that disposes a by-value parameter, checked at
-call sites like Rust's move; the cut is the *signature*, no whole-program points-to). A
-field/cross-method use-after-dispose needs cross-method field-state. And the injected-source
-region-escape (`viewmodel-escapes-to-app`) needs the source's lifetime *proven* — its DI
-registration — which the fixture does not even carry. The `.own` reductions catch all three;
-the C# extractor does not yet. Each is a real capability the floor will ratchet up to as it lands.
+### → 9/11: the inter-procedural consume contract
+
+The last handoff gap was the *use-after-handoff* arm — a stream handed to a consumer that
+disposes it, then touched again (`OWN002`). The extractor treated every argument-pass as an
+*escape* (untracked), so the handed-off stream vanished and the later read was invisible. Now
+a call to a first-party **consumer** — a method whose own body disposes a by-value
+`IDisposable` parameter — is modelled as a **release of the argument at the call site**, the
+same shape as pool `Return(buf)` (the resource leaves the caller's hands right there). A use of
+the argument *after* that call is then a use-after-release, `OWN002`; the matching argument is
+exempted from the escape set so it stays tracked through the handoff. It is inter-procedural —
+the signal is the *callee's own body* — but there is **no cross-call signature table**, so a
+callee with no body to inspect (interface / abstract / extern) or that doesn't dispose the
+parameter yields nothing and the argument stays an ordinary escape. Crucially there is no
+dangling `call` op to a method the flow pass never lowered (the early call-op design crashed
+the bridge on exactly that — `UnitOfWorkFlowSample`'s consumer, whose body the pass skips), and
+the escape exemption is gated on the *same* body-inspection as the release, so an argument is
+exempted **iff** it is also released — never a tracked-but-unreleased local that would read as a
+false leak. A new fixture `ownership-handoff-use` (a *pure* use-after-handoff, no leak arm) is a
+miss before and a catch after, so **recall is now 9/11**; `ownership-handoff-consume` now fires
+both its arms (`OWN001`+`OWN002`). The verdicts were pinned locally (hand-built facts →
+`check_facts` → the exact `OWN001`/`OWN002` and silence on the fixes).
+
+The remaining gaps are genuine **frontend extraction** islands: a field/cross-method
+use-after-dispose needs cross-method field-state, and the injected-source region-escape
+(`viewmodel-escapes-to-app`) needs the source's lifetime *proven* — its DI registration —
+which the fixture does not even carry. The `.own` reductions catch both; the C# extractor does
+not yet. Each is a real capability the floor will ratchet up to as it lands.
 
 ## Why catch/clean, not exact-code match
 

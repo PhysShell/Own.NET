@@ -1,0 +1,21 @@
+// OwnLang model of a PURE inter-procedural use-after-handoff (no leak arm). `take` takes
+// the stream BY VALUE (a resource type => CONSUME): ownership moves in and it closes the
+// stream, so a caller must not touch it after the handoff. `run` hands off then reads ->
+// OWN002 (use after the resource was consumed by the callee). The fix reads BEFORE the
+// handoff. The signature is the cut -- the caller is checked against `take`'s contract,
+// not its body; no whole-program analysis. (`consume` is an OwnLang keyword, so the
+// reduction names the consumer `take`; the C# consumer is `Consume`.)
+module Corpus
+resource Stream {
+  acquire open
+  release close
+}
+fn take(s: Stream) {
+  use s;
+  release s;
+}
+fn run() {
+  let s = acquire Stream();
+  take(s);             // ownership moves into the consumer
+  use s;               // <-- touched after handoff -> OWN002
+}
