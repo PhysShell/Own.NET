@@ -113,7 +113,7 @@ scoped service. Pinned end-to-end by `DiCaptiveSample.cs` (`WeakCache` →
 `WeakReference<AppDbContext>`, with `WeakClockHolder → WeakReference<Clock>` staying silent —
 a weak ref to a singleton is no mismatch) in the `wpf-extractor` CI job, and at the graph
 level by `tests/test_ownir.py`. It is a contract no general-purpose analyzer models — even the
-developer's WeakReference "fix" is still flagged, which is exactly the differentiation.
+developer's WeakReference "fix" is still flagged, which is the key differentiation.
 
 ## Next (separate slices)
 

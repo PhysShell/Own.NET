@@ -325,9 +325,13 @@ jobs:
           # (WeakClockHolder -> Clock) is no mismatch -> silent.
           echo "$out" | grep -qE "\[DI002\].*'WeakCache' weakly captures scoped service 'AppDbContext'" \
             || { echo "FAIL: expected DI002 (WeakCache weakly captures scoped AppDbContext)"; exit 1; }
+          # a NULLABLE WeakReference<AppDbContext>? is the same weak captive — the `?` annotation
+          # is unwrapped, so the scoped service is still seen (CodeRabbit review on #63).
+          echo "$out" | grep -qE "\[DI002\].*'WeakCacheOpt' weakly captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected DI002 on the nullable WeakReference (WeakCacheOpt)"; exit 1; }
           nwk=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI002\]")
-          [ "$nwk" = "1" ] \
-            || { echo "FAIL: expected exactly 1 DI002 finding, got $nwk"; exit 1; }
+          [ "$nwk" = "2" ] \
+            || { echo "FAIL: expected exactly 2 DI002 findings, got $nwk"; exit 1; }
           if echo "$out" | grep -q "WeakClockHolder"; then
             echo "FAIL: a weak ref to a singleton (WeakClockHolder) was wrongly flagged"; exit 1
           fi

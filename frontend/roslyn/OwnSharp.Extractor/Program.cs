@@ -1076,15 +1076,20 @@ static string? DiTypeName(TypeSyntax t) => t switch
     GenericNameSyntax g => g.Identifier.Text,
     QualifiedNameSyntax q => DiTypeName(q.Right),
     AliasQualifiedNameSyntax aq => DiTypeName(aq.Name),
+    // a nullable annotation (`AppDbContext?`) does not change the injected service type —
+    // unwrap it so a nullable ctor param is still a real dep (CodeRabbit review on #63).
+    NullableTypeSyntax n => DiTypeName(n.ElementType),
     _ => null,
 };
 
-// If `t` is a `WeakReference<X>` (or `System.WeakReference<X>`), the simple name of its
-// single type argument X; else null. Syntactic, single-arg — matches how a singleton
-// holds a captive dependency weakly. (`System.WeakReference` non-generic has no element
-// type and is not a DI dep.)
+// If `t` is a `WeakReference<X>` (or `System.WeakReference<X>`, or a nullable
+// `WeakReference<X>?`), the simple name of its single type argument X; else null.
+// Syntactic, single-arg — matches how a singleton holds a captive dependency weakly.
+// (`System.WeakReference` non-generic has no element type and is not a DI dep.)
 static string? WeakRefInner(TypeSyntax t)
 {
+    if (t is NullableTypeSyntax nt)   // `WeakReference<X>?` -> unwrap the nullable annotation
+        t = nt.ElementType;
     var g = t switch
     {
         GenericNameSyntax gen => gen,
@@ -1092,6 +1097,7 @@ static string? WeakRefInner(TypeSyntax t)
         AliasQualifiedNameSyntax { Name: GenericNameSyntax gen } => gen,
         _ => null,
     };
+    // the inner `X` (or a nullable `X?`) is resolved by DiTypeName, which unwraps `?`.
     return g is { Identifier.Text: "WeakReference" }
            && g.TypeArgumentList.Arguments.Count == 1
         ? DiTypeName(g.TypeArgumentList.Arguments[0]) : null;

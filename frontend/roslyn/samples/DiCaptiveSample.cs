@@ -55,6 +55,9 @@ namespace Sample
     // lifetime — the lifetime contract is still violated. A warning. The weak ref keeps it
     // OFF the DI001 strong graph (`deps`), so it surfaces as DI002, not DI001.
     public sealed class WeakCache { public WeakCache(WeakReference<AppDbContext> db) { } }      // -> WeakReference<scoped> : DI002
+    // a NULLABLE weak reference (`WeakReference<AppDbContext>?`) is the same weak captive — the
+    // `?` annotation does not change the service type, so it is DI002 too (CodeRabbit review).
+    public sealed class WeakCacheOpt { public WeakCacheOpt(WeakReference<AppDbContext>? db) { } }
     // control: a weak reference to a SINGLETON is no lifetime mismatch -> SILENT.
     public sealed class WeakClockHolder { public WeakClockHolder(WeakReference<Clock> clock) { } }
 
@@ -98,6 +101,9 @@ namespace Sample
             // root-resolved and app-lived (the captive lifetime violation remains). NOT a
             // DI001 (the weak edge is off the strong graph).
             services.AddSingleton<WeakCache>();
+            // FLAGGED (DI002) — a NULLABLE WeakReference<AppDbContext>? is the same weak captive
+            // (the `?` annotation is unwrapped, so the scoped service is still seen).
+            services.AddSingleton<WeakCacheOpt>();
             // SILENT — a weak reference to the SINGLETON Clock is no lifetime mismatch.
             services.AddSingleton<WeakClockHolder>();
         }
