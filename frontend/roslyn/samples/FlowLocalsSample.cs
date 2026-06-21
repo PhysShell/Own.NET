@@ -484,6 +484,27 @@ public class FlowLocalsSample
         var tcpLeak = new TcpListener(IPAddress.Loopback, 0);
         tcpLeak.Start();
     }
+
+    // a "consumer" whose dispose of the parameter lives ONLY inside a nested lambda — it runs
+    // DEFERRED (when the delegate is invoked), not at the call site, so the method is NOT a
+    // consumer of `s` at its boundary (the transitive-consume inference must not descend into
+    // nested function bodies).
+    private static void DeferredConsumer(Stream s)
+    {
+        Action discharge = () => s.Dispose();   // deferred — not a consume at the call site
+        discharge();
+    }
+
+    // control (Codex review on PR #68): passing a local to DeferredConsumer is NOT a handoff
+    // (the dispose is deferred in a lambda), so the later use must NOT be a phantom
+    // use-after-handoff — no false OWN002. `defer` is disposed normally here, so it stays SILENT.
+    public void DeferredHandoffNoFalsePositive()
+    {
+        var defer = new MemoryStream();
+        DeferredConsumer(defer);                 // NOT a release here (deferred lambda dispose)
+        defer.WriteByte(1);                      // must NOT trip OWN002 (it would, without the fix)
+        defer.Dispose();                         // disposed here -> balanced -> silent
+    }
 }
 
 // A domain exception type literally named `Exception`, in a non-System namespace — the

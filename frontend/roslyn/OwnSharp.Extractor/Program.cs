@@ -925,9 +925,14 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
         return true;
     // (b) transitive: the parameter is handed to another first-party consumer. The body may
     // live in another file, so bind its calls with that tree's OWN model (a SemanticModel only
-    // resolves nodes in its own tree); the Compilation is shared across all parsed inputs.
+    // resolves nodes in its own tree); the Compilation is shared across all parsed inputs. Do
+    // NOT descend into nested lambda / local-function bodies: a forward there runs deferred,
+    // not at this call site, so it is not a handoff (Codex — same rule as the flow lowering).
     var bodyModel = model.Compilation.GetSemanticModel(body.SyntaxTree);
-    foreach (var inv in body.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
+    foreach (var inv in body
+                 .DescendantNodesAndSelf(n => n is not (AnonymousFunctionExpressionSyntax
+                                                        or LocalFunctionStatementSyntax))
+                 .OfType<InvocationExpressionSyntax>())
     {
         if (bodyModel.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
             continue;
@@ -947,10 +952,15 @@ static bool ConsumesParam(IMethodSymbol method, IParameterSymbol param,
 }
 
 // Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /
-// `.DisposeAsync()` call (the consume signal)?
+// `.DisposeAsync()` call (the consume signal)? Nested lambda / local-function bodies are NOT
+// descended into: a `name.Dispose()` inside a stored callback runs deferred, not at this call
+// site, so it is not a discharge here (Codex — the same deferred-body rule as the flow lowering).
 static bool DisposesLocal(SyntaxNode body, string name)
 {
-    foreach (var i in body.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
+    foreach (var i in body
+                 .DescendantNodesAndSelf(n => n is not (AnonymousFunctionExpressionSyntax
+                                                        or LocalFunctionStatementSyntax))
+                 .OfType<InvocationExpressionSyntax>())
         if (i.Expression is MemberAccessExpressionSyntax m
             && m.Name.Identifier.Text is "Dispose" or "Close" or "DisposeAsync"
             && m.Expression is IdentifierNameSyntax id && id.Identifier.Text == name)
