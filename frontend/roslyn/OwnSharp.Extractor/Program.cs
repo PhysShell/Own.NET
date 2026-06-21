@@ -1450,6 +1450,15 @@ foreach (var (file, tree) in parsed)
                     var nm = idn.Identifier.Text;
                     if (!candidates.Contains(nm))
                         continue;
+                    // A `nameof(x)` operand is a compile-time string, not a real reference: it
+                    // neither uses, captures, nor transfers the local. Skip it so it triggers no
+                    // escape rule — otherwise `nameof(s)` would look like an argument (the arg
+                    // rule below) or, inside a lambda, a closure capture, and wrongly untrack a
+                    // still-leaking method-bounded local (Codex review on PR #59).
+                    if (idn.Parent is ArgumentSyntax { Parent: ArgumentListSyntax
+                            { Parent: InvocationExpressionSyntax ninv } }
+                        && ninv.Expression is IdentifierNameSyntax { Identifier.Text: "nameof" })
+                        continue;
                     // Captured into a CLOSURE (lambda / anonymous method / local function):
                     // the closure can outlive the method — stored, returned, or run async —
                     // so the local is no longer method-bounded and cannot be disposed at

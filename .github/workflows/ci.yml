@@ -387,6 +387,11 @@ jobs:
           # SemaphoreSlim dispose-optional (reduced from a ShareX FP — Helpers.ForEachAsync).
           echo "$out" | grep -qE "OWN001.*'semLeak' is never disposed" \
             || { echo "FAIL: expected OWN001 on the non-captured SemaphoreSlim leak"; exit 1; }
+          # a `nameof(x)` operand inside a lambda is NOT a closure capture (it is a compile-time
+          # string) -> the local stays method-bounded and still leaks -> OWN001 (Codex review on
+          # #59: nameof must not masquerade as a capture/escape).
+          echo "$out" | grep -qE "OWN001.*'nofLeak' is never disposed" \
+            || { echo "FAIL: expected OWN001 on the nameof-in-lambda local (not a capture)"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,

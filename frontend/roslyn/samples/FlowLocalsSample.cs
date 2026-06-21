@@ -430,6 +430,17 @@ public class FlowLocalsSample
         var semLeak = new SemaphoreSlim(1, 1);
         semLeak.Wait();
     }
+
+    // OWN001 (Codex review on #59): a `nameof(x)` operand inside a lambda exposes an
+    // identifier under the closure, but `nameof` is a compile-time string — it captures
+    // nothing. `nofLeak` is only mentioned via nameof, so it is still method-bounded and
+    // never disposed -> a real leak. The nameof operand must not be mistaken for a capture.
+    public void NameofInLambda()
+    {
+        var nofLeak = new MemoryStream();
+        Action log = () => System.Console.WriteLine(nameof(nofLeak));
+        log();
+    }
 }
 
 // A domain exception type literally named `Exception`, in a non-System namespace — the

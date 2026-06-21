@@ -49,6 +49,12 @@ needs no escape/data-flow analysis of where the closure goes. It deliberately do
 require proving the closure escapes: a captured local *may* outlive the method, and the
 precision-first stance is to not flag what we cannot prove leaks.
 
+One syntactic exception: a **`nameof(x)`** operand is skipped before the escape checks. It
+exposes an `IdentifierNameSyntax` under the closure (or as an argument), but `nameof` is a
+compile-time string that captures and transfers nothing — so it must not be mistaken for a
+capture (nor, on the argument path, an ownership transfer), or a still-leaking method-bounded
+local would be wrongly untracked (Codex review). Pinned by the `NameofInLambda` sample case.
+
 ### Why not just exempt `SemaphoreSlim`?
 
 `SemaphoreSlim` is **not** unconditionally dispose-optional: accessing
