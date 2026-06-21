@@ -827,24 +827,29 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
 
-// The owner buffer a Span/ReadOnlySpan VIEW expression borrows from: `owner.AsSpan(...)`
-// (resolved via the symbol so it is the BCL Span-returning extension, not an unrelated method
-// named AsSpan) or `new Span<T>(owner, …)` / `new ReadOnlySpan<T>(owner)`, where the source is a
-// local identifier. Returns the owner local name, else null. A Span is a ref-struct BORROW — it
-// cannot escape the method — so a use of the view after the owner is released is a use of the
-// owner after its release.
+// The owner buffer a Span/ReadOnlySpan VIEW expression borrows from: `owner.AsSpan(...)` or
+// `new Span<T>(owner, …)` / `new ReadOnlySpan<T>(owner)`, where the source is a local identifier.
+// Returns the owner local name, else null. The BORROW is recognised by the RESOLVED BCL symbols —
+// `System.MemoryExtensions.AsSpan` (which aliases its receiver array) and the `System.Span<T>` /
+// `System.ReadOnlySpan<T>` constructor (which wraps its array argument) — NOT by name, so a
+// project's own `AsSpan` extension, a non-`System` type named `Span<T>`, or an `AsSpan` returning a
+// span over a fresh copy is not mistaken for a borrow of `owner` (Codex). A `Span` is a ref-struct
+// borrow that cannot escape the method, so a use of the view after the owner is released is a use of
+// the owner after its release.
 static string? SpanViewOwner(ExpressionSyntax? e, SemanticModel model)
 {
     if (e is InvocationExpressionSyntax inv
         && inv.Expression is MemberAccessExpressionSyntax m
         && m.Name.Identifier.Text == "AsSpan"
         && m.Expression is IdentifierNameSyntax recv
-        && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ReturnType.Name: "Span" or "ReadOnlySpan" })
+        && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ContainingType: { Name: "MemoryExtensions" } mct }
+        && IsInNamespace(mct, "System"))
         return recv.Identifier.Text;
     if (e is ObjectCreationExpressionSyntax oc
-        && oc.Type is GenericNameSyntax { Identifier.Text: "Span" or "ReadOnlySpan" }
         && oc.ArgumentList is { Arguments.Count: > 0 }
-        && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg)
+        && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg
+        && model.GetSymbolInfo(oc).Symbol is IMethodSymbol { ContainingType: { Name: "Span" or "ReadOnlySpan" } sct }
+        && IsInNamespace(sct, "System"))
         return arg.Identifier.Text;
     return null;
 }
