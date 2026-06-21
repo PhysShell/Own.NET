@@ -311,9 +311,9 @@ jobs:
           # P-006 Q#1: each captive finding anchors at the registration site but ALSO names its
           # CONSUMING CONSTRUCTOR (where the capture is injected) — the explicit ctor line for
           # EmailSender, and the class-declaration line for the C# 12 primary ctor.
-          echo "$out" | grep -q "consumed by the 'EmailSender' constructor at DiCaptiveSample.cs:25" \
+          echo "$out" | grep -qE "consumed by the 'EmailSender' constructor at .*DiCaptiveSample\.cs:25\]" \
             || { echo "FAIL: expected the consuming-constructor anchor (EmailSender ctor, line 25)"; exit 1; }
-          echo "$out" | grep -q "consumed by the 'PrimaryCtorService' constructor at DiCaptiveSample.cs:33" \
+          echo "$out" | grep -qE "consumed by the 'PrimaryCtorService' constructor at .*DiCaptiveSample\.cs:33\]" \
             || { echo "FAIL: expected the primary-constructor consuming anchor (PrimaryCtorService, line 33)"; exit 1; }
           # P-006 DI003 (transient IDisposable captured by a singleton, WARNING): the
           # singleton ConnectionWarmer holds the transient IDisposable PooledConnection
@@ -325,7 +325,7 @@ jobs:
           [ "$nw" = "1" ] \
             || { echo "FAIL: expected exactly 1 DI003 finding, got $nw"; exit 1; }
           # DI003 carries the consuming-constructor anchor too (ConnectionWarmer's ctor, line 50).
-          echo "$out" | grep -q "consumed by the 'ConnectionWarmer' constructor at DiCaptiveSample.cs:50" \
+          echo "$out" | grep -qE "consumed by the 'ConnectionWarmer' constructor at .*DiCaptiveSample\.cs:50\]" \
             || { echo "FAIL: expected the DI003 consuming-constructor anchor (ConnectionWarmer, line 50)"; exit 1; }
           # P-006 DI002 (scoped service held by a singleton via WeakReference<T>, WARNING):
           # the weak ref is the usual "fix" for a DI001 captive, but scoped AppDbContext is
@@ -352,7 +352,7 @@ jobs:
           [ "$nwk" = "3" ] \
             || { echo "FAIL: expected exactly 3 DI002 findings, got $nwk"; exit 1; }
           # DI002 carries the consuming-constructor anchor too (WeakCache's ctor, line 57).
-          echo "$out" | grep -q "consumed by the 'WeakCache' constructor at DiCaptiveSample.cs:57" \
+          echo "$out" | grep -qE "consumed by the 'WeakCache' constructor at .*DiCaptiveSample\.cs:57\]" \
             || { echo "FAIL: expected the DI002 consuming-constructor anchor (WeakCache, line 57)"; exit 1; }
           if echo "$out" | grep -q "WeakClockHolder"; then
             echo "FAIL: a weak ref to a singleton (WeakClockHolder) was wrongly flagged"; exit 1
