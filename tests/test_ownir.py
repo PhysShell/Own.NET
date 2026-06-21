@@ -525,6 +525,47 @@ def run() -> int:
         fails.append(f"DI003 bridge finding wrong: "
                      f"{[(x.component, x.severity) for x in di3b]}")
 
+    # --- DI002 (P-006): a scoped service held by a singleton via WeakReference<T> is a
+    #     weak captive (warning). The weak edge lives in `weak_deps`, OFF the DI001 strong
+    #     graph; a weak ref to a singleton is no mismatch, so it stays silent.
+    from ownlang.di import find_weak_captive_dependencies
+    wsvcs = [
+        Service("WeakCache", "singleton", deps=(), weak_deps=("Db",)),   # weak -> scoped: DI002
+        Service("Db", "scoped", ()),
+        Service("Strong", "singleton", deps=("Db",)),                    # strong -> scoped: DI001
+        Service("WeakClock", "singleton", deps=(), weak_deps=("Clk",)),  # weak -> singleton: safe
+        Service("Clk", "singleton", ()),
+    ]
+    di2 = find_weak_captive_dependencies(wsvcs)
+    checks += 1
+    got2 = sorted((c.singleton, c.captured) for c in di2)
+    if got2 != [("WeakCache", "Db")]:
+        fails.append(f"DI002 set wrong: {got2}")
+    checks += 1
+    # the weak captive must NOT also be a strong DI001 (weak edge is off the strong graph).
+    if any(c.singleton == "WeakCache" for c in find_captive_dependencies(wsvcs)):
+        fails.append("DI002 weak captive wrongly also flagged as DI001")
+    checks += 1
+    if not di2 or "WeakReference" not in di2[0].message:
+        fails.append("DI002 message missing 'WeakReference'")
+    # bridge: DI002 surfaces as a WARNING; `weak_deps` is parsed and kept off DI001.
+    di2facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                "services": [
+                    {"name": "WeakCache", "lifetime": "singleton", "deps": [],
+                     "weak_deps": ["Db"], "file": "S.cs", "line": 9},
+                    {"name": "Db", "lifetime": "scoped", "deps": [], "file": "S.cs", "line": 10},
+                ]}
+    di2b = check_facts(di2facts)
+    checks += 1
+    di2only = [x for x in di2b if x.code == "DI002"]
+    if (len(di2only) != 1 or di2only[0].severity != "warning"
+            or di2only[0].component != "WeakCache"):
+        fails.append("DI002 bridge finding wrong: "
+                     f"{[(x.component, x.severity) for x in di2only]}")
+    checks += 1
+    if any(x.code == "DI001" for x in di2b):
+        fails.append("DI002 bridge wrongly also produced a DI001")
+
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
     with open(_DI_FIXTURE, encoding="utf-8") as f:

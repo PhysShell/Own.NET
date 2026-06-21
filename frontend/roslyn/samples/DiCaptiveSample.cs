@@ -49,6 +49,15 @@ namespace Sample
     public sealed class PooledConnection : System.IDisposable { public void Dispose() { } } // transient, IDisposable
     public sealed class ConnectionWarmer { public ConnectionWarmer(PooledConnection c) { } } // singleton -> captures it
 
+    // DI002 — a singleton that holds a SCOPED service via WeakReference<T>. A weak ref is
+    // the usual "fix" for a DI001 captive (it stops pinning the scoped instance for the
+    // GC), but the scoped service is still resolved from the root and lives for the app
+    // lifetime — the lifetime contract is still violated. A warning. The weak ref keeps it
+    // OFF the DI001 strong graph (`deps`), so it surfaces as DI002, not DI001.
+    public sealed class WeakCache { public WeakCache(WeakReference<AppDbContext> db) { } }      // -> WeakReference<scoped> : DI002
+    // control: a weak reference to a SINGLETON is no lifetime mismatch -> SILENT.
+    public sealed class WeakClockHolder { public WeakClockHolder(WeakReference<Clock> clock) { } }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -83,6 +92,14 @@ namespace Sample
             // disposed only at root disposal. NOT a DI001 (no scoped captured).
             services.AddTransient<PooledConnection>();
             services.AddSingleton<ConnectionWarmer>();
+
+            // FLAGGED (DI002, warning) — singleton holds a SCOPED service via WeakReference:
+            // the weak ref hides the GC-pinning symptom, but scoped AppDbContext is still
+            // root-resolved and app-lived (the captive lifetime violation remains). NOT a
+            // DI001 (the weak edge is off the strong graph).
+            services.AddSingleton<WeakCache>();
+            // SILENT — a weak reference to the SINGLETON Clock is no lifetime mismatch.
+            services.AddSingleton<WeakClockHolder>();
         }
     }
 

@@ -124,7 +124,12 @@ from .ast_nodes import (
     While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
-from .di import Service, find_captive_dependencies, find_captured_transient_disposables
+from .di import (
+    Service,
+    find_captive_dependencies,
+    find_captured_transient_disposables,
+    find_weak_captive_dependencies,
+)
 from .diagnostics import TITLES, Severity
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
@@ -1232,6 +1237,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             name=str(s.get("name", "?")),
             lifetime=str(s.get("lifetime", "")),
             deps=tuple(s.get("deps", [])),
+            # services injected via WeakReference<T> — held weakly, off the DI001 strong
+            # graph, but a weakly-held scoped service is still a captive (DI002).
+            weak_deps=tuple(s.get("weak_deps", [])),
             # only the JSON boolean `true` counts — a stray string ("false") or other
             # type from a non-extractor producer must not coerce to a disposable=True.
             disposable=s.get("disposable") is True,
@@ -1257,6 +1265,17 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             component=c.singleton, event=c.captured, handler="",
             message=c.message, kind="DI lifetime", severity="warning")
         for c in find_captured_transient_disposables(services)
+    ]
+    # DI002: a singleton holding a scoped service via WeakReference<T> (P-006). The weak
+    # ref is the usual "fix" for a DI001 captive, but the scoped service is still
+    # root-resolved and app-lived — the lifetime contract is still violated. A real
+    # verdict shown at `warning` (the weak ref fixes the GC symptom, not the cause).
+    out += [
+        Finding(
+            file=c.file, line=c.line, code="DI002",
+            component=c.singleton, event=c.captured, handler="",
+            message=c.message, kind="DI lifetime", severity="warning")
+        for c in find_weak_captive_dependencies(services)
     ]
     return out
 
