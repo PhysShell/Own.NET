@@ -399,6 +399,12 @@ jobs:
           # previously-missed leak in ShareX's DeriveCryptoData.
           echo "$out" | grep -qE "OWN001.*'rngLeak' is never disposed" \
             || { echo "FAIL: expected OWN001 on the undisposed crypto-factory acquire"; exit 1; }
+          # TcpListener precision (Codex review on #61): Stop() IS the cleanup (Dispose()
+          # delegates to Stop()), so a Stop()'d listener is modelled as released -> silent
+          # ('stopped'); a listener NEVER Stop()'d still holds the socket -> OWN001 ('tcpLeak'),
+          # proving the release is Stop()-specific, not a blanket TcpListener exemption.
+          echo "$out" | grep -qE "OWN001.*'tcpLeak' is never disposed" \
+            || { echo "FAIL: expected OWN001 on the never-stopped TcpListener"; exit 1; }
           # dispose-optional (Task), disposed/escaping locals, a `for` loop whose
           # disposable is disposed after it (`looped`, balanced), a balanced
           # acquire+dispose in a loop (`whileClean`), a try/finally dispose (`tfClean`,
@@ -420,7 +426,7 @@ jobs:
           # case disposes (no default) -> last case is the tail, no phantom no-match leak.
           # `ncf`: `ncf?.Dispose()` (null-conditional) in a threaded finally IS a release
           # (member-binding form), so it is disposed on the return path -> silent (Codex review).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean; do
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
