@@ -273,6 +273,11 @@ class Finding:
     # --severity, default error). Still a leak verdict (counts in the exit code);
     # only the displayed level differs.
     severity: str | None = None
+    # secondary, structured locations that explain the finding — each a
+    # (file, line, label) triple. The primary `file`/`line` stays the anchor; these ride
+    # along as SARIF `relatedLocations` (e.g. a DI captive's *consuming constructor*, distinct
+    # from its registration-site anchor). Empty for findings with a single location.
+    related: tuple[tuple[str, int, str], ...] = ()
 
     def render(self, severity: str = "error") -> str:
         return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
@@ -346,13 +351,24 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
                      ("handler", f.handler)):
         if val:
             props[key] = val
-    return {
+    result: dict[str, Any] = {
         "ruleId": f.code,
         "level": _sarif_level(f, severity),
         "message": {"text": f"{f.message} [resource: {f.kind}]"},
         "locations": [{"physicalLocation": phys}],
         "properties": props,
     }
+    # secondary locations (e.g. a DI captive's consuming constructor) — a SARIF consumer
+    # (GitHub code scanning) renders these as clickable, labelled related locations.
+    related = [
+        {"physicalLocation": {"artifactLocation": {"uri": rf.replace("\\", "/")},
+                              "region": {"startLine": rl}},
+         "message": {"text": rmsg}}
+        for (rf, rl, rmsg) in f.related if rl >= 1
+    ]
+    if related:
+        result["relatedLocations"] = related
+    return result
 
 
 def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, Any]:
@@ -466,6 +482,14 @@ def load(path: str) -> dict[str, Any]:
         ln = s.get("line", 0)
         if not isinstance(ln, int) or isinstance(ln, bool):
             raise OwnIRError("service 'line' must be an integer")
+        # the consuming-constructor location (optional, P-006 Q#1) is validated like file/line.
+        if not isinstance(s.get("ctor_file", "?"), str):
+            raise OwnIRError("service 'ctor_file' must be a string")
+        cln = s.get("ctor_line", 0)
+        if not isinstance(cln, int) or isinstance(cln, bool):
+            raise OwnIRError("service 'ctor_line' must be an integer")
+        if not isinstance(s.get("ctor_type", ""), str):
+            raise OwnIRError("service 'ctor_type' must be a string")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -1234,6 +1258,20 @@ def _as_int(v: Any) -> int:
     return v if isinstance(v, int) and not isinstance(v, bool) else 0
 
 
+def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
+    """The captive finding's **consuming constructor** as a structured related location
+    (file, line, label), or empty when the extractor did not record a ctor location. The
+    primary anchor stays the registration site; this is the second, code-side anchor. The
+    label names the **implementation** type that owns the ctor (not the possibly-interface
+    service name — Codex), falling back to a plain label when the impl type is unknown."""
+    if getattr(c, "consumed_line", 0) >= 1:
+        owner = getattr(c, "consumed_type", "") or ""
+        label = (f"consuming constructor of '{owner}'" if owner and owner != "?"
+                 else "consuming constructor")
+        return ((c.consumed_file, c.consumed_line, label),)
+    return ()
+
+
 def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     """Run the DI captive-dependency check over the facts' `services` graph and
     map each result to a DI001 Finding at its registration site."""
@@ -1256,6 +1294,13 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             disposable=s.get("disposable") is True,
             file=str(s.get("file", "?")),
             line=_as_int(s.get("line", 0)),
+            # the consuming constructor's location (where the capture is injected) — a
+            # secondary anchor distinct from the registration site above (P-006 Q#1).
+            ctor_file=str(s.get("ctor_file", "?")),
+            ctor_line=_as_int(s.get("ctor_line", 0)),
+            # the IMPLEMENTATION type owning that ctor — named in the finding instead of the
+            # (possibly interface) service name, which would point at a ctor-less type (Codex).
+            ctor_type=str(s.get("ctor_type", "")),
         )
         for s in raw if isinstance(s, dict)
     ]
@@ -1263,7 +1308,7 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
         Finding(
             file=c.file, line=c.line, code="DI001",
             component=c.singleton, event=c.captured, handler="",
-            message=c.message, kind="DI lifetime")
+            message=c.message, kind="DI lifetime", related=_consumer_related(c))
         for c in find_captive_dependencies(services)
     ]
     # DI003: a transient IDisposable captured by a singleton is promoted to application
@@ -1274,7 +1319,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
         Finding(
             file=c.file, line=c.line, code="DI003",
             component=c.singleton, event=c.captured, handler="",
-            message=c.message, kind="DI lifetime", severity="warning")
+            message=c.message, kind="DI lifetime", severity="warning",
+            related=_consumer_related(c))
         for c in find_captured_transient_disposables(services)
     ]
     # DI002: a singleton holding a scoped service via WeakReference<T> (P-006). The weak
@@ -1285,7 +1331,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
         Finding(
             file=c.file, line=c.line, code="DI002",
             component=c.singleton, event=c.captured, handler="",
-            message=c.message, kind="DI lifetime", severity="warning")
+            message=c.message, kind="DI lifetime", severity="warning",
+            related=_consumer_related(c))
         for c in find_weak_captive_dependencies(services)
     ]
     # DI004: a singleton that resolves a transient IDisposable BY HAND from its injected

@@ -3,10 +3,10 @@
   "module": "DiDemo",
   "components": [],
   "services": [
-    {"name": "EmailSender", "lifetime": "singleton", "file": "Startup.cs", "line": 12, "deps": ["AppDbContext"]},
+    {"name": "EmailSender", "lifetime": "singleton", "file": "Startup.cs", "line": 12, "deps": ["AppDbContext"], "ctor_file": "EmailSender.cs", "ctor_line": 5, "ctor_type": "EmailSender"},
     {"name": "AppDbContext", "lifetime": "scoped", "file": "Startup.cs", "line": 13, "deps": []},
     {"name": "Clock", "lifetime": "singleton", "file": "Startup.cs", "line": 14, "deps": []},
-    {"name": "ReportService", "lifetime": "singleton", "file": "Startup.cs", "line": 15, "deps": ["UnitOfWork"]},
+    {"name": "ReportService", "lifetime": "singleton", "file": "Startup.cs", "line": 15, "deps": ["UnitOfWork"], "ctor_file": "ReportService.cs", "ctor_line": 7, "ctor_type": "ReportService"},
     {"name": "UnitOfWork", "lifetime": "transient", "file": "Startup.cs", "line": 16, "deps": ["AppDbContext"]},
     {"name": "RequestLog", "lifetime": "scoped", "file": "Startup.cs", "line": 17, "deps": ["AppDbContext"]}
   ]

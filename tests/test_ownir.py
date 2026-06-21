@@ -493,7 +493,8 @@ def run() -> int:
     #     AND disposable; a non-disposable transient and a scoped capture stay silent.
     from ownlang.di import find_captured_transient_disposables
     dsvcs = [
-        Service("Cache", "singleton", ("Conn",)),  # -> transient disposable: DI003
+        Service("Cache", "singleton", ("Conn",),  # -> transient disposable: DI003
+                ctor_file="Cache.cs", ctor_line=4, ctor_type="Cache"),
         Service("Conn", "transient", (), disposable=True),
         Service("Warm", "singleton", ("Mid",)),  # -> transient -> disposable
         Service("Mid", "transient", ("Pool",), disposable=False),
@@ -511,6 +512,14 @@ def run() -> int:
     checks += 1
     if any("IDisposable" not in c.message for c in di3):
         fails.append("DI003 message missing 'IDisposable'")
+    checks += 1
+    # DI003 carries the consuming-constructor anchor too, naming the IMPL that owns the ctor
+    # (regression guard: the DI003 collector must pass consumed_type, like DI001/DI002).
+    cache3 = next((c for c in di3 if c.singleton == "Cache"), None)
+    c3want = "[consumed by the 'Cache' constructor at Cache.cs:4]"
+    if cache3 is None or c3want not in cache3.message:
+        fails.append(f"DI003 message missing consuming-constructor anchor: "
+                     f"{cache3.message if cache3 else None!r}")
     # bridge: DI003 surfaces as a WARNING-severity finding; `disposable` is parsed.
     di3facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
                 "services": [
@@ -645,6 +654,60 @@ def run() -> int:
         fails.append(f"DI001 message missing captive text: "
                      f"{em.message if em else None!r}")
     checks += 1
+    # P-006 Q#1: the finding anchors at the REGISTRATION site (line 12) but names the
+    # CONSUMING CONSTRUCTOR too — here a DIFFERENT file (EmailSender.cs:5), both in the
+    # message tail and as a structured related location (-> SARIF relatedLocations).
+    consumed = "[consumed by the 'EmailSender' constructor at EmailSender.cs:5]"
+    if em is None or consumed not in em.message:
+        fails.append(f"DI001 message missing consuming-constructor anchor: "
+                     f"{em.message if em else None!r}")
+    checks += 1
+    if em is None or em.related != (("EmailSender.cs", 5,
+                                     "consuming constructor of 'EmailSender'"),):
+        fails.append(f"DI001 related (consuming ctor) location wrong: "
+                     f"{em.related if em else None!r}")
+    checks += 1
+    # the related location rides into SARIF as a relatedLocations entry (clickable in
+    # GitHub code scanning), distinct from the primary registration-site location.
+    em_sarif = next((r for r in build_sarif(difindings)["runs"][0]["results"]
+                     if r["properties"].get("component") == "EmailSender"), None)
+    rel = (em_sarif or {}).get("relatedLocations")
+    if (not rel or rel[0]["physicalLocation"]["artifactLocation"]["uri"] != "EmailSender.cs"
+            or rel[0]["physicalLocation"]["region"]["startLine"] != 5):
+        fails.append(f"DI001 SARIF relatedLocations wrong: {rel!r}")
+    checks += 1
+    # a DI001 whose ctor location is UNKNOWN degrades cleanly — no suffix, no related.
+    nolocf = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                          "services": [
+                              {"name": "Cap", "lifetime": "singleton", "deps": ["Sc"],
+                               "file": "S.cs", "line": 3},
+                              {"name": "Sc", "lifetime": "scoped", "deps": [],
+                               "file": "S.cs", "line": 4}]})
+    cap = next((x for x in nolocf if x.code == "DI001"), None)
+    if cap is None or "consumed by the" in cap.message or cap.related != ():
+        fails.append(f"DI001 without ctor loc should omit the consuming-ctor anchor: "
+                     f"{(cap.message, cap.related) if cap else None!r}")
+    checks += 1
+    # an INTERFACE registration (AddSingleton<IBilling, Billing>): the singleton is 'IBilling'
+    # (no ctor) but the consuming ctor is 'Billing's, so the finding must name the IMPL Billing,
+    # never the interface (Codex). ctor_type carries the impl through the fact.
+    ifacef = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                          "services": [
+                              {"name": "IBilling", "lifetime": "singleton", "deps": ["Db"],
+                               "file": "Startup.cs", "line": 8, "ctor_file": "Billing.cs",
+                               "ctor_line": 11, "ctor_type": "Billing"},
+                              {"name": "Db", "lifetime": "scoped", "deps": [],
+                               "file": "Startup.cs", "line": 9}]})
+    ib = next((x for x in ifacef if x.code == "DI001"), None)
+    if ib is None or "[consumed by the 'Billing' constructor at Billing.cs:11]" not in ib.message:
+        fails.append(f"DI001 interface-registration must name the IMPL ctor (Billing), not "
+                     f"the interface: {ib.message if ib else None!r}")
+    checks += 1
+    if ib is None or "'IBilling' constructor" in ib.message \
+            or ib.related != (("Billing.cs", 11, "consuming constructor of 'Billing'"),):
+        fails.append(f"DI001 interface-registration named the interface ctor or wrong related: "
+                     f"{(ib.message, ib.related) if ib else None!r}")
+    checks += 1
     # an unknown lifetime must fail loudly at load (external input).
     if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
                          "services": [{"name": "X", "lifetime": "perpetual"}]}):
@@ -671,6 +734,18 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "root_resolves": "abc"}]}):
         fails.append("a non-array service root_resolves did not raise OwnIRError")
+    checks += 1
+    # ctor_line (the consuming-constructor anchor, P-006 Q#1) is validated like line.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "ctor_line": "NaN"}]}):
+        fails.append("a non-integer service ctor_line did not raise OwnIRError")
+    checks += 1
+    # ctor_type (the impl owning the ctor) is validated as a string.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "ctor_type": 5}]}):
+        fails.append("a non-string service ctor_type did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it

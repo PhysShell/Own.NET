@@ -111,8 +111,19 @@ rather than guessed.
 ## Open questions
 
 1. Where to anchor the diagnostic — the registration line, the consuming
-   constructor, or both? (Both, with the capture path shown, like OWN014's
-   "expected: Window — actual: App — path: …".)
+   constructor, or both? **Resolved: both**, with the capture path shown, like OWN014's
+   "expected: Window — actual: App — path: …".
+   For the captive family (DI001/DI002/DI003) the finding keeps its **primary** anchor at
+   the registration site and names the **consuming constructor** — where the captive is
+   injected — both in the message tail
+   (`[consumed by the '<impl>' constructor at <file>:<line>]`) and as a structured
+   **SARIF `relatedLocation`** (clickable, cross-file). The owner named is the
+   **implementation** type that owns the ctor (for an interface registration that is the
+   impl, not the ctor-less service interface). The extractor records each implementation's
+   ctor location (the widest public ctor, or the class declaration for a primary/implicit
+   ctor); the core appends it when known and degrades cleanly when not.
+   *Still open:* DI004's consumer is a **resolution call site**, not a ctor — anchoring it
+   there is the sibling follow-up (the call-site location is not yet threaded through).
 2. How far to chase transitive captures through the constructor graph before the
    dynamic cases make it unreliable? (Bounded depth; stop at unknown edges.)
 3. Is `IServiceScopeFactory` usage inside a singleton recognised as the *fix*
