@@ -477,6 +477,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // lower the body so a tracked plain local used inside is seen.
             return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn);
         case ReturnStatementSyntax rs:
+        {
             // A tracked local READ in the return value is a use at the return point —
             // e.g. `return BuildResult(buf)` after `pool.Return(buf)` is a use-after-
             // return. A tracked local *itself* returned is excluded upstream as an
@@ -486,11 +487,26 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // on the return path — then exits; outside a try it is a bare CFG exit.
             if (rs.Expression is { } rexpr)
                 EmitFlowExpr(rexpr, tracked, model, nodes);
+            // A returned Span/Memory VIEW (borrow) ESCAPES to the caller, who uses it AFTER this
+            // method's finally cleanup runs — so `try { return view; } finally { Return(buf); }`
+            // hands back a DANGLING borrow (the idiomatic pool-cleanup form). Model the escaped
+            // view's use AFTER the finally release(s) by inserting it just before the exit of the
+            // `onReturn` chain (which is `[finally…, exit]`), so a finally that releases the owner
+            // trips OWN002 (Codex). Outside a try (onReturn null) EmitFlowExpr already placed the
+            // use after any earlier release, so no insertion is needed.
+            var viewEscapes = rs.Expression is { } vrx
+                ? ReturnedViewOwners(vrx, tracked, model) : new List<string>();
             if (onReturn is not null)
-                nodes.AddRange(onReturn);
+            {
+                var chain = new List<object>(onReturn);
+                foreach (var owner in viewEscapes)
+                    chain.Insert(chain.Count - 1, new { op = "use", var = owner, line = LineOf(rs) });
+                nodes.AddRange(chain);
+            }
             else
                 nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
             return true;
+        }
         case WhileStatementSyntax ws:
         {
             // P-016 A1 reached the frontend: a `while` lowers to a `while` flow op
@@ -848,7 +864,7 @@ static string? ViewOwner(ExpressionSyntax? e, SemanticModel model)
         && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ContainingType: { Name: "MemoryExtensions" } mct }
         && IsInNamespace(mct, "System"))
         return recv.Identifier.Text;
-    if (e is ObjectCreationExpressionSyntax oc
+    if (e is BaseObjectCreationExpressionSyntax oc          // explicit OR target-typed `new(buf, …)`
         && oc.ArgumentList is { Arguments.Count: > 0 }
         && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg
         && model.GetSymbolInfo(oc).Symbol is IMethodSymbol
@@ -871,6 +887,22 @@ static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
         if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init })
             return ViewOwner(init, model);
     return null;
+}
+
+// The tracked owner buffers whose Span/Memory VIEW LOCALS are returned by `expr` (an escaping
+// borrow — `return view` where `view` is `buf.AsMemory(…)`). The caller uses each such view AFTER
+// this method's finally cleanup, so the return lowering re-emits the owner's use after the finally
+// release(s). Distinct from a plain returned tracked local (excluded upstream as an escape) — here
+// the borrow, not the owner, leaves the method, and the owner stays tracked.
+static List<string> ReturnedViewOwners(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model)
+{
+    var owners = new List<string>();
+    foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+        if (!tracked.Contains(idn.Identifier.Text)
+            && ViewOwnerOf(idn, model) is { } owner
+            && tracked.Contains(owner) && !owners.Contains(owner))
+            owners.Add(owner);
+    return owners;
 }
 
 // A factory call that CREATES and hands back a fresh owned IDisposable the caller must

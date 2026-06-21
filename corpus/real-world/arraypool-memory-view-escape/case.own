@@ -1,9 +1,9 @@
-// OwnLang model. `acquire` == ArrayPool.Rent, `release` == ArrayPool.Return. The C# stores a
-// Memory<byte> VIEW of the buffer and RETURNS it (an escape) after the buffer was returned to the
-// pool. A Memory<T> is a borrow that — unlike a ref-struct Span — can leave the method, so the
-// returned view dangles. The extractor lowers a use of the view (here, returning it) to a use of the
-// OWNER buffer, so the escape after `release` is the generic use-after-return (OWN002), the same code
-// the core gives for reading the buffer directly after return.
+// OwnLang model. `acquire` == ArrayPool.Rent, `release` == ArrayPool.Return (run by the `finally`).
+// The C# returns a Memory<byte> VIEW of the buffer from inside a `try` whose `finally` returns the
+// buffer to the pool. A Memory<T> — unlike a ref-struct Span — can leave the method, so the caller
+// receives the view AFTER the finally recycled the buffer: a dangling escape. The extractor models
+// the escaped view's use AFTER the finally release, so it reduces to a plain use-after-return
+// (OWN002), the same code reading the buffer directly after return would give.
 module Corpus
 resource Buffer {
   acquire rent
@@ -11,6 +11,6 @@ resource Buffer {
 }
 fn render(n: int) {
   let buf = acquire Buffer(n);   // ArrayPool.Rent
-  release buf;                   // ArrayPool.Return  <-- too early
-  use buf;                       // return the dangling Memory view (escape) AFTER return -> OWN002
+  release buf;                   // ArrayPool.Return  <-- the finally, before the caller sees the view
+  use buf;                       // the escaped Memory view, used by the caller AFTER the finally -> OWN002
 }

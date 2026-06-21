@@ -1,10 +1,12 @@
 # Pooled-buffer `Memory<T>` view that ESCAPES after return — the borrow checker, second bite
 
 **Pattern:** a rented `ArrayPool<T>` buffer is sliced into a `Memory<T>` local
-(`Memory<byte> view = buf.AsMemory(0, n)`), the buffer is `Return`ed to the pool, and the view is
-then **returned from the method** (or stored in a field). The borrow **escapes** its owner: the
-caller holds a `Memory<byte>` into an array the pool has already recycled to someone else — a silent
-cross-tenant corruption (read/write of freed-and-reused memory).
+(`Memory<byte> view = buf.AsMemory(0, n)`) and **returned from inside a `try` whose `finally`
+returns the buffer to the pool** — *the* idiomatic ArrayPool cleanup. The `return view` is evaluated
+before the finally, but the caller receives the `Memory<byte>` only **after** the finally has
+recycled the array, so the borrow **escapes** its owner: the caller holds a view into an array the
+pool has already handed to someone else — a silent cross-tenant corruption (read/write of
+freed-and-reused memory).
 
 **What the checker says:** the view's escape (the `return`) is a use of the owner after it was
 released → the generic **OWN002** (use-after-release), surfaced at the escape site.
@@ -19,6 +21,13 @@ BCL symbols (`System.MemoryExtensions`, `System.Memory<T>`). Because a reference
 to a use of the owner — and `return view` is such a reference — the escape of a dangling view after
 `Return(buf)` trips OWN002. Before this slice the `Memory` view was unrecognised, so the dangling
 return looked balanced (acquire + release) — a **miss**.
+
+Crucially, the escaped view's use is modelled **after the `finally`**: a returned borrow is used by
+the caller *after* the method's cleanup, so the owner-use is re-emitted just before the method exits
+the `onReturn` (finally) chain. That is what catches the idiomatic
+`try { return view; } finally { Return(buf); }` — where the `return` is evaluated first but the
+caller only receives the view once the finally has recycled the buffer (a dangling escape the C#
+compiler does **not** prevent for `Memory<T>`).
 
 **Conservative (0 FP).** Only a view of a **tracked** owner that is used/returned **after** the
 owner's release fires. The fix (`after.cs`) copies out of the buffer (`AsSpan(..).ToArray()`) and
