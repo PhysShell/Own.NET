@@ -387,9 +387,12 @@ jobs:
             || { echo "FAIL: expected DI004 ExprBodiedResolver anchored at its call site (line 123)"; exit 1; }
           echo "$out" | grep -qE "DiCaptiveSample\.cs:137: warning: \[DI004\].*'WrapperResolver'" \
             || { echo "FAIL: expected transitive DI004 WrapperResolver anchored at the entry call site (line 137)"; exit 1; }
-          # the registration site rides along as the SECONDARY anchor (named in the message tail).
-          echo "$out" | grep -q "singleton registered at " \
-            || { echo "FAIL: expected the DI004 registration site named as the secondary anchor"; exit 1; }
+          # the registration site rides along as the SECONDARY anchor (named in EACH DI004
+          # message tail) — exactly 3, one per finding, so a partial-suffix regression (the tail
+          # on some findings but not all) fails CI too (CodeRabbit review; mirrors the counts above).
+          nreg=$(echo "$out" | grep -c "singleton registered at ")
+          [ "$nreg" = "3" ] \
+            || { echo "FAIL: expected exactly 3 DI004 registration-site suffixes, got $nreg"; exit 1; }
           # the three controls each pin one precision guard and must stay SILENT: ScopedResolver
           # resolves from a SCOPE it creates (scope.ServiceProvider — the correct shape);
           # PlainResolver resolves a NON-disposable transient whose only dep is scoped (the root
