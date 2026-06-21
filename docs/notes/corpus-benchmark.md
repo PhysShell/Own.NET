@@ -26,7 +26,7 @@ correct code), and **recall was 3/9** — the three caught are exactly the
 subscription/region class the extractor is strongest at (`zombie-viewmodel` →
 OWN001, two static-event escapes → OWN014).
 
-## Ratchet → 8/10 (four ratchets)
+## Ratchet → 9/11 (five ratchets)
 
 ### → 4/9: a fixture was understating us
 
@@ -89,14 +89,29 @@ handed back by some other API is never mistaken for an acquire). With it the lea
 8/10**. The blast radius is exactly one file: nothing else in the corpus or the samples opens
 a `File.*` stream, so no `after.cs` and no dog-food scan can newly cry wolf.
 
-The remaining gaps are genuine **frontend extraction** islands. The *use-after-handoff*
-(`OWN002`) arm of `ownership-handoff-consume` — caught only as the leak today — needs the
-inter-procedural **consume** contract (a method that disposes a by-value parameter, checked at
-call sites like Rust's move; the cut is the *signature*, no whole-program points-to). A
-field/cross-method use-after-dispose needs cross-method field-state. And the injected-source
-region-escape (`viewmodel-escapes-to-app`) needs the source's lifetime *proven* — its DI
-registration — which the fixture does not even carry. The `.own` reductions catch all three;
-the C# extractor does not yet. Each is a real capability the floor will ratchet up to as it lands.
+### → 9/11: the inter-procedural consume contract
+
+The last handoff gap was the *use-after-handoff* arm — a stream handed to a consumer that
+disposes it, then touched again (`OWN002`). The extractor treated every argument-pass as an
+*escape* (untracked), so the handed-off stream vanished and the later read was invisible. Now
+a first-party method owning a by-value `IDisposable` parameter is recognised as carrying an
+ownership **contract**: passing a tracked local to it is a **handoff** (lowered to a `call`
+op, not an escape), and the OwnIR bridge — whose consume machinery was already built and
+tested (`handoff_contract.facts.json`) — **moves ownership** across the call per the callee's
+inferred contract (a body that releases its param ⇒ consume). A use after the move then trips
+`OWN002`. The cut is the **signature**, not whole-program points-to — the modular handoff the
+`.own` reduction proves, like Rust's move. A new fixture `ownership-handoff-use` (a *pure*
+use-after-handoff, no leak arm) is a miss before the contract and a catch after, so **recall
+is now 9/11**; `ownership-handoff-consume` now fires both its arms (`OWN001`+`OWN002`). The
+bridge half was pinned locally (hand-built facts → `check_facts` → the exact verdicts), and
+the blast radius is the two handoff fixtures — the consumer shape (a by-value `IDisposable`
+parameter) appears nowhere else in the corpus or samples, so nothing else can newly fire.
+
+The remaining gaps are genuine **frontend extraction** islands: a field/cross-method
+use-after-dispose needs cross-method field-state, and the injected-source region-escape
+(`viewmodel-escapes-to-app`) needs the source's lifetime *proven* — its DI registration —
+which the fixture does not even carry. The `.own` reductions catch both; the C# extractor does
+not yet. Each is a real capability the floor will ratchet up to as it lands.
 
 ## Why catch/clean, not exact-code match
 

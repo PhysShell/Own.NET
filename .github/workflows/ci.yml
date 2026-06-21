@@ -625,13 +625,13 @@ jobs:
       - name: Score the corpus on real C#
         # Precision is gated absolutely (every fix silent, zero false positives);
         # recall is pinned at the measured floor and ratchets up as the extractor
-        # improves. Now 8/10 — pooled buffers ride the path-sensitive flow engine
-        # (Rent = acquire, Return = release: OWN003/OWN002, pool resolved via the Roslyn
-        # SemanticModel so an ALIASED receiver is caught), and ownership-transferring
-        # factory acquires (System.IO.File.Open*/Create*) are now recognised alongside
-        # `new`, so the leak arm of the interprocedural-handoff case fires OWN001.
-        # Remaining backlog: the use-after-handoff (OWN002) arm of that case, a
-        # cross-method use-after-dispose, and an injected-source region-escape. A drop
-        # below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 8
+        # improves. Now 9/11 — pooled buffers ride the path-sensitive flow engine
+        # (Rent/Return: OWN003/OWN002, pool resolved via the Roslyn SemanticModel so an
+        # ALIASED receiver is caught), factory acquires (System.IO.File.Open*/Create*) are
+        # recognised alongside `new`, and the inter-procedural CONSUME contract is modelled:
+        # a first-party method owning a by-value IDisposable param is a handoff (a `call`
+        # op), so a use after the handoff trips OWN002 (the cut is the signature, like
+        # Rust's move). Remaining backlog: a cross-method use-after-dispose and an
+        # injected-source region-escape. A drop below the floor is a regression.
+        run: python scripts/benchmark.py --min-recall 9
 
