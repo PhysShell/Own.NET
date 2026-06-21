@@ -124,8 +124,7 @@ from .ast_nodes import (
     While,
 )
 from .di import LIFETIMES as DI_LIFETIMES
-from .di import Service, find_captive_dependencies
-from .di import find_captured_transient_disposables
+from .di import Service, find_captive_dependencies, find_captured_transient_disposables
 from .diagnostics import TITLES, Severity
 
 # The OwnIR schema version this core understands. Bump it whenever the fact

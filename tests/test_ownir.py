@@ -493,14 +493,14 @@ def run() -> int:
     #     AND disposable; a non-disposable transient and a scoped capture stay silent.
     from ownlang.di import find_captured_transient_disposables
     dsvcs = [
-        Service("Cache", "singleton", ("Conn",)),                  # -> transient disposable : DI003
+        Service("Cache", "singleton", ("Conn",)),  # -> transient disposable: DI003
         Service("Conn", "transient", (), disposable=True),
-        Service("Warm", "singleton", ("Mid",)),                    # -> transient -> transient disposable
+        Service("Warm", "singleton", ("Mid",)),  # -> transient -> disposable
         Service("Mid", "transient", ("Pool",), disposable=False),
         Service("Pool", "transient", (), disposable=True),
-        Service("Plain", "singleton", ("Plumb",)),                 # transient NOT disposable : silent
+        Service("Plain", "singleton", ("Plumb",)),  # transient, not disposable: silent
         Service("Plumb", "transient", (), disposable=False),
-        Service("Cap", "singleton", ("Db",)),                      # singleton -> scoped : DI001, not DI003
+        Service("Cap", "singleton", ("Db",)),  # singleton -> scoped: DI001, not DI003
         Service("Db", "scoped", (), disposable=True),
     ]
     di3 = find_captured_transient_disposables(dsvcs)
