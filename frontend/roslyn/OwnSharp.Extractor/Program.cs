@@ -996,22 +996,40 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                     && bl.Types.Any(bt => DiTypeName(bt.Type) is "IDisposable" or "IAsyncDisposable"));
             // DI004 — the names that refer to an injected IServiceProvider (the ROOT provider
             // for a singleton): the ctor parameters of type IServiceProvider (usable directly
-            // in a primary-ctor class), plus any field assigned one of them in a ctor body. A
+            // in a primary-ctor class), plus any real class field assigned one of them. A
             // `name.GetService<T>()` / `GetRequiredService<T>()` call on such a name is then a
             // hand resolution off the root; a `scope.ServiceProvider.Get...` call has a
             // member-access receiver that is NOT one of these names, so it stays silent.
             var providerNames = new HashSet<string>();
+            // the real class fields, so a ctor LOCAL alias can never enter providerNames: a
+            // bare-identifier assignment LHS that is not a field would otherwise false-match a
+            // same-named receiver in another scope and mint a DI004 false positive (CodeRabbit).
+            var classFieldNames = new HashSet<string>(
+                cls.Members.OfType<FieldDeclarationSyntax>()
+                   .SelectMany(f => f.Declaration.Variables)
+                   .Select(v => v.Identifier.Text));
             if (widest is not null)
                 foreach (var p in widest.Parameters)
                     if (p.Type is not null && DiTypeName(p.Type) == "IServiceProvider")
                         providerNames.Add(p.Identifier.Text);
+            // `_field = sp;` in any ctor — BLOCK- or EXPRESSION-bodied (an expression-bodied
+            // ctor has a null Body, so scan the whole ctor's descendants, not just Body; Codex),
+            // restricted to a real field so a local alias never matches.
             foreach (var mem in cls.Members)
-                if (mem is ConstructorDeclarationSyntax ctorDecl && ctorDecl.Body is { } body)
-                    foreach (var asg in body.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                if (mem is ConstructorDeclarationSyntax ctorDecl)
+                    foreach (var asg in ctorDecl.DescendantNodes().OfType<AssignmentExpressionSyntax>())
                         if (asg.Right is IdentifierNameSyntax rhs
                             && providerNames.Contains(rhs.Identifier.Text)
-                            && AssignedFieldName(asg.Left) is { } fld)
+                            && AssignedFieldName(asg.Left) is { } fld
+                            && classFieldNames.Contains(fld))
                             providerNames.Add(fld);
+            // field initializers that capture an injected provider param (the primary-ctor
+            // shape, e.g. `private readonly IServiceProvider _sp = sp;`).
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var v in fdecl.Declaration.Variables)
+                    if (v.Initializer?.Value is IdentifierNameSyntax fInit
+                        && providerNames.Contains(fInit.Identifier.Text))
+                        providerNames.Add(v.Identifier.Text);
             var rootResolves = new List<string>();
             if (providerNames.Count > 0)
             {

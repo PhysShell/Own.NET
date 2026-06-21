@@ -113,6 +113,30 @@ namespace Sample
         public void Warm() { var c = _sp.GetRequiredService<PooledConnection>(); }            // SILENT (scoped class)
     }
 
+    // DI004 (expression-bodied ctor) — the same leak as ConnectionResolver, but the injected
+    // provider is stored via an EXPRESSION-bodied constructor (`=> _sp = sp;`, whose Body is
+    // null), so the alias collection must scan the whole ctor, not just a block body (Codex).
+    public sealed class ExprBodiedResolver
+    {
+        private readonly IServiceProvider _sp;
+        public ExprBodiedResolver(IServiceProvider sp) => _sp = sp;
+        public void Warm() { var c = _sp.GetRequiredService<PooledConnection>(); }            // DI004
+    }
+
+    // a NON-disposable transient that depends on the transient IDisposable PooledConnection —
+    // resolving it from the root still makes the root build and track PooledConnection.
+    public sealed class MidConnection { public MidConnection(PooledConnection c) { } }        // transient wrapper
+
+    // DI004 (transitive) — a singleton that service-locates the non-disposable transient wrapper
+    // MidConnection off the root; the root builds its whole transient subtree, so the disposable
+    // PooledConnection it drags in is tracked to app shutdown (WrapperResolver -> MidConnection ->
+    // PooledConnection). The root provider is captured by a primary-ctor FIELD INITIALIZER.
+    public sealed class WrapperResolver(IServiceProvider sp)
+    {
+        private readonly IServiceProvider _sp = sp;
+        public void Warm() { var m = _sp.GetRequiredService<MidConnection>(); }               // DI004 (transitive)
+    }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -172,6 +196,13 @@ namespace Sample
             services.AddSingleton<PlainResolver>();
             // SILENT — a SCOPED service's injected provider is the request scope, not the root.
             services.AddScoped<RequestResolver>();
+
+            // FLAGGED (DI004) — an expression-bodied ctor stores the injected root provider; same leak.
+            services.AddSingleton<ExprBodiedResolver>();
+            // FLAGGED (DI004, transitive) — service-locates the non-disposable transient MidConnection
+            // off the root, which drags in the transient IDisposable PooledConnection (tracked to app exit).
+            services.AddTransient<MidConnection>();
+            services.AddSingleton<WrapperResolver>();
         }
     }
 

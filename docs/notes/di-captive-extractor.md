@@ -139,34 +139,45 @@ catalogue honest.
 
 **The extractor** (still purely syntactic) records, per class, the names that refer to an
 injected `IServiceProvider` — the constructor parameters of type `IServiceProvider` (usable
-directly in a primary-ctor class) plus any field assigned one of them — then every
-`name.GetService<T>()` / `GetRequiredService<T>()` whose **receiver is one of those names** into a
-separate **`root_resolves`** list on the service fact. `ownlang/di.py`
-`find_explicit_root_resolutions` flags a **singleton** whose `root_resolves` reaches a service
-that is **transient ∧ disposable**.
+directly in a primary-ctor class), plus any **real class field** assigned one of them in a
+constructor (block- **or** expression-bodied, `=> _sp = sp;`) or via a field initializer
+(`IServiceProvider _sp = sp;`). It then records every `name.GetService<T>()` /
+`GetRequiredService<T>()` whose **receiver is one of those names** into a separate
+**`root_resolves`** list on the service fact. `ownlang/di.py` `find_explicit_root_resolutions`
+flags a **singleton** whose `root_resolves` reaches a **transient ∧ disposable** service —
+either the resolved type itself or one its transient subtree drags in: the same transient-edge
+DFS DI003 runs, but entered at the service-location call site instead of a constructor edge (the
+root builds the resolved type's whole transient subtree, so a non-disposable transient *wrapper*
+still leaks the disposable transient it depends on).
 
-**Precision (0 FP) is carried by three guards**, each pinned by a silent control in
+**Precision (0 FP) is carried by guards**, each pinned by a silent control in
 `DiCaptiveSample.cs`:
 
-- **singleton-only** — a *scoped*/transient service's injected provider is its **request scope**
-  (which disposes what it resolves), not the root, so it is never flagged (`RequestResolver`,
-  scoped, stays silent).
+- **singleton-only** — only a *singleton*'s injected provider is the root container, so a
+  singleton is what DI004 flags; the scoped `RequestResolver` is the silent control (a scoped
+  service is resolved inside a request scope, whose provider disposes what it resolves).
 - **the injected provider, never a scope's** — `scope.ServiceProvider.GetRequiredService<T>()`
   has a different receiver (a member access, not the injected name), so creating a scope and
   resolving from it — the *correct* pattern — stays silent (`ScopedResolver`).
-- **transient ∧ disposable** — the root does not track non-disposables, so a non-disposable
-  transient resolved from the root does not leak and is left silent (`PlainResolver` resolving
-  the non-disposable `UnitOfWork`).
+- **a transient subtree, disposable, never scoped** — the root does not track non-disposables,
+  and a *scoped* edge is not followed (resolving scoped from the root is DI001's concern / a
+  runtime scope-validation error), so `PlainResolver` resolving the non-disposable `UnitOfWork`
+  (whose only dep is scoped) stays silent.
+- **real fields only** — the alias capture restricts assignment targets to declared class
+  fields, so a constructor *local* alias never enters the provider-name set and cannot
+  same-name-match an unrelated receiver (no false positive).
 
-Aliases through locals, unknown receivers, and the non-generic `GetService(Type)` form are not
-guessed — they stay silent (recall left on the table to keep precision absolute). Pinned
-end-to-end by `DiCaptiveSample.cs` (`ConnectionResolver` → transient `IDisposable`
-`PooledConnection`, **exactly 1 DI004**, the three controls silent) in the `wpf-extractor` CI
-job, and at the graph level by `tests/test_ownir.py`. No general-purpose analyzer models this
-DI-container resolution contract.
+Aliases through locals, unknown receivers, and the non-generic `GetService(typeof(T))` form are
+not guessed — they stay silent (recall left on the table to keep precision absolute). Pinned
+end-to-end by `DiCaptiveSample.cs` — `ConnectionResolver` (block ctor), `ExprBodiedResolver`
+(expression-bodied ctor), and the transitive `WrapperResolver → MidConnection → PooledConnection`
+(primary-ctor field initializer), **exactly 3 DI004**, the three controls silent — in the
+`wpf-extractor` CI job, and at the graph level by `tests/test_ownir.py`. No general-purpose
+analyzer models this DI-container resolution contract.
 
 ## Next (separate slices)
 - Anchoring the finding at the **consuming constructor** (DI001/2/3) or the **resolution call
   site** (DI004) as well as the registration site (P-006 open question #1), with the path shown.
-- The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms (DI004
-  currently reads only the generic singular `Get(Required)Service<T>()`).
+- The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms, and a
+  directly-injected `IServiceScopeFactory` as the recognised fix (DI004 currently reads the
+  generic singular `Get(Required)Service<T>()` and the `CreateScope()` → scope-provider form).
