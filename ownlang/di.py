@@ -47,6 +47,12 @@ class Service:
     disposable: bool = False
     file: str = "?"
     line: int = 0
+    # services injected via `WeakReference<T>` — held WEAKLY, so they are NOT strong
+    # captive edges (DI001 must not see them), but a weakly-held scoped service is still
+    # a lifetime-contract violation: DI002. Declared LAST so the positional constructor
+    # contract (name, lifetime, deps, disposable, file, line) is preserved — callers pass
+    # `disposable`/etc. positionally, so a new field before them would shift their meaning.
+    weak_deps: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,6 +109,58 @@ def find_captive_dependencies(services: list[Service]) -> list[CaptiveDependency
                     visited.add(dep)
                     stack.append((dep, npath))
                 # a singleton dependency is safe here (captor reported on its own)
+    findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
+    return findings
+
+
+@dataclass(frozen=True)
+class WeakCaptiveDependency:
+    """A singleton that holds a **scoped** service via `WeakReference<T>` (DI002). A
+    weak reference is the usual "fix" for the DI001 captive leak — it stops the
+    singleton from pinning the scoped instance for the GC. But it does not fix the
+    *lifetime contract*: the scoped service is still resolved from the root provider
+    and lives for the application lifetime; the weak reference only hides the
+    GC-retention symptom, not the captive cause (and may go dead under the consumer)."""
+
+    singleton: str
+    captured: str
+    path: tuple[str, ...]
+    file: str
+    line: int
+
+    @property
+    def message(self) -> str:
+        chain = " -> ".join(self.path)
+        return (f"singleton '{self.singleton}' weakly captures scoped service "
+                f"'{self.captured}' (WeakReference): '{self.captured}' is still resolved "
+                f"from the root provider and promoted to application lifetime — the weak "
+                f"reference avoids pinning it for the GC but does not fix the "
+                f"captive-dependency lifetime violation ({chain})")
+
+
+def find_weak_captive_dependencies(
+        services: list[Service]) -> list[WeakCaptiveDependency]:
+    """Return every scoped service a singleton holds via `WeakReference<T>` (DI002).
+    The direct form: a singleton whose `weak_deps` names a scoped service. The weak
+    reference keeps it off the DI001 strong-capture graph, but the scoped instance is
+    still root-resolved and app-lived — a lifetime-contract violation, surfaced as a
+    warning. (Weakly-held transients that *drag in* a scoped are a separate, rarer
+    slice — not followed here, the direct weak-scoped edge is the common 'I wrapped my
+    captive in WeakReference' shape.)"""
+    by_name = {s.name: s for s in services}
+    findings: list[WeakCaptiveDependency] = []
+    for s in services:
+        if s.lifetime != SINGLETON:
+            continue
+        reported: set[str] = set()
+        for dep in s.weak_deps:
+            dnode = by_name.get(dep)
+            if dnode is None or dnode.lifetime != SCOPED or dep in reported:
+                continue
+            reported.add(dep)
+            findings.append(WeakCaptiveDependency(
+                singleton=s.name, captured=dep, path=(s.name, dep),
+                file=s.file, line=s.line))
     findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
     return findings
 

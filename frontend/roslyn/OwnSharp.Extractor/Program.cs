@@ -937,6 +937,10 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
 {
     // 1. class name -> its widest constructor's parameter type names (the DI ctor).
     var ctorDeps = new Dictionary<string, List<string>>();
+    // class name -> services injected via `WeakReference<T>` (held weakly). Kept apart
+    // from ctorDeps so the strong DI001 graph never sees a weak edge; a weakly-held
+    // scoped service is DI002 (the weak ref hides the GC symptom, not the lifetime bug).
+    var ctorWeakDeps = new Dictionary<string, List<string>>();
     // class name -> does it implement IDisposable/IAsyncDisposable (so the container
     // owns its disposal)? Syntactic — its OWN base list names it; an inherited
     // disposable (`: Stream`) is not seen, so DI003 fires only on an explicitly
@@ -962,14 +966,21 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                         || ctor.ParameterList.Parameters.Count > widest.Parameters.Count))
                     widest = ctor.ParameterList;
             var deps = new List<string>();
+            var weakDeps = new List<string>();
             if (widest is not null)
                 foreach (var p in widest.Parameters)
                 {
-                    var tn = p.Type is null ? null : DiTypeName(p.Type);
-                    if (tn is not null)
+                    if (p.Type is null)
+                        continue;
+                    // a `WeakReference<X>` parameter is a WEAK dep on X (not a strong dep):
+                    // it keeps X off the DI001 graph, but a weakly-held scoped X is DI002.
+                    if (WeakRefInner(p.Type) is { } weakInner)
+                        weakDeps.Add(weakInner);
+                    else if (DiTypeName(p.Type) is { } tn)
                         deps.Add(tn);
                 }
-            ctorDeps[cls.Identifier.Text] = deps;   // last decl wins (core dedups by name)
+            ctorDeps[cls.Identifier.Text] = deps;        // last decl wins (core dedups by name)
+            ctorWeakDeps[cls.Identifier.Text] = weakDeps;
             // OR across partial declarations: any part that names IDisposable makes the
             // type disposable, so a later `partial class C { }` (no base list, e.g. a
             // generated/designer file) cannot clear an earlier `partial class C : IDisposable`.
@@ -994,11 +1005,14 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 continue;
             var deps = impl is not null && ctorDeps.TryGetValue(impl, out var d)
                 ? d : new List<string>();
+            var weakDeps = impl is not null && ctorWeakDeps.TryGetValue(impl, out var wd)
+                ? wd : new List<string>();
             services.Add(new
             {
                 name = service,
                 lifetime,
                 deps,
+                weak_deps = weakDeps,
                 // the IMPLEMENTATION's disposability — the container constructs and
                 // disposes the impl, so a transient-disposable impl captured by a
                 // singleton is held to app exit (DI003).
@@ -1062,8 +1076,32 @@ static string? DiTypeName(TypeSyntax t) => t switch
     GenericNameSyntax g => g.Identifier.Text,
     QualifiedNameSyntax q => DiTypeName(q.Right),
     AliasQualifiedNameSyntax aq => DiTypeName(aq.Name),
+    // a nullable annotation (`AppDbContext?`) does not change the injected service type —
+    // unwrap it so a nullable ctor param is still a real dep (CodeRabbit review on #63).
+    NullableTypeSyntax n => DiTypeName(n.ElementType),
     _ => null,
 };
+
+// If `t` is a `WeakReference<X>` (or `System.WeakReference<X>`, or a nullable
+// `WeakReference<X>?`), the simple name of its single type argument X; else null.
+// Syntactic, single-arg — matches how a singleton holds a captive dependency weakly.
+// (`System.WeakReference` non-generic has no element type and is not a DI dep.)
+static string? WeakRefInner(TypeSyntax t)
+{
+    if (t is NullableTypeSyntax nt)   // `WeakReference<X>?` -> unwrap the nullable annotation
+        t = nt.ElementType;
+    var g = t switch
+    {
+        GenericNameSyntax gen => gen,
+        QualifiedNameSyntax { Right: GenericNameSyntax gen } => gen,
+        AliasQualifiedNameSyntax { Name: GenericNameSyntax gen } => gen,
+        _ => null,
+    };
+    // the inner `X` (or a nullable `X?`) is resolved by DiTypeName, which unwraps `?`.
+    return g is { Identifier.Text: "WeakReference" }
+           && g.TypeArgumentList.Arguments.Count == 1
+        ? DiTypeName(g.TypeArgumentList.Arguments[0]) : null;
+}
 
 // DI's default IServiceProvider resolves through PUBLIC constructors only — an
 // explicit ctor with no access modifier defaults to private and DI never uses it.

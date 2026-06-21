@@ -11,8 +11,9 @@
   singleton→singleton and clean registrations silent). See
   [docs/notes/di-captive-extractor.md](../notes/di-captive-extractor.md). **DI003**
   (a transient `IDisposable` captured by a singleton — promoted to application lifetime)
-  now also fires end-to-end as a **warning**, CI-validated on the same sample. Next:
-  DI002 (weak-ref).
+  and **DI002** (a scoped service held by a singleton via `WeakReference<T>` — still a
+  captive: the weak ref hides the GC symptom, not the lifetime violation) now also fire
+  end-to-end as **warnings**, CI-validated on the same sample.
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
@@ -39,12 +40,13 @@ to a longer-lived region) already models it.
 
 - **DI001 (error):** a singleton service captures a scoped dependency (directly,
   or transitively through the constructor graph).
-- **DI002 (warning):** a singleton captures a scoped dependency **weakly**
+- **DI002 (warning) — shipped:** a singleton captures a scoped dependency **weakly**
   (`WeakReference<Scoped>`). A weak reference fixes *retention* leaks, not a
-  *lifetime contract* violation — the scoped service is still invalid outside its
-  scope and may be disposed mid-use. Message: *"`WeakReference` does not make a
-  scoped service safe to use outside its scope; resolve it inside a fresh scope
-  via `IServiceScopeFactory`, or make the consumer scoped."*
+  *lifetime contract* violation — the scoped service is still root-resolved, lives
+  for the app lifetime, and may be disposed mid-use. The `WeakReference<X>` ctor
+  parameter is read into a separate `weak_deps` list (off the DI001 strong graph), and
+  `find_weak_captive_dependencies` flags a singleton whose `weak_deps` names a scoped
+  service. CI-validated on `DiCaptiveSample.cs` (`WeakCache`).
 - **DI003 (warning) — shipped:** a transient `IDisposable` **captured by a singleton**
   is resolved from the root (via the singleton), promoted to application lifetime, and
   disposed only at root disposal — held far longer than its `transient` registration

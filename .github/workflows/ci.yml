@@ -317,7 +317,25 @@ jobs:
           nw=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI003\]")
           [ "$nw" = "1" ] \
             || { echo "FAIL: expected exactly 1 DI003 finding, got $nw"; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI003 (transient IDisposable captured by a singleton) at the C# location"
+          # P-006 DI002 (scoped service held by a singleton via WeakReference<T>, WARNING):
+          # the weak ref is the usual "fix" for a DI001 captive, but scoped AppDbContext is
+          # still root-resolved and app-lived — the lifetime contract is still violated. The
+          # weak edge is OFF the strong graph, so WeakCache is a DI002, NOT a 5th DI001 (the
+          # "exactly 4 DI001" count above proves it). A weak ref to a SINGLETON
+          # (WeakClockHolder -> Clock) is no mismatch -> silent.
+          echo "$out" | grep -qE "\[DI002\].*'WeakCache' weakly captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected DI002 (WeakCache weakly captures scoped AppDbContext)"; exit 1; }
+          # a NULLABLE WeakReference<AppDbContext>? is the same weak captive — the `?` annotation
+          # is unwrapped, so the scoped service is still seen (CodeRabbit review on #63).
+          echo "$out" | grep -qE "\[DI002\].*'WeakCacheOpt' weakly captures scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected DI002 on the nullable WeakReference (WeakCacheOpt)"; exit 1; }
+          nwk=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI002\]")
+          [ "$nwk" = "2" ] \
+            || { echo "FAIL: expected exactly 2 DI002 findings, got $nwk"; exit 1; }
+          if echo "$out" | grep -q "WeakClockHolder"; then
+            echo "FAIL: a weak ref to a singleton (WeakClockHolder) was wrongly flagged"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1

@@ -97,11 +97,29 @@ warning fires only where ownership is certain). Pinned end-to-end by `DiCaptiveS
 (`ConnectionWarmer` → transient `PooledConnection`) in the `wpf-extractor` CI job, and at the
 graph level by `tests/test_ownir.py`.
 
+## DI002 — scoped service captured *weakly* by a singleton (shipped)
+
+A singleton that holds a **scoped** service via **`WeakReference<T>`** is the usual "fix"
+for a DI001 captive — the weak reference stops the singleton pinning the scoped instance for
+the GC. But it does **not** fix the *lifetime contract*: the scoped service is still resolved
+from the root provider and lives for the application lifetime; the weak reference only hides
+the GC-retention symptom (and the target may go dead under the consumer). *"Your fix isn't a
+fix."* A **warning** (`severity="warning"` — real, shown soft), distinct from the strong
+DI001 capture. The extractor reads a `WeakReference<X>` constructor parameter (`WeakRefInner`)
+into a **separate `weak_deps`** list, deliberately kept **off** the DI001 strong graph, so the
+same scoped service is either a strong captive (DI001) or a weak captive (DI002), never both;
+`ownlang/di.py` `find_weak_captive_dependencies` flags a singleton whose `weak_deps` names a
+scoped service. Pinned end-to-end by `DiCaptiveSample.cs` (`WeakCache` →
+`WeakReference<AppDbContext>`, with `WeakClockHolder → WeakReference<Clock>` staying silent —
+a weak ref to a singleton is no mismatch) in the `wpf-extractor` CI job, and at the graph
+level by `tests/test_ownir.py`. It is a contract no general-purpose analyzer models — even the
+developer's WeakReference "fix" is still flagged, which is the key differentiation.
+
 ## Next (separate slices)
 
-- **DI002** — a singleton capturing a scoped dependency *weakly*
-  (`WeakReference<Scoped>`): a warning, since a weak reference fixes retention but
-  not the lifetime-contract violation.
+- **DI002, the transitive form** — a singleton holding a `WeakReference<Transient>` whose
+  transient *drags in* a scoped service (the weak edge is one hop above the scoped); the
+  shipped slice flags the common **direct** `WeakReference<Scoped>` shape.
 - **DI003, the explicit form** — a transient `IDisposable` resolved by hand from the
   **root** provider (`root.GetService<T>()`), which the graph form above does not see (it
   needs the resolution call sites, not just the registration graph).
