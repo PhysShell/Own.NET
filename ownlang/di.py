@@ -44,13 +44,15 @@ class Service:
     name: str
     lifetime: str
     deps: tuple[str, ...] = ()
-    # services injected via `WeakReference<T>` — held WEAKLY, so they are NOT strong
-    # captive edges (DI001 must not see them), but a weakly-held scoped service is still
-    # a lifetime-contract violation: DI002.
-    weak_deps: tuple[str, ...] = ()
     disposable: bool = False
     file: str = "?"
     line: int = 0
+    # services injected via `WeakReference<T>` — held WEAKLY, so they are NOT strong
+    # captive edges (DI001 must not see them), but a weakly-held scoped service is still
+    # a lifetime-contract violation: DI002. Declared LAST so the positional constructor
+    # contract (name, lifetime, deps, disposable, file, line) is preserved — callers pass
+    # `disposable`/etc. positionally, so a new field before them would shift their meaning.
+    weak_deps: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

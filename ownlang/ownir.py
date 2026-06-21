@@ -453,6 +453,9 @@ def load(path: str) -> dict[str, Any]:
         deps = s.get("deps", [])
         if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
             raise OwnIRError("service 'deps' must be an array of strings")
+        weak_deps = s.get("weak_deps", [])
+        if not isinstance(weak_deps, list) or not all(isinstance(d, str) for d in weak_deps):
+            raise OwnIRError("service 'weak_deps' must be an array of strings")
         if not isinstance(s.get("file", "?"), str):
             raise OwnIRError("service 'file' must be a string")
         ln = s.get("line", 0)

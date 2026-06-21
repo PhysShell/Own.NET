@@ -598,6 +598,13 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "line": "NaN"}]}):
         fails.append("a non-integer service line did not raise OwnIRError")
+    checks += 1
+    # weak_deps (DI002) is validated like deps: a non-array (here a string, which would
+    # otherwise be char-split by tuple()) must fail loudly at load, not silently (Codex).
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "weak_deps": "abc"}]}):
+        fails.append("a non-array service weak_deps did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it
