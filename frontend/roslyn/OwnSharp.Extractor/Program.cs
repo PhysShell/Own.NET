@@ -897,11 +897,36 @@ static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
 static List<string> ReturnedViewOwners(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model)
 {
     var owners = new List<string>();
-    foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
-        if (!tracked.Contains(idn.Identifier.Text)
-            && ViewOwnerOf(idn, model) is { } owner
-            && tracked.Contains(owner) && !owners.Contains(owner))
+    void AddOwner(string? owner)
+    {
+        if (owner is not null && tracked.Contains(owner) && !owners.Contains(owner))
             owners.Add(owner);
+    }
+    // Follow only the RETURNED VALUE's own structure — a view LOCAL (`return view`), an inline view
+    // expression (`return buf.AsMemory(…)`), through casts / parentheses / `?:`. A member or call
+    // RESULT of a view (`return view.Length`, an int) does NOT escape the view, so it is not visited
+    // — scanning every descendant identifier would wrongly flag it (CodeRabbit).
+    void Visit(ExpressionSyntax e)
+    {
+        AddOwner(ViewOwner(e, model));
+        switch (e)
+        {
+            case IdentifierNameSyntax idn when !tracked.Contains(idn.Identifier.Text):
+                AddOwner(ViewOwnerOf(idn, model));
+                break;
+            case ParenthesizedExpressionSyntax p:
+                Visit(p.Expression);
+                break;
+            case CastExpressionSyntax c:
+                Visit(c.Expression);
+                break;
+            case ConditionalExpressionSyntax q:
+                Visit(q.WhenTrue);
+                Visit(q.WhenFalse);
+                break;
+        }
+    }
+    Visit(expr);
     return owners;
 }
 
