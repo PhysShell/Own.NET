@@ -953,6 +953,10 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
     // through a scope (`scope.ServiceProvider.GetRequiredService<T>()`) has a different
     // receiver and is deliberately NOT recorded — that pattern is correct.
     var classRootResolves = new Dictionary<string, List<string>>();
+    // class name -> the resolution CALL SITE of each root-resolved type ({type, file, line}).
+    // DI004's consumer is the GetRequiredService call site (not a ctor), so a finding anchors
+    // at it; emitted as `root_resolve_sites` alongside `root_resolves`.
+    var classRootResolveSites = new Dictionary<string, List<object>>();
     // class name -> its CONSUMING CONSTRUCTOR location (file, 1-based line): the widest
     // public ctor (or the class/primary-ctor declaration), where a captive dependency is
     // injected. A captive finding anchors at the registration site but names this too, so
@@ -1042,14 +1046,19 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                         && providerNames.Contains(fInit.Identifier.Text))
                         providerNames.Add(v.Identifier.Text);
             var rootResolves = new List<string>();
+            var rootResolveSites = new List<object>();
             if (providerNames.Count > 0)
             {
                 var seenResolve = new HashSet<string>();
-                foreach (var resolved in RootResolvedTypes(cls, providerNames))
-                    if (seenResolve.Add(resolved))
+                foreach (var (resolved, line) in RootResolvedTypes(cls, providerNames))
+                    if (seenResolve.Add(resolved))   // first call site per type wins
+                    {
                         rootResolves.Add(resolved);
+                        rootResolveSites.Add(new { type = resolved, file = ctorFile, line });
+                    }
             }
             classRootResolves[cls.Identifier.Text] = rootResolves;
+            classRootResolveSites[cls.Identifier.Text] = rootResolveSites;
         }
 
     // 2. registrations -> service facts at the registration site.
@@ -1072,6 +1081,8 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 ? wd : new List<string>();
             var rootResolves = impl is not null && classRootResolves.TryGetValue(impl, out var rr)
                 ? rr : new List<string>();
+            var rootResolveSites = impl is not null
+                && classRootResolveSites.TryGetValue(impl, out var rrs) ? rrs : new List<object>();
             var (ctorFile, ctorLine) = impl is not null && classCtorLoc.TryGetValue(impl, out var cl)
                 ? cl : ("?", 0);
             services.Add(new
@@ -1087,6 +1098,8 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 // the IMPLEMENTATION's by-hand resolutions off its injected provider — for a
                 // singleton, the root; a transient IDisposable resolved this way is DI004.
                 root_resolves = rootResolves,
+                // the resolution CALL SITE of each — DI004 anchors at it (its real consumer).
+                root_resolve_sites = rootResolveSites,
                 file,
                 line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1,
                 // the IMPLEMENTATION's consuming-constructor location (P-006 Q#1): where the
@@ -1191,12 +1204,13 @@ static string? AssignedFieldName(ExpressionSyntax lhs) => lhs switch
     _ => null,
 };
 
-// The service types a class resolves BY HAND off an injected IServiceProvider: every
-// `recv.GetService<T>()` / `recv.GetRequiredService<T>()` whose receiver is one of the
-// injected-provider names (DI004). Single type argument only (the generic resolve form);
-// a `scope.ServiceProvider.Get...` receiver is excluded by ReceiverIsProvider, so the
-// correct scope-resolution pattern is never recorded.
-static IEnumerable<string> RootResolvedTypes(
+// The service types a class resolves BY HAND off an injected IServiceProvider, with the
+// 1-based line of each `recv.GetService<T>()` / `recv.GetRequiredService<T>()` call whose
+// receiver is one of the injected-provider names (DI004). The line is the resolution call
+// site — DI004's actual consumer. Single type argument only (the generic resolve form); a
+// `scope.ServiceProvider.Get...` receiver is excluded by ReceiverIsProvider, so the correct
+// scope-resolution pattern is never recorded.
+static IEnumerable<(string type, int line)> RootResolvedTypes(
     ClassDeclarationSyntax cls, HashSet<string> providerNames)
 {
     foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
@@ -1208,7 +1222,7 @@ static IEnumerable<string> RootResolvedTypes(
             || !ReceiverIsProvider(ma.Expression, providerNames))
             continue;
         if (DiTypeName(gen.TypeArgumentList.Arguments[0]) is { } t)
-            yield return t;
+            yield return (t, inv.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
     }
 }
 

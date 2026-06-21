@@ -490,6 +490,16 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError("service 'ctor_line' must be an integer")
         if not isinstance(s.get("ctor_type", ""), str):
             raise OwnIRError("service 'ctor_type' must be a string")
+        # DI004 call-site metadata (optional): an array of {type, file, line} objects.
+        sites = s.get("root_resolve_sites", [])
+        if not isinstance(sites, list) or not all(
+                isinstance(x, dict) and isinstance(x.get("type", ""), str)
+                and isinstance(x.get("file", "?"), str)
+                and isinstance(x.get("line", 0), int) and not isinstance(x.get("line", 0), bool)
+                for x in sites):
+            raise OwnIRError(
+                "service 'root_resolve_sites' must be an array of "
+                "{type:str, file:str, line:int} objects")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -1272,6 +1282,37 @@ def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
     return ()
 
 
+def _di004_primary(c: Any) -> tuple[str, int]:
+    """DI004's primary anchor — the `GetRequiredService<T>()` **call site** (where the leak is
+    and where it is fixed), falling back to the registration site when the extractor did not
+    record the call. Unlike DI001/2/3 (a registration-graph property, anchored at the
+    registration), DI004 is a call-site property, so the call site is the primary (Codex)."""
+    if getattr(c, "resolved_line", 0) >= 1:
+        return (c.resolved_file, c.resolved_line)
+    return (c.file, c.line)
+
+
+def _di004_related(c: Any) -> tuple[tuple[str, int, str], ...]:
+    """The DI004 **registration** site as a structured related location — the secondary anchor,
+    beside the call-site primary. Empty when the call site is unknown (then the registration is
+    already the primary) or the registration line is unknown."""
+    if getattr(c, "resolved_line", 0) >= 1 and getattr(c, "line", 0) >= 1:
+        return ((c.file, c.line, f"registration of singleton '{c.singleton}'"),)
+    return ()
+
+
+def _resolve_sites(raw: Any) -> tuple[tuple[str, str, int], ...]:
+    """Parse a service's optional `root_resolve_sites` (DI004 call-site metadata) into
+    `(type, file, line)` triples. Tolerant for direct `check_facts` callers; `load()` does the
+    strict shape check."""
+    if not isinstance(raw, list):
+        return ()
+    return tuple(
+        (str(x.get("type", "")), str(x.get("file", "?")), _as_int(x.get("line", 0)))
+        for x in raw if isinstance(x, dict)
+    )
+
+
 def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     """Run the DI captive-dependency check over the facts' `services` graph and
     map each result to a DI001 Finding at its registration site."""
@@ -1301,6 +1342,9 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # the IMPLEMENTATION type owning that ctor — named in the finding instead of the
             # (possibly interface) service name, which would point at a ctor-less type (Codex).
             ctor_type=str(s.get("ctor_type", "")),
+            # DI004 call-site metadata: where each root_resolves type was hand-resolved, so the
+            # finding can anchor at the GetRequiredService call site (its real consumer).
+            root_resolve_sites=_resolve_sites(s.get("root_resolve_sites", [])),
         )
         for s in raw if isinstance(s, dict)
     ]
@@ -1342,13 +1386,13 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
     # call-site lifetime promotion is the smell), and a CALL SITE the registration graph
     # (DI001/002/003) cannot see — only resolutions off the injected provider, never a
     # scope's, so the correct scope-resolution pattern stays silent.
-    out += [
-        Finding(
-            file=c.file, line=c.line, code="DI004",
+    for c in find_explicit_root_resolutions(services):
+        pf, pl = _di004_primary(c)   # the call site (its real consumer), or registration if unknown
+        out.append(Finding(
+            file=pf, line=pl, code="DI004",
             component=c.singleton, event=c.resolved, handler="",
-            message=c.message, kind="DI lifetime", severity="warning")
-        for c in find_explicit_root_resolutions(services)
-    ]
+            message=c.message, kind="DI lifetime", severity="warning",
+            related=_di004_related(c)))
     return out
 
 

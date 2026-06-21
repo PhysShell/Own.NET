@@ -122,8 +122,12 @@ rather than guessed.
    impl, not the ctor-less service interface). The extractor records each implementation's
    ctor location (the widest public ctor, or the class declaration for a primary/implicit
    ctor); the core appends it when known and degrades cleanly when not.
-   *Still open:* DI004's consumer is a **resolution call site**, not a ctor — anchoring it
-   there is the sibling follow-up (the call-site location is not yet threaded through).
+   **DI004** is also anchored, but the *other* way round: its consumer is a **resolution call site**
+   (`GetRequiredService<T>()`), and the leak *is* that call — so the call site is DI004's **primary**
+   anchor (extractor threads each call's location through a parallel `root_resolve_sites` fact; the
+   finding lands at the *entry* type's call, even for a transitive leak), with the registration
+   demoted to the secondary. Registration-graph rules anchor at the registration; the call-site rule
+   anchors at the call.
 2. How far to chase transitive captures through the constructor graph before the
    dynamic cases make it unreliable? (Bounded depth; stop at unknown edges.)
 3. Is `IServiceScopeFactory` usage inside a singleton recognised as the *fix*

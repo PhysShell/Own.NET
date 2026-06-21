@@ -203,10 +203,20 @@ already spells out. Pinned end-to-end by
 `ConnectionWarmer:50`, `WeakCache:57`) in the `wpf-extractor` CI job, the cross-file case by the
 `tests/fixtures/ownir/di.facts.json` fixture, and the SARIF related location by `tests/test_ownir.py`.
 
+**DI004's consumer is a call site, not a ctor** — and the leak *is* that call, so unlike
+DI001/2/3 (a registration-graph property, anchored at the registration) the `GetService<T>()` /
+`GetRequiredService<T>()` **resolution call site is DI004's PRIMARY anchor**, with the
+registration demoted to the secondary (the `Finding.related` location + a `[singleton registered
+at …]` message tail). The extractor emits, alongside `root_resolves`, a parallel
+**`root_resolve_sites`** (`{type, file, line}` per resolved type — the call's location); the core
+makes that the finding's `file`/`line` (Codex review: a `related`-only call site still annotates
+`Startup.cs`, not the leak). The site is the **entry** type's call (`path[1]`): for a transitive
+leak (`WrapperResolver → MidConnection → PooledConnection`) it points at where `MidConnection` was
+hand-resolved, not at the container-built `PooledConnection`. Falls back to the registration site
+when the call is unknown. Pinned by `DiCaptiveSample.cs` (`ConnectionResolver:79`,
+`ExprBodiedResolver:123`, transitive `WrapperResolver:137`).
+
 ## Next (separate slices)
-- The same **consumer anchor for DI004**, whose consumer is a **resolution call site**
-  (`GetRequiredService<T>()`), not a constructor — the call-site location needs threading
-  through `root_resolves`; until then DI004 keeps its registration-site anchor.
 - Per-**parameter** precision for the captive anchor (the specific injecting parameter, not just
   the constructor).
 - The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms, and a
