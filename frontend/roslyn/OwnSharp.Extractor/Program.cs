@@ -704,19 +704,20 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
         nodes.Add(new { op = "release", var = pbuf, line = LineOf(expr) });
         return;
     }
-    // Foo(s) where Foo consumes (disposes) its by-value IDisposable parameter -> the
-    // handoff RELEASES the argument here (the inter-procedural consume contract, modelled
-    // at the call site like pool Return). A later use of the argument is then a
-    // use-after-handoff (OWN002); `return` early so it is not also counted as a use.
-    if (ConsumeReleaseArg(expr, model) is { } carg && tracked.Contains(carg))
-    {
-        nodes.Add(new { op = "release", var = carg, line = LineOf(expr) });
-        return;
-    }
-    // any other reference to a tracked local -> use (once per local in this expr).
+    // Foo(s) where Foo consumes (disposes) a by-value IDisposable parameter -> the handoff
+    // RELEASES the matching argument(s) here (the inter-procedural consume contract,
+    // modelled at the call site like pool Return). A later use of an argument is then a
+    // use-after-handoff (OWN002). Do NOT return — other tracked arguments of the same call
+    // (`Consume(s, t)`) still need their `use` below; a consumed arg is excluded from it.
+    var consumed = ConsumeReleaseArgs(expr, model);
+    foreach (var c in consumed)
+        if (tracked.Contains(c))
+            nodes.Add(new { op = "release", var = c, line = LineOf(expr) });
+    // any other reference to a tracked local -> use (once per local; a consumed arg is a
+    // release above, never also a use).
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
-        if (tracked.Contains(idn.Identifier.Text))
+        if (tracked.Contains(idn.Identifier.Text) && !consumed.Contains(idn.Identifier.Text))
             used.Add(idn.Identifier.Text);
     foreach (var u in used)
         nodes.Add(new { op = "use", var = u, line = LineOf(expr) });
@@ -792,33 +793,44 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
     return ns is { Name: "System" } && ns.ContainingNamespace is { IsGlobalNamespace: true };
 }
 
-// `Foo(s)` where Foo is a first-party method that CONSUMES a by-value IDisposable
-// parameter — its own body disposes that parameter — takes ownership of the matching
-// argument. The handoff is modelled as a RELEASE of the argument at the call site (the
-// same shape as pool `Return(buf)`): a use of the argument after the call is then a
-// use-after-handoff (OWN002). The inspection is the callee's OWN body, so there is no
-// cross-call signature table and no dangling-callee crash — a method with no body
-// (interface / abstract / extern) or that does not dispose the param yields null and the
-// argument simply stays an escape. Returns the consumed argument's local name, or null.
-static string? ConsumeReleaseArg(ExpressionSyntax e, SemanticModel model)
+// The local names of arguments handed to a first-party CONSUMER at this call — a method
+// whose own body disposes the by-value IDisposable parameter the argument binds to. Such
+// an argument's ownership moves into the callee and is discharged there, so the handoff is
+// modelled as a RELEASE of the argument at the call site (the same shape as pool
+// `Return(buf)`); a later use is then a use-after-handoff (OWN002). Inspecting the callee's
+// OWN body means no cross-call signature table and no dangling-callee crash — a callee with
+// no body (interface / abstract / extern) or that does not dispose the param contributes
+// nothing, and the argument stays an ordinary escape. Arguments resolve to parameters by
+// NAME when `name:` is used, else by position; partial declarations are scanned for a body.
+static List<string> ConsumeReleaseArgs(ExpressionSyntax e, SemanticModel model)
 {
+    var consumed = new List<string>();
     if (e is not InvocationExpressionSyntax inv
-        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym
-        || sym.DeclaringSyntaxReferences.Length == 0
-        || sym.DeclaringSyntaxReferences[0].GetSyntax() is not BaseMethodDeclarationSyntax decl)
-        return null;
-    SyntaxNode? body = decl.Body ?? (SyntaxNode?)decl.ExpressionBody;
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym)
+        return consumed;
+    SyntaxNode? body = null;
+    foreach (var r in sym.DeclaringSyntaxReferences)
+        if (r.GetSyntax() is BaseMethodDeclarationSyntax d
+            && ((SyntaxNode?)d.Body ?? d.ExpressionBody) is { } b)
+        {
+            body = b;
+            break;
+        }
     if (body is null)
-        return null;
-    for (int i = 0; i < sym.Parameters.Length && i < inv.ArgumentList.Arguments.Count; i++)
+        return consumed;
+    var args = inv.ArgumentList.Arguments;
+    for (int i = 0; i < args.Count; i++)
     {
-        var p = sym.Parameters[i];
-        if (p.RefKind == RefKind.None && ImplementsIDisposable(p.Type)
+        // map argument -> parameter: by name for `name: value`, else by position.
+        var p = args[i].NameColon is { } nc
+            ? sym.Parameters.FirstOrDefault(q => q.Name == nc.Name.Identifier.Text)
+            : (i < sym.Parameters.Length ? sym.Parameters[i] : null);
+        if (p is { RefKind: RefKind.None } && ImplementsIDisposable(p.Type)
             && DisposesLocal(body, p.Name)
-            && inv.ArgumentList.Arguments[i].Expression is IdentifierNameSyntax aid)
-            return aid.Identifier.Text;
+            && args[i].Expression is IdentifierNameSyntax aid)
+            consumed.Add(aid.Identifier.Text);
     }
-    return null;
+    return consumed;
 }
 
 // Does `body` dispose the local/parameter named `name` — a `name.Dispose()` / `.Close()` /
@@ -1404,7 +1416,7 @@ foreach (var (file, tree) in parsed)
                         && idn.Parent.Parent is ArgumentListSyntax
                         && idn.Parent.Parent.Parent is InvocationExpressionSyntax cinv
                         && cinv.Parent is ExpressionStatementSyntax
-                        && ConsumeReleaseArg(cinv, model) == nm;
+                        && ConsumeReleaseArgs(cinv, model).Contains(nm);
                     if (idn.Parent is ReturnStatementSyntax
                         || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg))
