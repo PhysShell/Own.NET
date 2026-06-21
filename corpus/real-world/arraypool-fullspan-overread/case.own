@@ -1,0 +1,19 @@
+// OwnLang model of the ArrayPool full-length view over-read. `acquire` ==
+// ArrayPool.Rent (the array is OVERSIZED: Length >= n), `release` ==
+// ArrayPool.Return. `overspan buf` models a FULL-length view `buf.AsSpan()` (no
+// length bound) handed to a consumer — it reaches past the logical length n into
+// the stale [n, Length) tail. The bounded form `buf.AsSpan(0, n)` takes no full
+// view, so the fixed code has no `overspan` and is silent. The checker trips
+// OWN025 (POOL005) at the view; the buffer is still correctly returned, so there
+// is no leak (OWN001) and no use-after-return (OWN002).
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  kind "pooled buffer"
+}
+fn frame(n: int) {
+  let buf = acquire Buffer(n);   // ArrayPool.Rent  (Length >= n)
+  overspan buf;                  // buf.AsSpan() — full-length view past n -> OWN025
+  release buf;                   // ArrayPool.Return
+}

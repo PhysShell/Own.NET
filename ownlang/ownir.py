@@ -111,6 +111,7 @@ from .ast_nodes import (
     Let,
     LifetimeDecl,
     Module,
+    Overspan,
     Param,
     Release,
     ResourceDecl,
@@ -998,6 +999,13 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             h = localmap.get(str(n.get("var")))
             if h is not None:
                 body.append(Use(h, line))
+        elif op == "overspan":
+            # POOL005: a full-length Span/Memory view of a pooled buffer. The
+            # extractor emits this only for a Rent'd local viewed with no length
+            # bound; it routes to the same core op the `.own` `overspan` lowers to.
+            h = localmap.get(str(n.get("var")))
+            if h is not None:
+                body.append(Overspan(h, line))
         elif op == "release":
             h = localmap.get(str(n.get("var")))
             if h is not None:
@@ -1102,6 +1110,19 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             # P-016 B0b/B2: path-sensitive local-IDisposable verdicts. The code is
             # the core's (OWN001/002/003/009); phrase it for the C# local.
             name = event
+            if d.code == "OWN025":
+                # POOL005: a full-length view of a pooled buffer reaches past its
+                # logical length. Report at the VIEW site (d.line — where the
+                # unbounded AsSpan/Memory is taken), not the Rent site, and tag it
+                # a pooled buffer rather than the generic disposable.
+                findings.append(Finding(
+                    file=sub["file"], line=d.line, code=d.code,
+                    component=component, event=name, handler="",
+                    message=(f"pooled buffer '{name}' is viewed at its full "
+                             f"length, past the logical length it was rented for "
+                             f"(over-read / over-clear)"),
+                    kind="pooled buffer"))
+                continue
             if d.code == "OWN001":
                 # OWN001 spans "released on 0 paths" and "released on some but not all"
                 # — the core's "not on every path". Word it from whether the flow body

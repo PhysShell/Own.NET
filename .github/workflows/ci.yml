@@ -787,9 +787,11 @@ jobs:
         # checker covers both view kinds: a `Span`/`Memory` view of a pooled buffer (`buf.AsSpan()` /
         # `buf.AsMemory()`) is a borrow lowered to a use of the OWNER (`ViewOwner`), so using it
         # after `Return(buf)` trips OWN002 — including RETURNING a `Memory<T>` view (which, unlike a
-        # ref-struct `Span`, can ESCAPE the method), a dangling borrow handed to the caller. Remaining
-        # backlog: a FIELD-mediated cross-method use-after-dispose (dispose in one method, use in
-        # another via shared state), a view stored in a FIELD, and an injected-source region-escape.
-        # A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 13
+        # ref-struct `Span`, can ESCAPE the method), a dangling borrow handed to the caller. A
+        # FULL-length view of a pooled buffer (`buf.AsSpan()` with no length bound) reaches past the
+        # rented logical length into the oversized tail -> OWN025 (P-007 POOL005, the over-read; the
+        # `arraypool-fullspan-overread` case). Remaining backlog: a FIELD-mediated cross-method
+        # use-after-dispose (dispose in one method, use in another via shared state), a view stored in
+        # a FIELD, and an injected-source region-escape. A drop below the floor is a regression.
+        run: python scripts/benchmark.py --min-recall 14
 

@@ -406,6 +406,30 @@ CASES = [
     ("buf_moved_then_used",
      "fn f(n: int){ let a = Buffer.pooled(n); let b = move a; use a; "
      "release b; }", ["OWN005"]),
+
+    # ---- POOL005: full-length pooled view reaches past the logical length ----
+    # `overspan b` is a FULL-length Span/Memory view of a pooled buffer (no length
+    # bound) — it over-reads the oversized [n, Length) tail. A property of the
+    # view-creation site (raises regardless of the buffer's flow state), so it sits
+    # beside the ordinary leak/use/release checks rather than replacing them.
+    ("pool_overspan_full_view",
+     "fn f(n: int){ let b = Buffer.pooled(n); overspan b; release b; }",
+     ["OWN025"]),
+    ("pool_overspan_resource_form",
+     "fn f(n: int){ let b = acquire Buffer(n); overspan b; release b; }",
+     ["OWN025"]),
+    ("pool_overspan_then_leak",
+     "fn f(n: int){ let b = Buffer.pooled(n); overspan b; }",
+     ["OWN001", "OWN025"]),
+    ("pool_overspan_in_branch",
+     "fn f(n: int){ let b = Buffer.pooled(n); if (c) { overspan b; } "
+     "release b; }", ["OWN025"]),
+    ("pool_overspan_not_owned",
+     "fn f(b: &Buffer){ overspan b; }", ["OWN034"]),
+    ("pool_overspan_undefined",
+     "fn f(){ overspan ghost; }", ["OWN030"]),
+    ("pool_bounded_view_use_ok",
+     "fn f(n: int){ let b = Buffer.pooled(n); use b; release b; }", []),
 ]
 
 

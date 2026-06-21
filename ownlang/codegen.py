@@ -442,6 +442,12 @@ class _FnGen:
             return [f"{ind}{self._release_stmt(st.var, rt)}"]
         if isinstance(st, A.Use):
             return [f"{ind}Use({st.var});"]
+        if isinstance(st, A.Overspan):
+            # POOL005: a full-length view over the whole pooled array (no length
+            # bound) — reaches past the logical length it was rented for. The
+            # bounded, correct form is `{st.var}.AsSpan(0, n)`.
+            return [f"{ind}{st.var}.AsSpan();  "
+                    f"// full-length view over the pooled tail (over-read)"]
         if isinstance(st, A.Call):
             return [f"{ind}{st.callee}({', '.join(self._arg(a) for a in st.args)});"]
         if isinstance(st, A.BorrowBlock):

@@ -113,6 +113,18 @@ class Use:
 
 
 @dataclass(frozen=True)
+class Overspan:
+    """`overspan x;` — a full-length view (`Span`/`Memory`) is taken over the
+    whole pooled buffer `x`, reaching past the logical length it was rented for.
+    A pooled array is oversized (`ArrayPool.Rent(n)` returns `Length >= n`), so a
+    view with no length bound (`buf.AsSpan()`, `new Span<T>(buf)`) exposes — and a
+    `.Clear()`/`.Fill()` through it overwrites — the stale `[n, Length)` tail. The
+    over-read / over-clear is POOL005; the fix is a bounded view `buf.AsSpan(0, n)`."""
+    var: str
+    line: int
+
+
+@dataclass(frozen=True)
 class Call:
     """callee(args);  -> a call to a declared extern or local fn"""
     callee: str
@@ -164,7 +176,8 @@ class Subscribe:
     line: int
 
 
-Stmt = Let | Release | Use | Call | BorrowBlock | If | While | Return | Subscribe
+Stmt = (Let | Release | Use | Overspan | Call | BorrowBlock | If | While
+        | Return | Subscribe)
 
 
 # ---- top level ------------------------------------------------------------

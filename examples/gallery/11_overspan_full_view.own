@@ -1,0 +1,16 @@
+// POOL005 — a full-length Span view of a pooled buffer reaches past its logical
+// length. `ArrayPool.Rent(n)` hands back an OVERSIZED array (Length >= n); a view
+// with no length bound (`buf.AsSpan()`) spans the whole array, so reading or
+// copying through it exposes the stale [n, Length) tail a previous renter left.
+// Real C#: `Emit(buf.AsSpan())` where `Emit(buf.AsSpan(0, n))` was meant.
+module Gallery
+resource Buffer {
+  acquire rent
+  release give
+  kind "pooled buffer"
+}
+fn frame(n: int) {
+  let buf = acquire Buffer(n);
+  overspan buf;          // full-length view -> OWN025
+  release buf;
+}

@@ -34,6 +34,7 @@ class Tok(Enum):
     CONSUME = auto()
     AS = auto()
     USE = auto()
+    OVERSPAN = auto()
     IF = auto()
     ELSE = auto()
     WHILE = auto()
@@ -80,6 +81,7 @@ KEYWORDS = {
     "consume": Tok.CONSUME,
     "as": Tok.AS,
     "use": Tok.USE,
+    "overspan": Tok.OVERSPAN,
     "if": Tok.IF,
     "else": Tok.ELSE,
     "while": Tok.WHILE,
