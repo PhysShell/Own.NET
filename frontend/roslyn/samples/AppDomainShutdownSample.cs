@@ -13,12 +13,26 @@ public sealed class ShutdownCleanup
 {
     public ShutdownCleanup()
     {
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => Cleanup();        // shutdown hook -> SILENT
-        AppDomain.CurrentDomain.DomainUnload += (_, _) => Cleanup();       // shutdown hook -> SILENT
-        AppDomain.CurrentDomain.UnhandledException += (_, _) => Cleanup(); // process diagnostics -> SILENT
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Cleanup();          // shutdown hook -> SILENT
+        AppDomain.CurrentDomain.DomainUnload += (_, _) => Cleanup();         // shutdown hook -> SILENT
+        AppDomain.CurrentDomain.UnhandledException += (_, _) => Cleanup();   // process diagnostics -> SILENT
+        AppDomain.CurrentDomain.FirstChanceException += (_, _) => Cleanup(); // process diagnostics -> SILENT
     }
 
     private static void Cleanup() { }
+}
+
+// Codex control: a process-host AppDomain event is exempt only when the handler retains NO
+// instance. A lambda that CAPTURES instance state (here `_count`) pins this subscriber to the
+// process until shutdown — a real region escape that must STILL raise OWN014.
+public sealed class CapturingShutdownSubscriber
+{
+    private int _count;
+
+    public CapturingShutdownSubscriber()
+    {
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => _count++;   // captures `this` -> OWN014
+    }
 }
 
 public static class SomeBus
