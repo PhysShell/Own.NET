@@ -580,6 +580,15 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 var chain = new List<object>(onReturn);
                 foreach (var owner in viewEscapes)
                     chain.Insert(chain.Count - 1, new { op = "use", var = owner, line = LineOf(rs) });
+                // The BARE owner returned (`using owner = …; return owner;`) is the twin of the returned
+                // view: a tracked plain-identifier return can only be a using-declared MemoryPool owner
+                // (a genuine transfer is escaped/untracked upstream), and its scope-exit dispose runs as we
+                // return — so thread its use after the release(s) too, exactly like a view -> OWN002.
+                if (rs.Expression is IdentifierNameSyntax bareOwner
+                    && tracked.Contains(bareOwner.Identifier.Text)
+                    && !viewEscapes.Contains(bareOwner.Identifier.Text))
+                    chain.Insert(chain.Count - 1,
+                        new { op = "use", var = bareOwner.Identifier.Text, line = LineOf(rs) });
                 nodes.AddRange(chain);
             }
             else
@@ -937,6 +946,47 @@ static bool DisposedGuardBefore(BlockSyntax body, int before) =>
         && (ifs.Statement is ReturnStatementSyntax
             || (ifs.Statement is BlockSyntax gb
                 && gb.Statements.FirstOrDefault() is ReturnStatementSyntax)));
+
+// The FIRST direct read of a disposed field (`_f.Member`, `_f`/`this._f` only) in `body` that is
+// NOT protected by an opening disposed-guard — the unit the field-UAF pass keys on. Returns the
+// member-access node and the field name, or null when the body has no such read (or its first
+// disposed-field read is already guarded, the canonical-fix shape). Shared by the direct handler
+// scan and the one-hop helper scan (an indirect use through a private helper).
+static (MemberAccessExpressionSyntax Use, string Field)? FirstUnguardedDisposedRead(
+    BlockSyntax body, Dictionary<string, int> releasedAt)
+{
+    foreach (var ma in body.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+    {
+        if (ma.Name.Identifier.Text is "Dispose" or "DisposeAsync")
+            continue;
+        if (ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
+            return DisposedGuardBefore(body, ma.SpanStart) ? null : (ma, uf);
+    }
+    return null;
+}
+
+// The method name of a SELF call (`Refresh()` or `this.Refresh()`), i.e. an instance method of the
+// same object — NOT `other.Refresh()`. Used to chase a handler's ONE hop into a same-class helper.
+static string? SelfCallName(InvocationExpressionSyntax inv) => inv.Expression switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax m when m.Expression is ThisExpressionSyntax
+        => m.Name.Identifier.Text,
+    _ => null,
+};
+
+// A private INSTANCE helper (default-private or explicit `private`, and not static/virtual/abstract/
+// override or a wider accessibility) — the shape of an internal `Refresh()`-style helper a handler
+// delegates to. Restricting the one-hop chase to these keeps the indirect field-UAF check low-FP
+// (a public/virtual method has a broader contract than a same-class callback helper).
+static bool IsPrivateInstanceHelper(MethodDeclarationSyntax m) =>
+    !m.Modifiers.Any(mod => mod.IsKind(SyntaxKind.PublicKeyword)
+        || mod.IsKind(SyntaxKind.ProtectedKeyword)
+        || mod.IsKind(SyntaxKind.InternalKeyword)
+        || mod.IsKind(SyntaxKind.StaticKeyword)
+        || mod.IsKind(SyntaxKind.VirtualKeyword)
+        || mod.IsKind(SyntaxKind.AbstractKeyword)
+        || mod.IsKind(SyntaxKind.OverrideKeyword));
 
 // Is `t` the System.Buffers.ArrayPool<T> type — the Return-based pool we model?
 // Checked on the resolved SYMBOL, not the receiver's text, so an aliased receiver
@@ -1974,6 +2024,24 @@ foreach (var (file, tree) in parsed)
                             if (FieldName(arg.Expression) is { } hn)
                                 subscribed.Add(hn);
 
+                // one-hop indirect reach: a private same-class helper (e.g. `Refresh()`) that itself
+                // UNGUARDEDLY reads a disposed field. A handler that calls such a helper with no guard
+                // before the call touches the disposed field one level down — the field-mediated UAF
+                // the WPF `handler-use-after-dispose` pattern hides behind a helper. One hop only; a
+                // deeper chain stays an honest miss.
+                // keyed by the helper's METHOD SYMBOL (not its name) so an overload — `Refresh()` vs
+                // `Refresh(e)` — is matched EXACTLY: a handler calling the safe overload is not
+                // attributed the unsafe overload's read (Codex). Same-class methods are in-source, so
+                // their symbols resolve even when the field's TYPE does not.
+                var helperReads = new Dictionary<ISymbol, (string Field, int Line)>(SymbolEqualityComparer.Default);
+                foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
+                    if (hm.Body is { } b
+                        && hm.Identifier.Text is not ("Dispose" or "DisposeAsync")
+                        && IsPrivateInstanceHelper(hm)
+                        && model.GetDeclaredSymbol(hm) is { } hsym
+                        && FirstUnguardedDisposedRead(b, releasedAt) is { } r)
+                        helperReads[hsym] = (r.Field, LineOf(r.Use));
+
                 foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
                 {
                     if (hm.Body is not { } hbody)
@@ -1983,27 +2051,36 @@ foreach (var (file, tree) in parsed)
                         continue;
                     if (!subscribed.Contains(hname))
                         continue;
-                    // the FIRST direct read of a disposed field of THIS class (`_f` / `this._f`,
-                    // not `other._f`) in the handler, if any.
-                    MemberAccessExpressionSyntax? use = null;
+                    // the FIRST trigger in the handler, in source order: a DIRECT read of a disposed
+                    // field of THIS class (`_f` / `this._f`), or a self-call (`Refresh()` /
+                    // `this.Refresh()`) to a private helper that unguardedly reads one. `useLine` points
+                    // at the actual read; `triggerPos` is where the handler reaches it (the read or the
+                    // call) — the position the disposed-guard must precede to make it safe.
                     string? useField = null;
-                    foreach (var ma in hbody.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+                    int useLine = 0, triggerPos = 0;
+                    foreach (var node in hbody.DescendantNodes())
                     {
-                        if (ma.Name.Identifier.Text is "Dispose" or "DisposeAsync")
-                            continue;
-                        if (ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
+                        if (node is MemberAccessExpressionSyntax ma
+                            && ma.Name.Identifier.Text is not ("Dispose" or "DisposeAsync")
+                            && ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
                         {
-                            use = ma;
-                            useField = uf;
+                            useField = uf; useLine = LineOf(ma); triggerPos = ma.SpanStart;
+                            break;
+                        }
+                        if (node is InvocationExpressionSyntax call
+                            && SelfCallName(call) is not null              // a SELF call (this/bare), not other.X
+                            && model.GetSymbolInfo(call).Symbol is { } csym
+                            && helperReads.TryGetValue(csym, out var hr))
+                        {
+                            useField = hr.Field; useLine = hr.Line; triggerPos = call.SpanStart;
                             break;
                         }
                     }
-                    // no direct disposed-field read, or an opening disposed-guard PRECEDES it ->
-                    // not a use-after-dispose (an INDIRECT use via a helper is left an honest miss).
-                    // Otherwise emit ONE synthetic acquire/release/use flow -> OWN002 via the bridge.
-                    if (use is null || useField is null)
+                    // no disposed-field reach, or an opening disposed-guard PRECEDES it -> not a
+                    // use-after-dispose. Otherwise emit ONE synthetic acquire/release/use flow -> OWN002.
+                    if (useField is null)
                         continue;
-                    if (DisposedGuardBefore(hbody, use.SpanStart))
+                    if (DisposedGuardBefore(hbody, triggerPos))
                         continue;
                     flowFunctions.Add(new
                     {
@@ -2013,7 +2090,7 @@ foreach (var (file, tree) in parsed)
                         {
                             new { op = "acquire", var = useField, line = dispoFieldLine[useField] },
                             new { op = "release", var = useField, line = releasedAt[useField] },
-                            new { op = "use", var = useField, line = LineOf(use) },
+                            new { op = "use", var = useField, line = useLine },
                         },
                     });
                 }
@@ -2156,6 +2233,7 @@ foreach (var (file, tree) in parsed)
                     continue;
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
+                var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -2165,7 +2243,10 @@ foreach (var (file, tree) in parsed)
                         // track it so the flow's using-desugaring catches that escape. Others stay skipped.
                         foreach (var v in ld.Declaration.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                            {
                                 candidates.Add(v.Identifier.Text);
+                                usingMemoryOwners.Add(v.Identifier.Text);
+                            }
                         continue;
                     }
                     foreach (var v in ld.Declaration.Variables)
@@ -2191,7 +2272,10 @@ foreach (var (file, tree) in parsed)
                     if (us.Declaration is { } usd)
                         foreach (var v in usd.Variables)
                             if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                            {
                                 candidates.Add(v.Identifier.Text);
+                                usingMemoryOwners.Add(v.Identifier.Text);
+                            }
                 if (candidates.Count == 0)
                     continue;
                 // A local that escapes (returned / assigned out) is conservatively not
@@ -2246,8 +2330,19 @@ foreach (var (file, tree) in parsed)
                         && idn.Parent.Parent.Parent is InvocationExpressionSyntax cinv
                         && cinv.Parent is ExpressionStatementSyntax
                         && ConsumeReleaseArgs(cinv, model).Contains(nm);
-                    if (idn.Parent is ReturnStatementSyntax
-                        || (idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
+                    // A `using`-declared MemoryPool owner RETURNED bare (`using owner = …; return owner;`)
+                    // is NOT a real ownership transfer: the implicit scope-exit dispose runs as the method
+                    // returns, so the caller receives an already-disposed owner. Keep it TRACKED (do not
+                    // escape it) so the using-desugar threads the release before the return and the inserted
+                    // use of the returned owner trips OWN002 — the bare-owner twin of the returned-view
+                    // dangle. A NON-using returned owner stays a genuine transfer (escaped → untracked →
+                    // silent), so this never fires on `var o = Rent(); return o;`.
+                    if (idn.Parent is ReturnStatementSyntax)
+                    {
+                        if (!usingMemoryOwners.Contains(nm))
+                            escapedLocals.Add(nm);
+                    }
+                    else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg))
                         escapedLocals.Add(nm);
                 }

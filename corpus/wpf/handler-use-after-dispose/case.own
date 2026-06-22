@@ -1,17 +1,19 @@
+// OwnLang model of the field-mediated use-after-dispose reached INDIRECTLY (through a helper).
+// `acquire` == the owned connection's construction, `release` == its Dispose() in the ViewModel's
+// Dispose(), `use` == a late dispatcher callback (the subscribed handler) reaching the connection
+// one hop down — via a private Refresh() helper — AFTER Dispose(). Using a disposable after its
+// release is the generic OWN002, tagged with the resource kind. The indirect twin of
+// `field-use-after-dispose` (a DIRECT field read); the extractor now chases the single helper hop.
 module WpfHandlerAfterDispose
 
-// Same subscription-token protocol, tagged with its kind.
-resource Subscription {
-    acquire Subscribe
+resource Connection {
+    acquire Open
     release Dispose
-    kind "subscription token"
+    kind "disposable"
 }
 
-// On window close the VM disposes (unsubscribes) its subscription, but a late
-// queued callback still touches it. Using a subscription after Dispose is the
-// generic use-after-release (OWN002), tagged with the resource kind.
-fn CloseHandler(bus: int) {
-    let sub = acquire Subscription(bus);
-    release sub;          // unsubscribed / disposed on close
-    use sub;              // a late callback still touches it -> OWN002
+fn OnCustomerChanged(bus: int) {
+    let conn = acquire Connection(bus);
+    release conn;   // ViewModel.Dispose() disposes the owned connection
+    use conn;       // a late callback reaches it via Refresh() after Dispose -> OWN002
 }
