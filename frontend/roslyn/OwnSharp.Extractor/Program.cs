@@ -2029,13 +2029,18 @@ foreach (var (file, tree) in parsed)
                 // before the call touches the disposed field one level down — the field-mediated UAF
                 // the WPF `handler-use-after-dispose` pattern hides behind a helper. One hop only; a
                 // deeper chain stays an honest miss.
-                var helperReads = new Dictionary<string, (string Field, int Line)>(StringComparer.Ordinal);
+                // keyed by the helper's METHOD SYMBOL (not its name) so an overload — `Refresh()` vs
+                // `Refresh(e)` — is matched EXACTLY: a handler calling the safe overload is not
+                // attributed the unsafe overload's read (Codex). Same-class methods are in-source, so
+                // their symbols resolve even when the field's TYPE does not.
+                var helperReads = new Dictionary<ISymbol, (string Field, int Line)>(SymbolEqualityComparer.Default);
                 foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
                     if (hm.Body is { } b
                         && hm.Identifier.Text is not ("Dispose" or "DisposeAsync")
                         && IsPrivateInstanceHelper(hm)
+                        && model.GetDeclaredSymbol(hm) is { } hsym
                         && FirstUnguardedDisposedRead(b, releasedAt) is { } r)
-                        helperReads[hm.Identifier.Text] = (r.Field, LineOf(r.Use));
+                        helperReads[hsym] = (r.Field, LineOf(r.Use));
 
                 foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
                 {
@@ -2063,8 +2068,9 @@ foreach (var (file, tree) in parsed)
                             break;
                         }
                         if (node is InvocationExpressionSyntax call
-                            && SelfCallName(call) is { } callee
-                            && helperReads.TryGetValue(callee, out var hr))
+                            && SelfCallName(call) is not null              // a SELF call (this/bare), not other.X
+                            && model.GetSymbolInfo(call).Symbol is { } csym
+                            && helperReads.TryGetValue(csym, out var hr))
                         {
                             useField = hr.Field; useLine = hr.Line; triggerPos = call.SpanStart;
                             break;
