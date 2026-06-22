@@ -135,6 +135,7 @@ jobs:
             frontend/roslyn/samples/WhenAnyValueViewModel.cs \
             frontend/roslyn/samples/DiCaptiveSample.cs \
             frontend/roslyn/samples/SampleTypes.cs \
+            frontend/roslyn/samples/PipeFieldsSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -153,6 +154,13 @@ jobs:
             || { echo "FAIL: expected the injected-source wording"; exit 1; }
           if echo "$out" | grep -q "OrdersViewModel.cs"; then
             echo "FAIL: disposed subscription wrongly reported"; exit 1
+          fi
+          # Mined FP regression (Pipelines.Sockets.Unofficial): System.IO.Pipelines PipeReader/PipeWriter
+          # END WITH Reader/Writer but are NOT IDisposable (they finish via Complete(), not Dispose()), so
+          # an undisposed PipeReader/PipeWriter FIELD must NOT be flagged as a leak —
+          # IsNonDisposableReaderWriter excludes them from the field-disposable name heuristic.
+          if echo "$out" | grep -q "PipeFieldsSample.cs"; then
+            echo "FAIL: PipeReader/PipeWriter field wrongly reported as an undisposed-disposable leak"; exit 1
           fi
           # a lambda handler has no stored delegate, so it can NEVER be `-=`'d — the
           # finding says so. (Same injected source as Customer -> also a warning.)
