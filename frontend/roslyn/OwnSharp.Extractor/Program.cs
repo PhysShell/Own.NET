@@ -185,10 +185,23 @@ static bool IsTemplatePartFetch(ExpressionSyntax? expr)
 // Target is null, so no instance is retained — the subscription cannot leak a
 // subscriber, however long-lived the source. Only method-group handlers
 // (identifier / member access) are judged; lambdas and delegate-typed values may
-// capture state and are left as leak candidates.
-static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
-    IsHandler(right)
-        && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
+// capture state and are left as leak candidates. A method group's symbol can surface
+// as a MEMBER GROUP (Symbol == null, CandidateSymbols populated) instead of the bound
+// method, so fall back to the candidates — else a genuinely static-method handler is
+// missed and a static-source subscription that retains NO instance is mis-reported as
+// a region escape (mined: ImageSharp MemoryAllocatorValidator's static MemoryDiagnostics
+// handlers). When falling back, require ALL candidates static so an overload set that
+// mixes a static and an instance method is not wrongly exempted.
+static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model)
+{
+    if (!IsHandler(right))
+        return false;
+    var info = model.GetSymbolInfo(right);
+    if (info.Symbol is { } s)
+        return s is IMethodSymbol { IsStatic: true };
+    var cands = info.CandidateSymbols;
+    return cands.Length > 0 && cands.All(c => c is IMethodSymbol { IsStatic: true });
+}
 
 // P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
 // process-lived singleton — exactly one instance, created at startup, alive until
