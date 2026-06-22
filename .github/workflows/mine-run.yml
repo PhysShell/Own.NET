@@ -1,0 +1,33 @@
+# TEMPORARY mining runner (not for main) — mine a pool-heavy library to exercise the
+# ArrayPool / MemoryPool / IMemoryOwner detectors. Read-only; delete the branch when done.
+name: mine-run (temp)
+on:
+  push:
+    branches: ["claude/mine-*"]
+permissions:
+  contents: read
+jobs:
+  mine:
+    name: mine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Mine Npgsql (IDisposable + pools)
+        run: scripts/mine.sh npgsql/npgsql
+      - name: Echo verdicts (error/warning) + report.md
+        if: always()
+        run: |
+          f=$(find corpus/mined -name findings.txt -type f 2>/dev/null | head -1 || true)
+          r=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
+          if [[ -n "$f" ]]; then
+            echo "::group::verdicts (error/warning only — OWN050 notes dropped)"
+            jq -r '.runs[0].results[] | select(.level=="error" or .level=="warning") | "[\(.level)] \(.ruleId)  \(.locations[0].physicalLocation.artifactLocation.uri | sub(".*/src/";"")):\(.locations[0].physicalLocation.region.startLine)  \(.message.text)"' "$f" || echo "(jq failed; see report.md)"
+            echo "::endgroup::"
+          fi
+          if [[ -n "$r" ]]; then echo "::group::report.md"; cat "$r"; echo "::endgroup::"; fi
