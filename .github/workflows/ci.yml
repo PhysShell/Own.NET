@@ -136,7 +136,6 @@ jobs:
             frontend/roslyn/samples/DiCaptiveSample.cs \
             frontend/roslyn/samples/SampleTypes.cs \
             frontend/roslyn/samples/PipeFieldsSample.cs \
-            frontend/roslyn/samples/StaticContextSubscription.cs \
             frontend/roslyn/samples/AppLifetimeSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -284,18 +283,6 @@ jobs:
           # -> silent. Must NOT be reported.
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
             echo "FAIL: an unsubscribed (released) static-event subscription was wrongly reported"; exit 1
-          fi
-          # P-004 static-context exemption (mined: ScreenToGif ProcessHelper): a `+=`
-          # inside a STATIC member has no enclosing `this`, so it cannot leak an
-          # instance of its type. Both the static-class helper and the static method on
-          # an instance class subscribe `publisher.Fired` and must stay SILENT, while
-          # the INSTANCE control (`_bus.Fired += OnFired`) still warns.
-          echo "$out" | grep -qE "StaticContextSubscription\.cs:[0-9]+: warning: \[OWN001\]" \
-            || { echo "FAIL: expected the instance-method subscription (control) to warn"; exit 1; }
-          echo "$out" | grep -q "_bus.Fired" \
-            || { echo "FAIL: expected the injected instance subscription (_bus.Fired) to warn"; exit 1; }
-          if echo "$out" | grep -q "publisher.Fired"; then
-            echo "FAIL: a static-context subscription was wrongly reported (should be silent)"; exit 1
           fi
           # P-004 process-lived-subscriber exemption (mined: ScreenToGif App +
           # Translator): the WPF `App` singleton hooking the process-lived

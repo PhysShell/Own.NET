@@ -189,36 +189,6 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
     IsHandler(right)
         && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
 
-// P-004 static-context exemption: a `+=` lexically inside a STATIC member (or a
-// `static class`) has no enclosing `this`, so the handler — a static method group,
-// or a lambda that can only close over locals/parameters/statics — retains no
-// instance of this type. The "keeps <Type> alive" subscriber-leak is then
-// structurally impossible, however long-lived the source. (Found mining
-// ScreenToGif: `static ProcessHelper.RestartAsAdmin` does
-// `process.Exited += (s, a) => comp.SetResult(...)` — a static helper's method-local
-// `Process` and a lambda over locals; nothing instance-scoped to leak. The detector
-// had mis-attributed it to an "injected dependency keeping ProcessHelper alive",
-// but ProcessHelper is a static class — there is no instance.) The first enclosing
-// member / local-function / type decides; lambdas are walked past so the rule keys
-// off the real execution frame, not the closure. A static-source region escape
-// (OWN014) is likewise impossible with no instance to promote, so this skips both.
-static bool IsStaticContext(SyntaxNode node)
-{
-    foreach (var anc in node.Ancestors())
-        switch (anc)
-        {
-            case LocalFunctionStatementSyntax lf:
-                return lf.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-            case BaseMethodDeclarationSyntax bm:
-                return bm.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-            case BasePropertyDeclarationSyntax bp:
-                return bp.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-            case TypeDeclarationSyntax t:
-                return t.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
-        }
-    return false;
-}
-
 // P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
 // process-lived singleton — exactly one instance, created at startup, alive until
 // the process exits. Subscribing it to a process-lived static event
@@ -240,6 +210,7 @@ static bool IsProcessLivedApplication(TypeDeclarationSyntax cls)
             {
                 IdentifierNameSyntax id => id.Identifier.Text,
                 QualifiedNameSyntax q => q.Right.Identifier.Text,
+                AliasQualifiedNameSyntax aq => aq.Name.Identifier.Text,
                 _ => null,
             };
             if (n is "Application")
@@ -1985,12 +1956,6 @@ foreach (var (file, tree) in parsed)
             if (leftSymbol is IEventSymbol ev)
             {
                 var isTimer = IsTimerEvent(a.Left);
-                // A subscription in a STATIC context has no enclosing `this`, so no
-                // instance of this type can be retained — neither a subscriber leak
-                // (OWN001) nor a region escape (OWN014) is possible. (timers excluded:
-                // a running timer is dispatcher-rooted regardless of context.)
-                if (!isTimer && IsStaticContext(a))
-                    continue;
                 // P-004 lifetime exemptions — skip, not a leak (timers excluded: a
                 // running timer is dispatcher-rooted regardless):
                 //  - self-owned source (`this`, or a field/local the class
