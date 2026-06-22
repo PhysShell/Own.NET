@@ -1,0 +1,26 @@
+// OwnLang model of the field-mediated cross-method use-after-dispose the C#
+// extractor now lowers DIRECTLY (a disposed IDisposable field read in a subscribed
+// handler). `acquire` == the owned connection field's construction, `release` ==
+// its `Dispose()` in the ViewModel's Dispose(), `use` == a late dispatcher callback
+// (the subscribed handler) reading the connection AFTER it was disposed. Using a
+// disposable after its release is the generic OWN002, tagged with the resource kind.
+//
+// Contrast handler-use-after-dispose, whose handler reaches the disposed state
+// INDIRECTLY through a helper (`Refresh()`): the extractor only catches the DIRECT
+// `_field.Member` read, so that sibling case stays an honest extractor miss while
+// this one is caught end-to-end.
+module WpfFieldUseAfterDispose
+
+// The owned IDisposable field (a SqlConnection): acquired when the ViewModel
+// constructs it, released by Dispose(). `kind` tags the verdict as a disposable.
+resource Connection {
+    acquire Open
+    release Dispose
+    kind "disposable"
+}
+
+fn OnDataChanged(bus: int) {
+    let conn = acquire Connection(bus);
+    release conn;   // ViewModel.Dispose() disposes the owned connection
+    use conn;       // a late queued callback still touches it -> OWN002
+}

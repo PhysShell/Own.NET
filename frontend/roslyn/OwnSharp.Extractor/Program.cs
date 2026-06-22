@@ -907,6 +907,37 @@ static string? FieldName(ExpressionSyntax expr) => expr switch
     _ => null,
 };
 
+// The field name an expression refers to ONLY when it names a field of THIS object — a bare
+// `_f` or `this._f`, NOT `other._f` (a same-named field on a DIFFERENT receiver, which plain
+// text matching would conflate into a phantom release/use, CodeRabbit). Deliberately syntactic,
+// not symbol-bound: the field-UAF corpus uses types that do not resolve in the project-local
+// compilation, so binding on the field's TYPE is unreliable — the `this`/bare receiver shape is
+// exact regardless.
+static string? ThisFieldName(ExpressionSyntax expr) => expr switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax m when m.Expression is ThisExpressionSyntax
+        => m.Name.Identifier.Text,
+    _ => null,
+};
+
+// Is there a disposed-flag early-return guard (`if (_disposed) return;`, `if (IsDisposed) return;`)
+// among a handler body's TOP-LEVEL statements that OPENS before source position `before`? Such a
+// guard makes a later disposed-field read safe (the canonical fix), so the field-UAF pass excludes
+// it. Tight on purpose (CodeRabbit/Codex): (1) the guard must PRECEDE the read — a guard only after
+// the read does not protect it, so that finding still stands; (2) the THEN branch must be an
+// IMMEDIATE `return` (the guard's own action), not a `return` buried in a nested/`else` branch; and
+// (3) the flag identifier matches "dispos" case-INsensitively, so the PascalCase `IsDisposed` form
+// is recognised as well as `_disposed`.
+static bool DisposedGuardBefore(BlockSyntax body, int before) =>
+    body.Statements.OfType<IfStatementSyntax>().Any(ifs =>
+        ifs.SpanStart < before
+        && ifs.Condition.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>()
+            .Any(id => id.Identifier.Text.Contains("ispos", StringComparison.OrdinalIgnoreCase))
+        && (ifs.Statement is ReturnStatementSyntax
+            || (ifs.Statement is BlockSyntax gb
+                && gb.Statements.FirstOrDefault() is ReturnStatementSyntax)));
+
 // Is `t` the System.Buffers.ArrayPool<T> type — the Return-based pool we model?
 // Checked on the resolved SYMBOL, not the receiver's text, so an aliased receiver
 // (`ArrayPool<int> p = ArrayPool<int>.Shared; p.Rent(n)`) binds correctly and an
@@ -1869,6 +1900,123 @@ foreach (var (file, tree) in parsed)
                     resource = "disposable",
                     type = tname,
                 });
+            }
+        }
+
+        // P-007 / WPF: a field-mediated cross-method USE-AFTER-DISPOSE. An IDisposable
+        // field disposed in this class's Dispose()/DisposeAsync() is then DIRECTLY read
+        // (`_f.Member`) in an event-handler method — a callback an external event source
+        // can still invoke AFTER the object is disposed (the very reason WPF handler
+        // leaks matter). With no `if (_disposed) return;` guard the handler touches a
+        // field already disposed: a use-after-dispose. We lower it to a synthetic
+        // acquire/release/use flow so the existing OwnIR bridge raises OWN002 at the
+        // field — no new diagnostic, no second checker (the synthetic-flow trick the
+        // MemoryPool slices use). Precise by construction to stay low-FP: fires only when
+        //   (a) the field is disposed in the dispose LIFECYCLE (not an ad-hoc `_f.Dispose()`),
+        //   (b) the touching method is a LIVE subscription target — RHS of a `+=` / arg of
+        //       a `.Subscribe(...)` — whose subscription is NOT torn down (`-= handler`
+        //       means the callback cannot fire post-dispose, so it is safe),
+        //   (c) the method has no disposed-guard (the canonical fix silences it), and
+        //   (d) the use is a DIRECT field member access (an INDIRECT use via a helper is
+        //       deliberately not chased — that is the harder frontier, left honest).
+        // Gated on --flow-locals like the rest of the synthetic-flow emission.
+        if (flowLocals)
+        {
+            // IDisposable fields -> declaration line (the synthetic `acquire`).
+            var dispoFieldLine = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
+            {
+                if (fd.Modifiers.Any(mm => mm.IsKind(SyntaxKind.StaticKeyword)))
+                    continue;
+                if (!IsDisposableType(fd.Declaration.Type.ToString()))
+                    continue;
+                foreach (var v in fd.Declaration.Variables)
+                    dispoFieldLine[v.Identifier.Text] = LineOf(v);
+            }
+            // field -> line of its `.Dispose()` INSIDE Dispose()/DisposeAsync() (the
+            // release event). Restricted to the dispose methods so an ordinary
+            // `_f.Dispose()` helper is not misread as object teardown.
+            var releasedAt = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (dispoFieldLine.Count > 0)
+                foreach (var dm in cls.Members.OfType<MethodDeclarationSyntax>())
+                {
+                    if (dm.Identifier.Text is not ("Dispose" or "DisposeAsync"))
+                        continue;
+                    foreach (var inv in dm.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                        if (inv.Expression is MemberAccessExpressionSyntax dmm
+                            && dmm.Name.Identifier.Text is "Dispose" or "DisposeAsync"
+                            && ThisFieldName(dmm.Expression) is { } df
+                            && dispoFieldLine.ContainsKey(df)
+                            && !releasedAt.ContainsKey(df))
+                            releasedAt[df] = LineOf(inv);
+                }
+            if (releasedAt.Count > 0)
+            {
+                // handler method names that are LIVE subscription targets. `+=` subscriptions are
+                // keyed by SOURCE|handler so a `-=` removes only the MATCHING one — a handler still
+                // `+=`'d to another live source stays live (a name-only set would let one `-=` drop
+                // it globally, CodeRabbit/Codex). A `.Subscribe(handler)` token is released by
+                // disposing the token (the Rx idiom), not a `-=`, so those handlers are always live.
+                var liveEventKeys = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var a in assigns)
+                    if (IsHandler(a.Right) && FieldName(a.Right) is { } hn)
+                    {
+                        var key = $"{a.Left}|{hn}";
+                        if (a.IsKind(SyntaxKind.AddAssignmentExpression)) liveEventKeys.Add(key);
+                        else if (a.IsKind(SyntaxKind.SubtractAssignmentExpression)) liveEventKeys.Remove(key);
+                    }
+                var subscribed = new HashSet<string>(
+                    liveEventKeys.Select(k => k[(k.LastIndexOf('|') + 1)..]), StringComparer.Ordinal);
+                foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                    if (inv.Expression is MemberAccessExpressionSyntax sm
+                        && sm.Name.Identifier.Text == "Subscribe")
+                        foreach (var arg in inv.ArgumentList.Arguments)
+                            if (FieldName(arg.Expression) is { } hn)
+                                subscribed.Add(hn);
+
+                foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
+                {
+                    if (hm.Body is not { } hbody)
+                        continue;
+                    var hname = hm.Identifier.Text;
+                    if (hname is "Dispose" or "DisposeAsync")
+                        continue;
+                    if (!subscribed.Contains(hname))
+                        continue;
+                    // the FIRST direct read of a disposed field of THIS class (`_f` / `this._f`,
+                    // not `other._f`) in the handler, if any.
+                    MemberAccessExpressionSyntax? use = null;
+                    string? useField = null;
+                    foreach (var ma in hbody.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+                    {
+                        if (ma.Name.Identifier.Text is "Dispose" or "DisposeAsync")
+                            continue;
+                        if (ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
+                        {
+                            use = ma;
+                            useField = uf;
+                            break;
+                        }
+                    }
+                    // no direct disposed-field read, or an opening disposed-guard PRECEDES it ->
+                    // not a use-after-dispose (an INDIRECT use via a helper is left an honest miss).
+                    // Otherwise emit ONE synthetic acquire/release/use flow -> OWN002 via the bridge.
+                    if (use is null || useField is null)
+                        continue;
+                    if (DisposedGuardBefore(hbody, use.SpanStart))
+                        continue;
+                    flowFunctions.Add(new
+                    {
+                        name = $"{cls.Identifier.Text}.{hname}",
+                        file,
+                        body = new List<object>
+                        {
+                            new { op = "acquire", var = useField, line = dispoFieldLine[useField] },
+                            new { op = "release", var = useField, line = releasedAt[useField] },
+                            new { op = "use", var = useField, line = LineOf(use) },
+                        },
+                    });
+                }
             }
         }
 
