@@ -1,25 +1,32 @@
-# WPF subscription used after Dispose
+# WPF field-use-after-dispose reached INDIRECTLY (through a helper)
 
-**Pattern:** a ViewModel unsubscribes / disposes its subscription on close, but a
-callback that was already queued on the dispatcher still runs and touches the
-disposed, subscription-backed state. In real code this is an
-`ObjectDisposedException` or a read of torn state — the use-after-dispose cousin
+**Pattern:** a ViewModel owns an `IDisposable` (here a `SqlConnection`) and subscribes a handler to
+an event source. On teardown `Dispose()` disposes the connection (and the subscription token), but a
+callback already queued on the dispatcher still runs after `Dispose()` and reaches the disposed
+connection **indirectly** — the handler calls a private `Refresh()` helper that reads `_conn`. In
+real code this is an `ObjectDisposedException` or a read of torn state — the use-after-dispose cousin
 of the zombie-ViewModel leak.
 
-**What the checker says:** using a resource after its `release` (Dispose) is the
-generic **OWN002** (use after release), carrying the resource-kind tag:
+**What's new — the extractor catches the one hop.** The Roslyn extractor's field-mediated
+use-after-dispose pass (under `--flow-locals`) already caught a **direct** `_field.Member` read in a
+live handler (`field-use-after-dispose`). This slice chases a **single hop**: a subscribed handler
+that calls a **private same-class helper** (`Refresh()` / `this.Refresh()`) which itself
+*unguardedly* reads a disposed field — with no `if (_disposed) return;` guard before the call — is
+lowered to a synthetic `acquire`/`release`/`use` flow → **OWN002**, via the existing OwnIR bridge
+(no new diagnostic). On the real C# the `corpus-benchmark` job scores `before.cs` as caught and
+`after.cs` (the guarded fix) as silent.
 
-```text
-$ python -m ownlang check corpus/wpf/handler-use-after-dispose/case.own
-case.own:16:9: error: [OWN002] use 'sub' after it was released
-  [resource: subscription token]
-  16 |     use sub;
-               ^
-```
+**Precision (why it stays low-FP).** One hop only — a deeper chain stays an honest miss. The helper
+must be a **private instance** method (not a public/virtual member with a broader contract); both the
+handler (before the call) and the helper must lack a disposed-guard; and the field read is a
+**direct** `this`-owned `_field.Member`. The guard exclusion is the canonical fix, so the guarded
+`after.cs` is silent.
 
-**Honesty / scope.** `case.own` is a *hand reduction* of the C# pattern, not
-direct C# extractor output (the C# extractor in P-001 is narrow — event
-subscriptions only). It shows the ownership
-*logic* maps onto the real bug; it does not model the dispatcher queue or
-exception flow. `before.cs` / `after.cs` are representative, not a verbatim copy
-of one PR.
+**Honesty / scope.** This catches the **direct** read (`field-use-after-dispose`) and now the
+**one-hop indirect** read (this case). A two-plus-hop chain, or a read through a field/property
+indirection, remains an honest extractor miss — the `case.own` reduction still fires OWN002, showing
+the ownership logic maps onto the real bug. `before.cs` / `after.cs` are representative of the bug
+and its fix.
+
+Reference: [P-007](../../../docs/proposals/P-007-arraypool-span.md); the direct twin is
+`field-use-after-dispose`; the late-callback framing matches `zombie-viewmodel`.

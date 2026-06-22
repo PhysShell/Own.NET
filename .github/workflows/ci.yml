@@ -796,11 +796,15 @@ jobs:
         # leak / double-dispose ride the flow (POOL001/003 — `memorypool-double-dispose` -> OWN003), and
         # its `owner.Memory` / `owner.Memory.Span` view is a borrow lowered to a use of the OWNER
         # (`ViewOwner`), so reading it after Dispose trips OWN002 (POOL002 — `memorypool-view-after-
-        # dispose`). A FIELD-mediated cross-method use-after-dispose is caught too: an IDisposable field
-        # disposed in `Dispose()` and DIRECTLY read (`_field.Member`) in a live subscription-target handler
-        # (RHS of a `+=` / arg of a `.Subscribe(...)`, not torn down, no `if (_disposed) return;` guard) is
-        # lowered to a synthetic acquire/release/use flow -> OWN002 (`field-use-after-dispose`). Remaining
-        # backlog: a view stored in a FIELD, an INDIRECT (helper-mediated) field use after dispose, and an
-        # injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 20
+        # dispose`). Returning the BARE owner under `using` (`using owner = …; return owner;`) is the twin
+        # of the returned-view dangle: the using-owner stays tracked through the bare return (a non-using
+        # transfer does not) and its use is threaded after the scope-exit release -> OWN002 (`memorypool-
+        # using-owner-escape`). A FIELD-mediated cross-method use-after-dispose is caught too: an IDisposable
+        # field disposed in `Dispose()` and read in a live subscription-target handler (RHS of a `+=` / arg
+        # of a `.Subscribe(...)`, not torn down, no `if (_disposed) return;` guard) — DIRECTLY
+        # (`field-use-after-dispose`) or ONE hop down through a private helper (`handler-use-after-dispose`)
+        # — lowered to a synthetic acquire/release/use flow -> OWN002. Remaining backlog: a view stored in a
+        # FIELD, a TWO-plus-hop indirect field use, and an injected-source region-escape. A drop below the
+        # floor is a regression.
+        run: python scripts/benchmark.py --min-recall 22
 
