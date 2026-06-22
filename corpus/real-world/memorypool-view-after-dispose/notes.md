@@ -16,8 +16,12 @@ view of a `Rent`ed array is used after `Return`; here a `Memory`/`Span` view of 
 (resolved via the `System.Buffers.IMemoryOwner<T>.Memory` property) as a borrow of the
 owner — completing the MemoryPool story begun in #72 (which tracked the owner's
 acquire / release lifecycle: POOL001 leak, POOL003 double-dispose). With the view
-recognised, a view-local read after `Dispose` is **POOL002 → OWN002**, and a returned
-`Memory` view dangles like the ArrayPool case.
+recognised, a view-local read after an explicit `owner.Dispose()` is
+**POOL002 → OWN002**. (The *returned*-`Memory` dangle from the idiomatic `using`
+owner — `using owner; return owner.Memory;`, where the implicit scope-exit dispose
+hands a stale view to the caller — is a follow-up: `using` locals are skipped as
+non-leak candidates, so that escape needs the scope-exit dispose modelled as a
+release on the return path, like the ArrayPool try/finally `Memory` escape.)
 
 **What the checker says:** the OwnLang model and the real `before.cs` both trip
 **OWN002** (use after release). The `using` fix in `after.cs` reads the view while the
