@@ -2198,7 +2198,7 @@ foreach (var (file, tree) in parsed)
                 if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
                     && a.Right is BaseObjectCreationExpressionSyntax aoce
                     && IsEventSourceOwnedCounter(aoce, model)
-                    && FieldName(a.Left) is { } cfn)
+                    && ThisFieldName(a.Left) is { } cfn)   // THIS instance's field only — `other._c` must not exempt our field (CodeRabbit)
                     eventSourceCounters.Add(cfn);
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
@@ -2219,9 +2219,14 @@ foreach (var (file, tree) in parsed)
             {
                 if (!constructed.Contains(v.Identifier.Text))
                     continue;
-                // an EventSource's own DiagnosticCounter (registered to `this`) is process-lived
-                // and never field-disposed -> not an owned leak (mined: Npgsql NpgsqlEventSource).
-                if (eventSourceCounters.Contains(v.Identifier.Text))
+                // an EventSource's own DiagnosticCounter (a field DECLARED as a DiagnosticCounter
+                // AND registered to `this`) is process-lived and never field-disposed -> not an
+                // owned leak (mined: Npgsql NpgsqlEventSource). The DECLARED-type guard keeps the
+                // skip bound to genuine counter fields: a field declared as a plain IDisposable
+                // that is merely assigned a counter once still leaks its OTHER resource (e.g. an
+                // initial `new MemoryStream()`), so it must NOT be suppressed by name alone (Codex).
+                if (eventSourceCounters.Contains(v.Identifier.Text)
+                    && DerivesFromDiagnosticCounter(model.GetTypeInfo(fd.Declaration.Type).Type))
                     continue;
                 subs.Add(new
                 {

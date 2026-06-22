@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Tracing;
+using System.IO;
 using System.Threading;
 
 namespace Own.Samples;
@@ -32,6 +33,12 @@ internal sealed class SampleEventSource : EventSource
     // so this new'd-but-never-disposed resource STILL raises OWN001 ('disposable field').
     private readonly OwnedScratch _scratch = new OwnedScratch();
 
+    // Codex control: a field DECLARED as a plain IDisposable that is ALSO assigned a counter once
+    // must STILL leak. The exemption requires the DECLARED field type to be a DiagnosticCounter, so
+    // the `new MemoryStream()` owned here is not hidden by the later `_mixed = new EventCounter(...)`
+    // (a name-only skip would wrongly suppress the whole field). -> OWN001 on the MemoryStream.
+    private IDisposable _mixed = new MemoryStream();
+
     private SampleEventSource() { }
 
     public void RecordBytes(long n) => Interlocked.Add(ref _bytesWritten, n);
@@ -59,6 +66,11 @@ internal sealed class SampleEventSource : EventSource
         {
             DisplayName = "Total Commands",
         };
+
+        // The `_mixed` field (declared IDisposable) is ALSO assigned a counter here. The exemption
+        // must NOT suppress it: its declared type is not a DiagnosticCounter, so its earlier
+        // `new MemoryStream()` is a real undisposed leak (Codex).
+        _mixed = new EventCounter("mixed-counter", this);
     }
 }
 
