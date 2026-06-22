@@ -1,9 +1,8 @@
-# TEMPORARY mining runner (not for main). The on-demand `mine.yml` is
-# workflow_dispatch-only and the agent's API token can't dispatch it, so this
-# pushes a one-off mining run on a `claude/mine-*` branch: clone a pool-heavy
-# public C# repo and run own-check over it, echoing the report into the job log
-# for an FP audit. Read-only; delete the branch when the audit is done. Edit the
-# target in the "Mine the target" step and re-push to scan a different repo/subdir.
+# TEMPORARY mining runner (not for main). mine.yml is workflow_dispatch-only and
+# the agent's API token can't dispatch it, so this pushes a one-off run on a
+# `claude/mine-*` branch: clone pool-heavy public C# repos and run own-check over
+# them, echoing each report into the job log for a false-positive audit. Read-only;
+# delete the branch when the audit is done. Edit TARGETS and re-push to scan others.
 name: mine-run (temp)
 
 on:
@@ -25,18 +24,28 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - name: Mine the target
-        run: scripts/mine.sh --paths src/MessagePack MessagePack-CSharp/MessagePack-CSharp
-      - name: Echo report + findings into the job log
+      - name: Mine the targets
+        run: |
+          # "owner/repo::subdir"  (subdir optional; empty -> whole repo)
+          targets=(
+            "microsoft/Microsoft.IO.RecyclableMemoryStream::src"
+            "mgravell/Pipelines.Sockets.Unofficial::src"
+          )
+          for t in "${targets[@]}"; do
+            repo="${t%%::*}"; path="${t##*::}"; [[ "$path" == "$repo" ]] && path=""
+            echo "::group::mine $repo ${path:+($path)}"
+            args=(); [[ -n "$path" ]] && args+=(--paths "$path")
+            scripts/mine.sh "${args[@]}" "$repo" || echo "mine: FAILED for $repo (see above)"
+            echo "::endgroup::"
+          done
+      - name: Echo all reports + findings into the job log
         if: always()
         run: |
-          report=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
-          findings=$(find corpus/mined -name findings.txt -type f 2>/dev/null | head -1 || true)
-          if [[ -n "$report" ]]; then
-            echo "::group::report.md"; cat "$report"; echo "::endgroup::"
-          else
-            echo "no report produced (see the Mine step log)"
-          fi
-          if [[ -n "$findings" ]]; then
-            echo "::group::findings.txt (SARIF)"; cat "$findings"; echo "::endgroup::"
-          fi
+          for r in corpus/mined/*/report.md; do
+            [[ -f "$r" ]] || continue
+            echo "::group::report.md — $r"; cat "$r"; echo "::endgroup::"
+          done
+          for f in corpus/mined/*/findings.txt; do
+            [[ -f "$f" ]] || continue
+            echo "::group::findings.txt — $f"; cat "$f"; echo "::endgroup::"
+          done
