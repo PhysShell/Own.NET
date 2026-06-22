@@ -185,10 +185,23 @@ static bool IsTemplatePartFetch(ExpressionSyntax? expr)
 // Target is null, so no instance is retained — the subscription cannot leak a
 // subscriber, however long-lived the source. Only method-group handlers
 // (identifier / member access) are judged; lambdas and delegate-typed values may
-// capture state and are left as leak candidates.
-static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
-    IsHandler(right)
-        && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
+// capture state and are left as leak candidates. A method group's symbol can surface
+// as a MEMBER GROUP (Symbol == null, CandidateSymbols populated) instead of the bound
+// method, so fall back to the candidates — else a genuinely static-method handler is
+// missed and a static-source subscription that retains NO instance is mis-reported as
+// a region escape (mined: ImageSharp MemoryAllocatorValidator's static MemoryDiagnostics
+// handlers). When falling back, require ALL candidates static so an overload set that
+// mixes a static and an instance method is not wrongly exempted.
+static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model)
+{
+    if (!IsHandler(right))
+        return false;
+    var info = model.GetSymbolInfo(right);
+    if (info.Symbol is { } s)
+        return s is IMethodSymbol { IsStatic: true };
+    var cands = info.CandidateSymbols;
+    return cands.Length > 0 && cands.All(c => c is IMethodSymbol { IsStatic: true });
+}
 
 // P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
 // process-lived singleton — exactly one instance, created at startup, alive until
@@ -2128,6 +2141,16 @@ foreach (var (file, tree) in parsed)
                 && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                 && FieldName(m.Expression) is { } df)
                 disposed.Add(df);
+        // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
+        // WhenNotNull is the `.Dispose()` invocation, NOT a plain MemberAccess) — the
+        // dominant disposal shape the match above misses. Mined as an FP across ImageSharp:
+        // `this.memoryStream?.Dispose()` (ZipExrCompressor/DeflateCompressor/IccDataWriter)
+        // and the BufferedStreams benchmark's `[GlobalCleanup]` `field?.Dispose()` calls.
+        foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
+            if (FieldName(cae.Expression) is { } cdf
+                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
+                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
+                disposed.Add(cdf);
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
@@ -2355,25 +2378,41 @@ foreach (var (file, tree) in parsed)
         // tracks local declarations, so field/assignment-backed rents still need
         // this syntactic pass; the local-declaration rents are skipped below to
         // avoid double-reporting them (Codex).
+        // A FIELD-backed pooled buffer is legitimately rented in one member (the ctor) and
+        // Returned in another (Dispose), so for FIELDS the `pool.Return(field)` is searched
+        // CLASS-WIDE (a field name is unique to the class, so this cannot cross-mask — unlike
+        // same-named LOCALS in different methods, which keep the per-member scoping below).
+        // Mined: ImageSharp BufferedReadStream returns this.readBuffer in Dispose(bool). (An
+        // INDIRECT release via a lifetime-guard object — SharedArrayPoolBuffer — is left honest:
+        // a `new X(field)` is NOT assumed to own/return the buffer, since a non-owning view like
+        // `new ReadOnlyMemory<byte>(field)` would otherwise hide a real leak — Codex.)
+        var fieldReleased = new HashSet<string>();
+        foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            if (inv.Expression is MemberAccessExpressionSyntax rm
+                && rm.Name.Identifier.Text == "Return"
+                && inv.ArgumentList.Arguments.Count > 0
+                && model.GetSymbolInfo(inv.ArgumentList.Arguments[0].Expression).Symbol is IFieldSymbol rfs)
+                fieldReleased.Add(rfs.Name);
+
         foreach (var member in cls.Members)
         {
-            var rented = new List<(string Name, int Line)>();
+            var rented = new List<(string Name, int Line, bool IsField)>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model))
                 {
-                    string? name = inv.Parent switch
+                    (string? name, bool isField) = inv.Parent switch
                     {
                         // a local-declaration rent is the flow pass's job under
                         // --flow-locals; skip it here so it is not double-reported.
                         EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
-                            => flowLocals ? null : vd.Identifier.Text,
+                            => (flowLocals ? null : vd.Identifier.Text, false),
                         // a field/assignment rent (`_buf = pool.Rent(...)`) is NOT a
                         // flow candidate, so this pass keeps it in both modes.
-                        AssignmentExpressionSyntax asg => FieldName(asg.Left),
-                        _ => null,
+                        AssignmentExpressionSyntax asg => (FieldName(asg.Left), true),
+                        _ => ((string?)null, false),
                     };
                     if (name != null)
-                        rented.Add((name, LineOf(inv)));
+                        rented.Add((name, LineOf(inv), isField));
                 }
             if (rented.Count == 0)
                 continue;
@@ -2384,12 +2423,14 @@ foreach (var (file, tree) in parsed)
                     && inv.ArgumentList.Arguments.Count > 0
                     && FieldName(inv.ArgumentList.Arguments[0].Expression) is { } rn)
                     returned.Add(rn);
-            foreach (var (name, line) in rented)
+            foreach (var (name, line, isField) in rented)
                 subs.Add(new
                 {
                     @event = name,
                     line,
-                    released = returned.Contains(name),
+                    // locals stay per-member; a field is also released if returned/transferred
+                    // anywhere in the class (cross-member ctor-rent + Dispose-return).
+                    released = returned.Contains(name) || (isField && fieldReleased.Contains(name)),
                     resource = "pool",
                 });
         }

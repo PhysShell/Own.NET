@@ -140,6 +140,8 @@ jobs:
             frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs \
             frontend/roslyn/samples/InjectedDcViewSample.xaml.cs \
             frontend/roslyn/samples/ResolvedDisposableSample.cs \
+            frontend/roslyn/samples/FieldReleaseSample.cs \
+            frontend/roslyn/samples/StaticClassEscapeSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -223,6 +225,20 @@ jobs:
           if echo "$out" | grep -q "HolderWithDisposeOptional"; then
             echo "FAIL: a dispose-optional (Task/DataTable) field was wrongly flagged"; exit 1
           fi
+          # field release recognition (mined: ImageSharp). #2 null-conditional dispose
+          # `field?.Dispose()` must be recognized -> silent; the undisposed control still warns.
+          if echo "$out" | grep -q "DisposesViaConditional"; then
+            echo "FAIL: a field disposed via null-conditional field?.Dispose() was wrongly flagged"; exit 1
+          fi
+          echo "$out" | grep -q "NeverDisposesField" \
+            || { echo "FAIL: an undisposed IDisposable field control must still warn"; exit 1; }
+          # #3 a pooled FIELD released cross-member (ctor rent + Dispose Return) must be silent;
+          # the rented-never-returned control still warns.
+          if echo "$out" | grep -q "pooled buffer 'returnedBuf'"; then
+            echo "FAIL: a pooled field returned in Dispose was wrongly flagged"; exit 1
+          fi
+          echo "$out" | grep -q "pooled buffer 'leakedBuf'" \
+            || { echo "FAIL: a pooled field rented but never returned must still warn"; exit 1; }
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
@@ -305,6 +321,14 @@ jobs:
           # -> silent. Must NOT be reported.
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
             echo "FAIL: an unsubscribed (released) static-event subscription was wrongly reported"; exit 1
+          fi
+          # P-004 robust static-handler exemption (mined: ImageSharp MemoryAllocatorValidator): a
+          # static-METHOD handler on a static event stores a null-target delegate -> no instance is
+          # retained -> OWN014 must NOT fire, even when the method-group symbol surfaces as a member
+          # group (now resolved via CandidateSymbols). (StaticEventEscapeViewModel above proves an
+          # INSTANCE handler on the same static event still escapes, so this stays scoped.)
+          if echo "$out" | grep -q "StaticAllocationCounter"; then
+            echo "FAIL: a static-method handler on a static event was wrongly reported as a region escape"; exit 1
           fi
           # P-004 process-lived-subscriber exemption (mined: ScreenToGif App +
           # Translator): the WPF `App` singleton hooking the process-lived
