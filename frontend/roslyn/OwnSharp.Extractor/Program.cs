@@ -189,6 +189,37 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model) =>
     IsHandler(right)
         && model.GetSymbolInfo(right).Symbol is IMethodSymbol { IsStatic: true };
 
+// P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
+// process-lived singleton — exactly one instance, created at startup, alive until
+// the process exits. Subscribing it to a process-lived static event
+// (`AppDomain.CurrentDomain.UnhandledException`, `SystemEvents.*`) promotes nothing:
+// its "leaked" lifetime already equals the process. So a static-source region escape
+// (OWN014) raised from inside `App` is a false positive (found mining ScreenToGif
+// and its bundled Translator tool, both flagged on the textbook unhandled-exception
+// hook). Detected syntactically because WPF does not resolve on the Linux runner:
+// either the class derives from `Application` / `System.Windows.Application`, or it
+// is the conventional XAML-split `partial class App` (whose `: Application` lives in
+// the generated `App.g.cs` partial the extractor never sees). Only the STATIC-source
+// escape is suppressed; an instance-field subscription leak inside `App` still fires.
+static bool IsProcessLivedApplication(TypeDeclarationSyntax cls)
+{
+    if (cls.BaseList is { } bl)
+        foreach (var bt in bl.Types)
+        {
+            var n = bt.Type switch
+            {
+                IdentifierNameSyntax id => id.Identifier.Text,
+                QualifiedNameSyntax q => q.Right.Identifier.Text,
+                AliasQualifiedNameSyntax aq => aq.Name.Identifier.Text,
+                _ => null,
+            };
+            if (n is "Application")
+                return true;
+        }
+    return cls.Identifier.Text == "App"
+        && cls.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+}
+
 // P-004 severity tiering: of the subscriptions that survive the self-owned and
 // static-handler exemptions (and are not timers), how long-lived is the event
 // SOURCE? A static event lives for the whole process, so an undetached handler is
@@ -1906,6 +1937,10 @@ foreach (var (file, tree) in parsed)
                 && IsTemplatePartFetch(a.Right))
                 selfOwned.Add(tf.Name);
 
+        // Is this class the process-lived WPF application object? Used to drop the
+        // static-source region escape (OWN014) — `App` cannot be over-promoted.
+        var clsIsApp = IsProcessLivedApplication(cls);
+
         var subs = new List<object>();
         foreach (var a in assigns)
         {
@@ -1937,6 +1972,11 @@ foreach (var (file, tree) in parsed)
                 var source = isTimer ? "static"
                                      : SubscriptionSourceKind(a.Left, ev, model);
                 if (source == "local")
+                    continue;
+                // Process-lived subscriber (the WPF `App` singleton): a static-source
+                // subscription promotes nothing — `App` already lives for the whole
+                // process — so the region escape (OWN014) is a false positive.
+                if (source == "static" && clsIsApp)
                     continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
