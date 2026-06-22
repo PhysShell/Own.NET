@@ -1,0 +1,20 @@
+// OwnLang model of the pooled-buffer view-in-a-field dangle. `acquire` == MemoryPool.Rent (the
+// IMemoryOwner), `release` == its Dispose() in the type's Dispose() (the pooled buffer goes back to
+// the pool), `use` == a late dispatcher callback (the subscribed handler) reading the owner's Memory
+// VIEW — held in a field — AFTER Dispose. The view field aliases the owner, so reading it after the
+// owner's release is a use of the owner after release, lowered to OWN002. (The C# bridge tags the
+// synthetic flow with the generic `disposable` kind; here it is named `pooled buffer` to describe the
+// modelled resource.)
+module PooledViewAfterDispose
+
+resource PooledBuffer {
+    acquire Rent
+    release Dispose
+    kind "pooled buffer"
+}
+
+fn OnFrameReady(bus: int) {
+    let owner = acquire PooledBuffer(bus);
+    release owner;   // the type's Dispose() returns the pooled buffer
+    use owner;       // a late callback reads the owner's Memory view (a field) after Dispose -> OWN002
+}
