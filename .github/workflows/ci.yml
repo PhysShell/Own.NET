@@ -141,6 +141,7 @@ jobs:
             frontend/roslyn/samples/InjectedDcViewSample.xaml.cs \
             frontend/roslyn/samples/ResolvedDisposableSample.cs \
             frontend/roslyn/samples/FieldReleaseSample.cs \
+            frontend/roslyn/samples/StaticClassEscapeSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -320,6 +321,13 @@ jobs:
           # -> silent. Must NOT be reported.
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
             echo "FAIL: an unsubscribed (released) static-event subscription was wrongly reported"; exit 1
+          fi
+          # P-004 static-class escape exemption (mined: ImageSharp MemoryAllocatorValidator): a
+          # `static class` has no instance, so a static-source subscription (even a lambda) from it
+          # cannot be a region escape -> OWN014 must NOT fire. (StaticEventEscapeViewModel above
+          # proves an INSTANCE class on the same shape still escapes, so this stays scoped.)
+          if echo "$out" | grep -q "StaticAllocationCounter"; then
+            echo "FAIL: a static-source subscription from a static class was wrongly reported as a region escape"; exit 1
           fi
           # P-004 process-lived-subscriber exemption (mined: ScreenToGif App +
           # Translator): the WPF `App` singleton hooking the process-lived

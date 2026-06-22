@@ -2043,6 +2043,11 @@ foreach (var (file, tree) in parsed)
         // Is this class the process-lived WPF application object? Used to drop the
         // static-source region escape (OWN014) — `App` cannot be over-promoted.
         var clsIsApp = IsProcessLivedApplication(cls);
+        // A `static class` has NO instance, so a static-source subscription from it cannot
+        // promote an instance to the source's lifetime — the OWN014 escape is vacuous. (Mined:
+        // ImageSharp MemoryAllocatorValidator, a static class whose static ctor hooks the static
+        // MemoryDiagnostics events.) Drops only the static-source escape, not OWN001 token leaks.
+        var clsIsStaticClass = cls.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword));
 
         var subs = new List<object>();
         foreach (var a in assigns)
@@ -2076,12 +2081,13 @@ foreach (var (file, tree) in parsed)
                                      : SubscriptionSourceKind(a.Left, ev, model);
                 if (source == "local")
                     continue;
-                // Process-lived subscriber (the WPF `App` singleton): a static-source
-                // subscription promotes nothing — `App` already lives for the whole
-                // process — so the region escape (OWN014) is a false positive. Scoped
-                // to NON-timers: a timer is forced to source "static" above, but a
-                // never-stopped timer in `App` is still a real leak (CodeRabbit).
-                if (!isTimer && source == "static" && clsIsApp)
+                // A static-source subscription whose SUBSCRIBER cannot be over-promoted is not a
+                // region escape (OWN014): the process-lived WPF `App` singleton (its lifetime
+                // already equals the process), or a `static class` (no instance exists at all —
+                // mined: ImageSharp MemoryAllocatorValidator). Scoped to NON-timers: a timer is
+                // forced to source "static" above, but a never-stopped timer is still a real
+                // leak (CodeRabbit).
+                if (!isTimer && source == "static" && (clsIsApp || clsIsStaticClass))
                     continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
