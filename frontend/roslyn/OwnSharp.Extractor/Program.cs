@@ -2128,6 +2128,16 @@ foreach (var (file, tree) in parsed)
                 && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                 && FieldName(m.Expression) is { } df)
                 disposed.Add(df);
+        // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
+        // WhenNotNull is the `.Dispose()` invocation, NOT a plain MemberAccess) — the
+        // dominant disposal shape the match above misses. Mined as an FP across ImageSharp:
+        // `this.memoryStream?.Dispose()` (ZipExrCompressor/DeflateCompressor/IccDataWriter)
+        // and the BufferedStreams benchmark's `[GlobalCleanup]` `field?.Dispose()` calls.
+        foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
+            if (FieldName(cae.Expression) is { } cdf
+                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
+                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
+                disposed.Add(cdf);
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
@@ -2355,25 +2365,58 @@ foreach (var (file, tree) in parsed)
         // tracks local declarations, so field/assignment-backed rents still need
         // this syntactic pass; the local-declaration rents are skipped below to
         // avoid double-reporting them (Codex).
+        // A FIELD-backed pooled buffer is legitimately rented in one member (the ctor) and
+        // released in another, so for FIELDS the release is searched CLASS-WIDE (a field name
+        // is unique to the class, so this cannot cross-mask — unlike same-named LOCALS in
+        // different methods, which keep the per-member scoping below). Released either by a
+        // direct `pool.Return(field)` ANYWHERE (mined: ImageSharp BufferedReadStream returns
+        // this.readBuffer in Dispose(bool)), or by TRANSFER of the buffer into a `new Guard(field)`
+        // that this object STORES in a field — a lifetime-owning wrapper that returns it (the #80
+        // escaping-ctor transfer at field level; mined: SharedArrayPoolBuffer's LifetimeGuard).
+        var fieldReleased = new HashSet<string>();
+        foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            if (inv.Expression is MemberAccessExpressionSyntax rm
+                && rm.Name.Identifier.Text == "Return"
+                && inv.ArgumentList.Arguments.Count > 0
+                && model.GetSymbolInfo(inv.ArgumentList.Arguments[0].Expression).Symbol is IFieldSymbol rfs)
+                fieldReleased.Add(rfs.Name);
+        foreach (var oce in cls.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>())
+        {
+            // the `new Wrapper(field)` must itself be STORED in a field (kept by this object),
+            // not a throwaway local — mirrors #80's escape requirement, so a non-owning local
+            // view (`var v = new Span(field)`) is NOT mistaken for a transfer.
+            var storedInField =
+                (oce.Parent is AssignmentExpressionSyntax pa
+                    && model.GetSymbolInfo(pa.Left).Symbol is IFieldSymbol)
+                || oce.Parent is EqualsValueClauseSyntax
+                       { Parent: VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax
+                           { Parent: FieldDeclarationSyntax } } };
+            if (!storedInField || oce.ArgumentList is not { } al)
+                continue;
+            foreach (var arg in al.Arguments)
+                if (model.GetSymbolInfo(arg.Expression).Symbol is IFieldSymbol afs)
+                    fieldReleased.Add(afs.Name);
+        }
+
         foreach (var member in cls.Members)
         {
-            var rented = new List<(string Name, int Line)>();
+            var rented = new List<(string Name, int Line, bool IsField)>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model))
                 {
-                    string? name = inv.Parent switch
+                    (string? name, bool isField) = inv.Parent switch
                     {
                         // a local-declaration rent is the flow pass's job under
                         // --flow-locals; skip it here so it is not double-reported.
                         EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
-                            => flowLocals ? null : vd.Identifier.Text,
+                            => (flowLocals ? null : vd.Identifier.Text, false),
                         // a field/assignment rent (`_buf = pool.Rent(...)`) is NOT a
                         // flow candidate, so this pass keeps it in both modes.
-                        AssignmentExpressionSyntax asg => FieldName(asg.Left),
-                        _ => null,
+                        AssignmentExpressionSyntax asg => (FieldName(asg.Left), true),
+                        _ => ((string?)null, false),
                     };
                     if (name != null)
-                        rented.Add((name, LineOf(inv)));
+                        rented.Add((name, LineOf(inv), isField));
                 }
             if (rented.Count == 0)
                 continue;
@@ -2384,12 +2427,14 @@ foreach (var (file, tree) in parsed)
                     && inv.ArgumentList.Arguments.Count > 0
                     && FieldName(inv.ArgumentList.Arguments[0].Expression) is { } rn)
                     returned.Add(rn);
-            foreach (var (name, line) in rented)
+            foreach (var (name, line, isField) in rented)
                 subs.Add(new
                 {
                     @event = name,
                     line,
-                    released = returned.Contains(name),
+                    // locals stay per-member; a field is also released if returned/transferred
+                    // anywhere in the class (cross-member ctor-rent + Dispose-return).
+                    released = returned.Contains(name) || (isField && fieldReleased.Contains(name)),
                     resource = "pool",
                 });
         }
