@@ -2578,6 +2578,19 @@ foreach (var (file, tree) in parsed)
                     // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg)
+                        // An IMemoryOwner's `.Memory` view handed off as an ARGUMENT escapes the
+                        // OWNER: the Memory keeps the owner alive (it IS the backing), so a consumer
+                        // that stores it — `MemoryGroup.Wrap(owner.Memory)` -> the returned Image —
+                        // takes over the lifetime; the owner is not leaked here. Scoped to
+                        // IMemoryOwner.`Memory` (not any `local.Member`, so a FileStream whose
+                        // `.Length` is read still leaks) and to non-pool / non-`using` owners (a
+                        // MemoryPool / `using` owner keeps its dangling-borrow tracking). Mined FP on
+                        // ImageSharp Image.WrapMemory; CodeQL agrees it is no leak (interprocedural).
+                        || (!poolBuffers.Contains(nm) && !usingMemoryOwners.Contains(nm)
+                            && idn.Parent is MemberAccessExpressionSyntax { Name.Identifier.Text: "Memory" } projMem
+                            && projMem.Expression == idn
+                            && projMem.Parent is ArgumentSyntax
+                            && IsMemoryOwnerType(model.GetTypeInfo(idn).Type))
                         || (poolBuffers.Contains(nm) && PassedToEscapingCtor(idn, model)))
                         escapedLocals.Add(nm);
                 }
