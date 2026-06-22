@@ -2,7 +2,8 @@
 # workflow_dispatch-only and the agent's API token can't dispatch it, so this
 # pushes a one-off mining run on a `claude/mine-*` branch: clone a pool-heavy
 # public C# repo and run own-check over it, echoing the report into the job log
-# for an FP audit. Read-only; delete the branch when the audit is done.
+# for an FP audit. Read-only; delete the branch when the audit is done. Edit the
+# target in the "Mine the target" step and re-push to scan a different repo/subdir.
 name: mine-run (temp)
 
 on:
@@ -12,14 +13,9 @@ on:
 permissions:
   contents: read
 
-# The target to mine — edit and re-push to scan a different repo / subdir.
-env:
-  TARGET: "MessagePack-CSharp/MessagePack-CSharp"
-  PATHS: "src/MessagePack"
-
 jobs:
   mine:
-    name: mine ${{ env.TARGET }}
+    name: mine
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +26,7 @@ jobs:
         with:
           dotnet-version: "8.0.x"
       - name: Mine the target
-        run: |
-          args=()
-          [[ -n "$PATHS" ]] && args+=(--paths "$PATHS")
-          scripts/mine.sh "${args[@]}" "$TARGET"
+        run: scripts/mine.sh --paths src/MessagePack MessagePack-CSharp/MessagePack-CSharp
       - name: Echo report + findings into the job log
         if: always()
         run: |
