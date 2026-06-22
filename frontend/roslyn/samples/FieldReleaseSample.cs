@@ -37,34 +37,7 @@ public sealed class PoolFieldReturnedInDispose : IDisposable
     public byte First() => this.returnedBuf[0];
 }
 
-// #3: a pooled buffer FIELD transferred into a field-stored guard (#80 transfer at field
-// level) — the guard owns and returns it -> SILENT.
-public sealed class PoolFieldTransferredToGuard
-{
-    private readonly byte[] guardedBuf;
-    private readonly BufferGuard guard;
-
-    public PoolFieldTransferredToGuard(int n)
-    {
-        this.guardedBuf = ArrayPool<byte>.Shared.Rent(n);
-        this.guard = new BufferGuard(this.guardedBuf);   // ownership handed to the guard
-    }
-}
-
-public sealed class BufferGuard
-{
-    private byte[]? held;
-
-    public BufferGuard(byte[] b) => this.held = b;
-
-    public void Release()
-    {
-        ArrayPool<byte>.Shared.Return(this.held!);
-        this.held = null;
-    }
-}
-
-// #3 control: a pooled buffer FIELD rented but NEVER returned/transferred -> must WARN.
+// #3 control: a pooled buffer FIELD rented but NEVER returned -> must WARN.
 public sealed class PoolFieldLeaked
 {
     private readonly byte[] leakedBuf;

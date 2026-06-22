@@ -231,10 +231,10 @@ jobs:
           fi
           echo "$out" | grep -q "NeverDisposesField" \
             || { echo "FAIL: an undisposed IDisposable field control must still warn"; exit 1; }
-          # #3 a pooled FIELD released cross-member (ctor rent + Dispose Return) or transferred
-          # into a field-stored guard must be silent; the rented-never-returned control warns.
-          if echo "$out" | grep -qE "pooled buffer '(returnedBuf|guardedBuf)'"; then
-            echo "FAIL: a pooled field returned in Dispose / transferred to a guard was wrongly flagged"; exit 1
+          # #3 a pooled FIELD released cross-member (ctor rent + Dispose Return) must be silent;
+          # the rented-never-returned control still warns.
+          if echo "$out" | grep -q "pooled buffer 'returnedBuf'"; then
+            echo "FAIL: a pooled field returned in Dispose was wrongly flagged"; exit 1
           fi
           echo "$out" | grep -q "pooled buffer 'leakedBuf'" \
             || { echo "FAIL: a pooled field rented but never returned must still warn"; exit 1; }

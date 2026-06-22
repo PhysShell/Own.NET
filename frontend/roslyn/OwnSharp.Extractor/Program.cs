@@ -2366,13 +2366,13 @@ foreach (var (file, tree) in parsed)
         // this syntactic pass; the local-declaration rents are skipped below to
         // avoid double-reporting them (Codex).
         // A FIELD-backed pooled buffer is legitimately rented in one member (the ctor) and
-        // released in another, so for FIELDS the release is searched CLASS-WIDE (a field name
-        // is unique to the class, so this cannot cross-mask — unlike same-named LOCALS in
-        // different methods, which keep the per-member scoping below). Released either by a
-        // direct `pool.Return(field)` ANYWHERE (mined: ImageSharp BufferedReadStream returns
-        // this.readBuffer in Dispose(bool)), or by TRANSFER of the buffer into a `new Guard(field)`
-        // that this object STORES in a field — a lifetime-owning wrapper that returns it (the #80
-        // escaping-ctor transfer at field level; mined: SharedArrayPoolBuffer's LifetimeGuard).
+        // Returned in another (Dispose), so for FIELDS the `pool.Return(field)` is searched
+        // CLASS-WIDE (a field name is unique to the class, so this cannot cross-mask — unlike
+        // same-named LOCALS in different methods, which keep the per-member scoping below).
+        // Mined: ImageSharp BufferedReadStream returns this.readBuffer in Dispose(bool). (An
+        // INDIRECT release via a lifetime-guard object — SharedArrayPoolBuffer — is left honest:
+        // a `new X(field)` is NOT assumed to own/return the buffer, since a non-owning view like
+        // `new ReadOnlyMemory<byte>(field)` would otherwise hide a real leak — Codex.)
         var fieldReleased = new HashSet<string>();
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax rm
@@ -2380,23 +2380,6 @@ foreach (var (file, tree) in parsed)
                 && inv.ArgumentList.Arguments.Count > 0
                 && model.GetSymbolInfo(inv.ArgumentList.Arguments[0].Expression).Symbol is IFieldSymbol rfs)
                 fieldReleased.Add(rfs.Name);
-        foreach (var oce in cls.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>())
-        {
-            // the `new Wrapper(field)` must itself be STORED in a field (kept by this object),
-            // not a throwaway local — mirrors #80's escape requirement, so a non-owning local
-            // view (`var v = new Span(field)`) is NOT mistaken for a transfer.
-            var storedInField =
-                (oce.Parent is AssignmentExpressionSyntax pa
-                    && model.GetSymbolInfo(pa.Left).Symbol is IFieldSymbol)
-                || oce.Parent is EqualsValueClauseSyntax
-                       { Parent: VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax
-                           { Parent: FieldDeclarationSyntax } } };
-            if (!storedInField || oce.ArgumentList is not { } al)
-                continue;
-            foreach (var arg in al.Arguments)
-                if (model.GetSymbolInfo(arg.Expression).Symbol is IFieldSymbol afs)
-                    fieldReleased.Add(afs.Name);
-        }
 
         foreach (var member in cls.Members)
         {
