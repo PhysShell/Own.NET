@@ -203,6 +203,19 @@ static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model)
     return cands.Length > 0 && cands.All(c => c is IMethodSymbol { IsStatic: true });
 }
 
+// P-004 process-lifetime exemption: a subscription to a PROCESS-HOST `System.AppDomain`
+// event — ProcessExit / DomainUnload (shutdown cleanup hooks) or UnhandledException /
+// FirstChanceException (process-wide diagnostics) — is never a region escape. The handler
+// is MEANT to live for the whole process: it runs at shutdown, or on every unhandled throw,
+// and the AppDomain IS the process host. Promoting the subscriber to "the AppDomain's
+// lifetime" is therefore the intent, not a leak. Mined: Npgsql's PoolManager static ctor
+// `AppDomain.CurrentDomain.{DomainUnload,ProcessExit} += (_,_) => ClearAll()` — a deliberate
+// "close idle connectors on appdomain unload (web-app redeployment)" hook (#491).
+static bool IsProcessLifetimeAppDomainEvent(IEventSymbol ev) =>
+    ev.Name is "ProcessExit" or "DomainUnload" or "UnhandledException" or "FirstChanceException"
+    && ev.ContainingType is { Name: "AppDomain" } ct
+    && IsInNamespace(ct, "System");
+
 // P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
 // process-lived singleton — exactly one instance, created at startup, alive until
 // the process exits. Subscribing it to a process-lived static event
@@ -2078,8 +2091,13 @@ foreach (var (file, tree) in parsed)
                 //    constructs) — the source<->this cycle is GC-collectable;
                 //  - static handler — a static method has a null delegate target,
                 //    so no instance is retained and nothing can leak.
+                //  - a process-host AppDomain event (ProcessExit/DomainUnload/Unhandled-
+                //    Exception/FirstChanceException) — the handler is meant to live for the
+                //    whole process, so the "escape" is the intent, not a leak (mined: Npgsql
+                //    PoolManager's `AppDomain.CurrentDomain.ProcessExit += …` shutdown hook).
                 if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned)
-                                 || IsStaticHandler(a.Right, model)))
+                                 || IsStaticHandler(a.Right, model)
+                                 || IsProcessLifetimeAppDomainEvent(ev)))
                     continue;
                 // P-004 tiering: a local-variable source is method-bounded — it
                 // cannot outlive `this`, so it is not a heap leak; drop it (the same

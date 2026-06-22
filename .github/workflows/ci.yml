@@ -142,6 +142,7 @@ jobs:
             frontend/roslyn/samples/ResolvedDisposableSample.cs \
             frontend/roslyn/samples/FieldReleaseSample.cs \
             frontend/roslyn/samples/StaticClassEscapeSample.cs \
+            frontend/roslyn/samples/AppDomainShutdownSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -317,6 +318,15 @@ jobs:
             || { echo "FAIL: expected OWN014 region escape on the static-event instance subscription"; exit 1; }
           echo "$out" | grep -q "region escape" \
             || { echo "FAIL: expected the region-escape wording on the static-event capture"; exit 1; }
+          # P-004 process-lifetime AppDomain-event exemption (mined: Npgsql PoolManager): a
+          # subscription to a process-host AppDomain event (ProcessExit/DomainUnload/Unhandled-
+          # Exception) is a shutdown/diagnostics hook meant to live for the process -> NOT a
+          # region escape -> silent. A non-AppDomain static event with a lambda still escapes.
+          if echo "$out" | grep -q "ShutdownCleanup"; then
+            echo "FAIL: an AppDomain process-lifetime event subscription was wrongly reported as a region escape"; exit 1
+          fi
+          echo "$out" | grep -qE "NonAppDomainSubscriber.*OWN014|OWN014.*NonAppDomainSubscriber" \
+            || { echo "FAIL: a lambda on a non-AppDomain static event must still raise OWN014 (exemption stays scoped)"; exit 1; }
           # the unsubscribed variant (a matching `-=`, released capture) is mitigated
           # -> silent. Must NOT be reported.
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
