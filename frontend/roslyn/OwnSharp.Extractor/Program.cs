@@ -24,6 +24,7 @@
 // repo (this is what the `own-check` script / GitHub Action do).
 
 using System.Text.Json;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -218,6 +219,57 @@ static bool IsProcessLivedApplication(TypeDeclarationSyntax cls)
         }
     return cls.Identifier.Text == "App"
         && cls.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+}
+
+// P-004 WPF MVVM ownership: a field read from `this.DataContext`, optionally through
+// an `as`/cast (`DataContext as VM`, `(VM)DataContext`). Combined with a view whose
+// own XAML CONSTRUCTS its DataContext, such a field is the view's owned view-model.
+static bool ReadsDataContext(ExpressionSyntax expr)
+{
+    expr = expr switch
+    {
+        BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => b.Left,
+        CastExpressionSyntax c => c.Expression,
+        _ => expr,
+    };
+    return expr switch
+    {
+        IdentifierNameSyntax id => id.Identifier.Text == "DataContext",
+        MemberAccessExpressionSyntax m => m.Name.Identifier.Text == "DataContext"
+            && m.Expression is ThisExpressionSyntax,
+        _ => false,
+    };
+}
+
+// P-004 WPF MVVM ownership: does this XAML construct its own DataContext inline —
+// `<Root.DataContext><vm:Foo/></Root.DataContext>` — so the view OWNS its view-model
+// (a collectable view<->VM cycle)? Parsed structurally (XAML is XML), restricted to the
+// ROOT element's own DataContext: the code-behind's `this.DataContext` is the root's, so
+// a nested `<Grid.DataContext><ChildVm/>` (a different element's) must NOT exempt the
+// view (Codex / CodeRabbit) — else a real leak on the root's injected VM is dropped.
+// True only when the root's DataContext child is a constructed object that the view owns:
+// NOT a binding / resource reference, and NOT an `x:`-namespace language object
+// (`x:Static`, `x:Null`, `x:Reference`, ...), which name an external/shared value. A
+// malformed `.xaml` yields false (conservative — no exemption, never a dropped leak).
+static bool XamlDeclaresOwnedDataContext(string xaml)
+{
+    XDocument doc;
+    try { doc = XDocument.Parse(xaml); }
+    catch (System.Xml.XmlException) { return false; }
+    var root = doc.Root;
+    if (root is null)
+        return false;
+    // The root's OWN `<Root.DataContext>` property-element (a direct child of the root,
+    // in the root's namespace) — not a nested element's, not another property.
+    var dc = root.Element(root.Name.Namespace + (root.Name.LocalName + ".DataContext"));
+    var child = dc?.Elements().FirstOrDefault();
+    if (child is null)
+        return false;
+    if (child.Name.NamespaceName == "http://schemas.microsoft.com/winfx/2006/xaml")
+        return false;   // x:Static / x:Null / x:Reference / x:Type / ...
+    return child.Name.LocalName is not ("Binding" or "MultiBinding" or "PriorityBinding"
+        or "StaticResource" or "DynamicResource" or "RelativeSource"
+        or "TemplateBinding" or "Reference" or "Null");
 }
 
 // P-004 severity tiering: of the subscriptions that survive the self-owned and
@@ -1805,6 +1857,12 @@ var flowFunctions = new List<object>();
 // it under), then build ONE compilation over all of them so the SemanticModel
 // resolves cross-file and cross-project symbols (P-014 Tier A).
 var parsed = new List<(string file, SyntaxTree tree)>();
+// P-004 WPF MVVM: source-file paths (`Foo.xaml.cs`) whose sibling `Foo.xaml` constructs
+// its own DataContext (`<Foo.DataContext><VM/></...>`) — the view OWNS that VM. The
+// extractor only parses `.cs`, so XAML-declared ownership is invisible from the C#
+// alone; we read the sibling `.xaml` here and the subscription detector then treats a
+// field assigned from `this.DataContext` as self-owned. Keyed by the tree's FilePath.
+var viewsOwningDataContext = new HashSet<string>(StringComparer.Ordinal);
 foreach (var path in inputs)
 {
     // Defensive: an explicit input that is not a readable file (a directory
@@ -1827,6 +1885,19 @@ foreach (var path in inputs)
         continue;
     }
     parsed.Add((Rel(path), CSharpSyntaxTree.ParseText(text, path: path)));
+    if (path.EndsWith(".xaml.cs", StringComparison.OrdinalIgnoreCase))
+    {
+        var xamlPath = path[..^3];   // strip ".cs" -> "....xaml"
+        try
+        {
+            if (File.Exists(xamlPath) && XamlDeclaresOwnedDataContext(File.ReadAllText(xamlPath)))
+                viewsOwningDataContext.Add(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable sibling `.xaml` just means "ownership unknown" — no exemption.
+        }
+    }
 }
 
 // Project-local compilation (P-014 Tier A): the framework reference set is this
@@ -1936,6 +2007,17 @@ foreach (var (file, tree) in parsed)
                 && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol tf
                 && IsTemplatePartFetch(a.Right))
                 selfOwned.Add(tf.Name);
+        //   * WPF MVVM view-model — `_vm = DataContext as VM`: when THIS view's own
+        //     XAML constructs its DataContext (recorded in viewsOwningDataContext from
+        //     the sibling `.xaml`), the view owns that VM, so the view<->VM cycle is
+        //     collectable and subscribing to its events is not a leak. (Mined from
+        //     ScreenToGif's VideoSource: 4 FP subscriptions to its own declared VM.)
+        if (viewsOwningDataContext.Contains(tree.FilePath))
+            foreach (var a in assigns)
+                if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                    && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol dcf
+                    && ReadsDataContext(a.Right))
+                    selfOwned.Add(dcf.Name);
 
         // Is this class the process-lived WPF application object? Used to drop the
         // static-source region escape (OWN014) — `App` cannot be over-promoted.
@@ -1975,8 +2057,10 @@ foreach (var (file, tree) in parsed)
                     continue;
                 // Process-lived subscriber (the WPF `App` singleton): a static-source
                 // subscription promotes nothing — `App` already lives for the whole
-                // process — so the region escape (OWN014) is a false positive.
-                if (source == "static" && clsIsApp)
+                // process — so the region escape (OWN014) is a false positive. Scoped
+                // to NON-timers: a timer is forced to source "static" above, but a
+                // never-stopped timer in `App` is still a real leak (CodeRabbit).
+                if (!isTimer && source == "static" && clsIsApp)
                     continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
