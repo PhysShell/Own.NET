@@ -1420,10 +1420,11 @@ static bool IsDisposableType(string t) =>
 // IDisposable: System.IO.Pipelines `PipeReader`/`PipeWriter` finish via `Complete()`, not `Dispose()`.
 // Excluding them stops the field-disposable detector flagging an undisposed PipeReader/PipeWriter
 // field as a leak — a FALSE POSITIVE mined on Pipelines.Sockets.Unofficial (SocketConnection's
-// `_input`/`_output`). Matched on the SIMPLE name so a qualified `System.IO.Pipelines.PipeReader`
-// is covered too.
+// `_input`/`_output`). Matched on the exact bare or `System.IO.Pipelines`-qualified spelling — NOT
+// any simple-name match, so a project's own disposable `MyLib.PipeReader` is still flagged (Codex).
 static bool IsNonDisposableReaderWriter(string t) =>
-    (t.Contains('.') ? t[(t.LastIndexOf('.') + 1)..] : t) is "PipeReader" or "PipeWriter";
+    t is "PipeReader" or "PipeWriter"
+      or "System.IO.Pipelines.PipeReader" or "System.IO.Pipelines.PipeWriter";
 
 // --- P-006: DI registration + constructor graph (DI001 captive dependency) ---
 // A syntactic pass over the same trees, independent of the event/disposable
