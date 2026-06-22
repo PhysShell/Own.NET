@@ -22,7 +22,11 @@
   so its leak / double-dispose ride the same flow as POOL001/003 (corpus `memorypool-double-dispose`
   → OWN003), and its `owner.Memory` / `owner.Memory.Span` is a borrow lowered to a use of the OWNER
   (`ViewOwner`), so reading the view after `Dispose` trips **POOL002 → OWN002** (corpus
-  `memorypool-view-after-dispose`). A POOL005 view stored in a FIELD is next
+  `memorypool-view-after-dispose`). The idiomatic `using owner = MemoryPool.Rent(…); return
+  owner.Memory;` — which dangles after the implicit scope-exit dispose — is caught too:
+  the flow desugars a tracked `using IMemoryOwner` declaration to `acquire; try { rest }
+  finally { release }`, so the returned view is read after the release (**POOL004 → OWN002**;
+  corpus `memorypool-using-view-escape`). A POOL005 view stored in a FIELD is next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See

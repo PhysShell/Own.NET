@@ -798,5 +798,5 @@ jobs:
         # (`ViewOwner`), so reading it after Dispose trips OWN002 (POOL002 — `memorypool-view-after-
         # dispose`). Remaining backlog: a FIELD-mediated cross-method use-after-dispose, a view stored in
         # a FIELD, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 17
+        run: python scripts/benchmark.py --min-recall 19
 
