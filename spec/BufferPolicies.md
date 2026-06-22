@@ -39,18 +39,20 @@ inline = 256)`. The namespace is `Buffer`; the method selects the mode.
 - **B7 — requested length preserved.** `scratch` lowering preserves the
   *requested* logical length, independent of whether the stack or pool branch is
   taken.
-- **B9 — operations stay within the logical length.** A pooled buffer is
-  *oversized*: `ArrayPool<T>.Rent(n)` returns an array of `Length >= n`, not
-  exactly `n`. An operation that reaches the whole backing array rather than the
-  requested `n` touches the stale `[n, Length)` tail (a previous renter's bytes);
-  reading or copying through it is an over-read / over-copy → **OWN025**. Two
-  spellings: a FULL-length **view** with no bound (`buf.AsSpan()` / `buf.AsMemory()`
-  / `new Span<T>(buf)`), and the **`.Length`** form that passes the buffer's own
-  oversized `.Length` as the operative length (`buf.AsSpan(0, buf.Length)`,
-  `new Span<T>(buf, 0, buf.Length)`, `Array.Clear(buf, 0, buf.Length)`). The fix is
-  to bound by `n`: `buf.AsSpan(0, n)`, `Array.Clear(buf, 0, n)`. (P-007 POOL005; the
-  OwnLang model op is `overspan b`. Distinct from B6/OWN024, which is clearing *too
-  little* of a sensitive buffer — this is touching *too much*.)
+- **B9 — a view stays within the logical length.** A pooled buffer is *oversized*:
+  `ArrayPool<T>.Rent(n)` returns an array of `Length >= n`, not exactly `n` (and
+  `MemoryPool<T>.Rent(n)` likewise wraps an oversized backing, exposed via
+  `.Memory.Length`). A **view** that spans the whole backing array rather than the
+  requested `n` — a FULL-length view with no bound (`buf.AsSpan()` / `buf.AsMemory()`
+  / `new Span<T>(buf)`), or the **`.Length`** form that passes the buffer's own
+  oversized `.Length` as the length (`buf.AsSpan(0, buf.Length)`,
+  `new Span<T>(buf, 0, buf.Length)`) — exposes the stale `[n, Length)` tail (a
+  previous renter's bytes); reading or copying through it is an over-read / over-copy
+  → **OWN025**. The fix is to bound by `n`: `buf.AsSpan(0, n)`. Only a *read*-capable
+  view is flagged: a *write*/wipe such as `Array.Clear(buf, 0, buf.Length)` merely
+  zeros the tail (a safe clear-before-`Return` idiom) and exposes nothing. (P-007
+  POOL005; the OwnLang model op is `overspan b`. Distinct from B6/OWN024, which is
+  clearing *too little* of a sensitive buffer — this is *reading* too much.)
 
 ## Buffer options and `policy` blocks
 

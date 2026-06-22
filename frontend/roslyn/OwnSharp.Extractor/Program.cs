@@ -808,25 +808,23 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     EmitOverspans(expr, tracked, model, nodes);
 }
 
-// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` reaches past the rented
-// length of — the core raises OWN025. Two over-reach shapes: a FULL-LENGTH view (`buf.AsSpan()` with
-// no bound, or `buf.AsSpan(0, buf.Length)` / `new Span<T>(buf, 0, buf.Length)` whose length is the
-// oversized self-`.Length`), and an over-clear (`Array.Clear(buf, 0, buf.Length)`). Walks the whole
-// expression so a view nested in a call (`Sink.Write(buf.AsSpan())`), a chain
+// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` takes a FULL-LENGTH VIEW of
+// — the core raises OWN025. The view spans the whole oversized array (`buf.AsSpan()` with no bound,
+// or `buf.AsSpan(0, buf.Length)` / `new Span<T>(buf, 0, buf.Length)` whose length is the oversized
+// self-`.Length`), so reading or copying through it processes the stale `[n, Length)` tail. Walks the
+// whole expression so a view nested in a call (`Sink.Write(buf.AsSpan())`), a chain
 // (`buf.AsSpan().ToArray()`), or a local-declaration initializer (`var copy = buf.AsSpan()...`) is
-// found; a view bounded to the real `n` (`buf.AsSpan(0, n)`) is not matched. Among `tracked` locals
-// only pooled buffers are the arrays the BCL AsSpan/Span/Array.Clear symbols bind to, so this never
-// fires on a tracked IDisposable / factory result. Shared by the expression-statement and
-// local-declaration lowering paths.
+// found; a view bounded to the real `n` (`buf.AsSpan(0, n)`) is not matched. Only the VIEW is
+// flagged, not a write/wipe: `Array.Clear(buf, 0, buf.Length)` merely overwrites the pooled tail
+// (a safe clear-before-Return idiom), it does not expose stale bytes (Codex review). Among `tracked`
+// locals only pooled buffers are the arrays the BCL AsSpan/Span symbols bind to, so this never fires
+// on a tracked IDisposable / factory result. Shared by the expression-statement and local-decl paths.
 static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
 {
     var overspanned = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var node in expr.DescendantNodesAndSelf().OfType<ExpressionSyntax>())
-    {
-        var owner = FullViewOwner(node, model) ?? ArrayClearOverOwner(node, model);
-        if (owner is not null && tracked.Contains(owner))
+        if (FullViewOwner(node, model) is { } owner && tracked.Contains(owner))
             overspanned.Add(owner);
-    }
     foreach (var o in overspanned)
         nodes.Add(new { op = "overspan", var = o, line = LineOf(expr) });
 }
@@ -952,9 +950,11 @@ static string? FullViewOwner(ExpressionSyntax? e, SemanticModel model)
     {
         var args = inv.ArgumentList.Arguments;
         // `buf.AsSpan()` (no bound) spans the whole array; so does `buf.AsSpan(0, buf.Length)`,
-        // whose length argument is the buffer's OWN oversized `.Length` (the `.Length` spelling).
+        // whose length argument is the buffer's OWN oversized `.Length` (the `.Length` spelling). The
+        // start must be 0 — `buf.AsSpan(k, buf.Length)` for k != 0 is out of range, not this pattern.
         if (args.Count == 0
-            || (args.Count == 2 && IsLengthOf(args[1].Expression, recv.Identifier.Text)))
+            || (args.Count == 2 && IsZeroInt(args[0].Expression, model)
+                && IsLengthOf(args[1].Expression, recv.Identifier.Text)))
             return recv.Identifier.Text;
     }
     if (e is BaseObjectCreationExpressionSyntax oc
@@ -964,10 +964,11 @@ static string? FullViewOwner(ExpressionSyntax? e, SemanticModel model)
             { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }
         && IsInNamespace(sct, "System"))
     {
-        // `new Span<T>(buf)` (whole array) or `new Span<T>(buf, 0, buf.Length)` (length is the
+        // `new Span<T>(buf)` (whole array) or `new Span<T>(buf, 0, buf.Length)` (start 0, length the
         // oversized self-length).
         if (al.Arguments.Count == 1
-            || (al.Arguments.Count == 3 && IsLengthOf(al.Arguments[2].Expression, arg.Identifier.Text)))
+            || (al.Arguments.Count == 3 && IsZeroInt(al.Arguments[1].Expression, model)
+                && IsLengthOf(al.Arguments[2].Expression, arg.Identifier.Text)))
             return arg.Identifier.Text;
     }
     return null;
@@ -980,23 +981,11 @@ static bool IsLengthOf(ExpressionSyntax arg, string owner) =>
                                           Expression: IdentifierNameSyntax id }
     && id.Identifier.Text == owner;
 
-// Array.Clear(buf, 0, buf.Length) — clears the WHOLE oversized backing array, past the rented
-// length (POOL005 over-clear). Returns the buffer name; Array.Clear(buf, 0, n) with a real bound
-// returns null. The single-arg Array.Clear(buf) is intentionally NOT matched — wiping the whole
-// buffer is a common, safe idiom; only the explicit oversized `.Length` count is flagged.
-static string? ArrayClearOverOwner(ExpressionSyntax? e, SemanticModel model)
-{
-    if (e is not InvocationExpressionSyntax inv
-        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol
-            { Name: "Clear", ContainingType: { Name: "Array" } act }
-        || !IsInNamespace(act, "System"))
-        return null;
-    var args = inv.ArgumentList.Arguments;
-    return args.Count == 3
-        && args[0].Expression is IdentifierNameSyntax buf
-        && IsLengthOf(args[2].Expression, buf.Identifier.Text)
-        ? buf.Identifier.Text : null;
-}
+// `arg` is the constant `0` — the start/index of a `.Length`-spelled view (`buf.AsSpan(0, buf.Length)`)
+// so the view spans the WHOLE array, not an interior slice. Resolved via the constant value, so a
+// `const`, `0x0`, etc. all count.
+static bool IsZeroInt(ExpressionSyntax arg, SemanticModel model) =>
+    model.GetConstantValue(arg) is { HasValue: true, Value: int v } && v == 0;
 
 // If `idn` references a Span/ReadOnlySpan/Memory/ReadOnlyMemory VIEW local declared from an owner
 // buffer (`Memory<T> view = owner.AsMemory(…)`), the owner buffer's local name — so a use of the
