@@ -140,6 +140,7 @@ jobs:
             frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs \
             frontend/roslyn/samples/InjectedDcViewSample.xaml.cs \
             frontend/roslyn/samples/ResolvedDisposableSample.cs \
+            frontend/roslyn/samples/FieldReleaseSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -223,6 +224,20 @@ jobs:
           if echo "$out" | grep -q "HolderWithDisposeOptional"; then
             echo "FAIL: a dispose-optional (Task/DataTable) field was wrongly flagged"; exit 1
           fi
+          # field release recognition (mined: ImageSharp). #2 null-conditional dispose
+          # `field?.Dispose()` must be recognized -> silent; the undisposed control still warns.
+          if echo "$out" | grep -q "DisposesViaConditional"; then
+            echo "FAIL: a field disposed via null-conditional field?.Dispose() was wrongly flagged"; exit 1
+          fi
+          echo "$out" | grep -q "NeverDisposesField" \
+            || { echo "FAIL: an undisposed IDisposable field control must still warn"; exit 1; }
+          # #3 a pooled FIELD released cross-member (ctor rent + Dispose Return) must be silent;
+          # the rented-never-returned control still warns.
+          if echo "$out" | grep -q "pooled buffer 'returnedBuf'"; then
+            echo "FAIL: a pooled field returned in Dispose was wrongly flagged"; exit 1
+          fi
+          echo "$out" | grep -q "pooled buffer 'leakedBuf'" \
+            || { echo "FAIL: a pooled field rented but never returned must still warn"; exit 1; }
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
