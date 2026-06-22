@@ -422,10 +422,56 @@ static bool IsCatchAll(CatchClauseSyntax cc) =>
 static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked, SemanticModel model)
 {
     var nodes = new List<object>();
-    foreach (var st in block.Statements)
-        if (!LowerFlowStmt(st, tracked, model, nodes))
-            return null;
+    if (!LowerFlowStatements(block.Statements, 0, tracked, model, nodes,
+                             canEscape: true, onThrow: null, onReturn: null))
+        return null;
     return nodes;
+}
+
+// Lower a statement LIST, desugaring a tracked `using IMemoryOwner owner = MemoryPool.Rent(...)`
+// declaration into `acquire; try { rest } finally { release }` — the implicit scope-exit Dispose is
+// threaded onto the rest's returns/throws (exactly like a `finally`), so a RETURNED view of the owner
+// (`using owner = …; return owner.Memory;`) is a dangling borrow read by the caller after the dispose
+// -> OWN002 (Codex review on #73). With no such declaration this is identical to lowering each
+// statement in turn, so non-pooled `using` locals and every existing shape are unaffected.
+static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
+                                HashSet<string> tracked, SemanticModel model, List<object> nodes,
+                                bool canEscape, List<object>? onThrow, List<object>? onReturn)
+{
+    for (var i = start; i < stmts.Count; i++)
+    {
+        var st = stmts[i];
+        if (st is LocalDeclarationStatementSyntax usingDecl
+            && usingDecl.UsingKeyword != default
+            && usingDecl.Declaration.Variables.Count == 1
+            && tracked.Contains(usingDecl.Declaration.Variables[0].Identifier.Text)
+            && IsMemoryPoolRent(usingDecl.Declaration.Variables[0].Initializer?.Value, model))
+        {
+            var uv = usingDecl.Declaration.Variables[0];
+            var owner = uv.Identifier.Text;
+            var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(usingDecl) } };
+            InjectThrowEdge(usingDecl, nodes, onThrow);   // a throw DURING Rent() runs the OUTER path (owner not yet acquired)
+            nodes.Add(new { op = "acquire", var = owner, line = LineOf(uv) });
+            var release = new { op = "release", var = owner, line = LineOf(uv) };
+            // The rest of THIS block is the try-body; the implicit using-dispose is its finally — run
+            // before a return (so a returned view is read after release) and on normal completion.
+            var restOnReturn = new List<object> { release };
+            restOnReturn.AddRange(onReturn ?? exit);
+            List<object>? restOnThrow = null;
+            if (canEscape)
+            {
+                restOnThrow = new List<object> { release };
+                restOnThrow.AddRange(onThrow ?? exit);
+            }
+            if (!LowerFlowStatements(stmts, i + 1, tracked, model, nodes, canEscape, restOnThrow, restOnReturn))
+                return false;
+            nodes.Add(release);   // normal completion (no return) disposes at scope exit too
+            return true;
+        }
+        if (!LowerFlowStmt(st, tracked, model, nodes, canEscape, onThrow, onReturn))
+            return false;
+    }
+    return true;
 }
 
 // `canEscape`: can a throw at the current position leave the METHOD (no enclosing
@@ -442,10 +488,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
     switch (st)
     {
         case BlockSyntax b:
-            foreach (var s2 in b.Statements)
-                if (!LowerFlowStmt(s2, tracked, model, nodes, canEscape, onThrow, onReturn))
-                    return false;
-            return true;
+            return LowerFlowStatements(b.Statements, 0, tracked, model, nodes, canEscape, onThrow, onReturn);
         case LocalDeclarationStatementSyntax ld:
             InjectThrowEdge(ld, nodes, onThrow);
             if (ld.UsingKeyword == default)
@@ -608,9 +651,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             var bodyOnReturn = new List<object>(finallyNodes);
             bodyOnReturn.AddRange(onReturn ?? new List<object>
                 { new { op = "return", var = (string?)null, line = LineOf(trys) } });
-            foreach (var stmt in trys.Block.Statements)
-                if (!LowerFlowStmt(stmt, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
-                    return false;
+            if (!LowerFlowStatements(trys.Block.Statements, 0, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
+                return false;
             nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
         }
@@ -1941,7 +1983,15 @@ foreach (var (file, tree) in parsed)
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
+                    {
+                        // A `using` local is auto-disposed (not a leak candidate). But a `using` MemoryPool
+                        // owner whose Memory VIEW is returned dangles after the implicit scope-exit dispose —
+                        // track it so the flow's using-desugaring catches that escape. Others stay skipped.
+                        foreach (var v in ld.Declaration.Variables)
+                            if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                                candidates.Add(v.Identifier.Text);
                         continue;
+                    }
                     foreach (var v in ld.Declaration.Variables)
                         if (v.Initializer is { Value: ObjectCreationExpressionSyntax
                                                    or ImplicitObjectCreationExpressionSyntax } init

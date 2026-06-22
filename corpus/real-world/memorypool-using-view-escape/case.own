@@ -1,0 +1,17 @@
+// OwnLang model of the MemoryPool `using`-view escape. `acquire` == MemoryPool.Rent,
+// `release` == the implicit `using` scope-exit Dispose. The method returns `owner.Memory`
+// — a borrow of the owner — but the `using` disposes the owner FIRST (the extractor
+// desugars `using owner = …; return owner.Memory;` to `acquire; release; use`), so the
+// caller reads a view of memory already returned to the pool: a use-after-release lowered
+// to OWN002. (The using-dispose is threaded before the return's view-use, mirroring the
+// ArrayPool try/finally Memory escape.)
+module Corpus
+resource MemoryOwner {
+  acquire Rent
+  release Dispose
+}
+fn lease(n: int) {
+  let owner = acquire MemoryOwner(n);   // using MemoryPool.Rent
+  release owner;                        // implicit `using` Dispose at scope exit
+  use owner;                            // return owner.Memory — read by the caller AFTER Dispose -> OWN002
+}
