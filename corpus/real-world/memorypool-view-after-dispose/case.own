@@ -1,0 +1,16 @@
+// OwnLang model of the MemoryPool view-after-dispose. `acquire` == MemoryPool.Rent,
+// `release` == owner.Dispose(). A `Memory<T>` view (`owner.Memory`, and the `Span` from
+// it) is a BORROW of the owner — the extractor lowers a use of the view to a use of the
+// OWNER, so reading it after Dispose is the generic use-after-release (OWN002), the same
+// code reading the owner directly would give. The borrow is resolved to its owner in the
+// extractor; the core sees a plain use-after-release.
+module Corpus
+resource MemoryOwner {
+  acquire Rent
+  release Dispose
+}
+fn run(n: int) {
+  let owner = acquire MemoryOwner(n);   // MemoryPool.Rent
+  release owner;                        // owner.Dispose()  <-- too early
+  use owner;                            // read the Memory view AFTER Dispose -> OWN002
+}

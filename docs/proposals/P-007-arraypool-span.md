@@ -19,9 +19,10 @@
   read-capable VIEW is the over-read. **POOL003 (double-return → OWN003) is built** for ArrayPool
   (try/finally + aliased-receiver, corpus `arraypool-double-return` / `arraypool-aliased-receiver`),
   and **MemoryPool is now tracked** — a `MemoryPool<T>.Rent` `IMemoryOwner` is released by Dispose,
-  so its leak / double-dispose / use-after-dispose ride the same flow as POOL001/002/003 (corpus
-  `memorypool-double-dispose` → OWN003). A POOL005 view stored in a FIELD, and the
-  `IMemoryOwner.Memory.Span` view borrow, are next
+  so its leak / double-dispose ride the same flow as POOL001/003 (corpus `memorypool-double-dispose`
+  → OWN003), and its `owner.Memory` / `owner.Memory.Span` is a borrow lowered to a use of the OWNER
+  (`ViewOwner`), so reading the view after `Dispose` trips **POOL002 → OWN002** (corpus
+  `memorypool-view-after-dispose`). A POOL005 view stored in a FIELD is next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See

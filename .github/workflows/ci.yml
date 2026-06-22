@@ -792,10 +792,11 @@ jobs:
         # (P-007 POOL005, the over-read): the unbounded `buf.AsSpan()` AND the `.Length` view spelling
         # (`buf.AsSpan(0, buf.Length)`) — the `arraypool-fullspan-overread` / `arraypool-length-
         # overread` cases (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is not flagged).
-        # MemoryPool is now tracked too: a
-        # `MemoryPool<T>.Rent` IMemoryOwner is released by Dispose, so its leak / double-dispose /
-        # use-after-dispose ride the flow (POOL001/002/003 — the `memorypool-double-dispose` case ->
-        # OWN003). Remaining backlog: a FIELD-mediated cross-method use-after-dispose, a view stored in
+        # MemoryPool is tracked too: a `MemoryPool<T>.Rent` IMemoryOwner is released by Dispose, so its
+        # leak / double-dispose ride the flow (POOL001/003 — `memorypool-double-dispose` -> OWN003), and
+        # its `owner.Memory` / `owner.Memory.Span` view is a borrow lowered to a use of the OWNER
+        # (`ViewOwner`), so reading it after Dispose trips OWN002 (POOL002 — `memorypool-view-after-
+        # dispose`). Remaining backlog: a FIELD-mediated cross-method use-after-dispose, a view stored in
         # a FIELD, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 16
+        run: python scripts/benchmark.py --min-recall 17
 
