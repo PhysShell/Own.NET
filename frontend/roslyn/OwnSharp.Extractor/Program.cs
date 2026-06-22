@@ -1109,6 +1109,25 @@ static string? ViewOwner(ExpressionSyntax? e, SemanticModel model)
     return null;
 }
 
+// Is `t` System.Buffers.IMemoryOwner<T> — the interface itself, or a concrete type that implements
+// it? Resolved on the SYMBOL, so a fully-qualified `System.Buffers.IMemoryOwner<T>`, a type alias, or
+// a concrete owner type is recognised — not only the bare `IMemoryOwner` spelling (CodeRabbit/Codex).
+static bool IsMemoryOwnerType(ITypeSymbol? t) =>
+    t is INamedTypeSymbol nt
+    && ((nt.Name == "IMemoryOwner" && IsInNamespace(nt, "System", "Buffers"))
+        || nt.AllInterfaces.Any(i => i.Name == "IMemoryOwner" && IsInNamespace(i, "System", "Buffers")));
+
+// The owner FIELD a `Memory` view assignment aliases — `_owner.Memory` / `this._owner.Memory` of an
+// IMemoryOwner<T> field. Uses the this/bare receiver restriction (ThisFieldName), so `other._owner.
+// Memory` (another instance's owner) is NOT recorded and the this-qualified spelling IS (Codex). The
+// borrow is recognised by the resolved `IMemoryOwner<T>.Memory` property symbol, not by name.
+static string? FieldViewOwner(ExpressionSyntax e, SemanticModel model) =>
+    e is MemberAccessExpressionSyntax { Name.Identifier.Text: "Memory" } mem
+    && model.GetSymbolInfo(mem).Symbol is IPropertySymbol { ContainingType: { Name: "IMemoryOwner" } ict }
+    && IsInNamespace(ict, "System", "Buffers")
+        ? ThisFieldName(mem.Expression)
+        : null;
+
 // The tracked owner buffer a FULL-LENGTH view spans, else null. POOL005: `buf.AsSpan()` /
 // `buf.AsMemory()` with NO arguments span `[0, Length)` — the WHOLE backing array — and so does
 // `buf.AsSpan(0, buf.Length)` / `new Span<T>(buf, 0, buf.Length)`, whose length argument is the
@@ -1991,8 +2010,14 @@ foreach (var (file, tree) in parsed)
             {
                 if (fd.Modifiers.Any(mm => mm.IsKind(SyntaxKind.StaticKeyword)))
                     continue;
+                // IDisposable is matched syntactically (so a project's own unresolved `…Stream` etc.
+                // still counts); IMemoryOwner is matched on the resolved SYMBOL so a qualified
+                // `System.Buffers.IMemoryOwner<T>` / alias / concrete owner type counts too (CodeRabbit/
+                // Codex). The cheap `StartsWith` short-circuits the common unqualified spelling first.
                 var ftype = fd.Declaration.Type.ToString();
-                if (!IsDisposableType(ftype) && !ftype.StartsWith("IMemoryOwner", StringComparison.Ordinal))
+                if (!IsDisposableType(ftype)
+                    && !ftype.StartsWith("IMemoryOwner", StringComparison.Ordinal)
+                    && !IsMemoryOwnerType(model.GetTypeInfo(fd.Declaration.Type).Type))
                     continue;
                 foreach (var v in fd.Declaration.Variables)
                     dispoFieldLine[v.Identifier.Text] = LineOf(v);
@@ -2024,8 +2049,8 @@ foreach (var (file, tree) in parsed)
                 var viewFieldOwner = new Dictionary<string, string>(StringComparer.Ordinal);
                 foreach (var a in assigns)
                     if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
-                        && FieldName(a.Left) is { } vf
-                        && ViewOwner(a.Right, model) is { } vo)
+                        && ThisFieldName(a.Left) is { } vf
+                        && FieldViewOwner(a.Right, model) is { } vo)
                         viewFieldOwner[vf] = vo;
 
                 // handler method names that are LIVE subscription targets. `+=` subscriptions are
