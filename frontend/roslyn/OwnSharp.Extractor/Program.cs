@@ -1037,6 +1037,19 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
 
+// Is `idn` a pooled buffer passed as an argument to a CONSTRUCTOR whose result ESCAPES this method —
+// `return new Wrapper(…, buf, …)` or `_field = new Wrapper(…, buf, …)`? Such a `new` hands the buffer
+// to the constructed object, which becomes responsible for Return, so the buffer leaves the method
+// inside the escaping object (an ownership transfer, not a borrow). One level only: the `new` must be
+// the direct return value or a field-assignment RHS (a `new` buried in a local or another expression
+// stays a borrow — an honest limitation). Purely syntactic, so it holds even when the wrapper type
+// does not resolve.
+static bool PassedToEscapingCtor(IdentifierNameSyntax idn) =>
+    idn.Parent is ArgumentSyntax { Parent: ArgumentListSyntax
+            { Parent: BaseObjectCreationExpressionSyntax oce } }
+    && (oce.Parent is ReturnStatementSyntax
+        || (oce.Parent is AssignmentExpressionSyntax a && a.Right == oce && FieldName(a.Left) is not null));
+
 // Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType
 // (checked on the resolved symbol, so an aliased/injected `MemoryPool<T>` receiver binds and a
 // look-alike does not).
@@ -2394,8 +2407,16 @@ foreach (var (file, tree) in parsed)
                         if (!usingMemoryOwners.Contains(nm))
                             escapedLocals.Add(nm);
                     }
+                    // A pooled buffer handed as an argument is normally a BORROW (the renter Returns it),
+                    // NOT an escape — so `pool.Return(buf); Work(buf)` still trips use-after-return. But a
+                    // pooled buffer passed to a CONSTRUCTOR whose result ESCAPES this method (`return new
+                    // Wrapper(buf)` / `_field = new Wrapper(buf)`) transfers ownership to that object, which
+                    // becomes responsible for Return — so the buffer is NOT leaked here. Treat that as an
+                    // escape (mined FP on Pipelines.Sockets.Unofficial: ArrayPoolBufferWriter.CreateNewSegment
+                    // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
-                        || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg))
+                        || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg)
+                        || (poolBuffers.Contains(nm) && PassedToEscapingCtor(idn)))
                         escapedLocals.Add(nm);
                 }
                 var tracked = new HashSet<string>(candidates);
