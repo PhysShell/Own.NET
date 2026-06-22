@@ -803,8 +803,10 @@ jobs:
         # field disposed in `Dispose()` and read in a live subscription-target handler (RHS of a `+=` / arg
         # of a `.Subscribe(...)`, not torn down, no `if (_disposed) return;` guard) — DIRECTLY
         # (`field-use-after-dispose`) or ONE hop down through a private helper (`handler-use-after-dispose`)
-        # — lowered to a synthetic acquire/release/use flow -> OWN002. Remaining backlog: a view stored in a
-        # FIELD, a TWO-plus-hop indirect field use, and an injected-source region-escape. A drop below the
-        # floor is a regression.
-        run: python scripts/benchmark.py --min-recall 22
+        # — lowered to a synthetic acquire/release/use flow -> OWN002. That pass also covers POOLED owners:
+        # an `IMemoryOwner<T>` field released in `Dispose()` and a `Memory` VIEW field of it (`_view =
+        # _owner.Memory`) read in such a handler is the view-in-a-field dangle -> OWN002 (`pooled-view-after-
+        # dispose`). Remaining backlog: an ArrayPool `byte[]`-buffer-field view, a TWO-plus-hop indirect field
+        # use, and an injected-source region-escape. A drop below the floor is a regression.
+        run: python scripts/benchmark.py --min-recall 23
 

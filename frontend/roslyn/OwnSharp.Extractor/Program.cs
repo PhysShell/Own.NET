@@ -947,20 +947,31 @@ static bool DisposedGuardBefore(BlockSyntax body, int before) =>
             || (ifs.Statement is BlockSyntax gb
                 && gb.Statements.FirstOrDefault() is ReturnStatementSyntax)));
 
-// The FIRST direct read of a disposed field (`_f.Member`, `_f`/`this._f` only) in `body` that is
-// NOT protected by an opening disposed-guard — the unit the field-UAF pass keys on. Returns the
-// member-access node and the field name, or null when the body has no such read (or its first
-// disposed-field read is already guarded, the canonical-fix shape). Shared by the direct handler
-// scan and the one-hop helper scan (an indirect use through a private helper).
+// The released OWNER field reached by a read of field `f`: `f` itself when it is a released owner
+// (an IDisposable or `IMemoryOwner<T>` field released in Dispose), or — when `f` is a `Memory` VIEW
+// field — the owner it aliases, provided that owner is released. Null when `f` reaches no released
+// owner. Unifies the direct disposed-field read (#75/#76) with the pooled-view-in-a-field dangle:
+// reading `_view` (a borrow of `_owner`) after `_owner`'s release is a use of `_owner` after release.
+static string? ReleasedOwner(string f, Dictionary<string, int> releasedAt,
+    Dictionary<string, string> viewFieldOwner) =>
+    releasedAt.ContainsKey(f) ? f
+    : viewFieldOwner.TryGetValue(f, out var owner) && releasedAt.ContainsKey(owner) ? owner
+    : null;
+
+// The FIRST read of a released owner — directly (`_f.Member`) or through a Memory VIEW field that
+// aliases it — in `body` that is NOT protected by an opening disposed-guard. Returns the member-
+// access node and the OWNER field, or null when the body has no such read (or its first such read is
+// already guarded, the canonical-fix shape). Shared by the direct handler scan and the one-hop
+// helper scan (an indirect use through a private helper).
 static (MemberAccessExpressionSyntax Use, string Field)? FirstUnguardedDisposedRead(
-    BlockSyntax body, Dictionary<string, int> releasedAt)
+    BlockSyntax body, Dictionary<string, int> releasedAt, Dictionary<string, string> viewFieldOwner)
 {
     foreach (var ma in body.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
     {
         if (ma.Name.Identifier.Text is "Dispose" or "DisposeAsync")
             continue;
-        if (ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
-            return DisposedGuardBefore(body, ma.SpanStart) ? null : (ma, uf);
+        if (ThisFieldName(ma.Expression) is { } f && ReleasedOwner(f, releasedAt, viewFieldOwner) is { } owner)
+            return DisposedGuardBefore(body, ma.SpanStart) ? null : (ma, owner);
     }
     return null;
 }
@@ -1972,13 +1983,16 @@ foreach (var (file, tree) in parsed)
         // Gated on --flow-locals like the rest of the synthetic-flow emission.
         if (flowLocals)
         {
-            // IDisposable fields -> declaration line (the synthetic `acquire`).
+            // Owner fields -> declaration line (the synthetic `acquire`): IDisposable fields AND
+            // `IMemoryOwner<T>` MemoryPool rentals, whose pooled buffer is released by Dispose() — so a
+            // read after that Dispose (including through a Memory VIEW field of the owner) dangles.
             var dispoFieldLine = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
             {
                 if (fd.Modifiers.Any(mm => mm.IsKind(SyntaxKind.StaticKeyword)))
                     continue;
-                if (!IsDisposableType(fd.Declaration.Type.ToString()))
+                var ftype = fd.Declaration.Type.ToString();
+                if (!IsDisposableType(ftype) && !ftype.StartsWith("IMemoryOwner", StringComparison.Ordinal))
                     continue;
                 foreach (var v in fd.Declaration.Variables)
                     dispoFieldLine[v.Identifier.Text] = LineOf(v);
@@ -2002,6 +2016,18 @@ foreach (var (file, tree) in parsed)
                 }
             if (releasedAt.Count > 0)
             {
+                // a Memory/ReadOnlyMemory VIEW field that aliases an owner field — `_view = _owner.Memory`
+                // (an IMemoryOwner rental) or `_view = _buf.AsMemory(...)` — mapped to its OWNER, so a read
+                // of the VIEW field after the owner's release is a use of the released owner (the pooled-
+                // buffer view-in-a-field dangle). `ViewOwner` returns the owner name for a bare-field
+                // receiver; only owners actually released (in `releasedAt`) fire, checked at the read.
+                var viewFieldOwner = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var a in assigns)
+                    if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                        && FieldName(a.Left) is { } vf
+                        && ViewOwner(a.Right, model) is { } vo)
+                        viewFieldOwner[vf] = vo;
+
                 // handler method names that are LIVE subscription targets. `+=` subscriptions are
                 // keyed by SOURCE|handler so a `-=` removes only the MATCHING one — a handler still
                 // `+=`'d to another live source stays live (a name-only set would let one `-=` drop
@@ -2039,7 +2065,7 @@ foreach (var (file, tree) in parsed)
                         && hm.Identifier.Text is not ("Dispose" or "DisposeAsync")
                         && IsPrivateInstanceHelper(hm)
                         && model.GetDeclaredSymbol(hm) is { } hsym
-                        && FirstUnguardedDisposedRead(b, releasedAt) is { } r)
+                        && FirstUnguardedDisposedRead(b, releasedAt, viewFieldOwner) is { } r)
                         helperReads[hsym] = (r.Field, LineOf(r.Use));
 
                 foreach (var hm in cls.Members.OfType<MethodDeclarationSyntax>())
@@ -2062,9 +2088,10 @@ foreach (var (file, tree) in parsed)
                     {
                         if (node is MemberAccessExpressionSyntax ma
                             && ma.Name.Identifier.Text is not ("Dispose" or "DisposeAsync")
-                            && ThisFieldName(ma.Expression) is { } uf && releasedAt.ContainsKey(uf))
+                            && ThisFieldName(ma.Expression) is { } uf
+                            && ReleasedOwner(uf, releasedAt, viewFieldOwner) is { } owner)
                         {
-                            useField = uf; useLine = LineOf(ma); triggerPos = ma.SpanStart;
+                            useField = owner; useLine = LineOf(ma); triggerPos = ma.SpanStart;
                             break;
                         }
                         if (node is InvocationExpressionSyntax call
