@@ -1537,23 +1537,13 @@ static bool IsOwnedDisposableType(TypeSyntax type, SemanticModel model)
     var sym = model.GetTypeInfo(type).Type;
     if (sym is null or IErrorTypeSymbol)
         return IsDisposableType(type.ToString());
-    return ImplementsDisposable(sym);
+    // Resolved: demand a REAL IDisposable, but keep the optional-dispose exemption
+    // (Task/ValueTask/DataTable/DataSet/DataView) that the flat name path got for free —
+    // their Dispose is a no-op / they hold only a lazy wait handle, so an undisposed field
+    // of these is not a leak and must stay silent (Codex). Both helpers already exist and
+    // are shared with the flow detector.
+    return ImplementsIDisposable(sym) && !IsDisposeOptional(sym);
 }
-
-static bool ImplementsDisposable(ITypeSymbol sym)
-{
-    if (IsDisposableInterface(sym))
-        return true;
-    foreach (var i in sym.AllInterfaces)
-        if (IsDisposableInterface(i))
-            return true;
-    return false;
-}
-
-static bool IsDisposableInterface(ITypeSymbol t) =>
-    t.SpecialType == SpecialType.System_IDisposable
-    || (t.Name == "IAsyncDisposable"
-        && t.ContainingNamespace is { Name: "System", ContainingNamespace.IsGlobalNamespace: true });
 
 // --- P-006: DI registration + constructor graph (DI001 captive dependency) ---
 // A syntactic pass over the same trees, independent of the event/disposable

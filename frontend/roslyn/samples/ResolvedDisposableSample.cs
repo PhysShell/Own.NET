@@ -1,5 +1,7 @@
+using System.Data;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Own.Samples;
 
@@ -38,4 +40,15 @@ public sealed class HolderWithRealDisposable
     private readonly CancellationTokenSource cts = new();      // CancellationTokenSource IS IDisposable
 
     public long Use() => this.stream.Length + this.cts.Token.GetHashCode();
+}
+
+// Dispose-optional control (Codex): Task and DataTable ARE IDisposable, but disposal is
+// conventionally optional (IsDisposeOptional) — a `new`'d, undisposed field of these must
+// stay SILENT even though it resolves as IDisposable.
+public sealed class HolderWithDisposeOptional
+{
+    private readonly Task task = new(() => { });   // Task: IDisposable but dispose-optional
+    private readonly DataTable table = new();       // DataTable: IDisposable but dispose-optional
+
+    public int Use() => this.task.Id + this.table.Columns.Count;
 }

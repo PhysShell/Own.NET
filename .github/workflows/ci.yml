@@ -211,9 +211,18 @@ jobs:
             echo "FAIL: a resolved non-IDisposable Writer/Reader field was wrongly flagged"; exit 1
           fi
           # control: resolved IDisposable fields (MemoryStream / CancellationTokenSource) the
-          # class new's but never disposes must STILL warn — real detection intact.
+          # class new's but never disposes must STILL warn — real detection intact. (CodeRabbit:
+          # tie the assertion to OWN001 + the disposable-field resource, not just the class name.
+          # Severity-agnostic on purpose — the disposable-field leak renders as error, not warning.)
+          echo "$out" | grep -qE "ResolvedDisposableSample\.cs:[0-9]+:.*\[OWN001\].*resource: disposable field" \
+            || { echo "FAIL: expected the OWN001 disposable-field finding on the resolved IDisposable control"; exit 1; }
           echo "$out" | grep -q "HolderWithRealDisposable" \
-            || { echo "FAIL: a resolved IDisposable field (MemoryStream/CTS) must still warn"; exit 1; }
+            || { echo "FAIL: the resolved IDisposable control (MemoryStream/CTS) must be flagged by owner name"; exit 1; }
+          # dispose-optional control (Codex): Task / DataTable ARE IDisposable but disposal is
+          # optional (IsDisposeOptional) — a new'd, undisposed field of these must stay SILENT.
+          if echo "$out" | grep -q "HolderWithDisposeOptional"; then
+            echo "FAIL: a dispose-optional (Task/DataTable) field was wrongly flagged"; exit 1
+          fi
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
