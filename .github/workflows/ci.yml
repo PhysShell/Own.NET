@@ -139,6 +139,7 @@ jobs:
             frontend/roslyn/samples/AppLifetimeSample.cs \
             frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs \
             frontend/roslyn/samples/InjectedDcViewSample.xaml.cs \
+            frontend/roslyn/samples/ResolvedDisposableSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -203,6 +204,16 @@ jobs:
           if echo "$out" | grep -q "SharedTokenHolder"; then
             echo "FAIL: a static singleton IDisposable field was wrongly reported"; exit 1
           fi
+          # P-004 resolve-aware disposability (mined: ImageSharp Vp8BitWriter/JpegBitReader):
+          # a field whose type NAME ends in Writer/Reader/Stream but is NOT IDisposable (and
+          # RESOLVES) must NOT be flagged — IsOwnedDisposableType asks the real interface.
+          if echo "$out" | grep -q "EncoderWithNonDisposableWriter"; then
+            echo "FAIL: a resolved non-IDisposable Writer/Reader field was wrongly flagged"; exit 1
+          fi
+          # control: resolved IDisposable fields (MemoryStream / CancellationTokenSource) the
+          # class new's but never disposes must STILL warn — real detection intact.
+          echo "$out" | grep -q "HolderWithRealDisposable" \
+            || { echo "FAIL: a resolved IDisposable field (MemoryStream/CTS) must still warn"; exit 1; }
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
