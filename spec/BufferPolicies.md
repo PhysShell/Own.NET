@@ -39,15 +39,18 @@ inline = 256)`. The namespace is `Buffer`; the method selects the mode.
 - **B7 — requested length preserved.** `scratch` lowering preserves the
   *requested* logical length, independent of whether the stack or pool branch is
   taken.
-- **B9 — full view stays within the logical length.** A pooled buffer is
+- **B9 — operations stay within the logical length.** A pooled buffer is
   *oversized*: `ArrayPool<T>.Rent(n)` returns an array of `Length >= n`, not
-  exactly `n`. A FULL-length view of it — `buf.AsSpan()` / `buf.AsMemory()` /
-  `new Span<T>(buf)` with **no length bound** — reaches past the requested length
-  `n` into the stale `[n, Length)` tail (a previous renter's bytes); reading or
-  copying through it is an over-read / over-copy → **OWN025**. The fix is a bounded
-  view, `buf.AsSpan(0, n)`. (P-007 POOL005; the OwnLang model op is `overspan b`.
-  Distinct from B6/OWN024, which is clearing *too little* of a sensitive buffer —
-  this is reading *too much*.)
+  exactly `n`. An operation that reaches the whole backing array rather than the
+  requested `n` touches the stale `[n, Length)` tail (a previous renter's bytes);
+  reading or copying through it is an over-read / over-copy → **OWN025**. Two
+  spellings: a FULL-length **view** with no bound (`buf.AsSpan()` / `buf.AsMemory()`
+  / `new Span<T>(buf)`), and the **`.Length`** form that passes the buffer's own
+  oversized `.Length` as the operative length (`buf.AsSpan(0, buf.Length)`,
+  `new Span<T>(buf, 0, buf.Length)`, `Array.Clear(buf, 0, buf.Length)`). The fix is
+  to bound by `n`: `buf.AsSpan(0, n)`, `Array.Clear(buf, 0, n)`. (P-007 POOL005; the
+  OwnLang model op is `overspan b`. Distinct from B6/OWN024, which is clearing *too
+  little* of a sensitive buffer — this is touching *too much*.)
 
 ## Buffer options and `policy` blocks
 

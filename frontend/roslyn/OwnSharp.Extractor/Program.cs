@@ -455,6 +455,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
+                            || IsMemoryPoolRent(v.Initializer?.Value, model)  // MemoryPool<T> Rent (IMemoryOwner)
                             || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
@@ -807,19 +808,25 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     EmitOverspans(expr, tracked, model, nodes);
 }
 
-// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` takes a FULL-LENGTH view of
-// (no length bound) — the core raises OWN025. Walks the whole expression so a view nested in a call
-// (`Sink.Write(buf.AsSpan())`), a chain (`buf.AsSpan().ToArray()`), or a local-declaration
-// initializer (`var copy = buf.AsSpan().ToArray();`) is found; a BOUNDED view (`buf.AsSpan(0, n)`)
-// is not matched (FullViewOwner returns null). Among `tracked` locals only pooled buffers are the
-// arrays the BCL AsSpan/Span symbols bind to, so this never fires on a tracked IDisposable / factory
-// result. Shared by the expression-statement and local-declaration lowering paths.
+// POOL005: emit one `overspan` op per tracked pooled buffer that `expr` reaches past the rented
+// length of — the core raises OWN025. Two over-reach shapes: a FULL-LENGTH view (`buf.AsSpan()` with
+// no bound, or `buf.AsSpan(0, buf.Length)` / `new Span<T>(buf, 0, buf.Length)` whose length is the
+// oversized self-`.Length`), and an over-clear (`Array.Clear(buf, 0, buf.Length)`). Walks the whole
+// expression so a view nested in a call (`Sink.Write(buf.AsSpan())`), a chain
+// (`buf.AsSpan().ToArray()`), or a local-declaration initializer (`var copy = buf.AsSpan()...`) is
+// found; a view bounded to the real `n` (`buf.AsSpan(0, n)`) is not matched. Among `tracked` locals
+// only pooled buffers are the arrays the BCL AsSpan/Span/Array.Clear symbols bind to, so this never
+// fires on a tracked IDisposable / factory result. Shared by the expression-statement and
+// local-declaration lowering paths.
 static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, SemanticModel model, List<object> nodes)
 {
     var overspanned = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var node in expr.DescendantNodesAndSelf().OfType<ExpressionSyntax>())
-        if (FullViewOwner(node, model) is { } owner && tracked.Contains(owner))
+    {
+        var owner = FullViewOwner(node, model) ?? ArrayClearOverOwner(node, model);
+        if (owner is not null && tracked.Contains(owner))
             overspanned.Add(owner);
+    }
     foreach (var o in overspanned)
         nodes.Add(new { op = "overspan", var = o, line = LineOf(expr) });
 }
@@ -870,6 +877,30 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
         && i.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax buf
         ? buf.Identifier.Text : null;
 
+// Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType
+// (checked on the resolved symbol, so an aliased/injected `MemoryPool<T>` receiver binds and a
+// look-alike does not).
+static bool IsMemoryPoolType(INamedTypeSymbol? t)
+{
+    if (t is null || t.Name != "MemoryPool")
+        return false;
+    INamespaceSymbol? ns = t.ContainingNamespace;   // System.Buffers
+    if (ns is null || ns.Name != "Buffers")
+        return false;
+    ns = ns.ContainingNamespace;                     // System.Buffers -> System
+    return ns is not null && ns.Name == "System"
+        && ns.ContainingNamespace is { IsGlobalNamespace: true };
+}
+
+// A MemoryPool<T>.Shared.Rent(...) call — the acquire of an IMemoryOwner<T>. There is NO
+// MemoryPool.Return: the owner is released by Dispose (the IDisposable path), so unlike an ArrayPool
+// buffer it is NOT a `poolBuffer`. A Rent'd owner never disposed leaks (OWN001), a second Dispose is
+// a double release (OWN003), and a use of the owner after Dispose is a use-after-release (OWN002).
+static bool IsMemoryPoolRent(ExpressionSyntax? e, SemanticModel model) =>
+    e is InvocationExpressionSyntax i
+    && model.GetSymbolInfo(i).Symbol is IMethodSymbol { Name: "Rent" } sym
+    && IsMemoryPoolType(sym.ContainingType);
+
 // The owner buffer a Span/ReadOnlySpan/Memory/ReadOnlyMemory VIEW expression borrows from:
 // `owner.AsSpan(...)` / `owner.AsMemory(...)`, or `new Span<T>(owner, …)` / `new Memory<T>(owner)`
 // (and the ReadOnly* forms), where the source is a local identifier. Returns the owner local name,
@@ -900,33 +931,71 @@ static string? ViewOwner(ExpressionSyntax? e, SemanticModel model)
     return null;
 }
 
-// The tracked owner buffer a FULL-LENGTH view spans (no length bound), else null. POOL005:
-// `buf.AsSpan()` / `buf.AsMemory()` taken with NO arguments span `[0, Length)` — the WHOLE backing
-// array — and `new Span<T>(buf)` / `new Memory<T>(buf)` with only the array argument do the same. A
-// pooled array is oversized (`ArrayPool.Rent(n)` returns `Length >= n`), so such a view reaches past
-// the logical length `n` into the stale `[n, Length)` tail (a previous renter's bytes): reading or
-// copying through it processes that stale data — a correctness bug and a potential disclosure. A
-// BOUNDED view (`buf.AsSpan(0, n)`, `new Span<T>(buf, 0, n)`) has a length argument and returns null
-// here — it does not over-read. Recognised by the SAME resolved BCL symbols as `ViewOwner`, so a
+// The tracked owner buffer a FULL-LENGTH view spans, else null. POOL005: `buf.AsSpan()` /
+// `buf.AsMemory()` with NO arguments span `[0, Length)` — the WHOLE backing array — and so does
+// `buf.AsSpan(0, buf.Length)` / `new Span<T>(buf, 0, buf.Length)`, whose length argument is the
+// buffer's OWN oversized `.Length` (the `.Length` spelling); `new Span<T>(buf)` (only the array) too.
+// A pooled array is oversized (`ArrayPool.Rent(n)` returns `Length >= n`), so such a view reaches
+// past the logical length `n` into the stale `[n, Length)` tail (a previous renter's bytes): reading
+// or copying through it processes that stale data — a correctness bug and a potential disclosure. A
+// view bounded to the REAL rented length (`buf.AsSpan(0, n)`, `new Span<T>(buf, 0, n)`) returns null
+// — it does not over-read. Recognised by the SAME resolved BCL symbols as `ViewOwner`, so a
 // project's own `AsSpan`/`Span` look-alike is not mistaken for the over-read.
 static string? FullViewOwner(ExpressionSyntax? e, SemanticModel model)
 {
     if (e is InvocationExpressionSyntax inv
         && inv.Expression is MemberAccessExpressionSyntax m
         && m.Name.Identifier.Text is "AsSpan" or "AsMemory"
-        && inv.ArgumentList.Arguments.Count == 0                       // no start/length -> whole array
         && m.Expression is IdentifierNameSyntax recv
         && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ContainingType: { Name: "MemoryExtensions" } mct }
         && IsInNamespace(mct, "System"))
-        return recv.Identifier.Text;
+    {
+        var args = inv.ArgumentList.Arguments;
+        // `buf.AsSpan()` (no bound) spans the whole array; so does `buf.AsSpan(0, buf.Length)`,
+        // whose length argument is the buffer's OWN oversized `.Length` (the `.Length` spelling).
+        if (args.Count == 0
+            || (args.Count == 2 && IsLengthOf(args[1].Expression, recv.Identifier.Text)))
+            return recv.Identifier.Text;
+    }
     if (e is BaseObjectCreationExpressionSyntax oc
-        && oc.ArgumentList is { Arguments.Count: 1 }                   // only the array -> whole array
-        && oc.ArgumentList.Arguments[0].Expression is IdentifierNameSyntax arg
+        && oc.ArgumentList is { Arguments.Count: > 0 } al
+        && al.Arguments[0].Expression is IdentifierNameSyntax arg
         && model.GetSymbolInfo(oc).Symbol is IMethodSymbol
             { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }
         && IsInNamespace(sct, "System"))
-        return arg.Identifier.Text;
+    {
+        // `new Span<T>(buf)` (whole array) or `new Span<T>(buf, 0, buf.Length)` (length is the
+        // oversized self-length).
+        if (al.Arguments.Count == 1
+            || (al.Arguments.Count == 3 && IsLengthOf(al.Arguments[2].Expression, arg.Identifier.Text)))
+            return arg.Identifier.Text;
+    }
     return null;
+}
+
+// `arg` is the buffer's own `.Length` (`buf.Length`) — the POOL005 `.Length` spelling, where the
+// oversized backing length is passed as the operative length/count instead of the rented `n`.
+static bool IsLengthOf(ExpressionSyntax arg, string owner) =>
+    arg is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length",
+                                          Expression: IdentifierNameSyntax id }
+    && id.Identifier.Text == owner;
+
+// Array.Clear(buf, 0, buf.Length) — clears the WHOLE oversized backing array, past the rented
+// length (POOL005 over-clear). Returns the buffer name; Array.Clear(buf, 0, n) with a real bound
+// returns null. The single-arg Array.Clear(buf) is intentionally NOT matched — wiping the whole
+// buffer is a common, safe idiom; only the explicit oversized `.Length` count is flagged.
+static string? ArrayClearOverOwner(ExpressionSyntax? e, SemanticModel model)
+{
+    if (e is not InvocationExpressionSyntax inv
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol
+            { Name: "Clear", ContainingType: { Name: "Array" } act }
+        || !IsInNamespace(act, "System"))
+        return null;
+    var args = inv.ArgumentList.Arguments;
+    return args.Count == 3
+        && args[0].Expression is IdentifierNameSyntax buf
+        && IsLengthOf(args[2].Expression, buf.Identifier.Text)
+        ? buf.Identifier.Text : null;
 }
 
 // If `idn` references a Span/ReadOnlySpan/Memory/ReadOnlyMemory VIEW local declared from an owner
@@ -1878,6 +1947,8 @@ foreach (var (file, tree) in parsed)
                             poolBuffers.Add(v.Identifier.Text);
                         }
                         else if (IsOwningFactory(v.Initializer?.Value, model))   // File / crypto Create* factory
+                            candidates.Add(v.Identifier.Text);
+                        else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
                             candidates.Add(v.Identifier.Text);
                 }
                 if (candidates.Count == 0)

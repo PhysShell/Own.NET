@@ -1,0 +1,18 @@
+// OwnLang model of the POOL005 `.Length` over-read / over-clear. `acquire` ==
+// ArrayPool.Rent (oversized: Length >= n), `release` == ArrayPool.Return.
+// `overspan buf` models using the buffer's OWN oversized `.Length` as the
+// operative length — `buf.AsSpan(0, buf.Length)` / `Array.Clear(buf, 0, buf.Length)`
+// — which reaches past the rented `n` into the stale tail. Bounding by `n` takes no
+// full view, so the fixed code has no `overspan` and is silent. -> OWN025. The
+// buffer is still returned, so there is no leak (OWN001).
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  kind "pooled buffer"
+}
+fn roundtrip(n: int) {
+  let buf = acquire Buffer(n);   // ArrayPool.Rent  (Length >= n)
+  overspan buf;                  // buf.AsSpan(0, buf.Length) / Array.Clear(buf, 0, buf.Length) -> OWN025
+  release buf;                   // ArrayPool.Return
+}

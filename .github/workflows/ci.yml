@@ -788,10 +788,13 @@ jobs:
         # `buf.AsMemory()`) is a borrow lowered to a use of the OWNER (`ViewOwner`), so using it
         # after `Return(buf)` trips OWN002 — including RETURNING a `Memory<T>` view (which, unlike a
         # ref-struct `Span`, can ESCAPE the method), a dangling borrow handed to the caller. A
-        # FULL-length view of a pooled buffer (`buf.AsSpan()` with no length bound) reaches past the
-        # rented logical length into the oversized tail -> OWN025 (P-007 POOL005, the over-read; the
-        # `arraypool-fullspan-overread` case). Remaining backlog: a FIELD-mediated cross-method
-        # use-after-dispose (dispose in one method, use in another via shared state), a view stored in
+        # view of a pooled buffer reaches past the rented length into the oversized tail -> OWN025
+        # (P-007 POOL005, the over-read): the unbounded `buf.AsSpan()` AND the `.Length` spelling
+        # (`buf.AsSpan(0, buf.Length)`, `Array.Clear(buf, 0, buf.Length)`) — the `arraypool-fullspan-
+        # overread` / `arraypool-clear-past-length` cases. MemoryPool is now tracked too: a
+        # `MemoryPool<T>.Rent` IMemoryOwner is released by Dispose, so its leak / double-dispose /
+        # use-after-dispose ride the flow (POOL001/002/003 — the `memorypool-double-dispose` case ->
+        # OWN003). Remaining backlog: a FIELD-mediated cross-method use-after-dispose, a view stored in
         # a FIELD, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 14
+        run: python scripts/benchmark.py --min-recall 16
 
