@@ -1,0 +1,14 @@
+// OwnLang model of the MemoryPool double-dispose. A MemoryPool<T> owner is
+// `acquire`d by Rent and `release`d by Dispose (there is no Return). Disposing it
+// twice is a double release -> OWN003 — the same verdict as an ArrayPool
+// double-return; the pool can then hand the same memory to two renters at once.
+module Corpus
+resource MemoryOwner {
+  acquire Rent
+  release Dispose
+}
+fn run(n: int) {
+  let owner = acquire MemoryOwner(n);   // MemoryPool.Rent
+  release owner;                        // owner.Dispose()
+  release owner;                        // owner.Dispose() again -> OWN003
+}

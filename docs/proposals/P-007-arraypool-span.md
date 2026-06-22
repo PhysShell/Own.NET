@@ -12,8 +12,16 @@
   emits an `overspan` fact and the core raises OWN025 `[resource: pooled buffer]` at the view —
   both when the view is used in an EXPRESSION (`Emit(buf.AsSpan())`) and when it is a local-decl
   INITIALIZER (`var copy = buf.AsSpan().ToArray();`, `Span<T> s = buf.AsSpan();`) (corpus
-  `arraypool-fullspan-overread`). POOL003 (double-return — flow already catches OWN003), a view
-  stored in a FIELD, and the `Array.Clear(buf, 0, buf.Length)` spelling of POOL005 next
+  `arraypool-fullspan-overread`) — and the **`.Length` view spelling** too (`buf.AsSpan(0, buf.Length)`
+  / `new Span<T>(buf, 0, buf.Length)`, where the oversized self-`.Length` is the bound; corpus
+  `arraypool-length-overread`). A *write*/wipe like `Array.Clear(buf, 0, buf.Length)` is deliberately
+  NOT flagged — it zeros the tail (a safe clear-before-`Return`) and exposes nothing; only a
+  read-capable VIEW is the over-read. **POOL003 (double-return → OWN003) is built** for ArrayPool
+  (try/finally + aliased-receiver, corpus `arraypool-double-return` / `arraypool-aliased-receiver`),
+  and **MemoryPool is now tracked** — a `MemoryPool<T>.Rent` `IMemoryOwner` is released by Dispose,
+  so its leak / double-dispose / use-after-dispose ride the same flow as POOL001/002/003 (corpus
+  `memorypool-double-dispose` → OWN003). A POOL005 view stored in a FIELD, and the
+  `IMemoryOwner.Memory.Span` view borrow, are next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
@@ -43,9 +51,9 @@ The corpus already pins two real cases (`corpus/real-world/arraypool-double-retu
 |---------|---------|--------------|
 | **POOL001** rented not returned | `Rent(...)` with no matching `Return(buf)` in the same member | `OWN001` `[resource: pooled buffer]` ✅ |
 | **POOL002** view after return | a `Span`/`Memory` view used after the owner is `Return`ed | `OWN002` |
-| **POOL003** double return | `Return` reachable twice for the same buffer | `OWN003` |
+| **POOL003** double return | `Return`/`Dispose` reachable twice for the same buffer (ArrayPool *and* MemoryPool) | `OWN003` ✅ |
 | **POOL004** view escapes | a borrowed `Span` returned/stored beyond the owner's lifetime | `OWN004`/`OWN008` |
-| **POOL005** clear/copy past length | a full-length view (`buf.AsSpan()`, no bound) reads/copies beyond the logical length of the rented region | `OWN025` `[resource: pooled buffer]` ✅ (view in an expression or initializer; `Array.Clear(buf, 0, buf.Length)` next) |
+| **POOL005** read/copy past length | a full-length **view** (`buf.AsSpan()`, no bound) **or** the `.Length` spelling (`buf.AsSpan(0, buf.Length)`) reads/copies beyond the logical length (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is NOT flagged — it exposes nothing) | `OWN025` `[resource: pooled buffer]` ✅ (a view stored in a FIELD next) |
 
 Resource mapping:
 
@@ -97,5 +105,8 @@ Catching a real one of these is the milestone-4 success condition.
    the existing sensitive-buffer/clear-on-release check (OWN024)?
 3. How much of POOL004 (view escape) overlaps the existing OWN004/OWN015 escape
    rules — reuse, don't duplicate.
-4. `IMemoryOwner<T>` / `MemoryPool` `Dispose`-based release vs `ArrayPool`'s
-   explicit `Return` — one model with two release spellings?
+4. **(resolved)** `IMemoryOwner<T>` / `MemoryPool` `Dispose`-based release vs
+   `ArrayPool`'s explicit `Return` — yes, one flow model, two release spellings: a
+   `MemoryPool.Rent` owner is tracked as an IDisposable (released by `Dispose`,
+   arg-passing is an escape), an `ArrayPool.Rent` buffer by `Return` (arg-passing is
+   a borrow). Both feed the same acquire/use/release lattice → POOL001/002/003.
