@@ -137,6 +137,8 @@ jobs:
             frontend/roslyn/samples/SampleTypes.cs \
             frontend/roslyn/samples/PipeFieldsSample.cs \
             frontend/roslyn/samples/AppLifetimeSample.cs \
+            frontend/roslyn/samples/ViewOwnsVmSample.xaml.cs \
+            frontend/roslyn/samples/InjectedDcViewSample.xaml.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -292,6 +294,18 @@ jobs:
           if echo "$out" | grep -q "AppLifetimeSample.cs"; then
             echo "FAIL: a process-lived App static-event subscription was wrongly reported (OWN014 FP)"; exit 1
           fi
+          # P-004 WPF MVVM ownership (mined: ScreenToGif VideoSource): a view that
+          # CONSTRUCTS its view-model in its own XAML (`<X.DataContext><VM/>` — read from
+          # the sibling .xaml) owns it, so a field assigned from `DataContext` is
+          # self-owned and subscribing to its events is a collectable cycle -> SILENT.
+          if echo "$out" | grep -q "ViewOwnsVmSample"; then
+            echo "FAIL: a view that owns its VM via its own XAML DataContext was wrongly reported"; exit 1
+          fi
+          # negative control: a view whose XAML BINDS its DataContext (`<Binding/>`) does
+          # NOT own the VM (it may be externally supplied), so the subscription must
+          # still WARN — proving the gate keys off proven construction, not every cast.
+          echo "$out" | grep -qE "InjectedDcViewSample\.xaml\.cs:[0-9]+: warning: \[OWN001\]" \
+            || { echo "FAIL: a bound (unowned) DataContext subscription must still warn"; exit 1; }
           # P-006 DI001 (captive dependency): the registration + constructor graph
           # extracted from DiCaptiveSample.cs feeds ownlang/di.py. A singleton that
           # captures a scoped service — directly, transitively through a transient,
