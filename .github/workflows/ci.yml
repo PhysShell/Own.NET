@@ -796,7 +796,11 @@ jobs:
         # leak / double-dispose ride the flow (POOL001/003 — `memorypool-double-dispose` -> OWN003), and
         # its `owner.Memory` / `owner.Memory.Span` view is a borrow lowered to a use of the OWNER
         # (`ViewOwner`), so reading it after Dispose trips OWN002 (POOL002 — `memorypool-view-after-
-        # dispose`). Remaining backlog: a FIELD-mediated cross-method use-after-dispose, a view stored in
-        # a FIELD, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 19
+        # dispose`). A FIELD-mediated cross-method use-after-dispose is caught too: an IDisposable field
+        # disposed in `Dispose()` and DIRECTLY read (`_field.Member`) in a live subscription-target handler
+        # (RHS of a `+=` / arg of a `.Subscribe(...)`, not torn down, no `if (_disposed) return;` guard) is
+        # lowered to a synthetic acquire/release/use flow -> OWN002 (`field-use-after-dispose`). Remaining
+        # backlog: a view stored in a FIELD, an INDIRECT (helper-mediated) field use after dispose, and an
+        # injected-source region-escape. A drop below the floor is a regression.
+        run: python scripts/benchmark.py --min-recall 20
 
