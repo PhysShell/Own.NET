@@ -321,10 +321,10 @@ jobs:
           # P-004 process-lifetime AppDomain-event exemption (mined: Npgsql PoolManager): a
           # NON-CAPTURING handler on a process-host AppDomain event (ProcessExit/DomainUnload/
           # UnhandledException/FirstChanceException) is a shutdown/diagnostics hook meant to live
-          # for the process -> NOT a region escape -> silent. (Assert no OWN014 anywhere in the
-          # sample file, not just the class name, so a format change can't slip through.)
-          if echo "$out" | grep -qE "AppDomainShutdownSample\.cs:[0-9]+:.*\[OWN014\]"; then
-            echo "FAIL: a non-capturing AppDomain process-lifetime event subscription was wrongly reported as OWN014"; exit 1
+          # for the process -> NOT a region escape -> silent. (Scoped to ShutdownCleanup, the
+          # exempt class — CapturingShutdownSubscriber in the same file MUST still raise OWN014.)
+          if echo "$out" | grep -qE "OWN014.*'ShutdownCleanup'"; then
+            echo "FAIL: ShutdownCleanup's non-capturing AppDomain subscriptions were wrongly reported as OWN014"; exit 1
           fi
           # scope guards: a lambda on a NON-AppDomain static event still escapes; and an AppDomain
           # handler that CAPTURES instance state is still pinned to the process -> still OWN014 (Codex).
