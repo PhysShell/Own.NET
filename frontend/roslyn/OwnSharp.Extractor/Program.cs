@@ -1041,14 +1041,16 @@ static string? PoolReturnBuffer(ExpressionSyntax e, SemanticModel model) =>
 // `return new Wrapper(…, buf, …)` or `_field = new Wrapper(…, buf, …)`? Such a `new` hands the buffer
 // to the constructed object, which becomes responsible for Return, so the buffer leaves the method
 // inside the escaping object (an ownership transfer, not a borrow). One level only: the `new` must be
-// the direct return value or a field-assignment RHS (a `new` buried in a local or another expression
-// stays a borrow — an honest limitation). Purely syntactic, so it holds even when the wrapper type
-// does not resolve.
-static bool PassedToEscapingCtor(IdentifierNameSyntax idn) =>
+// the direct return value or assigned to a real FIELD — a `new` stored in a LOCAL stays a borrow (the
+// local is method-scoped; a wrapper that never leaves the method and never Returns the buffer is a
+// real leak, Codex), as does a `new` buried in another expression. The field check is symbol-based
+// (`IFieldSymbol`) so an assignment to a same-named LOCAL is not mistaken for a field.
+static bool PassedToEscapingCtor(IdentifierNameSyntax idn, SemanticModel model) =>
     idn.Parent is ArgumentSyntax { Parent: ArgumentListSyntax
             { Parent: BaseObjectCreationExpressionSyntax oce } }
     && (oce.Parent is ReturnStatementSyntax
-        || (oce.Parent is AssignmentExpressionSyntax a && a.Right == oce && FieldName(a.Left) is not null));
+        || (oce.Parent is AssignmentExpressionSyntax a && a.Right == oce
+            && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol));
 
 // Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType
 // (checked on the resolved symbol, so an aliased/injected `MemoryPool<T>` receiver binds and a
@@ -2416,7 +2418,7 @@ foreach (var (file, tree) in parsed)
                     // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg)
-                        || (poolBuffers.Contains(nm) && PassedToEscapingCtor(idn)))
+                        || (poolBuffers.Contains(nm) && PassedToEscapingCtor(idn, model)))
                         escapedLocals.Add(nm);
                 }
                 var tracked = new HashSet<string>(candidates);
