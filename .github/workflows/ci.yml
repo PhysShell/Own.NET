@@ -482,7 +482,8 @@ jobs:
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
           # detector cannot catch (use-after-dispose, double-dispose, leak-on-path).
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
-            frontend/roslyn/samples/FlowLocalsSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+            frontend/roslyn/samples/FlowLocalsSample.cs \
+            frontend/roslyn/samples/MemoryOwnerEscapeSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
           echo "$out"
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
@@ -588,7 +589,18 @@ jobs:
           # `ctorMoved`: a pooled buffer handed to a constructor whose result is RETURNED transfers
           # ownership to the returned wrapper -> escaped -> silent (mined FP on
           # Pipelines.Sockets.Unofficial: ArrayPoolBufferWriter.CreateNewSegment).
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved; do
+          # P-016 escape-via-projection (mined: ImageSharp Image.WrapMemory; CodeQL agrees it is
+          # no leak): an IMemoryOwner whose `.Memory` view is handed to a consumer as an argument
+          # escapes the owner -> silent ('handedOwner', in the list below); one whose `.Memory` is
+          # only READ locally and never disposed still leaks ('leakedOwner').
+          echo "$out" | grep -qE "OWN001.*'leakedOwner'" \
+            || { echo "FAIL: expected OWN001 on the read-only, never-disposed IMemoryOwner"; exit 1; }
+          # boundary: the projection-escape is scoped to `new`'d owners — a MemoryPool RENTAL whose
+          # .Memory is handed off after Dispose must KEEP its use-after-dispose tracking, NOT be
+          # silenced (Codex/CodeRabbit P1; benchmark memorypool-double-dispose parity).
+          echo "$out" | grep -qE "OWN002.*'pooled'" \
+            || { echo "FAIL: a MemoryPool owner's .Memory used after Dispose must still trip OWN002"; exit 1; }
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved handedOwner; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"

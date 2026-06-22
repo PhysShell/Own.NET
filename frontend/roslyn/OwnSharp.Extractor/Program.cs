@@ -2502,6 +2502,7 @@ foreach (var (file, tree) in parsed)
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
+                var newedDisposables = new HashSet<string>();    // candidates created via `new` (NOT a pool rental / factory)
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -2522,7 +2523,10 @@ foreach (var (file, tree) in parsed)
                                                    or ImplicitObjectCreationExpressionSyntax } init
                             && model.GetTypeInfo(init.Value).Type is { } dt
                             && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
+                        {
                             candidates.Add(v.Identifier.Text);
+                            newedDisposables.Add(v.Identifier.Text);
+                        }
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {
                             candidates.Add(v.Identifier.Text);
@@ -2619,6 +2623,21 @@ foreach (var (file, tree) in parsed)
                     // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
                         || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg)
+                        // An IMemoryOwner's `.Memory` view handed off as an ARGUMENT escapes the
+                        // OWNER: the Memory keeps the owner alive (it IS the backing), so a consumer
+                        // that stores it — `MemoryGroup.Wrap(owner.Memory)` -> the returned Image —
+                        // takes over the lifetime; the owner is not leaked here. Scoped to
+                        // IMemoryOwner.`Memory` (not any `local.Member`, so a FileStream whose
+                        // `.Length` is read still leaks) and to `new`'d owners ONLY: a pool rental —
+                        // ArrayPool or MemoryPool, `var` or `using` — keeps its dangling-borrow / use-
+                        // after-dispose (OWN002/OWN003) tracking through `.Memory` handoffs, since the
+                        // RENTER owns the Return/Dispose (Codex/CodeRabbit; benchmark memorypool-double-
+                        // dispose). Mined FP on ImageSharp Image.WrapMemory; CodeQL agrees — no leak.
+                        || (newedDisposables.Contains(nm)
+                            && idn.Parent is MemberAccessExpressionSyntax { Name.Identifier.Text: "Memory" } projMem
+                            && projMem.Expression == idn
+                            && projMem.Parent is ArgumentSyntax
+                            && IsMemoryOwnerType(model.GetTypeInfo(idn).Type))
                         || (poolBuffers.Contains(nm) && PassedToEscapingCtor(idn, model)))
                         escapedLocals.Add(nm);
                 }
