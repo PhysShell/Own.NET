@@ -571,6 +571,11 @@ jobs:
           # only READ locally and never disposed still leaks ('leakedOwner').
           echo "$out" | grep -qE "OWN001.*'leakedOwner'" \
             || { echo "FAIL: expected OWN001 on the read-only, never-disposed IMemoryOwner"; exit 1; }
+          # boundary: the projection-escape is scoped to `new`'d owners — a MemoryPool RENTAL whose
+          # .Memory is handed off after Dispose must KEEP its use-after-dispose tracking, NOT be
+          # silenced (Codex/CodeRabbit P1; benchmark memorypool-double-dispose parity).
+          echo "$out" | grep -qE "OWN002.*'pooled'" \
+            || { echo "FAIL: a MemoryPool owner's .Memory used after Dispose must still trip OWN002"; exit 1; }
           for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved handedOwner; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done

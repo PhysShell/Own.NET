@@ -2461,6 +2461,7 @@ foreach (var (file, tree) in parsed)
                 var candidates = new HashSet<string>();
                 var poolBuffers = new HashSet<string>();   // candidates that are ArrayPool<T> buffers
                 var usingMemoryOwners = new HashSet<string>();   // `using`-declared MemoryPool owners
+                var newedDisposables = new HashSet<string>();    // candidates created via `new` (NOT a pool rental / factory)
                 foreach (var ld in mbody.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
                     if (ld.UsingKeyword != default)
@@ -2481,7 +2482,10 @@ foreach (var (file, tree) in parsed)
                                                    or ImplicitObjectCreationExpressionSyntax } init
                             && model.GetTypeInfo(init.Value).Type is { } dt
                             && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
+                        {
                             candidates.Add(v.Identifier.Text);
+                            newedDisposables.Add(v.Identifier.Text);
+                        }
                         else if (IsPoolRent(v.Initializer?.Value, model))   // an ArrayPool<T> buffer
                         {
                             candidates.Add(v.Identifier.Text);
@@ -2583,10 +2587,12 @@ foreach (var (file, tree) in parsed)
                         // that stores it — `MemoryGroup.Wrap(owner.Memory)` -> the returned Image —
                         // takes over the lifetime; the owner is not leaked here. Scoped to
                         // IMemoryOwner.`Memory` (not any `local.Member`, so a FileStream whose
-                        // `.Length` is read still leaks) and to non-pool / non-`using` owners (a
-                        // MemoryPool / `using` owner keeps its dangling-borrow tracking). Mined FP on
-                        // ImageSharp Image.WrapMemory; CodeQL agrees it is no leak (interprocedural).
-                        || (!poolBuffers.Contains(nm) && !usingMemoryOwners.Contains(nm)
+                        // `.Length` is read still leaks) and to `new`'d owners ONLY: a pool rental —
+                        // ArrayPool or MemoryPool, `var` or `using` — keeps its dangling-borrow / use-
+                        // after-dispose (OWN002/OWN003) tracking through `.Memory` handoffs, since the
+                        // RENTER owns the Return/Dispose (Codex/CodeRabbit; benchmark memorypool-double-
+                        // dispose). Mined FP on ImageSharp Image.WrapMemory; CodeQL agrees — no leak.
+                        || (newedDisposables.Contains(nm)
                             && idn.Parent is MemberAccessExpressionSyntax { Name.Identifier.Text: "Memory" } projMem
                             && projMem.Expression == idn
                             && projMem.Parent is ArgumentSyntax

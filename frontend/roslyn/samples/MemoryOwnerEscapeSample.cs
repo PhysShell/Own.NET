@@ -36,4 +36,14 @@ internal static class MemoryOwnerEscape
         var leakedOwner = new PixelOwner();
         return leakedOwner.Memory.Length;     // a local read, NOT a handoff
     }
+
+    // A MemoryPool RENTAL (not a `new`'d owner) keeps its dangling-borrow tracking through a
+    // `.Memory` handoff: projection-escape is scoped to `new`'d owners only, so using `pooled.Memory`
+    // after Dispose still trips OWN002 — the rule must NOT silence it (Codex/CodeRabbit P1).
+    public static void PoolOwnerNotEscaped()
+    {
+        var pooled = MemoryPool<byte>.Shared.Rent(16);
+        pooled.Dispose();
+        Store(pooled.Memory);                 // use of .Memory AFTER Dispose -> OWN002, must NOT be silenced
+    }
 }
