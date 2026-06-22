@@ -1,0 +1,27 @@
+# TEMPORARY re-mine to verify the PipeReader/PipeWriter FP fix on the real repo that showed it.
+# Read-only; delete the branch when done.
+name: mine-run (temp)
+on:
+  push:
+    branches: ["claude/mine-*"]
+permissions:
+  contents: read
+jobs:
+  mine:
+    name: mine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Re-mine Pipelines.Sockets.Unofficial (with the fix)
+        run: scripts/mine.sh --paths src mgravell/Pipelines.Sockets.Unofficial
+      - name: Echo report + findings
+        if: always()
+        run: |
+          for r in corpus/mined/*/report.md; do [[ -f "$r" ]] && { echo "::group::$r"; cat "$r"; echo "::endgroup::"; }; done
+          for f in corpus/mined/*/findings.txt; do [[ -f "$f" ]] && { echo "::group::$f"; cat "$f"; echo "::endgroup::"; }; done
