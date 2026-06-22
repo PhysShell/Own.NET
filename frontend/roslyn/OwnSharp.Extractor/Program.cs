@@ -900,8 +900,9 @@ static bool IsMemoryPoolRent(ExpressionSyntax? e, SemanticModel model) =>
     && IsMemoryPoolType(sym.ContainingType);
 
 // The owner buffer a Span/ReadOnlySpan/Memory/ReadOnlyMemory VIEW expression borrows from:
-// `owner.AsSpan(...)` / `owner.AsMemory(...)`, or `new Span<T>(owner, …)` / `new Memory<T>(owner)`
-// (and the ReadOnly* forms), where the source is a local identifier. Returns the owner local name,
+// `owner.AsSpan(...)` / `owner.AsMemory(...)`, `new Span<T>(owner, …)` / `new Memory<T>(owner)`
+// (and the ReadOnly* forms), or `owner.Memory` / `owner.Memory.Span` of a `System.Buffers.
+// IMemoryOwner<T>` (a MemoryPool rental), where the source is a local identifier. Returns the owner local name,
 // else null. The BORROW is recognised by the RESOLVED BCL symbols — `System.MemoryExtensions`
 // `AsSpan`/`AsMemory` (which alias the receiver array) and the `System.Span<T>` / `ReadOnlySpan<T>`
 // / `Memory<T>` / `ReadOnlyMemory<T>` constructor (which wraps the array argument) — NOT by name, so
@@ -926,6 +927,23 @@ static string? ViewOwner(ExpressionSyntax? e, SemanticModel model)
             { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }
         && IsInNamespace(sct, "System"))
         return arg.Identifier.Text;
+    // owner.Memory — a Memory<T> view of a System.Buffers.IMemoryOwner<T> (e.g. a MemoryPool rental).
+    // Like array.AsMemory(), the Memory CAN escape (return / field); a use of the view after the
+    // owner's Dispose is a use of the owner after release (OWN002), and a returned Memory after
+    // Dispose is a dangling borrow. Recognised by the resolved `IMemoryOwner<T>.Memory` property.
+    if (e is MemberAccessExpressionSyntax mem
+        && mem.Name.Identifier.Text == "Memory"
+        && mem.Expression is IdentifierNameSyntax mo
+        && model.GetSymbolInfo(mem).Symbol is IPropertySymbol { ContainingType: { Name: "IMemoryOwner" } ict }
+        && IsInNamespace(ict, "System", "Buffers"))
+        return mo.Identifier.Text;
+    // owner.Memory.Span — the Span<T> of that Memory view (a ref-struct borrow that cannot escape).
+    if (e is MemberAccessExpressionSyntax { Name.Identifier.Text: "Span" } spanAcc
+        && spanAcc.Expression is MemberAccessExpressionSyntax
+            { Name.Identifier.Text: "Memory", Expression: IdentifierNameSyntax mo2 } innerMem
+        && model.GetSymbolInfo(innerMem).Symbol is IPropertySymbol { ContainingType: { Name: "IMemoryOwner" } ict2 }
+        && IsInNamespace(ict2, "System", "Buffers"))
+        return mo2.Identifier.Text;
     return null;
 }
 
