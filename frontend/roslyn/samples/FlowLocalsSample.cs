@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -504,6 +505,27 @@ public class FlowLocalsSample
         defer.WriteByte(1);                      // must NOT trip OWN002 (it would, without the fix)
         defer.Dispose();                         // disposed here -> balanced -> silent
     }
+
+    // NOT a leak (mined FP on Pipelines.Sockets.Unofficial — ArrayPoolBufferWriter.CreateNewSegment):
+    // a pooled buffer handed to a constructor whose result is RETURNED transfers ownership to the
+    // returned wrapper (which Returns the buffer on its own teardown), so this method does not leak it
+    // even though it never calls Return -> silent ('ctorMoved'). A plain borrow `Work(buf)` still
+    // leaks if not returned, so this is specifically the escaping-constructor transfer.
+    public PooledHolder PooledIntoReturnedCtor(int n)
+    {
+        var ctorMoved = ArrayPool<byte>.Shared.Rent(n);
+        return new PooledHolder(ctorMoved);
+    }
+}
+
+// Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that
+// PooledIntoReturnedCtor hands its rented buffer to. Models the ownership transfer through a
+// constructor argument that the escape analysis must recognise.
+internal sealed class PooledHolder
+{
+    private readonly byte[] _buffer;
+    public PooledHolder(byte[] buffer) => _buffer = buffer;
+    public void Release() => ArrayPool<byte>.Shared.Return(_buffer);
 }
 
 // A domain exception type literally named `Exception`, in a non-System namespace — the
