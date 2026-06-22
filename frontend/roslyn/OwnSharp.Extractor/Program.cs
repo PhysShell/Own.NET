@@ -524,9 +524,37 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             return true;
         }
         case UsingStatementSyntax us:
-            // using(...) {body}: the using local is auto-disposed (untracked); still
-            // lower the body so a tracked plain local used inside is seen.
+        {
+            // using (IMemoryOwner owner = MemoryPool.Rent(...)) { body }: the STATEMENT form of the same
+            // scope-exit dispose as the `using` declaration — desugar a tracked MemoryPool owner the same
+            // way (acquire; thread the dispose onto the body's returns/throws; release on completion) so a
+            // returned view of it dangles -> OWN002 (CodeRabbit). Other using-statements just lower the
+            // body (the using local is auto-disposed, untracked).
+            if (us.Declaration is { Variables.Count: 1 } ud
+                && tracked.Contains(ud.Variables[0].Identifier.Text)
+                && IsMemoryPoolRent(ud.Variables[0].Initializer?.Value, model))
+            {
+                var uv = ud.Variables[0];
+                var owner = uv.Identifier.Text;
+                var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
+                nodes.Add(new { op = "acquire", var = owner, line = LineOf(uv) });
+                var release = new { op = "release", var = owner, line = LineOf(uv) };
+                var bodyOnReturn = new List<object> { release };
+                bodyOnReturn.AddRange(onReturn ?? exit);
+                List<object>? bodyOnThrow = null;
+                if (canEscape)
+                {
+                    bodyOnThrow = new List<object> { release };
+                    bodyOnThrow.AddRange(onThrow ?? exit);
+                }
+                if (us.Statement is not null
+                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn))
+                    return false;
+                nodes.Add(release);   // normal completion disposes at scope exit too
+                return true;
+            }
             return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn);
+        }
         case ReturnStatementSyntax rs:
         {
             // A tracked local READ in the return value is a use at the return point —
@@ -2008,6 +2036,14 @@ foreach (var (file, tree) in parsed)
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
                             candidates.Add(v.Identifier.Text);
                 }
+                // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
+                // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
+                // `using` DECLARATION form handled in the loop above).
+                foreach (var us in mbody.DescendantNodes().OfType<UsingStatementSyntax>())
+                    if (us.Declaration is { } usd)
+                        foreach (var v in usd.Variables)
+                            if (IsMemoryPoolRent(v.Initializer?.Value, model))
+                                candidates.Add(v.Identifier.Text);
                 if (candidates.Count == 0)
                     continue;
                 // A local that escapes (returned / assigned out) is conservatively not

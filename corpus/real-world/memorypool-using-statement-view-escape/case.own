@@ -1,0 +1,17 @@
+// OwnLang model of the MemoryPool `using`-STATEMENT view escape (the `using (...) { … }`
+// form of memorypool-using-view-escape). `acquire` == MemoryPool.Rent, `release` == the
+// implicit scope-exit Dispose of the `using` statement. The block returns `owner.Memory`
+// — a borrow of the owner — but the `using` disposes the owner FIRST, so the caller reads
+// a view of memory already returned to the pool: a use-after-release lowered to OWN002.
+// (The `.own` model is the same as the declaration form — the OwnLang reduction does not
+// distinguish the two C# `using` syntaxes; the extractor desugars both identically.)
+module Corpus
+resource MemoryOwner {
+  acquire Rent
+  release Dispose
+}
+fn lease(n: int) {
+  let owner = acquire MemoryOwner(n);   // using (... = MemoryPool.Rent)
+  release owner;                        // implicit scope-exit Dispose
+  use owner;                            // return owner.Memory — read by the caller AFTER Dispose -> OWN002
+}
