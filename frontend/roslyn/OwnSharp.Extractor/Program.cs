@@ -1524,6 +1524,27 @@ static bool IsNonDisposableReaderWriter(string t) =>
     t is "PipeReader" or "PipeWriter"
       or "System.IO.Pipelines.PipeReader" or "System.IO.Pipelines.PipeWriter";
 
+// Is this field/local type an OWNED disposable? Prefer the RESOLVED type's real
+// IDisposable/IAsyncDisposable interface: an in-project `…Writer`/`…Reader`/`…Stream`
+// that is NOT actually IDisposable (ImageSharp's `Vp8BitWriter : BitWriterBase`, the
+// `JpegBitReader` struct) must not be flagged by name alone. Generalises the #79
+// PipeReader/PipeWriter exclusion — any resolved non-IDisposable type is excluded, no
+// curated list needed. Only when the type does NOT resolve (an unreferenced external
+// assembly — WPF/DevExpress on the Linux runner) do we fall back to the syntactic name
+// heuristic, which is the whole reason that heuristic exists.
+static bool IsOwnedDisposableType(TypeSyntax type, SemanticModel model)
+{
+    var sym = model.GetTypeInfo(type).Type;
+    if (sym is null or IErrorTypeSymbol)
+        return IsDisposableType(type.ToString());
+    // Resolved: demand a REAL IDisposable, but keep the optional-dispose exemption
+    // (Task/ValueTask/DataTable/DataSet/DataView) that the flat name path got for free —
+    // their Dispose is a no-op / they hold only a lazy wait handle, so an undisposed field
+    // of these is not a leak and must stay silent (Codex). Both helpers already exist and
+    // are shared with the flow detector.
+    return ImplementsIDisposable(sym) && !IsDisposeOptional(sym);
+}
+
 // --- P-006: DI registration + constructor graph (DI001 captive dependency) ---
 // A syntactic pass over the same trees, independent of the event/disposable
 // detectors: collect each class's constructor parameter types (the dependency
@@ -2116,7 +2137,11 @@ foreach (var (file, tree) in parsed)
             if (fd.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
                 continue;
             var tname = fd.Declaration.Type.ToString();
-            if (!IsDisposableType(tname))
+            // Resolve-aware: when the field type binds to a real symbol, demand an actual
+            // IDisposable; only an UNRESOLVED type falls back to the name heuristic. (Stops
+            // the #1 ImageSharp FP class: undisposed `Vp8BitWriter`/`JpegBitReader` fields
+            // whose types merely end in Writer/Reader but are not IDisposable.)
+            if (!IsOwnedDisposableType(fd.Declaration.Type, model))
                 continue;
             foreach (var v in fd.Declaration.Variables)
             {
