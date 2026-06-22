@@ -304,8 +304,8 @@ jobs:
           # negative control: a view whose XAML BINDS its DataContext (`<Binding/>`) does
           # NOT own the VM (it may be externally supplied), so the subscription must
           # still WARN — proving the gate keys off proven construction, not every cast.
-          echo "$out" | grep -qE "InjectedDcViewSample\.xaml\.cs:[0-9]+: warning: \[OWN001\]" \
-            || { echo "FAIL: a bound (unowned) DataContext subscription must still warn"; exit 1; }
+          echo "$out" | grep -qE "InjectedDcViewSample\.xaml\.cs:[0-9]+: warning: \[OWN001\].*injected dependency whose lifetime is unknown" \
+            || { echo "FAIL: a bound (unowned) DataContext subscription must still warn with the injected-source wording"; exit 1; }
           # P-006 DI001 (captive dependency): the registration + constructor graph
           # extracted from DiCaptiveSample.cs feeds ownlang/di.py. A singleton that
           # captures a scoped service — directly, transitively through a transient,

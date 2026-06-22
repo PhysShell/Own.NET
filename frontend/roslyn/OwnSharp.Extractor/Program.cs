@@ -24,7 +24,7 @@
 // repo (this is what the `own-check` script / GitHub Action do).
 
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -243,40 +243,33 @@ static bool ReadsDataContext(ExpressionSyntax expr)
 
 // P-004 WPF MVVM ownership: does this XAML construct its own DataContext inline —
 // `<Root.DataContext><vm:Foo/></Root.DataContext>` — so the view OWNS its view-model
-// (a collectable view<->VM cycle)? Restricted to the ROOT element's DataContext: the
-// code-behind's `this.DataContext` is the root's, so only the root's own constructed
-// DataContext proves ownership. A NESTED element's `<Grid.DataContext><ChildVm/>` sets
-// a DIFFERENT element's DataContext and must NOT exempt the view (Codex) — else a real
-// leak on the root's injected VM is silently dropped. True only when the root's
-// property-element child is a TYPE instantiation, not a binding / resource reference
-// (those point at an external or inherited value the view does NOT own). Matched
-// textually (no XAML parser): the property-element form `.DataContext>` denotes inline
-// construction; the `DataContext="{Binding}"` attribute form never matches.
-// Conservative — an unrecognised shape yields false (no exemption), never a
-// wrongly-suppressed leak.
+// (a collectable view<->VM cycle)? Parsed structurally (XAML is XML), restricted to the
+// ROOT element's own DataContext: the code-behind's `this.DataContext` is the root's, so
+// a nested `<Grid.DataContext><ChildVm/>` (a different element's) must NOT exempt the
+// view (Codex / CodeRabbit) — else a real leak on the root's injected VM is dropped.
+// True only when the root's DataContext child is a constructed object that the view owns:
+// NOT a binding / resource reference, and NOT an `x:`-namespace language object
+// (`x:Static`, `x:Null`, `x:Reference`, ...), which name an external/shared value. A
+// malformed `.xaml` yields false (conservative — no exemption, never a dropped leak).
 static bool XamlDeclaresOwnedDataContext(string xaml)
 {
-    // Strip comments / processing instructions so `<Foo.DataContext>` text inside a
-    // comment (or `<?xml?>`) cannot be mistaken for markup, nor skew the root search.
-    xaml = Regex.Replace(xaml, @"<!--.*?-->", " ", RegexOptions.Singleline);
-    xaml = Regex.Replace(xaml, @"<\?.*?\?>", " ", RegexOptions.Singleline);
-    // The root element is the view type (its x:Class is the code-behind). Find its tag
-    // (the first element open — not `</close>`), then match ONLY `<Root.DataContext>`.
-    var rootMatch = Regex.Match(xaml, @"<\s*([A-Za-z_][\w:]*)");
-    if (!rootMatch.Success)
+    XDocument doc;
+    try { doc = XDocument.Parse(xaml); }
+    catch (System.Xml.XmlException) { return false; }
+    var root = doc.Root;
+    if (root is null)
         return false;
-    var root = Regex.Escape(rootMatch.Groups[1].Value);
-    foreach (Match m in Regex.Matches(xaml,
-                 $@"<\s*{root}\s*\.\s*DataContext\s*>\s*<\s*(?:[\w]+:)?([\w.]+)"))
-    {
-        var name = m.Groups[1].Value;
-        var local = name.Contains('.') ? name[(name.LastIndexOf('.') + 1)..] : name;
-        if (local is not ("Binding" or "MultiBinding" or "PriorityBinding"
-                or "StaticResource" or "DynamicResource" or "RelativeSource"
-                or "TemplateBinding" or "Reference" or "Null"))
-            return true;
-    }
-    return false;
+    // The root's OWN `<Root.DataContext>` property-element (a direct child of the root,
+    // in the root's namespace) — not a nested element's, not another property.
+    var dc = root.Element(root.Name.Namespace + (root.Name.LocalName + ".DataContext"));
+    var child = dc?.Elements().FirstOrDefault();
+    if (child is null)
+        return false;
+    if (child.Name.NamespaceName == "http://schemas.microsoft.com/winfx/2006/xaml")
+        return false;   // x:Static / x:Null / x:Reference / x:Type / ...
+    return child.Name.LocalName is not ("Binding" or "MultiBinding" or "PriorityBinding"
+        or "StaticResource" or "DynamicResource" or "RelativeSource"
+        or "TemplateBinding" or "Reference" or "Null");
 }
 
 // P-004 severity tiering: of the subscriptions that survive the self-owned and
