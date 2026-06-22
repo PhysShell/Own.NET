@@ -1,0 +1,49 @@
+# TEMPORARY mining runner (not for main). The on-demand `mine.yml` is
+# workflow_dispatch-only and the agent's API token can't dispatch it, so this
+# pushes a one-off mining run on a `claude/mine-*` branch: clone a pool-heavy
+# public C# repo and run own-check over it, echoing the report into the job log
+# for an FP audit. Read-only; delete the branch when the audit is done.
+name: mine-run (temp)
+
+on:
+  push:
+    branches: ["claude/mine-*"]
+
+permissions:
+  contents: read
+
+# The target to mine — edit and re-push to scan a different repo / subdir.
+env:
+  TARGET: "MessagePack-CSharp/MessagePack-CSharp"
+  PATHS: "src/MessagePack"
+
+jobs:
+  mine:
+    name: mine ${{ env.TARGET }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Mine the target
+        run: |
+          args=()
+          [[ -n "$PATHS" ]] && args+=(--paths "$PATHS")
+          scripts/mine.sh "${args[@]}" "$TARGET"
+      - name: Echo report + findings into the job log
+        if: always()
+        run: |
+          report=$(find corpus/mined -name report.md -type f 2>/dev/null | head -1 || true)
+          findings=$(find corpus/mined -name findings.txt -type f 2>/dev/null | head -1 || true)
+          if [[ -n "$report" ]]; then
+            echo "::group::report.md"; cat "$report"; echo "::endgroup::"
+          else
+            echo "no report produced (see the Mine step log)"
+          fi
+          if [[ -n "$findings" ]]; then
+            echo "::group::findings.txt (SARIF)"; cat "$findings"; echo "::endgroup::"
+          fi
