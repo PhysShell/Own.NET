@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration — https://docs.coderabbit.ai/guides/configure-coderabbit
+#
+# The "Docstring Coverage" pre-merge check measures docstring-style coverage across
+# the WHOLE PR diff and reports a false ~0% on this repo, because Own.NET documents
+# to its own conventions rather than the ones that heuristic counts:
+#   * the C# Roslyn extractor (frontend/roslyn/**) carries a `//` line-comment doc
+#     block above every helper — the file's established house style, deliberately
+#     NOT `///` XML doc comments (adding them would break that consistency for a
+#     metric);
+#   * the Python core and tooling (ownlang/**, scripts/**, tests/**) already carry
+#     module- and function-level docstrings;
+#   * the corpus (corpus/**) is hand-written `.cs` / `.own` REDUCTIONS — terminal
+#     demonstration fixtures, not an authored API surface to document.
+#
+# So turn the check off rather than chase coverage on it. ("off" is quoted so YAML
+# keeps it a string instead of the boolean false.)
+reviews:
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
