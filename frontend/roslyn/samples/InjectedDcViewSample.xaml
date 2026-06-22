@@ -1,8 +1,18 @@
 <Window x:Class="Own.Samples.Wpf.InjectedDcView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- The view BINDS (does not construct) its DataContext: it does NOT own the VM. -->
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Own.Samples.Wpf">
+    <!-- The ROOT view BINDS (does not construct) its DataContext: it does NOT own the
+         VM that the code-behind reads via this.DataContext. -->
     <Window.DataContext>
         <Binding Path="Shared"/>
     </Window.DataContext>
+    <!-- Codex case: a NESTED element constructs its OWN child VM. This is a DIFFERENT
+         element's DataContext, not the view's this.DataContext, so it must NOT make the
+         view look owned — the subscription must still warn. -->
+    <Grid>
+        <Grid.DataContext>
+            <local:NestedChildVm/>
+        </Grid.DataContext>
+    </Grid>
 </Window>

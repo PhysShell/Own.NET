@@ -242,17 +242,32 @@ static bool ReadsDataContext(ExpressionSyntax expr)
 }
 
 // P-004 WPF MVVM ownership: does this XAML construct its own DataContext inline —
-// `<Owner.DataContext><vm:Foo/></Owner.DataContext>` — so the view OWNS its
-// view-model (a collectable view<->VM cycle)? True only when the property-element's
-// child is a TYPE instantiation, not a binding / resource reference (those point at
-// an external or inherited value the view does NOT own, so a subscription to it can
-// still leak). Matched textually because the extractor has no XAML parser: the
-// property-element form `.DataContext>` is what denotes inline construction (the
-// `DataContext="{Binding}"` attribute form never matches). Conservative — an
-// unrecognised shape yields false (no exemption), never a wrongly-suppressed leak.
+// `<Root.DataContext><vm:Foo/></Root.DataContext>` — so the view OWNS its view-model
+// (a collectable view<->VM cycle)? Restricted to the ROOT element's DataContext: the
+// code-behind's `this.DataContext` is the root's, so only the root's own constructed
+// DataContext proves ownership. A NESTED element's `<Grid.DataContext><ChildVm/>` sets
+// a DIFFERENT element's DataContext and must NOT exempt the view (Codex) — else a real
+// leak on the root's injected VM is silently dropped. True only when the root's
+// property-element child is a TYPE instantiation, not a binding / resource reference
+// (those point at an external or inherited value the view does NOT own). Matched
+// textually (no XAML parser): the property-element form `.DataContext>` denotes inline
+// construction; the `DataContext="{Binding}"` attribute form never matches.
+// Conservative — an unrecognised shape yields false (no exemption), never a
+// wrongly-suppressed leak.
 static bool XamlDeclaresOwnedDataContext(string xaml)
 {
-    foreach (Match m in Regex.Matches(xaml, @"\.DataContext\s*>\s*<\s*(?:[\w]+:)?([\w.]+)"))
+    // Strip comments / processing instructions so `<Foo.DataContext>` text inside a
+    // comment (or `<?xml?>`) cannot be mistaken for markup, nor skew the root search.
+    xaml = Regex.Replace(xaml, @"<!--.*?-->", " ", RegexOptions.Singleline);
+    xaml = Regex.Replace(xaml, @"<\?.*?\?>", " ", RegexOptions.Singleline);
+    // The root element is the view type (its x:Class is the code-behind). Find its tag
+    // (the first element open — not `</close>`), then match ONLY `<Root.DataContext>`.
+    var rootMatch = Regex.Match(xaml, @"<\s*([A-Za-z_][\w:]*)");
+    if (!rootMatch.Success)
+        return false;
+    var root = Regex.Escape(rootMatch.Groups[1].Value);
+    foreach (Match m in Regex.Matches(xaml,
+                 $@"<\s*{root}\s*\.\s*DataContext\s*>\s*<\s*(?:[\w]+:)?([\w.]+)"))
     {
         var name = m.Groups[1].Value;
         var local = name.Contains('.') ? name[(name.LastIndexOf('.') + 1)..] : name;
