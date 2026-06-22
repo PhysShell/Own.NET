@@ -428,6 +428,40 @@ static bool DerivesFromWinFormsForm(ITypeSymbol? t)
     return false;
 }
 
+// A type that derives from System.Diagnostics.Tracing.EventSource (semantic, walks the
+// base chain). An EventSource is the canonical process-lived `static readonly Log`
+// diagnostics singleton; its DiagnosticCounter fields are owned by it (IsEventSourceOwnedCounter).
+static bool DerivesFromEventSource(ITypeSymbol? t)
+{
+    for (var b = t; b is not null; b = b.BaseType)
+        if (b.Name == "EventSource" && b.ContainingNamespace?.ToString() == "System.Diagnostics.Tracing")
+            return true;
+    return false;
+}
+
+// A type that derives from System.Diagnostics.Tracing.DiagnosticCounter — the abstract base of
+// EventCounter / IncrementingEventCounter / PollingCounter / IncrementingPollingCounter.
+static bool DerivesFromDiagnosticCounter(ITypeSymbol? t)
+{
+    for (var b = t; b is not null; b = b.BaseType)
+        if (b.Name == "DiagnosticCounter" && b.ContainingNamespace?.ToString() == "System.Diagnostics.Tracing")
+            return true;
+    return false;
+}
+
+// P-004 EventSource-owned diagnostic counter. A DiagnosticCounter created with `this` — the
+// parent EventSource — as its owner argument REGISTERS the counter with that source: the
+// runtime's CounterGroup pins it to the EventSource's lifetime, and an EventSource is a
+// process-lived `static readonly Log` singleton, so the counter is a process-lived diagnostic
+// that is idiomatically NEVER field-disposed (every BCL EventSource — RuntimeEventSource, the
+// ASP.NET / HttpConnection counters — does exactly this). Reporting such a field as an
+// undisposed leak is therefore a false positive. Mined: Npgsql's NpgsqlEventSource (eight
+// counters built in OnEventCommand, none field-disposed).
+static bool IsEventSourceOwnedCounter(BaseObjectCreationExpressionSyntax oce, SemanticModel model) =>
+    oce.ArgumentList is { } args
+    && args.Arguments.Any(arg => arg.Expression is ThisExpressionSyntax)
+    && DerivesFromDiagnosticCounter(model.GetTypeInfo(oce).Type);
+
 static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 {
     MethodDeclarationSyntax md => md.Identifier.Text,
@@ -2152,6 +2186,21 @@ foreach (var (file, tree) in parsed)
                 && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
                 disposed.Add(cdf);
 
+        // P-004 EventSource counter exemption: inside an EventSource, a DiagnosticCounter field
+        // constructed with `this` is registered to (and lifetime-owned by) the source — a
+        // process-lived diagnostic the source never field-disposes (see IsEventSourceOwnedCounter).
+        // Collect those field names so the loop below does not report them as undisposed leaks.
+        // A counter is always built in a method body (OnEventCommand) — `this` is unavailable in
+        // a field initializer — so only the assignment shape (matching `constructed`) can match.
+        var eventSourceCounters = new HashSet<string>();
+        if (DerivesFromEventSource(clsSymbol))
+            foreach (var a in assigns)
+                if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                    && a.Right is BaseObjectCreationExpressionSyntax aoce
+                    && IsEventSourceOwnedCounter(aoce, model)
+                    && FieldName(a.Left) is { } cfn)
+                    eventSourceCounters.Add(cfn);
+
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
             // a `static` IDisposable field is a process-lifetime singleton (a shared
@@ -2169,6 +2218,10 @@ foreach (var (file, tree) in parsed)
             foreach (var v in fd.Declaration.Variables)
             {
                 if (!constructed.Contains(v.Identifier.Text))
+                    continue;
+                // an EventSource's own DiagnosticCounter (registered to `this`) is process-lived
+                // and never field-disposed -> not an owned leak (mined: Npgsql NpgsqlEventSource).
+                if (eventSourceCounters.Contains(v.Identifier.Text))
                     continue;
                 subs.Add(new
                 {
