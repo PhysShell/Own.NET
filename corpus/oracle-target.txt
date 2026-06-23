@@ -2,13 +2,25 @@
 # Format = mine-target.txt: first non-comment line is "owner/repo", an https URL,
 # or "local:<in-repo path>". Optional: ref=, paths=, build=, include_tests=.
 #
-# 2026-06-23: cross-tool check of the Serilog mine's single finding —
-# BatchingSink._shutdownSignal (a CancellationTokenSource FIELD, cancelled but never
-# disposed). Hypothesis: own-only, because CodeQL's leak queries are LOCAL-scoped
-# (cs/local-not-disposed) and Infer#'s RESOURCE_LEAK is METHOD-scoped, while our
-# field-disposable detector targets owner-lifetime field leaks. This run confirms
-# (or refutes) that the CTS-field TP is our differentiating capability, on real
-# cross-tool output. Serilog builds clean on Linux (netstandard2.0/net8.0).
-serilog/serilog
+# 2026-06-23: cross-tool check of Npgsql — the RICH counterpart to the Serilog run.
+# Serilog had ONE finding (a CTS field) and confirmed the field-leak is own-only.
+# Npgsql exercises the OTHER half too: alongside owner-lifetime CTS FIELDS
+# (NpgsqlConnector's _inputCancel/_outputCancel, the data-source _pruningTimer)
+# it has plenty of method-LOCAL disposables (NpgsqlCommand/NpgsqlConnection locals)
+# — exactly CodeQL's cs/local-not-disposed turf. So this run should show the full
+# shared-vs-unique split: AGREE on the locals (all three see them), OWN-ONLY on the
+# CTS fields (CodeQL is local-scoped, Infer# method-scoped). That contrast — not a
+# single bucket — is the point.
+#
+# Pinned to v8.0.9 (last stable v8 tag): main now targets net10.0 and global.json
+# pins SDK 10.0.200, but the oracle sets up dotnet 8.0.x — so HEAD would fail the
+# Infer# build leg (partial 2-way report). v8.0.9 pins SDK 8.0.404 (rollForward
+# latestMinor) and targets netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0, so it
+# builds on the 8.0.x runner and Infer# analyses net8 binaries it supports. The leak
+# CLASSES (CTS fields + local disposables) are stable across v8..v10, so v8.0.9 is
+# fully representative and reproducible (immutable tag). build= scopes to the core
+# library (Npgsql.csproj) where all our findings live; own-check scans src/.
+npgsql/npgsql
+ref=v8.0.9
 paths=src
-build=src/Serilog/Serilog.csproj
+build=src/Npgsql/Npgsql.csproj
