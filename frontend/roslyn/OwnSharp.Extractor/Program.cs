@@ -911,7 +911,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // mutually-exclusive branches: `if(*){ s1 } else { if(*){ s2 } else { … } }` — one
             // per section, value-opaque (we model control flow, not the matched value). A
             // trailing `break` ends a section (stripped); a section doing anything the model
-            // can't place here (a nested `break`, `goto case`, `throw`) bails the method.
+            // can't place here (a nested `break`, `goto case`) bails the method. A bare `throw`
+            // in a section IS modelled now (an abnormal exit) when no enclosing try wraps it.
             List<object>? defaultNodes = null;
             var cases = new List<List<object>>();
             foreach (var section in sw.Sections)
@@ -946,8 +947,31 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             nodes.AddRange(chain);
             return true;
         }
+        case ThrowStatementSyntax thr:
+            // An explicit `throw` is an abnormal method exit: control leaves the method
+            // WITHOUT running the statements below it, so a resource owned here and disposed
+            // only LATER leaks on the throw path — dispose-not-called-on-throw with NO
+            // enclosing `try`. Modelled at the method-body level only: `onThrow is null` AND
+            // the throw escapes (`canEscape`) means no enclosing try would run a `finally` or
+            // catch it, so it is a bare CFG exit where a still-owned resource leaks — the same
+            // synthetic exit the injected may-throw edges use. INSIDE a try an explicit throw
+            // may run a finally or be caught (typed / catch-all); modelling that soundly needs
+            // the thrown-type-vs-catch match, which is not threaded here, so an explicit throw
+            // there keeps bailing (return false) exactly as before — no new false escape past a
+            // catch. (`throw;` rethrow only appears in a catch body, never lowered, so this is
+            // the `throw expr;` form.) The win is broad: a method whose only unmodelled
+            // statement was a top-level validation throw (`if (x is null) throw …;`) is now
+            // analysed instead of skipped, lighting up every detector on the rest of its body.
+            if (canEscape && onThrow is null)
+            {
+                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
+                return true;
+            }
+            return false;
         default:
-            return false;   // unmodelled (goto/labeled/throw/...) -> bail the method
+            // unmodelled (goto / labeled / local function / lock / fixed / a `throw` INSIDE a
+            // try) -> bail the method, honestly skipping rather than guessing.
+            return false;
     }
 }
 
