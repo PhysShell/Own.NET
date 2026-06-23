@@ -30,4 +30,21 @@ public class BodyThrowEdgesSample
         var adc = new MemoryStream();
         adc.Dispose();
     }
+
+    // Codex P2 (may-throw tier): a may-throw call lexically inside a `finally` must NOT get a
+    // synthetic bare exit even under the flag — a real exception there runs the ENCLOSING cleanup.
+    // `mtf` is disposed by the OUTER finally; the inner finally's `mtf.WriteByte(1)` may throw, but
+    // that throw runs the outer `mtf.Dispose()`, so `mtf` is released on every path. Without the
+    // IsInsideFinally guard on the may-throw path, the bare exit would skip that outer release and
+    // falsely flag `mtf` -> it must stay SILENT in BOTH modes (mirrors FlowLocalsSample's tif).
+    public void MayThrowInFinallyClean()
+    {
+        var mtf = new MemoryStream();
+        try
+        {
+            try { }
+            finally { mtf.WriteByte(1); }
+        }
+        finally { mtf.Dispose(); }
+    }
 }

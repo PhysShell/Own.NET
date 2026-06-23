@@ -730,7 +730,9 @@ jobs:
             frontend/roslyn/samples/BodyThrowEdgesSample.cs --flow-locals -o "$RUNNER_TEMP/bte_off.json"
           off=$(python -m ownlang ownir "$RUNNER_TEMP/bte_off.json" || true)
           echo "$off"
-          if echo "$off" | grep -q "'mtbd'"; then echo "FAIL: 'mtbd' must be SILENT without --body-throw-edges"; exit 1; fi
+          for s in mtbd mtf adc; do
+            if echo "$off" | grep -q "'$s'"; then echo "FAIL: '$s' must be SILENT without --body-throw-edges"; exit 1; fi
+          done
           # opt-in (flag on): the may-throw WriteByte between acquire and Dispose is a throw point
           # that skips the Dispose -> 'mtbd' leaks; 'adc' (adjacent dispose, nothing throws between)
           # stays silent even under the flag (the edge needs an intervening may-throw statement).
@@ -740,8 +742,13 @@ jobs:
           echo "$on"
           echo "$on" | grep -qE "OWN001.*'mtbd' may not be disposed on every path" \
             || { echo "FAIL: expected OWN001 on 'mtbd' under --body-throw-edges"; exit 1; }
-          if echo "$on" | grep -q "'adc'"; then echo "FAIL: 'adc' (adjacent dispose) must stay silent even under the flag"; exit 1; fi
-          echo "OK: --body-throw-edges gates the body-level dispose-not-called-on-throw firehose (off by default; fires only with an intervening may-throw)"
+          # adc: nothing throws between acquire and dispose. mtf (Codex P2): a may-throw call inside
+          # a finally must not get a synthetic bare exit — the outer finally disposes it. Both silent
+          # even under the flag.
+          for s in adc mtf; do
+            if echo "$on" | grep -q "'$s'"; then echo "FAIL: '$s' must stay silent even under --body-throw-edges"; exit 1; fi
+          done
+          echo "OK: --body-throw-edges gates the body-level dispose-not-called-on-throw firehose (off by default; fires only with an intervening may-throw; finally-internal throws excluded)"
       - name: Coverage summary (--stats)
         run: |
           # --stats prints a flow-locals coverage line to stderr and stamps the same

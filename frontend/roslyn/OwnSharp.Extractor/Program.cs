@@ -611,7 +611,11 @@ static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>
     // may-throw statement (`canEscape`, so no enclosing catch-all swallows it) gets a synthetic
     // bare method exit as its continuation, matching CodeQL's cs/dispose-not-called-on-throw on
     // the no-try slice. A catch-all-suppressed region (`canEscape` false) still injects nothing.
-    var cont = onThrow ?? (BodyThrowEdges && canEscape
+    // `!IsInsideFinally`: a may-throw statement lexically inside a `finally` is lowered with a null
+    // onThrow too, but a real exception there runs the ENCLOSING cleanup — a bare exit would skip
+    // it and falsely flag a resource the outer finally/using disposes, so synthesize no edge there
+    // (the symmetric guard the explicit-throw path already uses — Codex P2 on the may-throw tier).
+    var cont = onThrow ?? (BodyThrowEdges && canEscape && !IsInsideFinally(st)
         ? new List<object> { new { op = "return", var = (string?)null, line = LineOf(st) } }
         : null);
     if (cont is not null && StatementMayThrow(st))
