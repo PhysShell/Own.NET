@@ -71,12 +71,22 @@ A blanket exemption would fight that convention.
 - **Keep the conservative detector.** Flagging undisposed CTS fields follows the convention and
   catches the dangerous (`CancelAfter`/linked/`WaitHandle`) cases; a plain-CTS instance is a
   low-severity *instance*, not a reason to exempt the type.
-- **Reframe the differentiator.** Both `_shutdownSignal` (Serilog — plain CTS, dispose-optional by
-  *type*) and `_lock` (Npgsql — a `ReaderWriterLockSlim` benign only because its owner is a
-  process-lived singleton, **not** because the type is managed-only) are low-severity *instances*.
-  The honest flagship for the field/owner-lifetime capability is **Npgsql
-  `PoolingDataSource._pruningTimer`** — a `System.Threading.Timer` holds a live timer-queue
-  registration and a rooted callback, a *real* leak until disposed.
+- **Criticality is a spectrum, not a flagship.** All of these field leaks are *conditional*:
+  `_shutdownSignal` (Serilog — plain CTS, dispose-optional by *type*), `_lock` (Npgsql — a
+  `ReaderWriterLockSlim` benign only because its owner is a process-lived singleton, **not**
+  because the type is managed-only), and even `_pruningTimer` (Npgsql `PoolingDataSource` — a
+  `System.Threading.Timer` that is genuinely never disposed). The Timer's *worst* case is heavier
+  than a CTS's: while it is scheduled, the static `TimerQueue` roots its `state` (the data source),
+  so an abandoned source cannot be GC'd and the callback keeps firing — dragging the open
+  connection pool with it. But it self-disables (`Change(Infinite, Infinite)`) when there is
+  nothing to prune, becoming a collectable cycle, and for the dominant process-lived
+  `NpgsqlDataSource` singleton it is benign at shutdown — the *same* lifetime caveat as
+  `_shutdownSignal`. So there is **no clean, unconditionally-critical flagship** here: criticality
+  is a *spectrum* = (does the type self-root / hold an OS handle / keep doing work) × (does the
+  owner *churn*), and a static analyzer **cannot observe churn**. The genuinely severe field leak
+  is a live OS handle (FileStream / Socket / an un-returned connection) on a *churned* owner —
+  whose severity we can only ever *worst-case*, never prove. That is exactly the case for the
+  severity tiers below.
 - **Deferred option — severity tiers (not exemption).** If we later want the tool to encode
   criticality, split the disposable-field severity into three families: (1) **always holds an OS
   handle / timer / linked or `CancelAfter` CTS** (FileStream, Socket, `System.Threading.Timer`) →
