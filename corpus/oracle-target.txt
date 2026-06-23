@@ -1,17 +1,14 @@
 # Target for the push-triggered oracle (.github/workflows/oracle.yml, push path).
 # Format = mine-target.txt: first non-comment line is "owner/repo", an https URL,
-# or "local:<in-repo path>" (a fixture copied into the oracle's target/).
-# Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
+# or "local:<in-repo path>". Optional: ref=, paths=, build=, include_tests=.
 #
-# Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
-# included — ScreenToGif's WPF won't build on Linux). Re-run after the OWN014
-# migration (PR #35): the fixture's SUBSCRIPTION leak (#1 — SystemEvents.Display
-# SettingsChanged += with no -=) is now lowered by the extractor to a `capture`
-# fact and reported as OWN014 (region escape), not OWN001; OWN014 was added to the
-# comparator's OWN_LEAK set. So #1 must STILL land "Own.NET-only" (CodeQL / Infer#
-# have no event-subscription-leak query) — this run confirms the migration kept the
-# differentiation, on real cross-tool output rather than the selftest's fixtures.
-# Expect: #1 Own.NET-only (now OWN014), #2/#3/#4 dispose leaks in "Agree", 0
-# oracle-only.
-local:corpus/fixtures/systemevents-console
-build=SystemEventsLeak.csproj
+# 2026-06-23: cross-tool check of the Serilog mine's single finding —
+# BatchingSink._shutdownSignal (a CancellationTokenSource FIELD, cancelled but never
+# disposed). Hypothesis: own-only, because CodeQL's leak queries are LOCAL-scoped
+# (cs/local-not-disposed) and Infer#'s RESOURCE_LEAK is METHOD-scoped, while our
+# field-disposable detector targets owner-lifetime field leaks. This run confirms
+# (or refutes) that the CTS-field TP is our differentiating capability, on real
+# cross-tool output. Serilog builds clean on Linux (netstandard2.0/net8.0).
+serilog/serilog
+paths=src
+build=src/Serilog/Serilog.csproj
