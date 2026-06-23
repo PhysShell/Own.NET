@@ -142,6 +142,7 @@ jobs:
             frontend/roslyn/samples/ResolvedDisposableSample.cs \
             frontend/roslyn/samples/FieldReleaseSample.cs \
             frontend/roslyn/samples/StaticClassEscapeSample.cs \
+            frontend/roslyn/samples/EventSourceCountersSample.cs \
             frontend/roslyn/samples/AppDomainShutdownSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -345,6 +346,24 @@ jobs:
           if echo "$out" | grep -q "StaticAllocationCounter"; then
             echo "FAIL: a static-method handler on a static event was wrongly reported as a region escape"; exit 1
           fi
+          # P-004 EventSource diagnostic-counter exemption (mined: Npgsql NpgsqlEventSource): a
+          # DiagnosticCounter (EventCounter / PollingCounter / Incrementing{Event,Polling}Counter)
+          # built with `this` is registered to the parent EventSource and shares its process
+          # lifetime -> idiomatically never field-disposed -> must NOT be flagged as an undisposed leak.
+          if echo "$out" | grep -qE "'_bytesPerSecond'|'_totalBytes'|'_commandDuration'|'_totalCommands'"; then
+            echo "FAIL: an EventSource-owned DiagnosticCounter field was wrongly reported as an undisposed leak"; exit 1
+          fi
+          # scope control (Codex): the exemption keys off the DiagnosticCounter type handed to
+          # `this`, NOT the EventSource class — so a plain owned IDisposable field in the same
+          # EventSource (`_scratch`) must STILL raise the OWN001 disposable-field leak.
+          echo "$out" | grep -qE "EventSourceCountersSample\.cs:[0-9]+:.*\[OWN001\].*'_scratch'" \
+            || { echo "FAIL: a non-counter owned IDisposable field in an EventSource must still warn (exemption stays counter-type-scoped)"; exit 1; }
+          # declared-type control (Codex): a field DECLARED as a plain IDisposable that is ALSO
+          # assigned a counter once (`_mixed = new EventCounter(..., this)`) must STILL leak its
+          # earlier `new MemoryStream()` — the exemption requires the DECLARED field type to be a
+          # DiagnosticCounter, so a name-only skip cannot hide the non-counter resource.
+          echo "$out" | grep -qE "EventSourceCountersSample\.cs:[0-9]+:.*\[OWN001\].*'_mixed'" \
+            || { echo "FAIL: a field declared as a non-counter IDisposable that is later assigned a counter must still leak (exemption requires the DECLARED type to be a DiagnosticCounter)"; exit 1; }
           # P-004 process-lived-subscriber exemption (mined: ScreenToGif App +
           # Translator): the WPF `App` singleton hooking the process-lived
           # AppDomain.UnhandledException promotes nothing, so the static-source region
