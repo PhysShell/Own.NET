@@ -2296,6 +2296,19 @@ foreach (var (file, tree) in parsed)
                     && ThisFieldName(a.Left) is { } cfn)   // THIS instance's field only — `other._c` must not exempt our field (CodeRabbit)
                     eventSourceCounters.Add(cfn);
 
+        // P-004 SemaphoreSlim field exemption (mined: Npgsql NpgsqlDataSource._setupMappingsSemaphore).
+        // SemaphoreSlim.Dispose() only frees a LAZILY-allocated wait handle — allocated solely when
+        // `.AvailableWaitHandle` is read — so a SemaphoreSlim field used purely for Wait/WaitAsync/Release
+        // leaks nothing and is dispose-optional. GATE: if `.AvailableWaitHandle` IS read on the field,
+        // that handle exists and Dispose must release it, so the field STAYS tracked (Codex). Collect the
+        // field names whose AvailableWaitHandle is read (this/bare receiver) so the loop below keeps them.
+        // Scoped to FIELDS only — the shared IsDisposeOptional (and the flow-locals detector / the
+        // deliberate method-bounded `semLeak` control) is intentionally left untouched (CodeRabbit).
+        var waitHandleSemaphores = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var ma in cls.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
+            if (ma.Name.Identifier.Text == "AvailableWaitHandle" && ThisFieldName(ma.Expression) is { } whf)
+                waitHandleSemaphores.Add(whf);
+
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
             // a `static` IDisposable field is a process-lifetime singleton (a shared
@@ -2322,6 +2335,13 @@ foreach (var (file, tree) in parsed)
                 // initial `new MemoryStream()`), so it must NOT be suppressed by name alone (Codex).
                 if (eventSourceCounters.Contains(v.Identifier.Text)
                     && DerivesFromDiagnosticCounter(model.GetTypeInfo(fd.Declaration.Type).Type))
+                    continue;
+                // a SemaphoreSlim field whose `.AvailableWaitHandle` is never read leaks nothing —
+                // Dispose() only frees that lazy handle — so it is dispose-optional and silent; if the
+                // handle IS read (in waitHandleSemaphores) it stays tracked. FIELD-scoped (Npgsql).
+                if (!waitHandleSemaphores.Contains(v.Identifier.Text)
+                    && model.GetTypeInfo(fd.Declaration.Type).Type is { Name: "SemaphoreSlim" } st
+                    && st.ContainingNamespace?.ToString() == "System.Threading")
                     continue;
                 subs.Add(new
                 {
