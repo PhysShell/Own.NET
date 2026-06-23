@@ -564,6 +564,24 @@ static bool IsBodyTail(StatementSyntax st) =>
     && b.Statements.Count > 0 && b.Statements[^1] == st
     && b.Parent is not StatementSyntax;
 
+// True when `node` sits lexically inside a `finally { }` block (walking up to the enclosing
+// member / lambda boundary). A `throw` there is NOT a clean method exit: it propagates through
+// any ENCLOSING `finally`/`try` cleanup, which a bare-return exit would skip — and `finally`
+// bodies are lowered with the default (null) `onThrow`, so the body-level throw branch cannot
+// tell them apart from the method body. Such a throw therefore keeps BAILING the method (sound
+// honest-skip, as before this feature) rather than emit a false leak that misses the outer
+// finally's release (Codex P2: `try { try {} finally { throw; } } finally { s.Dispose(); }`).
+static bool IsInsideFinally(SyntaxNode node)
+{
+    for (var p = node.Parent; p is not null; p = p.Parent)
+    {
+        if (p is FinallyClauseSyntax) return true;
+        if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax
+              or BaseMethodDeclarationSyntax or AccessorDeclarationSyntax) return false;
+    }
+    return false;
+}
+
 // Inject an exceptional-exit edge `if(*){ onThrow }` before a LEAF may-throw statement
 // (an expression statement or a local declaration) inside a `try` body. `onThrow` is the
 // continuation a throw here runs to leave the method — this try's `finally`, then any
@@ -962,7 +980,9 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // the `throw expr;` form.) The win is broad: a method whose only unmodelled
             // statement was a top-level validation throw (`if (x is null) throw …;`) is now
             // analysed instead of skipped, lighting up every detector on the rest of its body.
-            if (canEscape && onThrow is null)
+            // ...and a throw lexically inside a `finally` likewise keeps bailing (IsInsideFinally):
+            // its real continuation is the OUTER finally/try cleanup, which a bare exit would skip.
+            if (canEscape && onThrow is null && !IsInsideFinally(thr))
             {
                 nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
                 return true;

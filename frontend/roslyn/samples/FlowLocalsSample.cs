@@ -321,6 +321,22 @@ public class FlowLocalsSample
         vtc.Dispose();
     }
 
+    // NOT a false leak (Codex P2): a `throw` inside the INNER finally is not a clean method exit
+    // — it propagates through the OUTER finally, which disposes `tif`. A bare-return throw-exit
+    // can't represent "run the enclosing finally first", and finally bodies are lowered with a
+    // null onThrow, so a throw lexically inside a finally keeps BAILING the whole method (honest
+    // skip) rather than emit a false OWN001 that misses the outer release -> silent.
+    public void ThrowInFinallyBails()
+    {
+        var tif = new MemoryStream();
+        try
+        {
+            try { }
+            finally { throw new InvalidOperationException(); }
+        }
+        finally { tif.Dispose(); }
+    }
+
     // finally-before-return: the early `return` runs the finally (disposing `other`) FIRST,
     // then exits — so `other` is released on the return path and stays silent. But `earlyRet`
     // is disposed only AFTER the try, which the early return (and the throw on WriteByte) skip
