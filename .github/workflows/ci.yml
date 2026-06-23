@@ -146,6 +146,7 @@ jobs:
             frontend/roslyn/samples/AppDomainShutdownSample.cs \
             frontend/roslyn/samples/AliasDisposeSample.cs \
             frontend/roslyn/samples/CloseReleaseSample.cs \
+            frontend/roslyn/samples/SemaphoreFieldSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -275,6 +276,24 @@ jobs:
           # receiver-stripping name match that a same-class ContainingType check would also miss).
           echo "$out" | grep -qE "CloseReleaseSample\.cs:[0-9]+:.*\[OWN001\].*'_xconn'" \
             || { echo "FAIL: other-instance .Close() must not credit this field (receiver-scoped to this/alias)"; exit 1; }
+          # P-004 SemaphoreSlim FIELD dispose-optional (mined: Npgsql NpgsqlDataSource._setupMappingsSemaphore):
+          # a SemaphoreSlim field used only for Wait/Release (AvailableWaitHandle never read) frees nothing on
+          # Dispose -> must be SILENT.
+          if echo "$out" | grep -q "'_optionalSem'"; then
+            echo "FAIL: a SemaphoreSlim field whose AvailableWaitHandle is never read was wrongly reported (dispose-optional)"; exit 1
+          fi
+          # gate control: a SemaphoreSlim field whose AvailableWaitHandle IS read allocates a handle Dispose
+          # must release -> it must STILL warn (proves the exemption is gated, not blanket — Codex).
+          echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_handleSem'" \
+            || { echo "FAIL: a SemaphoreSlim field whose AvailableWaitHandle is read must still warn"; exit 1; }
+          # Codex control: an AvailableWaitHandle read THROUGH A FIELD ALIAS must credit the field -> still warn.
+          echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_aliasedSem'" \
+            || { echo "FAIL: an aliased AvailableWaitHandle read must keep the field tracked (alias-aware gate)"; exit 1; }
+          # type-scope control: a non-SemaphoreSlim owned IDisposable (CTS) never disposed must STILL warn.
+          echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_ctsControl'" \
+            || { echo "FAIL: a non-SemaphoreSlim owned IDisposable field must still warn (exemption stays SemaphoreSlim-scoped)"; exit 1; }
+          # field-scoped: the existing method-bounded LOCAL SemaphoreSlim leak (FlowLocalsSample.semLeak) must
+          # be UNAFFECTED — checked in the --flow-locals step below; this exemption never touches IsDisposeOptional.
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
