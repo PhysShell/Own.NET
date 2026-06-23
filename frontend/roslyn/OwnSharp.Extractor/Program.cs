@@ -2233,21 +2233,53 @@ foreach (var (file, tree) in parsed)
         // disposes. Owned (not injected) = in `constructed` (computed above);
         // released = a `<field>.Dispose()` call somewhere in the class.
         var disposed = new HashSet<string>();
+        // A local that ALIASES a field of this class — `var cts = _cts;` / `var cts = this._cts;` —
+        // and is then disposed THROUGH the alias (`cts.Dispose()`) releases the field's object: the
+        // alias and the field name the same instance. Map each such alias LOCAL SYMBOL -> its field
+        // so the disposal scan below credits the FIELD. Mined: Npgsql's NpgsqlDataSource disposes its
+        // CancellationTokenSource via `var cts = _cts; cts.Dispose();`. Sound by construction:
+        //  - the initializer is a `this`/bare field reference (never `other._f`) that BINDS to a real
+        //    field symbol (not a same-named local);
+        //  - aliases are keyed by the LOCAL SYMBOL, not its name, so a same-named local in another
+        //    method (or a second alias reusing the name) is a DISTINCT entry, never conflated (Codex);
+        //  - an alias REASSIGNED anywhere — by `=`, or rebound through a `ref`/`out` argument — is
+        //    excluded: a rebound local no longer tracks the field, so we decline to credit it (Codex).
+        var reassignedAliases = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        foreach (var asg in assigns)
+            if (model.GetSymbolInfo(asg.Left).Symbol is ILocalSymbol rls)
+                reassignedAliases.Add(rls);
+        foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
+            if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword) || arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword))
+                && model.GetSymbolInfo(arg.Expression).Symbol is ILocalSymbol als)
+                reassignedAliases.Add(als);
+        var aliasToField = new Dictionary<ISymbol, string>(SymbolEqualityComparer.Default);
+        foreach (var decl in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+            if (decl.Initializer?.Value is { } init
+                && ThisFieldName(init) is { } af
+                && model.GetSymbolInfo(init).Symbol is IFieldSymbol
+                && model.GetDeclaredSymbol(decl) is ILocalSymbol aliasSym
+                && !reassignedAliases.Contains(aliasSym))
+                aliasToField[aliasSym] = af;
+        // a `.Dispose()`/`.DisposeAsync()` on a field — directly (`_f.Dispose()`) or through an
+        // alias local (translated by SYMBOL via aliasToField) — releases that field.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
                 && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                 && FieldName(m.Expression) is { } df)
-                disposed.Add(df);
+                disposed.Add(model.GetSymbolInfo(m.Expression).Symbol is ILocalSymbol ls
+                             && aliasToField.TryGetValue(ls, out var fa) ? fa : df);
         // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
         // WhenNotNull is the `.Dispose()` invocation, NOT a plain MemberAccess) — the
         // dominant disposal shape the match above misses. Mined as an FP across ImageSharp:
         // `this.memoryStream?.Dispose()` (ZipExrCompressor/DeflateCompressor/IccDataWriter)
         // and the BufferedStreams benchmark's `[GlobalCleanup]` `field?.Dispose()` calls.
+        // (The same alias-by-symbol translation applies — `cts?.Dispose()` on an aliasing local.)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
             if (FieldName(cae.Expression) is { } cdf
                 && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
                 && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
-                disposed.Add(cdf);
+                disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
+                             && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
 
         // P-004 EventSource counter exemption: inside an EventSource, a DiagnosticCounter field
         // constructed with `this` is registered to (and lifetime-owned by) the source — a
