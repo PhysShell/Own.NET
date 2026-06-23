@@ -147,6 +147,7 @@ jobs:
             frontend/roslyn/samples/AliasDisposeSample.cs \
             frontend/roslyn/samples/CloseReleaseSample.cs \
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
+            frontend/roslyn/samples/VoidSubscribeSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -300,6 +301,17 @@ jobs:
             || { echo "FAIL: expected the InboxViewModel ignored-Subscribe leak"; exit 1; }
           echo "$out" | grep -q "is ignored" \
             || { echo "FAIL: expected the ignored-Subscribe message"; exit 1; }
+          # P-004 resolve-aware ignored-Subscribe (mined: StackExchange.Redis): a bare `x.Subscribe(...)`
+          # whose call returns VOID (the Redis `ISubscriber.Subscribe(channel, handler, flags)` shape) has
+          # no IDisposable token -> must be SILENT; the IDisposable-returning Subscribe still WARNs.
+          if echo "$out" | grep -q "leaking 'VoidSubscriber'"; then
+            echo "FAIL: a void-returning .Subscribe(...) was wrongly flagged as an ignored IDisposable subscription"; exit 1
+          fi
+          echo "$out" | grep -q "leaking 'DisposableSubscriber'" \
+            || { echo "FAIL: an ignored IDisposable-returning .Subscribe(...) must still warn (resolve-aware stays scoped)"; exit 1; }
+          # Codex control: a `dynamic` receiver's Subscribe has a dynamic return -> unprovable -> still WARN.
+          echo "$out" | grep -q "leaking 'DynamicSubscriber'" \
+            || { echo "FAIL: an ignored dynamic .Subscribe(...) must still warn (dynamic return is unknown, not silenced)"; exit 1; }
           if echo "$out" | grep -q "CleanInboxViewModel"; then
             echo "FAIL: captured+disposed subscription wrongly reported"; exit 1
           fi
