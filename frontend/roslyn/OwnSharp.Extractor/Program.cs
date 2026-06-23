@@ -469,7 +469,11 @@ static bool IsDisposeOptional(ITypeSymbol t)
 {
     var ns = t.ContainingNamespace?.ToString();
     return (ns == "System.Threading.Tasks" && t.Name is "Task" or "ValueTask")
-        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
+        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView")
+        // SemaphoreSlim.Dispose() only frees a LAZILY-allocated wait handle (allocated solely if
+        // AvailableWaitHandle is read); the common WaitAsync/Release usage allocates nothing, so an
+        // undisposed SemaphoreSlim field is not a leak. Mined: Npgsql NpgsqlDataSource._setupMappingsSemaphore.
+        || (ns == "System.Threading" && t.Name == "SemaphoreSlim");
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
@@ -2260,11 +2264,15 @@ foreach (var (file, tree) in parsed)
                 && model.GetDeclaredSymbol(decl) is ILocalSymbol aliasSym
                 && !reassignedAliases.Contains(aliasSym))
                 aliasToField[aliasSym] = af;
-        // a `.Dispose()`/`.DisposeAsync()` on a field — directly (`_f.Dispose()`) or through an
-        // alias local (translated by SYMBOL via aliasToField) — releases that field.
+        // a `.Dispose()`/`.DisposeAsync()`/`.Close()` on a field — directly (`_f.Dispose()`) or through
+        // an alias local (translated by SYMBOL via aliasToField) — releases that field. `Close()` counts
+        // as a release here exactly as it already does for LOCAL disposables (DisposesLocal and the flow
+        // detector both accept Dispose/Close/DisposeAsync); a field of a Stream / DbConnection-style type
+        // is released by Close just as Dispose would. Mined: Npgsql ReplicationConnection disposes its
+        // NpgsqlConnection field via `await _npgsqlConnection.Close(async: true)`.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
-                && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
+                && m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
                 && FieldName(m.Expression) is { } df)
                 disposed.Add(model.GetSymbolInfo(m.Expression).Symbol is ILocalSymbol ls
                              && aliasToField.TryGetValue(ls, out var fa) ? fa : df);
@@ -2277,7 +2285,7 @@ foreach (var (file, tree) in parsed)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
             if (FieldName(cae.Expression) is { } cdf
                 && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
-                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
+                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close")
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
                              && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
 
