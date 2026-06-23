@@ -119,6 +119,18 @@ a CFG-carrying bridge, and the existing core checks real code.
   the most common .NET resource bug, and the first time the core's flow analysis
   bites real code. B2 (`using`/try-finally → scoped release) is the smallest first
   slice; do it before the general case.
+  - **dispose-not-called-on-throw — two tiers (mined: the oracle's CodeQL
+    `cs/dispose-not-called-on-throw` showed up oracle-only on Serilog + Npgsql).**
+    *Tier 1 (default, sound):* exceptional-exit edges inside a `try` already model it;
+    an explicit `throw` with no enclosing try is modelled as a bare method exit (so
+    `acquire; if (bad) throw; dispose;` leaks on the throw path, and a top-level
+    validation throw no longer bails the whole method). FP-free — a throw with no
+    enclosing try definitely exits. *Tier 2 (opt-in `--body-throw-edges`, off by
+    default):* also treat ANY escaping body-level may-throw call/`new` as a throw point
+    (full CodeQL parity on the no-try slice). This is the CA2000 firehose — it flags
+    even harmless `MemoryStream`/`StringWriter` dispose-on-throw — so it stays off the
+    shipped low-FP default; the oracle enables it to measure full recall. Graduating it
+    to default would need a "managed-only, no OS handle" dispose-optional expansion.
 - **B3 — Move / ownership transfer.** `return disposable`, or passing it to a callee
   that consumes it → move / escape (P-005 D5). Intraprocedural, driven by declared
   signatures, not whole-program tracing. *Landed (consume handoff):* a call to a
