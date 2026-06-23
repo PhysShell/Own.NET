@@ -12,8 +12,8 @@
 #
 # Usage:
 #   scripts/own-check.sh [--format human|github|msbuild|sarif] [--severity error|warning]
-#                        [--fail-on-finding] [--legacy] [--stats] [--root <own.net checkout>]
-#                        [--] <path|file> [more ...]
+#                        [--fail-on-finding] [--legacy] [--stats] [--body-throw-edges]
+#                        [--root <own.net checkout>] [--] <path|file> [more ...]
 #
 # Defaults: --format human, --severity error, scans ".", does not fail the shell
 # on findings, --root is the repo this script lives in. --severity picks how a
@@ -37,6 +37,7 @@ severity="error"
 fail_on_finding=0
 legacy=0
 stats=0
+body_throw_edges=0
 paths=()
 
 while [[ $# -gt 0 ]]; do
@@ -53,6 +54,7 @@ while [[ $# -gt 0 ]]; do
     --fail-on-finding) fail_on_finding=1; shift ;;
     --legacy)          legacy=1; shift ;;
     --stats)           stats=1; shift ;;
+    --body-throw-edges) body_throw_edges=1; shift ;;
     --)                shift; while [[ $# -gt 0 ]]; do paths+=("$1"); shift; done ;;
     -h|--help)         sed -n '2,30p' "$0"; exit 0 ;;
     *)                 paths+=("$1"); shift ;;
@@ -78,6 +80,9 @@ trap 'rm -f "$facts"' EXIT
 extractor_args=("${paths[@]}" -o "$facts")
 [[ "$legacy" -eq 0 ]] && extractor_args+=(--flow-locals)
 [[ "$stats" -eq 1 ]] && extractor_args+=(--stats)
+# Opt-in P-016 throw tier: also flag body-level (no-try) dispose-not-called-on-throw — CodeQL
+# cs/dispose-not-called-on-throw parity. CA2000-noisy, so off by default (oracle recall measurement).
+[[ "$body_throw_edges" -eq 1 ]] && extractor_args+=(--body-throw-edges)
 dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
 
 # Stage 2: the one checker produces the verdict at the C# location.
