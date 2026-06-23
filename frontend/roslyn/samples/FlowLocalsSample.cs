@@ -272,6 +272,71 @@ public class FlowLocalsSample
         lamPrior.Dispose();
     }
 
+    // ─── body-level explicit `throw` (no enclosing try) ──────────────────────────────────
+    // An explicit `throw` used to make the flow pass bail the WHOLE method (it hit the
+    // unmodelled `default`). It is now an abnormal method exit, so these methods are analysed
+    // — closing the no-try slice of CodeQL's cs/dispose-not-called-on-throw and, more broadly,
+    // un-bailing every method guarded by a top-level validation throw.
+
+    // recall (the un-bail win): a top-level validation `throw` no longer bails the method, so
+    // `vtl` — acquired after the guard and never disposed — now leaks (OWN001, "is never
+    // disposed"). Before, the throw made the whole method invisible to every detector.
+    public void ValidatedThenLeaks(object arg)
+    {
+        if (arg is null) throw new ArgumentNullException(nameof(arg));
+        var vtl = new MemoryStream();
+        vtl.WriteByte(1);
+    }
+
+    // recall (the body-level dispose-on-throw the in-try model missed): `dotNoTry` is disposed
+    // at the end, but the `throw` on the guard path leaves the method first and skips that
+    // Dispose -> it leaks on the throw path. Disposed on the fall-through path, never on the
+    // throw path -> OWN001 "may not be disposed on every path". The fix is `using`.
+    public void ThrowAfterAcquireLeaks(bool bad)
+    {
+        var dotNoTry = new MemoryStream();
+        if (bad) throw new InvalidOperationException();
+        dotNoTry.Dispose();
+    }
+
+    // NOT a leak (the throw-exit is placed where ownership is exact, not blanket): the Dispose
+    // runs BEFORE the `throw`, so `tdClean` is already released at the abnormal exit -> nothing
+    // owned there -> silent. Proves "the method contains a throw" alone never leaks.
+    public void ThrowAfterDisposeClean()
+    {
+        var tdClean = new MemoryStream();
+        tdClean.WriteByte(1);
+        tdClean.Dispose();
+        throw new InvalidOperationException();
+    }
+
+    // NOT a leak (the un-bail must not over-flag): the same top-level validation `throw`, but
+    // `vtc` is acquired after it AND disposed -> analysed (no longer bailed) and balanced on
+    // every real path -> silent. The guard throw exits before the acquire, owning nothing.
+    public void ValidatedThenClean(object arg)
+    {
+        if (arg is null) throw new ArgumentNullException(nameof(arg));
+        var vtc = new MemoryStream();
+        vtc.WriteByte(1);
+        vtc.Dispose();
+    }
+
+    // NOT a false leak (Codex P2): a `throw` inside the INNER finally is not a clean method exit
+    // — it propagates through the OUTER finally, which disposes `tif`. A bare-return throw-exit
+    // can't represent "run the enclosing finally first", and finally bodies are lowered with a
+    // null onThrow, so a throw lexically inside a finally keeps BAILING the whole method (honest
+    // skip) rather than emit a false OWN001 that misses the outer release -> silent.
+    public void ThrowInFinallyBails()
+    {
+        var tif = new MemoryStream();
+        try
+        {
+            try { }
+            finally { throw new InvalidOperationException(); }
+        }
+        finally { tif.Dispose(); }
+    }
+
     // finally-before-return: the early `return` runs the finally (disposing `other`) FIRST,
     // then exits — so `other` is released on the return path and stays silent. But `earlyRet`
     // is disposed only AFTER the try, which the early return (and the throw on WriteByte) skip

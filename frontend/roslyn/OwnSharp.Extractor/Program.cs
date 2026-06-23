@@ -564,6 +564,24 @@ static bool IsBodyTail(StatementSyntax st) =>
     && b.Statements.Count > 0 && b.Statements[^1] == st
     && b.Parent is not StatementSyntax;
 
+// True when `node` sits lexically inside a `finally { }` block (walking up to the enclosing
+// member / lambda boundary). A `throw` there is NOT a clean method exit: it propagates through
+// any ENCLOSING `finally`/`try` cleanup, which a bare-return exit would skip — and `finally`
+// bodies are lowered with the default (null) `onThrow`, so the body-level throw branch cannot
+// tell them apart from the method body. Such a throw therefore keeps BAILING the method (sound
+// honest-skip, as before this feature) rather than emit a false leak that misses the outer
+// finally's release (Codex P2: `try { try {} finally { throw; } } finally { s.Dispose(); }`).
+static bool IsInsideFinally(SyntaxNode node)
+{
+    for (var p = node.Parent; p is not null; p = p.Parent)
+    {
+        if (p is FinallyClauseSyntax) return true;
+        if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax
+              or BaseMethodDeclarationSyntax or AccessorDeclarationSyntax) return false;
+    }
+    return false;
+}
+
 // Inject an exceptional-exit edge `if(*){ onThrow }` before a LEAF may-throw statement
 // (an expression statement or a local declaration) inside a `try` body. `onThrow` is the
 // continuation a throw here runs to leave the method — this try's `finally`, then any
@@ -911,7 +929,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // mutually-exclusive branches: `if(*){ s1 } else { if(*){ s2 } else { … } }` — one
             // per section, value-opaque (we model control flow, not the matched value). A
             // trailing `break` ends a section (stripped); a section doing anything the model
-            // can't place here (a nested `break`, `goto case`, `throw`) bails the method.
+            // can't place here (a nested `break`, `goto case`) bails the method. A bare `throw`
+            // in a section IS modelled now (an abnormal exit) when no enclosing try wraps it.
             List<object>? defaultNodes = null;
             var cases = new List<List<object>>();
             foreach (var section in sw.Sections)
@@ -946,8 +965,33 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             nodes.AddRange(chain);
             return true;
         }
+        case ThrowStatementSyntax thr:
+            // An explicit `throw` is an abnormal method exit: control leaves the method
+            // WITHOUT running the statements below it, so a resource owned here and disposed
+            // only LATER leaks on the throw path — dispose-not-called-on-throw with NO
+            // enclosing `try`. Modelled at the method-body level only: `onThrow is null` AND
+            // the throw escapes (`canEscape`) means no enclosing try would run a `finally` or
+            // catch it, so it is a bare CFG exit where a still-owned resource leaks — the same
+            // synthetic exit the injected may-throw edges use. INSIDE a try an explicit throw
+            // may run a finally or be caught (typed / catch-all); modelling that soundly needs
+            // the thrown-type-vs-catch match, which is not threaded here, so an explicit throw
+            // there keeps bailing (return false) exactly as before — no new false escape past a
+            // catch. (`throw;` rethrow only appears in a catch body, never lowered, so this is
+            // the `throw expr;` form.) The win is broad: a method whose only unmodelled
+            // statement was a top-level validation throw (`if (x is null) throw …;`) is now
+            // analysed instead of skipped, lighting up every detector on the rest of its body.
+            // ...and a throw lexically inside a `finally` likewise keeps bailing (IsInsideFinally):
+            // its real continuation is the OUTER finally/try cleanup, which a bare exit would skip.
+            if (canEscape && onThrow is null && !IsInsideFinally(thr))
+            {
+                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
+                return true;
+            }
+            return false;
         default:
-            return false;   // unmodelled (goto/labeled/throw/...) -> bail the method
+            // unmodelled (goto / labeled / local function / lock / fixed / a `throw` INSIDE a
+            // try) -> bail the method, honestly skipping rather than guessing.
+            return false;
     }
 }
 

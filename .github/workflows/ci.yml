@@ -639,6 +639,16 @@ jobs:
             || { echo "FAIL: expected OWN001 on the undisposed local in a do-while loop"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'swLeak'" \
             || { echo "FAIL: expected OWN001 on the switch default-branch leak"; exit 1; }
+          # body-level explicit `throw` (no enclosing try) — these methods used to bail the flow
+          # pass entirely (a `throw` hit the unmodelled default). Now an explicit throw is an
+          # abnormal exit, so they are analysed: a top-level validation throw no longer HIDES a
+          # later undisposed local ('vtl', never disposed), and a Dispose skipped by a `throw`
+          # on the guard path leaks on that path ('dotNoTry', partial). Closes the no-try slice
+          # of cs/dispose-not-called-on-throw + un-bails every validation-throw-guarded method.
+          echo "$out" | grep -qE "OWN001.*'vtl' is never disposed" \
+            || { echo "FAIL: expected OWN001 on the local hidden behind a top-level validation throw"; exit 1; }
+          echo "$out" | grep -qE "OWN001.*'dotNoTry' may not be disposed on every path" \
+            || { echo "FAIL: expected OWN001 on the body-level dispose-not-called-on-throw (no try)"; exit 1; }
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->
@@ -699,7 +709,13 @@ jobs:
           # silenced (Codex/CodeRabbit P1; benchmark memorypool-double-dispose parity).
           echo "$out" | grep -qE "OWN002.*'pooled'" \
             || { echo "FAIL: a MemoryPool owner's .Memory used after Dispose must still trip OWN002"; exit 1; }
-          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved handedOwner; do
+          # tdClean: a Dispose BEFORE an explicit `throw` -> released at the abnormal exit ->
+          # silent. vtc: a local acquired after a top-level validation throw AND disposed ->
+          # analysed (no longer bailed) and balanced -> silent (the un-bail must not over-flag).
+          # tif (Codex P2): a `throw` inside an inner finally propagates through the OUTER finally
+          # that disposes it -> the throw-exit keeps BAILING the method (it can't run the enclosing
+          # cleanup) rather than emit a false leak -> silent.
+          for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved handedOwner tdClean vtc tif; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
