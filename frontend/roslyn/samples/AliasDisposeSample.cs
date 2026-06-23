@@ -48,3 +48,41 @@ public sealed class ReboundAliasLeaks : IDisposable
         a.Dispose();                          // disposes the new one, not _rebound -> WARN OWN001
     }
 }
+
+// Codex control: an alias rebound through a `ref`/`out` ARGUMENT (not just `=`) no longer tracks
+// the field — so the field must STILL leak. The reassignment gate counts ref/out args, not only
+// assignment expressions.
+public sealed class RefReboundAliasLeaks : IDisposable
+{
+    private readonly CancellationTokenSource _refRebound = new CancellationTokenSource();
+
+    public void Dispose()
+    {
+        var a = _refRebound;   // starts as the field...
+        Swap(ref a);           // ...but a helper rebinds it via `ref`
+        a.Dispose();           // disposes whatever Swap installed, not _refRebound -> WARN OWN001
+    }
+
+    private static void Swap(ref CancellationTokenSource c) => c = new CancellationTokenSource();
+}
+
+// Codex/CodeRabbit control: aliases are scoped by the LOCAL SYMBOL, not its name. Here `Touch`
+// aliases the field but never disposes it, while an UNRELATED local also named `c` in `Other` is
+// disposed. A class-wide name key would miscredit `Other`'s `c.Dispose()` to the field and hide
+// the leak; symbol scoping keeps them distinct, so the field STILL leaks (WARN OWN001).
+public sealed class ScopedAliasNameLeak : IDisposable
+{
+    private readonly CancellationTokenSource _scopedLeak = new CancellationTokenSource();
+
+    public void Touch()
+    {
+        var c = _scopedLeak;   // aliases the field but does NOT dispose it
+        _ = c.Token;
+    }
+
+    public void Other()
+    {
+        var c = new CancellationTokenSource();   // a DIFFERENT local named `c`...
+        c.Dispose();                             // ...disposing it must NOT credit _scopedLeak
+    }
+}

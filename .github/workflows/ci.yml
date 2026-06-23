@@ -253,6 +253,13 @@ jobs:
             || { echo "FAIL: a field aliased but never disposed must still warn"; exit 1; }
           echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_rebound'" \
             || { echo "FAIL: a field whose alias was rebound to a new object must still warn"; exit 1; }
+          # Codex control: an alias rebound through a ref/out ARGUMENT must still leak.
+          echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_refRebound'" \
+            || { echo "FAIL: a field whose alias was rebound via a ref/out argument must still warn"; exit 1; }
+          # Codex/CodeRabbit control: aliases are symbol-scoped, not name-keyed — an unrelated
+          # same-named local disposed in another method must NOT credit the field, so it still leaks.
+          echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_scopedLeak'" \
+            || { echo "FAIL: a same-named local in another scope must not be miscredited (symbol-scoped aliases)"; exit 1; }
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \
