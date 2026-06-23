@@ -744,7 +744,11 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
                             || IsMemoryPoolRent(v.Initializer?.Value, model)  // MemoryPool<T> Rent (IMemoryOwner)
                             || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
-                        nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v) });
+                        // Tag an ArrayPool rent so the bridge labels a partial-path leak a
+                        // "pooled buffer" (Return not on every path), not the generic "disposable"
+                        // — the flow path previously mislabelled a pool buffer leaked on a throw edge.
+                        nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v),
+                                        kind = IsPoolRent(v.Initializer?.Value, model) ? "pool" : "disposable" });
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
                     // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
                     // called on a non-acquire initializer, so scan it here for the overspan (Codex review).

@@ -62,6 +62,8 @@ _NESTED_THROW_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                      "ownir", "flow_nested_throw.facts.json")
 _FINALLY_SWITCH_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                                        "ownir", "flow_finally_switch.facts.json")
+_POOL_PARTIAL_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
+                                     "ownir", "flow_pool_partial.facts.json")
 _DI_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
                            "ownir", "di.facts.json")
 _UNRESOLVED_FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures",
@@ -438,6 +440,34 @@ def run() -> int:
         fails.append(f"expected OWN001 on 'r2'@20 (early-return leak) and 's2'@40 (switch "
                      f"else-branch leak) only — clean 'r' (finally before return) and 's' "
                      f"(switch all-dispose) stay silent — got {fsgot}")
+
+    # --- flow-path pool labelling: an ArrayPool Rent leaked on the flow path must read as a
+    #     "pooled buffer" (Return wording + [resource: pooled buffer]), not the generic
+    #     "disposable". The extractor stamps the acquire's kind 'pool'; the bridge words a
+    #     partial-path leak ('may not be returned to the pool on every path'), a never-returned
+    #     one ('rented but never returned'), and leaves a plain disposable on the same shape
+    #     ('may not be disposed on every path'). Regression for the mislabel the --body-throw-
+    #     edges Npgsql capstone surfaced (CompositeBuilder/BitStringConverters ArrayPool rents).
+    with open(_POOL_PARTIAL_FIXTURE, encoding="utf-8") as f:
+        ppfacts = json.load(f)
+    ppfindings = check_facts(ppfacts)
+    by = {x.event: x for x in ppfindings}
+    checks += 1
+    want = [
+        ("buf", "pooled buffer", "may not be returned to the pool on every path", "pooled buffer"),
+        ("nbuf", "pooled buffer", "rented but never returned to the pool", "pooled buffer"),
+        ("d", "disposable", "may not be disposed on every path", "disposable"),
+    ]
+    for ev, kind, msg_sub, tag in want:
+        fdg = by.get(ev)
+        if fdg is None or fdg.code != "OWN001":
+            fails.append(f"pool-label: expected OWN001 on '{ev}', got {fdg!r}")
+        elif fdg.kind != kind:
+            fails.append(f"pool-label: '{ev}' kind want {kind!r}, got {fdg.kind!r}")
+        elif msg_sub not in fdg.message:
+            fails.append(f"pool-label: '{ev}' message want substring {msg_sub!r}, got {fdg.message!r}")
+        elif f"[resource: {tag}]" not in fdg.render():
+            fails.append(f"pool-label: '{ev}' render want [resource: {tag}], got {fdg.render()!r}")
 
     # --- P-016 A1 reaches the frontend: a `while` flow body (the extractor now
     #     lowers loops instead of skipping the method) routes through the core's

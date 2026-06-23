@@ -993,7 +993,10 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             localmap[name] = handle
             handles[handle] = {"file": ffile, "line": line, "event": name,
                                "component": fname, "resource": "flow-local",
-                               "ever_released": name in released_vars}
+                               "ever_released": name in released_vars,
+                               # the extractor stamps an ArrayPool Rent's acquire kind so a
+                               # partial-path leak reads as a "pooled buffer", not "disposable".
+                               "pool": n.get("kind") == "pool"}
             body.append(Let(handle, Acquire("Disposable", [], line), line))
         elif op == "use":
             h = localmap.get(str(n.get("var")))
@@ -1123,15 +1126,30 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                              f"(over-read / over-clear)"),
                     kind="pooled buffer"))
                 continue
+            # An ArrayPool Rent is released by Return (a "pooled buffer"), not Dispose (a
+            # "disposable"); the extractor stamps the acquire's kind so the flow path words
+            # and tags it correctly — previously a Rent leaked/misused on a flow path was
+            # mislabelled the generic "disposable" (e.g. a partial-throw-path Return).
+            pool = sub.get("pool")
             if d.code == "OWN001":
-                # OWN001 spans "released on 0 paths" and "released on some but not all"
-                # — the core's "not on every path". Word it from whether the flow body
-                # released this local anywhere (ever_released): no release at all reads
-                # as "never disposed"; a partial release as "not on every path". Same
-                # leak verdict either way.
-                msg = (f"IDisposable local '{name}' may not be disposed on every path (leak)"
-                       if sub.get("ever_released")
-                       else f"IDisposable local '{name}' is never disposed (leak)")
+                # OWN001 spans "released on 0 paths" and "released on some but not all" —
+                # the core's "not on every path". Word it from whether the flow body
+                # released this local anywhere (ever_released): no release at all reads as
+                # "never returned/disposed"; a partial release as "not on every path".
+                if pool:
+                    msg = (f"pooled buffer '{name}' may not be returned to the pool on every path (leak)"
+                           if sub.get("ever_released")
+                           else f"pooled buffer '{name}' is rented but never returned to the pool (leak)")
+                else:
+                    msg = (f"IDisposable local '{name}' may not be disposed on every path (leak)"
+                           if sub.get("ever_released")
+                           else f"IDisposable local '{name}' is never disposed (leak)")
+            elif pool:
+                msg = {
+                    "OWN002": f"pooled buffer '{name}' is used after it is returned to the pool",
+                    "OWN003": f"pooled buffer '{name}' is returned to the pool more than once",
+                    "OWN009": f"pooled buffer '{name}' may be used after being returned on some path",
+                }.get(d.code, f"pooled buffer '{name}': {d.message}")
             else:
                 msg = {
                     "OWN002": f"IDisposable local '{name}' is used after it is disposed",
@@ -1141,7 +1159,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
-                kind="disposable"))
+                kind="pooled buffer" if pool else "disposable"))
             continue
         if sub.get("di_source_life"):
             # OWN014 region escape sourced from the DI graph (P-006 + P-004): the
