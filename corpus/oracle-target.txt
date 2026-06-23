@@ -1,26 +1,18 @@
 # Target for the push-triggered oracle (.github/workflows/oracle.yml, push path).
 # Format = mine-target.txt: first non-comment line is "owner/repo", an https URL,
-# or "local:<in-repo path>". Optional: ref=, paths=, build=, include_tests=.
+# or "local:<in-repo path>". Optional: ref=, paths=, build=, include_tests=,
+# body_throw_edges=.
 #
-# 2026-06-23: cross-tool check of Npgsql — the RICH counterpart to the Serilog run.
-# Serilog had ONE finding (a CTS field) and confirmed the field-leak is own-only.
-# Npgsql exercises the OTHER half too: alongside owner-lifetime CTS FIELDS
-# (NpgsqlConnector's _inputCancel/_outputCancel, the data-source _pruningTimer)
-# it has plenty of method-LOCAL disposables (NpgsqlCommand/NpgsqlConnection locals)
-# — exactly CodeQL's cs/local-not-disposed turf. So this run should show the full
-# shared-vs-unique split: AGREE on the locals (all three see them), OWN-ONLY on the
-# CTS fields (CodeQL is local-scoped, Infer# method-scoped). That contrast — not a
-# single bucket — is the point.
-#
-# Pinned to v8.0.9 (last stable v8 tag): main now targets net10.0 and global.json
-# pins SDK 10.0.200, but the oracle sets up dotnet 8.0.x — so HEAD would fail the
-# Infer# build leg (partial 2-way report). v8.0.9 pins SDK 8.0.404 (rollForward
-# latestMinor) and targets netstandard2.0;netstandard2.1;net6.0;net7.0;net8.0, so it
-# builds on the 8.0.x runner and Infer# analyses net8 binaries it supports. The leak
-# CLASSES (CTS fields + local disposables) are stable across v8..v10, so v8.0.9 is
-# fully representative and reproducible (immutable tag). build= scopes to the core
-# library (Npgsql.csproj) where all our findings live; own-check scans src/.
+# 2026-06-23 CAPSTONE: re-run the Npgsql v8.0.9 oracle WITH --body-throw-edges (PR #95's
+# opt-in body-level dispose-not-called-on-throw firehose, now in main and plumbed into
+# own-check here via body_throw_edges=). Clean before/after against the documented
+# baseline (Own.NET 10 / CodeQL 19 / Infer# 73, Agree 0): Npgsql is rich in `new`-acquired
+# disposable locals (converters / readers), so the firehose should (a) recover recall —
+# move some of CodeQL's cs/dispose-not-called-on-throw findings into AGREE — and (b) add
+# CA2000 noise (own-only jumps). This run measures BOTH halves of that tradeoff, which is
+# exactly why the tier is opt-in. Same scope/ref as the baseline so the diff is the flag.
 npgsql/npgsql
 ref=v8.0.9
 paths=src
 build=src/Npgsql/Npgsql.csproj
+body_throw_edges=true

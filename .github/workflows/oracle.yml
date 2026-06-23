@@ -39,6 +39,11 @@ on:
         required: false
         type: boolean
         default: false
+      body_throw_edges:
+        description: "own-check with --body-throw-edges (opt-in body-level dispose-not-called-on-throw firehose — CodeQL parity; off by default)"
+        required: false
+        type: boolean
+        default: false
   # Dev-loop fallback (the automation token can't `workflow_dispatch`): bump the
   # sentinel corpus/oracle-target.txt to run the oracle push-triggered, reading the
   # target from that file. Dev-branch only — remove before merging to main.
@@ -76,16 +81,18 @@ jobs:
           IN_PATHS: ${{ inputs.paths }}
           IN_BUILD: ${{ inputs.build }}
           IN_TESTS: ${{ inputs.include_tests }}
+          IN_BTE: ${{ inputs.body_throw_edges }}
         run: |
           file=corpus/oracle-target.txt
           if [[ -n "$IN_REPO" ]]; then
-            repo="$IN_REPO"; ref="$IN_REF"; paths="$IN_PATHS"; build="$IN_BUILD"; tests="$IN_TESTS"
+            repo="$IN_REPO"; ref="$IN_REF"; paths="$IN_PATHS"; build="$IN_BUILD"; tests="$IN_TESTS"; bte="$IN_BTE"
           else
             repo=$(grep -vE '^[[:space:]]*(#|$)' "$file" | head -1 | tr -d '[:space:]')
             ref=$(grep -E '^ref=' "$file"           | head -1 | sed 's/^ref=//'           | tr -d '[:space:]')
             paths=$(grep -E '^paths=' "$file"        | head -1 | sed 's/^paths=//'         | tr -d '[:space:]')
             build=$(grep -E '^build=' "$file"        | head -1 | sed 's/^build=//'         | tr -d '[:space:]')
             tests=$(grep -E '^include_tests=' "$file"| head -1 | sed 's/^include_tests=//' | tr -d '[:space:]')
+            bte=$(grep -E '^body_throw_edges=' "$file"| head -1 | sed 's/^body_throw_edges=//'| tr -d '[:space:]')
           fi
           # Allowlist: GitHub owner/repo, an https URL, or local:<in-repo path>
           # (a fixture copied into target/ instead of cloned) — never an odd scheme.
@@ -93,8 +100,8 @@ jobs:
             echo "oracle: invalid target '$repo'" >&2; exit 2
           fi
           { echo "repo=$repo"; echo "ref=$ref"; echo "paths=$paths";
-            echo "build=$build"; echo "tests=${tests:-false}"; } >> "$GITHUB_OUTPUT"
-          echo "oracle target: $repo (ref='${ref:-HEAD}' paths='${paths:-*}' build='${build:-auto}' tests='${tests:-false}')"
+            echo "build=$build"; echo "tests=${tests:-false}"; echo "bte=${bte:-false}"; } >> "$GITHUB_OUTPUT"
+          echo "oracle target: $repo (ref='${ref:-HEAD}' paths='${paths:-*}' build='${build:-auto}' tests='${tests:-false}' body-throw-edges='${bte:-false}')"
 
       # Fast fail: the diff logic is unit-tested before we clone/build anything.
       - name: Comparator selftest
@@ -171,11 +178,15 @@ jobs:
       - name: Own.NET own-check
         env:
           PATHS: ${{ steps.t.outputs.paths }}
+          BTE: ${{ steps.t.outputs.bte }}
         run: |
           scan="target"; [[ -n "$PATHS" ]] && scan="target/$PATHS"
+          # Opt-in: the body-level dispose-not-called-on-throw firehose (CodeQL parity). Off by
+          # default; the sentinel/input flips it on to MEASURE that recall against the oracles.
+          bte=(); [[ "${BTE,,}" == "true" ]] && bte=(--body-throw-edges)
           set +e
-          scripts/own-check.sh --format sarif --severity warning -- "$scan" > own.txt 2> own-extract.log
-          echo "own-check rc=$? ; own.txt is a SARIF log ($(wc -c < own.txt) bytes)"
+          scripts/own-check.sh --format sarif --severity warning "${bte[@]}" -- "$scan" > own.txt 2> own-extract.log
+          echo "own-check rc=$? (body-throw-edges=${BTE:-false}) ; own.txt is a SARIF log ($(wc -c < own.txt) bytes)"
 
       # CodeQL — database from source (no build). The dispose/leak queries
       # (cs/local-not-disposed & friends) are *quality* queries, absent from the

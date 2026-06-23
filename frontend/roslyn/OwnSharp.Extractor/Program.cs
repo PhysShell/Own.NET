@@ -46,11 +46,22 @@ bool flowLocals = false;
 // flow-analysed vs honestly skipped for an unmodelled construct) and stamp the
 // same counts into the facts JSON. Turns "0 findings" into "clean vs didn't-reach".
 bool reportStats = false;
+// --body-throw-edges (opt-in, P-016 throw tier): also treat an ESCAPING body-level may-throw
+// call/`new` (not only those inside a `try`) as a dispose-not-called-on-throw point — CodeQL
+// cs/dispose-not-called-on-throw parity. OFF by default: it is the CA2000 firehose (flags even
+// harmless MemoryStream/StringWriter dispose-on-throw), so the shipped posture stays low-FP; the
+// oracle turns it on to measure full recall. Read deep in InjectThrowEdge via the static
+// Program.BodyThrowEdges (declared at end of file) rather than threaded through the flow recursion.
+// Reset the static field up front so a flag from a prior IN-PROCESS invocation can't leak into a
+// run that did not request it (the other config — emitEvents/flowLocals/reportStats — are locals,
+// re-initialized each call, so they need no reset; only this static one does). CodeRabbit.
+BodyThrowEdges = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
     else if (args[i] == "--no-event-leaks") emitEvents = false;
     else if (args[i] == "--flow-locals") flowLocals = true;
+    else if (args[i] == "--body-throw-edges") BodyThrowEdges = true;
     else if (args[i] == "--stats") reportStats = true;
     else rawInputs.Add(args[i]);
 }
@@ -70,6 +81,11 @@ if (reportStats && !flowLocals)
     Console.Error.WriteLine("ownsharp-extract: --stats requires --flow-locals");
     return 2;
 }
+
+// --body-throw-edges only injects edges during the --flow-locals pass; without it it is a no-op.
+// Warn (non-fatal) rather than fail — it is an additive recall knob layered on flow, not a mode.
+if (BodyThrowEdges && !flowLocals)
+    Console.Error.WriteLine("ownsharp-extract: --body-throw-edges has no effect without --flow-locals");
 
 // A path segment we never scan: build output, VCS, and vendored trees.
 static bool IsSkippedDir(string seg) =>
@@ -564,6 +580,24 @@ static bool IsBodyTail(StatementSyntax st) =>
     && b.Statements.Count > 0 && b.Statements[^1] == st
     && b.Parent is not StatementSyntax;
 
+// True when `node` sits lexically inside a `finally { }` block (walking up to the enclosing
+// member / lambda boundary). A `throw` there is NOT a clean method exit: it propagates through
+// any ENCLOSING `finally`/`try` cleanup, which a bare-return exit would skip — and `finally`
+// bodies are lowered with the default (null) `onThrow`, so the body-level throw branch cannot
+// tell them apart from the method body. Such a throw therefore keeps BAILING the method (sound
+// honest-skip, as before this feature) rather than emit a false leak that misses the outer
+// finally's release (Codex P2: `try { try {} finally { throw; } } finally { s.Dispose(); }`).
+static bool IsInsideFinally(SyntaxNode node)
+{
+    for (var p = node.Parent; p is not null; p = p.Parent)
+    {
+        if (p is FinallyClauseSyntax) return true;
+        if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax
+              or BaseMethodDeclarationSyntax or AccessorDeclarationSyntax) return false;
+    }
+    return false;
+}
+
 // Inject an exceptional-exit edge `if(*){ onThrow }` before a LEAF may-throw statement
 // (an expression statement or a local declaration) inside a `try` body. `onThrow` is the
 // continuation a throw here runs to leave the method — this try's `finally`, then any
@@ -572,11 +606,25 @@ static bool IsBodyTail(StatementSyntax st) =>
 // LEAF statements only; a COMPOUND statement (if/loop/block) is recursed into so the edge
 // lands before the nested leaf — at the point the resource's ownership is exact (after any
 // in-branch dispose), which is what makes nesting sound rather than a false leak.
-static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>? onThrow)
+static void InjectThrowEdge(StatementSyntax st, List<object> nodes, List<object>? onThrow, bool canEscape)
 {
-    if (onThrow is not null && StatementMayThrow(st))
+    // Inside a `try`, `onThrow` is the finally+exit continuation a throw here runs. At the
+    // method-body level `onThrow` is null — by default no edge is injected (the shipped low-FP
+    // posture: a body-level may-throw call is NOT treated as a leak point). The opt-in
+    // --body-throw-edges tier (Program.BodyThrowEdges) lifts that: an ESCAPING body-level
+    // may-throw statement (`canEscape`, so no enclosing catch-all swallows it) gets a synthetic
+    // bare method exit as its continuation, matching CodeQL's cs/dispose-not-called-on-throw on
+    // the no-try slice. A catch-all-suppressed region (`canEscape` false) still injects nothing.
+    // `!IsInsideFinally`: a may-throw statement lexically inside a `finally` is lowered with a null
+    // onThrow too, but a real exception there runs the ENCLOSING cleanup — a bare exit would skip
+    // it and falsely flag a resource the outer finally/using disposes, so synthesize no edge there
+    // (the symmetric guard the explicit-throw path already uses — Codex P2 on the may-throw tier).
+    var cont = onThrow ?? (BodyThrowEdges && canEscape && !IsInsideFinally(st)
+        ? new List<object> { new { op = "return", var = (string?)null, line = LineOf(st) } }
+        : null);
+    if (cont is not null && StatementMayThrow(st))
         nodes.Add(new { op = "if", line = LineOf(st),
-                        then = new List<object>(onThrow), @else = new List<object>() });
+                        then = new List<object>(cont), @else = new List<object>() });
 }
 
 // A statement that can raise an exception part-way through: it makes a call that is not
@@ -646,7 +694,7 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
             var uv = usingDecl.Declaration.Variables[0];
             var owner = uv.Identifier.Text;
             var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(usingDecl) } };
-            InjectThrowEdge(usingDecl, nodes, onThrow);   // a throw DURING Rent() runs the OUTER path (owner not yet acquired)
+            InjectThrowEdge(usingDecl, nodes, onThrow, canEscape);   // a throw DURING Rent() runs the OUTER path (owner not yet acquired)
             nodes.Add(new { op = "acquire", var = owner, line = LineOf(uv) });
             var release = new { op = "release", var = owner, line = LineOf(uv) };
             // The rest of THIS block is the try-body; the implicit using-dispose is its finally — run
@@ -686,7 +734,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
         case BlockSyntax b:
             return LowerFlowStatements(b.Statements, 0, tracked, model, nodes, canEscape, onThrow, onReturn);
         case LocalDeclarationStatementSyntax ld:
-            InjectThrowEdge(ld, nodes, onThrow);
+            InjectThrowEdge(ld, nodes, onThrow, canEscape);
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
                 {
@@ -705,7 +753,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 }
             return true;
         case ExpressionStatementSyntax es:
-            InjectThrowEdge(es, nodes, onThrow);
+            InjectThrowEdge(es, nodes, onThrow, canEscape);
             EmitFlowExpr(es.Expression, tracked, model, nodes);
             return true;
         case IfStatementSyntax ifs:
@@ -911,7 +959,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // mutually-exclusive branches: `if(*){ s1 } else { if(*){ s2 } else { … } }` — one
             // per section, value-opaque (we model control flow, not the matched value). A
             // trailing `break` ends a section (stripped); a section doing anything the model
-            // can't place here (a nested `break`, `goto case`, `throw`) bails the method.
+            // can't place here (a nested `break`, `goto case`) bails the method. A bare `throw`
+            // in a section IS modelled now (an abnormal exit) when no enclosing try wraps it.
             List<object>? defaultNodes = null;
             var cases = new List<List<object>>();
             foreach (var section in sw.Sections)
@@ -946,8 +995,33 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             nodes.AddRange(chain);
             return true;
         }
+        case ThrowStatementSyntax thr:
+            // An explicit `throw` is an abnormal method exit: control leaves the method
+            // WITHOUT running the statements below it, so a resource owned here and disposed
+            // only LATER leaks on the throw path — dispose-not-called-on-throw with NO
+            // enclosing `try`. Modelled at the method-body level only: `onThrow is null` AND
+            // the throw escapes (`canEscape`) means no enclosing try would run a `finally` or
+            // catch it, so it is a bare CFG exit where a still-owned resource leaks — the same
+            // synthetic exit the injected may-throw edges use. INSIDE a try an explicit throw
+            // may run a finally or be caught (typed / catch-all); modelling that soundly needs
+            // the thrown-type-vs-catch match, which is not threaded here, so an explicit throw
+            // there keeps bailing (return false) exactly as before — no new false escape past a
+            // catch. (`throw;` rethrow only appears in a catch body, never lowered, so this is
+            // the `throw expr;` form.) The win is broad: a method whose only unmodelled
+            // statement was a top-level validation throw (`if (x is null) throw …;`) is now
+            // analysed instead of skipped, lighting up every detector on the rest of its body.
+            // ...and a throw lexically inside a `finally` likewise keeps bailing (IsInsideFinally):
+            // its real continuation is the OUTER finally/try cleanup, which a bare exit would skip.
+            if (canEscape && onThrow is null && !IsInsideFinally(thr))
+            {
+                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
+                return true;
+            }
+            return false;
         default:
-            return false;   // unmodelled (goto/labeled/throw/...) -> bail the method
+            // unmodelled (goto / labeled / local function / lock / fixed / a `throw` INSIDE a
+            // try) -> bail the method, honestly skipping rather than guessing.
+            return false;
     }
 }
 
@@ -2900,3 +2974,12 @@ if (reportStats)
 if (outPath is null) Console.WriteLine(json);
 else File.WriteAllText(outPath, json);
 return 0;
+
+// Opt-in recall knob for the flow pass, read deep in InjectThrowEdge (a static field rather than
+// a bool threaded through the whole LowerFlow* recursion). Set once from --body-throw-edges; see
+// that flag's note above. Default false keeps the shipped low-FP posture; the oracle flips it on
+// to measure CodeQL-parity dispose-not-called-on-throw recall on the no-try slice.
+partial class Program
+{
+    internal static bool BodyThrowEdges;
+}
