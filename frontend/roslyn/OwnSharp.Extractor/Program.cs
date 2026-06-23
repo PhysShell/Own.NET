@@ -469,11 +469,7 @@ static bool IsDisposeOptional(ITypeSymbol t)
 {
     var ns = t.ContainingNamespace?.ToString();
     return (ns == "System.Threading.Tasks" && t.Name is "Task" or "ValueTask")
-        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView")
-        // SemaphoreSlim.Dispose() only frees a LAZILY-allocated wait handle (allocated solely if
-        // AvailableWaitHandle is read); the common WaitAsync/Release usage allocates nothing, so an
-        // undisposed SemaphoreSlim field is not a leak. Mined: Npgsql NpgsqlDataSource._setupMappingsSemaphore.
-        || (ns == "System.Threading" && t.Name == "SemaphoreSlim");
+        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
@@ -2264,16 +2260,20 @@ foreach (var (file, tree) in parsed)
                 && model.GetDeclaredSymbol(decl) is ILocalSymbol aliasSym
                 && !reassignedAliases.Contains(aliasSym))
                 aliasToField[aliasSym] = af;
-        // a `.Dispose()`/`.DisposeAsync()`/`.Close()` on a field — directly (`_f.Dispose()`) or through
-        // an alias local (translated by SYMBOL via aliasToField) — releases that field. `Close()` counts
-        // as a release here exactly as it already does for LOCAL disposables (DisposesLocal and the flow
-        // detector both accept Dispose/Close/DisposeAsync); a field of a Stream / DbConnection-style type
-        // is released by Close just as Dispose would. Mined: Npgsql ReplicationConnection disposes its
-        // NpgsqlConnection field via `await _npgsqlConnection.Close(async: true)`.
+        // a `.Dispose()`/`.DisposeAsync()`/`.Close()` on a field — directly (`_f.Dispose()` / `this._f.…`)
+        // or through an alias local (translated by SYMBOL via aliasToField) — releases that field.
+        // `Close()` counts as a release here exactly as it already does for LOCAL disposables (DisposesLocal
+        // and the flow detector both accept Dispose/Close/DisposeAsync); a Stream / DbConnection-style field
+        // released by Close is not a leak. Mined: Npgsql ReplicationConnection disposes its NpgsqlConnection
+        // field via `await _npgsqlConnection.Close(async: true)`. ThisFieldName (not FieldName) scopes the
+        // credit to THIS instance's field / a validated alias: `other._f.Close()` on ANOTHER instance of
+        // the same class must NOT mark this object's `_f` released (Codex/CodeRabbit) — and a field-symbol
+        // ContainingType check would NOT catch that (same class -> same ContainingType), so key on the
+        // `this`/bare receiver syntactically.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
                 && m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
-                && FieldName(m.Expression) is { } df)
+                && ThisFieldName(m.Expression) is { } df)
                 disposed.Add(model.GetSymbolInfo(m.Expression).Symbol is ILocalSymbol ls
                              && aliasToField.TryGetValue(ls, out var fa) ? fa : df);
         // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
@@ -2283,7 +2283,7 @@ foreach (var (file, tree) in parsed)
         // and the BufferedStreams benchmark's `[GlobalCleanup]` `field?.Dispose()` calls.
         // (The same alias-by-symbol translation applies — `cts?.Dispose()` on an aliasing local.)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
-            if (FieldName(cae.Expression) is { } cdf
+            if (ThisFieldName(cae.Expression) is { } cdf   // this-instance field / alias only (not `other._f?.Close()`)
                 && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
                 && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close")
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
