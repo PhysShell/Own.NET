@@ -1,0 +1,100 @@
+# CancellationTokenSource field leaks are *dispose-optional* — and why we still flag them
+
+A triage note prompted by the cross-tool oracle on Serilog (see
+[`oracle.md`](oracle.md), [`real-world-mining.md`](real-world-mining.md)). It
+records why one of our headline "own-only" findings is weaker than first claimed,
+and the deliberate decision **not** to add a `CancellationTokenSource` (CTS)
+dispose-optional exemption mirroring the SemaphoreSlim one.
+
+## The finding that prompted it
+
+The Serilog oracle's single own-only leak was
+`BatchingSink._shutdownSignal` — a `CancellationTokenSource` field that is
+`Cancel()`-ed in `Dispose()` but never `Dispose()`-d. We presented it as the clean
+field/owner-lifetime differentiator (CodeQL is local-scoped, Infer# method-scoped;
+neither flags it). On a closer read of the Serilog source that over-sells it.
+
+## Why `_shutdownSignal` is effectively benign
+
+From `BatchingSink.cs` (`dev`): `readonly CancellationTokenSource _shutdownSignal = new();`
+
+- `.Token.WaitHandle` is **never** read → no lazily-allocated kernel event (OS handle);
+- no `CancelAfter(...)`/timer → not rooted in the timer queue;
+- not a linked source (`CreateLinkedTokenSource`) → no registration on a parent token;
+- the token only feeds `Task.Delay(Infinite, token)` and a channel read — registration-based cancellation, cleared on `Cancel()`.
+
+So once `Cancel()` runs, the abandoned CTS holds **no unmanaged resource and is rooted
+nowhere**. `CancellationTokenSource` has no finalizer of its own, so a plain instance is
+simply **collected by the GC**; calling `.Dispose()` on it would be a near no-op. This is
+the *same shape* as the SemaphoreSlim dispose-optional exemption (PR #92): a `SemaphoreSlim`
+is dispose-optional until `.AvailableWaitHandle` is read; a **plain** CTS is dispose-optional
+until `.Token.WaitHandle` is read / `CancelAfter` is used / it is linked. `_shutdownSignal`
+reads none of those. (This is the .NET runtime *semantics* — and exactly what a SemaphoreSlim-style
+gate WOULD key on — **not** current detector behaviour: today `IsDisposeOptional` exempts only
+`Task`/`ValueTask` + `System.Data`, so the detector flags CTS fields regardless. Keeping it that
+way is the deliberate choice below.) The owner being process-lived — the `Log.Logger` singleton
+case — makes it doubly moot, but loggers *can* churn per-scope, so the plain-CTS argument is the robust one.
+
+## Why we did **not** add a CTS dispose-optional gate
+
+The #92 SemaphoreSlim gate was cheap because `SemaphoreSlim` is not used as a canonical
+disposable anywhere else. CTS is the opposite — it is **our go-to "owned IDisposable field"**
+across the test surface. A plain-CTS exemption (exempt unless `.Token.WaitHandle` / `CancelAfter`
+/ linked) would flip **~7 "must warn" assertions** in 4 sample files from warn → silent:
+
+| sample | field | what it actually tests |
+|---|---|---|
+| `SemaphoreFieldSample` | `_ctsControl` | the #92 type-scope control |
+| `AliasDisposeSample` | `_neverDisposed`, `_rebound`, `_refRebound`, `_scopedLeak` | alias / rebound / scoped-alias mechanics |
+| `ResolvedDisposableSample` | `cts` (+ a `MemoryStream` field) | resolve-aware disposable field |
+| `DisposableFieldViewModel` | `ReportViewModel._cts` | the field-detector flagship |
+
+None of those are *about* CTS — they use it as a convenient IDisposable. The gate would force
+rewriting them onto a non-optional type, for little gain: real-world benign instances are a
+**minority**, and they split across two *different* axes (both mined by our cross-tool oracle
+runs — `serilog/serilog` and `npgsql/npgsql@v8.0.9`; see [`oracle.md`](oracle.md) — illustrative
+of the classes, not an exhaustive census). Serilog `_shutdownSignal` is benign by **type** (a
+plain CTS — statically gateable, like SemaphoreSlim). Npgsql `GlobalTypeMapper._lock` is benign
+only by **owner lifetime** (a process-lived singleton): a `ReaderWriterLockSlim` is **not**
+managed-only — it lazily allocates kernel wait handles under contention, which `Dispose()`
+releases, so a *churned, contended* lock would genuinely leak them. A couple of benign instances
+per repo, not a flood. And the prevailing
+.NET convention for CTS is the **opposite** of SemaphoreSlim: *always dispose it* (CA2000 is
+insistent precisely because the dangerous `CancelAfter`/linked omissions are common and costly).
+A blanket exemption would fight that convention.
+
+> "Look at the scale first" earned its keep here: the same refinement that was narrow and cheap
+> for SemaphoreSlim is broad and against-the-grain for CTS.
+
+## Decision
+
+- **Keep the conservative detector.** Flagging undisposed CTS fields follows the convention and
+  catches the dangerous (`CancelAfter`/linked/`WaitHandle`) cases; a plain-CTS instance is a
+  low-severity *instance*, not a reason to exempt the type.
+- **Criticality is a spectrum, not a flagship.** All of these field leaks are *conditional*:
+  `_shutdownSignal` (Serilog — plain CTS, dispose-optional by *type*), `_lock` (Npgsql — a
+  `ReaderWriterLockSlim` benign only because its owner is a process-lived singleton, **not**
+  because the type is managed-only), and even `_pruningTimer` (Npgsql `PoolingDataSource` — a
+  `System.Threading.Timer` that is genuinely never disposed). The Timer's *worst* case is heavier
+  than a CTS's: while it is scheduled, the static `TimerQueue` roots its `state` (the data source),
+  so an abandoned source cannot be GC'd and the callback keeps firing — dragging the open
+  connection pool with it. But it self-disables (`Change(Infinite, Infinite)`) when there is
+  nothing to prune, becoming a collectable cycle, and for the dominant process-lived
+  `NpgsqlDataSource` singleton it is benign at shutdown — the *same* lifetime caveat as
+  `_shutdownSignal`. So there is **no clean, unconditionally-critical flagship** here: criticality
+  is a *spectrum* = (does the type self-root / hold an OS handle / keep doing work) × (does the
+  owner *churn*), and a static analyzer **cannot observe churn**. The genuinely severe field leak
+  is a live OS handle (FileStream / Socket / an un-returned connection) on a *churned* owner —
+  whose severity we can only ever *worst-case*, never prove. That is exactly the case for the
+  severity tiers below.
+- **Deferred option — severity tiers (not exemption).** If we later want the tool to encode
+  criticality, split the disposable-field severity into three families: (1) **always holds an OS
+  handle / timer / linked or `CancelAfter` CTS** (FileStream, Socket, `System.Threading.Timer`) →
+  warning; (2) **lazily allocates a wait handle** (`SemaphoreSlim`, plain CTS, `ManualResetEventSlim`,
+  and `ReaderWriterLockSlim` *under contention*) → warning *unless* a syntactic gate proves the
+  handle is never allocated (`.AvailableWaitHandle` / `.Token.WaitHandle` unread) — note RWLS has
+  **no** such gate (contention is a runtime property), so it stays warning; (3) **truly managed-only**
+  (`MemoryStream`, `StringWriter`, `Task`, `DataTable`) → info/hint. That keeps recall (the instance
+  still surfaces) without flipping any test (warn → info, not warn → silent). It needs a curated
+  classifier (an extended `IsDisposeOptional`) and is only worth it if the criticality signal proves
+  valuable on the corpus.
