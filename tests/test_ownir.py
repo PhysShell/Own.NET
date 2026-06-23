@@ -453,6 +453,12 @@ def run() -> int:
     ppfindings = check_facts(ppfacts)
     by = {x.event: x for x in ppfindings}
     checks += 1
+    # exactly three findings, one per fixture function — no extra/duplicate findings
+    # (a regression that adds a spurious pool/disposable finding must fail here, not slip
+    # past the per-event checks below). CodeRabbit hardening.
+    if set(by.keys()) != {"buf", "nbuf", "d"} or len(ppfindings) != 3:
+        fails.append(f"pool-label: expected exactly ['buf','nbuf','d'], got "
+                     f"{[x.event for x in ppfindings]}")
     want = [
         ("buf", "pooled buffer", "may not be returned to the pool on every path", "pooled buffer"),
         ("nbuf", "pooled buffer", "rented but never returned to the pool", "pooled buffer"),
