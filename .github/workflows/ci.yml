@@ -143,6 +143,7 @@ jobs:
             frontend/roslyn/samples/FieldReleaseSample.cs \
             frontend/roslyn/samples/StaticClassEscapeSample.cs \
             frontend/roslyn/samples/AppDomainShutdownSample.cs \
+            frontend/roslyn/samples/AliasDisposeSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -240,6 +241,18 @@ jobs:
           fi
           echo "$out" | grep -q "pooled buffer 'leakedBuf'" \
             || { echo "FAIL: a pooled field rented but never returned must still warn"; exit 1; }
+          # field disposed through a local ALIAS (mined: Npgsql NpgsqlDataSource): `var cts = _cts;
+          # cts.Dispose();` (and the `this._f` / `cts?.Dispose()` shapes) releases the field -> the
+          # aliased fields must be SILENT.
+          if echo "$out" | grep -qE "'_aliased'|'_aliasedQ'"; then
+            echo "FAIL: a field disposed through a local alias was wrongly reported as undisposed"; exit 1
+          fi
+          # controls: an alias that is never disposed, and an alias REBOUND to a new object, must
+          # both STILL leak (the recognition needs an actual dispose on an un-reassigned alias).
+          echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_neverDisposed'" \
+            || { echo "FAIL: a field aliased but never disposed must still warn"; exit 1; }
+          echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_rebound'" \
+            || { echo "FAIL: a field whose alias was rebound to a new object must still warn"; exit 1; }
           # WPF004: an ignored `X.Subscribe(...)` result leaks; the captured+
           # disposed one stays silent. "ignored" is unique to the WPF004 message.
           echo "$out" | grep -q "MessengerViewModel.cs" \

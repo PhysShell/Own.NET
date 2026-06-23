@@ -2199,21 +2199,41 @@ foreach (var (file, tree) in parsed)
         // disposes. Owned (not injected) = in `constructed` (computed above);
         // released = a `<field>.Dispose()` call somewhere in the class.
         var disposed = new HashSet<string>();
+        // A local that ALIASES a field of this class — `var cts = _cts;` / `var cts = this._cts;` —
+        // and is then disposed THROUGH the alias (`cts.Dispose()`) releases the field's object: the
+        // alias and the field name the same instance. Map each such alias local -> its field so the
+        // disposal scan below credits the FIELD. Mined: Npgsql's NpgsqlDataSource disposes its
+        // CancellationTokenSource via `var cts = _cts; cts.Dispose();`. Three gates keep it sound:
+        // the initializer is a `this`/bare field reference (never `other._f`); it BINDS to a real
+        // field symbol (not a same-named local); and the alias is never REASSIGNED anywhere (a
+        // rebound local no longer tracks the field, so we conservatively decline to credit it).
+        var reassignedLocals = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var a in assigns)
+            if (a.Left is IdentifierNameSyntax lid)
+                reassignedLocals.Add(lid.Identifier.Text);
+        var aliasToField = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var decl in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+            if (decl.Initializer?.Value is { } init
+                && ThisFieldName(init) is { } af
+                && !reassignedLocals.Contains(decl.Identifier.Text)
+                && model.GetSymbolInfo(init).Symbol is IFieldSymbol)
+                aliasToField[decl.Identifier.Text] = af;
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
                 && m.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                 && FieldName(m.Expression) is { } df)
-                disposed.Add(df);
+                disposed.Add(aliasToField.TryGetValue(df, out var ra) ? ra : df);
         // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
         // WhenNotNull is the `.Dispose()` invocation, NOT a plain MemberAccess) — the
         // dominant disposal shape the match above misses. Mined as an FP across ImageSharp:
         // `this.memoryStream?.Dispose()` (ZipExrCompressor/DeflateCompressor/IccDataWriter)
         // and the BufferedStreams benchmark's `[GlobalCleanup]` `field?.Dispose()` calls.
+        // (The same alias translation applies — `cts?.Dispose()` on a field-aliasing local.)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
             if (FieldName(cae.Expression) is { } cdf
                 && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
                 && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync")
-                disposed.Add(cdf);
+                disposed.Add(aliasToField.TryGetValue(cdf, out var rc) ? rc : cdf);
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {
