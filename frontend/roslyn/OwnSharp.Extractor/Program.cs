@@ -459,6 +459,15 @@ static bool ImplementsIDisposable(ITypeSymbol? t) =>
         || t.AllInterfaces.Any(i => i.Name == "IDisposable"
                                     && i.ContainingNamespace?.ToString() == "System"));
 
+// The ignored result of a member `.Subscribe(...)` is a leakable IDisposable token (WPF004) only
+// when the call RETURNS an IDisposable — the Rx `IObservable<T>.Subscribe()` shape. A RESOLVED void
+// / non-IDisposable return has no token to leak: StackExchange.Redis's `ISubscriber.Subscribe(channel,
+// handler, flags)` returns void, as do many event-bus `Subscribe(handler)` APIs. Only an UNRESOLVED
+// return type keeps the syntactic benefit of the doubt (mirrors IsOwnedDisposableType, #83). Mined:
+// StackExchange.Redis ConnectionMultiplexer.Sentinel `sub.Subscribe(channel, handler, FireAndForget)`.
+static bool SubscribeResultIsDisposable(ITypeSymbol? rt) =>
+    rt is null or IErrorTypeSymbol || ImplementsIDisposable(rt);
+
 // Types that implement IDisposable but whose disposal is conventionally OPTIONAL —
 // the .NET guidance / Roslyn CA2000 exempt them: Task/ValueTask only hold a
 // lazily-allocated wait handle, and the System.Data containers' Dispose() is a
@@ -2541,11 +2550,14 @@ foreach (var (file, tree) in parsed)
         // WPF004: a `X.Subscribe(...)` whose IDisposable result is ignored — the
         // call stands as a bare statement (not assigned/returned/added), so the
         // token is dropped and never disposed. Member-access only (`x.Subscribe`),
-        // to avoid flagging bare void `Subscribe(...)` helpers.
+        // and RESOLVE-AWARE: the call must return an IDisposable (Rx). A resolved void /
+        // non-IDisposable `Subscribe` (StackExchange.Redis's `ISubscriber.Subscribe(channel,
+        // handler, flags)` is void) has no token to leak; an unresolved return still counts.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
                 && m.Name.Identifier.Text == "Subscribe"
-                && inv.Parent is ExpressionStatementSyntax)
+                && inv.Parent is ExpressionStatementSyntax
+                && SubscribeResultIsDisposable(model.GetTypeInfo(inv).Type))
                 subs.Add(new
                 {
                     @event = m.ToString(),
