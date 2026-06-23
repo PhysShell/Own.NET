@@ -52,6 +52,10 @@ bool reportStats = false;
 // harmless MemoryStream/StringWriter dispose-on-throw), so the shipped posture stays low-FP; the
 // oracle turns it on to measure full recall. Read deep in InjectThrowEdge via the static
 // Program.BodyThrowEdges (declared at end of file) rather than threaded through the flow recursion.
+// Reset the static field up front so a flag from a prior IN-PROCESS invocation can't leak into a
+// run that did not request it (the other config — emitEvents/flowLocals/reportStats — are locals,
+// re-initialized each call, so they need no reset; only this static one does). CodeRabbit.
+BodyThrowEdges = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
