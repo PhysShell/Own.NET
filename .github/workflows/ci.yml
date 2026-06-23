@@ -143,6 +143,7 @@ jobs:
             frontend/roslyn/samples/FieldReleaseSample.cs \
             frontend/roslyn/samples/StaticClassEscapeSample.cs \
             frontend/roslyn/samples/EventSourceCountersSample.cs \
+            frontend/roslyn/samples/AppDomainShutdownSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -318,6 +319,20 @@ jobs:
             || { echo "FAIL: expected OWN014 region escape on the static-event instance subscription"; exit 1; }
           echo "$out" | grep -q "region escape" \
             || { echo "FAIL: expected the region-escape wording on the static-event capture"; exit 1; }
+          # P-004 process-lifetime AppDomain-event exemption (mined: Npgsql PoolManager): a
+          # NON-CAPTURING handler on a process-host AppDomain event (ProcessExit/DomainUnload/
+          # UnhandledException/FirstChanceException) is a shutdown/diagnostics hook meant to live
+          # for the process -> NOT a region escape -> silent. (Scoped to ShutdownCleanup, the
+          # exempt class — CapturingShutdownSubscriber in the same file MUST still raise OWN014.)
+          if echo "$out" | grep -qE "OWN014.*'ShutdownCleanup'"; then
+            echo "FAIL: ShutdownCleanup's non-capturing AppDomain subscriptions were wrongly reported as OWN014"; exit 1
+          fi
+          # scope guards: a lambda on a NON-AppDomain static event still escapes; and an AppDomain
+          # handler that CAPTURES instance state is still pinned to the process -> still OWN014 (Codex).
+          echo "$out" | grep -qE "OWN014.*NonAppDomainSubscriber" \
+            || { echo "FAIL: a lambda on a non-AppDomain static event must still raise OWN014 (exemption stays scoped)"; exit 1; }
+          echo "$out" | grep -qE "OWN014.*CapturingShutdownSubscriber" \
+            || { echo "FAIL: an instance-capturing AppDomain handler must still raise OWN014 (exemption is non-capturing only)"; exit 1; }
           # the unsubscribed variant (a matching `-=`, released capture) is mitigated
           # -> silent. Must NOT be reported.
           if echo "$out" | grep -q "CleanStaticEventViewModel"; then
