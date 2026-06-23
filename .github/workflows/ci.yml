@@ -145,6 +145,7 @@ jobs:
             frontend/roslyn/samples/EventSourceCountersSample.cs \
             frontend/roslyn/samples/AppDomainShutdownSample.cs \
             frontend/roslyn/samples/AliasDisposeSample.cs \
+            frontend/roslyn/samples/CloseReleaseSample.cs \
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -262,6 +263,19 @@ jobs:
           # same-named local disposed in another method must NOT credit the field, so it still leaks.
           echo "$out" | grep -qE "AliasDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'_scopedLeak'" \
             || { echo "FAIL: a same-named local in another scope must not be miscredited (symbol-scoped aliases)"; exit 1; }
+          # a field released via `.Close()` (direct and null-conditional) must be SILENT — mirrors the
+          # local detector's Dispose/Close/DisposeAsync set (mined: Npgsql ReplicationConnection._npgsqlConnection).
+          if echo "$out" | grep -qE "'_closedConn'|'_closedConnQ'"; then
+            echo "FAIL: a field released via .Close() was wrongly reported as undisposed"; exit 1
+          fi
+          # control: a connection-like field NEITHER closed NOR disposed must STILL warn.
+          echo "$out" | grep -qE "CloseReleaseSample\.cs:[0-9]+:.*\[OWN001\].*'_leakedConn'" \
+            || { echo "FAIL: a field that is never closed/disposed must still warn (Close-as-release stays scoped to an actual Close call)"; exit 1; }
+          # Codex/CodeRabbit control: Close() credits THIS instance's field only — closing ANOTHER instance
+          # of the same class's same-named field must NOT suppress this object's leak (ThisFieldName, not a
+          # receiver-stripping name match that a same-class ContainingType check would also miss).
+          echo "$out" | grep -qE "CloseReleaseSample\.cs:[0-9]+:.*\[OWN001\].*'_xconn'" \
+            || { echo "FAIL: other-instance .Close() must not credit this field (receiver-scoped to this/alias)"; exit 1; }
           # P-004 SemaphoreSlim FIELD dispose-optional (mined: Npgsql NpgsqlDataSource._setupMappingsSemaphore):
           # a SemaphoreSlim field used only for Wait/Release (AvailableWaitHandle never read) frees nothing on
           # Dispose -> must be SILENT.
