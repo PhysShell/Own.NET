@@ -2306,8 +2306,18 @@ foreach (var (file, tree) in parsed)
         // deliberate method-bounded `semLeak` control) is intentionally left untouched (CodeRabbit).
         var waitHandleSemaphores = new HashSet<string>(StringComparer.Ordinal);
         foreach (var ma in cls.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
-            if (ma.Name.Identifier.Text == "AvailableWaitHandle" && ThisFieldName(ma.Expression) is { } whf)
-                waitHandleSemaphores.Add(whf);
+            if (ma.Name.Identifier.Text == "AvailableWaitHandle")
+            {
+                // credit the FIELD whose AvailableWaitHandle is read, by SYMBOL: a this/bare access bound
+                // to a real field symbol (so `other._f` and a shadowing local/param are NOT conflated —
+                // CodeRabbit), OR a field-ALIAS local (`var s = _sem; s.AvailableWaitHandle` -> `_sem` —
+                // Codex). Anything else (an unrelated local, another instance's field) is ignored.
+                var recv = model.GetSymbolInfo(ma.Expression).Symbol;
+                if (recv is IFieldSymbol && ThisFieldName(ma.Expression) is { } whf)
+                    waitHandleSemaphores.Add(whf);
+                else if (recv is ILocalSymbol ls && aliasToField.TryGetValue(ls, out var fa))
+                    waitHandleSemaphores.Add(fa);
+            }
 
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
         {

@@ -272,6 +272,9 @@ jobs:
           # must release -> it must STILL warn (proves the exemption is gated, not blanket — Codex).
           echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_handleSem'" \
             || { echo "FAIL: a SemaphoreSlim field whose AvailableWaitHandle is read must still warn"; exit 1; }
+          # Codex control: an AvailableWaitHandle read THROUGH A FIELD ALIAS must credit the field -> still warn.
+          echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_aliasedSem'" \
+            || { echo "FAIL: an aliased AvailableWaitHandle read must keep the field tracked (alias-aware gate)"; exit 1; }
           # type-scope control: a non-SemaphoreSlim owned IDisposable (CTS) never disposed must STILL warn.
           echo "$out" | grep -qE "SemaphoreFieldSample\.cs:[0-9]+:.*\[OWN001\].*'_ctsControl'" \
             || { echo "FAIL: a non-SemaphoreSlim owned IDisposable field must still warn (exemption stays SemaphoreSlim-scoped)"; exit 1; }

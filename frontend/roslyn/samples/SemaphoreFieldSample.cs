@@ -36,6 +36,20 @@ public sealed class WaitHandleSemaphore
     }
 }
 
+// Codex control: AvailableWaitHandle read through a field ALIAS (`var s = _sem; s.AvailableWaitHandle`)
+// must credit the FIELD — the handle is allocated, so the field must STILL warn OWN001 (not be exempted
+// because the read went through the local name).
+public sealed class AliasedWaitHandleSemaphore
+{
+    private readonly SemaphoreSlim _aliasedSem = new SemaphoreSlim(0, 1);
+
+    public void Block()
+    {
+        var sem = _aliasedSem;
+        sem.AvailableWaitHandle.WaitOne();   // alias reads AvailableWaitHandle -> _aliasedSem stays tracked
+    }
+}
+
 // control (type scope): a non-SemaphoreSlim owned IDisposable (CancellationTokenSource) never disposed
 // must STILL warn — the exemption is SemaphoreSlim-specific, not a blanket "any field".
 public sealed class HoldsCtsField
