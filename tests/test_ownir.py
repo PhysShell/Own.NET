@@ -465,7 +465,8 @@ def run() -> int:
         elif fdg.kind != kind:
             fails.append(f"pool-label: '{ev}' kind want {kind!r}, got {fdg.kind!r}")
         elif msg_sub not in fdg.message:
-            fails.append(f"pool-label: '{ev}' message want substring {msg_sub!r}, got {fdg.message!r}")
+            fails.append(f"pool-label: '{ev}' message want {msg_sub!r}, "
+                         f"got {fdg.message!r}")
         elif f"[resource: {tag}]" not in fdg.render():
             fails.append(f"pool-label: '{ev}' render want [resource: {tag}], got {fdg.render()!r}")
 

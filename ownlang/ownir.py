@@ -1137,9 +1137,12 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 # released this local anywhere (ever_released): no release at all reads as
                 # "never returned/disposed"; a partial release as "not on every path".
                 if pool:
-                    msg = (f"pooled buffer '{name}' may not be returned to the pool on every path (leak)"
-                           if sub.get("ever_released")
-                           else f"pooled buffer '{name}' is rented but never returned to the pool (leak)")
+                    if sub.get("ever_released"):
+                        msg = (f"pooled buffer '{name}' may not be returned to the "
+                               f"pool on every path (leak)")
+                    else:
+                        msg = (f"pooled buffer '{name}' is rented but never "
+                               f"returned to the pool (leak)")
                 else:
                     msg = (f"IDisposable local '{name}' may not be disposed on every path (leak)"
                            if sub.get("ever_released")
@@ -1148,7 +1151,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 msg = {
                     "OWN002": f"pooled buffer '{name}' is used after it is returned to the pool",
                     "OWN003": f"pooled buffer '{name}' is returned to the pool more than once",
-                    "OWN009": f"pooled buffer '{name}' may be used after being returned on some path",
+                    "OWN009": (f"pooled buffer '{name}' may be used after "
+                               f"being returned on some path"),
                 }.get(d.code, f"pooled buffer '{name}': {d.message}")
             else:
                 msg = {
