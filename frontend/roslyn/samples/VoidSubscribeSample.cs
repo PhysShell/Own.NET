@@ -26,6 +26,17 @@ public sealed class DisposableSubscriber
     }
 }
 
+// Codex control: a `dynamic` receiver gives Subscribe a dynamic return type — we cannot prove it is
+// void / non-IDisposable, so it keeps the benefit of the doubt and STILL warns.
+public sealed class DynamicSubscriber
+{
+    public DynamicSubscriber(dynamic bus)
+    {
+        Action<object> handler = _ => { };
+        bus.Subscribe(handler);   // dynamic return -> unknown -> WARN
+    }
+}
+
 // StackExchange.Redis-style: the handler overload returns void.
 public interface IRedisSubscriber
 {

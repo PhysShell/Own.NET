@@ -466,7 +466,9 @@ static bool ImplementsIDisposable(ITypeSymbol? t) =>
 // return type keeps the syntactic benefit of the doubt (mirrors IsOwnedDisposableType, #83). Mined:
 // StackExchange.Redis ConnectionMultiplexer.Sentinel `sub.Subscribe(channel, handler, FireAndForget)`.
 static bool SubscribeResultIsDisposable(ITypeSymbol? rt) =>
-    rt is null or IErrorTypeSymbol || ImplementsIDisposable(rt);
+    rt is null or IErrorTypeSymbol
+    || rt.TypeKind == TypeKind.Dynamic   // a `dynamic` receiver -> dynamic return; can't prove non-disposable (Codex)
+    || ImplementsIDisposable(rt);
 
 // Types that implement IDisposable but whose disposal is conventionally OPTIONAL —
 // the .NET guidance / Roslyn CA2000 exempt them: Task/ValueTask only hold a

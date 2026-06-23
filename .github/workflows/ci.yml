@@ -309,6 +309,9 @@ jobs:
           fi
           echo "$out" | grep -q "leaking 'DisposableSubscriber'" \
             || { echo "FAIL: an ignored IDisposable-returning .Subscribe(...) must still warn (resolve-aware stays scoped)"; exit 1; }
+          # Codex control: a `dynamic` receiver's Subscribe has a dynamic return -> unprovable -> still WARN.
+          echo "$out" | grep -q "leaking 'DynamicSubscriber'" \
+            || { echo "FAIL: an ignored dynamic .Subscribe(...) must still warn (dynamic return is unknown, not silenced)"; exit 1; }
           if echo "$out" | grep -q "CleanInboxViewModel"; then
             echo "FAIL: captured+disposed subscription wrongly reported"; exit 1
           fi
