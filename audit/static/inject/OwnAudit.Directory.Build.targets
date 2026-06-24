@@ -13,6 +13,11 @@
   <Target Name="OwnAuditEnsureErrorLogDir"
           Condition="'$(OwnAudit)' == 'true'"
           BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(MSBuildProjectDirectory)\..\artifacts\own-audit" />
+    <!-- Mirror the props default so the ErrorLog directory exists even when the
+         runner did not pass /p:OwnAuditOutDir. -->
+    <PropertyGroup Condition="'$(OwnAuditOutDir)' == ''">
+      <OwnAuditOutDir>$(MSBuildProjectDirectory)\..\artifacts\own-audit</OwnAuditOutDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(OwnAuditOutDir)\roslyn" />
   </Target>
 </Project>

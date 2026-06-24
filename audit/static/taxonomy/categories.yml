@@ -75,3 +75,12 @@ category_severity:
 suppress:
   path_or_message_contains:
     - "DevExpress."
+
+# Analysis-skipped / coverage NOTES — diagnostics that are NOT verdicts. own-check
+# emits OWN050 ("cannot verify X — unresolved") at SARIF level: note when it cannot
+# analyze something. These must NOT be scored as findings: left in, they would show
+# up as uncategorized P3 candidates and add phantom pain. Instead they are routed to
+# the coverage ledger (analysis-skipped count) — the honest "we didn't see here",
+# the same discipline as own-check's own OWN050.
+coverage_notes:
+  - "OWN050"

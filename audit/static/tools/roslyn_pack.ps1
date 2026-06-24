@@ -43,14 +43,18 @@ if (-not (Get-Command msbuild -ErrorAction SilentlyContinue)) {
   exit 3
 }
 
-New-Item -ItemType Directory -Force -Path $Out | Out-Null
+# Resolve -Out to an absolute path so the per-project ErrorLog (which the injected
+# props anchors at $(OwnAuditOutDir)) lands here, not next to each project dir.
+$OutFull = (New-Item -ItemType Directory -Force -Path $Out).FullName
 
 # continue-on-error: a failed build still yields whatever per-project SARIFs were
 # produced before the failure - a partial, honest report, not an empty one.
+# /p:OwnAuditOutDir makes the injected props write SARIF under $OutFull\roslyn\.
 msbuild $Solution `
   /p:OwnAudit=true `
   /p:OwnAuditAnalyzers=$AnalyzerCache `
+  /p:OwnAuditOutDir=$OutFull `
   /p:Configuration=Release `
-  /bl:"$Out\build.binlog"
+  /bl:"$OutFull\build.binlog"
 
-Write-Host "roslyn_pack.ps1: per-project SARIF under $Out (merged by audit/aggregate/)."
+Write-Host "roslyn_pack.ps1: per-project SARIF under $OutFull\roslyn (merged by audit/aggregate/)."

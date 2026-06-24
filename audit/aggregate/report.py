@@ -81,6 +81,8 @@ def render_markdown(meta: dict[str, Any], cov: dict[str, Any],
         f"- `{c.path}:{c.line}` **[{c.severity} · {c.category_name}]** "
         f"— {', '.join(c.tools)}" for c in high[:max_list]
     ]
+    if len(high) > max_list:
+        out.append(f"- … (+{len(high) - max_list} more)")
 
     out += ["", f"## Candidates — {len(candidates)} (single tool: unique catch or possible FP)", ""]
     out += ["_(none)_"] if not candidates else [
@@ -176,7 +178,10 @@ def main(argv: list[str] | None = None) -> int:
 def _selftest() -> int:
     tax_path = Path(__file__).resolve().parents[1] / "static" / "taxonomy" / "categories.yml"
     tax = load_taxonomy(tax_path)
-    fails: list[str] = []
+    checks: list[str] = []
+
+    def check(ok: bool, msg: str) -> None:  # total derives from the call count
+        checks.append("" if ok else msg)
 
     findings = normalize_results([], tax)  # start empty, then add concrete ones
     findings += [
@@ -199,33 +204,26 @@ def _selftest() -> int:
     for needle in ("# Own.NET Audit — health report", "## Where it hurts most",
                    "## High-confidence findings", "## Candidates",
                    "## Coverage / honesty", "NO-TOOL", "How to read"):
-        if needle not in md:
-            fails.append(f"markdown missing section/marker: {needle!r}")
-    if "third-party: DevExpress." not in md:
-        fails.append("coverage must report the suppressed DevExpress count")
-    if "`FOO999`" not in md:
-        fails.append("coverage must surface the unmapped FOO999 rule")
-    if "src/Util" not in md:
-        fails.append("heatmap must list the worst module (src/Util)")
+        check(needle in md, f"markdown missing section/marker: {needle!r}")
+    check("third-party: DevExpress." in md, "coverage must report the suppressed DevExpress count")
+    check("`FOO999`" in md, "coverage must surface the unmapped FOO999 rule")
+    check("src/Util" in md, "heatmap must list the worst module (src/Util)")
     # the agreed leak (high-confidence) must be the worst module, ahead of src/Vm
     util_pos, vm_pos = md.find("`src/Util`"), md.find("`src/Vm`")
-    if util_pos == -1 or (vm_pos != -1 and util_pos > vm_pos):
-        fails.append("heatmap ordering: src/Util (agreed leak) must precede src/Vm")
+    check(util_pos != -1 and not (vm_pos != -1 and util_pos > vm_pos),
+          "heatmap ordering: src/Util (agreed leak) must precede src/Vm")
 
     js = render_json(meta, cov, scored)
-    if js["meta"]["target"] != "acme/legacy":
-        fails.append("json lost meta")
-    if js["totals"]["high_confidence"] != 1:
-        fails.append(f"json high_confidence wrong: {js['totals']}")
-    if js["coverage"]["suppressed"] != 1:
-        fails.append("json coverage lost suppressed count")
-    if not js["clusters"] or "evidence" not in js["clusters"][0]:
-        fails.append("json clusters missing evidence")
+    check(js["meta"]["target"] == "acme/legacy", "json lost meta")
+    check(js["totals"]["high_confidence"] == 1, f"json high_confidence wrong: {js['totals']}")
+    check(js["coverage"]["suppressed"] == 1, "json coverage lost suppressed count")
+    check(bool(js["clusters"]) and "evidence" in js["clusters"][0],
+          "json clusters missing evidence")
 
-    total = 13
+    fails = [c for c in checks if c]
     for f in fails:
         print(f"REPORT SELFTEST FAIL: {f}")
-    print(f"report selftest: {total - len(fails)}/{total} checks passed")
+    print(f"report selftest: {len(checks) - len(fails)}/{len(checks)} checks passed")
     return 1 if fails else 0
 
 

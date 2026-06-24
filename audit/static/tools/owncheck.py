@@ -52,7 +52,11 @@ def run_own_check(target: str, out_dir: Path, severity: str = "warning",
     cmd = [str(OWN_CHECK_SH), "--format", "sarif", "--severity", severity, "--", target]
     if root is not None:
         cmd[1:1] = ["--root", str(root)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=900)
+    except subprocess.TimeoutExpired:
+        status["reason"] = "own-check timed out (>900s) — partial/unavailable result"
+        return status
     sarif_text = proc.stdout.strip()
     if not sarif_text.startswith("{"):
         status["reason"] = (f"own-check did not emit SARIF (exit {proc.returncode}): "

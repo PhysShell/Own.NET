@@ -78,6 +78,7 @@ class AuditFinding:
     resource: str | None = None
     suppressed: bool = False
     suppress_reason: str = ""
+    note: bool = False           # analysis-skipped coverage note (e.g. OWN050), not a verdict
     fkey: str = field(init=False, default="")
 
     def __post_init__(self) -> None:
@@ -88,12 +89,19 @@ class AuditFinding:
         """Directory of the finding (the heatmap roll-up unit), or ``(root)``."""
         return self.path.rsplit("/", 1)[0] if "/" in self.path else "(root)"
 
+    @property
+    def scored(self) -> bool:
+        """A finding counts toward the report only if it is neither third-party
+        suppressed nor an analysis-skipped coverage note."""
+        return not self.suppressed and not self.note
+
 
 @dataclass
 class Taxonomy:
     rules: dict[str, Any]
     category_severity: dict[int, str]
     suppress_tokens: list[str]
+    coverage_note_rules: set[str]
 
     def severity_for(self, category: int) -> str:
         return self.category_severity.get(category, "P3")
@@ -105,8 +113,10 @@ def load_taxonomy(path: str | Path) -> Taxonomy:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
     sev = {int(k): str(v) for k, v in (data.get("category_severity") or {}).items()}
     suppress = list((data.get("suppress") or {}).get("path_or_message_contains") or [])
+    notes = {str(r) for r in (data.get("coverage_notes") or [])}
     return Taxonomy(rules=dict(data.get("rules") or {}),
-                    category_severity=sev, suppress_tokens=suppress)
+                    category_severity=sev, suppress_tokens=suppress,
+                    coverage_note_rules=notes)
 
 
 def _resource_tag(message: str) -> str | None:
@@ -161,18 +171,21 @@ def normalize_results(raw: list[Any], tax: Taxonomy) -> list[AuditFinding]:
         resource = _resource_tag(f.message)
         category, name = categorize(f.rule, resource, tax.rules)
         reason = _suppressed(f.path, f.message, tax.suppress_tokens)
+        is_note = f.rule in tax.coverage_note_rules
         out.append(AuditFinding(
             tool=f.tool, path=f.path, line=f.line, rule=f.rule, message=f.message,
             category=category, category_name=name, resource=resource,
-            suppressed=bool(reason), suppress_reason=reason))
+            suppressed=bool(reason), suppress_reason=reason, note=is_note))
     return out
 
 
 def coverage(findings: list[AuditFinding]) -> dict[str, Any]:
-    """The honesty ledger: what was categorized, what was suppressed, and which
-    rules have no taxonomy entry yet (so they are visibly pending, not lost)."""
-    kept = [f for f in findings if not f.suppressed]
+    """The honesty ledger: what was categorized, what was suppressed, which rules
+    are analysis-skipped coverage notes, and which rules have no taxonomy entry yet
+    (so they are visibly pending, not lost)."""
+    kept = [f for f in findings if f.scored]
     suppressed = [f for f in findings if f.suppressed]
+    notes = [f for f in findings if f.note and not f.suppressed]
     uncategorized = Counter(f.rule for f in kept if f.category == 0)
     return {
         "tools": sorted({f.tool for f in findings}),
@@ -180,6 +193,8 @@ def coverage(findings: list[AuditFinding]) -> dict[str, Any]:
         "kept": len(kept),
         "suppressed": len(suppressed),
         "suppressed_by": dict(Counter(f.suppress_reason for f in suppressed)),
+        "analysis_skipped": len(notes),
+        "analysis_skipped_by": dict(Counter(f.rule for f in notes)),
         "by_category": dict(Counter(f.category for f in kept)),
         "uncategorized_rules": dict(uncategorized),
     }
@@ -231,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     tax = load_taxonomy(args.taxonomy)
     findings, cov = normalize(inputs, tax, args.strip)
     payload = {"coverage": cov,
-               "findings": [finding_to_dict(f) for f in findings if not f.suppressed]}
+               "findings": [finding_to_dict(f) for f in findings if f.scored]}
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(json.dumps(cov, indent=2))
@@ -258,6 +273,8 @@ def _own_sarif() -> str:
             res("OWN001", "local IDisposable never disposed", "src/Util/Io.cs", 9),
             res("OWN014", "region escape: view-model promoted to App lifetime",
                 "src/Vm/StaticEventEscapeViewModel.cs", 50),
+            res("OWN050", "cannot verify 'X.Y' — unresolved [resource: unresolved reference]",
+                "src/Util/Unknown.cs", 3),
         ]}]})
 
 
@@ -275,14 +292,17 @@ def _codeql_sarif() -> str:
 
 def _selftest() -> int:
     tax_path = Path(__file__).resolve().parents[1] / "static" / "taxonomy" / "categories.yml"
-    fails: list[str] = []
+    checks: list[str] = []
+
+    def check(ok: bool, msg: str) -> None:  # total derives from the call count
+        checks.append("" if ok else msg)
 
     # The shipped taxonomy must parse and carry the split that the OWN001 fix needs.
     tax = load_taxonomy(tax_path)
-    if "OWN001" not in tax.rules or "by_resource" not in tax.rules["OWN001"]:
-        fails.append("shipped categories.yml lost the OWN001 by_resource split")
-    if tax.rules.get("OWN014", {}).get("name") != "region-escape":
-        fails.append("shipped categories.yml: OWN014 must be region-escape, not subscription-leak")
+    check("by_resource" in tax.rules.get("OWN001", {}),
+          "shipped categories.yml lost the OWN001 by_resource split")
+    check(tax.rules.get("OWN014", {}).get("name") == "region-escape",
+          "shipped categories.yml: OWN014 must be region-escape, not subscription-leak")
 
     own = normalize_results(parse_sarif(_own_sarif(), "own-check", []), tax)
     by_file = {f.fkey: f for f in own}
@@ -297,49 +317,49 @@ def _selftest() -> int:
     }
     for fkey, (cat, name) in cases.items():
         got = by_file.get(fkey)
-        if got is None:
-            fails.append(f"missing finding for {fkey}")
-        elif (got.category, got.category_name) != (cat, name):
-            fails.append(
-                f"{fkey}: expected ({cat},{name}), got ({got.category},{got.category_name})")
+        check(got is not None and (got.category, got.category_name) == (cat, name),
+              f"{fkey}: expected ({cat},{name}), got "
+              f"{None if got is None else (got.category, got.category_name)}")
+
+    # OWN050 is an analysis-skipped coverage note, not a verdict: routed out of
+    # scoring (Codex review on #100), never a phantom uncategorized P3 candidate.
+    own050 = by_file.get("unknown.cs")
+    check(own050 is not None and own050.note and not own050.scored,
+          "OWN050 must be a coverage note (note=True, scored=False)")
 
     # Glob mapping + uncategorized + DevExpress suppression on the CodeQL run.
     cq = normalize_results(parse_sarif(_codeql_sarif(), "codeql", []), tax)
     cq_by = {f.fkey: f for f in cq}
-    if cq_by["io.cs"].category != 1:
-        fails.append("cs/local-not-disposed should map to category 1")
-    if not cq_by["helper.cs"].suppressed:
-        fails.append("DevExpress finding must be baseline-suppressed")
-    if cq_by["misc.cs"].category != 0:
-        fails.append("unmapped FOO999 must be uncategorized (category 0)")
+    check(cq_by["io.cs"].category == 1, "cs/local-not-disposed should map to category 1")
+    check(cq_by["helper.cs"].suppressed, "DevExpress finding must be baseline-suppressed")
+    check(cq_by["misc.cs"].category == 0, "unmapped FOO999 must be uncategorized (category 0)")
 
     cov = coverage(own + cq)
-    if cov["suppressed"] != 1:
-        fails.append(f"coverage suppressed count wrong: {cov['suppressed']}")
-    if "FOO999" not in cov["uncategorized_rules"]:
-        fails.append("uncategorized rule FOO999 must be surfaced in coverage")
-    if cov["uncategorized_rules"].get("FOO999") != 1:
-        fails.append("uncategorized count wrong")
+    check(cov["suppressed"] == 1, f"coverage suppressed count wrong: {cov['suppressed']}")
+    check(cov["analysis_skipped"] == 1 and cov["analysis_skipped_by"].get("OWN050") == 1,
+          "OWN050 must be counted as analysis-skipped in coverage")
+    check("OWN050" not in cov["uncategorized_rules"],
+          "OWN050 (a coverage note) must not pollute uncategorized rules")
+    check(cov["uncategorized_rules"].get("FOO999") == 1,
+          "uncategorized rule FOO999 must be surfaced in coverage exactly once")
     # a suppressed finding must not leak into the kept category tally
-    if cov["by_category"].get(0, 0) != 1:  # only FOO999 (the DevExpress one is suppressed)
-        fails.append(f"suppressed finding leaked into kept categories: {cov['by_category']}")
+    check(cov["by_category"].get(0, 0) == 1,
+          f"suppressed finding leaked into kept categories: {cov['by_category']}")
 
     # severity baseline comes from the category, not the tool level
-    if tax.severity_for(1) != "P1" or tax.severity_for(0) != "P3":
-        fails.append("category severity baseline wrong")
+    check(tax.severity_for(1) == "P1" and tax.severity_for(0) == "P3",
+          "category severity baseline wrong")
 
     # glob specificity: CA2000 (exact, cat 1) must beat CA2* (glob, cat 14)
-    cat, _ = categorize("CA2000", None, tax.rules)
-    if cat != 1:
-        fails.append(f"exact CA2000 should win over CA2* glob: got {cat}")
-    cat, _ = categorize("CA1822", None, tax.rules)
-    if cat != 14:
-        fails.append(f"CA1* glob should map to general-quality (14): got {cat}")
+    check(categorize("CA2000", None, tax.rules)[0] == 1,
+          "exact CA2000 should win over CA2* glob")
+    check(categorize("CA1822", None, tax.rules)[0] == 14,
+          "CA1* glob should map to general-quality (14)")
 
-    total = 18
+    fails = [c for c in checks if c]
     for f in fails:
         print(f"NORMALIZE SELFTEST FAIL: {f}")
-    print(f"normalize selftest: {total - len(fails)}/{total} checks passed")
+    print(f"normalize selftest: {len(checks) - len(fails)}/{len(checks)} checks passed")
     return 1 if fails else 0
 
 

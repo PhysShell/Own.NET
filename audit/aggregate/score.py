@@ -91,7 +91,7 @@ def _pick_category(members: list[AuditFinding], tax: Taxonomy) -> tuple[int, str
 
 
 def score(findings: list[AuditFinding], tax: Taxonomy, line_tol: int = 3) -> dict[str, Any]:
-    kept = [f for f in findings if not f.suppressed]
+    kept = [f for f in findings if f.scored]
     by_file: dict[str, list[AuditFinding]] = defaultdict(list)
     for f in kept:
         by_file[f.fkey].append(f)
@@ -200,7 +200,10 @@ def _f(tool: str, path: str, line: int, rule: str, cat: int, name: str,
 def _selftest() -> int:
     tax_path = Path(__file__).resolve().parents[1] / "static" / "taxonomy" / "categories.yml"
     tax = load_taxonomy(tax_path)
-    fails: list[str] = []
+    checks: list[str] = []
+
+    def check(ok: bool, msg: str) -> None:  # total derives from the call count
+        checks.append("" if ok else msg)
 
     findings = [
         # two tools at the same spot -> one high-confidence leak cluster (cat 1, P1)
@@ -213,48 +216,40 @@ def _selftest() -> int:
     ]
     scored = score(findings, tax, line_tol=3)
 
-    if scored["totals"]["clusters"] != 3:
-        fails.append(f"expected 3 clusters, got {scored['totals']['clusters']}")
-    if scored["totals"]["high_confidence"] != 1:
-        fails.append(
-            f"expected 1 high-confidence cluster, got {scored['totals']['high_confidence']}")
-    if scored["totals"]["candidates"] != 2:
-        fails.append(f"expected 2 candidates, got {scored['totals']['candidates']}")
+    check(scored["totals"]["clusters"] == 3,
+          f"expected 3 clusters, got {scored['totals']['clusters']}")
+    check(scored["totals"]["high_confidence"] == 1,
+          f"expected 1 high-confidence cluster, got {scored['totals']['high_confidence']}")
+    check(scored["totals"]["candidates"] == 2,
+          f"expected 2 candidates, got {scored['totals']['candidates']}")
 
     top = scored["clusters"][0]
-    if top.module != "src/Util":
-        fails.append(f"top cluster should be the agreed leak in src/Util, got {top.module}")
-    if top.confidence != "high":
-        fails.append("top cluster (highest pain) must be the cross-tool agreement")
-    if top.tools != ["codeql", "own-check"]:
-        fails.append(f"agreed cluster tools wrong: {top.tools}")
+    check(top.module == "src/Util",
+          f"top cluster should be the agreed leak in src/Util, got {top.module}")
+    check(top.confidence == "high", "top cluster (highest pain) must be the cross-tool agreement")
+    check(top.tools == ["codeql", "own-check"], f"agreed cluster tools wrong: {top.tools}")
 
     # heatmap orders by pain: the agreed P1 leak module outranks the P2 candidate module
     pain = {row["module"]: row["pain"] for row in scored["heatmap"]}
     # src/Util has the high-conf P1 (4*2=8) + a candidate P2 (2*1=2) = 10;
     # src/Vm has a candidate P1 (4*1=4). So src/Util must outrank src/Vm.
-    if pain.get("src/Util", 0) <= pain.get("src/Vm", 0):
-        fails.append(f"heatmap pain ordering wrong: {pain}")
-    if abs(pain.get("src/Util", 0) - 10.0) > 0.01:
-        fails.append(f"src/Util pain should be 10.0, got {pain.get('src/Util')}")
+    check(pain.get("src/Util", 0) > pain.get("src/Vm", 0), f"heatmap pain ordering wrong: {pain}")
+    check(abs(pain.get("src/Util", 0) - 10.0) <= 0.01,
+          f"src/Util pain should be 10.0, got {pain.get('src/Util')}")
 
     # severity stays category-driven: the subscription leak is P1 even though alone
     sub = next(c for c in scored["clusters"] if c.module == "src/Vm")
-    if sub.severity != "P1":
-        fails.append(f"subscription-leak cluster should be P1, got {sub.severity}")
+    check(sub.severity == "P1", f"subscription-leak cluster should be P1, got {sub.severity}")
 
     js = to_json(scored)
-    if js["totals"]["clusters"] != 3 or not js["heatmap"]:
-        fails.append("to_json lost totals/heatmap")
-    if "evidence" not in js["clusters"][0]:
-        fails.append("cluster json missing evidence")
+    check(js["totals"]["clusters"] == 3 and bool(js["heatmap"]), "to_json lost totals/heatmap")
+    check("evidence" in js["clusters"][0], "cluster json missing evidence")
 
-    total = 9
-    real_fails = [f for f in fails if f]
-    for f in real_fails:
+    fails = [c for c in checks if c]
+    for f in fails:
         print(f"SCORE SELFTEST FAIL: {f}")
-    print(f"score selftest: {total - len(real_fails)}/{total} checks passed")
-    return 1 if real_fails else 0
+    print(f"score selftest: {len(checks) - len(fails)}/{len(checks)} checks passed")
+    return 1 if fails else 0
 
 
 if __name__ == "__main__":

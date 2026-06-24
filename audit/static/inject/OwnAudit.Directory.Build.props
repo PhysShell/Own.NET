@@ -25,8 +25,12 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>All</AnalysisMode>
     <ReportAnalyzer>true</ReportAnalyzer>
-    <!-- One SARIF per project; audit/aggregate/ merges them afterwards. -->
-    <ErrorLog>$(MSBuildProjectDirectory)\..\artifacts\own-audit\$(MSBuildProjectName).sarif,version=2.1</ErrorLog>
+    <!-- Output directory honored by the runner's -Out (passed as /p:OwnAuditOutDir);
+         the default keeps SARIF next to the project when the runner does not set it.
+         One SARIF per project under roslyn/ so the orchestrator can glob them all;
+         audit/aggregate/ merges them afterwards. -->
+    <OwnAuditOutDir Condition="'$(OwnAuditOutDir)' == ''">$(MSBuildProjectDirectory)\..\artifacts\own-audit</OwnAuditOutDir>
+    <ErrorLog>$(OwnAuditOutDir)\roslyn\$(MSBuildProjectName).sarif,version=2.1</ErrorLog>
     <!-- Audit findings must never fail the target's build; we only collect them. -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>

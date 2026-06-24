@@ -33,14 +33,23 @@ done
 
 [[ -n "$bin" ]] || { echo "infersharp.sh: --bin (built output with .dll+.pdb) is required" >&2; exit 2; }
 
-if ! command -v infersharp >/dev/null 2>&1 && ! command -v infersharpaction >/dev/null 2>&1; then
-  echo "NO-TOOL: Infer# CLI not available — skipping the build-required Infer# tier" >&2
+# Require the infersharp CLI specifically. `microsoft/infersharpaction` is a GitHub
+# Action (inputs: binary-path / github-sarif), NOT a shell CLI with this interface,
+# so it is not a drop-in fallback — in a workflow, use that Action directly.
+if ! command -v infersharp >/dev/null 2>&1; then
+  echo "NO-TOOL: Infer# CLI 'infersharp' not on PATH — skipping the build-required Infer# tier." >&2
+  echo "  (In a GitHub Action, use microsoft/infersharpaction with binary-path instead.)" >&2
   exit 3
 fi
 
+bin_abs="$(cd "$bin" 2>/dev/null && pwd)" \
+  || { echo "infersharp.sh: --bin directory '$bin' not found" >&2; exit 2; }
+
 mkdir -p "$out"
-# Infer# writes report.sarif into its output dir; copy it to the audit artifacts.
-infersharp "$bin" --sarif --results-dir "$out/infer-out"
+# Infer# always writes its SARIF to infer-out/report.sarif relative to the working
+# directory (microsoft/infersharp), so run it from $out, then copy the canonical
+# report into the audit artifacts directory.
+( cd "$out" && infersharp "$bin_abs" )
 cp "$out/infer-out/report.sarif" "$out/infersharp.sarif"
 
 echo "infersharp.sh: wrote $out/infersharp.sarif"

@@ -117,12 +117,21 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
             sarif_inputs.append(("codeql", st["sarif"]))
 
     # Pick up any build-required SARIFs already dropped here by the Windows runners.
-    for extra, tool in (("roslyn_pack.sarif", "roslyn-pack"), ("infersharp.sarif", "infersharp")):
-        p = out_dir / extra
-        if p.exists():
-            sarif_inputs.append((tool, str(p)))
-            tiers.append({"tool": tool, "tier": "build-required", "available": True,
-                          "sarif": str(p), "reason": ""})
+    # Roslyn writes ONE SARIF PER PROJECT under roslyn/ (see the injected props's
+    # $(MSBuildProjectName).sarif), so glob the directory; Infer# writes a single file.
+    roslyn_dir = out_dir / "roslyn"
+    roslyn_sarifs = sorted(roslyn_dir.glob("*.sarif")) if roslyn_dir.is_dir() else []
+    for p in roslyn_sarifs:
+        sarif_inputs.append(("roslyn-pack", str(p)))
+    if roslyn_sarifs:
+        tiers.append({"tool": "roslyn-pack", "tier": "build-required", "available": True,
+                      "sarif": f"{len(roslyn_sarifs)} project SARIF(s) under roslyn/",
+                      "reason": ""})
+    infer = out_dir / "infersharp.sarif"
+    if infer.exists():
+        sarif_inputs.append(("infersharp", str(infer)))
+        tiers.append({"tool": "infersharp", "tier": "build-required", "available": True,
+                      "sarif": str(infer), "reason": ""})
 
     meta = {
         "target": target_name or target, "commit": commit,
@@ -195,7 +204,11 @@ def _fixture_sarifs(tmp: Path) -> list[tuple[str, str]]:
 def _selftest() -> int:
     import tempfile
 
-    fails: list[str] = []
+    checks: list[str] = []
+
+    def check(ok: bool, msg: str) -> None:  # total derives from the call count
+        checks.append("" if ok else msg)
+
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         inputs = _fixture_sarifs(tmp)
@@ -204,35 +217,45 @@ def _selftest() -> int:
         result = aggregate(inputs, tmp / "report", meta)
 
         # the agreed Io.cs leak is high-confidence; Customer.cs subscription is a candidate
-        if result["totals"]["high_confidence"] != 1:
-            fails.append(f"expected 1 high-confidence cluster, got {result['totals']}")
-        if result["totals"]["candidates"] != 1:
-            fails.append(f"expected 1 candidate, got {result['totals']}")
+        check(result["totals"]["high_confidence"] == 1,
+              f"expected 1 high-confidence cluster, got {result['totals']}")
+        check(result["totals"]["candidates"] == 1, f"expected 1 candidate, got {result['totals']}")
 
         md = Path(result["report_md"]).read_text(encoding="utf-8")
-        if "# Own.NET Audit — health report" not in md:
-            fails.append("report.md missing title")
-        if "## Where it hurts most" not in md or "## Coverage / honesty" not in md:
-            fails.append("report.md missing a required section")
-        if "third-party: DevExpress." not in md:
-            fails.append("report.md must report the suppressed DevExpress finding")
+        check("# Own.NET Audit — health report" in md, "report.md missing title")
+        check("## Where it hurts most" in md and "## Coverage / honesty" in md,
+              "report.md missing a required section")
+        check("third-party: DevExpress." in md,
+              "report.md must report the suppressed DevExpress finding")
         # src/Util (agreed leak) must outrank src/Vm (lone subscription) in the heatmap
-        if md.find("`src/Util`") == -1 or (md.find("`src/Vm`") != -1
-                                           and md.find("`src/Util`") > md.find("`src/Vm`")):
-            fails.append("heatmap ordering: src/Util must precede src/Vm")
+        check(md.find("`src/Util`") != -1 and not (md.find("`src/Vm`") != -1
+              and md.find("`src/Util`") > md.find("`src/Vm`")),
+              "heatmap ordering: src/Util must precede src/Vm")
 
         js = json.loads(Path(result["report_json"]).read_text(encoding="utf-8"))
-        if js["coverage"]["suppressed"] != 1:
-            fails.append("report.json coverage lost the suppressed count")
-        if js["meta"]["target"] != "acme/legacy":
-            fails.append("report.json lost meta")
-        if not (tmp / "report" / "report.md").exists():
-            fails.append("aggregate did not write report.md to disk")
+        check(js["coverage"]["suppressed"] == 1, "report.json coverage lost the suppressed count")
+        check(js["meta"]["target"] == "acme/legacy", "report.json lost meta")
+        check((tmp / "report" / "report.md").exists(), "aggregate did not write report.md to disk")
 
-    total = 8
+    # Roslyn build-required tier writes one SARIF PER PROJECT under roslyn/; run()
+    # must glob the directory, not a single fixed filename (Codex review on #100).
+    with tempfile.TemporaryDirectory() as td2:
+        out2 = Path(td2)
+        (out2 / "roslyn").mkdir()
+        rosl = {"runs": [{"results": [{"ruleId": "CA2000", "message": {"text": "undisposed"},
+            "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/App/Svc.cs"},
+                                                "region": {"startLine": 5}}}]}]}]}
+        (out2 / "roslyn" / "ProjA.sarif").write_text(json.dumps(rosl), encoding="utf-8")
+        profile = {"name": "t", "severity_floor": "warning", "tiers": {"build_free": []}}
+        res2 = run("/nonexistent-target", profile, out2, target_name="t/p")
+        check(any(t["tool"] == "roslyn-pack" for t in res2["tiers"]),
+              "roslyn per-project SARIF under roslyn/ must be picked up")
+        check(res2["totals"]["clusters"] >= 1, "roslyn finding must reach the aggregated totals")
+
+    fails = [c for c in checks if c]
     for f in fails:
         print(f"RUN_STATIC SELFTEST FAIL: {f}")
-    print(f"run_static selftest: {total - len(fails)}/{total} checks passed")
+    print(f"run_static selftest: {len(checks) - len(fails)}/{len(checks)} checks passed")
     return 1 if fails else 0
 
 
