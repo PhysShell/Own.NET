@@ -597,6 +597,25 @@ public class FlowLocalsSample
         var ctorMoved = ArrayPool<byte>.Shared.Rent(n);
         return new PooledHolder(ctorMoved);
     }
+
+    // b′ pooled-view REASSIGNMENT FP (P-007 POOL002): a `Span` view of one rented buffer is reused for
+    // a SECOND rented buffer. Provenance is read from the view's declaration only, so before the fix
+    // every later reference to `v` was attributed to the original `bufA` — flagging the reassignment's
+    // own LHS and the post-reassignment read as use-after-return on `bufA` (two false OWN002). The fix:
+    // (1) an assignment TARGET is not a use, and (2) a reference past a reassignment drops the declared
+    // owner (silent). The pre-reassignment read `v[0]` (while `bufA` is returned) is a REAL
+    // use-after-return -> exactly ONE OWN002 on `bufA`; `bufB` is returned after its last read -> silent.
+    public void ReassignedView(int n, int m)
+    {
+        byte[] bufA = ArrayPool<byte>.Shared.Rent(n);
+        byte[] bufB = ArrayPool<byte>.Shared.Rent(m);
+        Span<byte> v = bufA.AsSpan(0, n);            // v BORROWS bufA
+        ArrayPool<byte>.Shared.Return(bufA);         // bufA recycled
+        v[0] = 1;                                    // (i) read through v while bufA is gone -> OWN002 (bufA)
+        v = bufB.AsSpan(0, m);                       // reassign: v now borrows bufB (LHS v is a def, not a read)
+        v[1] = 2;                                    // (ii) reads bufB, not bufA -> must be SILENT
+        ArrayPool<byte>.Shared.Return(bufB);
+    }
 }
 
 // Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that

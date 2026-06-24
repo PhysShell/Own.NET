@@ -1145,6 +1145,13 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
     {
+        // A pure DEF of the variable — the bare LHS of `v = …` or a `ref`/`out` argument — writes it
+        // without reading it, so it is NOT a use of the resource (nor of a view's owner). Skipping it
+        // removes the over-count where the LHS of a view REASSIGNMENT (`v = other.AsSpan()`) was
+        // scanned as a use of the OLD owner (the pooled-view reassignment FP). An element/member write
+        // (`v[0] = …`, `v.X = …`) still READS `v` to reach the target, so it is deliberately not skipped.
+        if (IsWriteTarget(idn))
+            continue;
         var nm = idn.Identifier.Text;
         if (tracked.Contains(nm))
         {
@@ -1181,6 +1188,21 @@ static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, Semant
     foreach (var o in overspanned)
         nodes.Add(new { op = "overspan", var = o, line = LineOf(expr) });
 }
+
+// A pure DEF of its variable — a bare identifier that is the LHS of a SIMPLE assignment (`v = …`) or
+// the expression of a `ref`/`out` argument (`F(out v)` / `F(ref v)`). Such a target WRITES the
+// variable without reading it, so it is not a use of the resource. Element/member writes
+// (`v[0] = …`, `v.X = …`) are NOT pure defs — they read `v` to reach the target — so only a bare
+// identifier directly on the assignment's Left (or in a ref/out arg slot) qualifies. Shared by the
+// use-scan (exclude defs) and the b′ view-reassignment check (a def of a view local rebinds it).
+static bool IsWriteTarget(IdentifierNameSyntax idn) =>
+    (idn.Parent is AssignmentExpressionSyntax asg
+        && asg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+        && asg.Left == idn)
+    || (idn.Parent is ArgumentSyntax arg
+        && (arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword)
+            || arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword))
+        && arg.Expression == idn);
 
 // The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
 static string? FieldName(ExpressionSyntax expr) => expr switch
@@ -1485,9 +1507,40 @@ static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
     if (model.GetSymbolInfo(idn).Symbol is not ILocalSymbol sym)
         return null;
     foreach (var r in sym.DeclaringSyntaxReferences)
-        if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init })
+        if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init } decl)
+        {
+            // b′ (pooled-view reassignment FP): the declaration's owner holds only until `view` is
+            // REASSIGNED. If a `view = …` (or a `ref`/`out` rebinding) of this same local sits between
+            // the declaration and THIS reference (source order), the reference no longer borrows the
+            // declared owner — its current owner is unknown, so go silent rather than attribute it to a
+            // possibly-released buffer. This only ever REMOVES a use (errs to a false negative, never a
+            // false positive). Matched on the resolved symbol, so a same-named local elsewhere is not
+            // mistaken for a rebinding. (Full flow-sensitive per-path provenance is left for later.)
+            if (ReassignedBetween(sym, decl, idn, model))
+                return null;
             return ViewOwner(init, model);
+        }
     return null;
+}
+
+// Is the local `sym` REASSIGNED — a direct `=` target or a `ref`/`out` argument (IsWriteTarget) — at
+// a source position strictly after its declaration `decl` and strictly before the reference `use`,
+// within the declaring member? Source-order and intraprocedural: straight-line code is exact; a
+// reassignment on a non-taken branch suppresses conservatively (a possible miss, never a false
+// positive). The b′ predicate behind ViewOwnerOf's reassignment suppression.
+static bool ReassignedBetween(ILocalSymbol sym, VariableDeclaratorSyntax decl,
+                              IdentifierNameSyntax use, SemanticModel model)
+{
+    var scope = decl.Ancestors().FirstOrDefault(n =>
+        n is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or LocalFunctionStatementSyntax);
+    if (scope is null)
+        return false;
+    int lo = decl.SpanStart, hi = use.SpanStart;
+    foreach (var id in scope.DescendantNodes().OfType<IdentifierNameSyntax>())
+        if (id.SpanStart > lo && id.SpanStart < hi && IsWriteTarget(id)
+            && SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, sym))
+            return true;
+    return false;
 }
 
 // The tracked owner buffers whose Span/Memory VIEW LOCALS are returned by `expr` (an escaping

@@ -655,6 +655,18 @@ jobs:
           # the mislabel fix surfaced by the --body-throw-edges Npgsql capstone.
           echo "$out" | grep -qE "OWN001.*pooled buffer 'partialBuf' may not be returned to the pool on every path" \
             || { echo "FAIL: expected the flow-path pooled-buffer partial-path label on 'partialBuf'"; exit 1; }
+          # b′ pooled-view REASSIGNMENT FP (ReassignedView): a Span view local reused for a SECOND
+          # rented buffer no longer borrows the first. The pre-reassignment read (`v[0]` while bufA is
+          # returned) is a REAL use-after-return -> EXACTLY ONE OWN002 on 'bufA'; the reassignment's own
+          # LHS and the post-reassignment read (`v[1]`, now bufB) must NOT be re-attributed to the
+          # released bufA (were two extra false OWN002 before the fix). bufB is returned after its last
+          # read -> silent. The exact count is the guard: a regression re-introduces 2 more on bufA.
+          nrv=$(echo "$out" | grep -cE "OWN002.*'bufA'")
+          [ "$nrv" = "1" ] \
+            || { echo "FAIL: expected exactly 1 OWN002 on 'bufA' (pre-reassignment use-after-return), got $nrv"; exit 1; }
+          if echo "$out" | grep -qE "OWN002.*'bufB'"; then
+            echo "FAIL: a Span view reassigned to the live 'bufB' was wrongly flagged use-after-return"; exit 1
+          fi
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->

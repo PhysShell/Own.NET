@@ -30,5 +30,7 @@ what makes "use of the view = use of the owner, here" sound.
 **Honesty / scope.** `case.own` is a faithful hand reduction (the borrow collapses to a use of the
 owner, exactly what the extractor emits), not C# the `.own` checker ingested. `before.cs`/`after.cs`
 are representative of the bug and its fix. First slice: `Span`/`ReadOnlySpan` views via `AsSpan()` /
-`new Span<T>(buf)`; `Memory<T>` (which *can* escape) and view reassignment are deliberately left for
-later rounds.
+`new Span<T>(buf)`; `Memory<T>` (which *can* escape) followed in the same round. **View reassignment**
+is now handled too (b′, P-007 OQ#1): a view local reused for a different rented buffer no longer
+attributes later reads to the original owner — see `FlowLocalsSample.ReassignedView`. Full
+flow-sensitive per-path provenance (branch-merge, loop back-edges) is still deferred.
