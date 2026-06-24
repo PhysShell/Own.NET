@@ -616,6 +616,31 @@ public class FlowLocalsSample
         v[1] = 2;                                    // (ii) reads bufB, not bufA -> must be SILENT
         ArrayPool<byte>.Shared.Return(bufB);
     }
+
+    // Codex review on #98: `sliced = sliced.Slice(1)` — the RHS reads the STILL-stale view, so the
+    // assignment's own LHS must not count as a prior rebind of its own RHS; a reslice of a returned
+    // buffer keeps tripping OWN002 on 'sb'. (Tracking the resliced owner FORWARD to later lines is the
+    // deferred re-slice gap, so this method has exactly the one RHS finding.)
+    public void SliceReassignAfterReturn(int n)
+    {
+        byte[] sb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> sliced = sb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(sb);
+        sliced = sliced.Slice(1);                    // RHS reads the returned 'sb' -> OWN002 on 'sb'
+    }
+
+    // Codex review on #98: a `ref` argument is NOT a pure write — the callee receives (and may read)
+    // the current value — so passing a stale view by `ref` after the buffer was returned is a
+    // use-after-return -> OWN002 on 'rb'. Only `out` is the pure def that is exempt from the use scan.
+    public void RefArgUseAfterReturn(int n)
+    {
+        byte[] rb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> rv = rb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(rb);
+        Touch(ref rv);                               // ref passes the stale view (a read) -> OWN002 on 'rb'
+    }
+
+    private static void Touch(ref Span<byte> s) => s = s.Slice(0);
 }
 
 // Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that

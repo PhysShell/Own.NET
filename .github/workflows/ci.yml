@@ -667,6 +667,15 @@ jobs:
           if echo "$out" | grep -qE "OWN002.*'bufB'"; then
             echo "FAIL: a Span view reassigned to the live 'bufB' was wrongly flagged use-after-return"; exit 1
           fi
+          # Codex review on #98 — reslice-after-return: `sliced = sliced.Slice(1)` reads the STALE view
+          # on the RHS, so it still trips OWN002 on 'sb' (the assignment's own LHS must not suppress its
+          # own RHS). One finding only — the resliced view's forward owner is not tracked.
+          echo "$out" | grep -qE "OWN002.*'sb'" \
+            || { echo "FAIL: expected OWN002 on 'sb' (reslice reads the returned buffer on the RHS)"; exit 1; }
+          # Codex review on #98 — `ref` arg is a USE: passing a stale view by `ref` after return reads
+          # the current value, so it is a use-after-return -> OWN002 on 'rb' (only `out` is exempt).
+          echo "$out" | grep -qE "OWN002.*'rb'" \
+            || { echo "FAIL: expected OWN002 on 'rb' (ref arg reads the stale view after return)"; exit 1; }
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->
