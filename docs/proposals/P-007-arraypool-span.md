@@ -103,9 +103,18 @@ Catching a real one of these is the milestone-4 success condition.
 
 ## Open questions
 
-1. View provenance: track `arr.AsSpan()` → view-of-`arr` precisely, or
-   conservatively treat any `Span` derived from a rented array as a loan of it?
-   (Conservative first.)
+1. **(resolved)** View provenance: track `arr.AsSpan()` → view-of-`arr` precisely, or
+   conservatively treat any `Span` derived from a rented array as a loan of it? —
+   **precise-by-identifier** was the implemented behaviour from the start (`ViewOwnerOf`
+   resolves the view through its declaration's `AsSpan`/`new Span<T>` initializer to the
+   *specific* owner; two live buffers never conflate). The one gap was **reassignment**: the
+   owner was read from the declaration only, so after `v = otherBuf.AsSpan()` every later
+   reference to `v` was still attributed to the original buffer — a false OWN002 when that
+   original was already `Return`ed. Closed (b′): an assignment *target* is not a use, and a
+   reference past a reassignment of the view local drops the declared owner (silent). The fix
+   only ever removes a use, so it cannot manufacture a false positive; full flow-sensitive
+   per-path provenance (branch-merge, loop back-edges) is still deferred. Pinned by
+   `FlowLocalsSample.ReassignedView` (exactly one OWN002 on the pre-reassignment owner).
 2. `Return(arr, clearArray: true)` vs sensitive buffers — does POOL005 tie into
    the existing sensitive-buffer/clear-on-release check (OWN024)?
 3. How much of POOL004 (view escape) overlaps the existing OWN004/OWN015 escape

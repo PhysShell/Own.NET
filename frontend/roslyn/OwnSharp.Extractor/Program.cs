@@ -1145,6 +1145,13 @@ static void EmitFlowExpr(ExpressionSyntax expr, HashSet<string> tracked, Semanti
     var used = new SortedSet<string>(StringComparer.Ordinal);
     foreach (var idn in expr.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
     {
+        // A pure DEF of the variable — the bare LHS of `v = …` or an `out` argument — writes it without
+        // reading it, so it is NOT a use of the resource (nor of a view's owner). Skipping it removes the
+        // over-count where the LHS of a view REASSIGNMENT (`v = other.AsSpan()`) was scanned as a use of
+        // the OLD owner (the pooled-view reassignment FP). A `ref` argument and an element/member write
+        // (`v[0] = …`, `v.X = …`) still READ `v`, so they are deliberately not skipped (Codex review on #98).
+        if (IsPureWrite(idn))
+            continue;
         var nm = idn.Identifier.Text;
         if (tracked.Contains(nm))
         {
@@ -1181,6 +1188,30 @@ static void EmitOverspans(ExpressionSyntax expr, HashSet<string> tracked, Semant
     foreach (var o in overspanned)
         nodes.Add(new { op = "overspan", var = o, line = LineOf(expr) });
 }
+
+// A pure DEF of its variable — a bare identifier that is the LHS of a SIMPLE assignment (`v = …`) or
+// an `out` argument (`F(out v)`): it WRITES the variable without reading the current value, so it is
+// not a use of the resource. A `ref` argument is deliberately NOT a pure write — the callee receives
+// (and may read) the current value, so `ref v` is a USE as well as a possible rebind (Codex review on
+// #98). Element/member writes (`v[0] = …`, `v.X = …`) read `v` to reach the target, so only a bare
+// identifier on the assignment's Left (or an `out` slot) qualifies. Excludes pure defs from the use scan.
+static bool IsPureWrite(IdentifierNameSyntax idn) =>
+    (idn.Parent is AssignmentExpressionSyntax asg
+        && asg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+        && asg.Left == idn)
+    || (idn.Parent is ArgumentSyntax arg
+        && arg.RefKindKeyword.IsKind(SyntaxKind.OutKeyword)
+        && arg.Expression == idn);
+
+// A REBINDING of its variable — a pure write (above) OR a `ref` argument (the callee may reassign it).
+// The b′ reassignment check treats any of these, between a view local's declaration and a later
+// reference, as dropping the declared owner. A `ref` is also a USE (it is not an IsPureWrite), so it
+// still emits a use of the current owner at its own position and only suppresses LATER references.
+static bool IsRebind(IdentifierNameSyntax idn) =>
+    IsPureWrite(idn)
+    || (idn.Parent is ArgumentSyntax arg
+        && arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+        && arg.Expression == idn);
 
 // The field name an expression refers to: "_f" for `_f` or `this._f`, else null.
 static string? FieldName(ExpressionSyntax expr) => expr switch
@@ -1485,9 +1516,71 @@ static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
     if (model.GetSymbolInfo(idn).Symbol is not ILocalSymbol sym)
         return null;
     foreach (var r in sym.DeclaringSyntaxReferences)
-        if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init })
+        if (r.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } init } decl)
+        {
+            // b′ (pooled-view reassignment FP): the declaration's owner holds only until `view` is
+            // REASSIGNED. If a `view = …` (or a `ref`/`out` rebinding) of this same local sits between
+            // the declaration and THIS reference (source order), the reference no longer borrows the
+            // declared owner — its current owner is unknown, so go silent rather than attribute it to a
+            // possibly-released buffer. This only ever REMOVES a use (errs to a false negative, never a
+            // false positive). Matched on the resolved symbol, so a same-named local elsewhere is not
+            // mistaken for a rebinding. (Full flow-sensitive per-path provenance is left for later.)
+            if (ReassignedBetween(sym, decl, idn, model))
+                return null;
             return ViewOwner(init, model);
+        }
     return null;
+}
+
+// Is the local `sym` REBOUND (IsRebind: a direct `=` target, an `out`, or a `ref` argument) at a
+// source position strictly after its declaration `decl` and strictly before the reference `use`,
+// within the declaring member? Source-order and intraprocedural: straight-line code is exact; a
+// reassignment on a non-taken branch suppresses conservatively (a possible miss, never a false
+// positive). The b′ predicate behind ViewOwnerOf's reassignment suppression. Four writes do NOT
+// count, because their effect is not yet visible to the use (all Codex/CodeRabbit review on #98):
+// one in the SAME assignment as the use (`v = v.Slice(1)` — the RHS reads the still-current view);
+// one that is a `ref`/`out` ARGUMENT of the same call as the use (`Reinit(out v, v[0])` — arguments
+// evaluate before the callee writes the parameter); one in a `for` INCREMENTOR enclosing the use
+// (`for (;;v=default) { v[0]=…; }` — the incrementor runs after the body, not at its header position);
+// and one nested in a deferred body (a lambda / local function runs on invoke, not at its textual position).
+static bool ReassignedBetween(ILocalSymbol sym, VariableDeclaratorSyntax decl,
+                              IdentifierNameSyntax use, SemanticModel model)
+{
+    var scope = decl.Ancestors().FirstOrDefault(n =>
+        n is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or LocalFunctionStatementSyntax);
+    if (scope is null)
+        return false;
+    var useAssign = use.FirstAncestorOrSelf<AssignmentExpressionSyntax>();
+    int lo = decl.SpanStart, hi = use.SpanStart;
+    foreach (var id in scope.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (id.SpanStart <= lo || id.SpanStart >= hi || !IsRebind(id))
+            continue;
+        if (useAssign is not null && id.FirstAncestorOrSelf<AssignmentExpressionSyntax>() == useAssign)
+            continue;                                   // the use's OWN assignment, not a prior rebind
+        if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax args } && args.Span.Contains(use.Span))
+            continue;                                   // ref/out rebind in the SAME call: args evaluate before the callee writes
+        if (id.Ancestors().OfType<ForStatementSyntax>()
+               .FirstOrDefault(f => f.Incrementors.Any(i => i.Span.Contains(id.Span))) is { } forInc
+            && forInc.Span.Contains(use.Span))
+            continue;                                   // for-incrementor rebind runs AFTER the body, not at its header position
+        if (InDeferredBody(id, scope))
+            continue;                                   // a write inside a lambda/local fn does not run here
+        if (SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, sym))
+            return true;
+    }
+    return false;
+}
+
+// Is `node` nested inside a lambda or local function that lies between it and `scope`? Such a body is
+// DEFERRED — its statements run when it is invoked, not at their textual position — so the source-
+// order reassignment scan must not treat a write inside one as a straight-line rebind (CodeRabbit #98).
+static bool InDeferredBody(SyntaxNode node, SyntaxNode scope)
+{
+    for (var p = node.Parent; p is not null && p != scope; p = p.Parent)
+        if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
+            return true;
+    return false;
 }
 
 // The tracked owner buffers whose Span/Memory VIEW LOCALS are returned by `expr` (an escaping

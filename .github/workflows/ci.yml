@@ -655,6 +655,43 @@ jobs:
           # the mislabel fix surfaced by the --body-throw-edges Npgsql capstone.
           echo "$out" | grep -qE "OWN001.*pooled buffer 'partialBuf' may not be returned to the pool on every path" \
             || { echo "FAIL: expected the flow-path pooled-buffer partial-path label on 'partialBuf'"; exit 1; }
+          # b′ pooled-view REASSIGNMENT FP (ReassignedView): a Span view local reused for a SECOND
+          # rented buffer no longer borrows the first. The pre-reassignment read (`v[0]` while bufA is
+          # returned) is a REAL use-after-return -> EXACTLY ONE OWN002 on 'bufA'; the reassignment's own
+          # LHS and the post-reassignment read (`v[1]`, now bufB) must NOT be re-attributed to the
+          # released bufA (were two extra false OWN002 before the fix). bufB is returned after its last
+          # read -> silent. The exact count is the guard: a regression re-introduces 2 more on bufA.
+          nrv=$(echo "$out" | grep -cE "OWN002.*'bufA'")
+          [ "$nrv" = "1" ] \
+            || { echo "FAIL: expected exactly 1 OWN002 on 'bufA' (pre-reassignment use-after-return), got $nrv"; exit 1; }
+          if echo "$out" | grep -qE "OWN002.*'bufB'"; then
+            echo "FAIL: a Span view reassigned to the live 'bufB' was wrongly flagged use-after-return"; exit 1
+          fi
+          # Codex review on #98 — reslice-after-return: `sliced = sliced.Slice(1)` reads the STALE view
+          # on the RHS, so it still trips OWN002 on 'sb' (the assignment's own LHS must not suppress its
+          # own RHS). One finding only — the resliced view's forward owner is not tracked.
+          echo "$out" | grep -qE "OWN002.*'sb'" \
+            || { echo "FAIL: expected OWN002 on 'sb' (reslice reads the returned buffer on the RHS)"; exit 1; }
+          # Codex review on #98 — `ref` arg is a USE: passing a stale view by `ref` after return reads
+          # the current value, so it is a use-after-return -> OWN002 on 'rb' (only `out` is exempt).
+          echo "$out" | grep -qE "OWN002.*'rb'" \
+            || { echo "FAIL: expected OWN002 on 'rb' (ref arg reads the stale view after return)"; exit 1; }
+          # Codex review on #98 (follow-up) — same-call out arg: `Reinit(out ov, ov[0])` reads the stale
+          # view in a SIBLING argument (args evaluate before the callee writes the out param), so it
+          # trips OWN002 on 'ob'; the out rebind must not suppress a use in the same invocation.
+          echo "$out" | grep -qE "OWN002.*'ob'" \
+            || { echo "FAIL: expected OWN002 on 'ob' (sibling-arg read before the out-write)"; exit 1; }
+          # Codex review on #98 (follow-up) — for-incrementor: the incrementor runs AFTER the body, so
+          # `fv[0]` reads the stale view on iteration 1 even though `fv = default` sits earlier in the
+          # header; the incrementor rebind must not suppress the body use -> OWN002 on 'fb'.
+          echo "$out" | grep -qE "OWN002.*'fb'" \
+            || { echo "FAIL: expected OWN002 on 'fb' (for-incrementor must not suppress the body use)"; exit 1; }
+          # CodeRabbit review on #98 — out-arg rebind: after `Reset(out ov)` the view no longer borrows
+          # the returned 'obuf' (callee wrote an unknown value), so the later read is conservatively
+          # SILENT (an honest miss, never a false positive).
+          if echo "$out" | grep -qE "OWN002.*'obuf'"; then
+            echo "FAIL: an out-rebound view must not be attributed to the returned 'obuf'"; exit 1
+          fi
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->

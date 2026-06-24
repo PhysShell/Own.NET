@@ -597,6 +597,92 @@ public class FlowLocalsSample
         var ctorMoved = ArrayPool<byte>.Shared.Rent(n);
         return new PooledHolder(ctorMoved);
     }
+
+    // b′ pooled-view REASSIGNMENT FP (P-007 POOL002): a `Span` view of one rented buffer is reused for
+    // a SECOND rented buffer. Provenance is read from the view's declaration only, so before the fix
+    // every later reference to `v` was attributed to the original `bufA` — flagging the reassignment's
+    // own LHS and the post-reassignment read as use-after-return on `bufA` (two false OWN002). The fix:
+    // (1) an assignment TARGET is not a use, and (2) a reference past a reassignment drops the declared
+    // owner (silent). The pre-reassignment read `v[0]` (while `bufA` is returned) is a REAL
+    // use-after-return -> exactly ONE OWN002 on `bufA`; `bufB` is returned after its last read -> silent.
+    public void ReassignedView(int n, int m)
+    {
+        byte[] bufA = ArrayPool<byte>.Shared.Rent(n);
+        byte[] bufB = ArrayPool<byte>.Shared.Rent(m);
+        Span<byte> v = bufA.AsSpan(0, n);            // v BORROWS bufA
+        ArrayPool<byte>.Shared.Return(bufA);         // bufA recycled
+        v[0] = 1;                                    // (i) read through v while bufA is gone -> OWN002 (bufA)
+        v = bufB.AsSpan(0, m);                       // reassign: v now borrows bufB (LHS v is a def, not a read)
+        v[1] = 2;                                    // (ii) reads bufB, not bufA -> must be SILENT
+        ArrayPool<byte>.Shared.Return(bufB);
+    }
+
+    // Codex review on #98: `sliced = sliced.Slice(1)` — the RHS reads the STILL-stale view, so the
+    // assignment's own LHS must not count as a prior rebind of its own RHS; a reslice of a returned
+    // buffer keeps tripping OWN002 on 'sb'. (Tracking the resliced owner FORWARD to later lines is the
+    // deferred re-slice gap, so this method has exactly the one RHS finding.)
+    public void SliceReassignAfterReturn(int n)
+    {
+        byte[] sb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> sliced = sb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(sb);
+        sliced = sliced.Slice(1);                    // RHS reads the returned 'sb' -> OWN002 on 'sb'
+    }
+
+    // Codex review on #98: a `ref` argument is NOT a pure write — the callee receives (and may read)
+    // the current value — so passing a stale view by `ref` after the buffer was returned is a
+    // use-after-return -> OWN002 on 'rb'. Only `out` is the pure def that is exempt from the use scan.
+    public void RefArgUseAfterReturn(int n)
+    {
+        byte[] rb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> rv = rb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(rb);
+        Touch(ref rv);                               // ref passes the stale view (a read) -> OWN002 on 'rb'
+    }
+
+    private static void Touch(ref Span<byte> s) => s = s.Slice(0);
+
+    // Codex review on #98 (follow-up): arguments evaluate BEFORE the callee writes an `out` parameter,
+    // so `Reinit(out ov, ov[0])` reads the STALE view in the second argument while `ov` still aliases
+    // the returned 'ob' — a use-after-return -> OWN002 on 'ob'. The `out ov` rebind must not suppress a
+    // sibling argument of the same call (it is not yet in effect during argument evaluation).
+    public void OutArgSiblingUseAfterReturn(int n)
+    {
+        byte[] ob = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> ov = ob.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(ob);
+        Reinit(out ov, ov[0]);                       // ov[0] reads the stale view before the out-write -> OWN002 on 'ob'
+    }
+
+    private static void Reinit(out Span<byte> s, byte first) => s = default;
+
+    // Codex review on #98 (follow-up): a `for` INCREMENTOR runs AFTER the body each iteration (and not
+    // at all before the first), so `fv[0]` reads the stale view on iteration 1 even though `fv = default`
+    // sits textually earlier in the loop header -> OWN002 on 'fb'. The incrementor rebind must not
+    // suppress a use in the loop body.
+    public void ForIncrementorBodyUseAfterReturn(int n)
+    {
+        byte[] fb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> fv = fb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(fb);
+        for (int i = 0; i < n; fv = default, i++)    // incrementor rebinds fv AFTER the body runs
+            fv[0] = 1;                               // reads the stale 'fb' on iteration 1 -> OWN002 on 'fb'
+    }
+
+    // CodeRabbit review on #98: an `out` argument is a pure write that both drops the view from the use
+    // scan AND rebinds it, so a reference AFTER `Reset(out ov)` no longer borrows the returned 'obuf' —
+    // the callee wrote an unknown value, so we conservatively go silent (an honest miss, never a false
+    // positive). Documents the `out` contract (the `ref` case is `RefArgUseAfterReturn`): NO OWN002 on 'obuf'.
+    public void OutArgRebindSuppressesLaterUse(int n)
+    {
+        byte[] obuf = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> ov = obuf.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(obuf);
+        Reset(out ov);                               // out-rebind: ov no longer borrows obuf
+        ov[0] = 1;                                   // reads the callee's unknown value, not obuf -> SILENT
+    }
+
+    private static void Reset(out Span<byte> s) => s = default;
 }
 
 // Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that
