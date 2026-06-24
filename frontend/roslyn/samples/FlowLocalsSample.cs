@@ -641,6 +641,20 @@ public class FlowLocalsSample
     }
 
     private static void Touch(ref Span<byte> s) => s = s.Slice(0);
+
+    // Codex review on #98 (follow-up): arguments evaluate BEFORE the callee writes an `out` parameter,
+    // so `Reinit(out ov, ov[0])` reads the STALE view in the second argument while `ov` still aliases
+    // the returned 'ob' — a use-after-return -> OWN002 on 'ob'. The `out ov` rebind must not suppress a
+    // sibling argument of the same call (it is not yet in effect during argument evaluation).
+    public void OutArgSiblingUseAfterReturn(int n)
+    {
+        byte[] ob = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> ov = ob.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(ob);
+        Reinit(out ov, ov[0]);                       // ov[0] reads the stale view before the out-write -> OWN002 on 'ob'
+    }
+
+    private static void Reinit(out Span<byte> s, byte first) => s = default;
 }
 
 // Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that

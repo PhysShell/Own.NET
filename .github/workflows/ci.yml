@@ -676,6 +676,11 @@ jobs:
           # the current value, so it is a use-after-return -> OWN002 on 'rb' (only `out` is exempt).
           echo "$out" | grep -qE "OWN002.*'rb'" \
             || { echo "FAIL: expected OWN002 on 'rb' (ref arg reads the stale view after return)"; exit 1; }
+          # Codex review on #98 (follow-up) — same-call out arg: `Reinit(out ov, ov[0])` reads the stale
+          # view in a SIBLING argument (args evaluate before the callee writes the out param), so it
+          # trips OWN002 on 'ob'; the out rebind must not suppress a use in the same invocation.
+          echo "$out" | grep -qE "OWN002.*'ob'" \
+            || { echo "FAIL: expected OWN002 on 'ob' (sibling-arg read before the out-write)"; exit 1; }
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->
