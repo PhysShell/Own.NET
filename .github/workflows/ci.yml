@@ -649,6 +649,12 @@ jobs:
             || { echo "FAIL: expected OWN001 on the local hidden behind a top-level validation throw"; exit 1; }
           echo "$out" | grep -qE "OWN001.*'dotNoTry' may not be disposed on every path" \
             || { echo "FAIL: expected OWN001 on the body-level dispose-not-called-on-throw (no try)"; exit 1; }
+          # flow-path pool LABEL: an ArrayPool Rent returned on one path only leaks on the other ->
+          # the flow path must word it as a "pooled buffer" (Return), NOT the generic "disposable".
+          # The extractor stamps the acquire kind; the bridge tags [resource: pooled buffer]. Pins
+          # the mislabel fix surfaced by the --body-throw-edges Npgsql capstone.
+          echo "$out" | grep -qE "OWN001.*pooled buffer 'partialBuf' may not be returned to the pool on every path" \
+            || { echo "FAIL: expected the flow-path pooled-buffer partial-path label on 'partialBuf'"; exit 1; }
           # closure-capture escape (precision): a SemaphoreSlim captured by a returned async
           # lambda outlives the method, so it cannot be disposed at method scope -> escaped ->
           # silent ('captured'). A SemaphoreSlim NOT captured and never disposed STILL leaks ->

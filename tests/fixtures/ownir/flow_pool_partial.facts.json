@@ -1,0 +1,22 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "comment": "Pool buffers on the FLOW path must read as a 'pooled buffer' (Return wording / [resource: pooled buffer]), not the generic 'disposable' — the extractor stamps the acquire kind 'pool' for an ArrayPool Rent so the bridge words it right. (1) PartialPoolLeak: a Rent returned on the fall-through but NOT on the throw edge -> 'may not be returned to the pool on every path'. (2) NeverReturnedPool: a Rent never returned -> 'rented but never returned to the pool'. (3) DisposableControl: a plain disposable on the same partial shape keeps the IDisposable wording. Regression for the flow-path pool mislabel surfaced by the --body-throw-edges Npgsql capstone (CompositeBuilder/BitStringConverters ArrayPool rents).",
+  "components": [],
+  "functions": [
+    {"name": "PoolFlow.PartialPoolLeak", "file": "PoolFlow.cs", "body": [
+      {"op": "acquire", "var": "buf", "line": 10, "kind": "pool"},
+      {"op": "if", "line": 11, "then": [{"op": "return", "var": null, "line": 11}], "else": []},
+      {"op": "release", "var": "buf", "line": 12}
+    ]},
+    {"name": "PoolFlow.NeverReturnedPool", "file": "PoolFlow.cs", "body": [
+      {"op": "acquire", "var": "nbuf", "line": 20, "kind": "pool"},
+      {"op": "use", "var": "nbuf", "line": 21}
+    ]},
+    {"name": "PoolFlow.DisposableControl", "file": "PoolFlow.cs", "body": [
+      {"op": "acquire", "var": "d", "line": 30, "kind": "disposable"},
+      {"op": "if", "line": 31, "then": [{"op": "return", "var": null, "line": 31}], "else": []},
+      {"op": "release", "var": "d", "line": 32}
+    ]}
+  ]
+}

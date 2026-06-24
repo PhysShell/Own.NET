@@ -571,6 +571,22 @@ public class FlowLocalsSample
         defer.Dispose();                         // disposed here -> balanced -> silent
     }
 
+    // flow-path pool LABEL: a rented buffer Returned only on the `then` path leaks on the else
+    // path -> OWN001 "pooled buffer 'partialBuf' may not be returned to the pool on every path"
+    // [resource: pooled buffer]. Pins the flow-path pool label end-to-end (the extractor stamps
+    // the acquire kind 'pool'; the bridge words it as a Return, not a Dispose) — it used to be
+    // mislabelled the generic "IDisposable local … disposable" (surfaced by the --body-throw-edges
+    // Npgsql capstone on CompositeBuilder/BitStringConverters ArrayPool rents).
+    public void PoolReturnedOnOnePath(bool c)
+    {
+        var partialBuf = ArrayPool<byte>.Shared.Rent(16);
+        partialBuf[0] = 1;
+        if (c)
+        {
+            ArrayPool<byte>.Shared.Return(partialBuf);
+        }
+    }
+
     // NOT a leak (mined FP on Pipelines.Sockets.Unofficial — ArrayPoolBufferWriter.CreateNewSegment):
     // a pooled buffer handed to a constructor whose result is RETURNED transfers ownership to the
     // returned wrapper (which Returns the buffer on its own teardown), so this method does not leak it
