@@ -24,8 +24,10 @@ out="artifacts/own-audit"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --bin) bin="$2"; shift 2 ;;
-    --out) out="$2"; shift 2 ;;
+    --bin) [[ $# -ge 2 ]] || { echo "infersharp.sh: --bin requires a value" >&2; exit 2; }
+           bin="$2"; shift 2 ;;
+    --out) [[ $# -ge 2 ]] || { echo "infersharp.sh: --out requires a value" >&2; exit 2; }
+           out="$2"; shift 2 ;;
     -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "infersharp.sh: unknown arg $1" >&2; exit 2 ;;
   esac

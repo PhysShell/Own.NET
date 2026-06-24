@@ -23,9 +23,12 @@ db=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --target) target="$2"; shift 2 ;;
-    --out)    out="$2"; shift 2 ;;
-    --db)     db="$2"; shift 2 ;;
+    --target) [[ $# -ge 2 ]] || { echo "codeql.sh: --target requires a value" >&2; exit 2; }
+              target="$2"; shift 2 ;;
+    --out)    [[ $# -ge 2 ]] || { echo "codeql.sh: --out requires a value" >&2; exit 2; }
+              out="$2"; shift 2 ;;
+    --db)     [[ $# -ge 2 ]] || { echo "codeql.sh: --db requires a value" >&2; exit 2; }
+              db="$2"; shift 2 ;;
     -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "codeql.sh: unknown arg $1" >&2; exit 2 ;;
   esac
