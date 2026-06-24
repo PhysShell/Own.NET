@@ -1536,12 +1536,13 @@ static string? ViewOwnerOf(IdentifierNameSyntax idn, SemanticModel model)
 // source position strictly after its declaration `decl` and strictly before the reference `use`,
 // within the declaring member? Source-order and intraprocedural: straight-line code is exact; a
 // reassignment on a non-taken branch suppresses conservatively (a possible miss, never a false
-// positive). The b′ predicate behind ViewOwnerOf's reassignment suppression. Three writes do NOT
+// positive). The b′ predicate behind ViewOwnerOf's reassignment suppression. Four writes do NOT
 // count, because their effect is not yet visible to the use (all Codex/CodeRabbit review on #98):
 // one in the SAME assignment as the use (`v = v.Slice(1)` — the RHS reads the still-current view);
 // one that is a `ref`/`out` ARGUMENT of the same call as the use (`Reinit(out v, v[0])` — arguments
-// evaluate before the callee writes the parameter); and one nested in a deferred body (a lambda /
-// local function runs on invoke, not at its textual position).
+// evaluate before the callee writes the parameter); one in a `for` INCREMENTOR enclosing the use
+// (`for (;;v=default) { v[0]=…; }` — the incrementor runs after the body, not at its header position);
+// and one nested in a deferred body (a lambda / local function runs on invoke, not at its textual position).
 static bool ReassignedBetween(ILocalSymbol sym, VariableDeclaratorSyntax decl,
                               IdentifierNameSyntax use, SemanticModel model)
 {
@@ -1559,6 +1560,10 @@ static bool ReassignedBetween(ILocalSymbol sym, VariableDeclaratorSyntax decl,
             continue;                                   // the use's OWN assignment, not a prior rebind
         if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax args } && args.Span.Contains(use.Span))
             continue;                                   // ref/out rebind in the SAME call: args evaluate before the callee writes
+        if (id.Ancestors().OfType<ForStatementSyntax>()
+               .FirstOrDefault(f => f.Incrementors.Any(i => i.Span.Contains(id.Span))) is { } forInc
+            && forInc.Span.Contains(use.Span))
+            continue;                                   // for-incrementor rebind runs AFTER the body, not at its header position
         if (InDeferredBody(id, scope))
             continue;                                   // a write inside a lambda/local fn does not run here
         if (SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, sym))

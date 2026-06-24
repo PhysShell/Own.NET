@@ -655,6 +655,34 @@ public class FlowLocalsSample
     }
 
     private static void Reinit(out Span<byte> s, byte first) => s = default;
+
+    // Codex review on #98 (follow-up): a `for` INCREMENTOR runs AFTER the body each iteration (and not
+    // at all before the first), so `fv[0]` reads the stale view on iteration 1 even though `fv = default`
+    // sits textually earlier in the loop header -> OWN002 on 'fb'. The incrementor rebind must not
+    // suppress a use in the loop body.
+    public void ForIncrementorBodyUseAfterReturn(int n)
+    {
+        byte[] fb = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> fv = fb.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(fb);
+        for (int i = 0; i < n; fv = default, i++)    // incrementor rebinds fv AFTER the body runs
+            fv[0] = 1;                               // reads the stale 'fb' on iteration 1 -> OWN002 on 'fb'
+    }
+
+    // CodeRabbit review on #98: an `out` argument is a pure write that both drops the view from the use
+    // scan AND rebinds it, so a reference AFTER `Reset(out ov)` no longer borrows the returned 'obuf' —
+    // the callee wrote an unknown value, so we conservatively go silent (an honest miss, never a false
+    // positive). Documents the `out` contract (the `ref` case is `RefArgUseAfterReturn`): NO OWN002 on 'obuf'.
+    public void OutArgRebindSuppressesLaterUse(int n)
+    {
+        byte[] obuf = ArrayPool<byte>.Shared.Rent(n);
+        Span<byte> ov = obuf.AsSpan(0, n);
+        ArrayPool<byte>.Shared.Return(obuf);
+        Reset(out ov);                               // out-rebind: ov no longer borrows obuf
+        ov[0] = 1;                                   // reads the callee's unknown value, not obuf -> SILENT
+    }
+
+    private static void Reset(out Span<byte> s) => s = default;
 }
 
 // Takes ownership of a pooled buffer (Returns it on teardown) — the wrapper that
