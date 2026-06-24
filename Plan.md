@@ -52,8 +52,8 @@
 ```
 Слой 1 — СТАТИКА (делаем первым, это основной deliverable)
   target.sln ──► [fleet прогонов, каждый → SARIF] ──► normalize ──► score ──► health report
-  build-free:   own-check, CodeQL (build-mode: none)
-  build-req:    Roslyn analyzer packs, Infer#, NDepend(опц.)   [нужен Windows-build с DevExpress]
+  build-free:   own-check, CodeQL (build-mode: none)            [в CI на каждый коммит]
+  build-req:    Roslyn analyzer packs, Infer#                    [вручную на Windows dev-машине с DevExpress]
 
 Слой 2 — РАНТАЙМ (после статики)
   FlaUI-сценарии (открыть/загрузить/закрыть ×N) + SematixTrace breadcrumbs
@@ -91,11 +91,11 @@
 | 8 | Сломанная/выключенная virtualization (ScrollViewer вокруг virtualized, `StackPanel` вместо `VirtualizingStackPanel`) | runtime | visual-tree element counts + render-профиль (PerfView WPF ETW, Perforator) | **NO-TOOL** static → **RUNTIME** | регексом по XAML — это FP-генератор, сознательно отказываемся |
 | 9 | Freezable не заморожен; brush/geometry per-instance | static (частично) + runtime | WpfAnalyzers (часть правил); иначе alloc-профиль | **LOW–MED** | остаток → runtime alloc stacks |
 | 10 | Аллокации в конвертерах/getter'ах, layout-invalidation storms | runtime | PerfView allocation stacks + WPF render ETW | **NO-TOOL** static → **RUNTIME** | — |
-| 11 | **Размножение immutable/should-be-static данных** (units/countries/currencies, повторяющиеся строки, копии справочников по строкам) | runtime | **ClrMD/PerfView heap grouping** (duplicate detector); dotMemory (опц.) | **NO-TOOL** static → **RUNTIME** | зависит от данных рантайма, не от формы кода; статикой = FP. **Это «золото» проекта — приоритет в Слое 2.** |
+| 11 | **Размножение immutable/should-be-static данных** (units/countries/currencies, повторяющиеся строки, копии справочников по строкам) | runtime | **ClrMD/PerfView heap grouping** (duplicate detector) — free-стек | **NO-TOOL** static → **RUNTIME** | зависит от данных рантайма, не от формы кода; статикой = FP. **Это «золото» проекта — приоритет в Слое 2.** dotMemory не используем (нет лицензии) → retention paths считаем сами по дампу ClrMD. |
 | 12 | Тяжёлые справочники / LOH-фрагментация / Gen2-bloat / eager-load | runtime | PerfView (GC stats, LOH, Gen2), счётчики | **impossible** static → **RUNTIME** | — |
 | 13 | Cross-thread `ObjectDisposedException`, PropertyChanged из бэкграунд-потока | runtime | WPF dispatcher-checks + ETW во время сценариев | **impossible**/weak static → **RUNTIME** | happens-before, не структура |
 | 14 | Общие баги / perf / best-practice / async (топливо для «где хуже») | static | .NET SDK NetAnalyzers, Meziantou.Analyzer, Roslynator, AsyncFixer, SonarAnalyzer.CSharp, CodeQL `security-and-quality` | **HIGH** breadth | — |
-| 15 | Архитектурные метрики / циклы / hotspots / coupling-cohesion (ранжирование «где хуже») | static | **NDepend** (если есть лицензия); частично Roslynator/Sonar метрики | **MED** (HIGH с NDepend) | без лицензии — деградирует до метрик из Sonar/Roslynator, помечаем |
+| 15 | Архитектурные метрики / циклы / hotspots / coupling-cohesion (ранжирование «где хуже») | static | Roslynator/SonarAnalyzer метрики (free); CodeQL `cs/` quality-запросы | **LOW–MED** | NDepend не используем (нет лицензии) → ранжирование архитектуры деградирует до метрик из Sonar/Roslynator + CodeQL; помечаем это в coverage |
 
 > **Ключевой разворот для own-check.** В категориях 2–4 (subscription/timer/region
 > leaks) own-check — единственный, кто их вообще выражает; CodeQL и Infer# тут слепы
@@ -160,8 +160,15 @@ git worktree remove ../target-audit
 
 | Tier | Инструменты | Нужен ли успешный билд target'а |
 |---|---|---|
-| **Build-free** (бегут всегда, даже на сломанном solution) | own-check (error-tolerant `SemanticModel`), CodeQL (`build-mode: none`, из исходников) | нет |
-| **Build-required** (нужен Windows + установленный DevExpress 12.2 + рабочий MSBuild) | NetAnalyzers, Meziantou, Roslynator, AsyncFixer, SonarAnalyzer, IDisposableAnalyzers, WpfAnalyzers, PropertyChangedAnalyzers; Infer# (нужны `.dll`+`.pdb`); NDepend | да |
+| **Build-free** (бегут всегда, даже на сломанном solution; **гоняются в CI**) | own-check (error-tolerant `SemanticModel`), CodeQL (`build-mode: none`, из исходников) | нет |
+| **Build-required** (**вручную на Windows dev-машине** с установленным DevExpress 12.2 + рабочий MSBuild) | NetAnalyzers, Meziantou, Roslynator, AsyncFixer, SonarAnalyzer, IDisposableAnalyzers, WpfAnalyzers, PropertyChangedAnalyzers; Infer# (нужны `.dll`+`.pdb`) | да |
+
+**Решение по окружению (подтверждено):** выделенного Windows-CI с DevExpress нет.
+Поэтому **CI гоняет только build-free tier** (own-check + CodeQL — даёт каркас отчёта
+автоматически на каждый коммит), а **build-required tier запускается вручную** на
+Windows-машине разработчика и его SARIF подкладывается в `artifacts/own-audit/` для
+агрегации. NDepend выпадает (нет лицензии) — ранжирование архитектуры идёт на
+free-метриках (Roslynator/Sonar/CodeQL), что помечается в coverage.
 
 Каждый build-required прогон — `continue-on-error`: упавший билд даёт **частичный**
 отчёт, а не пустой, и явную пометку «tier недоступен: билд не собрался».
@@ -182,7 +189,13 @@ git worktree remove ../target-audit
   pdb). Для net472 на CI это самый хрупкий шаг — отсюда `continue-on-error`.
 - **own-check** — `scripts/own-check.sh --format sarif --severity warning` (переиспользуем
   как есть; `OWN_EXTRA_REF_DIRS` для WPF/WinForms ref-паков, как в `oracle.yml`).
-- **NDepend** (опц., если лицензия) — `NDepend.Console` → его отчёт → адаптер в SARIF/JSON.
+- ~~NDepend~~ — не используем (нет лицензии); архитектурное ранжирование (§2 кат. 15)
+  идёт на free-метриках Roslynator/Sonar/CodeQL с пометкой о деградации.
+
+**DevExpress-шум (подтверждено): baseline-suppress целиком.** Находки из
+DevExpress-namespace (`DevExpress.*`) глушатся на этапе нормализации (§3.4) — первый
+отчёт чище и сфокусирован на нашем коде. Сам факт глушения и счётчик подавленных
+находок печатаются в coverage-секции (ничего не прячем молча).
 
 ### 3.4. Нормализация и таксономия категорий
 
@@ -205,6 +218,12 @@ git worktree remove ../target-audit
 Непромэпленные правила **не выкидываются**, а собираются в `uncategorized` — чтобы
 таксономия росла осознанно, а не глотала находки молча (та же дисциплина, что
 «unparsed-line bucket» в `oracle_compare`).
+
+**DevExpress baseline-suppress** — отдельный фильтр нормализации: находки в путях/типах
+`DevExpress.*` (сторонний код) отбрасываются из основного отчёта, но **считаются** и
+попадают в coverage отдельной строкой («suppressed: DevExpress — N findings»). Это не
+regex-эвристика по нашему коду (тех заказчик запретил), а honest-фильтр стороннего
+namespace — снижает шум, ничего не пряча.
 
 ### 3.5. Скоринг и отчёт «где хуже всего»
 
@@ -257,9 +276,12 @@ UI «надо проверять на вшивость», и руками кли
 | Семантические breadcrumbs (связать сценарий ↔ снимок) | **SematixTrace** | `Step/Entity/Counter/Mark/RequestGc`; только в diagnostic-билде |
 | GC/alloc/CPU/WPF-render телеметрия | **PerfView** (ETW) | отлично работает с Framework: GC stats, alloc stacks, LOH, `Microsoft-Windows-WPF` провайдер |
 | Снимок кучи / дамп | **procdump** + (heap snapshot PerfView) | `dotnet-dump`/`gcdump` к Framework-процессу не цепляются; берём full dump |
-| Разбор кучи (retained, duplicates, retention paths) | **ClrMD** (`Microsoft.Diagnostics.Runtime`) | по дампу: типы, counts, кто держит; движок duplicate-детектора |
-| Retention paths (удобнее, если есть лицензия) | **dotMemory / dotMemory.Console** (опц.) | цепляется к Framework; `Key Retention Paths` |
+| Разбор кучи (retained, duplicates, retention paths) | **ClrMD** (`Microsoft.Diagnostics.Runtime`) | по дампу: типы, counts, кто держит; движок duplicate-детектора и retention-paths (считаем сами) |
 | Битые байндинги | **`PresentationTraceSources`** capture | включаем WPF binding trace на время сценария |
+
+> **Стек подтверждён как полностью бесплатный** (нет NDepend/dotMemory): retention
+> paths и duplicate-grouping считаем сами поверх ClrMD по full-dump'у (procdump) —
+> чуть больше своего кода в `audit/runtime/`, нулевая лицензионная зависимость.
 
 ### 4.1. Leak-harness (категории 2–4, 13)
 
@@ -287,9 +309,10 @@ grid/editor). Признак leak — **unbounded growth при повторен
 
 ### 4.2. Duplicate-immutable detector (категория 11 — приоритет)
 
-ClrMD по дампу: группировка объектов по `type + value-signature`, поиск
+ClrMD по full-dump'у (procdump): группировка объектов по `type + value-signature`, поиск
 `N×` одинаковых мелких объектов / строк / справочных DTO, размноженных по строкам
-грида/отчёта. Выхлоп — кандидаты на `static readonly`/flyweight/intern/reference-id.
+грида/отчёта; для топ-кандидатов считаем retention path до GC-root тем же ClrMD (без
+dotMemory). Выхлоп — кандидаты на `static readonly`/flyweight/intern/reference-id.
 Это «архитектурный ксерокс», который маскируется под утечку, и которого статикой не
 видно — поэтому он живёт здесь, а не в Слое 1.
 
@@ -370,8 +393,8 @@ audit/                              # cohesive; ничего не импорти
 
 Правило decoupling (тест в CI): grep по `audit/` не должен содержать `import ownlang`
 или ссылок в `ownlang/`. own-check вызывается только через `scripts/own-check.sh`.
-Язык оркестрации — **Python** (переиспользуем `parse_sarif`/oracle-логику, OS-agnostic,
-нулевой coupling); C# — только там, где вынужденно (Infer#-билд, FlaUI, ClrMD).
+Язык оркестрации — **Python** (подтверждено; переиспользуем `parse_sarif`/oracle-логику,
+OS-agnostic, нулевой coupling); C# — только там, где вынужденно (Infer#-билд, FlaUI, ClrMD).
 
 ---
 
@@ -379,13 +402,13 @@ audit/                              # cohesive; ничего не импорти
 
 | Риск / предпосылка | Влияние | Что делаем |
 |---|---|---|
-| **Build-required tier требует Windows + DevExpress 12.2 + рабочий MSBuild** | без него отваливаются Roslyn-паки, Infer#, NDepend | делаем это явной предпосылкой; build-free tier (own-check + CodeQL) работает всегда и даёт каркас отчёта даже на несобираемом solution |
+| **Build-required tier — только на Windows dev-машине** (CI его не гоняет) | Roslyn-паки и Infer# не автоматизированы в CI, запускаются руками | принято осознанно: CI = build-free (own-check + CodeQL) на каждый коммит; build-required tier — ручной прогон, его SARIF подкладывается в агрегацию |
 | Легаси `packages.config`/non-SDK csproj | условный `PackageReference` ненадёжен | механизм §3.1 (`<Analyzer Include>` + worktree) специально под это |
 | Свежие версии аналайзеров требуют новее Roslyn/SDK, чем легаси-билд | пак не грузится | пиннинг версий под toolchain; несовместимый → `NO-TOOL`, не силой |
 | `dotnet-gcdump`/`dotnet-counters` не цепляются к net472 | ложная надежда на CoreCLR-тулинг | рантайм-стек на ETW(PerfView) + procdump + ClrMD, не на `dotnet-*` |
 | Infer# на net472-бинарях на Linux-CI хрупок | частые пропуски | `continue-on-error`, частичный отчёт честно помечается |
-| DevExpress генерит шум в аналайзерах | FP-вал | DevExpress-namespace в baseline/suppress, отдельной пометкой в coverage |
-| NDepend без лицензии | слабее ранжирование архитектуры | помечаем деградацию (метрики из Sonar/Roslynator), не блокер |
+| DevExpress генерит шум в аналайзерах | FP-вал | **принято: baseline-suppress `DevExpress.*` целиком** на нормализации, со счётчиком подавленного в coverage |
+| Коммерции нет (NDepend/dotMemory) | слабее ранжирование архитектуры (кат. 15) и retention paths (кат. 11) | **принято: только free-стек**; архитектуру ранжируем метриками Sonar/Roslynator/CodeQL, retention paths считаем сами по ClrMD — помечаем деградацию, не блокер |
 
 ---
 
@@ -400,10 +423,11 @@ audit/                              # cohesive; ничего не импорти
 
 **Фаза 1 — Статический fleet (основной этап, M–L)**
 - 1a: механизм audit-only анализаторов (worktree + props + `OwnAudit`), `desktop-wpf` профиль.
-- 1b: runner'ы build-free (own-check, CodeQL) → SARIF.
-- 1c: runner'ы build-required (Roslyn-пак, Infer#) на Windows-build; `continue-on-error`.
-- 1d: `normalize` + таксономия; `score` (agreement/severity/heatmap); рендереры.
-- 1e: NDepend-адаптер (если лицензия).
+- 1b: runner'ы build-free (own-check, CodeQL) → SARIF — **в CI на каждый коммит**.
+- 1c: runner'ы build-required (Roslyn-пак, Infer#) — **ручной прогон на Windows dev-машине**;
+  `continue-on-error`; SARIF кладётся в `artifacts/own-audit/` для агрегации.
+- 1d: `normalize` + таксономия + **DevExpress baseline-suppress**; `score`
+  (agreement/severity/heatmap); рендереры. (NDepend нет — кат. 15 на free-метриках.)
 - **Deliverable: первый «анамнез» — категоризированный отчёт с ранжированием
   «где хуже / где почти норм» + честной coverage-картой.** Это то, ради чего всё.
 
@@ -443,15 +467,28 @@ build-free tier (own-check + CodeQL) по target'у → normalize → черно
 
 ---
 
-## 11. Открытые решения (нужно подтверждение)
+## 11. Принятые решения (подтверждено заказчиком)
 
-1. **Windows-build окружение с DevExpress 12.2** для build-required tier — есть
-   CI/агент или собираем на dev-машине? (Build-free tier не блокируется в любом случае.)
-2. **Язык оркестрации = Python** для статики/агрегации (рекомендация: переиспользуем
-   `parse_sarif`/oracle-логику; C# только в рантайме) — ок, или хотим единый dotnet-tool?
-3. **Лицензии**: есть ли NDepend и/или dotMemory? От этого зависит глубина
-   ранжирования архитектуры (кат. 15) и retention-paths (кат. 11) — без них помечаем
-   деградацию, не блокер.
-4. **Профиль FP по DevExpress**: baseline-suppress DevExpress-namespace целиком или
-   оставить с пометкой? (Влияет на шум в первом отчёте.)
+1. **Build-окружение — только Windows dev-машина.** Выделенного Windows-CI с
+   DevExpress 12.2 нет. → CI гоняет **build-free tier** (own-check + CodeQL) на каждый
+   коммит; **build-required tier** (Roslyn-паки, Infer#) — ручной прогон на dev-машине,
+   SARIF подкладывается в агрегацию. (§3.2, §9-1c)
+2. **Язык оркестрации статики/агрегации — Python.** Переиспользуем `parse_sarif` и
+   oracle-логику, нулевой coupling к ядру, OS-agnostic. C# — только в рантайме (FlaUI,
+   ClrMD). (§7)
+3. **Только free-стек, без коммерции.** Нет NDepend → архитектурное ранжирование
+   (кат. 15) на метриках Roslynator/Sonar/CodeQL с пометкой о деградации. Нет dotMemory
+   → duplicate-detector и retention paths (кат. 11) считаем сами поверх ClrMD по
+   full-dump'у. Помечаем деградацию, не блокер. (§2, §4, §8)
+4. **DevExpress — baseline-suppress целиком.** Находки в `DevExpress.*` глушатся на
+   нормализации, со счётчиком подавленного в coverage-секции (honest-фильтр стороннего
+   namespace, не regex по нашему коду). (§3.3, §3.4)
+
+### Остаётся открытым (не блокирует старт)
+
+- Точный список топ-N экранов для рантайм-сценариев Фазы 2 (тяжёлый справочник,
+  декларация/графа 47, отчёт, DevExpress-грид, часто открываемое окно) — уточним перед
+  Фазой 2.
+- Пиннинг версий Roslyn-паков под toolchain легаси-билда (свежие могут требовать новее
+  MSBuild) — выяснится на 1c, несовместимые помечаем `NO-TOOL`.
 ```
