@@ -81,20 +81,21 @@ def _location(f: dict[str, Any]) -> tuple[str, int]:
     return (f.get("location") or f.get("type") or "runtime", int(f.get("line", 0) or 0))
 
 
-_DUP_SLUG_RE = re.compile(r"[^0-9A-Za-z._-]+")
+_SLUG_RE = re.compile(r"[^0-9A-Za-z._-]+")
 
 
-def _dup_uri(type_name: str, value: str, index: int) -> str:
-    """A UNIQUE synthetic uri for one heap-wide duplicate group. These findings have
-    no source line, so without a distinct uri every group would share the same
-    ``(basename, line)`` and the scorer would collapse Country, Currency, ... into a
-    single cluster — corrupting totals/heatmap and hiding distinct remediation items
-    (Codex review on #103). The ``index`` guarantees uniqueness even when two display
-    values share a prefix; the slug keeps the path readable. All groups roll up under
-    one ``heap://<type>`` module, so the heatmap still buckets them together."""
-    typ = (type_name or "immutable").replace("\\", ".").replace("/", ".")
-    slug = _DUP_SLUG_RE.sub("_", value or "").strip("_")[:40] or "value"
-    return f"heap://{typ}/{index:04d}-{slug}"
+def _synthetic_uri(scheme: str, type_name: str, value: str, index: int) -> str:
+    """A UNIQUE synthetic uri for a runtime finding with no source line — a heap-wide
+    duplicate group (``heap://``), a storming property (``inpc://``). Without a
+    distinct uri every such finding would share the same ``(basename, line)`` and the
+    scorer would collapse Country/Currency or Total/Subtotal into a single cluster,
+    corrupting totals/heatmap and hiding distinct remediation items (Codex review on
+    #103). The ``index`` guarantees uniqueness even when two display values share a
+    prefix; the slug keeps the path readable. All findings of one ``scheme://<type>``
+    roll up under one heatmap module, so it still buckets them together."""
+    typ = (type_name or "runtime").replace("\\", ".").replace("/", ".")
+    slug = _SLUG_RE.sub("_", value or "").strip("_")[:40] or "value"
+    return f"{scheme}://{typ}/{index:04d}-{slug}"
 
 
 def leak_harness_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
@@ -133,9 +134,10 @@ def duplicate_detector_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
         if not f.get("report", True):
             continue
         # heap-wide duplicate groups have no source line; synthesize a UNIQUE uri per
-        # value so distinct groups stay distinct clusters (see _dup_uri). Always
+        # value so distinct groups stay distinct clusters (see _synthetic_uri). Always
         # file-level (line 0) -> no fabricated region.
-        uri = _dup_uri(str(f.get("type", "")), str(f.get("value", "")), len(findings))
+        uri = _synthetic_uri("heap", str(f.get("type", "")), str(f.get("value", "")),
+                             len(findings))
         findings.append({
             "rule": f.get("rule", "RUNTIME-DUP-IMMUTABLE"),
             "message": f.get("message", ""),
@@ -151,6 +153,45 @@ def duplicate_detector_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
         level="warning")
 
 
+def propertychanged_storm_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
+    """PropertyChanged-storm profiler JSON → SARIF (Plan.md §2 cat. 6, §4.3). The
+    profiler counts, over one user operation, how often each property raises
+    PropertyChanged and how many of those raises carry no value change (a missing
+    equality guard). A property over its per-operation threshold is a storm. When the
+    instrumentation resolved a source file the finding keeps it — so a storm clusters
+    with a static ``INPC0xx`` hit (cat. 5) in the same file → high confidence (§3.5);
+    otherwise we synthesize a unique per-property uri so distinct storming properties
+    stay distinct clusters. ``report: false`` (below threshold) is dropped; level
+    ``warning`` (a P2 perf finding, not a correctness error)."""
+    findings = []
+    for f in result.get("findings", []):
+        if not f.get("report", True):
+            continue
+        loc = f.get("location")
+        if loc:
+            uri, line = str(loc), int(f.get("line", 0) or 0)
+        else:
+            # no resolved source line: unique per (type, property) so distinct
+            # storming properties don't collapse into one cluster.
+            uri = _synthetic_uri("inpc", str(f.get("type", "")),
+                                 str(f.get("property", "")), len(findings))
+            line = 0
+        findings.append({
+            "rule": f.get("rule", "RUNTIME-PROPCHANGED-STORM"),
+            "message": f.get("message", ""),
+            "uri": uri, "line": line,
+            "properties": {k: f[k] for k in
+                           ("type", "property", "raises", "redundantRaises",
+                            "perOperation", "threshold")
+                           if k in f},
+        })
+    return _runtime_sarif(
+        result.get("tool", "propertychanged-storm"), findings,
+        {"target": result.get("target", ""), "commit": result.get("commit", ""),
+         "scenario": result.get("scenario", ""), "operations": result.get("operations", 0)},
+        level="warning")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Convert a runtime tool's JSON result to SARIF.")
     # exactly one source tool — reject both so a stray flag fails fast instead of
@@ -158,6 +199,7 @@ def main(argv: list[str] | None = None) -> int:
     src = ap.add_mutually_exclusive_group()
     src.add_argument("--leak-harness", help="leak-harness result JSON")
     src.add_argument("--duplicate-detector", help="duplicate-immutable-detector result JSON")
+    src.add_argument("--propertychanged-storm", help="PropertyChanged-storm profiler result JSON")
     ap.add_argument("--out", default="", help="output SARIF (defaults per tool under artifacts/)")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
@@ -172,8 +214,13 @@ def main(argv: list[str] | None = None) -> int:
         result = json.loads(Path(args.duplicate_detector).read_text(encoding="utf-8"))
         sarif = duplicate_detector_to_sarif(result)
         default_out = "artifacts/own-audit/duplicate-detector.sarif"
+    elif args.propertychanged_storm:
+        result = json.loads(Path(args.propertychanged_storm).read_text(encoding="utf-8"))
+        sarif = propertychanged_storm_to_sarif(result)
+        default_out = "artifacts/own-audit/propertychanged-storm.sarif"
     else:
-        ap.error("one of --leak-harness / --duplicate-detector is required (or --selftest)")
+        ap.error("one of --leak-harness / --duplicate-detector / "
+                 "--propertychanged-storm is required (or --selftest)")
 
     out = Path(args.out or default_out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -301,6 +348,60 @@ def _selftest() -> int:
           f"{dscored['totals']['clusters']}")
     check(dscored["by_category"].get("duplicate-immutable") == 2,
           f"both duplicate values must count under category 11, got {dscored['by_category']}")
+
+    # PropertyChanged-storm profiler (cat. 6): per-operation raise frequency. A storm
+    # with a resolved source file keeps its line (so it clusters with a static INPC0xx
+    # hit in the same file); storms with no source line get unique per-property uris so
+    # distinct properties stay distinct clusters; below-threshold is dropped.
+    storm = propertychanged_storm_to_sarif({
+        "tool": "propertychanged-storm", "target": "acme/LegacyApp",
+        "scenario": "open-declaration", "operations": 1,
+        "findings": [
+            {"rule": "RUNTIME-PROPCHANGED-STORM", "type": "Acme.Vm.DeclarationViewModel",
+             "property": "Total", "location": "src/Vm/DeclarationViewModel.cs", "line": 88,
+             "raises": 4200, "redundantRaises": 3990, "perOperation": 4200.0,
+             "threshold": 50, "report": True,
+             "message": "Total raised PropertyChanged 4200x/op (3990 with no value change)"},
+            {"rule": "RUNTIME-PROPCHANGED-STORM", "type": "Acme.Vm.DeclarationViewModel",
+             "property": "Subtotal", "raises": 900, "redundantRaises": 880,
+             "perOperation": 900.0, "threshold": 50, "report": True,
+             "message": "Subtotal raised PropertyChanged 900x/op (880 with no value change)"},
+            {"rule": "RUNTIME-PROPCHANGED-STORM", "type": "Acme.Vm.DeclarationViewModel",
+             "property": "Title", "raises": 2, "redundantRaises": 0, "perOperation": 2.0,
+             "threshold": 50, "report": False, "message": "below threshold"},
+        ]})
+    sres = storm["runs"][0]["results"]
+    check(len(sres) == 2, f"below-threshold storm must be dropped: got {len(sres)}")
+    check(all(r["level"] == "warning" for r in sres),
+          "propertychanged-storm must be SARIF level warning (P2)")
+    located = [r for r in sres
+               if r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+               == "src/Vm/DeclarationViewModel.cs"]
+    check(len(located) == 1
+          and located[0]["locations"][0]["physicalLocation"].get("region", {})
+          .get("startLine") == 88,
+          "a storm with a resolved source file must keep its source line")
+    suris = {r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] for r in sres}
+    check(len(suris) == 2, f"distinct storming properties need distinct uris, got {suris}")
+    snorm = normalize_results(parse_sarif(json.dumps(storm), "propertychanged-storm", []), tax)
+    scat = {f.rule: (f.category, f.category_name) for f in snorm}
+    check(scat.get("RUNTIME-PROPCHANGED-STORM") == (6, "propertychanged-storm"),
+          f"propertychanged-storm -> category 6, got {scat.get('RUNTIME-PROPCHANGED-STORM')}")
+    # Plan §3.5: the located storm + a static INPC0xx in the same file -> high confidence.
+    inpc_sarif = json.dumps({"version": "2.1.0", "runs": [{
+        "tool": {"driver": {"name": "Own.NET"}}, "results": [
+            {"ruleId": "INPC003", "level": "warning",
+             "message": {"text": "raise PropertyChanged without an equality check"},
+             "locations": [{"physicalLocation": {
+                 "artifactLocation": {"uri": "src/Vm/DeclarationViewModel.cs"},
+                 "region": {"startLine": 87}}}]}]}]})
+    both_s = normalize_results(parse_sarif(inpc_sarif, "own-check", []), tax) + snorm
+    sscored = score(both_s, tax, line_tol=3)
+    confirmed_s = [c for c in sscored["clusters"] if c.confidence == "high"
+                   and set(c.tools) == {"own-check", "propertychanged-storm"}]
+    check(len(confirmed_s) == 1,
+          f"static INPC0xx + runtime storm in the same file must form 1 high-confidence "
+          f"cluster, got {[(c.module, c.tools, c.confidence) for c in sscored['clusters']]}")
 
     fails = [c for c in checks if c]
     for f in fails:

@@ -146,7 +146,8 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
     # with its static OWN014/OWN001 -> high confidence (§3.5) through the orchestrator,
     # not only the lower-level aggregate().
     for fname, tool in (("leak-harness.sarif", "leak-harness"),
-                        ("duplicate-detector.sarif", "duplicate-detector")):
+                        ("duplicate-detector.sarif", "duplicate-detector"),
+                        ("propertychanged-storm.sarif", "propertychanged-storm")):
         rt = out_dir / fname
         if rt.exists():
             sarif_inputs.append((tool, str(rt)))
@@ -284,6 +285,13 @@ def _selftest() -> int:
              "locations": [{"physicalLocation": {"artifactLocation": {
                  "uri": "heap://System.String/0000-Country"}}}]}]}]}
         (out2 / "duplicate-detector.sarif").write_text(json.dumps(dup), encoding="utf-8")
+        # a runtime propertychanged-storm SARIF must be folded in by the same loop.
+        storm = {"runs": [{"tool": {"driver": {"name": "propertychanged-storm"}}, "results": [
+            {"ruleId": "RUNTIME-PROPCHANGED-STORM", "level": "warning",
+             "message": {"text": "Total raised PropertyChanged 4200x/op"},
+             "locations": [{"physicalLocation": {"artifactLocation": {
+                 "uri": "inpc://Acme.Vm.DeclarationViewModel/0000-Total"}}}]}]}]}
+        (out2 / "propertychanged-storm.sarif").write_text(json.dumps(storm), encoding="utf-8")
         profile = {"name": "t", "severity_floor": "warning", "tiers": {"build_free": []}}
         res2 = run("/nonexistent-target", profile, out2, target_name="t/p")
         check(any(t["tool"] == "roslyn-pack" for t in res2["tiers"]),
@@ -292,6 +300,8 @@ def _selftest() -> int:
               "runtime leak-harness.sarif must be folded in by run()")
         check(any(t["tool"] == "duplicate-detector" for t in res2["tiers"]),
               "runtime duplicate-detector.sarif must be folded in by run()")
+        check(any(t["tool"] == "propertychanged-storm" for t in res2["tiers"]),
+              "runtime propertychanged-storm.sarif must be folded in by run()")
         check(res2["totals"]["high_confidence"] >= 1,
               "runtime leak + static finding in one file must form a high-confidence cluster")
 

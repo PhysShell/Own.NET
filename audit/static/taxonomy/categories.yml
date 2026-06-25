@@ -64,6 +64,10 @@ rules:
   "RUNTIME-LEAK-TIMER": {category: 3, name: timer-leak}
   "RUNTIME-DPD-ADDVALUECHANGED": {category: 4, name: dpd-addvaluechanged-leak}
   "RUNTIME-DUP-IMMUTABLE": {category: 11, name: duplicate-immutable}
+  "RUNTIME-PROPCHANGED-STORM": {category: 6, name: propertychanged-storm}   # raise-frequency,
+                                                 # NOT INPC0xx correctness (cat. 5) — a storm
+                                                 # in the same file as an INPC0xx hit clusters
+                                                 # with it -> high confidence (§3.5)
 
 # Baseline P-level per category (Plan.md §3.5.2). Confidence (cross-tool
 # agreement) is a SEPARATE axis handled by score.py; this is severity only.
@@ -73,6 +77,7 @@ category_severity:
   3: P1
   4: P1      # DependencyPropertyDescriptor.AddValueChanged leak (runtime-confirmed)
   5: P2
+  6: P2      # PropertyChanged storms/cascades — runtime raise-frequency, perf-tier
   9: P2
   11: P2     # duplicated immutable data — memory bloat (the project's "gold"), perf-tier
   14: P2
