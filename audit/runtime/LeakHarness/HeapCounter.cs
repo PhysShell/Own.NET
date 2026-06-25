@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime;
 
 namespace OwnNet.Audit.Runtime
@@ -42,7 +45,10 @@ namespace OwnNet.Audit.Runtime
             try
             {
                 using var dataTarget = DataTarget.LoadDump(dump);
-                using var runtime = dataTarget.ClrVersions[0].CreateRuntime();
+                var clr = dataTarget.ClrVersions.FirstOrDefault()
+                    ?? throw new InvalidOperationException(
+                        $"dump for pid {pid} contains no CLR — is the target a managed process?");
+                using var runtime = clr.CreateRuntime();
                 foreach (var obj in runtime.Heap.EnumerateObjects())
                 {
                     var name = obj.Type?.Name;
@@ -70,10 +76,22 @@ namespace OwnNet.Audit.Runtime
                 CreateNoWindow = true,
             };
             using var p = Process.Start(psi)!;
-            p.WaitForExit();
-            if (!File.Exists(dumpPath))
+            // Drain both pipes asynchronously BEFORE waiting: if procdump fills a pipe
+            // buffer while the harness blocks in WaitForExit(), both deadlock. Bound the
+            // wait so a stuck procdump can't hang the harness forever, and check the
+            // exit code, not just whether a file appeared.
+            var stdout = p.StandardOutput.ReadToEndAsync();
+            var stderr = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(120_000))
             {
-                throw new IOException($"procdump did not produce a dump for pid {pid}");
+                try { p.Kill(); } catch { /* best effort */ }
+                throw new IOException($"procdump timed out (>120s) for pid {pid}");
+            }
+            Task.WaitAll(stdout, stderr);
+            if (p.ExitCode != 0 || !File.Exists(dumpPath))
+            {
+                throw new IOException(
+                    $"procdump failed for pid {pid} (exit {p.ExitCode}): {stderr.Result}");
             }
         }
     }

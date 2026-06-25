@@ -88,7 +88,9 @@ namespace OwnNet.Audit.Runtime
             }
             finally
             {
-                app.Close();
+                // The target may already have exited/crashed; a teardown throw must not
+                // mask the real exception flowing out of the try.
+                try { app.Close(); } catch { /* target may already be gone */ }
                 app.Dispose();
             }
         }

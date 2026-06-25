@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YamlDotNet.Serialization;
@@ -25,7 +26,22 @@ namespace OwnNet.Audit.Runtime
                 .WithNamingConvention(HyphenatedNamingConvention.Instance)
                 .IgnoreUnmatchedProperties()
                 .Build();
-            return deserializer.Deserialize<Scenario>(File.ReadAllText(path));
+            var scenario = deserializer.Deserialize<Scenario>(File.ReadAllText(path));
+            // Fail fast on a malformed scenario: a missing `rule`/`type` would otherwise
+            // emit a finding under the wrong taxonomy rather than be caught here.
+            foreach (var s in scenario.Suspects)
+            {
+                if (string.IsNullOrWhiteSpace(s.Type))
+                {
+                    throw new ArgumentException($"scenario '{scenario.Name}': a suspect is missing 'type'");
+                }
+                if (string.IsNullOrWhiteSpace(s.Rule))
+                {
+                    throw new ArgumentException(
+                        $"scenario '{scenario.Name}': suspect '{s.Type}' is missing 'rule'");
+                }
+            }
+            return scenario;
         }
     }
 
@@ -45,7 +61,7 @@ namespace OwnNet.Audit.Runtime
     public sealed class Suspect
     {
         public string Type { get; set; } = "";                       // fully-qualified CLR type
-        public string Rule { get; set; } = "RUNTIME-LEAK-SUBSCRIPTION";
+        public string Rule { get; set; } = "";                       // required — validated on load
         public string Location { get; set; } = "";                   // source file, for correlation
         public int Line { get; set; }                                // 0 = file-level
     }
