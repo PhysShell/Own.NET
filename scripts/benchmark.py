@@ -356,7 +356,7 @@ def main(argv: list[str]) -> int:
                     help="validate the harness logic with no .NET SDK")
     ap.add_argument("--root", default=None, help="repo root (default: this script's repo)")
     ap.add_argument("--corpus", action="append", default=None, metavar="DIR",
-                    help="corpus base dir(s) (default: corpus/real-world + corpus/wpf)")
+                    help="corpus base dir(s) (default: corpus/real-world + corpus/wpf + corpus/di)")
     ap.add_argument("--min-recall", type=_non_negative_int, default=0, metavar="N",
                     help="fail if fewer than N before.cs cases are caught (the pinned "
                          "recall floor; specificity + zero-FP are always required)")
@@ -365,7 +365,8 @@ def main(argv: list[str]) -> int:
         return _selftest()
     root = args.root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     corpus_dirs = args.corpus or [os.path.join(root, "corpus", "real-world"),
-                                  os.path.join(root, "corpus", "wpf")]
+                                  os.path.join(root, "corpus", "wpf"),
+                                  os.path.join(root, "corpus", "di")]
     return run(root, corpus_dirs, args.min_recall)
 
 

@@ -147,9 +147,21 @@ architectural strictness, and the borrow-checker showcase):
    registration + constructor graph from `Add{Singleton,Scoped,Transient}` (generic
    and `typeof(...)` forms) and the core flags the captive — direct, transitive
    through a transient, or through an interface registration — CI-validated on
-   `DiCaptiveSample.cs`. **DI003** (a transient `IDisposable` captured by a singleton,
-   warning) now also fires on the same sample. Remaining: DI002 (weak-ref), the explicit
-   root-`GetService` form of DI003, and the consuming-constructor anchor.
+   `DiCaptiveSample.cs`. The whole captive family is now built end to end on the same
+   sample: **DI002** (a scoped service held weakly via `WeakReference<T>` — still
+   root-resolved/app-lived), **DI003** (a transient `IDisposable` captured by a singleton),
+   and **DI004** (the service-locator form — a transient `IDisposable` resolved by hand from
+   a singleton's injected **root** `IServiceProvider` via `GetService`/`GetRequiredService`),
+   all warnings; plus the **consuming-constructor anchor** (a captive names both its
+   registration site and the ctor that injects it, as message tail + SARIF relatedLocation).
+   **DI005** (the fix done wrong — a singleton that injects `IServiceScopeFactory`, opens a
+   scope, but **caches** the scope-resolved **scoped** service into a field, so it dangles after
+   the scope is disposed and is promoted to app lifetime) is built end to end too, a store-site
+   property anchored at the field assignment. The family now also has its first **real-world
+   corpus case** — a singleton injecting a scoped EF `DbContext` → DI001 (`corpus/di/`, a
+   benchmark-only corpus since DI has no `.own` form). Remaining (deliberate-deferral / future):
+   directly-injected `IServiceScopeFactory`-as-a-positive-signal recognition (P-006 OQ#3), and
+   the dynamic registrations that are explicit non-goals.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
    ◑ *In progress* — POOL001 (leak), POOL002 (view-after-return → OWN002),
@@ -225,7 +237,7 @@ own scan. Label them as estimates wherever they appear.
 | [P-003](proposals/P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | horizon | draft |
 | [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | in progress (WPF001–005 built) |
 | [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | draft |
-| [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001 end-to-end: core + extractor) |
+| [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001–DI005 end-to-end: core + extractor) |
 | [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](proposals/P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | P1/P2 | draft |
 | [P-009](proposals/P-009-nogc-regions.md) | No-GC / allocation-free regions | horizon | draft |

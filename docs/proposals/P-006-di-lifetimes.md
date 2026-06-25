@@ -17,7 +17,18 @@
   `IDisposable` resolved by hand from a singleton's injected **root** `IServiceProvider` —
   `GetService<T>()` / `GetRequiredService<T>()`, the service-locator anti-pattern) extends
   the family to a **call site** the registration graph cannot see, also a CI-validated
-  warning on the same sample.
+  warning on the same sample. **DI005** (a singleton that resolves a **scoped** service from a
+  scope it *creates* — the correct `IServiceScopeFactory` pattern — but **caches it into a
+  field**, so the cached instance dangles after the scope is disposed and is promoted to
+  application lifetime: the captive returns, hidden behind the API meant to fix it) is the
+  newest member — a **store-site** property (the field assignment), anchored there like DI004
+  anchors at its call site; CI-validated on the same sample (`ScopeCachingService` flagged;
+  the used-in-scope `ScopeUsingService` and the cached-singleton `ClockCachingService` silent).
+  A first **real-world corpus case** now grounds DI001 outside
+  the synthetic sample — a singleton injecting a scoped EF `DbContext`
+  (`corpus/di/singleton-captures-scoped-dbcontext`), scored by the dotnet `corpus-benchmark`
+  job (a benchmark-only corpus: DI has no `.own` reduction, so it is not run by the Python
+  `test_corpus` `.own` suite).
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
@@ -72,6 +83,26 @@ to a longer-lived region) already models it.
   restricted to real fields (no local-alias false match) — each pinned by a control on
   `DiCaptiveSample.cs` (`ConnectionResolver` / `ExprBodiedResolver` / transitive `WrapperResolver`
   flagged; `ScopedResolver` / `PlainResolver` / `RequestResolver` silent).
+- **DI005 (warning) — shipped:** the *fix done wrong*. A singleton that **does** inject
+  `IServiceScopeFactory` (or its provider) and opens a scope (`CreateScope()`) — the remedy
+  suggested below — but then **caches the scope-resolved scoped service into a field**. The
+  `using` scope is disposed when the operation ends, so the cached instance is used after the
+  scope (and the service) is disposed (use-after-dispose) *and* lives for the application
+  lifetime: the captive the scope was meant to avoid, now invisible to the static surface that
+  "sees the fix". The extractor records the scope-creator names (injected `IServiceScopeFactory`
+  / provider, with the same this-field discipline as DI004), the scope locals their
+  `CreateScope()` produces, and each `scope.ServiceProvider.Get(Required)Service<T>()` whose
+  result is **assigned to a field** into a `scope_cached` list with its store site;
+  `find_scope_cached_captives` walks each cached entry's **strong transient graph** like DI001 —
+  a cached **scoped** service is the captive directly, and a cached **transient** that ctor-injects
+  a scoped service (directly or transitively) drags it into the singleton's lifetime too (the scope
+  disposed it; the singleton keeps the transient holding it). A cached singleton is shareable.
+  A **store-site** property (anchored at the field assignment, like DI004's call site), filed as a
+  distinct code (different detection, different fix: resolve inside the scope per use, do not
+  cache). Precision guards — singleton-only, scoped-cached-type-only (a cached singleton is
+  shareable, a cached transient is the DI003/DI004 family), real-field store only (a value used
+  in the scope and discarded is a local, not a field) — pinned on `DiCaptiveSample.cs`
+  (`ScopeCachingService` flagged; `ScopeUsingService` / `ClockCachingService` silent).
 
 Suggested fix attached to DI001/DI002: inject `IServiceScopeFactory`, and per
 operation `using var scope = factory.CreateScope();` then resolve the scoped

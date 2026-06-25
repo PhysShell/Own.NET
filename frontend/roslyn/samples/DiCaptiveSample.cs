@@ -137,6 +137,71 @@ namespace Sample
         public void Warm() { var m = _sp.GetRequiredService<MidConnection>(); }               // DI004 (transitive)
     }
 
+    // DI005 — a singleton that resolves a SCOPED service from a scope it CREATES (the correct
+    // IServiceScopeFactory pattern) but CACHES it into a FIELD. The `using` scope is disposed when
+    // the operation ends, so `_db` dangles (use-after-dispose) and is promoted to the singleton's
+    // application lifetime — the captive returns, hidden behind the very API meant to fix it. The
+    // static surface "sees the fix" (CreateScope) and would otherwise stay silent, which is exactly
+    // why this needs a dedicated check. A warning, anchored at the field store.
+    public sealed class ScopeCachingService
+    {
+        private readonly IServiceScopeFactory _scopes;
+        private AppDbContext _db;                                  // cached scoped service (app-lived)
+        public ScopeCachingService(IServiceScopeFactory scopes) { _scopes = scopes; }
+        public void Warm()
+        {
+            using var scope = _scopes.CreateScope();
+            _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();   // DI005 — cached into a field
+        }
+    }
+
+    // control: creates a scope and USES the scoped service WITHIN the scope, not caching it — the
+    // CORRECT scope-per-operation pattern. The resolved value is a LOCAL, never a field store, so
+    // DI005 stays SILENT.
+    public sealed class ScopeUsingService
+    {
+        private readonly IServiceScopeFactory _scopes;
+        public ScopeUsingService(IServiceScopeFactory scopes) { _scopes = scopes; }
+        public void Run()
+        {
+            using var scope = _scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();   // SILENT — used locally
+            _ = db;
+        }
+    }
+
+    // control: caches a SINGLETON service (Clock) resolved from a scope into a field — a singleton
+    // is shareable for the whole app, so caching it is no lifetime violation. SILENT (the cached
+    // type is not scoped; the core gates DI005 on a scoped cached type).
+    public sealed class ClockCachingService
+    {
+        private readonly IServiceScopeFactory _scopes;
+        private Clock _clock;
+        public ClockCachingService(IServiceScopeFactory scopes) { _scopes = scopes; }
+        public void Warm()
+        {
+            using var scope = _scopes.CreateScope();
+            _clock = scope.ServiceProvider.GetRequiredService<Clock>();   // SILENT — Clock is singleton
+        }
+    }
+
+    // DI005 (transitive) — caches a TRANSIENT (UnitOfWork) resolved from a created scope into a
+    // field. UnitOfWork ctor-injects scoped AppDbContext; the scope disposes that DbContext when
+    // the operation ends, but the singleton keeps the UnitOfWork holding it (use-after-dispose).
+    // The DFS follows the cached transient's strong edges like DI001, so the dragged-in scoped
+    // service is found — a captive DI001/DI003/DI004 cannot see (no ctor edge, no root resolution).
+    public sealed class UnitOfWorkCachingService
+    {
+        private readonly IServiceScopeFactory _scopes;
+        private UnitOfWork _uow;
+        public UnitOfWorkCachingService(IServiceScopeFactory scopes) { _scopes = scopes; }
+        public void Warm()
+        {
+            using var scope = _scopes.CreateScope();
+            _uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();   // DI005 (transitive -> AppDbContext)
+        }
+    }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -203,6 +268,17 @@ namespace Sample
             // off the root, which drags in the transient IDisposable PooledConnection (tracked to app exit).
             services.AddTransient<MidConnection>();
             services.AddSingleton<WrapperResolver>();
+
+            // FLAGGED (DI005, warning) — ScopeCachingService resolves scoped AppDbContext from a
+            // scope it creates and CACHES it into a field (the scope-per-operation fix done wrong).
+            services.AddSingleton<ScopeCachingService>();
+            // SILENT — ScopeUsingService uses the scope-resolved service within the scope (not cached).
+            services.AddSingleton<ScopeUsingService>();
+            // SILENT — ClockCachingService caches a SINGLETON (shareable), not a scoped service.
+            services.AddSingleton<ClockCachingService>();
+            // FLAGGED (DI005, transitive) — caches the transient UnitOfWork (which ctor-injects
+            // scoped AppDbContext) from a created scope into a field.
+            services.AddSingleton<UnitOfWorkCachingService>();
         }
     }
 
@@ -224,6 +300,11 @@ namespace Sample
     // real System interface; the generic GetService/GetRequiredService and CreateScope are the
     // Microsoft.Extensions.DependencyInjection extensions — provided here so the sample binds.
     public interface IServiceScope : IDisposable { IServiceProvider ServiceProvider { get; } }
+
+    // IServiceScopeFactory — the singleton-safe way to open a child scope (DI005). Injecting it
+    // and resolving scoped services per operation is the FIX for a captive; caching what it
+    // resolves into a field is the misuse this check catches.
+    public interface IServiceScopeFactory { IServiceScope CreateScope(); }
 
     public static class ServiceProviderExtensions
     {

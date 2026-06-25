@@ -691,6 +691,79 @@ def run() -> int:
     if any(x.code in ("DI001", "DI002", "DI003") for x in di4b):
         fails.append("DI004 wrongly also produced a graph DI00x finding")
 
+    # --- DI005 (P-006): a singleton that resolves a SCOPED service from a scope it CREATES
+    #     (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-op
+    #     fix done wrong (warning). Only singletons; the cached value must REACH a scoped service
+    #     — a cached scoped type directly, or a cached transient that ctor-injects one (the DFS
+    #     follows transients like DI001). A cached singleton, or a transient with NO scoped strong
+    #     path, is not this violation; a scope-resolved value USED in the scope and not cached
+    #     produces no `scope_cached` entry, so it stays silent.
+    from ownlang.di import find_scope_cached_captives
+    csvcs = [
+        # caches scoped -> DI005, store site 21:
+        Service("Cacher", "singleton", deps=(), scope_cached=("Db",),
+                scope_cache_sites=(("Db", "C.cs", 21),)),
+        Service("Db", "scoped", ()),
+        # caches a TRANSIENT that ctor-injects scoped Db -> transitive DI005, store site 30:
+        Service("TransCacher", "singleton", deps=(), scope_cached=("Uow",),
+                scope_cache_sites=(("Uow", "C.cs", 30),)),
+        Service("Uow", "transient", deps=("Db",)),
+        Service("CacheTmp", "singleton", deps=(), scope_cached=("Tmp",)),  # silent: no scoped dep
+        Service("Tmp", "transient", (), disposable=True),
+        Service("CacheClk", "singleton", deps=(), scope_cached=("Clk",)),  # silent: singleton
+        Service("Clk", "singleton", ()),
+        Service("ReqCacher", "scoped", deps=(), scope_cached=("Db",)),     # silent: not singleton
+        Service("GoodScope", "singleton", deps=(), scope_cached=()),       # silent: not cached
+    ]
+    di5 = find_scope_cached_captives(csvcs)
+    checks += 1
+    got5 = sorted((c.singleton, c.captured) for c in di5)
+    if got5 != [("Cacher", "Db"), ("TransCacher", "Db")]:
+        fails.append(f"DI005 set wrong: {got5}")
+    checks += 1
+    # the transitive cache carries the full path through the cached transient.
+    tpath = next((c.path for c in di5 if c.singleton == "TransCacher"), None)
+    if tpath != ("TransCacher", "Uow", "Db"):
+        fails.append(f"DI005 transitive path wrong: {tpath}")
+    checks += 1
+    direct5 = next((c for c in di5 if c.singleton == "Cacher"), None)
+    if direct5 is None or "use-after-dispose" not in direct5.message:
+        fails.append("DI005 message missing 'use-after-dispose'")
+    checks += 1
+    # DI005 records the field-STORE site of the cached ENTRY (Cacher@C.cs:21) for anchoring —
+    # and the transitive case anchors at the ENTRY (Uow) store, not the dragged-in Db.
+    if direct5 is None or (direct5.cached_file, direct5.cached_line) != ("C.cs", 21):
+        fails.append(f"DI005 cache-site wrong: "
+                     f"{(direct5.cached_file, direct5.cached_line) if direct5 else None}")
+    checks += 1
+    trans5 = next((c for c in di5 if c.singleton == "TransCacher"), None)
+    if trans5 is None or (trans5.cached_file, trans5.cached_line) != ("C.cs", 30):
+        fails.append(f"DI005 transitive cache-site wrong: "
+                     f"{(trans5.cached_file, trans5.cached_line) if trans5 else None}")
+    # bridge: DI005 surfaces as a WARNING anchored at the STORE site (C.cs:21), with the
+    # REGISTRATION (S.cs:7) as the related secondary and named in the message tail.
+    di5facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                "services": [
+                    {"name": "Cacher", "lifetime": "singleton", "deps": [],
+                     "scope_cached": ["Db"], "file": "S.cs", "line": 7,
+                     "scope_cache_sites": [{"type": "Db", "file": "C.cs", "line": 21}]},
+                    {"name": "Db", "lifetime": "scoped", "deps": [], "file": "S.cs", "line": 8},
+                ]}
+    di5b = check_facts(di5facts)
+    checks += 1
+    di5only = [x for x in di5b if x.code == "DI005"]
+    if (len(di5only) != 1 or di5only[0].severity != "warning"
+            or (di5only[0].file, di5only[0].line) != ("C.cs", 21)
+            or di5only[0].related != (("S.cs", 7, "registration of singleton 'Cacher'"),)
+            or "[singleton registered at S.cs:7]" not in di5only[0].message):
+        fails.append("DI005 bridge finding wrong: "
+                     f"{[(x.file, x.line, x.related) for x in di5only]}")
+    checks += 1
+    # DI005 is a store-site property, not a registration-graph edge: the singleton has no scoped
+    # ctor dependency, so it must not also produce a DI001/DI002/DI003/DI004.
+    if any(x.code in ("DI001", "DI002", "DI003", "DI004") for x in di5b):
+        fails.append("DI005 wrongly also produced another DI00x finding")
+
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
     with open(_DI_FIXTURE, encoding="utf-8") as f:
@@ -808,6 +881,18 @@ def run() -> int:
                          "services": [{"name": "X", "lifetime": "singleton",
                                        "root_resolve_sites": [{"type": "T", "line": "NaN"}]}]}):
         fails.append("a malformed service root_resolve_sites did not raise OwnIRError")
+    checks += 1
+    # scope_cached (DI005) is validated like root_resolves — a non-array must raise at load.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "scope_cached": "abc"}]}):
+        fails.append("a non-array service scope_cached did not raise OwnIRError")
+    checks += 1
+    # scope_cache_sites (DI005 store-site metadata) must be an array of {type,file,line} objects.
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "components": [],
+                         "services": [{"name": "X", "lifetime": "singleton",
+                                       "scope_cache_sites": [{"type": "Db", "line": "NaN"}]}]}):
+        fails.append("a malformed service scope_cache_sites did not raise OwnIRError")
 
     # --- P-014 Tier A: an "unresolved-subscription" marker (the extractor could
     #     not bind the `+=` LHS to an event) is NOT a leak — the lowering skips it
