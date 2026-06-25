@@ -2782,13 +2782,17 @@ foreach (var (file, tree) in parsed)
         if (flowLocals)
         {
             // pooled FIELD -> the line it was `Rent`ed, via the shared IsPoolRent (an aliased pool
-            // receiver binds; a non-pool `.Rent` does not false-match). First rent line per field is
-            // enough to anchor the synthetic acquire.
+            // receiver binds; a non-pool `.Rent` does not false-match). The rent TARGET is resolved
+            // through `ThisFieldName` — a bare `_buf` or `this._buf`, NEVER `other._buf` — the SAME
+            // this-instance shape FullViewFieldOwner reads the view through, so a rent into another
+            // object's field cannot seed `pooledFieldRent` and then false-match this class's own
+            // same-named (non-pooled) field at the view (Codex). First rent line per field is enough to
+            // anchor the synthetic acquire.
             var pooledFieldRent = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model)
                     && inv.Parent is AssignmentExpressionSyntax asg
-                    && FieldName(asg.Left) is { } pf
+                    && ThisFieldName(asg.Left) is { } pf
                     && !pooledFieldRent.ContainsKey(pf))
                     pooledFieldRent[pf] = LineOf(inv);
             if (pooledFieldRent.Count > 0)
