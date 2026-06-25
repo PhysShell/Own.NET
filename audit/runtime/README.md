@@ -103,8 +103,9 @@ EventSource (`OwnNet-Sematix-INPC` / `Raised`, payload `{Type, Property, ValueCh
 [SourceFile, SourceLine]}`) — aggregates per (type, property), and reports each
 property over its per-operation threshold. When the build resolved a source file, a
 storm clusters with a static `INPC0xx` hit in the same file → **high confidence**
-(§3.5); otherwise it gets a unique `inpc://<type>/<property>` synthetic uri so distinct
-storming properties stay distinct clusters.
+(§3.5); otherwise (file-only with no line, or no location at all) it gets a unique
+`inpc://<type>/<NNNN>-<property>` synthetic uri — the `<NNNN>` index keeps distinct
+storming properties in distinct clusters even when their slugs collide.
 
 ```bash
 # on Windows, against an .etl captured during the scenario (PerfView / xperf / logman):

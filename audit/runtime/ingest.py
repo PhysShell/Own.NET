@@ -401,6 +401,13 @@ def _selftest() -> int:
           "a file-only storm (line 0) must fall back to a synthetic inpc:// uri")
     suris = {r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] for r in sres}
     check(len(suris) == 3, f"distinct storming properties need distinct uris, got {suris}")
+    # the TWO unresolved storms (Subtotal: no location, Discount: file-only line 0)
+    # must get DISTINCT synthetic uris — not collapse onto one (CodeRabbit review #104).
+    synthetic = [r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] for r in sres
+                 if r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+                 .startswith("inpc://")]
+    check(len(synthetic) == 2 and len(set(synthetic)) == 2,
+          f"unresolved storming properties need distinct synthetic uris, got {synthetic}")
     snorm = normalize_results(parse_sarif(json.dumps(storm), "propertychanged-storm", []), tax)
     scat = {f.rule: (f.category, f.category_name) for f in snorm}
     check(scat.get("RUNTIME-PROPCHANGED-STORM") == (6, "propertychanged-storm"),
