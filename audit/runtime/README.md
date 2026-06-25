@@ -29,14 +29,17 @@ the CoreCLR-only `dotnet-*` tools:
 
 ```text
 audit/runtime/
-  ingest.py            # leak-harness JSON -> SARIF -> the unified pipeline (PURE PYTHON, CI-gated)
+  ingest.py            # runtime JSON -> SARIF -> the unified pipeline (PURE PYTHON, CI-gated)
   scenarios/
     open-close-declaration.yml   # one deterministic leak-harness scenario (+ schema docs)
-  LeakHarness/         # C# harness — Windows/build-required, NOT CI-gated
+  LeakHarness/         # C# leak-harness — Windows/build-required, NOT CI-gated
     LeakHarness.csproj # net472; FlaUI.UIA3 + Microsoft.Diagnostics.Runtime + YamlDotNet
     Program.cs         # GC+snapshot loop, growth assertion, JSON result
     Scenario.cs        # YAML model
     HeapCounter.cs     # procdump + ClrMD: count live instances of suspect types
+  DuplicateDetector/   # C# duplicate-immutable detector — Windows/build-required, NOT CI-gated
+    DuplicateDetector.csproj  # net472; Microsoft.Diagnostics.Runtime
+    Program.cs         # ClrMD over a full dump: group identical strings, wasted-bytes findings
 ```
 
 ## How the leak-harness works (Plan.md §4.1)
@@ -64,6 +67,27 @@ python audit/runtime/ingest.py --leak-harness artifacts/own-audit/leak-harness.j
 #    folds it in and a confirmed leak clusters with its static OWN014/OWN001.
 ```
 
+## Duplicate-immutable detector (Plan.md §2 cat. 11 — the "gold")
+
+A heap full of identical immutable values (the same `"Country"` / unit / currency
+string held by thousands of separate instances) is wasted memory that interning, a
+flyweight, or a reference-by-id would collapse. The detector walks a full dump with
+ClrMD, groups strings by value, and reports each group whose duplicates waste more
+than `--min-wasted-bytes`. (Strings first — the highest-value case; arbitrary
+immutable types are a later refinement.) It needs no UI scenario — it's a one-shot
+heap analysis.
+
+```bash
+# on Windows, against a dump (or a live --pid with --procdump):
+DuplicateDetector.exe --dump target.dmp --min-wasted-bytes 65536 \
+    --out artifacts/own-audit/duplicate-detector.json --target acme/LegacyApp --commit "$COMMIT"
+
+# then, anywhere (CI exercises this conversion):
+python audit/runtime/ingest.py --duplicate-detector artifacts/own-audit/duplicate-detector.json \
+    --out artifacts/own-audit/duplicate-detector.sarif
+# -> run_static folds duplicate-detector.sarif in as a category-11 (P2) finding set.
+```
+
 ## Selftest
 
 `ingest.py` carries embedded-fixture selftests (no harness, no Windows needed) and
@@ -76,9 +100,10 @@ python audit/runtime/ingest.py --selftest
 
 ## Status
 
-- **Done:** the runtime→pipeline bridge (`ingest.py`, CI-gated), the leak-harness
-  scenario schema + one scenario, runtime rule mappings in the taxonomy (categories
-  2/3/4/11), and the C# leak-harness skeleton.
-- **Deferred:** the ClrMD duplicate-immutable detector and PropertyChanged-storm
-  profiler (more C# over the same dump/ETW), PerfView/SematixTrace wiring, and a
-  scenario corpus for the top-N screens.
+- **Done:** the runtime→pipeline bridge (`ingest.py`, CI-gated, for both the
+  leak-harness and the duplicate detector), the leak-harness scenario schema + one
+  scenario, runtime rule mappings in the taxonomy (categories 2/3/4/11), the C#
+  leak-harness skeleton, and the C# duplicate-immutable detector (strings).
+- **Deferred:** duplicate detection for arbitrary immutable types (field-by-field
+  content equality), the PropertyChanged-storm profiler (C# over ETW),
+  PerfView/SematixTrace wiring, and a scenario corpus for the top-N screens.
