@@ -8,9 +8,10 @@ a static finding clusters with it → **high confidence** (Plan.md §3.5).
 
 This layer covers the categories static analysis honestly can't (Plan.md §2):
 event/subscription & timer leaks confirmed under load (cat. 2/3), the
-`DependencyPropertyDescriptor.AddValueChanged` leak (cat. 4), and the
-**duplicated-immutable-data** detector — the project's "gold" (cat. 11). For these,
-the runtime layer is the *only* tool, so they were `NO-TOOL` until now.
+`DependencyPropertyDescriptor.AddValueChanged` leak (cat. 4), **PropertyChanged
+storms** measured by raise-frequency (cat. 6), and the **duplicated-immutable-data**
+detector — the project's "gold" (cat. 11). For these, the runtime layer is the *only*
+tool, so they were `NO-TOOL` until now.
 
 ## Stack (Windows / build-required — Plan.md §4)
 
@@ -40,6 +41,9 @@ audit/runtime/
   DuplicateDetector/   # C# duplicate-immutable detector — Windows/build-required, NOT CI-gated
     DuplicateDetector.csproj  # net472; Microsoft.Diagnostics.Runtime
     Program.cs         # ClrMD over a full dump: group identical strings, wasted-bytes findings
+  PropertyChangedStorm/  # C# PropertyChanged-storm profiler — Windows/build-required, NOT CI-gated
+    PropertyChangedStorm.csproj  # net472; Microsoft.Diagnostics.Tracing.TraceEvent
+    Program.cs         # TraceEvent over an .etl: per-property raise frequency, storm findings
 ```
 
 ## How the leak-harness works (Plan.md §4.1)
@@ -88,11 +92,41 @@ python audit/runtime/ingest.py --duplicate-detector artifacts/own-audit/duplicat
 # -> run_static folds duplicate-detector.sarif in as a category-11 (P2) finding set.
 ```
 
+## PropertyChanged-storm profiler (Plan.md §2 cat. 6)
+
+Frequency — not correctness — is a runtime property. The static `INPC0xx` tier (cat. 5)
+catches a missing `nameof` or a broken arg; it cannot see that `Total` fires
+PropertyChanged 4 000x for one keystroke, half of them with **no value change**,
+thrashing every binding. The profiler reads an ETW trace (`.etl`) captured while a
+FlaUI scenario drove the target — a diagnostic build emits one event per raise via an
+EventSource (`OwnNet-Sematix-INPC` / `Raised`, payload `{Type, Property, ValueChanged,
+[SourceFile, SourceLine]}`) — aggregates per (type, property), and reports each
+property over its per-operation threshold. When the build resolved a source file, a
+storm clusters with a static `INPC0xx` hit in the same file → **high confidence**
+(§3.5); otherwise (file-only with no line, or no location at all) it gets a unique
+`inpc://<type>/<NNNN>-<property>` synthetic uri — the `<NNNN>` index keeps distinct
+storming properties in distinct clusters even when their slugs collide.
+
+```bash
+# on Windows, against an .etl captured during the scenario (PerfView / xperf / logman):
+PropertyChangedStorm.exe --trace artifacts/own-audit/scenario.etl --operations 1 \
+    --per-op-threshold 50 --out artifacts/own-audit/propertychanged-storm.json \
+    --scenario open-declaration --target acme/LegacyApp --commit "$COMMIT"
+
+# then, anywhere (CI exercises this conversion):
+python audit/runtime/ingest.py --propertychanged-storm \
+    artifacts/own-audit/propertychanged-storm.json \
+    --out artifacts/own-audit/propertychanged-storm.sarif
+# -> run_static folds propertychanged-storm.sarif in as a category-6 (P2) finding set;
+#    a located storm clusters with a static INPC0xx in the same file.
+```
+
 ## Selftest
 
 `ingest.py` carries embedded-fixture selftests (no harness, no Windows needed) and
-gates on Linux CI — including the end-to-end check that a static OWN014 plus a
-runtime leak in the same file form one high-confidence cluster:
+gates on Linux CI — including the end-to-end checks that a static OWN014 plus a
+runtime leak (and a static `INPC0xx` plus a runtime storm) in the same file each form
+one high-confidence cluster:
 
 ```bash
 python audit/runtime/ingest.py --selftest
@@ -100,10 +134,12 @@ python audit/runtime/ingest.py --selftest
 
 ## Status
 
-- **Done:** the runtime→pipeline bridge (`ingest.py`, CI-gated, for both the
-  leak-harness and the duplicate detector), the leak-harness scenario schema + one
-  scenario, runtime rule mappings in the taxonomy (categories 2/3/4/11), the C#
-  leak-harness skeleton, and the C# duplicate-immutable detector (strings).
+- **Done:** the runtime→pipeline bridge (`ingest.py`, CI-gated, for the leak-harness,
+  the duplicate detector and the PropertyChanged-storm profiler), the leak-harness
+  scenario schema + one scenario, runtime rule mappings in the taxonomy (categories
+  2/3/4/6/11), the C# leak-harness skeleton, the C# duplicate-immutable detector
+  (strings), and the C# PropertyChanged-storm profiler (ETW).
 - **Deferred:** duplicate detection for arbitrary immutable types (field-by-field
-  content equality), the PropertyChanged-storm profiler (C# over ETW),
-  PerfView/SematixTrace wiring, and a scenario corpus for the top-N screens.
+  content equality), the diagnostic-build INPC `EventSource` instrumentation in the
+  target + PerfView/SematixTrace capture wiring, and a scenario corpus for the top-N
+  screens.
