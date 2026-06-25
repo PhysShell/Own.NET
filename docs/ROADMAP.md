@@ -232,16 +232,19 @@ own scan. Label them as estimates wherever they appear.
 
 | # | Track | Tier | Status |
 |---|-------|------|--------|
-| [P-001](proposals/P-001-csharp-extractor.md) | C# → OwnIR extractor (WPF leak spike) | P0 | in progress (v0 built) |
+| [P-001](proposals/P-001-csharp-extractor.md) | C# → OwnIR extractor (WPF leak spike) | P0 | in progress (well past v0: WPF001–005 + DI graph + pool + flow facts + semantic resolution) |
 | [P-002](proposals/P-002-verification-backend.md) | Verification backend (Boogie/Dafny) | horizon | draft |
 | [P-003](proposals/P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | horizon | draft |
 | [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | in progress (WPF001–005 built) |
-| [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | draft |
+| [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | in progress (D1/D2 built via WPF003; D3/D4 path-sensitive via `--flow-locals`) |
 | [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001–DI005 end-to-end: core + extractor) |
 | [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](proposals/P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | P1/P2 | draft |
 | [P-009](proposals/P-009-nogc-regions.md) | No-GC / allocation-free regions | horizon | draft |
 | [P-010](proposals/P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | P2/horizon | draft |
 | [P-011](proposals/P-011-editor-tooling.md) | Editor tooling & syntax highlighting | side-track | draft |
-| [P-012](proposals/P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | enabling | draft |
+| [P-012](proposals/P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | enabling | in progress (corpus benchmark + real-world cases, CI-gated) |
 | [P-013](proposals/P-013-distribution-surface.md) | Distribution surface (CI Action + dotnet tool) | enabling | v0 built |
+| [P-014](proposals/P-014-semantic-resolution.md) | Project-local semantic resolution (`+=` event vs number) | P0 | in progress (Tier A shipped & default-on; Tier B deferred) |
+| [P-015](proposals/P-015-configuration-surface.md) | Configuration surface (check selection & severity) | P2 | draft (stub) |
+| [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |

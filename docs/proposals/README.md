@@ -22,22 +22,22 @@ proposal is marked `done` with a pointer.
 
 | # | Title | Status |
 |---|-------|--------|
-| [P-001](P-001-csharp-extractor.md) | C# → OwnIR extractor (the WPF leak spike) | in progress (v0 built) |
+| [P-001](P-001-csharp-extractor.md) | C# → OwnIR extractor (the WPF leak spike) | in progress (well past v0: WPF001–005 + DI + pool + flow + semantic resolution) |
 | [P-002](P-002-verification-backend.md) | Verification backend (Boogie/Dafny) | draft |
 | [P-003](P-003-lifetime-visualization.md) | Lifetime visualization (RustOwl-style) | draft |
-| [P-004](P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | draft |
-| [P-005](P-005-idisposable-ownership.md) | `IDisposable` ownership profile | draft |
-| [P-006](P-006-di-lifetimes.md) | DI lifetime / captive dependency | draft |
+| [P-004](P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | in progress (WPF001–005 built) |
+| [P-005](P-005-idisposable-ownership.md) | `IDisposable` ownership profile | in progress (D1/D2 built; D3/D4 via `--flow-locals`) |
+| [P-006](P-006-di-lifetimes.md) | DI lifetime / captive dependency | in progress (DI001–DI005 end-to-end) |
 | [P-007](P-007-arraypool-span.md) | ArrayPool / Span borrow-view | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | draft |
 | [P-009](P-009-nogc-regions.md) | No-GC / allocation-free regions | draft |
 | [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
 | [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
-| [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | draft |
+| [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | in progress (corpus benchmark + real-world cases, CI-gated) |
 | [P-013](P-013-distribution-surface.md) | Distribution surface (how people run Own.NET) | v0 built (CI/Action + dotnet tool) |
-| [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | draft (P0) |
+| [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | in progress (Tier A shipped & default-on; Tier B deferred) |
 | [P-015](P-015-configuration-surface.md) | Configuration surface (check selection & per-category severity) | draft (stub) |
-| [P-016](P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering; loops) | draft |
+| [P-016](P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering; loops) | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
