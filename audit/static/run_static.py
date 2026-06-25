@@ -34,7 +34,7 @@ sys.path.insert(0, str(_HERE / "tools"))
 
 from normalize import coverage, load_taxonomy, normalize_results  # noqa: E402
 from owncheck import run_own_check  # noqa: E402
-from report import render_json, render_markdown  # noqa: E402
+from report import render_html, render_json, render_markdown, render_sarif  # noqa: E402
 from score import score  # noqa: E402
 
 try:
@@ -58,8 +58,11 @@ def load_profile(name_or_path: str) -> dict[str, Any]:
 
 def aggregate(sarif_inputs: list[tuple[str, str]], out_dir: Path, meta: dict[str, Any],
               taxonomy: Path = DEFAULT_TAXONOMY, line_tol: int = 3) -> dict[str, Any]:
-    """Normalize → score → render the SARIFs in ``sarif_inputs`` and write the
-    markdown + json reports to ``out_dir``. Returns the scored totals."""
+    """Normalize → score → render the SARIFs in ``sarif_inputs``, writing all four
+    report artifacts to ``out_dir``: ``report.md``, ``report.json``,
+    ``report.sarif`` (merged SARIF for code scanning) and ``report.html``. Returns
+    a dict with ``totals``, ``coverage`` and the four ``report_{md,json,sarif,html}``
+    paths."""
     out_dir.mkdir(parents=True, exist_ok=True)
     tax = load_taxonomy(taxonomy)
     raw: list[Any] = []
@@ -73,9 +76,14 @@ def aggregate(sarif_inputs: list[tuple[str, str]], out_dir: Path, meta: dict[str
     (out_dir / "report.md").write_text(render_markdown(meta, cov, scored), encoding="utf-8")
     (out_dir / "report.json").write_text(
         json.dumps(render_json(meta, cov, scored), indent=2), encoding="utf-8")
+    (out_dir / "report.sarif").write_text(
+        json.dumps(render_sarif(meta, cov, scored), indent=2), encoding="utf-8")
+    (out_dir / "report.html").write_text(render_html(meta, cov, scored), encoding="utf-8")
     return {"totals": scored["totals"], "coverage": cov,
             "report_md": str(out_dir / "report.md"),
-            "report_json": str(out_dir / "report.json")}
+            "report_json": str(out_dir / "report.json"),
+            "report_sarif": str(out_dir / "report.sarif"),
+            "report_html": str(out_dir / "report.html")}
 
 
 def _run_codeql(target: str, out_dir: Path) -> dict[str, Any]:
@@ -235,7 +243,8 @@ def _selftest() -> int:
         js = json.loads(Path(result["report_json"]).read_text(encoding="utf-8"))
         check(js["coverage"]["suppressed"] == 1, "report.json coverage lost the suppressed count")
         check(js["meta"]["target"] == "acme/legacy", "report.json lost meta")
-        check((tmp / "report" / "report.md").exists(), "aggregate did not write report.md to disk")
+        for art in ("report.md", "report.json", "report.sarif", "report.html"):
+            check((tmp / "report" / art).exists(), f"aggregate did not write {art}")
 
     # Roslyn build-required tier writes one SARIF PER PROJECT under roslyn/; run()
     # must glob the directory, not a single fixed filename (Codex review on #100).

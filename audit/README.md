@@ -107,12 +107,17 @@ python audit/aggregate/report.py --selftest
 python audit/static/run_static.py --selftest   # full pipeline end-to-end on fixtures
 ```
 
+`run_static.py` writes all four report formats to its `--out` directory:
+`report.md`, `report.json`, `report.sarif` (upload to GitHub code scanning), and
+`report.html` (a self-contained heatmap page).
+
 ## Status
 
-- **Done (this slice):** static build-free runners, normalization + taxonomy
-  (incl. the OWN001 `[resource:]` split and OWN014 region-escape labelling),
-  DevExpress baseline-suppress, cross-tool agreement scoring, the pain heatmap,
-  markdown + json reports, the analyzer-injection props/targets, and selftests.
-- **Deferred:** HTML + merged-SARIF renderers (more views over the same model);
-  the runtime layer (FlaUI + ClrMD leak-harness, duplicate-immutable detector);
-  the AI-reviewer layer; feeding confirmed findings back into the OwnLang corpus.
+- **Done:** static build-free runners, normalization + taxonomy (incl. the OWN001
+  `[resource:]` split, OWN014 region-escape labelling, and OWN050 routed to the
+  coverage ledger), DevExpress baseline-suppress, cross-tool agreement scoring, the
+  pain heatmap, **all four renderers (markdown / json / merged SARIF / HTML)**, the
+  analyzer-injection props/targets, and selftests.
+- **Deferred:** the runtime layer (FlaUI + ClrMD leak-harness, duplicate-immutable
+  detector); the AI-reviewer layer; feeding confirmed findings back into the
+  OwnLang corpus.
