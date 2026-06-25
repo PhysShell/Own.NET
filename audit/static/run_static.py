@@ -58,8 +58,11 @@ def load_profile(name_or_path: str) -> dict[str, Any]:
 
 def aggregate(sarif_inputs: list[tuple[str, str]], out_dir: Path, meta: dict[str, Any],
               taxonomy: Path = DEFAULT_TAXONOMY, line_tol: int = 3) -> dict[str, Any]:
-    """Normalize → score → render the SARIFs in ``sarif_inputs`` and write the
-    markdown + json reports to ``out_dir``. Returns the scored totals."""
+    """Normalize → score → render the SARIFs in ``sarif_inputs``, writing all four
+    report artifacts to ``out_dir``: ``report.md``, ``report.json``,
+    ``report.sarif`` (merged SARIF for code scanning) and ``report.html``. Returns
+    a dict with ``totals``, ``coverage`` and the four ``report_{md,json,sarif,html}``
+    paths."""
     out_dir.mkdir(parents=True, exist_ok=True)
     tax = load_taxonomy(taxonomy)
     raw: list[Any] = []

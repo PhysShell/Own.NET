@@ -121,6 +121,12 @@ def _coverage_section(meta: dict[str, Any], cov: dict[str, Any],
     if cov.get("suppressed_by"):
         for reason, n in sorted(cov["suppressed_by"].items()):
             out.append(f"  - suppressed — {reason}: {n}")
+    skipped = cov.get("analysis_skipped", 0)
+    if skipped:
+        by = cov.get("analysis_skipped_by") or {}
+        detail = ", ".join(f"{r} x{n}" for r, n in sorted(by.items()))
+        out.append(f"- analysis-skipped (coverage notes, not scored): {skipped}"
+                   + (f" — {detail}" if detail else ""))
     no_tool = meta.get("no_tool_static") or []
     if no_tool:
         labels = ", ".join(f"{c} ({CATEGORY_LABELS.get(c, '?')})" for c in no_tool)
@@ -334,6 +340,8 @@ def _selftest() -> int:
         AuditFinding("codeql", "DevExpress.Xpf/G.cs", 4, "cs/empty-block", "x", 0,
                      "uncategorized", suppressed=True, suppress_reason="third-party: DevExpress."),
         AuditFinding("codeql", "src/Util/Misc.cs", 3, "FOO999", "y", 0, "uncategorized"),
+        AuditFinding("own-check", "src/Io/Weird.cs", 5, "OWN050", "cannot verify", 0,
+                     "uncategorized", note=True),
     ]
     cov = coverage(findings)
     scored = score(findings, tax)
@@ -348,6 +356,8 @@ def _selftest() -> int:
         check(needle in md, f"markdown missing section/marker: {needle!r}")
     check("third-party: DevExpress." in md, "coverage must report the suppressed DevExpress count")
     check("`FOO999`" in md, "coverage must surface the unmapped FOO999 rule")
+    check("analysis-skipped" in md and "OWN050" in md,
+          "coverage must surface analysis-skipped notes (OWN050)")
     check("src/Util" in md, "heatmap must list the worst module (src/Util)")
     # the agreed leak (high-confidence) must be the worst module, ahead of src/Vm
     util_pos, vm_pos = md.find("`src/Util`"), md.find("`src/Vm`")
@@ -395,6 +405,7 @@ def _selftest() -> int:
                    "Where it hurts most", "src/Util", "Coverage / honesty"):
         check(needle in h, f"html missing marker: {needle!r}")
     check("third-party: DevExpress." in h, "html coverage must report the suppressed finding")
+    check("analysis-skipped" in h, "html coverage must surface analysis-skipped notes")
 
     fails = [c for c in checks if c]
     for f in fails:
