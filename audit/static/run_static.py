@@ -275,12 +275,23 @@ def _selftest() -> int:
              "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/App/Svc.cs"},
                                                  "region": {"startLine": 6}}}]}]}]}
         (out2 / "leak-harness.sarif").write_text(json.dumps(leak), encoding="utf-8")
+        # a runtime duplicate-detector SARIF (heap-wide, file-level) must be folded in
+        # too, so a filename/tool-name typo in the runtime pickup loop fails CI here,
+        # not only on a Windows run (CodeRabbit review on #103).
+        dup = {"runs": [{"tool": {"driver": {"name": "duplicate-detector"}}, "results": [
+            {"ruleId": "RUNTIME-DUP-IMMUTABLE", "level": "warning",
+             "message": {"text": '48211 duplicate "Country" strings (~1.6 MB wasted)'},
+             "locations": [{"physicalLocation": {"artifactLocation": {
+                 "uri": "heap://System.String/0000-Country"}}}]}]}]}
+        (out2 / "duplicate-detector.sarif").write_text(json.dumps(dup), encoding="utf-8")
         profile = {"name": "t", "severity_floor": "warning", "tiers": {"build_free": []}}
         res2 = run("/nonexistent-target", profile, out2, target_name="t/p")
         check(any(t["tool"] == "roslyn-pack" for t in res2["tiers"]),
               "roslyn per-project SARIF under roslyn/ must be picked up")
         check(any(t["tool"] == "leak-harness" for t in res2["tiers"]),
               "runtime leak-harness.sarif must be folded in by run()")
+        check(any(t["tool"] == "duplicate-detector" for t in res2["tiers"]),
+              "runtime duplicate-detector.sarif must be folded in by run()")
         check(res2["totals"]["high_confidence"] >= 1,
               "runtime leak + static finding in one file must form a high-confidence cluster")
 

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
@@ -59,20 +61,34 @@ namespace OwnNet.Audit.Runtime
                 using var runtime = clr.CreateRuntime();
 
                 // Group live strings by value: instance count + total bytes per value.
-                var groups = new Dictionary<string, (long Count, ulong Bytes)>();
+                // Group by the FULL string — the display cap (--max-string-length) must
+                // NOT be the grouping key, or distinct long strings that share the first
+                // N chars (JSON/XML blobs with a common prefix) collapse into one bogus
+                // group with inflated count/wastedBytes (Codex review on #103). Read the
+                // whole string for the key, hashing anything longer than the cap so the
+                // dictionary never retains large blobs, and keep a short readable sample
+                // only for display.
+                var groups = new Dictionary<string, (long Count, ulong Bytes, string Sample)>();
                 foreach (var obj in runtime.Heap.EnumerateObjects())
                 {
                     if (obj.Type == null || !obj.Type.IsString)
                     {
                         continue;
                     }
-                    var val = obj.AsString(opts.MaxStringLength);
-                    if (string.IsNullOrEmpty(val))
+                    var full = obj.AsString(int.MaxValue);   // actual length, not capped
+                    if (string.IsNullOrEmpty(full))
                     {
                         continue;
                     }
-                    var g = groups.TryGetValue(val!, out var cur) ? cur : (0L, 0UL);
-                    groups[val!] = (g.Count + 1, g.Bytes + obj.Size);
+                    var key = full!.Length <= opts.MaxStringLength ? full : LongKey(full);
+                    if (groups.TryGetValue(key, out var cur))
+                    {
+                        groups[key] = (cur.Count + 1, cur.Bytes + obj.Size, cur.Sample);
+                    }
+                    else
+                    {
+                        groups[key] = (1, obj.Size, Truncate(full, opts.MaxStringLength));
+                    }
                 }
 
                 foreach (var kv in groups)
@@ -89,16 +105,17 @@ namespace OwnNet.Audit.Runtime
                     {
                         continue;
                     }
+                    var sample = kv.Value.Sample;
                     findings.Add(new Dictionary<string, object>
                     {
                         ["rule"] = "RUNTIME-DUP-IMMUTABLE",
                         ["type"] = "System.String",
-                        ["value"] = Truncate(kv.Key, 80),
+                        ["value"] = Truncate(sample, 80),
                         ["count"] = count,
                         ["bytesPerInstance"] = bytesPer,
                         ["wastedBytes"] = wasted,
                         ["report"] = report,
-                        ["message"] = $"{count} duplicate \"{Truncate(kv.Key, 40)}\" strings "
+                        ["message"] = $"{count} duplicate \"{Truncate(sample, 40)}\" strings "
                                       + $"(~{wasted / 1024} KB wasted; intern or use a flyweight)",
                     });
                 }
@@ -163,6 +180,15 @@ namespace OwnNet.Audit.Runtime
         }
 
         private static string Truncate(string s, int n) => s.Length <= n ? s : s.Substring(0, n) + "…";
+
+        // For strings longer than the display cap, key on length + a hash of the FULL
+        // content so distinct long strings never merge, without retaining the blob.
+        private static string LongKey(string s)
+        {
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.Unicode.GetBytes(s));
+            return "len=" + s.Length + ":" + BitConverter.ToString(hash).Replace("-", "");
+        }
     }
 
     /// <summary>Command-line options for the duplicate detector.</summary>

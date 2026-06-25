@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,22 @@ def _location(f: dict[str, Any]) -> tuple[str, int]:
     return (f.get("location") or f.get("type") or "runtime", int(f.get("line", 0) or 0))
 
 
+_DUP_SLUG_RE = re.compile(r"[^0-9A-Za-z._-]+")
+
+
+def _dup_uri(type_name: str, value: str, index: int) -> str:
+    """A UNIQUE synthetic uri for one heap-wide duplicate group. These findings have
+    no source line, so without a distinct uri every group would share the same
+    ``(basename, line)`` and the scorer would collapse Country, Currency, ... into a
+    single cluster — corrupting totals/heatmap and hiding distinct remediation items
+    (Codex review on #103). The ``index`` guarantees uniqueness even when two display
+    values share a prefix; the slug keeps the path readable. All groups roll up under
+    one ``heap://<type>`` module, so the heatmap still buckets them together."""
+    typ = (type_name or "immutable").replace("\\", ".").replace("/", ".")
+    slug = _DUP_SLUG_RE.sub("_", value or "").strip("_")[:40] or "value"
+    return f"heap://{typ}/{index:04d}-{slug}"
+
+
 def leak_harness_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
     """Leak-harness JSON → SARIF. Only ``leaked: true`` findings (the deterministic
     growth assertion tripped) become results; a clean loop is evidence of *no* leak."""
@@ -115,11 +132,14 @@ def duplicate_detector_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
     for f in result.get("findings", []):
         if not f.get("report", True):
             continue
-        uri, line = _location(f)
+        # heap-wide duplicate groups have no source line; synthesize a UNIQUE uri per
+        # value so distinct groups stay distinct clusters (see _dup_uri). Always
+        # file-level (line 0) -> no fabricated region.
+        uri = _dup_uri(str(f.get("type", "")), str(f.get("value", "")), len(findings))
         findings.append({
             "rule": f.get("rule", "RUNTIME-DUP-IMMUTABLE"),
             "message": f.get("message", ""),
-            "uri": uri, "line": line,
+            "uri": uri, "line": 0,
             "properties": {k: f[k] for k in
                            ("type", "value", "count", "bytesPerInstance", "wastedBytes")
                            if k in f},
@@ -133,8 +153,11 @@ def duplicate_detector_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Convert a runtime tool's JSON result to SARIF.")
-    ap.add_argument("--leak-harness", help="leak-harness result JSON")
-    ap.add_argument("--duplicate-detector", help="duplicate-immutable-detector result JSON")
+    # exactly one source tool — reject both so a stray flag fails fast instead of
+    # silently converting the wrong file (CodeRabbit review on #103).
+    src = ap.add_mutually_exclusive_group()
+    src.add_argument("--leak-harness", help="leak-harness result JSON")
+    src.add_argument("--duplicate-detector", help="duplicate-immutable-detector result JSON")
     ap.add_argument("--out", default="", help="output SARIF (defaults per tool under artifacts/)")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
@@ -242,27 +265,42 @@ def _selftest() -> int:
 
     # Duplicate-immutable detector (cat. 11, the project's "gold"): type/value-based,
     # file-level, level warning; a below-threshold finding (report:false) is dropped.
+    # The real C# emits NO source location (heap-wide groups), so the bridge must
+    # synthesize a UNIQUE per-value uri — else distinct values (Country, Currency)
+    # collapse into one cluster, corrupting totals/heatmap (Codex review on #103).
     dup = duplicate_detector_to_sarif({
         "tool": "duplicate-detector", "target": "acme/LegacyApp", "minWastedBytes": 65536,
         "findings": [
             {"rule": "RUNTIME-DUP-IMMUTABLE", "type": "System.String", "value": "Country",
-             "count": 48211, "bytesPerInstance": 36, "wastedBytes": 1735560,
-             "location": "Acme.Ref.CountryTable", "line": 0, "report": True,
+             "count": 48211, "bytesPerInstance": 36, "wastedBytes": 1735560, "report": True,
              "message": "48211 duplicate 'Country' strings (~1.7 MB wasted)"},
+            {"rule": "RUNTIME-DUP-IMMUTABLE", "type": "System.String", "value": "Currency",
+             "count": 31002, "bytesPerInstance": 38, "wastedBytes": 1178038, "report": True,
+             "message": "31002 duplicate 'Currency' strings (~1.1 MB wasted)"},
             {"rule": "RUNTIME-DUP-IMMUTABLE", "type": "System.String", "value": "x",
              "count": 3, "wastedBytes": 108, "report": False, "message": "below threshold"},
         ]})
     dres = dup["runs"][0]["results"]
-    check(len(dres) == 1, f"below-threshold dup finding must be dropped: got {len(dres)}")
-    check(dres[0]["level"] == "warning", "duplicate-immutable must be SARIF level warning (P2)")
-    check("region" not in dres[0]["locations"][0]["physicalLocation"],
+    check(len(dres) == 2, f"below-threshold dup finding must be dropped: got {len(dres)}")
+    check(all(r["level"] == "warning" for r in dres),
+          "duplicate-immutable must be SARIF level warning (P2)")
+    check(all("region" not in r["locations"][0]["physicalLocation"] for r in dres),
           "type-based duplicate finding must stay file-level (no region)")
+    uris = {r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] for r in dres}
+    check(len(uris) == 2, f"each duplicate value needs a unique synthetic uri, got {uris}")
     check(dres[0]["properties"].get("wastedBytes") == 1735560,
           "duplicate finding must carry wastedBytes in properties")
-    dcat = {f.rule: (f.category, f.category_name)
-            for f in normalize_results(parse_sarif(json.dumps(dup), "duplicate-detector", []), tax)}
+    dnorm = normalize_results(parse_sarif(json.dumps(dup), "duplicate-detector", []), tax)
+    dcat = {f.rule: (f.category, f.category_name) for f in dnorm}
     check(dcat.get("RUNTIME-DUP-IMMUTABLE") == (11, "duplicate-immutable"),
           f"duplicate-immutable -> category 11, got {dcat.get('RUNTIME-DUP-IMMUTABLE')}")
+    # distinct over-threshold values must NOT collapse into a single cluster.
+    dscored = score(dnorm, tax, line_tol=3)
+    check(dscored["totals"]["clusters"] == 2,
+          f"Country and Currency must stay 2 separate clusters, got "
+          f"{dscored['totals']['clusters']}")
+    check(dscored["by_category"].get("duplicate-immutable") == 2,
+          f"both duplicate values must count under category 11, got {dscored['by_category']}")
 
     fails = [c for c in checks if c]
     for f in fails:
