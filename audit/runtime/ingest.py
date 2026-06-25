@@ -167,12 +167,16 @@ def propertychanged_storm_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
     for f in result.get("findings", []):
         if not f.get("report", True):
             continue
+        # A source location is usable for clustering ONLY when the line is resolved
+        # (>= 1). The C# falls back to line 0 when only the file is known; writing the
+        # bare file at line 0 would collapse every file-only storm into one cluster and
+        # could false-match a static finding on lines 1-3 (Codex review on #104). In
+        # that case keep a unique per-property synthetic uri instead.
         loc = f.get("location")
-        if loc:
-            uri, line = str(loc), int(f.get("line", 0) or 0)
+        line = int(f.get("line", 0) or 0)
+        if loc and line >= 1:
+            uri = str(loc)
         else:
-            # no resolved source line: unique per (type, property) so distinct
-            # storming properties don't collapse into one cluster.
             uri = _synthetic_uri("inpc", str(f.get("type", "")),
                                  str(f.get("property", "")), len(findings))
             line = 0
@@ -366,12 +370,19 @@ def _selftest() -> int:
              "property": "Subtotal", "raises": 900, "redundantRaises": 880,
              "perOperation": 900.0, "threshold": 50, "report": True,
              "message": "Subtotal raised PropertyChanged 900x/op (880 with no value change)"},
+            # file resolved but LINE unresolved (C# falls back to 0): must NOT use the
+            # bare file uri — keep a synthetic uri so it can't collapse/false-match.
+            {"rule": "RUNTIME-PROPCHANGED-STORM", "type": "Acme.Vm.DeclarationViewModel",
+             "property": "Discount", "location": "src/Vm/DeclarationViewModel.cs", "line": 0,
+             "raises": 700, "redundantRaises": 690, "perOperation": 700.0,
+             "threshold": 50, "report": True,
+             "message": "Discount raised PropertyChanged 700x/op (file known, line unresolved)"},
             {"rule": "RUNTIME-PROPCHANGED-STORM", "type": "Acme.Vm.DeclarationViewModel",
              "property": "Title", "raises": 2, "redundantRaises": 0, "perOperation": 2.0,
              "threshold": 50, "report": False, "message": "below threshold"},
         ]})
     sres = storm["runs"][0]["results"]
-    check(len(sres) == 2, f"below-threshold storm must be dropped: got {len(sres)}")
+    check(len(sres) == 3, f"below-threshold storm must be dropped: got {len(sres)}")
     check(all(r["level"] == "warning" for r in sres),
           "propertychanged-storm must be SARIF level warning (P2)")
     located = [r for r in sres
@@ -380,9 +391,16 @@ def _selftest() -> int:
     check(len(located) == 1
           and located[0]["locations"][0]["physicalLocation"].get("region", {})
           .get("startLine") == 88,
-          "a storm with a resolved source file must keep its source line")
+          "only the line-resolved storm keeps the bare source file (line>=1)")
+    # the file-only (line 0) storm falls back to a synthetic inpc:// uri, no region.
+    file_only = [r for r in sres if "Discount" in r["message"]["text"]]
+    check(len(file_only) == 1
+          and file_only[0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
+          .startswith("inpc://")
+          and "region" not in file_only[0]["locations"][0]["physicalLocation"],
+          "a file-only storm (line 0) must fall back to a synthetic inpc:// uri")
     suris = {r["locations"][0]["physicalLocation"]["artifactLocation"]["uri"] for r in sres}
-    check(len(suris) == 2, f"distinct storming properties need distinct uris, got {suris}")
+    check(len(suris) == 3, f"distinct storming properties need distinct uris, got {suris}")
     snorm = normalize_results(parse_sarif(json.dumps(storm), "propertychanged-storm", []), tax)
     scat = {f.rule: (f.category, f.category_name) for f in snorm}
     check(scat.get("RUNTIME-PROPCHANGED-STORM") == (6, "propertychanged-storm"),
