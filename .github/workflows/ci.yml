@@ -1106,7 +1106,9 @@ jobs:
         # — lowered to a synthetic acquire/release/use flow -> OWN002. That pass also covers POOLED owners:
         # an `IMemoryOwner<T>` field released in `Dispose()` and a `Memory` VIEW field of it (`_view =
         # _owner.Memory`) read in such a handler is the view-in-a-field dangle -> OWN002 (`pooled-view-after-
-        # dispose`). Remaining backlog: an ArrayPool `byte[]`-buffer-field view, a TWO-plus-hop indirect field
+        # dispose`). The POOL005 field pass now also catches a full-length view of an ArrayPool `byte[]`
+        # buffer FIELD read past its logical length -> OWN025 (`arraypool-field-fullspan-overread`).
+        # Remaining backlog: a full-length view STORED into another field, a TWO-plus-hop indirect field
         # use, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 23
+        run: python scripts/benchmark.py --min-recall 24
 

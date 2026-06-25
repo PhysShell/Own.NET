@@ -26,7 +26,14 @@
   owner.Memory;` — which dangles after the implicit scope-exit dispose — is caught too:
   the flow desugars a tracked `using IMemoryOwner` declaration to `acquire; try { rest }
   finally { release }`, so the returned view is read after the release (**POOL004 → OWN002**;
-  corpus `memorypool-using-view-escape`). A POOL005 view stored in a FIELD is next
+  corpus `memorypool-using-view-escape`). **POOL005 now also covers a pooled `byte[]` FIELD** — a
+  buffer `Rent`ed into a field (`_buf = ArrayPool<T>.Shared.Rent(n)`) and viewed full-length in a
+  LATER member (`_buf.AsSpan()` / `this._buf.AsMemory()` / `new Span<T>(_buf)` / the `.Length`
+  spelling) over-reads the oversized `[n, Length)` tail; the per-method flow pass only tracks LOCAL
+  rents, so a class-level field pass collects the pooled fields (shared `IsPoolRent`) and emits a
+  synthetic `acquire`/`overspan`/`release` flow at the view → OWN025 (corpus
+  `arraypool-field-fullspan-overread`). A full-length view STORED into another field (read only
+  elsewhere) is the deeper alias-tracking frontier, left next
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
@@ -58,7 +65,7 @@ The corpus already pins two real cases (`corpus/real-world/arraypool-double-retu
 | **POOL002** view after return | a `Span`/`Memory` view used after the owner is `Return`ed | `OWN002` |
 | **POOL003** double return | `Return`/`Dispose` reachable twice for the same buffer (ArrayPool *and* MemoryPool) | `OWN003` ✅ |
 | **POOL004** view escapes | a borrowed `Span` returned/stored beyond the owner's lifetime | `OWN004`/`OWN008` |
-| **POOL005** read/copy past length | a full-length **view** (`buf.AsSpan()`, no bound) **or** the `.Length` spelling (`buf.AsSpan(0, buf.Length)`) reads/copies beyond the logical length (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is NOT flagged — it exposes nothing) | `OWN025` `[resource: pooled buffer]` ✅ (a view stored in a FIELD next) |
+| **POOL005** read/copy past length | a full-length **view** (`buf.AsSpan()`, no bound) **or** the `.Length` spelling (`buf.AsSpan(0, buf.Length)`) reads/copies beyond the logical length (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is NOT flagged — it exposes nothing) | `OWN025` `[resource: pooled buffer]` ✅ (local **and** pooled `byte[]` FIELD; a view stored-into-a-field next) |
 
 Resource mapping:
 

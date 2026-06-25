@@ -100,7 +100,8 @@ architectural strictness, and the borrow-checker showcase):
 4. `DI001` — singleton captures a scoped dependency ✅ (core check + C#
    registration-graph extractor built; end-to-end on real C#)
 5. `POOL001` — `ArrayPool` buffer `Rent`ed but never `Return`ed ✅
-   (`POOL002` `Span`/view used after `Return` next)
+   (`POOL002` `Span`/view used after `Return` ✅; `POOL003` double-return,
+   `POOL005` full-length over-read built too — see P-007)
 
 ### Milestones
 
@@ -151,6 +152,12 @@ architectural strictness, and the borrow-checker showcase):
    root-`GetService` form of DI003, and the consuming-constructor anchor.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
+   ◑ *In progress* — POOL001 (leak), POOL002 (view-after-return → OWN002),
+   POOL003 (double-return/dispose, ArrayPool *and* MemoryPool) built end to end;
+   POOL004 (view escape) and POOL005 (full-length over-read, local **and** pooled
+   `byte[]` FIELD) first slices built. Remaining: a POOL005 view stored INTO another
+   field, deeper POOL004 escape, and the real-world replay targets (dotnet/runtime,
+   Nethermind, AiDotNet.Tensors).
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
    (P-008). The architectural X-ray — landed *after* the leak checkers prove value.
 
@@ -219,7 +226,7 @@ own scan. Label them as estimates wherever they appear.
 | [P-004](proposals/P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | P0 | in progress (WPF001–005 built) |
 | [P-005](proposals/P-005-idisposable-ownership.md) | `IDisposable` ownership profile | P0 | draft |
 | [P-006](proposals/P-006-di-lifetimes.md) | DI lifetime / captive dependency | P0 | in progress (DI001 end-to-end: core + extractor) |
-| [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | draft |
+| [P-007](proposals/P-007-arraypool-span.md) | ArrayPool / Span borrow-view | P1 | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](proposals/P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | P1/P2 | draft |
 | [P-009](proposals/P-009-nogc-regions.md) | No-GC / allocation-free regions | horizon | draft |
 | [P-010](proposals/P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | P2/horizon | draft |

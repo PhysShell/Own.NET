@@ -1506,6 +1506,52 @@ static bool IsLengthOf(ExpressionSyntax arg, string owner) =>
 static bool IsZeroInt(ExpressionSyntax arg, SemanticModel model) =>
     model.GetConstantValue(arg) is { HasValue: true, Value: int v } && v == 0;
 
+// The this/bare FIELD a FULL-LENGTH view spans, else null. The POOL005 FIELD twin of FullViewOwner:
+// `_buf.AsSpan()` / `this._buf.AsMemory()` (no bound), `_buf.AsSpan(0, _buf.Length)` (the `.Length`
+// spelling), `new Span<T>(_buf)` / `new Span<T>(_buf, 0, _buf.Length)` over a buffer the class held
+// in a FIELD. The receiver is resolved through `ThisFieldName` (a bare `_buf` or `this._buf`, never
+// `other._buf`), so a full-length view of a pooled FIELD — whose over-read the LOCAL-only flow pass
+// never reaches — is found; the caller gates on the field actually being a pooled rent. Recognised by
+// the SAME resolved BCL symbols as FullViewOwner (`System.MemoryExtensions` AsSpan/AsMemory, the
+// `System.Span<T>`/… constructor), so a project's own look-alike is not mistaken for the over-read. A
+// view bounded to the real rented `n` (`_buf.AsSpan(0, n)`) returns null — it does not over-read.
+static string? FullViewFieldOwner(ExpressionSyntax? e, SemanticModel model)
+{
+    if (e is InvocationExpressionSyntax inv
+        && inv.Expression is MemberAccessExpressionSyntax m
+        && m.Name.Identifier.Text is "AsSpan" or "AsMemory"
+        && ThisFieldName(m.Expression) is { } recv
+        && model.GetSymbolInfo(inv).Symbol is IMethodSymbol { ContainingType: { Name: "MemoryExtensions" } mct }
+        && IsInNamespace(mct, "System"))
+    {
+        var args = inv.ArgumentList.Arguments;
+        if (args.Count == 0
+            || (args.Count == 2 && IsZeroInt(args[0].Expression, model)
+                && IsFieldLengthOf(args[1].Expression, recv)))
+            return recv;
+    }
+    if (e is BaseObjectCreationExpressionSyntax oc
+        && oc.ArgumentList is { Arguments.Count: > 0 } al
+        && ThisFieldName(al.Arguments[0].Expression) is { } arg
+        && model.GetSymbolInfo(oc).Symbol is IMethodSymbol
+            { ContainingType: { Name: "Span" or "ReadOnlySpan" or "Memory" or "ReadOnlyMemory" } sct }
+        && IsInNamespace(sct, "System"))
+    {
+        if (al.Arguments.Count == 1
+            || (al.Arguments.Count == 3 && IsZeroInt(al.Arguments[1].Expression, model)
+                && IsFieldLengthOf(al.Arguments[2].Expression, arg)))
+            return arg;
+    }
+    return null;
+}
+
+// `arg` is the pooled FIELD's own `.Length` (`_buf.Length` / `this._buf.Length`) — the FIELD twin of
+// IsLengthOf, resolving the `.Length` receiver through `ThisFieldName` so the this-qualified spelling
+// counts and `other._buf.Length` does not.
+static bool IsFieldLengthOf(ExpressionSyntax arg, string field) =>
+    arg is MemberAccessExpressionSyntax { Name.Identifier.Text: "Length" } ma
+    && ThisFieldName(ma.Expression) == field;
+
 // If `idn` references a Span/ReadOnlySpan/Memory/ReadOnlyMemory VIEW local declared from an owner
 // buffer (`Memory<T> view = owner.AsMemory(…)`), the owner buffer's local name — so a use of the
 // view (including RETURNING it, an escape) lowers to a use of the owner (the borrow). Resolved
@@ -2718,6 +2764,83 @@ foreach (var (file, tree) in parsed)
                     });
                 }
             }
+        }
+
+        // POOL005 (field): a FULL-LENGTH view of a pooled FIELD — `_buf.AsSpan()` / `this._buf.AsMemory()`
+        // / `new Span<T>(_buf)` / the `.Length` spelling (`_buf.AsSpan(0, _buf.Length)`) — over a buffer
+        // the class `Rent`ed into a FIELD (by assignment `_buf = ArrayPool<T>.Shared.Rent(n)` OR a field
+        // initializer `byte[] _buf = ArrayPool<T>.Shared.Rent(n);`). The pooled array is
+        // oversized (`Length >= n`), so a member that views the field full-length reads past the logical
+        // length `n` into the stale `[n, Length)` tail (a previous renter's bytes). The per-method flow
+        // pass only tracks LOCAL rents, so a FIELD-backed rent's over-read is unreached there; emit a
+        // synthetic acquire/overspan/release flow per such field so the existing OwnIR bridge raises
+        // OWN025 at the view — the synthetic-flow trick the field-UAF / MemoryPool slices use, no new
+        // diagnostic. The trailing `release` is synthetic (the real `Return` is class-wide, handled by
+        // the POOL001 field pass) and only keeps this one-function flow from reading as a leak. A
+        // write/wipe (`Array.Clear(_buf, 0, _buf.Length)`) is not a view, so FullViewFieldOwner returns
+        // null on it — only a read-capable VIEW is the over-read. Gated on --flow-locals like the rest of
+        // the synthetic-flow emission.
+        if (flowLocals)
+        {
+            // pooled FIELD -> the line it was `Rent`ed, via the shared IsPoolRent (an aliased pool
+            // receiver binds; a non-pool `.Rent` does not false-match). Two rent spellings, BOTH scoped
+            // to THIS class — a nested type is analysed by its OWN `cls` pass, so its rents/views must
+            // neither seed nor fire here (else an inner field could be mis-attributed to the outer class,
+            // CodeRabbit):
+            //   * an assignment `_buf = ArrayPool<T>.Shared.Rent(n)` (ctor/Capture), target resolved
+            //     through `ThisFieldName` — a bare `_buf` / `this._buf`, NEVER `other._buf` — the SAME
+            //     this-instance shape FullViewFieldOwner reads the view through, so a rent into another
+            //     object's field cannot seed and then false-match this class's own same-named (non-pooled)
+            //     field at the view (Codex); the `FirstAncestorOrSelf == cls` guard drops a rent nested
+            //     in an inner type; and
+            //   * a field-declaration INITIALIZER `byte[] _buf = ArrayPool<T>.Shared.Rent(n);` — a direct
+            //     member of `cls`, so inherently this-class-scoped (CodeRabbit).
+            // First rent line per field anchors the synthetic acquire.
+            var pooledFieldRent = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (IsPoolRent(inv, model)
+                    && inv.FirstAncestorOrSelf<BaseTypeDeclarationSyntax>() == cls
+                    && inv.Parent is AssignmentExpressionSyntax asg
+                    && ThisFieldName(asg.Left) is { } pf
+                    && !pooledFieldRent.ContainsKey(pf))
+                    pooledFieldRent[pf] = LineOf(inv);
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var fv in fdecl.Declaration.Variables)
+                    if (fv.Initializer?.Value is InvocationExpressionSyntax finv
+                        && IsPoolRent(finv, model)
+                        && !pooledFieldRent.ContainsKey(fv.Identifier.Text))
+                        pooledFieldRent[fv.Identifier.Text] = LineOf(finv);
+            if (pooledFieldRent.Count > 0)
+                foreach (var member in cls.Members)
+                {
+                    if (member is BaseTypeDeclarationSyntax)
+                        continue;   // a nested type is covered by its OWN class pass, not the outer's
+                    // first full-length view of each pooled field in this member (one finding per field
+                    // per member — repeated views of the same field do not multiply the diagnostic).
+                    var seen = new HashSet<string>(StringComparer.Ordinal);
+                    var ops = new List<object>();
+                    foreach (var node in member.DescendantNodes().OfType<ExpressionSyntax>())
+                        if (FullViewFieldOwner(node, model) is { } fld
+                            && pooledFieldRent.TryGetValue(fld, out var rentLine)
+                            && seen.Add(fld))
+                        {
+                            var vline = LineOf(node);
+                            ops.Add(new { op = "acquire", var = fld, line = rentLine, kind = "pool" });
+                            ops.Add(new { op = "overspan", var = fld, line = vline });
+                            ops.Add(new { op = "release", var = fld, line = vline });
+                        }
+                    if (ops.Count > 0)
+                    {
+                        var mname = member switch
+                        {
+                            MethodDeclarationSyntax md => md.Identifier.Text,
+                            ConstructorDeclarationSyntax cd => cd.Identifier.Text,
+                            PropertyDeclarationSyntax pd => pd.Identifier.Text,
+                            _ => "member",
+                        };
+                        flowFunctions.Add(new { name = $"{cls.Identifier.Text}.{mname}", file, body = ops });
+                    }
+                }
         }
 
         // WPF004: a `X.Subscribe(...)` whose IDisposable result is ignored — the
