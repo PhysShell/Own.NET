@@ -1,0 +1,22 @@
+// OwnLang model of the ArrayPool full-length view over-read on a FIELD-backed pooled
+// buffer. `acquire` == ArrayPool.Rent into a field (the array is OVERSIZED:
+// Length >= n), `release` == ArrayPool.Return (here in Dispose, class-wide).
+// `overspan buf` models a FULL-length view `_buf.AsSpan()` (no length bound) taken
+// in a LATER member and read through — it reaches past the logical length n into the
+// stale [n, Length) tail. The bounded form `_buf.AsSpan(0, _n)` takes no full view,
+// so the fixed code has no `overspan` and is silent. `.own` has no fields/members, so
+// this single-function reduction pins the same core verdict the field pass produces;
+// the field-vs-local distinction lives in before.cs/after.cs (checked end to end by
+// the dotnet benchmark). The checker trips OWN025 (POOL005) at the view; the buffer
+// is still returned, so there is no leak (OWN001) and no use-after-return (OWN002).
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  kind "pooled buffer"
+}
+fn capture_then_flush(n: int) {
+  let buf = acquire Buffer(n);   // _buf = ArrayPool.Rent(n)   (Length >= n)
+  overspan buf;                  // _buf.AsSpan() in a later member — full view past n -> OWN025
+  release buf;                   // ArrayPool.Return (Dispose)
+}

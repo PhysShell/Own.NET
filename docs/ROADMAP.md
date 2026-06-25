@@ -154,9 +154,10 @@ architectural strictness, and the borrow-checker showcase):
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
    ◑ *In progress* — POOL001 (leak), POOL002 (view-after-return → OWN002),
    POOL003 (double-return/dispose, ArrayPool *and* MemoryPool) built end to end;
-   POOL004 (view escape) and POOL005 (full-length over-read) first slices built.
-   Remaining: POOL005 view stored in a FIELD, deeper POOL004 escape, and the
-   real-world replay targets (dotnet/runtime, Nethermind, AiDotNet.Tensors).
+   POOL004 (view escape) and POOL005 (full-length over-read, local **and** pooled
+   `byte[]` FIELD) first slices built. Remaining: a POOL005 view stored INTO another
+   field, deeper POOL004 escape, and the real-world replay targets (dotnet/runtime,
+   Nethermind, AiDotNet.Tensors).
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
    (P-008). The architectural X-ray — landed *after* the leak checkers prove value.
 
