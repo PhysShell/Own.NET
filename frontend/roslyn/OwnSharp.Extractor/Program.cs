@@ -2048,11 +2048,11 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
             if (scopeCreatorNames.Count > 0)
             {
                 var seenCached = new HashSet<string>();
-                foreach (var (cachedType, line) in ScopeCachedTypes(cls, scopeCreatorNames, classFieldNames))
+                foreach (var (cachedType, cacheFile, line) in ScopeCachedTypes(cls, scopeCreatorNames, classFieldNames))
                     if (seenCached.Add(cachedType))   // first store per type wins
                     {
                         scopeCached.Add(cachedType);
-                        scopeCacheSites.Add(new { type = cachedType, file = ctorFile, line });
+                        scopeCacheSites.Add(new { type = cachedType, file = cacheFile, line });
                     }
             }
             classScopeCached[cls.Identifier.Text] = scopeCached;
@@ -2284,7 +2284,7 @@ static string? ScopeResolvedType(
 // Get(Required)Service<T>()`. The LHS must be a real field (AssignedFieldName + classFieldNames) —
 // a scope-resolved value used within the scope and discarded (the CORRECT pattern) is a local, not
 // a field store, so it is never recorded.
-static IEnumerable<(string type, int line)> ScopeCachedTypes(
+static IEnumerable<(string type, string file, int line)> ScopeCachedTypes(
     ClassDeclarationSyntax cls, HashSet<string> creators, HashSet<string> classFieldNames)
 {
     var scopeLocals = new HashSet<string>(StringComparer.Ordinal);
@@ -2294,7 +2294,13 @@ static IEnumerable<(string type, int line)> ScopeCachedTypes(
     foreach (var asg in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
         if (AssignedFieldName(asg.Left) is { } fld && classFieldNames.Contains(fld)
             && ScopeResolvedType(asg.Right, scopeLocals, creators) is { } t)
-            yield return (t, asg.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
+        {
+            // the store site's file comes from the assignment's OWN location, not the per-class
+            // `ctorFile` — correct even if the cache write lives in another partial-class file
+            // (CodeRabbit). DI005 anchors at this store, so the file must be the store's file.
+            var span = asg.GetLocation().GetLineSpan();
+            yield return (t, span.Path, span.StartLinePosition.Line + 1);
+        }
 }
 
 // DI's default IServiceProvider resolves through PUBLIC constructors only — an
