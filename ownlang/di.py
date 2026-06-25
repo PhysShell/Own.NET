@@ -409,8 +409,13 @@ class ScopeCachedCaptive:
 
     singleton: str
     captured: str
-    file: str
-    line: int
+    # the cache path: singleton -> cached entry -> ... -> the scoped service. A direct cache is
+    # `(singleton, scoped)`; a TRANSIENT cached entry that drags in a scoped service transitively
+    # is `(singleton, transient, ..., scoped)` — the same captive, since the singleton keeps the
+    # transient and the transient holds the scoped service the scope already disposed.
+    path: tuple[str, ...] = ()
+    file: str = "?"
+    line: int = 0
     # the field-assignment call site where the scope-resolved service was cached — DI005's
     # consumer (the leak is that store), so the bridge anchors the finding here; the
     # registration `file`/`line` become the secondary. Unknown -> 0.
@@ -421,38 +426,60 @@ class ScopeCachedCaptive:
     def message(self) -> str:
         reg = (f" [singleton registered at {self.file}:{self.line}]"
                if self.cached_line >= 1 and self.line >= 1 else "")
+        chain = " -> ".join(self.path)
         return (f"singleton '{self.singleton}' caches scoped service '{self.captured}', "
                 f"resolved from a scope it creates, into a field: the scope is disposed when "
                 f"the operation ends, so the cached instance dangles (use-after-dispose) and "
-                f"is promoted to application lifetime — the captive the scope was meant to "
-                f"avoid. Resolve it inside the scope per use and do not cache it{reg}")
+                f"'{self.captured}' is promoted to application lifetime — the captive the scope "
+                f"was meant to avoid. Resolve it inside the scope per use and do not cache it "
+                f"({chain}){reg}")
 
 
 def find_scope_cached_captives(
         services: list[Service]) -> list[ScopeCachedCaptive]:
-    """Return every scoped service a singleton resolves from a scope it creates and caches
-    into a field (DI005). Only **singletons** are considered (a scoped/transient consumer's
-    cached value lives no longer than its own short scope — no promotion). A cached type that
-    is `scoped` in the registration graph is the captive; a cached `singleton`/`transient`
-    type is not this violation (a singleton is shareable; a transient cached in a field is the
-    DI003/DI004 promotion family, surfaced there). The extractor records only values cached
-    into a FIELD off a self-created scope — a value used within the scope and discarded (the
-    correct pattern) produces no `scope_cached` entry, so it stays silent."""
+    """Return every scoped service a singleton reaches by caching, into a field, a value it
+    resolved from a scope it creates (DI005). Only **singletons** are considered (a
+    scoped/transient consumer's cached value lives no longer than its own short scope — no
+    promotion). From each cached entry, walk the STRONG transient graph exactly as DI001 does:
+    a cached **scoped** service is the captive directly; a cached **transient** that ctor-injects
+    a scoped service (directly or through further transients) drags that scoped service into the
+    singleton's lifetime too — the scope disposed it when the operation ended, but the singleton
+    keeps the transient holding it (use-after-dispose), a captive DI001/DI003/DI004 cannot see (it
+    is neither a registration edge nor a root-provider resolution). A cached **singleton** is
+    shareable — not followed. The finding anchors at the cached ENTRY's field-store site even when
+    the scoped is reached transitively (like DI004 anchors at its entry call site). The extractor
+    records only values cached into a FIELD off a self-created scope — a value used within the
+    scope and discarded (the correct pattern) produces no `scope_cached` entry, so it stays silent.
+    Cycles are guarded."""
     by_name = {s.name: s for s in services}
     findings: list[ScopeCachedCaptive] = []
     for s in services:
         if s.lifetime != SINGLETON:
             continue
         sites = {t: (f, ln) for (t, f, ln) in s.scope_cache_sites}
-        reported: set[str] = set()
-        for dep in s.scope_cached:
-            node = by_name.get(dep)
-            if node is None or node.lifetime != SCOPED or dep in reported:
+        reported: set[str] = set()   # cached entries already reported (one finding per entry)
+        for entry in s.scope_cached:
+            if entry in reported:
                 continue
-            reported.add(dep)
-            cf, cl = sites.get(dep, ("?", 0))
-            findings.append(ScopeCachedCaptive(
-                singleton=s.name, captured=dep, file=s.file, line=s.line,
-                cached_file=cf, cached_line=cl))
+            cf, cl = sites.get(entry, ("?", 0))
+            visited: set[str] = set()
+            # DFS from the cached entry through TRANSIENTS; a SCOPED reached is the captive.
+            stack: list[tuple[str, tuple[str, ...]]] = [(entry, (s.name, entry))]
+            while stack:
+                cur, path = stack.pop()
+                node = by_name.get(cur)
+                if node is None:
+                    continue
+                if node.lifetime == SCOPED:
+                    reported.add(entry)
+                    findings.append(ScopeCachedCaptive(
+                        singleton=s.name, captured=cur, path=path,
+                        file=s.file, line=s.line, cached_file=cf, cached_line=cl))
+                    break   # first scoped reached from this entry — one finding per cached entry
+                if node.lifetime == TRANSIENT and cur not in visited:
+                    visited.add(cur)
+                    for dep in node.deps:   # the singleton keeps the transient, so its deps too
+                        stack.append((dep, (*path, dep)))
+                # a singleton dependency is shareable — not followed
     findings.sort(key=lambda f: (f.file, f.line, f.singleton, f.captured))
     return findings

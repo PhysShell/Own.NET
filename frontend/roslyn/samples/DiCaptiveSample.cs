@@ -185,6 +185,23 @@ namespace Sample
         }
     }
 
+    // DI005 (transitive) — caches a TRANSIENT (UnitOfWork) resolved from a created scope into a
+    // field. UnitOfWork ctor-injects scoped AppDbContext; the scope disposes that DbContext when
+    // the operation ends, but the singleton keeps the UnitOfWork holding it (use-after-dispose).
+    // The DFS follows the cached transient's strong edges like DI001, so the dragged-in scoped
+    // service is found — a captive DI001/DI003/DI004 cannot see (no ctor edge, no root resolution).
+    public sealed class UnitOfWorkCachingService
+    {
+        private readonly IServiceScopeFactory _scopes;
+        private UnitOfWork _uow;
+        public UnitOfWorkCachingService(IServiceScopeFactory scopes) { _scopes = scopes; }
+        public void Warm()
+        {
+            using var scope = _scopes.CreateScope();
+            _uow = scope.ServiceProvider.GetRequiredService<UnitOfWork>();   // DI005 (transitive -> AppDbContext)
+        }
+    }
+
     public static class Startup
     {
         public static void ConfigureServices(IServiceCollection services)
@@ -259,6 +276,9 @@ namespace Sample
             services.AddSingleton<ScopeUsingService>();
             // SILENT — ClockCachingService caches a SINGLETON (shareable), not a scoped service.
             services.AddSingleton<ClockCachingService>();
+            // FLAGGED (DI005, transitive) — caches the transient UnitOfWork (which ctor-injects
+            // scoped AppDbContext) from a created scope into a field.
+            services.AddSingleton<UnitOfWorkCachingService>();
         }
     }
 

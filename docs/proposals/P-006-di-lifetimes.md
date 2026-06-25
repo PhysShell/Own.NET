@@ -93,7 +93,10 @@ to a longer-lived region) already models it.
   / provider, with the same this-field discipline as DI004), the scope locals their
   `CreateScope()` produces, and each `scope.ServiceProvider.Get(Required)Service<T>()` whose
   result is **assigned to a field** into a `scope_cached` list with its store site;
-  `find_scope_cached_captives` flags a singleton whose `scope_cached` names a **scoped** service.
+  `find_scope_cached_captives` walks each cached entry's **strong transient graph** like DI001 —
+  a cached **scoped** service is the captive directly, and a cached **transient** that ctor-injects
+  a scoped service (directly or transitively) drags it into the singleton's lifetime too (the scope
+  disposed it; the singleton keeps the transient holding it). A cached singleton is shareable.
   A **store-site** property (anchored at the field assignment, like DI004's call site), filed as a
   distinct code (different detection, different fix: resolve inside the scope per use, do not
   cache). Precision guards — singleton-only, scoped-cached-type-only (a cached singleton is

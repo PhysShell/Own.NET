@@ -603,14 +603,29 @@ jobs:
           # and is promoted to application lifetime (the captive returns, hidden behind the fix).
           echo "$out" | grep -qE "\[DI005\].*'ScopeCachingService' caches scoped service 'AppDbContext'" \
             || { echo "FAIL: expected DI005 (ScopeCachingService caches scope-resolved scoped AppDbContext)"; exit 1; }
+          # transitive DI005: a singleton caches the TRANSIENT UnitOfWork (which ctor-injects scoped
+          # AppDbContext) from a created scope — the DFS follows the cached transient's strong edges
+          # like DI001, so the dragged-in scoped service is found. A captive DI001/3/4 cannot see.
+          echo "$out" | grep -qE "\[DI005\].*'UnitOfWorkCachingService' caches scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected transitive DI005 (UnitOfWorkCachingService -> UnitOfWork -> AppDbContext)"; exit 1; }
+          echo "$out" | grep -q "UnitOfWorkCachingService -> UnitOfWork -> AppDbContext" \
+            || { echo "FAIL: expected the transitive DI005 path text"; exit 1; }
           n5=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI005\]")
-          [ "$n5" = "1" ] \
-            || { echo "FAIL: expected exactly 1 DI005 finding, got $n5"; exit 1; }
-          # DI005's consumer is the field-STORE site (not a ctor), the PRIMARY anchor — line 154,
-          # the `_db = scope.ServiceProvider.GetRequiredService<AppDbContext>()` store — with the
+          [ "$n5" = "2" ] \
+            || { echo "FAIL: expected exactly 2 DI005 findings (direct + transitive), got $n5"; exit 1; }
+          # DI005's consumer is the field-STORE site (not a ctor), the PRIMARY anchor — the direct
+          # case at line 154 (`_db = ...AppDbContext`), the transitive case at the cached ENTRY's
+          # store (line 201, `_uow = ...UnitOfWork`, NOT the dragged-in AppDbContext) — with the
           # registration as the secondary suffix.
           echo "$out" | grep -qE "DiCaptiveSample\.cs:154: warning: \[DI005\].*'ScopeCachingService'" \
             || { echo "FAIL: expected DI005 anchored at the field-store site (line 154)"; exit 1; }
+          echo "$out" | grep -qE "DiCaptiveSample\.cs:201: warning: \[DI005\].*'UnitOfWorkCachingService'" \
+            || { echo "FAIL: expected transitive DI005 anchored at the cached-entry store site (line 201)"; exit 1; }
+          # the registration site rides along as the SECONDARY anchor in EACH DI005 message tail —
+          # exactly 2 (one per finding), so a partial-suffix regression fails CI (like DI004's nreg).
+          nreg5=$(echo "$out" | grep -cE "\[DI005\].*singleton registered at ")
+          [ "$nreg5" = "2" ] \
+            || { echo "FAIL: expected exactly 2 DI005 registration-site suffixes, got $nreg5"; exit 1; }
           # two controls stay SILENT: ScopeUsingService USES the scope-resolved service within the
           # scope (a local, not a field store); ClockCachingService caches a SINGLETON (shareable,
           # not a scoped service). Neither is a captive.
