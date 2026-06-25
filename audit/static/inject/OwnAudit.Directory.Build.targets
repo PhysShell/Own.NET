@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Own.NET Audit — companion targets to OwnAudit.Directory.Build.props.
+    Copied into the target worktree as `Directory.Build.targets`.
+
+    Job: make sure the SARIF output directory exists before the compiler tries
+    to write `<ErrorLog>` into it, and (if present) chain the target's own
+    Directory.Build.targets so its build is otherwise unchanged.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.targets.orig"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.targets.orig')" />
+
+  <Target Name="OwnAuditEnsureErrorLogDir"
+          Condition="'$(OwnAudit)' == 'true'"
+          BeforeTargets="CoreCompile">
+    <!-- Mirror the props default so the ErrorLog directory exists even when the
+         runner did not pass /p:OwnAuditOutDir. -->
+    <PropertyGroup Condition="'$(OwnAuditOutDir)' == ''">
+      <OwnAuditOutDir>$(MSBuildProjectDirectory)\..\artifacts\own-audit</OwnAuditOutDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(OwnAuditOutDir)\roslyn" />
+  </Target>
+</Project>

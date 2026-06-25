@@ -1,0 +1,6 @@
+# Own.NET Audit — the audit subtree's only third-party Python dependency.
+#
+# The core ownlang package and its test suite are deliberately zero-dependency;
+# this requirement is scoped to audit/ alone (its own CI job installs it) so the
+# core suite stays dependency-free. PyYAML reads the taxonomy/profile data files.
+PyYAML>=6.0

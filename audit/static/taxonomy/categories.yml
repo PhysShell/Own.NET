@@ -1,0 +1,86 @@
+# Own.NET Audit — category taxonomy (knowledge base).
+#
+# Maps each analyzer's ruleId (exact, or a glob like `IDISP0*` / `*RESOURCE_LEAK`)
+# to one of the problem categories defined in Plan.md §2. normalize.py reads this
+# and labels every SARIF result. Rules with NO mapping are NOT dropped — they land
+# in `uncategorized` and are surfaced in the report's coverage section, so the
+# taxonomy grows deliberately instead of swallowing findings (same discipline as
+# oracle_compare's unparsed-line bucket).
+#
+# Precedence: an exact ruleId match wins over a glob; among globs, the most
+# specific (longest non-wildcard prefix) wins.
+
+rules:
+  # ── Category 1: IDisposable leak (local/field, dispose-on-throw) ──────────────
+  CA2000: {category: 1, name: idisposable-leak}
+  CA2213: {category: 1, name: idisposable-leak}
+  "IDISP0*": {category: 1, name: idisposable-leak}            # IDisposableAnalyzers
+  "cs/local-not-disposed": {category: 1, name: idisposable-leak}
+  "cs/missing-dispose": {category: 1, name: idisposable-leak}
+  "cs/dispose-not-called-on-throw": {category: 1, name: idisposable-leak}
+  "*RESOURCE_LEAK": {category: 1, name: idisposable-leak}     # Infer#: (PULSE_)RESOURCE_LEAK
+  "*MEMORY_LEAK": {category: 1, name: idisposable-leak}
+
+  # ── own-check OWN001 is an UMBRELLA leak code ────────────────────────────────
+  # One ruleId covers IDisposable fields/locals, subscription tokens and timers;
+  # the `[resource: ...]` tag in the message text distinguishes them. A flat
+  # OWN001 -> cat.1 would collapse subscription/timer leaks (cat. 2/3) into the
+  # IDisposable bucket and undercount them, so normalize.py splits on the tag.
+  OWN001:
+    by_resource:                                # key matched against [resource: KEY]
+      "subscription token": {category: 2, name: subscription-leak}
+      "timer": {category: 3, name: timer-leak}
+      "*": {category: 1, name: idisposable-leak}   # disposable / disposable field / pooled buffer
+
+  # ── Category 2: event/subscription leak & region escape ──────────────────────
+  OWN014: {category: 2, name: region-escape}     # escape to a longer-lived region
+                                                 # (vm->App, SystemEvents) — NOT a
+                                                 # generic subscription-leak
+
+  # ── Category 5: INPC correctness ─────────────────────────────────────────────
+  "INPC0*": {category: 5, name: inpc-correctness}   # PropertyChangedAnalyzers
+
+  # ── Category 9: WPF Freezable / per-instance brush-geometry (partial) ────────
+  "WPF0*": {category: 9, name: wpf-freezable}       # WpfAnalyzers (subset)
+
+  # ── Category 14: general bugs / perf / best-practice / async ──────────────────
+  "CA1*": {category: 14, name: general-quality}     # NetAnalyzers design/perf
+  "CA2*": {category: 14, name: general-quality}     # (CA2000/CA2213 above win by exactness)
+  "S*": {category: 14, name: general-quality}       # SonarAnalyzer.CSharp
+  "RCS*": {category: 14, name: general-quality}     # Roslynator
+  "MA0*": {category: 14, name: general-quality}     # Meziantou.Analyzer
+  "AsyncFixer*": {category: 14, name: general-quality}
+  "cs/*": {category: 14, name: general-quality}     # CodeQL security-and-quality (leak ids above win)
+
+  # ── Category 15: architecture metrics / hotspots ─────────────────────────────
+  "RCS1*": {category: 15, name: architecture}       # Roslynator maintainability subset
+
+# Baseline P-level per category (Plan.md §3.5.2). Confidence (cross-tool
+# agreement) is a SEPARATE axis handled by score.py; this is severity only.
+category_severity:
+  1: P1      # leaks — the high-value classes
+  2: P1
+  3: P1
+  5: P2
+  9: P2
+  14: P2
+  15: P3
+  0: P3      # uncategorized
+
+# DevExpress baseline-suppress (Plan.md §3.4, confirmed decision). Findings whose
+# path OR message contains one of these tokens are third-party noise: dropped from
+# the main report but COUNTED and reported in the coverage section — nothing is
+# hidden silently. This is an honest third-party-namespace filter, not a regex
+# heuristic over our own code.
+suppress:
+  path_or_message_contains:
+    - "DevExpress."
+
+# Analysis-skipped / coverage NOTES — diagnostics that are NOT verdicts. own-check
+# emits OWN050 ("cannot verify X — unresolved") at SARIF level: note when it cannot
+# analyze something. These must NOT be scored as findings: left in, they would show
+# up as uncategorized P3 candidates and add phantom pain. Instead they are routed to
+# the coverage ledger (analysis-skipped count) — the honest "we didn't see here",
+# the same discipline as own-check's own OWN050.
+coverage_notes:
+  - "OWN050"

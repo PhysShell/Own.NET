@@ -1,0 +1,43 @@
+<Project>
+  <!--
+    Own.NET Audit — analyzer injection (build-required tier).
+
+    Copied into a throwaway `git worktree` of the TARGET project as
+    `Directory.Build.props` (MSBuild auto-imports only that exact name — see
+    Plan.md §3.1). Everything is gated on `$(OwnAudit) == 'true'` so an ordinary
+    developer build of the target sees none of it: zero analyzers, zero extra
+    warnings in the IDE.
+
+    `OwnAuditAnalyzers` must point at a directory of pre-restored analyzer DLLs
+    (the audit cache). We inject them as `<Analyzer Include=...>` rather than
+    `<PackageReference>` because the 12-year-old target is almost certainly a
+    non-SDK csproj + packages.config, where adding PackageReferences is painful
+    and intrusive. See Plan.md §3.1 for the full rationale.
+
+    If the target already ships its own Directory.Build.props, preserve it as
+    Directory.Build.props.orig and import it from here (the throwaway worktree is
+    ours to edit) so the target's own build settings are not lost.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.props.orig"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.orig')" />
+
+  <PropertyGroup Condition="'$(OwnAudit)' == 'true'">
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>All</AnalysisMode>
+    <ReportAnalyzer>true</ReportAnalyzer>
+    <!-- Output directory honored by the runner's -Out (passed as /p:OwnAuditOutDir);
+         the default keeps SARIF next to the project when the runner does not set it.
+         One SARIF per project under roslyn/ so the orchestrator can glob them all;
+         audit/aggregate/ merges them afterwards. -->
+    <OwnAuditOutDir Condition="'$(OwnAuditOutDir)' == ''">$(MSBuildProjectDirectory)\..\artifacts\own-audit</OwnAuditOutDir>
+    <ErrorLog>$(OwnAuditOutDir)\roslyn\$(MSBuildProjectName).sarif,version=2.1</ErrorLog>
+    <!-- Audit findings must never fail the target's build; we only collect them. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OwnAudit)' == 'true' and '$(OwnAuditAnalyzers)' != ''">
+    <!-- DLLs from a pre-restored audit cache, NOT a PackageReference in the project tree. -->
+    <Analyzer Include="$(OwnAuditAnalyzers)\**\*.dll" />
+  </ItemGroup>
+</Project>

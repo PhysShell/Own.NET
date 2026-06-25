@@ -1,0 +1,51 @@
+# Own.NET Audit — profile: desktop-wpf (Plan.md §3.1).
+#
+# A profile declares WHICH analyzer packs to inject and the severity floor for an
+# audit run. It is the default profile for the legacy net472 / WPF / DevExpress
+# target. Profiles are data, not code; run_static.py reads the active one.
+#
+# build-free tools run even on a solution that does not compile; build-required
+# tools need a successful MSBuild build (Plan.md §3.2). The whole audit runs on a
+# local Windows machine — there is no CI run of the target.
+
+name: desktop-wpf
+description: >
+  Legacy .NET Framework 4.7.2 / WPF / DevExpress desktop application. Leak- and
+  lifetime-focused, with DevExpress third-party noise baseline-suppressed.
+
+severity_floor: warning        # own-check --severity; advisory tier kept in the report
+
+tiers:
+  build_free:
+    - own-check                # error-tolerant SemanticModel; works on a broken solution
+    - codeql                   # build-mode: none, security-and-quality suite
+  build_required:
+    - roslyn-pack              # NetAnalyzers, Meziantou, Roslynator, AsyncFixer,
+                               # SonarAnalyzer, IDisposableAnalyzers, WpfAnalyzers,
+                               # PropertyChangedAnalyzers (one build, many analyzers)
+    - infersharp              # needs .dll + .pdb; most fragile step on net472
+
+# Analyzer packs restored into the audit cache for the build-required tier. Pin
+# versions whose Roslyn runtime is compatible with the target's MSBuild toolchain;
+# an incompatible pack is marked NO-TOOL, never forced (Plan.md §3.3).
+roslyn_packs:
+  - Microsoft.CodeAnalysis.NetAnalyzers
+  - Meziantou.Analyzer
+  - Roslynator.Analyzers
+  - AsyncFixer
+  - SonarAnalyzer.CSharp
+  - IDisposableAnalyzers
+  - WpfAnalyzers
+  - PropertyChangedAnalyzers
+
+# Categories with no reliable static tool in this profile — reported honestly as
+# NO-TOOL / deferred-to-runtime in the coverage section, never faked (Plan.md §2).
+no_tool_static:
+  - 4    # DependencyPropertyDescriptor.AddValueChanged leak  -> runtime leak-harness
+  - 6    # PropertyChanged storms / expensive getters         -> runtime
+  - 7    # WPF binding errors                                 -> runtime
+  - 8    # broken/disabled virtualization                     -> runtime
+  - 10   # allocations in converters/getters                  -> runtime
+  - 11   # duplicated immutable data (the project's "gold")   -> runtime
+  - 12   # heavy reference data / LOH / Gen2 bloat            -> runtime
+  - 13   # cross-thread ObjectDisposedException / INPC        -> runtime

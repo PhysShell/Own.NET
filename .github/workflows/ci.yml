@@ -42,6 +42,27 @@ jobs:
           python scripts/metamorphic_facts.py --selftest
           python scripts/benchmark.py --selftest
 
+  # Own.NET Audit (audit/) — the aggregation layer's selftests, the only thing the
+  # Linux CI gates for the audit (the target itself is analyzed on a local Windows
+  # machine, never in CI; see audit/README.md and Plan.md §3.2). PyYAML is scoped
+  # to audit/ here so the core test suite stays zero-dependency.
+  audit-selftests:
+    name: audit aggregation selftests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install audit deps (PyYAML, audit-scoped)
+        run: pip install -r audit/requirements.txt
+      - name: Own.NET Audit selftests (normalize + score + report + orchestrator)
+        run: |
+          python audit/aggregate/normalize.py --selftest
+          python audit/aggregate/score.py --selftest
+          python audit/aggregate/report.py --selftest
+          python audit/static/run_static.py --selftest
+
   tests:
     name: tests (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
