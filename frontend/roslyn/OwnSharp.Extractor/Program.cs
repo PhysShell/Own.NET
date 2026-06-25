@@ -2768,7 +2768,8 @@ foreach (var (file, tree) in parsed)
 
         // POOL005 (field): a FULL-LENGTH view of a pooled FIELD — `_buf.AsSpan()` / `this._buf.AsMemory()`
         // / `new Span<T>(_buf)` / the `.Length` spelling (`_buf.AsSpan(0, _buf.Length)`) — over a buffer
-        // the class `Rent`ed into a FIELD (`_buf = ArrayPool<T>.Shared.Rent(n)`). The pooled array is
+        // the class `Rent`ed into a FIELD (by assignment `_buf = ArrayPool<T>.Shared.Rent(n)` OR a field
+        // initializer `byte[] _buf = ArrayPool<T>.Shared.Rent(n);`). The pooled array is
         // oversized (`Length >= n`), so a member that views the field full-length reads past the logical
         // length `n` into the stale `[n, Length)` tail (a previous renter's bytes). The per-method flow
         // pass only tracks LOCAL rents, so a FIELD-backed rent's over-read is unreached there; emit a
@@ -2782,22 +2783,38 @@ foreach (var (file, tree) in parsed)
         if (flowLocals)
         {
             // pooled FIELD -> the line it was `Rent`ed, via the shared IsPoolRent (an aliased pool
-            // receiver binds; a non-pool `.Rent` does not false-match). The rent TARGET is resolved
-            // through `ThisFieldName` — a bare `_buf` or `this._buf`, NEVER `other._buf` — the SAME
-            // this-instance shape FullViewFieldOwner reads the view through, so a rent into another
-            // object's field cannot seed `pooledFieldRent` and then false-match this class's own
-            // same-named (non-pooled) field at the view (Codex). First rent line per field is enough to
-            // anchor the synthetic acquire.
+            // receiver binds; a non-pool `.Rent` does not false-match). Two rent spellings, BOTH scoped
+            // to THIS class — a nested type is analysed by its OWN `cls` pass, so its rents/views must
+            // neither seed nor fire here (else an inner field could be mis-attributed to the outer class,
+            // CodeRabbit):
+            //   * an assignment `_buf = ArrayPool<T>.Shared.Rent(n)` (ctor/Capture), target resolved
+            //     through `ThisFieldName` — a bare `_buf` / `this._buf`, NEVER `other._buf` — the SAME
+            //     this-instance shape FullViewFieldOwner reads the view through, so a rent into another
+            //     object's field cannot seed and then false-match this class's own same-named (non-pooled)
+            //     field at the view (Codex); the `FirstAncestorOrSelf == cls` guard drops a rent nested
+            //     in an inner type; and
+            //   * a field-declaration INITIALIZER `byte[] _buf = ArrayPool<T>.Shared.Rent(n);` — a direct
+            //     member of `cls`, so inherently this-class-scoped (CodeRabbit).
+            // First rent line per field anchors the synthetic acquire.
             var pooledFieldRent = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model)
+                    && inv.FirstAncestorOrSelf<BaseTypeDeclarationSyntax>() == cls
                     && inv.Parent is AssignmentExpressionSyntax asg
                     && ThisFieldName(asg.Left) is { } pf
                     && !pooledFieldRent.ContainsKey(pf))
                     pooledFieldRent[pf] = LineOf(inv);
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var fv in fdecl.Declaration.Variables)
+                    if (fv.Initializer?.Value is InvocationExpressionSyntax finv
+                        && IsPoolRent(finv, model)
+                        && !pooledFieldRent.ContainsKey(fv.Identifier.Text))
+                        pooledFieldRent[fv.Identifier.Text] = LineOf(finv);
             if (pooledFieldRent.Count > 0)
                 foreach (var member in cls.Members)
                 {
+                    if (member is BaseTypeDeclarationSyntax)
+                        continue;   // a nested type is covered by its OWN class pass, not the outer's
                     // first full-length view of each pooled field in this member (one finding per field
                     // per member — repeated views of the same field do not multiply the diagnostic).
                     var seen = new HashSet<string>(StringComparer.Ordinal);
