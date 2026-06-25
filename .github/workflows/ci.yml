@@ -586,7 +586,7 @@ jobs:
           # the registration site rides along as the SECONDARY anchor (named in EACH DI004
           # message tail) — exactly 3, one per finding, so a partial-suffix regression (the tail
           # on some findings but not all) fails CI too (CodeRabbit review; mirrors the counts above).
-          nreg=$(echo "$out" | grep -c "singleton registered at ")
+          nreg=$(echo "$out" | grep -cE "\[DI004\].*singleton registered at ")
           [ "$nreg" = "3" ] \
             || { echo "FAIL: expected exactly 3 DI004 registration-site suffixes, got $nreg"; exit 1; }
           # the three controls each pin one precision guard and must stay SILENT: ScopedResolver
@@ -597,7 +597,27 @@ jobs:
           if echo "$out" | grep -qE "(ScopedResolver|PlainResolver|RequestResolver)"; then
             echo "FAIL: a correct/non-leaking resolver (scope-resolved, non-disposable, or scoped) was wrongly flagged DI004"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) at the C# location"
+          # P-006 DI005 (scope-cached captive, WARNING): a singleton that resolves a SCOPED service
+          # from a scope it CREATES (the correct IServiceScopeFactory pattern) but CACHES it into a
+          # field — the scope is disposed when the operation ends, so the cached instance dangles
+          # and is promoted to application lifetime (the captive returns, hidden behind the fix).
+          echo "$out" | grep -qE "\[DI005\].*'ScopeCachingService' caches scoped service 'AppDbContext'" \
+            || { echo "FAIL: expected DI005 (ScopeCachingService caches scope-resolved scoped AppDbContext)"; exit 1; }
+          n5=$(echo "$out" | grep -cE "DiCaptiveSample\.cs:[0-9]+:.*\[DI005\]")
+          [ "$n5" = "1" ] \
+            || { echo "FAIL: expected exactly 1 DI005 finding, got $n5"; exit 1; }
+          # DI005's consumer is the field-STORE site (not a ctor), the PRIMARY anchor — line 154,
+          # the `_db = scope.ServiceProvider.GetRequiredService<AppDbContext>()` store — with the
+          # registration as the secondary suffix.
+          echo "$out" | grep -qE "DiCaptiveSample\.cs:154: warning: \[DI005\].*'ScopeCachingService'" \
+            || { echo "FAIL: expected DI005 anchored at the field-store site (line 154)"; exit 1; }
+          # two controls stay SILENT: ScopeUsingService USES the scope-resolved service within the
+          # scope (a local, not a field store); ClockCachingService caches a SINGLETON (shareable,
+          # not a scoped service). Neither is a captive.
+          if echo "$out" | grep -qE "(ScopeUsingService|ClockCachingService)"; then
+            echo "FAIL: a correct scope use (used-in-scope, or a cached singleton) was wrongly flagged DI005"; exit 1
+          fi
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1

@@ -130,6 +130,7 @@ from .di import (
     find_captive_dependencies,
     find_captured_transient_disposables,
     find_explicit_root_resolutions,
+    find_scope_cached_captives,
     find_weak_captive_dependencies,
 )
 from .diagnostics import TITLES, Severity
@@ -500,6 +501,21 @@ def load(path: str) -> dict[str, Any]:
                 for x in sites):
             raise OwnIRError(
                 "service 'root_resolve_sites' must be an array of "
+                "{type:str, file:str, line:int} objects")
+        # DI005 (scope-cached captive): types resolved from a self-created scope and cached
+        # into a field, plus their field-store sites — validated like root_resolves / its sites.
+        scope_cached = s.get("scope_cached", [])
+        if not isinstance(scope_cached, list) or not all(
+                isinstance(d, str) for d in scope_cached):
+            raise OwnIRError("service 'scope_cached' must be an array of strings")
+        csites = s.get("scope_cache_sites", [])
+        if not isinstance(csites, list) or not all(
+                isinstance(x, dict) and isinstance(x.get("type", ""), str)
+                and isinstance(x.get("file", "?"), str)
+                and isinstance(x.get("line", 0), int) and not isinstance(x.get("line", 0), bool)
+                for x in csites):
+            raise OwnIRError(
+                "service 'scope_cache_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
@@ -1344,6 +1360,25 @@ def _di004_related(c: Any) -> tuple[tuple[str, int, str], ...]:
     return ()
 
 
+def _di005_primary(c: Any) -> tuple[str, int]:
+    """DI005's primary anchor — the field-assignment **cache site** (where the scope-resolved
+    service is stored and where the leak is), falling back to the registration site when the
+    extractor did not record it. Like DI004, DI005 is a call-/store-site property, not a
+    registration-graph one, so the store site is the primary."""
+    if getattr(c, "cached_line", 0) >= 1:
+        return (c.cached_file, c.cached_line)
+    return (c.file, c.line)
+
+
+def _di005_related(c: Any) -> tuple[tuple[str, int, str], ...]:
+    """The DI005 **registration** site as a structured related location — the secondary anchor
+    beside the cache-site primary. Empty when the cache site is unknown (then the registration
+    is already the primary) or the registration line is unknown."""
+    if getattr(c, "cached_line", 0) >= 1 and getattr(c, "line", 0) >= 1:
+        return ((c.file, c.line, f"registration of singleton '{c.singleton}'"),)
+    return ()
+
+
 def _resolve_sites(raw: Any) -> tuple[tuple[str, str, int], ...]:
     """Parse a service's optional `root_resolve_sites` (DI004 call-site metadata) into
     `(type, file, line)` triples. Tolerant for direct `check_facts` callers; `load()` does the
@@ -1388,6 +1423,10 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # DI004 call-site metadata: where each root_resolves type was hand-resolved, so the
             # finding can anchor at the GetRequiredService call site (its real consumer).
             root_resolve_sites=_resolve_sites(s.get("root_resolve_sites", [])),
+            # DI005: types resolved from a self-created scope and cached into a field, plus
+            # where each was cached (the field-store site the finding anchors at).
+            scope_cached=tuple(s.get("scope_cached", [])),
+            scope_cache_sites=_resolve_sites(s.get("scope_cache_sites", [])),
         )
         for s in raw if isinstance(s, dict)
     ]
@@ -1436,6 +1475,19 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             component=c.singleton, event=c.resolved, handler="",
             message=c.message, kind="DI lifetime", severity="warning",
             related=_di004_related(c)))
+    # DI005: a singleton that resolves a scoped service from a scope it CREATES
+    # (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-operation
+    # fix done wrong. The cached instance dangles after the scope is disposed (use-after-dispose)
+    # and is promoted to application lifetime (the captive returns, hidden behind the API that
+    # was meant to fix it). A warning, anchored at the field-store site (its real consumer), with
+    # the registration as the secondary — the store-site twin of DI004's call-site anchoring.
+    for sc in find_scope_cached_captives(services):
+        pf, pl = _di005_primary(sc)
+        out.append(Finding(
+            file=pf, line=pl, code="DI005",
+            component=sc.singleton, event=sc.captured, handler="",
+            message=sc.message, kind="DI lifetime", severity="warning",
+            related=_di005_related(sc)))
     return out
 
 

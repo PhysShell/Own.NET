@@ -154,11 +154,14 @@ architectural strictness, and the borrow-checker showcase):
    a singleton's injected **root** `IServiceProvider` via `GetService`/`GetRequiredService`),
    all warnings; plus the **consuming-constructor anchor** (a captive names both its
    registration site and the ctor that injects it, as message tail + SARIF relatedLocation).
-   The family now also has its first **real-world corpus case** — a singleton injecting a
-   scoped EF `DbContext` → DI001 (`corpus/di/`, a benchmark-only corpus since DI has no `.own`
-   form). Remaining (deliberate-deferral / future): directly-injected `IServiceScopeFactory`
-   recognition (P-006 OQ#3), a DI005 "scope-factory misuse" detection, and the dynamic
-   registrations that are explicit non-goals.
+   **DI005** (the fix done wrong — a singleton that injects `IServiceScopeFactory`, opens a
+   scope, but **caches** the scope-resolved **scoped** service into a field, so it dangles after
+   the scope is disposed and is promoted to app lifetime) is built end to end too, a store-site
+   property anchored at the field assignment. The family now also has its first **real-world
+   corpus case** — a singleton injecting a scoped EF `DbContext` → DI001 (`corpus/di/`, a
+   benchmark-only corpus since DI has no `.own` form). Remaining (deliberate-deferral / future):
+   directly-injected `IServiceScopeFactory`-as-a-positive-signal recognition (P-006 OQ#3), and
+   the dynamic registrations that are explicit non-goals.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
    ◑ *In progress* — POOL001 (leak), POOL002 (view-after-return → OWN002),

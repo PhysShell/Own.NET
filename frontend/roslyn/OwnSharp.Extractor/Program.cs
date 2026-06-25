@@ -1909,6 +1909,13 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
     // DI004's consumer is the GetRequiredService call site (not a ctor), so a finding anchors
     // at it; emitted as `root_resolve_sites` alongside `root_resolves`.
     var classRootResolveSites = new Dictionary<string, List<object>>();
+    // class name -> service types it resolves from a scope it CREATES (`factory.CreateScope()` /
+    // an injected provider's `.CreateScope()`) and then CACHES into a FIELD (DI005 — the
+    // scope-per-operation fix done wrong), with the field-STORE call site of each. A scope-resolved
+    // value USED in the scope and discarded (the correct shape) is not assigned to a field, so it
+    // never enters here.
+    var classScopeCached = new Dictionary<string, List<string>>();
+    var classScopeCacheSites = new Dictionary<string, List<object>>();
     // class name -> its CONSUMING CONSTRUCTOR location (file, 1-based line): the widest
     // public ctor (or the class/primary-ctor declaration), where a captive dependency is
     // injected. A captive finding anchors at the registration site but names this too, so
@@ -2011,6 +2018,45 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
             }
             classRootResolves[cls.Identifier.Text] = rootResolves;
             classRootResolveSites[cls.Identifier.Text] = rootResolveSites;
+
+            // DI005 — names whose `.CreateScope()` creates a child scope: an injected
+            // `IServiceScopeFactory`, plus the injected provider itself (an injected provider's
+            // `.CreateScope()` is equally a scope). A scoped service resolved off such a scope and
+            // CACHED into a field (rather than used within the scope) is the scope-per-operation fix
+            // done wrong. Collected with the SAME this-field discipline as providerNames so a local
+            // alias never enters (no false store-match).
+            var scopeCreatorNames = new HashSet<string>(providerNames);
+            if (widest is not null)
+                foreach (var p in widest.Parameters)
+                    if (p.Type is not null && DiTypeName(p.Type) == "IServiceScopeFactory")
+                        scopeCreatorNames.Add(p.Identifier.Text);
+            foreach (var mem in cls.Members)
+                if (mem is ConstructorDeclarationSyntax scfCtor)
+                    foreach (var asg in scfCtor.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                        if (asg.Right is IdentifierNameSyntax scfRhs
+                            && scopeCreatorNames.Contains(scfRhs.Identifier.Text)
+                            && AssignedFieldName(asg.Left) is { } scfFld
+                            && classFieldNames.Contains(scfFld))
+                            scopeCreatorNames.Add(scfFld);
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var v in fdecl.Declaration.Variables)
+                    if (v.Initializer?.Value is IdentifierNameSyntax scfInit
+                        && scopeCreatorNames.Contains(scfInit.Identifier.Text))
+                        scopeCreatorNames.Add(v.Identifier.Text);
+            var scopeCached = new List<string>();
+            var scopeCacheSites = new List<object>();
+            if (scopeCreatorNames.Count > 0)
+            {
+                var seenCached = new HashSet<string>();
+                foreach (var (cachedType, line) in ScopeCachedTypes(cls, scopeCreatorNames, classFieldNames))
+                    if (seenCached.Add(cachedType))   // first store per type wins
+                    {
+                        scopeCached.Add(cachedType);
+                        scopeCacheSites.Add(new { type = cachedType, file = ctorFile, line });
+                    }
+            }
+            classScopeCached[cls.Identifier.Text] = scopeCached;
+            classScopeCacheSites[cls.Identifier.Text] = scopeCacheSites;
         }
 
     // 2. registrations -> service facts at the registration site.
@@ -2035,6 +2081,10 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 ? rr : new List<string>();
             var rootResolveSites = impl is not null
                 && classRootResolveSites.TryGetValue(impl, out var rrs) ? rrs : new List<object>();
+            var scopeCached = impl is not null && classScopeCached.TryGetValue(impl, out var sca)
+                ? sca : new List<string>();
+            var scopeCacheSites = impl is not null
+                && classScopeCacheSites.TryGetValue(impl, out var scas) ? scas : new List<object>();
             var (ctorFile, ctorLine) = impl is not null && classCtorLoc.TryGetValue(impl, out var cl)
                 ? cl : ("?", 0);
             services.Add(new
@@ -2047,6 +2097,11 @@ static List<object> ExtractServices(List<(string file, SyntaxTree tree)> parsed)
                 // disposes the impl, so a transient-disposable impl captured by a
                 // singleton is held to app exit (DI003).
                 disposable = impl is not null && ctorDisposable.TryGetValue(impl, out var disp) && disp,
+                // the IMPLEMENTATION's scope-cached scoped services (DI005): a scoped service
+                // resolved off a scope it creates and cached into a field — the captive the scope
+                // was meant to avoid, plus the field-store site each finding anchors at.
+                scope_cached = scopeCached,
+                scope_cache_sites = scopeCacheSites,
                 // the IMPLEMENTATION's by-hand resolutions off its injected provider — for a
                 // singleton, the root; a transient IDisposable resolved this way is DI004.
                 root_resolves = rootResolves,
@@ -2182,6 +2237,7 @@ static IEnumerable<(string type, int line)> RootResolvedTypes(
 // (identifier) or `this._provider` (this-qualified field)? A `scope.ServiceProvider`
 // receiver is a member access NOT qualified by `this`, so it returns false: only the
 // injected ROOT provider, never a scope's provider, is treated as a root resolution.
+// Reused by DI005 to test a `<creator>.CreateScope()` receiver against the scope-creator names.
 static bool ReceiverIsProvider(ExpressionSyntax recv, HashSet<string> providerNames) => recv switch
 {
     IdentifierNameSyntax id => providerNames.Contains(id.Identifier.Text),
@@ -2189,6 +2245,57 @@ static bool ReceiverIsProvider(ExpressionSyntax recv, HashSet<string> providerNa
         => providerNames.Contains(n.Identifier.Text),
     _ => false,
 };
+
+// Is `inv` a `<creator>.CreateScope()` call whose receiver is one of the scope-creator names (an
+// injected IServiceScopeFactory or provider)? The `IServiceScopeFactory.CreateScope()` /
+// `IServiceProvider.CreateScope()` that opens a child scope (DI005).
+static bool IsCreateScopeOff(InvocationExpressionSyntax inv, HashSet<string> creators) =>
+    inv.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: "CreateScope" } m
+    && ReceiverIsProvider(m.Expression, creators);
+
+// The type `T` of a `<scope>.ServiceProvider.GetService<T>()` / `GetRequiredService<T>()`
+// expression, where `<scope>` is a scope-local declared from `CreateScope()` OR an inline
+// `<creator>.CreateScope()` chain — else null (DI005). Single type argument only (the generic
+// resolve form). The `.ServiceProvider` receiver is what distinguishes a scope resolution from a
+// root one (DI004, off the injected provider directly).
+static string? ScopeResolvedType(
+    ExpressionSyntax expr, HashSet<string> scopeLocals, HashSet<string> creators)
+{
+    if (expr is not InvocationExpressionSyntax inv
+        || inv.Expression is not MemberAccessExpressionSyntax ma
+        || ma.Name is not GenericNameSyntax gen
+        || gen.TypeArgumentList.Arguments.Count != 1
+        || gen.Identifier.Text is not ("GetService" or "GetRequiredService")
+        || ma.Expression is not MemberAccessExpressionSyntax { Name.Identifier.Text: "ServiceProvider" } sp)
+        return null;
+    var fromScope = sp.Expression switch
+    {
+        IdentifierNameSyntax id => scopeLocals.Contains(id.Identifier.Text),
+        InvocationExpressionSyntax cs => IsCreateScopeOff(cs, creators),   // inline CreateScope().ServiceProvider
+        _ => false,
+    };
+    return fromScope ? DiTypeName(gen.TypeArgumentList.Arguments[0]) : null;
+}
+
+// The service types a class resolves off a scope it CREATES and CACHES into a FIELD, with the
+// 1-based line of the field store (DI005). Recognises a field assignment
+// `_f = scope.ServiceProvider.Get(Required)Service<T>()` where `scope` is a local declared from
+// `<creator>.CreateScope()`, and the inline `_f = <creator>.CreateScope().ServiceProvider.
+// Get(Required)Service<T>()`. The LHS must be a real field (AssignedFieldName + classFieldNames) —
+// a scope-resolved value used within the scope and discarded (the CORRECT pattern) is a local, not
+// a field store, so it is never recorded.
+static IEnumerable<(string type, int line)> ScopeCachedTypes(
+    ClassDeclarationSyntax cls, HashSet<string> creators, HashSet<string> classFieldNames)
+{
+    var scopeLocals = new HashSet<string>(StringComparer.Ordinal);
+    foreach (var v in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+        if (v.Initializer?.Value is InvocationExpressionSyntax cs && IsCreateScopeOff(cs, creators))
+            scopeLocals.Add(v.Identifier.Text);
+    foreach (var asg in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+        if (AssignedFieldName(asg.Left) is { } fld && classFieldNames.Contains(fld)
+            && ScopeResolvedType(asg.Right, scopeLocals, creators) is { } t)
+            yield return (t, asg.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
+}
 
 // DI's default IServiceProvider resolves through PUBLIC constructors only — an
 // explicit ctor with no access modifier defaults to private and DI never uses it.

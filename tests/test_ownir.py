@@ -691,6 +691,61 @@ def run() -> int:
     if any(x.code in ("DI001", "DI002", "DI003") for x in di4b):
         fails.append("DI004 wrongly also produced a graph DI00x finding")
 
+    # --- DI005 (P-006): a singleton that resolves a SCOPED service from a scope it CREATES
+    #     (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-op
+    #     fix done wrong (warning). Only singletons; only a SCOPED cached type (a transient or
+    #     singleton cached value is not this violation); a scope-resolved value USED in the scope
+    #     and not cached produces no `scope_cached` entry, so it stays silent.
+    from ownlang.di import find_scope_cached_captives
+    csvcs = [
+        # caches scoped -> DI005, store site 21:
+        Service("Cacher", "singleton", deps=(), scope_cached=("Db",),
+                scope_cache_sites=(("Db", "C.cs", 21),)),
+        Service("Db", "scoped", ()),
+        Service("CacheTmp", "singleton", deps=(), scope_cached=("Tmp",)),  # silent: not scoped
+        Service("Tmp", "transient", (), disposable=True),
+        Service("CacheClk", "singleton", deps=(), scope_cached=("Clk",)),  # silent: singleton
+        Service("Clk", "singleton", ()),
+        Service("ReqCacher", "scoped", deps=(), scope_cached=("Db",)),     # silent: not singleton
+        Service("GoodScope", "singleton", deps=(), scope_cached=()),       # silent: not cached
+    ]
+    di5 = find_scope_cached_captives(csvcs)
+    checks += 1
+    got5 = sorted((c.singleton, c.captured) for c in di5)
+    if got5 != [("Cacher", "Db")]:
+        fails.append(f"DI005 set wrong: {got5}")
+    checks += 1
+    if not di5 or "use-after-dispose" not in di5[0].message:
+        fails.append("DI005 message missing 'use-after-dispose'")
+    checks += 1
+    # DI005 records the field-STORE site (C.cs:21) — its real consumer — for anchoring.
+    c5 = di5[0] if di5 else None
+    if c5 is None or (c5.cached_file, c5.cached_line) != ("C.cs", 21):
+        fails.append(f"DI005 cache-site wrong: {(c5.cached_file, c5.cached_line) if c5 else None}")
+    # bridge: DI005 surfaces as a WARNING anchored at the STORE site (C.cs:21), with the
+    # REGISTRATION (S.cs:7) as the related secondary and named in the message tail.
+    di5facts = {"ownir_version": 0, "module": "X", "components": [], "functions": [],
+                "services": [
+                    {"name": "Cacher", "lifetime": "singleton", "deps": [],
+                     "scope_cached": ["Db"], "file": "S.cs", "line": 7,
+                     "scope_cache_sites": [{"type": "Db", "file": "C.cs", "line": 21}]},
+                    {"name": "Db", "lifetime": "scoped", "deps": [], "file": "S.cs", "line": 8},
+                ]}
+    di5b = check_facts(di5facts)
+    checks += 1
+    di5only = [x for x in di5b if x.code == "DI005"]
+    if (len(di5only) != 1 or di5only[0].severity != "warning"
+            or (di5only[0].file, di5only[0].line) != ("C.cs", 21)
+            or di5only[0].related != (("S.cs", 7, "registration of singleton 'Cacher'"),)
+            or "[singleton registered at S.cs:7]" not in di5only[0].message):
+        fails.append("DI005 bridge finding wrong: "
+                     f"{[(x.file, x.line, x.related) for x in di5only]}")
+    checks += 1
+    # DI005 is a store-site property, not a registration-graph edge: the singleton has no scoped
+    # ctor dependency, so it must not also produce a DI001/DI002/DI003/DI004.
+    if any(x.code in ("DI001", "DI002", "DI003", "DI004") for x in di5b):
+        fails.append("DI005 wrongly also produced another DI00x finding")
+
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
     with open(_DI_FIXTURE, encoding="utf-8") as f:
