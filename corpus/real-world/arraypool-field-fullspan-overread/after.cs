@@ -37,8 +37,9 @@ sealed class FieldPoolFramer : IDisposable
 
     public void Dispose()
     {
-        ArrayPool<byte>.Shared.Return(_buf);
-        ArrayPool<byte>.Shared.Return(_meta);
+        if (_buf is not null)                    // null until Capture; Return(null) would throw
+            ArrayPool<byte>.Shared.Return(_buf);
+        ArrayPool<byte>.Shared.Return(_meta);    // initializer-rented, never null
     }
 
     static void Fill(byte[] b, int n) { for (int i = 0; i < n; i++) b[i] = (byte)i; }
