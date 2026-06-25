@@ -29,7 +29,21 @@ namespace OwnNet.Audit.Runtime
             {
                 return 2;
             }
+            try
+            {
+                return Run(opts);
+            }
+            catch (ScenarioException ex)
+            {
+                // A broken scenario must NOT be reported as a clean pass — exit 2
+                // (distinct from clean=0 and leak-found=1) and write no result.
+                Console.Error.WriteLine($"leak-harness: scenario failed — {ex.Message}");
+                return 2;
+            }
+        }
 
+        private static int Run(CliOptions opts)
+        {
             var scenario = Scenario.Load(opts.ScenarioPath);
             var counter = new HeapCounter(opts.ProcdumpPath, opts.ScratchDir);
             var types = scenario.Suspects.Select(s => s.Type).ToList();
@@ -82,6 +96,11 @@ namespace OwnNet.Audit.Runtime
         /// <summary>
         /// One scenario cycle: replay the declared steps (open the screen, interact,
         /// close it). Determinism comes from the asserts, not the UI timing.
+        ///
+        /// A step that cannot run — control not found (typo, or the screen has not
+        /// loaded yet) or an unknown action — THROWS rather than being silently
+        /// skipped. Skipping would baseline/snapshot the wrong screen and report a
+        /// clean result: a broken scenario masquerading as "no leak" (Codex review).
         /// </summary>
         private static void RunCycle(Window window, Scenario scenario)
         {
@@ -92,12 +111,18 @@ namespace OwnNet.Audit.Runtime
                     case "open":
                     case "click":
                     case "close":
-                        window.FindFirstDescendant(cf => cf.ByAutomationId(step.Target))
-                              ?.AsButton()?.Invoke();
+                        var element = window.FindFirstDescendant(cf => cf.ByAutomationId(step.Target))
+                            ?? throw new ScenarioException(
+                                $"step '{step.Action}' target '{step.Target}' not found");
+                        // Invoke() requires the control to support the InvokePattern;
+                        // if it does not, FlaUI throws — which fails the scenario too.
+                        element.AsButton().Invoke();
                         break;
                     case "wait":
                         Thread.Sleep(step.Ms);
                         break;
+                    default:
+                        throw new ScenarioException($"unknown step action '{step.Action}'");
                 }
             }
         }
@@ -138,6 +163,18 @@ namespace OwnNet.Audit.Runtime
                 });
             }
             return findings;
+        }
+    }
+
+    /// <summary>
+    /// A scenario could not be executed (missing control, unknown action). Distinct
+    /// from a leak: it means the audit did not actually run, so the result must NOT
+    /// be treated as "clean".
+    /// </summary>
+    internal sealed class ScenarioException : Exception
+    {
+        public ScenarioException(string message) : base(message)
+        {
         }
     }
 

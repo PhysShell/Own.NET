@@ -141,6 +141,16 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
         tiers.append({"tool": "infersharp", "tier": "build-required", "available": True,
                       "sarif": str(infer), "reason": ""})
 
+    # Runtime tier (Plan.md §4): the leak-harness SARIF (produced by
+    # audit/runtime/ingest.py from the harness JSON) is folded in here, so a
+    # runtime-confirmed leak clusters with its static OWN014/OWN001 -> high
+    # confidence (§3.5) through the orchestrator, not only the lower-level aggregate().
+    leak = out_dir / "leak-harness.sarif"
+    if leak.exists():
+        sarif_inputs.append(("leak-harness", str(leak)))
+        tiers.append({"tool": "leak-harness", "tier": "runtime", "available": True,
+                      "sarif": str(leak), "reason": ""})
+
     meta = {
         "target": target_name or target, "commit": commit,
         "generated": f"{datetime.now(UTC):%Y-%m-%d %H:%M UTC}",
@@ -255,11 +265,22 @@ def _selftest() -> int:
             "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/App/Svc.cs"},
                                                 "region": {"startLine": 5}}}]}]}]}
         (out2 / "roslyn" / "ProjA.sarif").write_text(json.dumps(rosl), encoding="utf-8")
+        # a runtime leak-harness SARIF in the SAME file -> must be folded in by run()
+        # and cluster with the static finding -> high confidence (Plan.md §3.5 / #102).
+        leak = {"runs": [{"tool": {"driver": {"name": "leak-harness"}}, "results": [
+            {"ruleId": "RUNTIME-LEAK-SUBSCRIPTION", "level": "error",
+             "message": {"text": "retained Svc grew 1->11"},
+             "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/App/Svc.cs"},
+                                                 "region": {"startLine": 6}}}]}]}]}
+        (out2 / "leak-harness.sarif").write_text(json.dumps(leak), encoding="utf-8")
         profile = {"name": "t", "severity_floor": "warning", "tiers": {"build_free": []}}
         res2 = run("/nonexistent-target", profile, out2, target_name="t/p")
         check(any(t["tool"] == "roslyn-pack" for t in res2["tiers"]),
               "roslyn per-project SARIF under roslyn/ must be picked up")
-        check(res2["totals"]["clusters"] >= 1, "roslyn finding must reach the aggregated totals")
+        check(any(t["tool"] == "leak-harness" for t in res2["tiers"]),
+              "runtime leak-harness.sarif must be folded in by run()")
+        check(res2["totals"]["high_confidence"] >= 1,
+              "runtime leak + static finding in one file must form a high-confidence cluster")
 
     fails = [c for c in checks if c]
     for f in fails:
