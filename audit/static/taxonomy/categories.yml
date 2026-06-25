@@ -55,14 +55,26 @@ rules:
   # ── Category 15: architecture metrics / hotspots ─────────────────────────────
   "RCS1*": {category: 15, name: architecture}       # Roslynator maintainability subset
 
+  # ── RUNTIME tier (Plan.md §4) — emitted by audit/runtime/ (leak-harness, ClrMD
+  #    duplicate detector). These categories are NO-TOOL for static analysis, so the
+  #    runtime layer is the ONLY tool that covers them. A runtime finding that lands
+  #    in the same file/category as a static one clusters with it -> high confidence
+  #    (the static→runtime confirmation in Plan.md §3.5).
+  "RUNTIME-LEAK-SUBSCRIPTION": {category: 2, name: subscription-leak}
+  "RUNTIME-LEAK-TIMER": {category: 3, name: timer-leak}
+  "RUNTIME-DPD-ADDVALUECHANGED": {category: 4, name: dpd-addvaluechanged-leak}
+  "RUNTIME-DUP-IMMUTABLE": {category: 11, name: duplicate-immutable}
+
 # Baseline P-level per category (Plan.md §3.5.2). Confidence (cross-tool
 # agreement) is a SEPARATE axis handled by score.py; this is severity only.
 category_severity:
   1: P1      # leaks — the high-value classes
   2: P1
   3: P1
+  4: P1      # DependencyPropertyDescriptor.AddValueChanged leak (runtime-confirmed)
   5: P2
   9: P2
+  11: P2     # duplicated immutable data — memory bloat (the project's "gold"), perf-tier
   14: P2
   15: P3
   0: P3      # uncategorized

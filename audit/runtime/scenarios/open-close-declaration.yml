@@ -1,0 +1,47 @@
+# Own.NET Audit — leak-harness scenario (Plan.md §4.1).
+#
+# A scenario is the part an AI/dev drafts (which screen, how to open and close it);
+# the asserts are deterministic — the harness opens the screen `iterations` times,
+# forces a GC + heap snapshot each cycle, and flags a leak when a suspect type's
+# retained-instance count grows faster than `threshold` per iteration.
+#
+# Schema:
+#   name:        report id for the scenario
+#   app:         path to the target .exe (FlaUI launches it)
+#   iterations:  open/close cycles after a warm-up cycle (baseline taken post-warm-up)
+#   threshold:   max allowed retained-instance growth PER ITERATION before it's a leak
+#                (0.5 ⇒ "should not retain ~1 instance every 2 cycles")
+#   steps:       the cycle, replayed each iteration. action ∈ {open, click, close, wait}
+#                - open/click/close: `target` is the control's AutomationId
+#                - wait: `ms` dwell
+#   suspects:    types whose retention is watched. Each maps to a source location and an
+#                audit rule so a confirmed leak correlates with the matching STATIC
+#                finding (own-check OWN001/OWN014) → high-confidence cluster (Plan.md §3.5).
+#                rule ∈ RUNTIME-LEAK-SUBSCRIPTION | RUNTIME-LEAK-TIMER |
+#                       RUNTIME-DPD-ADDVALUECHANGED | RUNTIME-DUP-IMMUTABLE
+
+name: open-close-declaration
+app: C:\Targets\LegacyApp\LegacyApp.exe
+iterations: 10
+threshold: 0.5
+
+steps:
+  - { action: open,  target: OpenDeclarationButton }
+  - { action: wait,  ms: 800 }
+  - { action: click, target: GraphTab47 }          # exercise the heavy "графа 47" view
+  - { action: wait,  ms: 500 }
+  - { action: close, target: CloseDeclarationButton }
+  - { action: wait,  ms: 500 }
+
+suspects:
+  # The declaration view-model: if it subscribes to a long-lived bus without `-=`,
+  # each open retains one more instance — own-check flags this statically as OWN014.
+  - type: Acme.Vm.DeclarationViewModel
+    rule: RUNTIME-LEAK-SUBSCRIPTION
+    location: src/Vm/DeclarationViewModel.cs
+    line: 123
+  # A DispatcherTimer started on open and never stopped retains the view that owns it.
+  - type: Acme.Views.DeclarationView
+    rule: RUNTIME-LEAK-TIMER
+    location: src/Views/DeclarationView.xaml.cs
+    line: 0
