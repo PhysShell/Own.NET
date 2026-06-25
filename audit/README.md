@@ -52,6 +52,10 @@ audit/
     inject/          # OwnAudit.Directory.Build.props/.targets (analyzer injection, gated)
     taxonomy/
       categories.yml # rule-id -> category knowledge base (Plan.md §2/§3.4)
+  runtime/           # runtime layer (Plan.md §4) — see runtime/README.md
+    ingest.py        # leak-harness JSON -> SARIF -> the unified pipeline (PURE PYTHON, CI-gated)
+    scenarios/       # declarative leak-harness scenarios (+ schema)
+    LeakHarness/     # C# harness (FlaUI + procdump + ClrMD), Windows/build-required, not CI-gated
   config/profiles/
     desktop-wpf.yml  # which packs / severity floor for the net472 WPF target
   requirements.txt   # PyYAML (audit-scoped)
@@ -113,11 +117,15 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
 
 ## Status
 
-- **Done:** static build-free runners, normalization + taxonomy (incl. the OWN001
-  `[resource:]` split, OWN014 region-escape labelling, and OWN050 routed to the
-  coverage ledger), DevExpress baseline-suppress, cross-tool agreement scoring, the
-  pain heatmap, **all four renderers (markdown / json / merged SARIF / HTML)**, the
-  analyzer-injection props/targets, and selftests.
-- **Deferred:** the runtime layer (FlaUI + ClrMD leak-harness, duplicate-immutable
-  detector); the AI-reviewer layer; feeding confirmed findings back into the
-  OwnLang corpus.
+- **Static (Phase 1) — done:** build-free runners, normalization + taxonomy (incl.
+  the OWN001 `[resource:]` split, OWN014 region-escape labelling, and OWN050 routed
+  to the coverage ledger), DevExpress baseline-suppress, cross-tool agreement
+  scoring, the pain heatmap, **all four renderers (markdown / json / merged SARIF /
+  HTML)**, the analyzer-injection props/targets, and selftests.
+- **Runtime (Phase 2) — started:** the runtime→pipeline bridge (`runtime/ingest.py`,
+  CI-gated), the leak-harness scenario schema + one scenario, runtime rule mappings
+  in the taxonomy (categories 2/3/4/11), and the C# leak-harness skeleton. See
+  `runtime/README.md`.
+- **Deferred:** the ClrMD duplicate-immutable detector and PropertyChanged-storm
+  profiler; the AI-reviewer layer; feeding confirmed findings back into the OwnLang
+  corpus.
