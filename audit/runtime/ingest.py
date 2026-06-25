@@ -9,12 +9,13 @@ runtime-confirmed leak that lands in the same file as a static finding clusters
 with it → **high confidence** (the static→runtime confirmation in Plan.md §3.5,
 e.g. own-check OWN014 + leak-harness on ``VideoSource.xaml.cs:123``).
 
-The C# leak-harness (``audit/runtime/LeakHarness/``, Windows / build-required) runs
-the deterministic GC+snapshot loop and writes the JSON; this bridge is pure Python
-and gates on Linux CI, like the aggregation selftests.
+The C# harnesses (``audit/runtime/LeakHarness/`` and ``DuplicateDetector/``, Windows
+/ build-required) write the JSON; this bridge is pure Python and gates on Linux CI,
+like the aggregation selftests.
 
 Usage:
-  ingest.py --leak-harness result.json --out artifacts/own-audit/leak-harness.sarif
+  ingest.py --leak-harness result.json [--out leak-harness.sarif]
+  ingest.py --duplicate-detector result.json [--out duplicate-detector.sarif]
   ingest.py --selftest
 """
 
@@ -35,39 +36,27 @@ DEFAULT_TAXONOMY = (Path(__file__).resolve().parent.parent
                     / "static" / "taxonomy" / "categories.yml")
 
 
-def leak_harness_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
-    """Turn one leak-harness JSON result into a SARIF 2.1.0 log. Only findings with
-    ``leaked: true`` (the deterministic growth assertion tripped) become results; a
-    clean iteration loop is evidence of *no* leak, not a finding."""
-    tool = result.get("tool", "leak-harness")
+def _runtime_sarif(tool: str, findings: list[dict[str, Any]],
+                   run_props: dict[str, Any], level: str) -> dict[str, Any]:
+    """Build a SARIF 2.1.0 log from already-normalized runtime findings. Each finding
+    is ``{rule, message, uri, line, properties}``; a ``line < 1`` stays file-level (no
+    region) rather than fabricate line 1. The ``level`` is cosmetic for code scanning
+    — score.py derives severity from the taxonomy category, not the SARIF level."""
     rules: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
-    for f in result.get("findings", []):
-        if not f.get("leaked"):
-            continue
-        rule_id = f.get("rule", "RUNTIME-LEAK")
+    for f in findings:
+        rule_id = f["rule"]
         rules.setdefault(rule_id, {"id": rule_id, "name": rule_id,
-                                   "defaultConfiguration": {"level": "error"}})
-        # A type-based finding (e.g. duplicate-immutable) may have no source line;
-        # keep it file-level (no region) rather than fabricate line 1. parse_sarif
-        # drops results with NO location, so always carry at least an artifactLocation
-        # (the source file when known, else the type as a synthetic uri).
-        uri = f.get("location") or f.get("type") or "runtime"
-        phys: dict[str, Any] = {"artifactLocation": {"uri": uri}}
-        line = int(f.get("line", 0) or 0)
-        if line >= 1:
-            phys["region"] = {"startLine": line}
-        msg = (f.get("message", "")
-               + f" [scenario: {result.get('scenario', '?')}, "
-               + f"x{result.get('iterations', '?')} iterations]")
+                                   "defaultConfiguration": {"level": level}})
+        phys: dict[str, Any] = {"artifactLocation": {"uri": f["uri"]}}
+        if f["line"] >= 1:
+            phys["region"] = {"startLine": f["line"]}
         results.append({
             "ruleId": rule_id,
-            "level": "error",
-            "message": {"text": msg},
+            "level": level,
+            "message": {"text": f["message"]},
             "locations": [{"physicalLocation": phys}],
-            "properties": {k: f[k] for k in
-                           ("type", "baseline", "final", "growthPerIteration", "threshold")
-                           if k in f},
+            "properties": f.get("properties", {}),
         })
     return {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
@@ -79,35 +68,94 @@ def leak_harness_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
                 "rules": list(rules.values()),
             }},
             "results": results,
-            "properties": {
-                "target": result.get("target", ""),
-                "commit": result.get("commit", ""),
-                "scenario": result.get("scenario", ""),
-                "iterations": result.get("iterations", 0),
-            },
+            "properties": run_props,
         }],
     }
 
 
+def _location(f: dict[str, Any]) -> tuple[str, int]:
+    """A finding's (uri, line). parse_sarif drops results with NO location, so always
+    carry an artifactLocation: the source file when known, else the type as a
+    synthetic uri (type-based findings like duplicate-immutable have no source line)."""
+    return (f.get("location") or f.get("type") or "runtime", int(f.get("line", 0) or 0))
+
+
+def leak_harness_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
+    """Leak-harness JSON → SARIF. Only ``leaked: true`` findings (the deterministic
+    growth assertion tripped) become results; a clean loop is evidence of *no* leak."""
+    suffix = (f" [scenario: {result.get('scenario', '?')}, "
+              f"x{result.get('iterations', '?')} iterations]")
+    findings = []
+    for f in result.get("findings", []):
+        if not f.get("leaked"):
+            continue
+        uri, line = _location(f)
+        findings.append({
+            "rule": f.get("rule", "RUNTIME-LEAK"),
+            "message": f.get("message", "") + suffix,
+            "uri": uri, "line": line,
+            "properties": {k: f[k] for k in
+                           ("type", "baseline", "final", "growthPerIteration", "threshold")
+                           if k in f},
+        })
+    return _runtime_sarif(
+        result.get("tool", "leak-harness"), findings,
+        {"target": result.get("target", ""), "commit": result.get("commit", ""),
+         "scenario": result.get("scenario", ""), "iterations": result.get("iterations", 0)},
+        level="error")
+
+
+def duplicate_detector_to_sarif(result: dict[str, Any]) -> dict[str, Any]:
+    """Duplicate-immutable-detector JSON → SARIF (Plan.md §2 cat. 11, the project's
+    "gold"). Findings are type/value-based (a heap full of identical 'Country'
+    strings), so they have no source line — file-level, level ``warning`` (a P2
+    memory/perf finding, not a correctness error). A finding with ``report: false``
+    (below the wasted-bytes threshold) is dropped."""
+    findings = []
+    for f in result.get("findings", []):
+        if not f.get("report", True):
+            continue
+        uri, line = _location(f)
+        findings.append({
+            "rule": f.get("rule", "RUNTIME-DUP-IMMUTABLE"),
+            "message": f.get("message", ""),
+            "uri": uri, "line": line,
+            "properties": {k: f[k] for k in
+                           ("type", "value", "count", "bytesPerInstance", "wastedBytes")
+                           if k in f},
+        })
+    return _runtime_sarif(
+        result.get("tool", "duplicate-detector"), findings,
+        {"target": result.get("target", ""), "commit": result.get("commit", ""),
+         "minWastedBytes": result.get("minWastedBytes", 0)},
+        level="warning")
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Convert a leak-harness JSON result to SARIF.")
+    ap = argparse.ArgumentParser(description="Convert a runtime tool's JSON result to SARIF.")
     ap.add_argument("--leak-harness", help="leak-harness result JSON")
-    ap.add_argument("--out", default="artifacts/own-audit/leak-harness.sarif")
+    ap.add_argument("--duplicate-detector", help="duplicate-immutable-detector result JSON")
+    ap.add_argument("--out", default="", help="output SARIF (defaults per tool under artifacts/)")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args(argv)
 
     if args.selftest:
         return _selftest()
-    if not args.leak_harness:
-        ap.error("--leak-harness is required (or use --selftest)")
+    if args.leak_harness:
+        result = json.loads(Path(args.leak_harness).read_text(encoding="utf-8"))
+        sarif = leak_harness_to_sarif(result)
+        default_out = "artifacts/own-audit/leak-harness.sarif"
+    elif args.duplicate_detector:
+        result = json.loads(Path(args.duplicate_detector).read_text(encoding="utf-8"))
+        sarif = duplicate_detector_to_sarif(result)
+        default_out = "artifacts/own-audit/duplicate-detector.sarif"
+    else:
+        ap.error("one of --leak-harness / --duplicate-detector is required (or --selftest)")
 
-    result = json.loads(Path(args.leak_harness).read_text(encoding="utf-8"))
-    sarif = leak_harness_to_sarif(result)
-    out = Path(args.out)
+    out = Path(args.out or default_out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(sarif, indent=2), encoding="utf-8")
-    n = len(sarif["runs"][0]["results"])
-    print(json.dumps({"out": str(out), "leaked_findings": n}, indent=2))
+    print(json.dumps({"out": str(out), "results": len(sarif["runs"][0]["results"])}, indent=2))
     return 0
 
 
@@ -191,6 +239,30 @@ def _selftest() -> int:
     check(len(confirmed) == 1,
           f"static OWN014 + runtime leak in the same file must form 1 high-confidence cluster, "
           f"got {[(c.module, c.tools, c.confidence) for c in scored['clusters']]}")
+
+    # Duplicate-immutable detector (cat. 11, the project's "gold"): type/value-based,
+    # file-level, level warning; a below-threshold finding (report:false) is dropped.
+    dup = duplicate_detector_to_sarif({
+        "tool": "duplicate-detector", "target": "acme/LegacyApp", "minWastedBytes": 65536,
+        "findings": [
+            {"rule": "RUNTIME-DUP-IMMUTABLE", "type": "System.String", "value": "Country",
+             "count": 48211, "bytesPerInstance": 36, "wastedBytes": 1735560,
+             "location": "Acme.Ref.CountryTable", "line": 0, "report": True,
+             "message": "48211 duplicate 'Country' strings (~1.7 MB wasted)"},
+            {"rule": "RUNTIME-DUP-IMMUTABLE", "type": "System.String", "value": "x",
+             "count": 3, "wastedBytes": 108, "report": False, "message": "below threshold"},
+        ]})
+    dres = dup["runs"][0]["results"]
+    check(len(dres) == 1, f"below-threshold dup finding must be dropped: got {len(dres)}")
+    check(dres[0]["level"] == "warning", "duplicate-immutable must be SARIF level warning (P2)")
+    check("region" not in dres[0]["locations"][0]["physicalLocation"],
+          "type-based duplicate finding must stay file-level (no region)")
+    check(dres[0]["properties"].get("wastedBytes") == 1735560,
+          "duplicate finding must carry wastedBytes in properties")
+    dcat = {f.rule: (f.category, f.category_name)
+            for f in normalize_results(parse_sarif(json.dumps(dup), "duplicate-detector", []), tax)}
+    check(dcat.get("RUNTIME-DUP-IMMUTABLE") == (11, "duplicate-immutable"),
+          f"duplicate-immutable -> category 11, got {dcat.get('RUNTIME-DUP-IMMUTABLE')}")
 
     fails = [c for c in checks if c]
     for f in fails:

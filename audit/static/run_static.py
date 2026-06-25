@@ -141,15 +141,17 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
         tiers.append({"tool": "infersharp", "tier": "build-required", "available": True,
                       "sarif": str(infer), "reason": ""})
 
-    # Runtime tier (Plan.md §4): the leak-harness SARIF (produced by
-    # audit/runtime/ingest.py from the harness JSON) is folded in here, so a
-    # runtime-confirmed leak clusters with its static OWN014/OWN001 -> high
-    # confidence (§3.5) through the orchestrator, not only the lower-level aggregate().
-    leak = out_dir / "leak-harness.sarif"
-    if leak.exists():
-        sarif_inputs.append(("leak-harness", str(leak)))
-        tiers.append({"tool": "leak-harness", "tier": "runtime", "available": True,
-                      "sarif": str(leak), "reason": ""})
+    # Runtime tier (Plan.md §4): SARIFs produced by audit/runtime/ingest.py from each
+    # runtime tool's JSON are folded in here, so a runtime-confirmed finding clusters
+    # with its static OWN014/OWN001 -> high confidence (§3.5) through the orchestrator,
+    # not only the lower-level aggregate().
+    for fname, tool in (("leak-harness.sarif", "leak-harness"),
+                        ("duplicate-detector.sarif", "duplicate-detector")):
+        rt = out_dir / fname
+        if rt.exists():
+            sarif_inputs.append((tool, str(rt)))
+            tiers.append({"tool": tool, "tier": "runtime", "available": True,
+                          "sarif": str(rt), "reason": ""})
 
     meta = {
         "target": target_name or target, "commit": commit,
