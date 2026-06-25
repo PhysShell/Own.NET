@@ -17,7 +17,11 @@
   `IDisposable` resolved by hand from a singleton's injected **root** `IServiceProvider` —
   `GetService<T>()` / `GetRequiredService<T>()`, the service-locator anti-pattern) extends
   the family to a **call site** the registration graph cannot see, also a CI-validated
-  warning on the same sample.
+  warning on the same sample. A first **real-world corpus case** now grounds DI001 outside
+  the synthetic sample — a singleton injecting a scoped EF `DbContext`
+  (`corpus/di/singleton-captures-scoped-dbcontext`), scored by the dotnet `corpus-benchmark`
+  job (a benchmark-only corpus: DI has no `.own` reduction, so it is not run by the Python
+  `test_corpus` `.own` suite).
 - **Depends on:** `spec/Lifetimes.md` (the region-ordering model behind OWN014),
   [P-001](P-001-csharp-extractor.md) (the C# seam). See
   [`docs/ROADMAP.md`](../ROADMAP.md) (Milestone 3).
