@@ -167,14 +167,18 @@ def render_sarif(meta: dict[str, Any], cov: dict[str, Any],
                 "defaultConfiguration": {"level": level},
                 "properties": {"category": c.category},
             }
+        # A genuinely file-level finding (parse_sarif records line 0 when the
+        # upstream result has no region) must STAY file-level — omit region rather
+        # than fabricate a line-1 region that mis-pins the code-scanning alert.
+        phys: dict[str, Any] = {"artifactLocation": {"uri": c.path}}
+        if c.line >= 1:
+            phys["region"] = {"startLine": c.line}
         results.append({
             "ruleId": rule_id,
             "level": level,
             "message": {"text": f"[{c.severity} · {c.confidence}] {c.category_name} — "
                                 + "; ".join(f"{f.tool}:{f.rule}" for f in c.findings)},
-            "locations": [{"physicalLocation": {
-                "artifactLocation": {"uri": c.path},
-                "region": {"startLine": max(1, c.line)}}}],
+            "locations": [{"physicalLocation": phys}],
             "properties": {"category": c.category, "categoryName": c.category_name,
                            "confidence": c.confidence, "severity": c.severity,
                            "pain": c.pain, "tools": c.tools},
@@ -365,8 +369,17 @@ def _selftest() -> int:
     check(len(run["results"]) == 3, f"sarif must have 3 results, got {len(run['results'])}")
     check(all(r["ruleId"].startswith("own-audit/") for r in run["results"]),
           "sarif results must use own-audit/<category> rule ids")
-    check(all(r["locations"][0]["physicalLocation"]["region"]["startLine"] >= 1
-              for r in run["results"]), "sarif startLine must be >= 1")
+    check(all(loc["region"]["startLine"] >= 1
+              for r in run["results"]
+              for loc in (r["locations"][0]["physicalLocation"],) if "region" in loc),
+          "sarif region startLine (when present) must be >= 1")
+    # file-level findings (parse_sarif records line 0) must stay file-level — no
+    # fabricated line-1 region that mis-pins the alert (Codex review on #101).
+    fl = score([AuditFinding("codeql", "src/App/Asm.cs", 0, "cs/assembly", "x", 14,
+                             "general-quality")], tax)
+    fl_phys = render_sarif(meta, cov, fl)["runs"][0]["results"][0]["locations"][0][
+        "physicalLocation"]
+    check("region" not in fl_phys, "file-level finding (line 0) must omit SARIF region")
     levels = {r["ruleId"]: r["level"] for r in run["results"]}
     check(levels.get("own-audit/idisposable-leak") == "error",
           "P1 leak must map to SARIF level error")
