@@ -693,9 +693,11 @@ def run() -> int:
 
     # --- DI005 (P-006): a singleton that resolves a SCOPED service from a scope it CREATES
     #     (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-op
-    #     fix done wrong (warning). Only singletons; only a SCOPED cached type (a transient or
-    #     singleton cached value is not this violation); a scope-resolved value USED in the scope
-    #     and not cached produces no `scope_cached` entry, so it stays silent.
+    #     fix done wrong (warning). Only singletons; the cached value must REACH a scoped service
+    #     — a cached scoped type directly, or a cached transient that ctor-injects one (the DFS
+    #     follows transients like DI001). A cached singleton, or a transient with NO scoped strong
+    #     path, is not this violation; a scope-resolved value USED in the scope and not cached
+    #     produces no `scope_cached` entry, so it stays silent.
     from ownlang.di import find_scope_cached_captives
     csvcs = [
         # caches scoped -> DI005, store site 21:
