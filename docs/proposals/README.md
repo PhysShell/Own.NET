@@ -28,7 +28,7 @@ proposal is marked `done` with a pointer.
 | [P-004](P-004-wpf-lifetime-profile.md) | WPF / UI lifetime leak profile | draft |
 | [P-005](P-005-idisposable-ownership.md) | `IDisposable` ownership profile | draft |
 | [P-006](P-006-di-lifetimes.md) | DI lifetime / captive dependency | draft |
-| [P-007](P-007-arraypool-span.md) | ArrayPool / Span borrow-view | draft |
+| [P-007](P-007-arraypool-span.md) | ArrayPool / Span borrow-view | in progress (POOL001–003 built; 004/005 first slices) |
 | [P-008](P-008-effects-and-resources.md) | Effects & resources (`Own.Effects`) | draft |
 | [P-009](P-009-nogc-regions.md) | No-GC / allocation-free regions | draft |
 | [P-010](P-010-type-disciplines.md) | Richer type disciplines (`Own.Types`) | draft |
