@@ -99,6 +99,7 @@ the region check — from the registration graph.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
@@ -134,6 +135,13 @@ from .di import (
     find_weak_captive_dependencies,
 )
 from .diagnostics import TITLES, Severity
+from .ownership import (
+    MethodSkeleton,
+    ParamSkeleton,
+    PathAction,
+    Transfer,
+    solve,
+)
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
 # vocabulary changes incompatibly; the extractor stamps the same number so a
@@ -804,6 +812,14 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
     loc = [0]
     raw_fns = facts.get("functions", [])
     if isinstance(raw_fns, list):
+        # D5.1: resolve interprocedural ownership transfer once, up front, so a
+        # forwarded `consume`/`borrow` param is checked compositionally (the give-up
+        # case `_infer_param_effect` used to leave plain). Never let summary
+        # computation crash the bridge — degrade to no-MOS (the old behaviour).
+        try:
+            mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
+        except Exception:
+            mos = {}
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
@@ -819,7 +835,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # uses/releases and call arguments resolve to them), then the flow body.
             localmap: dict[str, str] = {}
             fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
-                                       released)
+                                       released, mos)
             fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
                                 released)
             # A body that returns a value gets an owned return type, so the core
@@ -926,25 +942,128 @@ def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     return rel, passed, used
 
 
-def _infer_param_effect(pname: str, nodes: Any) -> str | None:
-    """Infer a parameter's ownership CONTRACT from the callee's OWN body — the v1
+def _forward_targets(pname: str, nodes: Any,
+                     recurse: bool = True) -> list[tuple[str, int]]:
+    """Every `(callee, arg_index)` a `call` op hands `pname` to. The argument
+    *position* is the callee's parameter index — what `solve()` resolves against
+    the callee's summary (P-005 D5.1). With `recurse=False`, only top-level
+    (straight-line) calls are counted, so a conditional/looped forward can be told
+    apart from an unconditional one."""
+    out: list[tuple[str, int]] = []
+    if not isinstance(nodes, list):
+        return out
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "call":
+            callee = str(n.get("callee", ""))
+            args = n.get("args", [])
+            if callee and isinstance(args, list):
+                for j, a in enumerate(args):
+                    if str(a) == pname:
+                        out.append((callee, j))
+        elif op in ("if", "while") and recurse:
+            subs = ([n.get("then"), n.get("else")] if op == "if" else [n.get("body")])
+            for sub in subs:
+                out.extend(_forward_targets(pname, sub))
+    return out
+
+
+def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
+    """Derive a Method Ownership Summary skeleton per first-party function from its
+    flow body, for the D5.0 solver (P-005 D5.1). A parameter's path actions mirror
+    the same priority `_infer_param_effect` uses — a release is a `dispose`, a
+    forward to another call is a `forward` edge the solver resolves, an
+    otherwise-used param is a `borrow` — so the solved transfer lines up with the
+    bridge's local inference on the non-forward cases and only *resolves* the
+    forwarded one.
+
+    Two precision rules keep `solve()` from ever inferring a false `must` (which
+    would upgrade a caller to `consume` and fabricate OWN002/OWN001):
+      - an **explicit** `effect` seeds the skeleton (it is a documented override —
+        `consume`→`dispose`, `borrow`/`borrow_mut`→`borrow`, anything else owns
+        nothing), so a contract-only callee resolves correctly even with no body;
+      - a forward is resolved only when it is a **single, unconditional,
+        straight-line** handoff. A conditional / looped / multi-target forward also
+        emits a non-transfer (`borrow`) path, so the lattice yields `may`/`no`
+        (→ the caller stays plain), never a flattened `must`. Per-path structure is
+        not modelled here — D5.1 deliberately under-claims rather than guess.
+
+    Functions whose name is not unique are dropped (overload keys are not yet
+    distinguishable — note's open question 2 — so a forward to such a name stays
+    `unknown` → silent, the precision-safe choice)."""
+    counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
+    skels: list[MethodSkeleton] = []
+    for fn in raw_fns:
+        if not isinstance(fn, dict):
+            continue
+        key = str(fn.get("name", ""))
+        if not key or counts[key] != 1:
+            continue
+        body = fn.get("body", [])
+        body = body if isinstance(body, list) else []
+        raw_params = fn.get("params", [])
+        raw_params = raw_params if isinstance(raw_params, list) else []
+        params: list[ParamSkeleton] = []
+        for i, p in enumerate(raw_params):
+            if not isinstance(p, dict):
+                continue
+            cname = str(p.get("name", "?"))
+            eff = p.get("effect")
+            paths: tuple[PathAction, ...]
+            if eff == "consume":
+                paths = (PathAction("dispose"),)                 # explicit override
+            elif eff in ("borrow", "borrow_mut"):
+                paths = (PathAction("borrow"),)
+            elif isinstance(eff, str):
+                paths = ()                                       # explicit non-owning
+            else:
+                rel, passed, used = _param_signals(cname, body)
+                if rel:
+                    paths = (PathAction("dispose"),)
+                elif passed:
+                    allt = _forward_targets(cname, body)
+                    top = _forward_targets(cname, body, recurse=False)
+                    paths = tuple(PathAction("forward", c, j) for c, j in allt)
+                    if not (len(allt) == 1 and len(top) == 1):
+                        # not a single unconditional handoff: a no-transfer path
+                        # exists (other branch / zero-trip loop / sibling call), so
+                        # the join is `may`/`no`, never a false `must`.
+                        paths = (*paths, PathAction("borrow"))
+                elif used:
+                    paths = (PathAction("borrow"),)
+                else:
+                    paths = ()
+            params.append(ParamSkeleton(i, cname, True, paths))
+        skels.append(MethodSkeleton(key, tuple(params)))
+    return skels
+
+
+def _infer_param_effect(pname: str, nodes: Any,
+                        forward_transfer: Transfer | None = None) -> str | None:
+    """Infer a parameter's ownership CONTRACT from the callee's OWN body — the
     bounded inter-procedural step that lets first-party C# be checked without
-    annotating every method. A param the body discharges or lets escape
-    (release) is CONSUME (ownership taken and discharged); one only read and
-    retained is a BORROW (the caller keeps ownership, must still release). A param
-    handed to another call is genuinely ambiguous without that callee's contract,
-    so we do NOT infer it (it stays plain / awaiting an annotation or a later
-    transitive pass). We deliberately do NOT treat `return <param>` as a consume
-    signal: the bridge does not yet model returned (owned) VALUES, so a returned
-    param is consume-and-handed-back, not a plain consume. Inference fires only on
-    the unambiguous signals, so it never
-    upgrades a borrow to a consume (or vice-versa) on a guess — an explicit
-    `effect` in the fact always wins over inference."""
+    annotating every method. A param the body discharges (release) is CONSUME
+    (ownership taken and discharged); one only read and retained is a BORROW (the
+    caller keeps ownership, must still release). A param handed to another call
+    used to be ambiguous and stay plain; **P-005 D5.1** resolves it through the
+    call graph: `forward_transfer` is the solved transfer of that param (must →
+    CONSUME, no → BORROW, may/unknown → stay plain, precision-first). We
+    deliberately do NOT treat `return <param>` as a consume signal: the bridge
+    does not yet model returned (owned) VALUES, so a returned param is
+    consume-and-handed-back, not a plain consume. Inference never upgrades a
+    borrow to a consume (or vice-versa) on a guess — an explicit `effect` in the
+    fact always wins over inference."""
     rel, passed, used = _param_signals(pname, nodes)
     if rel:
         return "consume"
     if passed:
-        return None
+        if forward_transfer == Transfer.MUST:
+            return "consume"
+        if forward_transfer == Transfer.NO:
+            return "borrow"
+        return None  # may / unknown / unresolved -> plain (precision-first)
     if used:
         return "borrow"
     return None
@@ -953,7 +1072,8 @@ def _infer_param_effect(pname: str, nodes: Any) -> str | None:
 def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
                      handles: dict[str, dict[str, Any]], loc: list[int],
                      localmap: dict[str, str],
-                     released_vars: set[str]) -> list[Param]:
+                     released_vars: set[str],
+                     mos: dict[str, Any] | None = None) -> list[Param]:
     """Lower a function's declared ownership parameters into core Params. Each
     gets a globally-unique synthetic symbol (`parg_<n>`) so a finding maps back to
     its C# location; `localmap` resolves later references (and call arguments) by
@@ -965,13 +1085,21 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     raw = fn.get("params", [])
     if not isinstance(raw, list):
         return out
-    for p in raw:
+    summ = mos.get(fname) if mos is not None else None
+    for i, p in enumerate(raw):
         if not isinstance(p, dict):
             continue
         cname = str(p.get("name", "?"))
         eff = p.get("effect")
         if not isinstance(eff, str):
-            eff = _infer_param_effect(cname, fn.get("body", []))   # contract inference
+            # D5.1: when the contract is inferred, resolve a *forwarded* param's
+            # transfer through the call graph (the solved MOS for this method).
+            ftrans = None
+            if summ is not None:
+                ps = next((q for q in summ.params if q.index == i), None)
+                if ps is not None:
+                    ftrans = ps.transfer
+            eff = _infer_param_effect(cname, fn.get("body", []), ftrans)
         tref = _PARAM_EFFECT_TYPE.get(eff) if isinstance(eff, str) else None
         if tref is None:
             tref = TypeRef("int", False, False)   # a plain (non-owned) parameter

@@ -230,11 +230,21 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   SCC fixpoint, serialize to `summaries[]`. No behaviour change — compute, serialize,
   and **unit-test the lattice in pure Python** (monotonicity, SCC convergence, cap
   behaviour). First PR; fully local, no SDK.
-- **D5.1 — T2/T3 wiring + a `leaveOpen` Tier-B slice.** Lower inferred `must`/`no` to
-  `consume`/`borrow`, *and* ship the `leaveOpen` contracts at the same time (cleanest,
-  best-documented adoption cases — far better regression anchors than first-party-only).
-  First live catches: double-dispose / use-after across a consuming call; borrow-leak.
-  CI A/B sample.
+- **D5.1a — first-party T2/T3 wiring (shipped).** The OwnIR bridge now derives a
+  skeleton per `functions[]` entry, runs the D5.0 solver once, and feeds the resolved
+  transfer into `_infer_param_effect`'s **forwarded** branch — the exact give-up it used
+  to leave plain. A param forwarded to a consuming callee is inferred `consume`, one
+  forwarded to a borrow-only callee `borrow`; `may`/`unknown` stay plain (precision-first).
+  No core change (the existing `lower_call` applies the effects), no extractor change for
+  first-party. Live catches, proven by synthetic OwnIR tests: double-dispose / use-after
+  across a *transitive* (multi-hop) consuming call (OWN002), and the precision win where a
+  correct forwarded handoff that used to read as a false OWN001 leak is now silent.
+- **D5.1b — `leaveOpen` Tier-B slice (next).** `StreamReader(stream, leaveOpen:…)` &c. is a
+  *per-call-site* contract — the same ctor consumes or borrows by the bool literal — so it
+  needs a per-call effect channel on the `call` op plus the extractor reading the literal,
+  rather than a per-method summary. Small, additive; pairs with a CI A/B sample on the real
+  extractor output (the end-to-end validation that first-party `call` ops are emitted for
+  forwarding chains).
 - **D5.2 — T1.** `fresh`-returning calls become acquire sites → factory leaks. Includes
   `out`/`ref`-owned (another `fresh` door) before async.
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`

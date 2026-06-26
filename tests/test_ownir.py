@@ -1146,24 +1146,114 @@ def run() -> int:
     if rf:
         fails.append(f"a value-bearing return should be a clean escape (no crash, no "
                      f"false leak), got {[(x.component, x.code) for x in rf]}")
-    # regression (CodeRabbit review): a param ONLY forwarded to another call is
-    # ambiguous without that callee's contract, so it is NOT inferred (stays plain)
-    # -- the v1 boundary. The forwarding fn and its caller stay silent (no false
-    # positive, no crash); transitive inference is the follow-up that resolves it.
-    checks += 1
-    amb = check_facts({"module": "M", "functions": [
+    # --- P-005 D5.1: TRANSITIVE ownership transfer. A param ONLY forwarded to
+    #     another call used to stay plain (the v1 give-up); the interprocedural
+    #     summary solver (ownlang/ownership.py) now resolves it through the callee's
+    #     contract. `forward(s)` hands s to `sink(consume)`, so forward's own param
+    #     is inferred CONSUME — the give-up that `_infer_param_effect` left plain.
+    _FWD = [
         {"name": "forward", "file": "F.cs", "params": [{"name": "s", "line": 1}],
          "body": [{"op": "call", "callee": "sink", "args": ["s"], "line": 2}]},
         {"name": "sink", "file": "F.cs",
          "params": [{"name": "x", "effect": "consume", "line": 5}],
          "body": [{"op": "release", "var": "x", "line": 6}]},
+    ]
+    # a caller that releases s AFTER forwarding double-discharges it: the obligation
+    # already moved to `sink` through `forward`, so the later release is OWN002.
+    checks += 1
+    d51 = check_facts({"module": "M", "functions": [*_FWD,
         {"name": "caller", "file": "F.cs",
          "body": [{"op": "acquire", "var": "s", "line": 10},
                   {"op": "call", "callee": "forward", "args": ["s"], "line": 11},
                   {"op": "release", "var": "s", "line": 12}]}]})
-    if amb:
-        fails.append(f"an ambiguous pass-through param must not be inferred, crash, "
-                     f"or false-positive, got {[(x.component, x.code) for x in amb]}")
+    got51 = [(x.component, x.line, x.code) for x in d51]
+    if got51 != [("caller", 10, "OWN002")]:
+        fails.append("D5.1 transitive consume: release after handoff must be "
+                     f"OWN002@10 (anchored at acquire), got {got51}")
+    # the correct handoff (forward and let go) is SILENT — and this is a precision
+    # WIN: before D5.1 forward's param was plain, so the caller's acquired-but-never-
+    # released s read as a false OWN001 leak; now the obligation provably moved.
+    checks += 1
+    ok51 = check_facts({"module": "M", "functions": [*_FWD,
+        {"name": "caller_ok", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 20},
+                  {"op": "call", "callee": "forward", "args": ["s"], "line": 21}]}]})
+    if ok51:
+        fails.append("a correctly forwarded handoff must be silent (obligation moved "
+                     f"to sink), got {[(x.component, x.code) for x in ok51]}")
+    # two hops: outer -> mid -> sink(consume). The chain resolves within the depth
+    # cap, so a caller using s after forwarding to `outer` is use-after-handoff.
+    checks += 1
+    twohop = check_facts({"module": "M", "functions": [
+        {"name": "outer", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "mid", "args": ["s"], "line": 2}]},
+        {"name": "mid", "file": "F.cs", "params": [{"name": "s", "line": 5}],
+         "body": [{"op": "call", "callee": "sink2", "args": ["s"], "line": 6}]},
+        {"name": "sink2", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 9}],
+         "body": [{"op": "release", "var": "x", "line": 10}]},
+        {"name": "user", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 15},
+                  {"op": "call", "callee": "outer", "args": ["s"], "line": 16},
+                  {"op": "use", "var": "s", "line": 17}]}]})
+    got2h = [(x.component, x.line, x.code) for x in twohop]
+    if got2h != [("user", 15, "OWN002")]:
+        fails.append("D5.1 two-hop transitive consume should be "
+                     f"OWN002@user:15 (anchored at acquire), got {got2h}")
+    # a param forwarded to a BORROW-only callee resolves to borrow (not consume):
+    # the caller keeps ownership, so forwarding then RELEASING is clean — proving we
+    # never over-consume a forwarded borrow (which would false-positive the release).
+    checks += 1
+    bok = check_facts({"module": "M", "functions": [
+        {"name": "peek_fwd", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "peek2", "args": ["s"], "line": 2}]},
+        {"name": "peek2", "file": "F.cs", "params": [{"name": "x", "line": 5}],
+         "body": [{"op": "use", "var": "x", "line": 6}]},
+        {"name": "keep_ok", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "peek_fwd", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if bok:
+        fails.append("forwarding to a borrow-only callee then releasing must be clean "
+                     f"(no over-consume), got {[(x.component, x.code) for x in bok]}")
+    # (Codex P2) an EXPLICIT effect seeds the skeleton even with no body evidence: a
+    # contract-only `sink_c(x consume)` resolves `must`, so the forwarder `fwd_c` is
+    # consume and a caller using s after the handoff is OWN002. (sink_c itself leaks
+    # OWN001 — an undischarged consume obligation — which is the expected existing
+    # behaviour, included here so the assertion is exact.)
+    checks += 1
+    expl = check_facts({"module": "M", "functions": [
+        {"name": "fwd_c", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "sink_c", "args": ["s"], "line": 2}]},
+        {"name": "sink_c", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 5}], "body": []},
+        {"name": "use_c", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "fwd_c", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    gotx = sorted((x.component, x.code) for x in expl)
+    if gotx != [("sink_c", "OWN001"), ("use_c", "OWN002")]:
+        fails.append(f"D5.1 explicit-effect seed should resolve through a "
+                     f"forwarder (use_c OWN002), got {gotx}")
+    # (Codex P2 / CodeRabbit) a CONDITIONAL forward must resolve to `may`, not `must`:
+    # `maybe(s){ if(c) sink(s); }` consumes s on only one path, so a caller that uses s
+    # after `maybe(s)` must stay SILENT (no false OWN002 on the non-forward path).
+    checks += 1
+    cond = check_facts({"module": "M", "functions": [
+        {"name": "maybe", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "if", "then": [
+             {"op": "call", "callee": "sink", "args": ["s"], "line": 3}], "else": [],
+             "line": 2}]},
+        {"name": "sink", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 6}],
+         "body": [{"op": "release", "var": "x", "line": 7}]},
+        {"name": "user_c", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "maybe", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if cond:
+        gotc = [(x.component, x.code) for x in cond]
+        fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
