@@ -57,6 +57,19 @@ Two classes sit **outside** the three-way diff and are reported separately:
   same-named files in different dirs can theoretically collide (rare — the line
   disambiguates). The file-level overlap is the most robust signal.
 
+## Maintenance requirement (not optional)
+
+**Every oracle run carries a bookkeeping obligation.** After reading a report,
+triage the `oracle-only` set, and for any finding that turns out to be an oracle
+**false positive** *or* our deliberate **by-design** skip, record the underlying
+idiom in [`field-notes-patterns.md`](field-notes-patterns.md) — with the source
+file and the *analyzer angle* (why the naive detector over-reports and why a
+transfer/escape-aware checker correctly stays silent). The field-notes collection
+must not fall behind what we've actually observed in real code: it is both a C#
+ownership/lifetime learning resource and the living map of Own.NET's precision
+frontier. A run that surfaces a new FP/by-design idiom and *doesn't* append it is
+an incomplete run.
+
 ## Run it
 
 In CI (no local Infer#/CodeQL/Docker needed) — Actions tab → **oracle
@@ -140,6 +153,62 @@ Net: the oracle did its job. It turned "are we behind?" into a precise map —
 precision held (0 FPs; we look *more* correct than Infer# on ownership transfer),
 and the recall gap is two named, roadmapped classes (interprocedural escape
 tracking, exception-path disposal).
+
+## A second worked example: Polly (ownership transfer, again)
+
+A blind run on **App-vNext/Polly** (`42307a6e`, product code; `--exclude-tests`
+dropped 145) gave **Own.NET 0 · Infer# 12 · CodeQL 26**, `agree 0`, **`own-only 0`
+(still no false positives)** — but a *large* `oracle-only 38`. The point of this
+example is that the headline number is honest only after decomposition; 38 is **not**
+38 real misses:
+
+- **Infer# ×12 — all `Polly.Utilities.TimedLock`.** `TimedLock` is a `struct` used as
+  `using (TimedLock.Lock(obj)) { … }` — it *is* disposed by the `using`. Infer#'s Pulse
+  reports it `PULSE_RESOURCE_LEAK` "allocated indirectly via `TimedLock.Lock` … not
+  closed". These look like Infer# **over-reports on the struct-using lock pattern** (the
+  same flavour as its `DbWrappedReader` over-reports on Dapper); Own.NET's `0` is the
+  right verdict, not a recall gap.
+- **CodeQL ×22 — `src/Snippets/Docs/*`.** Polly's documentation snippet tree: example
+  code that creates `HttpResponseMessage`/`HttpClient`/rate-limiters and intentionally
+  never disposes them. Not product code. The comparator's `--exclude-tests` predicate
+  (`_is_test_path`) was widened to treat `doc`/`docs`/`snippet(s)` segments as non-product
+  for exactly this reason — without it, illustrative code inflates the recall gap. (This
+  is the slice that drops on re-run: `oracle-only` falls 38 → 16, CodeQL leak 26 → 4.)
+- **The remaining 4 product CodeQL findings (3 sites — the Bulkhead factory is two lines)
+  all resolve to FP-or-by-design:**
+  - `Bulkhead/BulkheadSemaphoreFactory.cs:8,11` — the factory **returns** two
+    `SemaphoreSlim` as a tuple; the caller `BulkheadPolicy` stores them in `readonly`
+    fields and disposes them in `Dispose()`. Textbook **ownership transfer / owned
+    handle** — the exact case Own.NET treats as *not* a leak. CodeQL's
+    `cs/local-not-disposed` can't follow tuple-return ownership, so its flag at the
+    factory is a **false positive**, and Own.NET's silence is *more* correct (the second
+    live ownership-transfer precision win after Dapper's `DbWrappedReader`).
+  - `Registry/ConfigureBuilderContextExtensions.cs:40` — a `CancellationTokenSource`
+    whose disposal is deferred and wired via `context.OnPipelineDisposed(() =>
+    source.Dispose())` (the authors even `#pragma warning disable CA2000`). Disposed at
+    pipeline teardown — CodeQL just can't follow callback/deferred disposal. **FP.**
+  - `Timeout/TimeoutResilienceStrategy.cs:67` — `cs/dispose-not-called-on-throw` on a
+    `CancellationTokenRegistration` (struct, disposed on the normal path) guarding a
+    **pooled** CTS (`_cancellationTokenSourcePool.Get`/`Return`, not owned), with the
+    await wrapped in a catch that funnels exceptions into the `Outcome`. The exceptional
+    CFG class we don't model **by design** — and here benign (at worst a pool object not
+    returned, which the GC reclaims).
+
+Net: on Polly's product code Own.NET's genuine recall gap is **≈ zero**. The whole
+`oracle-only 38` reconciles as **12 Infer# struct-`using` over-reports + 22 CodeQL doc
+snippets (now excluded) + 4 product CodeQL findings** — and those 4 are three false
+positives (`BulkheadSemaphoreFactory:8`, `:11`, `ConfigureBuilderContextExtensions:40`)
+plus one by-design exceptional-path skip (`TimeoutResilienceStrategy:67`).
+Combined with `own-only 0`, this is the double signal the oracle exists to produce:
+precision holds, and the "miss" pile is oracle noise, not our blind spot. (Honest caveat,
+same as Dapper: "0 real misses *here*" is partly the luck of the finding mix — Polly is
+async/interprocedural code we under-analyse, so this is not proof of zero recall gaps in
+general.)
+
+> The idioms these runs surfaced — ownership transfer, deferred/callback disposal, pooled
+> disposables, struct-`using` locks — are collected as teachable patterns in
+> [`field-notes-patterns.md`](field-notes-patterns.md). Most `oracle-only` findings that
+> turn out FP-or-by-design hide one of them.
 
 ## Honest gaps (v1)
 
