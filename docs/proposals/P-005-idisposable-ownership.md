@@ -6,8 +6,11 @@
   **D3 (double dispose → OWN003)** and **D4 (use-after-dispose → OWN002)** are also built —
   via the `--flow-locals` per-method flow lattice, plus a field-mediated use-after-dispose pass
   (a disposed field read in a live event handler). **D5 (ownership transfer through a callee)**
-  is a heuristic at the call boundary (bounded first-party `consume`/`borrow` contracts; no
-  cross-library model) and remains the main open frontier.
+  is today a heuristic at the call boundary (bounded first-party `consume`/`borrow` contracts;
+  no cross-library model) and remains the main open frontier — its full design (interprocedural
+  Method Ownership Summaries fed to the existing core vocabulary; Tier A first-party fixpoint +
+  Tier B BCL `leaveOpen` table + Tier C annotations; precision-first reporting) is worked out in
+  [`../notes/d5-ownership-transfer.md`](../notes/d5-ownership-transfer.md).
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release), [P-001](P-001-csharp-extractor.md) (the C# seam).
   Shares the resource core with [P-004](P-004-wpf-lifetime-profile.md).
