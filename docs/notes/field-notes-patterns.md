@@ -190,6 +190,18 @@ misread all of them, which is why Infer#/CodeQL over-report here and a
 transfer/escape-aware checker (Own.NET) correctly stays quiet. Worth learning as
 C#; worth pinning as the precision frontier.
 
-> Want a pattern added? Run the oracle at a new repo, read the `oracle-only`
-> findings, and any that turn out FP-or-by-design usually hide an idiom like
-> these. Append it with the source file and the analyzer angle.
+## Maintaining this notebook (a repo requirement)
+
+This log is **required upkeep**, not a nice-to-have (see [`oracle.md`](oracle.md)
+§ Maintenance requirement and the README convention note). The rule:
+
+> After every oracle run, triage the `oracle-only` findings. Any that turn out to
+> be an oracle **false positive** or our deliberate **by-design** skip almost
+> always hide an idiom like the ones above — **append it here**, with the source
+> file and the analyzer angle. A run that surfaces a new FP/by-design idiom and
+> doesn't record it is an incomplete run.
+
+Keep entries source-pinned and honest about confidence (note when a judgement
+rests on a decompiled/fetched excerpt rather than the full source). The point is a
+collection we can *trust* — both to learn C# ownership idioms from and to navigate
+Own.NET's precision frontier by.

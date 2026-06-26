@@ -57,6 +57,19 @@ Two classes sit **outside** the three-way diff and are reported separately:
   same-named files in different dirs can theoretically collide (rare — the line
   disambiguates). The file-level overlap is the most robust signal.
 
+## Maintenance requirement (not optional)
+
+**Every oracle run carries a bookkeeping obligation.** After reading a report,
+triage the `oracle-only` set, and for any finding that turns out to be an oracle
+**false positive** *or* our deliberate **by-design** skip, record the underlying
+idiom in [`field-notes-patterns.md`](field-notes-patterns.md) — with the source
+file and the *analyzer angle* (why the naive detector over-reports and why a
+transfer/escape-aware checker correctly stays silent). The field-notes collection
+must not fall behind what we've actually observed in real code: it is both a C#
+ownership/lifetime learning resource and the living map of Own.NET's precision
+frontier. A run that surfaces a new FP/by-design idiom and *doesn't* append it is
+an incomplete run.
+
 ## Run it
 
 In CI (no local Infer#/CodeQL/Docker needed) — Actions tab → **oracle
