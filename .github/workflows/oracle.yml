@@ -44,7 +44,7 @@ on:
   # target from that file. Dev-branch only — remove before merging to main.
   push:
     branches:
-      - claude/zen-pasteur-76hfs1
+      - claude/agenda-2rufsj
     paths:
       - corpus/oracle-target.txt
 
