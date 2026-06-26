@@ -25,6 +25,12 @@ consumer reads one vocabulary. Frontends produce facts; this is how the core
 The builders return plain SARIF fragments (no Own.NET types), so they compose
 into either ``ownlang.ownir.build_sarif`` (the C# extractor path) or the audit
 aggregator without a dependency either way.
+
+A step is only emitted when it has BOTH a resolvable line AND a non-empty file:
+an empty ``artifactLocation.uri`` makes the whole SARIF log unprocessable for
+GitHub code scanning, so a caller must resolve any "same file as the anchor"
+convention (e.g. ``diagnostics.Evidence(file=None)``) to a concrete path before
+building -- ``ownir.Finding`` already carries concrete paths.
 """
 
 from __future__ import annotations
@@ -48,22 +54,24 @@ def _phys(file: str, line: int) -> dict[str, Any]:
 
 def related_locations(steps: Iterable[Step]) -> list[dict[str, Any]]:
     """SARIF ``relatedLocations`` from evidence steps -- the unordered secondary
-    anchors. Steps without a resolvable line are dropped (a related location with
-    nowhere to point is noise)."""
+    anchors. A step is dropped unless it has both a resolvable line and a non-empty
+    file: a related location with nowhere to point is noise, and an empty
+    ``artifactLocation.uri`` makes the SARIF log unprocessable for GitHub."""
     return [
         {"physicalLocation": _phys(f, ln), "message": {"text": label}}
-        for (f, ln, label) in steps if ln >= 1
+        for (f, ln, label) in steps if ln >= 1 and f
     ]
 
 
 def code_flow(steps: Iterable[Step]) -> list[dict[str, Any]]:
     """A SARIF ``codeFlows`` value (a one-element list) from an *ordered* slice of
-    evidence steps -- the reachability path that leads to the finding. Returns
-    ``[]`` when no step has a resolvable line, so a caller can splice the result
-    conditionally (``if flow: result["codeFlows"] = flow``)."""
+    evidence steps -- the reachability path that leads to the finding. A step is
+    dropped unless it has both a resolvable line and a non-empty file (see
+    ``related_locations``). Returns ``[]`` when no step survives, so a caller can
+    splice the result conditionally (``if flow: result["codeFlows"] = flow``)."""
     locations: list[dict[str, Any]] = [
         {"location": {"physicalLocation": _phys(f, ln), "message": {"text": label}}}
-        for (f, ln, label) in steps if ln >= 1
+        for (f, ln, label) in steps if ln >= 1 and f
     ]
     if not locations:
         return []
