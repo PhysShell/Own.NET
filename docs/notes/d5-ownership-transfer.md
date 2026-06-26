@@ -276,8 +276,14 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   behaviour unchanged, `$borrow_mut` wrapper tests, and mixed-path regressions proving ambiguous
   flows degrade to silence (not shared borrow). Prior art: Rust `&`/`&mut`, RustBelt exclusivity,
   Oxide's `shrd|uniq`, Polonius's per-loan invalidation — exclusivity is a distinct semantic
-  axis, not coarser metadata. Tracked here so the deferral is recorded, not buried (Codex P2 /
-  CodeRabbit Major on #113).
+  axis, not coarser metadata. **Revisit trigger:** land the axis alongside the first
+  *interprocedural exclusivity consumer* — i.e. when an OWN006/011/012/013-class conflict is
+  checked *across* the call boundary (today exclusivity is enforced only intraprocedurally and at
+  the *direct* `$borrow_mut` call). Until that reader exists the summary axis has no consumer, so
+  the decline costs no observable soundness and stays cheap to reverse: the forward edges are
+  already preserved in the skeleton (`PathAction(kind="forward", …)`), so the future work is
+  additive (leaf borrow-kind + a join), not a solver rebuild. Tracked here so the deferral is
+  recorded, not buried (Codex P2 / CodeRabbit Major on #113); live tracker: **#122**.
 - **D5.2 — T1 return-value door (shipped).** A `fresh`-returning call becomes an **acquire
   site**. `_build_skeletons` now infers the return kind (`_infer_return_skeleton`): a body that
   `acquire`s a local and returns it is `fresh` (a factory), and a single returned local that is
