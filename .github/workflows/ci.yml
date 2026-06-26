@@ -827,8 +827,8 @@ jobs:
           # caller that binds the result and drops it leaks at the CALL SITE — a finding the flat,
           # intra-procedural detectors cannot see. The disposed caller and the factory itself stay
           # silent (the factory transfers ownership out via its return).
-          echo "$out" | grep -qE "OWN001.*'factoryLeak'" \
-            || { echo "FAIL: expected the interprocedural OWN001 on the dropped factory result"; exit 1; }
+          echo "$out" | grep -qE "FactoryLeakSample\.cs:[0-9]+:.*\[OWN001\].*'factoryLeak'" \
+            || { echo "FAIL: expected the interprocedural OWN001 on the dropped factory result at its call site"; exit 1; }
           for ok in factoryOk made; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
           done

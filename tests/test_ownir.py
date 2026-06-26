@@ -1471,6 +1471,21 @@ def run() -> int:
         gotpr = [(x.component, x.code) for x in pr]
         fails.append("D5.2 T1: returning a parameter is not `fresh` (no false acquire of "
                      f"the result, no consume of the arg), got {gotpr}")
+    # ROBUSTNESS (real extraction): a `call` to a callee NOT in functions[] — a BCL /
+    # extension method the extractor surfaced (e.g. `GetRequiredService`) — has no
+    # signature, so it must be dropped (no Call, no acquire), NEVER raise OWN040. The
+    # bridge gates the Call on a resolvable callee and skips OWN040 belt-and-suspenders.
+    checks += 1
+    try:
+        unk = check_facts({"module": "M", "functions": [
+            {"name": "Caller.Use", "file": "T1.cs",
+             "body": [{"op": "call", "callee": "Ext.GetRequiredService", "args": [],
+                       "result": "svc", "line": 5}]}]})
+        if unk:
+            fails.append("D5.2: a call to an unknown callee must make no claim (no finding), "
+                         f"got {[(x.component, x.code) for x in unk]}")
+    except OwnIRError as e:
+        fails.append(f"D5.2: a call to an unknown callee must not crash (OWN040), got {e!r}")
     # the factory acquire must fire inside CONTROL FLOW too: a fresh-returning call in
     # an `if` branch whose result is never disposed leaks, exactly like a top-level one.
     # (Codex P2: the recursive _lower_flow calls must thread `mos` into nested bodies,
