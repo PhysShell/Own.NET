@@ -1551,6 +1551,42 @@ def run() -> int:
     if _bcl([{"op": "call", "callee": "File.ReadAllText", "args": ["p"],
               "result": "t", "line": 3}]):
         fails.append("Tier B: a non-disposable BCL method must not be treated as a factory")
+    checks += 1
+    # PRECISION (Codex): a same-named factory in ANOTHER namespace is NOT System.IO.File, so
+    # the match must not be a loose suffix — only bare `File.X` and `System.IO.File.X` count.
+    # A `MyCompany.File.OpenRead` returning a plain value must NOT fabricate a false OWN001.
+    if _bcl([{"op": "call", "callee": "MyCompany.File.OpenRead", "args": ["p"],
+              "result": "s", "line": 5}]):
+        fails.append("Tier B precision: a non-System.IO `*.File.OpenRead` must NOT match")
+    checks += 1
+    # OVERRIDE (Codex): a first-party summary is authoritative — a first-party `File.OpenRead`
+    # that returns its parameter is NOT fresh, so a caller dropping its result is clean; the
+    # table must not fabricate ownership for a callee whose body we can see.
+    ov_fp = check_facts({"module": "M", "functions": [
+        {"name": "File.OpenRead", "file": "B.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "return", "var": "x", "line": 2}]},
+        {"name": "Caller", "file": "B.cs", "body": [
+            {"op": "acquire", "var": "a", "line": 10},
+            {"op": "call", "callee": "File.OpenRead", "args": ["a"],
+             "result": "r", "line": 11},
+            {"op": "release", "var": "a", "line": 12}]}]})
+    if ov_fp:
+        fails.append(f"Tier B: a first-party summary must override the BCL table, "
+                     f"got {[(x.component, x.code) for x in ov_fp]}")
+    checks += 1
+    # RECALL (Codex): a first-party wrapper that returns a BCL factory result is itself fresh,
+    # so a caller dropping `Make()` leaks OWN001 — the return skeleton propagates BCL freshness
+    # rather than degrading to a `forward` to the external factory (-> unknown -> invisible).
+    wrap = [(x.component, x.line, x.code) for x in check_facts({"module": "M", "functions": [
+        {"name": "Make", "file": "B.cs", "body": [
+            {"op": "call", "callee": "File.OpenRead", "args": ["p"],
+             "result": "s", "line": 2},
+            {"op": "return", "var": "s", "line": 3}]},
+        {"name": "Caller2", "file": "B.cs", "body": [
+            {"op": "call", "callee": "Make", "args": [], "result": "r", "line": 10}]}]})]
+    if wrap != [("Caller2", 10, "OWN001")]:
+        fails.append(f"Tier B: a wrapper returning a BCL factory result must be fresh "
+                     f"(caller leak OWN001@10), got {wrap}")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after

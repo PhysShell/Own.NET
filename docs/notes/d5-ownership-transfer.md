@@ -341,11 +341,18 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
     returns_fresh` path the first-party T1 inference uses (now the single source of truth for
     the leak pre-scan, branch-hoist safety, and lowering), so a leaked `var s =
     File.OpenRead(p)` surfaces as OWN001 *at the factory call* — invisible before (no body to
-    infer from; see `corpus-benchmark.md`). Keyed by `Type.Method` (matches a namespace-
-    qualified callee on its last two segments). Pure factories only — overload-ambiguous
-    *wrappers* that adopt an arg (`new StreamReader(stream)`) are excluded (sink/T4). Tests in
-    `test_ownir.py` (leak / disposed-clean / use-after-dispose / namespace-qualified / a
-    non-disposable `File.ReadAllText` correctly making no claim).
+    infer from; see `corpus-benchmark.md`). Matched conservatively (Codex): ONLY the bare
+    `File.Method` or the fully-qualified `System.IO.File.Method` — a same-named factory in
+    another namespace (`MyCompany.File.OpenRead`) is **not** a match, so we never fabricate
+    ownership for a look-alike. A **first-party summary overrides** the table (`_callee_
+    returns_fresh` trusts a known body over Tier B), and a first-party **wrapper** that
+    returns a factory result (`Make(){ return File.OpenRead(p) }`) is itself `fresh`, so a
+    dropped `Make()` leaks too (the return skeleton propagates BCL freshness instead of
+    forwarding to the external, unsummarizable callee). Pure factories only — overload-
+    ambiguous *wrappers* that adopt an arg (`new StreamReader(stream)`) are excluded (sink/T4).
+    Tests in `test_ownir.py` (leak / disposed-clean / use-after-dispose / namespace-qualified /
+    non-System.IO look-alike rejected / first-party override / wrapper-fresh recall / a
+    non-disposable `File.ReadAllText` making no claim).
   - **Sink side — `leaveOpen` breadth (remaining, extractor-side).** The documented
     consume/borrow table (`StreamReader`/`StreamWriter`/`CryptoStream`/… by the `leaveOpen`
     bool literal) rides the existing `$consume`/`$borrow` channel (D5.1b); its breadth is a

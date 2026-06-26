@@ -1041,6 +1041,12 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
         (v,) = tuple(returned)
         callee = call_results.get(v)
         if callee and v not in param_names and v not in acquired:
+            if _is_bcl_fresh_factory(callee):
+                # a thin wrapper returning a BCL factory's result is itself `fresh` — the
+                # caller owns it (Codex). Without this the return is a `forward` to an
+                # external (bodyless) callee, which the solver degrades to `unknown`, so a
+                # dropped `Make()` whose body is `return File.OpenRead(p)` leaks invisibly.
+                return ReturnSkeleton("fresh")
             return ReturnSkeleton("forward", callee=callee)
     return ReturnSkeleton()  # not provably owned -> no claim
 
@@ -1109,26 +1115,29 @@ _BCL_FRESH_FACTORIES = frozenset({
     "File.OpenRead", "File.OpenText", "File.OpenWrite",
     "File.Open", "File.Create", "File.CreateText", "File.AppendText",
 })
+# the fully-qualified `System.IO.File.*` identities — accepted alongside the bare forms.
+_BCL_FRESH_FQNS = frozenset("System.IO." + e for e in _BCL_FRESH_FACTORIES)
 
 
 def _is_bcl_fresh_factory(callee: str) -> bool:
-    """True if `callee` names a curated BCL factory whose return the caller owns. Matches
-    the bare `Type.Method` or any namespace-qualified form of it (its last two segments)."""
-    if not callee:
-        return False
-    return (callee in _BCL_FRESH_FACTORIES
-            or ".".join(callee.split(".")[-2:]) in _BCL_FRESH_FACTORIES)
+    """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
+    ONLY the bare `Type.Method` (`File.OpenRead`) or the fully-qualified `System.IO.File.*`
+    identity — a same-named type in another namespace (`MyCompany.File.OpenRead`) is NOT a
+    match. Precision-first: we never fabricate ownership for a non-BCL look-alike (Codex)."""
+    return bool(callee) and (callee in _BCL_FRESH_FACTORIES or callee in _BCL_FRESH_FQNS)
 
 
 def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None) -> bool:
-    """Whether a `call` to `callee` yields a fresh owned result the caller must release —
-    a first-party summary that returns `fresh` (Tier A) OR a curated BCL factory (Tier B).
-    The single source of truth shared by the leak pre-scan, the branch-hoist safety walk,
-    and the flow lowering, so all three agree on what counts as an acquire."""
-    if _is_bcl_fresh_factory(callee):
-        return True
+    """Whether a `call` to `callee` yields a fresh owned result the caller must release.
+    A first-party summary is AUTHORITATIVE — if one exists we trust its `returns`, so a
+    same-named first-party `File.OpenRead` (Tier A) overrides the BCL table (Tier B) and is
+    never given a fabricated `fresh` (Codex). Only a callee we have no body for falls back to
+    the curated BCL factory table. The single source of truth shared by the leak pre-scan,
+    the branch-hoist safety walk, and the flow lowering, so all three agree."""
     summ = mos.get(callee) if (mos is not None and callee) else None
-    return summ is not None and getattr(summ, "returns", None) == "fresh"
+    if summ is not None:
+        return getattr(summ, "returns", None) == "fresh"
+    return _is_bcl_fresh_factory(callee)
 
 
 def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
