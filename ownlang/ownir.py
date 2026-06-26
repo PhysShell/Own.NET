@@ -942,10 +942,13 @@ def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     return rel, passed, used
 
 
-def _forward_targets(pname: str, nodes: Any) -> list[tuple[str, int]]:
-    """Every `(callee, arg_index)` a `call` op hands `pname` to, recursing into
-    if/while branches. The argument *position* is the callee's parameter index —
-    what `solve()` resolves against the callee's summary (P-005 D5.1)."""
+def _forward_targets(pname: str, nodes: Any,
+                     recurse: bool = True) -> list[tuple[str, int]]:
+    """Every `(callee, arg_index)` a `call` op hands `pname` to. The argument
+    *position* is the callee's parameter index — what `solve()` resolves against
+    the callee's summary (P-005 D5.1). With `recurse=False`, only top-level
+    (straight-line) calls are counted, so a conditional/looped forward can be told
+    apart from an unconditional one."""
     out: list[tuple[str, int]] = []
     if not isinstance(nodes, list):
         return out
@@ -960,7 +963,7 @@ def _forward_targets(pname: str, nodes: Any) -> list[tuple[str, int]]:
                 for j, a in enumerate(args):
                     if str(a) == pname:
                         out.append((callee, j))
-        elif op in ("if", "while"):
+        elif op in ("if", "while") and recurse:
             subs = ([n.get("then"), n.get("else")] if op == "if" else [n.get("body")])
             for sub in subs:
                 out.extend(_forward_targets(pname, sub))
@@ -974,9 +977,22 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     forward to another call is a `forward` edge the solver resolves, an
     otherwise-used param is a `borrow` — so the solved transfer lines up with the
     bridge's local inference on the non-forward cases and only *resolves* the
-    forwarded one. Functions whose name is not unique are dropped (overload keys
-    are not yet distinguishable — note's open question 2 — so a forward to such a
-    name stays `unknown` → silent, the precision-safe choice)."""
+    forwarded one.
+
+    Two precision rules keep `solve()` from ever inferring a false `must` (which
+    would upgrade a caller to `consume` and fabricate OWN002/OWN001):
+      - an **explicit** `effect` seeds the skeleton (it is a documented override —
+        `consume`→`dispose`, `borrow`/`borrow_mut`→`borrow`, anything else owns
+        nothing), so a contract-only callee resolves correctly even with no body;
+      - a forward is resolved only when it is a **single, unconditional,
+        straight-line** handoff. A conditional / looped / multi-target forward also
+        emits a non-transfer (`borrow`) path, so the lattice yields `may`/`no`
+        (→ the caller stays plain), never a flattened `must`. Per-path structure is
+        not modelled here — D5.1 deliberately under-claims rather than guess.
+
+    Functions whose name is not unique are dropped (overload keys are not yet
+    distinguishable — note's open question 2 — so a forward to such a name stays
+    `unknown` → silent, the precision-safe choice)."""
     counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
     skels: list[MethodSkeleton] = []
     for fn in raw_fns:
@@ -994,16 +1010,31 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             if not isinstance(p, dict):
                 continue
             cname = str(p.get("name", "?"))
-            rel, passed, used = _param_signals(cname, body)
-            if rel:
-                paths: tuple[PathAction, ...] = (PathAction("dispose"),)
-            elif passed:
-                paths = tuple(PathAction("forward", c, j)
-                              for c, j in _forward_targets(cname, body))
-            elif used:
+            eff = p.get("effect")
+            paths: tuple[PathAction, ...]
+            if eff == "consume":
+                paths = (PathAction("dispose"),)                 # explicit override
+            elif eff in ("borrow", "borrow_mut"):
                 paths = (PathAction("borrow"),)
+            elif isinstance(eff, str):
+                paths = ()                                       # explicit non-owning
             else:
-                paths = ()
+                rel, passed, used = _param_signals(cname, body)
+                if rel:
+                    paths = (PathAction("dispose"),)
+                elif passed:
+                    allt = _forward_targets(cname, body)
+                    top = _forward_targets(cname, body, recurse=False)
+                    paths = tuple(PathAction("forward", c, j) for c, j in allt)
+                    if not (len(allt) == 1 and len(top) == 1):
+                        # not a single unconditional handoff: a no-transfer path
+                        # exists (other branch / zero-trip loop / sibling call), so
+                        # the join is `may`/`no`, never a false `must`.
+                        paths = (*paths, PathAction("borrow"))
+                elif used:
+                    paths = (PathAction("borrow"),)
+                else:
+                    paths = ()
             params.append(ParamSkeleton(i, cname, True, paths))
         skels.append(MethodSkeleton(key, tuple(params)))
     return skels

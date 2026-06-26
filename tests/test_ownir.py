@@ -1216,6 +1216,44 @@ def run() -> int:
     if bok:
         fails.append("forwarding to a borrow-only callee then releasing must be clean "
                      f"(no over-consume), got {[(x.component, x.code) for x in bok]}")
+    # (Codex P2) an EXPLICIT effect seeds the skeleton even with no body evidence: a
+    # contract-only `sink_c(x consume)` resolves `must`, so the forwarder `fwd_c` is
+    # consume and a caller using s after the handoff is OWN002. (sink_c itself leaks
+    # OWN001 — an undischarged consume obligation — which is the expected existing
+    # behaviour, included here so the assertion is exact.)
+    checks += 1
+    expl = check_facts({"module": "M", "functions": [
+        {"name": "fwd_c", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "sink_c", "args": ["s"], "line": 2}]},
+        {"name": "sink_c", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 5}], "body": []},
+        {"name": "use_c", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "fwd_c", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    gotx = sorted((x.component, x.code) for x in expl)
+    if gotx != [("sink_c", "OWN001"), ("use_c", "OWN002")]:
+        fails.append(f"D5.1 explicit-effect seed should resolve through a "
+                     f"forwarder (use_c OWN002), got {gotx}")
+    # (Codex P2 / CodeRabbit) a CONDITIONAL forward must resolve to `may`, not `must`:
+    # `maybe(s){ if(c) sink(s); }` consumes s on only one path, so a caller that uses s
+    # after `maybe(s)` must stay SILENT (no false OWN002 on the non-forward path).
+    checks += 1
+    cond = check_facts({"module": "M", "functions": [
+        {"name": "maybe", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "if", "then": [
+             {"op": "call", "callee": "sink", "args": ["s"], "line": 3}], "else": [],
+             "line": 2}]},
+        {"name": "sink", "file": "F.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 6}],
+         "body": [{"op": "release", "var": "x", "line": 7}]},
+        {"name": "user_c", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "maybe", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if cond:
+        gotc = [(x.component, x.code) for x in cond]
+        fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
