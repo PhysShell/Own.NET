@@ -929,6 +929,27 @@ def _collect_vars(nodes: Any, op_kind: str, field: str) -> set[str]:
     return out
 
 
+def _has_bare_return(nodes: Any) -> bool:
+    """True if some `return` op carries NO `var` (a bare `return` / `return null` /
+    a non-local expression) anywhere in the body. Such a path returns a non-owned
+    value, so the method is not uniformly `fresh` — `_infer_return_skeleton` must not
+    claim fresh/forward when one exists (P-005 D5.2 precision; Codex)."""
+    if not isinstance(nodes, list):
+        return False
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "return" and n.get("var") is None:
+            return True
+        if op == "if" and (_has_bare_return(n.get("then"))
+                           or _has_bare_return(n.get("else"))):
+            return True
+        if op == "while" and _has_bare_return(n.get("body")):
+            return True
+    return False
+
+
 def _call_result_callees(nodes: Any) -> dict[str, str | None]:
     """Map each `result` local of a `call` op to the callee that produced it (for
     forward-return inference, P-005 D5.2). A local bound by two *different* callees
@@ -974,6 +995,11 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
     returned = _collect_vars(nodes, "return", "var")
     if not returned:
         return ReturnSkeleton()  # void / no value return
+    if _has_bare_return(nodes):
+        # some normal-return path yields a non-owned value (`return null` / bare
+        # `return`), so the method is not uniformly fresh — a caller dropping the
+        # result must not be charged a leak on that path. Make no claim (Codex).
+        return ReturnSkeleton()
     acquired = _collect_vars(nodes, "acquire", "var")
     call_results = _call_result_callees(nodes)
     # `fresh` only when EVERY returned local is acquired here and *nowhere else*. A local

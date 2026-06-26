@@ -1444,6 +1444,24 @@ def run() -> int:
     if gotmxd:
         fails.append("D5.2 T1: a mixed-origin return (acquired AND a call result) is not "
                      f"`fresh`, so the caller's dropped result must be silent, got {gotmxd}")
+    # PRECISION (Codex): `fresh` requires EVERY return path to be owned. A method that
+    # returns an acquired local on one branch but a bare `return` (null / non-owned) on
+    # another is not uniformly fresh — a caller dropping its result must NOT be charged a
+    # leak on the null path. `maybe_make` must not be fresh -> caller_bare stays silent.
+    checks += 1
+    bare = check_facts({"module": "M", "functions": [
+        {"name": "maybe_make", "file": "T1.cs",
+         "body": [{"op": "if", "line": 1,
+                   "then": [{"op": "acquire", "var": "x", "line": 2},
+                            {"op": "return", "var": "x", "line": 3}],
+                   "else": [{"op": "return", "line": 4}]}]},
+        {"name": "caller_bare", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "maybe_make", "args": [], "result": "r",
+                   "line": 10}]}]})
+    gotbare = [(x.component, x.code) for x in bare if x.component == "caller_bare"]
+    if gotbare:
+        fails.append("D5.2 T1: a method with a non-owned (`return null`) path is not "
+                     f"`fresh`, so a caller's dropped result must be silent, got {gotbare}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
