@@ -29,23 +29,24 @@ aggregator without a dependency either way.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
+from typing import Any
 
 # one evidence step: a source location plus the human label for what happens there.
 Step = tuple[str, int, str]   # (file, line, label)
 
 
-def _phys(file: str, line: int) -> dict:
+def _phys(file: str, line: int) -> dict[str, Any]:
     """A SARIF ``physicalLocation`` for a 1-based line. ``region`` is omitted for a
     file-level step (line < 1) so the location stays schema-valid rather than
     carrying a bogus ``startLine``."""
-    loc: dict = {"artifactLocation": {"uri": file.replace("\\", "/")}}
+    loc: dict[str, Any] = {"artifactLocation": {"uri": file.replace("\\", "/")}}
     if line >= 1:
         loc["region"] = {"startLine": line}
     return loc
 
 
-def related_locations(steps: Iterable[Step]) -> list[dict]:
+def related_locations(steps: Iterable[Step]) -> list[dict[str, Any]]:
     """SARIF ``relatedLocations`` from evidence steps -- the unordered secondary
     anchors. Steps without a resolvable line are dropped (a related location with
     nowhere to point is noise)."""
@@ -55,12 +56,12 @@ def related_locations(steps: Iterable[Step]) -> list[dict]:
     ]
 
 
-def code_flow(steps: Iterable[Step]) -> list[dict]:
+def code_flow(steps: Iterable[Step]) -> list[dict[str, Any]]:
     """A SARIF ``codeFlows`` value (a one-element list) from an *ordered* slice of
     evidence steps -- the reachability path that leads to the finding. Returns
     ``[]`` when no step has a resolvable line, so a caller can splice the result
     conditionally (``if flow: result["codeFlows"] = flow``)."""
-    locations = [
+    locations: list[dict[str, Any]] = [
         {"location": {"physicalLocation": _phys(f, ln), "message": {"text": label}}}
         for (f, ln, label) in steps if ln >= 1
     ]
