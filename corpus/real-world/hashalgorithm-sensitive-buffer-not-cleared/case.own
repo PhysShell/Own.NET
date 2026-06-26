@@ -1,0 +1,12 @@
+// OwnLang model of the sensitive-data aspect of dotnet/runtime#71249:
+// System.Security.Cryptography.HashAlgorithm stages the bytes being hashed in an
+// ArrayPool buffer and Returns it with `clearArray: false`, leaving secret input in
+// the pooled array for the next renter to read (information disclosure). A pooled
+// buffer marked `sensitive` must be cleared on release; returning it un-zeroed is
+// OWN024. (`clear = true` corresponds to `clearArray: true` /
+// CryptographicOperations.ZeroMemory.)
+module Corpus
+fn ComputeHash(n: int) {
+  let rented = Buffer.pooled(n, sensitive = true);   // ArrayPool buffer holding hash input
+  release rented;                                     // Return(clearArray: false) -> NOT zeroed
+}
