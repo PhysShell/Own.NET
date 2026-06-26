@@ -128,7 +128,21 @@ def run() -> int:
     fails += _check("1:1 double-release still OWN003",
                     "OWN003" in double, f"got {double}")
 
-    n = 11
+    # Return/escape path: the refactor routes the Return state-write and
+    # leak_check's `exclude` through rid_of, so cover them directly. Returning an
+    # owned resource escapes its RID (clean); a *sibling* RID left owned still
+    # leaks — proving the exclude spares only the returned RID, not all of them.
+    escape = _codes("fn f() -> Conn { let c = acquire Conn(1); return c; }")
+    fails += _check("returning an owned resource escapes clean",
+                    escape == set(), f"got {escape}")
+
+    leak_before_ret = _codes(
+        "fn f() -> Conn { let a = acquire Conn(1); let c = acquire Conn(1); "
+        "return c; }")
+    fails += _check("a sibling RID still leaks before return (OWN001)",
+                    leak_before_ret == {"OWN001"}, f"got {leak_before_ret}")
+
+    n = 13
     print(f"rid: {n - fails}/{n} RID-layer checks pass")
     return 1 if fails else 0
 

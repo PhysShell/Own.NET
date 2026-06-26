@@ -135,10 +135,14 @@ def _join_handle_rid(a: dict[int, int], b: dict[int, int]) -> dict[int, int]:
     out = dict(a)
     for handle, rid in b.items():
         if handle in out:
-            assert out[handle] == rid, (
-                "a handle maps to two different RIDs at a control-flow merge; the "
-                "D5.4 step-0 invariant is a single 1:1 handle->RID mapping"
-            )
+            # An explicit raise, not `assert`: `python -O` strips asserts, and a
+            # silently-kept wrong mapping would defeat the whole point of locking
+            # the invariant. Keep it loud in every build.
+            if out[handle] != rid:
+                raise AssertionError(
+                    "a handle maps to two different RIDs at a control-flow merge; "
+                    "the D5.4 step-0 invariant is a single 1:1 handle->RID mapping"
+                )
         else:
             out[handle] = rid
     return out
