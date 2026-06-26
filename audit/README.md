@@ -48,6 +48,7 @@ audit/
       owncheck.py    # build-free runner: own-check.sh --format sarif  (needs dotnet)
       codeql.sh      # build-free runner: CodeQL build-mode=none, security-and-quality
       xaml_check.py  # build-free runner: markup-only XAML perf/lifetime pass (stdlib XML, no SDK)
+      xaml_facts.py  # XAML facts extractor (resource graph + binding facts) -> xaml-facts.json (Phase-2 seam)
       roslyn_pack.ps1 # build-required runner (local Windows): NetAnalyzers/Roslynator/... 
       infersharp.sh  # build-required runner: Infer# over built binaries
     inject/          # OwnAudit.Directory.Build.props/.targets (analyzer injection, gated)
@@ -110,6 +111,7 @@ python audit/aggregate/normalize.py --selftest
 python audit/aggregate/score.py --selftest
 python audit/aggregate/report.py --selftest
 python audit/static/tools/xaml_check.py --selftest   # XAML rules + line preservation + SARIF round-trip
+python audit/static/tools/xaml_facts.py --selftest   # XAML facts: binding parser + resource graph
 python audit/static/run_static.py --selftest   # full pipeline end-to-end on fixtures
 ```
 
@@ -133,7 +135,11 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
   Freezable duplication). This makes category 8 (broken virtualization) statically
   covered, not NO-TOOL. Design + the full rule catalogue, phasing, and the Phase-2
   binding-path join: [`../docs/notes/xaml-analyzer-design.md`](../docs/notes/xaml-analyzer-design.md).
-  Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime correlation) are deferred.
+- **XAML Phase-2 seam — done:** `static/tools/xaml_facts.py` emits `xaml-facts.json` (resource graph
+  + binding facts: parsed binding paths / converters / handlers + the file's `x:Class`) from the same
+  parsed tree, in an OwnIR-parallel envelope. This is the structured input the binding-path join reads
+  next to the `OwnSharp.Extractor` OwnIR facts. The join itself (Roslyn-linked XAML2xx) and Phase 3
+  (runtime correlation) remain deferred.
 - **Runtime (Phase 2) — started:** the runtime→pipeline bridge (`runtime/ingest.py`,
   CI-gated), the leak-harness scenario schema + one scenario, runtime rule mappings
   in the taxonomy (categories 2/3/4/11), and the C# leak-harness skeleton. See

@@ -643,17 +643,24 @@ RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
 ]
 
 
+def analyze_root(root: Node) -> list[XamlFinding]:
+    """All Phase-1 rules over an already-parsed tree. Split out from ``analyze_text``
+    so a caller (e.g. ``run_xaml_check``) can parse a file once and feed the same
+    tree to both the rules and the facts extractor (``xaml_facts``)."""
+    avalonia = _is_avalonia(root)
+    out: list[XamlFinding] = []
+    for rule in RULES:
+        out.extend(rule(root, avalonia))
+    return out
+
+
 def analyze_text(text: str | bytes) -> list[XamlFinding]:
     """All Phase-1 rules over one markup document (``str`` or raw ``bytes``).
     Malformed markup -> no findings."""
     root = parse_xaml(text)
     if root is None:
         return []
-    avalonia = _is_avalonia(root)
-    out: list[XamlFinding] = []
-    for rule in RULES:
-        out.extend(rule(root, avalonia))
-    return out
+    return analyze_root(root)
 
 
 def _to_sarif(results: list[tuple[str, XamlFinding]]) -> dict[str, Any]:
@@ -679,11 +686,19 @@ def _to_sarif(results: list[tuple[str, XamlFinding]]) -> dict[str, Any]:
 
 
 def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
-    """Scan every ``.xaml`` / ``.axaml`` under ``target`` and write SARIF to
-    ``out_dir/xaml-check.sarif``. Always best-effort: a missing target or zero
-    markup files yields ``available=False`` with a reason, never a crash."""
+    """Scan every ``.xaml`` / ``.axaml`` under ``target`` and write two artifacts to
+    ``out_dir``: ``xaml-check.sarif`` (the Phase-1 rule findings, into the audit
+    pipeline) and ``xaml-facts.json`` (the structured resource-graph + binding facts
+    for the Phase-2 binding-path join — see ``xaml_facts``). Each file is parsed once
+    and the same tree feeds both the rules and the facts extractor. Always
+    best-effort: a missing target or zero markup files yields ``available=False`` with
+    a reason, never a crash."""
+    # Local import keeps the module pair decoupled (xaml_facts imports from here).
+    from xaml_facts import document_facts, module_facts
+
     out_dir.mkdir(parents=True, exist_ok=True)
     sarif_path = out_dir / "xaml-check.sarif"
+    facts_path = out_dir / "xaml-facts.json"
     status: dict[str, Any] = {"tool": "xaml", "tier": "build-free",
                               "available": False, "sarif": None, "reason": ""}
 
@@ -698,6 +713,7 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
         return status
 
     results: list[tuple[str, XamlFinding]] = []
+    documents: list[dict[str, Any]] = []
     scanned = 0
     for fp in files:
         try:
@@ -709,12 +725,20 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
             continue
         scanned += 1
         rel = fp.relative_to(root).as_posix()
-        for f in analyze_text(data):
+        tree = parse_xaml(data)
+        if tree is None:
+            continue  # malformed markup: skipped (no findings, no facts)
+        for f in analyze_root(tree):
             results.append((rel, f))
+        documents.append(document_facts(tree, rel))
 
     sarif_path.write_text(json.dumps(_to_sarif(results), indent=2), encoding="utf-8")
-    status.update(available=True, sarif=str(sarif_path),
-                  findings=len(results), files_scanned=scanned)
+    facts = module_facts(documents, module=Path(target).name or "target")
+    facts_path.write_text(json.dumps(facts, indent=2), encoding="utf-8")
+    status.update(available=True, sarif=str(sarif_path), facts=str(facts_path),
+                  findings=len(results), files_scanned=scanned,
+                  bindings=sum(len(d["bindings"]) for d in documents),
+                  resources=sum(len(d["resources"]) for d in documents))
     return status
 
 
