@@ -19,6 +19,8 @@ tiers:
   build_free:
     - own-check                # error-tolerant SemanticModel; works on a broken solution
     - codeql                   # build-mode: none, security-and-quality suite
+    - xaml                     # markup-only XAML pass (stdlib XML, no SDK needed);
+                               # XAML perf/lifetime rules — docs/notes/xaml-analyzer-design.md
   build_required:
     - roslyn-pack              # NetAnalyzers, Meziantou, Roslynator, AsyncFixer,
                                # SonarAnalyzer, IDisposableAnalyzers, WpfAnalyzers,
@@ -43,9 +45,11 @@ roslyn_packs:
 no_tool_static:
   - 4    # DependencyPropertyDescriptor.AddValueChanged leak  -> runtime leak-harness
   - 6    # PropertyChanged storms / expensive getters         -> runtime
+         # (XAML108 gives a static per-keystroke-binding suspicion; storms stay runtime)
   - 7    # WPF binding errors                                 -> runtime
-  - 8    # broken/disabled virtualization                     -> runtime
-  - 10   # allocations in converters/getters                  -> runtime
+         # NOTE: category 8 (broken/disabled virtualization) is no longer NO-TOOL:
+         # the build-free XAML pass covers it statically (XAML107/XAML109).
+  - 10   # allocations in converters/getters                  -> runtime (XAML phase 2)
   - 11   # duplicated immutable data (the project's "gold")   -> runtime
   - 12   # heavy reference data / LOH / Gen2 bloat            -> runtime
   - 13   # cross-thread ObjectDisposedException / INPC        -> runtime

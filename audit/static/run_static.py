@@ -36,6 +36,7 @@ from normalize import coverage, load_taxonomy, normalize_results  # noqa: E402
 from owncheck import run_own_check  # noqa: E402
 from report import render_html, render_json, render_markdown, render_sarif  # noqa: E402
 from score import score  # noqa: E402
+from xaml_check import run_xaml_check  # noqa: E402
 
 try:
     from oracle_compare import parse_sarif
@@ -123,6 +124,14 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
         tiers.append(st)
         if st["available"] and st["sarif"]:
             sarif_inputs.append(("codeql", st["sarif"]))
+    if "xaml" in build_free:
+        # The markup-only XAML pass (docs/notes/xaml-analyzer-design.md, phase 1):
+        # pure stdlib XML, so it has no toolchain prerequisite and always runs here,
+        # emitting the same SARIF record into the same aggregate pipeline.
+        st = run_xaml_check(target, out_dir)
+        tiers.append(st)
+        if st["available"] and st["sarif"]:
+            sarif_inputs.append(("xaml", st["sarif"]))
 
     # Pick up any build-required SARIFs already dropped here by the Windows runners.
     # Roslyn writes ONE SARIF PER PROJECT under roslyn/ (see the injected props's
@@ -304,6 +313,27 @@ def _selftest() -> int:
               "runtime propertychanged-storm.sarif must be folded in by run()")
         check(res2["totals"]["high_confidence"] >= 1,
               "runtime leak + static finding in one file must form a high-confidence cluster")
+
+    # The build-free XAML tier must wire in like own-check/codeql: with "xaml" in
+    # build_free and a .xaml under the target, run() reports a xaml tier and the
+    # markup finding rides the pipeline through to a scored cluster — all on Linux,
+    # no SDK (the whole point of the markup-only phase).
+    with tempfile.TemporaryDirectory() as td3:
+        out3 = Path(td3) / "out"
+        src3 = Path(td3) / "src" / "Views"
+        src3.mkdir(parents=True)
+        (src3 / "Main.xaml").write_text(
+            '<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"\n'
+            '             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">\n'
+            '  <ListBox VirtualizingStackPanel.IsVirtualizing="False" />\n'
+            '</UserControl>\n', encoding="utf-8")
+        profile3 = {"name": "t", "severity_floor": "warning",
+                    "tiers": {"build_free": ["xaml"]}}
+        res3 = run(str(Path(td3) / "src"), profile3, out3, target_name="t/p")
+        check(any(t["tool"] == "xaml" and t["available"] for t in res3["tiers"]),
+              "xaml build-free tier must run and be reported by run()")
+        check(res3["totals"]["candidates"] >= 1,
+              "a XAML107 markup finding must flow through to a scored cluster")
 
     fails = [c for c in checks if c]
     for f in fails:

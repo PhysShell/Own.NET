@@ -43,6 +43,22 @@ rules:
   # ── Category 9: WPF Freezable / per-instance brush-geometry (partial) ────────
   "WPF0*": {category: 9, name: wpf-freezable}       # WpfAnalyzers (subset)
 
+  # ── XAML analyzer (build-free markup pass) — docs/notes/xaml-analyzer-design.md.
+  #    XAML is a SECOND fact source, not a parallel linter: each rule maps to one of
+  #    the same Plan.md §2 categories so a markup finding rides the same fingerprint
+  #    -> baseline -> ratchet path as a .cs finding. Exact ids win over the XAML1*
+  #    glob, which is a safety net so a not-yet-mapped XAML rule never lands in
+  #    `uncategorized` (the design note's "nothing quietly falls through").
+  "XAML107": {category: 8, name: broken-virtualization}   # virtualization disabled
+  "XAML109": {category: 8, name: template-complexity}     # visual-tree inflation
+  "XAML108": {category: 6, name: binding-update-frequency}  # per-keystroke source flood
+  "XAML106": {category: 9, name: wpf-freezable}           # Freezable not frozen
+  "XAML101": {category: 9, name: per-instance-resource}   # duplicate converter
+  "XAML102": {category: 9, name: dynamic-resource-misuse} # DynamicResource for a static key
+  "XAML103": {category: 9, name: per-instance-resource}   # x:Shared=False
+  "XAML104": {category: 9, name: merged-dictionary-waste} # duplicate merged dict
+  "XAML1*":  {category: 9, name: xaml-markup-perf}        # safety net for future rules
+
   # ── Category 14: general bugs / perf / best-practice / async ──────────────────
   "CA1*": {category: 14, name: general-quality}     # NetAnalyzers design/perf
   "CA2*": {category: 14, name: general-quality}     # (CA2000/CA2213 above win by exactness)
@@ -78,6 +94,7 @@ category_severity:
   4: P1      # DependencyPropertyDescriptor.AddValueChanged leak (runtime-confirmed)
   5: P2
   6: P2      # PropertyChanged storms/cascades — runtime raise-frequency, perf-tier
+  8: P2      # broken/disabled virtualization — now statically covered by the XAML pass
   9: P2
   11: P2     # duplicated immutable data — memory bloat (the project's "gold"), perf-tier
   14: P2

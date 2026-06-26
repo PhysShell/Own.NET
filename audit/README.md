@@ -47,6 +47,7 @@ audit/
     tools/
       owncheck.py    # build-free runner: own-check.sh --format sarif  (needs dotnet)
       codeql.sh      # build-free runner: CodeQL build-mode=none, security-and-quality
+      xaml_check.py  # build-free runner: markup-only XAML perf/lifetime pass (stdlib XML, no SDK)
       roslyn_pack.ps1 # build-required runner (local Windows): NetAnalyzers/Roslynator/... 
       infersharp.sh  # build-required runner: Infer# over built binaries
     inject/          # OwnAudit.Directory.Build.props/.targets (analyzer injection, gated)
@@ -65,7 +66,7 @@ audit/
 
 | Tier | Tools | Needs a successful build of the target? |
 |---|---|---|
-| **build-free** | own-check, CodeQL (`build-mode: none`) | no — works on a solution that does not compile |
+| **build-free** | own-check, CodeQL (`build-mode: none`), XAML markup pass | no — works on a solution that does not compile |
 | **build-required** | Roslyn analyzer packs, Infer# | yes |
 
 The entire audit of the target runs on a **local Windows machine** (VS Build Tools
@@ -108,6 +109,7 @@ Linux CI:
 python audit/aggregate/normalize.py --selftest
 python audit/aggregate/score.py --selftest
 python audit/aggregate/report.py --selftest
+python audit/static/tools/xaml_check.py --selftest   # XAML rules + line preservation + SARIF round-trip
 python audit/static/run_static.py --selftest   # full pipeline end-to-end on fixtures
 ```
 
@@ -122,6 +124,14 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
   to the coverage ledger), DevExpress baseline-suppress, cross-tool agreement
   scoring, the pain heatmap, **all four renderers (markdown / json / merged SARIF /
   HTML)**, the analyzer-injection props/targets, and selftests.
+- **XAML analyzer (Phase 1, markup-only) — done:** a build-free, stdlib-XML pass
+  (`static/tools/xaml_check.py`) feeding the same pipeline as a second fact source —
+  line-preserving parse, the canonical SARIF record, and rules XAML101/102/103/104/
+  106/107/108/109 (virtualization-off, per-keystroke binding, template complexity,
+  Freezable/x:Shared/DynamicResource/merged-dictionary perf). This makes category 8
+  (broken virtualization) statically covered, not NO-TOOL. Design + the full rule
+  catalogue and phasing: [`../docs/notes/xaml-analyzer-design.md`](../docs/notes/xaml-analyzer-design.md).
+  Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime correlation) are deferred.
 - **Runtime (Phase 2) — started:** the runtime→pipeline bridge (`runtime/ingest.py`,
   CI-gated), the leak-harness scenario schema + one scenario, runtime rule mappings
   in the taxonomy (categories 2/3/4/11), and the C# leak-harness skeleton. See
