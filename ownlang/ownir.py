@@ -936,12 +936,18 @@ _OWNERSHIP_SINK_EXTERNS = (
                [EffectParam(Effect.BORROW_MUT, "Disposable", 0)], None, 0),
 )
 
-# A forward to a sink extern is a *known* transfer, so a skeleton records the
+# A forward to a sink extern is a *known* transfer, so a skeleton can record the
 # resolved path action directly — `$consume` is ownership leaving (a must-transfer),
-# `$borrow`/`$borrow_mut` is a kept loan — rather than a `forward` edge to an
-# unsummarized callee (which the solver would degrade to `unknown`, diluting a real
-# `must` to plain). Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
-_SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow", "$borrow_mut": "borrow"}
+# `$borrow` is a kept loan — rather than a `forward` edge to an unsummarized callee
+# (which the solver would degrade to `unknown`, diluting a real `must` to plain).
+# `$borrow_mut` is DELIBERATELY ABSENT (Codex P2): the transfer lattice carries no
+# shared-vs-exclusive axis, so mapping it to `borrow` would silently downgrade an
+# EXCLUSIVE loan to a shared one in the wrapper's contract — asserting something
+# weaker than the truth. We decline the transitive claim instead (it falls through
+# to a `forward` edge → `unknown` → the wrapper param stays plain, no false shared-
+# borrow contract). The DIRECT `call $borrow_mut [x]` channel is unaffected and keeps
+# full exclusivity through `lower_call`. Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
+_SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow"}
 
 
 def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:

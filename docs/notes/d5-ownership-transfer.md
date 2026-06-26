@@ -247,8 +247,13 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   them (`call $consume [x]`), and they resolve via the **same** `collect_signatures` +
   `lower_call` path as any contracted call — no new checker, no new flow lowering. The `$`
   prefix cannot collide with a real C# member. The solver also reads a forward to a sink as a
-  *known* transfer (`$consume`→must, `$borrow*`→no), so the channel propagates **transitively**
-  through first-party wrappers, not just at the direct call. Proven by synthetic OwnIR tests:
+  *known* transfer (`$consume`→must, `$borrow`→no), so the channel propagates **transitively**
+  through first-party wrappers, not just at the direct call. `$borrow_mut` is intentionally
+  excluded from the *transitive* shortcut — the transfer lattice has no shared-vs-exclusive
+  axis, so a wrapper summary would silently downgrade an exclusive loan to a shared one; the
+  honest move is to decline that claim (the wrapper param stays plain) while the *direct*
+  `$borrow_mut` call keeps full exclusivity through `lower_call` (Codex P2). Proven by synthetic
+  OwnIR tests:
   use/double-release after `$consume` (OWN002), a `$borrow`'d-then-never-released local still
   leaking (OWN001), a clean borrow-then-release, and transitive propagation through a wrapper.
   The remaining piece is **CI/C#-only**: the extractor emitting these sink calls from the bool
