@@ -1,6 +1,14 @@
 # P-014 — Project-local semantic resolution for the C# extractor
 
-- **Status:** draft (P0 — the extractor is currently unusable on real desktop code)
+- **Status:** in progress (P0) — **Tier A shipped (T0–T6 done), default-on.** A `+=` is a
+  subscription only when the `SemanticModel` binds its LHS to an `IEventSymbol`, so arithmetic
+  (`sum += value`, for-loop steps) no longer leaks; an unresolved external event surfaces as the
+  advisory **OWN050** ("declaring type unresolved — leakage analysis skipped"), never a guessed
+  leak. One `CSharpCompilation` over the inputs with framework + `OWN_EXTRA_REF_DIRS` references;
+  the `--event-leaks`/`--no-event-leaks` gate defaults ON. CI-validated on the extractor sample.
+  **Tier B** (opt-in *full*-reference resolution via `MSBuildWorkspace` / a built `bin/**/*.dll`
+  reference set, to resolve third-party/DevExpress event types beyond the framework set) is
+  deferred (open question Q3), as are monorepo scoping (Q1) and a general check-selection surface (Q2).
 - **Depends on:**
   - [P-001](P-001-csharp-extractor.md) — the seam this deepens. P-001 defines the
     Roslyn-extractor → OwnIR → Python-core pipeline (P-001:71-77) *and* owns the

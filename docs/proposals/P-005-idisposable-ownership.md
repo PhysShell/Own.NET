@@ -1,8 +1,13 @@
 # P-005 — `IDisposable` ownership profile
 
 - **Status:** in progress (P0 — the most down-to-earth resource module). **D1
-  (local never disposed)** built, plus **D2 (owned field never disposed)** via
-  WPF003 ([P-004](P-004-wpf-lifetime-profile.md)); D3/D4/D5 next.
+  (local never disposed)** built (path-sensitive under `--flow-locals`, P-016), plus
+  **D2 (owned field never disposed)** via WPF003 ([P-004](P-004-wpf-lifetime-profile.md)).
+  **D3 (double dispose → OWN003)** and **D4 (use-after-dispose → OWN002)** are also built —
+  via the `--flow-locals` per-method flow lattice, plus a field-mediated use-after-dispose pass
+  (a disposed field read in a live event handler). **D5 (ownership transfer through a callee)**
+  is a heuristic at the call boundary (bounded first-party `consume`/`borrow` contracts; no
+  cross-library model) and remains the main open frontier.
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release), [P-001](P-001-csharp-extractor.md) (the C# seam).
   Shares the resource core with [P-004](P-004-wpf-lifetime-profile.md).
