@@ -37,10 +37,11 @@ rules:
                                                  # (vm->App, SystemEvents) — NOT a
                                                  # generic subscription-leak
   # XAML Phase-2 join: a view (x:Class) that subscribes from a load-lifecycle handler
-  # but never releases (OwnIR released=false). Categorized as a subscription leak so
-  # it scores as the P1 leak it is; the join already stitches the markup site to the
-  # C# subscription it names (the leak lives in the .xaml.cs, a different basename, so
-  # it does not spatially cluster with the own-check OWN001 on that file).
+  # but never releases (OwnIR released=false). Categorized as a subscription leak and
+  # anchored at the code-behind subscription site, so it lands at the same file+line as
+  # own-check's OWN001 and CLUSTERS with it into one high-confidence finding (two
+  # sources agree — Plan.md §3.5), tagging it as a view-lifecycle leak rather than
+  # double-reporting it on a separate .xaml line.
   "XAML203": {category: 2, name: xaml-subscription-leak}
 
   # ── Category 5: INPC correctness ─────────────────────────────────────────────

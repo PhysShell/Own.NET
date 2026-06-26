@@ -144,7 +144,9 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
   OwnIR facts own-check now persists (`--emit-facts` → `own-check.facts.json`) by the deterministic XAML
   naming convention (`x:Class`→type, handler→method) — **build-free, no `.g.cs`/build needed**. First
   rule **XAML203** (view subscribes from a load-lifecycle handler but the OwnIR verdict is
-  `released=false` → closed view retained), anchored at the XAML site and naming the C# subscription.
+  `released=false` → closed view retained), anchored at the code-behind subscription site so it
+  clusters with own-check's `OWN001` into one high-confidence finding (no double-report) and names the
+  XAML view that wired it.
   `run_static.py` runs the join whenever both fact sources are present and folds its SARIF into the
   pipeline. Binding-path-hotness rules (XAML200/204, need the DataContext type) and an optional `.g.cs`
   ground-truth cross-check are documented build-tier follow-ups. Phase 3 (runtime correlation) deferred.

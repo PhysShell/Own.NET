@@ -367,10 +367,19 @@ def _selftest() -> int:
             {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
                 {"event": "_bus.Changed", "handler": "OnChanged", "line": 21,
                  "released": False}]}]}), encoding="utf-8")
+        # own-check ALSO reports this leak as OWN001 on the code-behind: XAML203 anchors
+        # at the same .xaml.cs:21, so the two must CLUSTER into one high-confidence
+        # finding, not double-report.
         sarif = Path(out_dir_) / "own-check.sarif"
-        sarif.write_text('{"version":"2.1.0","runs":[{"results":[]}]}', encoding="utf-8")
+        sarif.write_text(json.dumps({"version": "2.1.0", "runs": [{
+            "tool": {"driver": {"name": "Own.NET"}}, "results": [{"ruleId": "OWN001",
+                "level": "warning", "message": {"text":
+                    "event subscribed but never unsubscribed [resource: subscription token]"},
+                "locations": [{"physicalLocation": {
+                    "artifactLocation": {"uri": "Views/CustomerView.xaml.cs"},
+                    "region": {"startLine": 21}}}]}]}]}), encoding="utf-8")
         return {"tool": "own-check", "tier": "build-free", "available": True,
-                "sarif": str(sarif), "facts": str(facts), "findings": 0, "reason": ""}
+                "sarif": str(sarif), "facts": str(facts), "findings": 1, "reason": ""}
 
     with tempfile.TemporaryDirectory() as td4:
         out4 = Path(td4) / "out"
@@ -391,8 +400,11 @@ def _selftest() -> int:
             _self.run_own_check = real_own_check
         check(any(t["tool"] == "xaml-join" and t["available"] for t in res4["tiers"]),
               "xaml-join tier must run when this run produced both fact sources")
-        check(res4["totals"]["clusters"] >= 1,
-              "a XAML203 join finding must flow through to a scored cluster")
+        # XAML203 anchors on the code-behind, so it CLUSTERS with own-check's OWN001
+        # into ONE high-confidence finding — no double-report of the same leak.
+        check(res4["totals"]["clusters"] == 1 and res4["totals"]["high_confidence"] == 1,
+              f"XAML203 + OWN001 must collapse to one high-confidence cluster, "
+              f"got {res4['totals']}")
 
     # The join must NOT run on stale facts: a re-run with own-check NOT a producer this
     # time (and no SDK) must skip the join even though own-check.facts.json is on disk.
