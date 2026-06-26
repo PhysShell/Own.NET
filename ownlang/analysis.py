@@ -51,6 +51,7 @@ from .cfg import (
     CFG,
     Acquire,
     AcquireBuffer,
+    AliasJoin,
     Block,
     BorrowEnd,
     BorrowStart,
@@ -351,7 +352,7 @@ class _Analyzer:
                 idx[id(p)] = p
             for b in self.cfg.blocks:
                 for ins in b.instrs:
-                    for attr in ("sym", "dst", "src", "owner", "binding"):
+                    for attr in ("sym", "dst", "src", "owner", "binding", "handle"):
                         s = getattr(ins, attr, None)
                         if isinstance(s, Symbol):
                             idx[id(s)] = s
@@ -383,6 +384,18 @@ class _Analyzer:
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
             st.var[st.rid_of(ins.src)] = {VarState.MOVED}
             st.var[st.mint(ins.dst)] = {VarState.OWNED}
+            return
+
+        if isinstance(ins, AliasJoin):
+            # `handle` joins `src`'s resource obligation: it becomes an owning
+            # alias of the SAME RID (no new resource is minted). State lives on the
+            # RID, so the per-RID checks already do the right thing — releasing or
+            # escaping through either handle discharges the one obligation, a second
+            # release is OWN003, and a leak of the shared RID is reported once. We do
+            # NOT touch `src`'s state (it stays owning, unlike a move). If `src` was
+            # already released/escaped, point at its RID anyway so a later use/release
+            # of `handle` resolves to that (released) RID and reports correctly.
+            st.handle_rid[id(ins.handle)] = st.rid_of(ins.src)
             return
 
         if isinstance(ins, Release):

@@ -450,6 +450,17 @@ class _FnGen:
                     f"// full-length view over the pooled tail (over-read)"]
         if isinstance(st, A.Call):
             return [f"{ind}{st.callee}({', '.join(self._arg(a) for a in st.args)});"]
+        if isinstance(st, A.AliasJoin):
+            # `name` is an owning alias of `src` (they share one obligation). Carry
+            # the resource/buffer bookkeeping across so a later release of either
+            # emits the right cleanup; `src` stays valid (no move-out comment).
+            if st.src in self.buffer_cleanup:
+                self.buffer_cleanup[st.name] = self.buffer_cleanup[st.src]
+            if st.src in self.buffer_vars:
+                self.buffer_vars[st.name] = self.buffer_vars[st.src]
+            self.owned_resource[st.name] = self.owned_resource.get(st.src, "")
+            return [f"{ind}var {st.name} = {st.src}; "
+                    f"// owning alias of {st.src} (shared obligation)"]
         if isinstance(st, A.BorrowBlock):
             kind = "mutable" if st.kind == A.BorrowKind.MUT else "shared"
             rt = self.owned_resource.get(st.owner, "")

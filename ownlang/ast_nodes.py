@@ -133,6 +133,21 @@ class Call:
 
 
 @dataclass(frozen=True)
+class AliasJoin:
+    """`name` is a *new owning handle* on the SAME resource obligation as `src`
+    (a resource-alias / RLC's `@MustCallAlias`). Releasing or escaping either
+    handle discharges the one underlying resource; releasing both is a double-
+    release; using either after the resource is released is a use-after-release.
+    The T4 wrap/adopt primitive (P-005 D5.4): a factory returning a wrapper of
+    `src`, or a constructor adopting `src` into an owning field, both reduce to
+    the same fact — a new owning handle joined `src`'s alias set (T4a ≡ T4b).
+    Unlike `move`, `src` stays owning (it is not invalidated)."""
+    name: str   # the new owning handle that joins the alias set
+    src: str    # an existing handle whose resource obligation `name` shares
+    line: int
+
+
+@dataclass(frozen=True)
 class BorrowBlock:
     owner: str
     binding: str
@@ -176,8 +191,8 @@ class Subscribe:
     line: int
 
 
-Stmt = (Let | Release | Use | Overspan | Call | BorrowBlock | If | While
-        | Return | Subscribe)
+Stmt = (Let | Release | Use | Overspan | Call | AliasJoin | BorrowBlock | If
+        | While | Return | Subscribe)
 
 
 # ---- top level ------------------------------------------------------------

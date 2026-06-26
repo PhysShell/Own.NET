@@ -1806,6 +1806,101 @@ def run() -> int:
     if gotpl != [("OWN001", "pooled buffer")]:
         fails.append("bridge branch-scope: a hoisted ArrayPool rent that leaks must stay tagged "
                      f"kind='pooled buffer' (kind preserved through the hoist), got {gotpl}")
+    # --- P-005 D5.4 (T4 wrap/adopt): the `alias_join` flow op. `var w` becomes a NEW
+    #     owning handle on the SAME resource obligation as `src` (a factory returning a
+    #     wrapper of `src`, or a ctor adopting `src` into an owning field — T4a ≡ T4b).
+    #     Errors are evaluated per-RID, so disposing EITHER alias discharges the one
+    #     resource and disposing BOTH is a double-dispose. This is the Dapper/Polly
+    #     wrapper-adoption shape modelled explicitly. (The extractor recognisers that
+    #     EMIT this op land in D5.4 step 2; here the op is driven by synthetic facts.)
+    #
+    # disposing the wrapper alone discharges the obligation for both -> clean.
+    checks += 1
+    aw = check_facts({"module": "M", "functions": [
+        {"name": "adopt_release_wrapper", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2},
+                  {"op": "release", "var": "w", "line": 3}]}]})
+    if aw:
+        fails.append("D5.4 T4: releasing the wrapper alias must discharge the shared "
+                     f"obligation (clean), got {[(x.component, x.code) for x in aw]}")
+    # disposing the inner directly (the Dapper dispose-the-inner path) is ALSO clean —
+    # the alias set is satisfied through any member.
+    checks += 1
+    ai = check_facts({"module": "M", "functions": [
+        {"name": "adopt_release_inner", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2},
+                  {"op": "release", "var": "inner", "line": 3}]}]})
+    if ai:
+        fails.append("D5.4 T4: releasing the inner directly must also discharge the shared "
+                     f"obligation (clean), got {[(x.component, x.code) for x in ai]}")
+    # dropping BOTH (neither released) leaks the ONE underlying resource exactly ONCE,
+    # not once per alias — per-RID leak evaluation.
+    checks += 1
+    al = check_facts({"module": "M", "functions": [
+        {"name": "adopt_leak", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2}]}]})
+    gotal = [(x.component, x.line, x.code) for x in al]
+    if gotal != [("adopt_leak", 1, "OWN001")]:
+        fails.append("D5.4 T4: dropping both aliases must leak the shared resource ONCE "
+                     f"(OWN001@1, attributed to the inner), got {gotal}")
+    # releasing BOTH aliases is a double-dispose (OWN003) — the second release hits an
+    # already-Released RID through the other handle.
+    checks += 1
+    ad = check_facts({"module": "M", "functions": [
+        {"name": "adopt_double", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2},
+                  {"op": "release", "var": "inner", "line": 3},
+                  {"op": "release", "var": "w", "line": 4}]}]})
+    # the finding anchors at the shared resource's origin (the `inner` acquire, line 1) —
+    # the bridge remaps every flow-local diagnostic back to its acquire site, as the D5.2
+    # use-after case does; the flow slice carries the release path.
+    gotad = [(x.line, x.code) for x in ad]
+    if gotad != [(1, "OWN003")]:
+        fails.append("D5.4 T4: releasing both aliases must be a double-dispose (OWN003, "
+                     f"anchored at the inner acquire @1), got {gotad}")
+    # using an alias after the resource was released (through the OTHER handle) is a
+    # use-after-release (OWN002).
+    checks += 1
+    au = check_facts({"module": "M", "functions": [
+        {"name": "adopt_uar", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2},
+                  {"op": "release", "var": "w", "line": 3},
+                  {"op": "use", "var": "inner", "line": 4}]}]})
+    gotau = [(x.line, x.code) for x in au]
+    if gotau != [(1, "OWN002")]:
+        fails.append("D5.4 T4: using an alias after release through the other handle must be "
+                     f"OWN002 (anchored at the inner acquire @1), got {gotau}")
+    # PRECISION: an `alias_join` whose `src` is NOT a tracked local makes NO claim — no
+    # acquire is fabricated for the wrapper, so a later release of it is silently dropped
+    # (never a phantom OWN003/OWN002). Optimistic-silent, per the v1 must-only rule.
+    checks += 1
+    an = check_facts({"module": "M", "functions": [
+        {"name": "adopt_unknown_src", "file": "T4.cs",
+         "body": [{"op": "alias_join", "var": "w", "src": "ghost", "line": 2},
+                  {"op": "release", "var": "w", "line": 3}]}]})
+    if an:
+        fails.append("D5.4 T4: an alias_join over an untracked src must make no claim "
+                     f"(silent), got {[(x.component, x.code) for x in an]}")
+    # THE PRECISION WIN (§11 Dapper shape): a factory acquires `inner` as a LOCAL, wraps it
+    # (`w` aliases inner), and RETURNS the wrapper. `inner` is dropped as a local, but its
+    # obligation escaped through `w` — so per-RID leak evaluation sees the shared RID escape
+    # and reports NO leak. Without the alias set this dropped local would be a false OWN001;
+    # this is the own-only-0-with-a-reason case the whole D5.4 model exists to model.
+    checks += 1
+    rw = check_facts({"module": "M", "functions": [
+        {"name": "Wrap.Create", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "inner", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "inner", "line": 2},
+                  {"op": "return", "var": "w", "line": 3}]}]})
+    if rw:
+        gotrw = [(x.component, x.code) for x in rw]
+        fails.append("D5.4 T4: returning the wrapper escapes the shared obligation, so the "
+                     f"dropped inner local must NOT leak, got {gotrw}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the

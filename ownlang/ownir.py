@@ -105,6 +105,7 @@ from typing import Any
 
 from .ast_nodes import (
     Acquire,
+    AliasJoin,
     Call,
     Effect,
     EffectParam,
@@ -1539,6 +1540,25 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                                # partial-path leak reads as a "pooled buffer", not "disposable".
                                "pool": n.get("kind") == "pool"}
             body.append(Let(handle, Acquire("Disposable", [], line), line))
+        elif op == "alias_join":
+            # P-005 D5.4 (T4 wrap/adopt): `var` is a new owning handle on the SAME
+            # resource obligation as `src` — a factory returning a wrapper of `src`,
+            # or a ctor adopting `src` into an owning field (T4a ≡ T4b). The result
+            # joins `src`'s alias set: dropping the wrapper while `src` is released is
+            # NOT a leak, releasing both is OWN003, using either after release is
+            # OWN002 — all evaluated per-RID by the core. Emitted only when `src` is a
+            # tracked local; an unknown `src` makes no claim (precision-first).
+            name = str(n.get("var", "?"))
+            src_h = localmap.get(str(n.get("src", "")))
+            if src_h is not None and name not in hoisted:
+                handle = f"loc_{loc[0]}"
+                loc[0] += 1
+                localmap[name] = handle
+                handles[handle] = {"file": ffile, "line": line, "event": name,
+                                   "component": fname, "resource": "flow-local",
+                                   "ever_released": name in released_vars,
+                                   "pool": False}
+                body.append(AliasJoin(handle, src_h, line))
         elif op == "use":
             h = localmap.get(str(n.get("var")))
             if h is not None:
