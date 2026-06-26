@@ -65,10 +65,14 @@ LOAD_LIFECYCLE_EVENTS = {"Loaded", "Initialized", "DataContextChanged"}
 
 # OwnIR's components[].subscriptions is an UMBRELLA list: an untagged entry is a plain
 # event `+=` subscription, but the same list also carries timer / IDisposable / pool
-# leaks tagged via `resource`. XAML203 is specifically a category-2 *event subscription*
-# leak, so it must only fire on subscription-family records — a tagged timer/disposable
-# leak is a different category (3 / 1) already covered by own-check on the .cs.
-SUBSCRIPTION_RESOURCES = {None, "", "subscribe", "subscription", "subscription token", "event"}
+# leaks tagged via `resource`. XAML203 is specifically the category-2 *event
+# subscription leak / region escape* lane, so it fires on subscription-family records
+# — including `capture` (a static/process-lived event subscription that retains the
+# subscriber, the OWN014 region-escape case, which is exactly a closed-view-retained
+# leak) — but NOT timer/disposable/pool, which are other categories (3 / 1) already
+# covered by own-check on the .cs.
+SUBSCRIPTION_RESOURCES = {None, "", "subscribe", "subscription", "subscription token",
+                          "event", "capture"}
 
 
 def _component_index(ownir: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -109,18 +113,22 @@ def _path_corresponds(xaml_file: str, component_file: str) -> bool:
 
 def _linked_components(doc: dict[str, Any],
                        by_name: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
-    """The OwnIR component(s) that are this view's code-behind. A unique simple-name
-    match links directly; when several types share the simple name (``Admin.CustomerView``
-    vs ``Sales.CustomerView``), require code-behind-path correspondence so a leak in
-    one view never lands on the other's XAML. If none correspond, link nothing rather
-    than cross-link."""
+    """The OwnIR component(s) that are this view's code-behind, matched by
+    code-behind-path correspondence. The simple-name index drops the namespace, so a
+    *unique* basename hit can still be the wrong type (``App.Views.CustomerView`` vs an
+    unrelated ``Legacy.CustomerView``); every candidate — single or not — is therefore
+    path-checked against the XAML's file, and a non-corresponding match links nothing
+    rather than cross-link. The only fallback is a lone candidate with no file metadata
+    to check against (best effort)."""
     x_class = doc.get("x_class")
     if not x_class:
         return []
     cands = by_name.get(str(x_class).rsplit(".", 1)[-1], [])
-    if len(cands) <= 1:
-        return cands
-    return [c for c in cands if _path_corresponds(str(doc.get("file", "")), str(c.get("file", "")))]
+    matches = [c for c in cands
+               if _path_corresponds(str(doc.get("file", "")), str(c.get("file", "")))]
+    if matches:
+        return matches
+    return cands if len(cands) == 1 and not cands[0].get("file") else []
 
 
 def _unreleased(component: dict[str, Any]) -> list[dict[str, Any]]:
@@ -278,6 +286,11 @@ def _selftest() -> int:
         {"file": "Views/Sales/OrderView.xaml", "x_class": "Sales.OrderView",
          "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}],
          "bindings": [], "named_elements": []},
+        # a view that subscribes to a static/process-lived event (resource: capture,
+        # the OWN014 region-escape case) without release -> IS a XAML203.
+        {"file": "Views/CaptureView.xaml", "x_class": "App.Views.CaptureView",
+         "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}],
+         "bindings": [], "named_elements": []},
     ]}
     ownir = {"ownir_version": 0, "module": "App", "components": [
         {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
@@ -293,12 +306,17 @@ def _selftest() -> int:
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": True}]},
         {"name": "OrderView", "file": "Views/Sales/OrderView.xaml.cs", "subscriptions": [
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": False}]},
+        {"name": "CaptureView", "file": "Views/CaptureView.xaml.cs", "subscriptions": [
+            {"event": "AppDomain.UnhandledException", "handler": "OnErr", "line": 14,
+             "released": False, "resource": "capture"}]},
     ]}
 
     findings = join(xaml_facts, ownir)
     by_path = {f["path"]: f for f in findings}
 
-    check(len(findings) == 2, f"expected exactly 2 XAML203, got {len(findings)}: {findings}")
+    check(len(findings) == 3, f"expected exactly 3 XAML203, got {len(findings)}: {findings}")
+    check("Views/CaptureView.xaml" in by_path,
+          "a 'capture' (region-escape) subscription must be a XAML203")
     f = by_path.get("Views/CustomerView.xaml")
     check(f is not None and f["rule"] == "XAML203" and f["line"] == 4,
           f"XAML203 must anchor at the Loaded handler line (4): {f}")
@@ -325,6 +343,17 @@ def _selftest() -> int:
                    "event_handlers": [{"event": "Loaded", "handler": "H", "line": 1}]}]}
     check(join(unknown_doc, ownir) == [],
           "an x:Class with no matching OwnIR component must yield nothing")
+
+    # a UNIQUE basename match whose code-behind path does not correspond is the wrong
+    # namespace's class -> must NOT cross-link (path-checked even when unique).
+    wrong_ns = {"documents": [{"file": "Features/Billing/CustomerView.xaml",
+                "x_class": "Billing.CustomerView",
+                "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}]}]}
+    other = {"ownir_version": 0, "components": [
+        {"name": "CustomerView", "file": "Legacy/CustomerView.cs", "subscriptions": [
+            {"event": "_bus.Changed", "handler": "OnChanged", "line": 9, "released": False}]}]}
+    check(join(wrong_ns, other) == [],
+          "a unique basename match with a non-corresponding code-behind path must not cross-link")
 
     # SARIF round-trips through the shared parse_sarif with the anchor line intact.
     sarif = to_sarif(findings)

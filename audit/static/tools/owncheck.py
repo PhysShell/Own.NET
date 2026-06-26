@@ -40,6 +40,10 @@ def run_own_check(target: str, out_dir: Path, severity: str = "warning",
     out_dir.mkdir(parents=True, exist_ok=True)
     sarif_path = out_dir / "own-check.sarif"
     facts_path = out_dir / "own-check.facts.json"
+    # Clear any prior run's facts up front: own-check.sh writes this fixed path only on
+    # a successful extraction, so after a failed/unavailable run the file is simply
+    # absent — the XAML join can never pick up stale facts from another target/commit.
+    facts_path.unlink(missing_ok=True)
     status: dict[str, Any] = {"tool": "own-check", "tier": "build-free",
                               "available": False, "sarif": None, "reason": ""}
 
