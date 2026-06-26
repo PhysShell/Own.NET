@@ -259,6 +259,25 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   The remaining piece is **CI/C#-only**: the extractor emitting these sink calls from the bool
   literal / annotation (paired with an A/B sample on real extractor output) — Tier-B breadth
   rides into D5.3.
+- **D5.1c — transitive borrow-kind propagation (deferred).** The D5.0 summary solver is
+  *transfer*-oriented: its `Transfer` lattice (no/must/may/unknown) has no shared-vs-exclusive
+  axis, so an explicit `borrow`/`borrow_mut` and a `$borrow_mut` forward both seed the same
+  summary-side `borrow` bucket. The **core checker already distinguishes them** (`cfg.py`
+  emits `Effect.BORROW` vs `BORROW_MUT`; `analysis.py` routes them to `_check_shared_borrowable`
+  vs `_check_mut_borrowable`), so the *direct* `$borrow_mut` call keeps full exclusivity — only
+  the *transitive* claim through a first-party wrapper is lost. D5.1b takes the precision-safe
+  decline (a wrapper that only forwards to `$borrow_mut` stays plain — a tolerated false-
+  negative, never a false shared-borrow assertion). The clean fix is **not** one more `Transfer`
+  enum value but an **orthogonal borrow-kind axis** (`none | shared | mut`) on the summary,
+  structured sink semantics (don't normalize `$borrow_mut` away before inference), and the same
+  brutally-conservative rule the must-consume path uses: infer `borrow_mut` only on a single,
+  unconditional, straight-line forward to `$borrow_mut`; any mix / fan-out / conditional / loop
+  → degrade to plain/unknown and stay silent. Deliverables: borrow-kind on the summary, direct
+  behaviour unchanged, `$borrow_mut` wrapper tests, and mixed-path regressions proving ambiguous
+  flows degrade to silence (not shared borrow). Prior art: Rust `&`/`&mut`, RustBelt exclusivity,
+  Oxide's `shrd|uniq`, Polonius's per-loan invalidation — exclusivity is a distinct semantic
+  axis, not coarser metadata. Tracked here so the deferral is recorded, not buried (Codex P2 /
+  CodeRabbit Major on #113).
 - **D5.2 — T1.** `fresh`-returning calls become acquire sites → factory leaks. Includes
   `out`/`ref`-owned (another `fresh` door) before async.
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
