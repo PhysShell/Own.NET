@@ -235,9 +235,14 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   `out`/`ref`-owned (another `fresh` door) before async.
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
   factories.
-- **D5.4 — T4 wrap/adopt.** Object-level field-cascade + `aliasOf` returns →
-  **Dapper / Polly** modelled explicitly; add both as oracle regression anchors that now
-  resolve *with a recorded reason* (cross-link `field-notes-patterns.md`).
+- **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit
+  cadence** so the core change is de-risked: **(step 0)** a *no-op identity refactor* —
+  move resource state from per-binding to per-RID with a 1:1 binding↔RID mapping, behaviour
+  unchanged, validated against the green D5.0–D5.3 corpus; **(step 1)** add the `alias_join`
+  lowering; **(step 2)** turn on the extractor branches that emit `aliasOf:i` for *verified*
+  wrapper / factory / ctor-adopt sites. Result: **Dapper / Polly** modelled explicitly and
+  added as oracle regression anchors that now resolve *with a recorded reason* (cross-link
+  `field-notes-patterns.md`).
 - **D5.5 — Tier C annotations** (`[OwnTransfers]` / `[MustCallAlias]` + external file).
 - **D5.x — advisory** `OWN051` for `may`/`unknown`, and the strict/pessimistic mode.
 
@@ -273,13 +278,104 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
 
 ## 10. Open questions remaining
 
-1. `aliasOf` in the core: cleanest lowering of "two handles, one obligation" onto the
-   existing escape/return model — a shared resource id, or a synthetic
-   "release of return discharges arg" edge? (Spike in D5.4.)
+1. ~~`aliasOf` in the core: shared resource id vs a synthetic discharge edge.~~
+   **Resolved → §11 (the obligation-identity model): Variant B, a shared RID / alias-set.**
 2. Signature-key canonicalisation across overloads / generics / partial classes (the
    `method` key must be stable and collision-free).
 3. Whether `escape-without-transfer` ever deserves its own advisory (e.g. "stored in a
    non-owning field — who owns this?") or stays silent. (Start silent.)
+
+---
+
+## 11. Obligation-identity model (resolves open question 1)
+
+The wrapper case (`var w = Wrap(r);` where disposing **either** `w` **or** `r` discharges
+the **one** underlying resource, but disposing **both** is a double-dispose) cannot be
+modelled per-binding without false positives. The decomposition "consume the arg + return
+a fresh resource" (Variant A) breaks on the first legal *dispose-the-inner-directly* path,
+and patching it with "this consumed handle may still be released once" silently rebuilds an
+alias model anyway. The prior art (Checker Framework Resource Leak Checker / RLC#) is
+unanimous and names the abstraction: a **resource-alias set** — *several references that
+denote one underlying obligation; calling the must-call method on any member satisfies the
+obligation for all members.* RLC's dataflow fact is literally `⟨obligation, {aliases}⟩`,
+not one state per variable. We adopt it (**Variant B**).
+
+### The model
+
+- A **resource obligation** carries the state — a **RID** with `state ∈ {Open, Released}`
+  plus light metadata (does the current scope still hold an owning alias? was ownership
+  transferred out?). **Obligations live on the RID, not on the handle.**
+- A **handle** (local / temp / field / param) is an access path with a `rid` and a kind
+  (`owning` | `non-owning view`).
+- An **alias set** is the handles sharing one RID. **By default everything is 1:1** (each
+  `acquire` mints a fresh RID) — so the existing core's behaviour is unchanged until a
+  summary emits an alias. N:1 happens **only** on a proven alias.
+
+### Four operations (what lowering emits)
+
+| op | trigger | effect on RID |
+|---|---|---|
+| `acquire` | `fresh` return / `new` | mint a new `Open` RID, bind the handle |
+| `release` | `Dispose()` / consume-by-dispose | `Open → Released` |
+| `alias_join(h, rid_of_arg_i)` | `returnKind = aliasOf:i` (T4a) **or** ctor stores arg in an owning field (T4b) | add owning handle `h` to that RID's set |
+| `transfer_out` | consume-into-a-foreign-owner | RID leaves the caller's responsibility |
+
+**T4a ≡ T4b.** A factory returning a wrapper and a constructor adopting an argument into an
+owning field are the *same* operation — *a new owning handle joined the arg's alias set* —
+differing only in syntax. One core primitive, two extractor recognisers.
+
+### Errors, evaluated per-RID (not per-handle)
+
+- **OWN001 leak:** a RID is `Open` at the end of local responsibility **and** no owning
+  alias of it was released, returned as owning/fresh, or transferred out. (So a local
+  dropping while *another* owning alias is alive or correctly escaped is **not** a leak —
+  the Dapper "return the wrapper, inner reader is local" shape.)
+- **OWN003 double:** `release` on a `Released` RID (through any alias).
+- **OWN002 use-after:** use on a `Released` RID (through any alias).
+
+### Hard v1 constraints (keep the kernel tiny)
+
+- **`aliasOf` is must-only.** An *unproven* alias is **never** merged — RLC# notes that
+  using may-alias as must is unsound, and for our `own-only 0` stance that is a red line.
+  Unproven alias → optimistic-silent (treat as ordinary unknown transfer), not a guess.
+- **Single-source alias.** `aliasOf:i` relates **one** source RID to **one** new handle.
+  Per RLC, a class with more than one `@Owning` field cannot form the simple resource-alias
+  relationship — so we don't attempt multi-field merges in v1. (A wrapper may still *adopt
+  other* disposables as ordinary owning fields; that's plain T4b, not aliasing — see the
+  Dapper note.)
+- **Owning-only.** `alias_join` is for owning members. Non-owning views (`Span`, borrowed
+  slices) stay in the existing borrow/loan machinery (OWN004, POOL005). The *vocabulary*
+  unifies them as `non-owning` aliases of the same resource graph, but v1 **code** does not
+  — no mixing two regimes in one lattice.
+- **No whole-program heap-alias analysis.** An alias is *verified*, not inferred from heap
+  reachability, by exactly the two RLC-style shapes: **(a)** the arg is forwarded to an
+  `aliasOf` position and the method returns that call's result, or **(b)** the arg is stored
+  into a single owning field whose `Dispose()` releases it.
+
+### Worked anchor — Dapper `DbWrappedReader.Create(cmd, reader)`
+
+`IWrappedDataReader` controls the lifetime of *both* the `IDbCommand` and the `IDataReader`.
+So the summary is a **mix**, and that's fine: `returnKind = aliasOf:reader` (the wrapper's
+identity as a reader aliases the inner reader — dispose either, once), **plus** `cmd` is
+`Adopted` as an ordinary owning field (plain T4b consume). This is exactly the "more than
+one owned thing" case the single-source constraint anticipates: one *alias* relationship
+(the reader) and one *ordinary adoption* (the command) — not two aliases. Polly's
+`BulkheadPolicy(factory())` is the pure T4b form (two semaphores adopted into owning fields,
+no return-alias).
+
+### Why land it in D5.4, not D5.0
+
+T1/T2/T3 and Tier-B `leaveOpen` ride today's `fresh`/`consume`/`borrow` rails and need no
+RID. Mature systems add resource aliasing as a *precision layer over a working core*, not as
+a precondition. So the RID indirection arrives as **D5.4 step 0** (the no-op refactor),
+behind the green D5.0–D5.3 corpus as a safety net — see §7. Doing it earlier spends
+complexity before any alias case or regression harness exists to prove the refactor is
+behaviour-preserving.
+
+> Main reading for D5.4 specifically: **Checker Framework manual §8.5** (resource aliasing /
+> `@MustCallAlias`), the **RLC paper §4** (the lightweight must-alias analysis and its
+> verification rules), and the **RLC# resource-alias layer**. Polonius/Rust are intuition
+> for identity-over-bindings; they are not the model for the wrapper question.
 
 ---
 
