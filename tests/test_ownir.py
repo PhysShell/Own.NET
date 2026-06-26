@@ -1462,30 +1462,77 @@ def run() -> int:
     if gotbare:
         fails.append("D5.2 T1: a method with a non-owned (`return null`) path is not "
                      f"`fresh`, so a caller's dropped result must be silent, got {gotbare}")
-    # KNOWN BRIDGE LIMITATION (tracked separately — see docs/notes/d5-ownership-transfer.md
-    # "branch-scope" entry). A local acquired in BOTH branches of an `if` and released
-    # AFTER the merge currently crashes: the bridge's flat `localmap` emits each synthetic
-    # `Let` *inside* its branch block, so the post-merge `release` references an out-of-scope
-    # handle -> the core reports OWN030 (undefined name), which `check_facts` (correctly,
-    # strictly) refuses to map and raises OwnIRError. This predates D5.2 — it reproduces with
-    # a PLAIN `acquire` (no factory/fresh path), shown here so the bug is NOT attributed to
-    # D5.2's call-result acquire. This is an xfail-style LOCK: when the bridge is made branch-
-    # aware (hoist/declare synthetic handles at the merge scope), this balanced release must
-    # become CLEAN (no findings) and this assertion flips to `if bm_findings: fail`.
+    # BRIDGE BRANCH-SCOPE FIX. A local acquired in BOTH branches of an `if` and released
+    # AFTER the merge used to crash: the bridge emitted each synthetic `Let` *inside* its
+    # branch block, so the post-merge `release` referenced an out-of-scope handle -> the
+    # core reported OWN030 (undefined name) and `check_facts` raised OwnIRError. The bridge
+    # now HOISTS such cross-branch locals to the function's outer scope (declared once,
+    # in-branch acquires skipped), so a balanced release is CLEAN. `branch_merge` is the
+    # exact pre-existing repro (a PLAIN `acquire`, no factory path) — must not crash, no
+    # findings. (Codex P2 on #116.)
     checks += 1
-    bm_raised = False
     try:
-        check_facts({"module": "M", "functions": [
+        bmf = check_facts({"module": "M", "functions": [
             {"name": "branch_merge", "file": "T1.cs",
              "body": [{"op": "if", "line": 1,
                        "then": [{"op": "acquire", "var": "r", "line": 2}],
                        "else": [{"op": "acquire", "var": "r", "line": 3}]},
                       {"op": "release", "var": "r", "line": 4}]}]})
+        if bmf:
+            fails.append("bridge branch-scope: a cross-branch acquire released after the "
+                         f"merge must be CLEAN, got {[(x.component, x.code) for x in bmf]}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: cross-branch acquire still crashes ({e})")
+    # the leak is still caught when the cross-branch local is NOT released: hoisting makes
+    # the acquire unconditional, so an undischarged one is OWN001 (no false-clean).
+    checks += 1
+    bml = check_facts({"module": "M", "functions": [
+        {"name": "branch_leak", "file": "T1.cs",
+         "body": [{"op": "if", "line": 1,
+                   "then": [{"op": "acquire", "var": "r", "line": 2}],
+                   "else": [{"op": "acquire", "var": "r", "line": 3}]},
+                  {"op": "use", "var": "r", "line": 4}]}]})
+    gotbml = [(x.component, x.code) for x in bml]
+    if gotbml != [("branch_leak", "OWN001")]:
+        fails.append("bridge branch-scope: a cross-branch acquire that is used but never "
+                     f"released must still leak OWN001, got {gotbml}")
+    # and the factory-result form (D5.2 acquire inside a branch) is hoisted too: a fresh
+    # call result assigned in both branches and released after the merge is CLEAN.
+    checks += 1
+    try:
+        bmfr = check_facts({"module": "M", "functions": [_MAKE,
+            {"name": "branch_factory", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1,
+                       "then": [{"op": "call", "callee": "make", "args": [], "result": "r",
+                                 "line": 2}],
+                       "else": [{"op": "call", "callee": "make", "args": [], "result": "r",
+                                 "line": 3}]},
+                      {"op": "release", "var": "r", "line": 4}]}]})
+        if bmfr:
+            fails.append("bridge branch-scope: a cross-branch FACTORY result released after "
+                         f"the merge must be CLEAN, got {[(x.component, x.code) for x in bmfr]}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: cross-branch factory result still crashes ({e})")
+    # NARROWER REMAINING LIMITATION (xfail-style lock). When the reference is itself at
+    # depth >= 1 (acquired at depth 2 inside a nested `if`, released at depth 1 in the
+    # enclosing block), function-top is NOT the common-dominator scope, so the depth-0
+    # hoist deliberately does not fire — and the original OWN030 -> OwnIRError still
+    # occurs. The correct fix is to hoist to the common-dominator block; tracked for a
+    # follow-up. This lock asserts the current raise and flips when that lands.
+    checks += 1
+    nst_raised = False
+    try:
+        check_facts({"module": "M", "functions": [
+            {"name": "nested_branch", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1, "else": [],
+                       "then": [{"op": "if", "line": 2, "else": [],
+                                 "then": [{"op": "acquire", "var": "r", "line": 3}]},
+                                {"op": "release", "var": "r", "line": 4}]}]}]})
     except OwnIRError:
-        bm_raised = True
-    if not bm_raised:
-        fails.append("branch-acquire-after-merge no longer raises OwnIRError — the bridge "
-                     "branch-scope fix has landed; make this shape CLEAN and flip this lock")
+        nst_raised = True
+    if not nst_raised:
+        fails.append("bridge branch-scope: nested cross-branch acquire no longer raises — the "
+                     "common-dominator hoist has landed; make this CLEAN and flip this lock")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the

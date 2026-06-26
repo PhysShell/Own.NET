@@ -840,8 +840,24 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             localmap: dict[str, str] = {}
             fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
                                        released, mos)
-            fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                released, mos)
+            # Cross-branch locals (acquired inside an `if`/`while` branch but referenced
+            # after the merge) must be declared once at the function's outer scope, or
+            # the core rejects the post-merge reference as OWN030 (the bridge branch-
+            # scope fix). Pre-declare them here, then skip their in-branch acquire.
+            hoist = _hoisted_branch_locals(nodes, mos)
+            hoisted_lets: list[Stmt] = []
+            for hname in sorted(hoist):
+                hh = f"loc_{loc[0]}"
+                loc[0] += 1
+                hline = hoist[hname]
+                localmap[hname] = hh
+                handles[hh] = {"file": ffile, "line": hline, "event": hname,
+                               "component": fname, "resource": "flow-local",
+                               "ever_released": hname in released, "pool": False}
+                hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
+            fbody = [*hoisted_lets,
+                     *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
+                                  released, mos, set(hoist))]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1279,11 +1295,85 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     return out
 
 
+def _hoisted_branch_locals(nodes: Any, mos: dict[str, Any] | None) -> dict[str, int]:
+    """Locals acquired INSIDE an `if`/`while` branch but referenced after the merge.
+
+    The core resolver is strictly lexical: an `if` pushes a scope per branch and pops
+    it at the merge, so a `Let` emitted inside a branch is out of scope afterwards.
+    The bridge's flat `localmap`, however, lets a later `release`/`use` resolve to
+    that branch-scoped handle — which the core then rejects as OWN030 (undefined
+    name), and `check_facts` raises. C# allows this shape (`IDisposable r; if (c) r =
+    new X(); else r = new Y(); r.Dispose();`) because the *declaration* lives in the
+    outer scope. So such a local must be declared once at the function's outer scope.
+
+    A name is hoisted iff it is **acquired** (a plain `acquire`, or a `fresh`-returning
+    call `result`) at depth ≥ 1 and its shallowest **reference** (use/release/return/
+    call-arg) is at **depth 0** — the function's top level, which is always reached. We
+    declare it once at the outer scope (always executed), so a balanced cross-branch
+    release reads as clean and an un-released hoisted acquire still leaks (OWN001) — the
+    hoist is precision-safe because both the (now unconditional) acquire and the depth-0
+    reference run on every path. We deliberately do NOT hoist when the reference is at
+    depth ≥ 1 (e.g. acquired at depth 2, released at depth 1 inside a nested block):
+    function-top is not the common-dominator scope there, so an unconditional top-level
+    acquire would leak on the sibling path — a *false* OWN001. That nested variant
+    (correct fix = hoist to the common-dominator block) remains a narrower limitation;
+    the common method-level pattern (a local declared at method scope, assigned in a
+    branch, disposed at method level) is depth-0 and fully covered. The returned line is
+    the first branch-acquire site, so a finding anchors near the acquire. (Bridge
+    branch-scope fix; Codex P2 on #116.)"""
+    acq_depth: dict[str, int] = {}    # name -> shallowest acquire depth
+    acq_line: dict[str, int] = {}     # name -> first-seen acquire line
+    ref_depth: dict[str, int] = {}    # name -> shallowest non-acquire reference depth
+
+    def fresh_result(n: dict[str, Any]) -> str | None:
+        callee, res = n.get("callee"), n.get("result")
+        if not (isinstance(res, str) and res and isinstance(callee, str) and callee):
+            return None
+        summ = mos.get(callee) if mos is not None else None
+        return res if (summ is not None and getattr(summ, "returns", None) == "fresh") else None
+
+    def note_ref(name: str, depth: int) -> None:
+        if name not in ref_depth or depth < ref_depth[name]:
+            ref_depth[name] = depth
+
+    def walk(ns: Any, depth: int) -> None:
+        if not isinstance(ns, list):
+            return
+        for n in ns:
+            if not isinstance(n, dict):
+                continue
+            op = n.get("op")
+            line = _as_int(n.get("line", 0))
+            acq = (str(n.get("var", "?")) if op == "acquire"
+                   else fresh_result(n) if op == "call" else None)
+            if acq is not None:
+                if acq not in acq_depth or depth < acq_depth[acq]:
+                    acq_depth[acq] = depth
+                acq_line.setdefault(acq, line)
+            if op in ("use", "release", "overspan", "return"):
+                v = n.get("var")
+                if isinstance(v, str):
+                    note_ref(v, depth)
+            elif op == "call":
+                for a in (n.get("args") or []):
+                    note_ref(str(a), depth)
+            if op == "if":
+                walk(n.get("then"), depth + 1)
+                walk(n.get("else"), depth + 1)
+            elif op == "while":
+                walk(n.get("body"), depth + 1)
+
+    walk(nodes, 0)
+    return {name: acq_line[name] for name, d in acq_depth.items()
+            if d >= 1 and ref_depth.get(name, -1) == 0}
+
+
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handles: dict[str, dict[str, Any]], loc: list[int],
                 localmap: dict[str, str],
                 released_vars: set[str],
-                mos: dict[str, Any] | None = None) -> list[Stmt]:
+                mos: dict[str, Any] | None = None,
+                hoisted: set[str] | None = None) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1294,7 +1384,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
     P-005 D5.2 (T1): a `call` op that binds a `result` local, whose callee's solved
     summary (`mos`) returns `fresh`, is **also** lowered as an `acquire` of that
     local — the call site is a factory, so the result is a newly-owned obligation and
-    the existing leak / double-release / use-after-release checks apply to it."""
+    the existing leak / double-release / use-after-release checks apply to it.
+
+    `hoisted` names (see `_hoisted_branch_locals`) are declared once at the function's
+    outer scope by the caller, so an in-branch acquire of such a name is SKIPPED here
+    (the hoisted `Let` already declared+acquired it) — this keeps a cross-branch local
+    in scope after the merge instead of emitting a branch-scoped `Let` the core would
+    reject as OWN030."""
+    hoisted = hoisted or set()
     body: list[Stmt] = []
     for n in nodes:
         if not isinstance(n, dict):
@@ -1302,9 +1399,13 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
         op = n.get("op")
         line = _as_int(n.get("line", 0))
         if op == "acquire":
+            name = str(n.get("var", "?"))
+            if name in hoisted:
+                # declared+acquired once at the outer scope (cross-branch local) — the
+                # hoisted `Let` stands in for this in-branch acquire; emit nothing.
+                continue
             handle = f"loc_{loc[0]}"
             loc[0] += 1
-            name = str(n.get("var", "?"))
             localmap[name] = handle
             handles[handle] = {"file": ffile, "line": line, "event": name,
                                "component": fname, "resource": "flow-local",
@@ -1335,15 +1436,15 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
         elif op == "if":
             tn = n.get("then", [])
             en = n.get("else", [])
-            then_b = _lower_flow(tn if isinstance(tn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
-            else_b = _lower_flow(en if isinstance(en, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
+            then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
+            else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
-            body_b = _lower_flow(bn if isinstance(bn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
+            body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1367,7 +1468,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # claim, so the result is never falsely owned (precision-first).
             result = n.get("result")
             summ = mos.get(callee) if (mos is not None and callee) else None
-            if (isinstance(result, str) and result
+            if (isinstance(result, str) and result and result not in hoisted
                     and summ is not None and getattr(summ, "returns", None) == "fresh"):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
