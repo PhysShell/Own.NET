@@ -1161,19 +1161,20 @@ def run() -> int:
     # a caller that releases s AFTER forwarding double-discharges it: the obligation
     # already moved to `sink` through `forward`, so the later release is OWN002.
     checks += 1
-    d51 = check_facts({"module": "M", "functions": _FWD + [
+    d51 = check_facts({"module": "M", "functions": [*_FWD,
         {"name": "caller", "file": "F.cs",
          "body": [{"op": "acquire", "var": "s", "line": 10},
                   {"op": "call", "callee": "forward", "args": ["s"], "line": 11},
                   {"op": "release", "var": "s", "line": 12}]}]})
-    if [(x.component, x.line, x.code) for x in d51] != [("caller", 10, "OWN002")]:
-        fails.append("D5.1 transitive consume: releasing after a forwarded handoff "
-                     f"must be OWN002@10 (anchored at the acquire), got {[(x.component, x.line, x.code) for x in d51]}")
+    got51 = [(x.component, x.line, x.code) for x in d51]
+    if got51 != [("caller", 10, "OWN002")]:
+        fails.append("D5.1 transitive consume: release after handoff must be "
+                     f"OWN002@10 (anchored at acquire), got {got51}")
     # the correct handoff (forward and let go) is SILENT — and this is a precision
     # WIN: before D5.1 forward's param was plain, so the caller's acquired-but-never-
     # released s read as a false OWN001 leak; now the obligation provably moved.
     checks += 1
-    ok51 = check_facts({"module": "M", "functions": _FWD + [
+    ok51 = check_facts({"module": "M", "functions": [*_FWD,
         {"name": "caller_ok", "file": "F.cs",
          "body": [{"op": "acquire", "var": "s", "line": 20},
                   {"op": "call", "callee": "forward", "args": ["s"], "line": 21}]}]})
@@ -1195,9 +1196,10 @@ def run() -> int:
          "body": [{"op": "acquire", "var": "s", "line": 15},
                   {"op": "call", "callee": "outer", "args": ["s"], "line": 16},
                   {"op": "use", "var": "s", "line": 17}]}]})
-    if [(x.component, x.line, x.code) for x in twohop] != [("user", 15, "OWN002")]:
-        fails.append("D5.1 two-hop transitive consume should be OWN002@user:15 (anchored at the acquire), got "
-                     f"{[(x.component, x.line, x.code) for x in twohop]}")
+    got2h = [(x.component, x.line, x.code) for x in twohop]
+    if got2h != [("user", 15, "OWN002")]:
+        fails.append("D5.1 two-hop transitive consume should be "
+                     f"OWN002@user:15 (anchored at acquire), got {got2h}")
     # a param forwarded to a BORROW-only callee resolves to borrow (not consume):
     # the caller keeps ownership, so forwarding then RELEASING is clean — proving we
     # never over-consume a forwarded borrow (which would false-positive the release).
