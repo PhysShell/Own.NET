@@ -89,14 +89,63 @@ class Loan:
 
 @dataclass
 class State:
+    # `var` is keyed by **RID** (resource id), not by handle identity. A RID is the
+    # obligation that carries the {OWNED,MOVED,RELEASED,ESCAPED} state; a handle
+    # (local/param symbol) denotes a RID through `handle_rid`. See the class note in
+    # `rid_of`. (D5.4 step 0 — the no-op identity refactor that lets step 1 add
+    # `alias_join`: two handles → one RID. Until an alias is minted the map is 1:1
+    # and the analysis is byte-for-byte the pre-RID behaviour.)
     var: dict[int, set[VarState]] = field(default_factory=dict)
     loans: dict[int, Loan] = field(default_factory=dict)
+    handle_rid: dict[int, int] = field(default_factory=dict)
 
     def copy(self) -> State:
         return State(
             var={k: set(v) for k, v in self.var.items()},
             loans=dict(self.loans),
+            handle_rid=dict(self.handle_rid),
         )
+
+    def rid_of(self, sym: Symbol) -> int:
+        """Resolve a handle to its resource id (RID).
+
+        Default is **1:1**: a handle that has not been explicitly aliased denotes
+        its own resource, keyed by the originating symbol's identity. Choosing
+        ``RID == id(sym)`` for an un-aliased handle is what makes step 0 a no-op —
+        every ``var`` key is the same int it was before the indirection, so
+        ``_sym_by_id`` still resolves a RID straight back to its symbol. D5.4
+        step 1's ``alias_join`` is the only operation that points a *second* handle
+        at an existing RID; until then this is the identity map."""
+        return self.handle_rid.get(id(sym), id(sym))
+
+    def mint(self, sym: Symbol) -> int:
+        """Bind `sym` to a fresh resource (its own RID) — the 1:1 acquire. Records
+        the mapping explicitly so the handle is a known owning alias of the RID."""
+        rid = id(sym)
+        self.handle_rid[id(sym)] = rid
+        return rid
+
+
+def _join_handle_rid(a: dict[int, int], b: dict[int, int]) -> dict[int, int]:
+    """Join the handle→RID maps of two merging paths. Under the step-0 1:1 invariant
+    a handle resolves to the same RID on every path that knows it (RIDs are minted
+    deterministically as ``id(sym)``), so the union cannot conflict. Assert that —
+    locking the invariant the way `join` already locks the block-scoped-loan one —
+    rather than silently picking a side. Step 1 (aliasing) will revisit this join."""
+    out = dict(a)
+    for handle, rid in b.items():
+        if handle in out:
+            # An explicit raise, not `assert`: `python -O` strips asserts, and a
+            # silently-kept wrong mapping would defeat the whole point of locking
+            # the invariant. Keep it loud in every build.
+            if out[handle] != rid:
+                raise AssertionError(
+                    "a handle maps to two different RIDs at a control-flow merge; "
+                    "the D5.4 step-0 invariant is a single 1:1 handle->RID mapping"
+                )
+        else:
+            out[handle] = rid
+    return out
 
 
 def join(a: State, b: State) -> State:
@@ -112,6 +161,7 @@ def join(a: State, b: State) -> State:
         "for block-scoped borrows (they close within the scope that opened them)"
     )
     out.loans = dict(a.loans)
+    out.handle_rid = _join_handle_rid(a.handle_rid, b.handle_rid)
     return out
 
 
@@ -130,7 +180,7 @@ class _Analyzer:
         s = State()
         for p in self.cfg.params:
             if p.kind == Kind.OWNED:
-                s.var[id(p)] = {VarState.OWNED}
+                s.var[s.mint(p)] = {VarState.OWNED}
         return s
 
     def err(self, code: str, msg: str, line: int,
@@ -163,7 +213,7 @@ class _Analyzer:
     # operation `verb` is attempted on owned symbol `sym`. Handles the
     # gone / maybe-gone cases shared by use/move/release/borrow/consume.
     def _state_problem(self, st: State, sym: Symbol, verb: str, line: int) -> bool:
-        S = st.var.get(id(sym), {VarState.OWNED})
+        S = st.var.get(st.rid_of(sym), {VarState.OWNED})
         subj = sym.origin
         kind = sym.resource_kind
         if VarState.OWNED not in S:
@@ -281,13 +331,13 @@ class _Analyzer:
 
     def leak_check(self, st: State, at_line: int, context: str,
                    exclude: Symbol | None = None) -> None:
-        excl = id(exclude) if exclude is not None else None
-        for symid, states in st.var.items():
-            if symid == excl:
+        excl = st.rid_of(exclude) if exclude is not None else None
+        for rid, states in st.var.items():
+            if rid == excl:
                 continue
             if VarState.OWNED in states:
-                sym = self._sym_by_id(symid)
-                name = sym.name if sym else f"#{symid}"
+                sym = self._sym_by_id(rid)
+                name = sym.name if sym else f"#{rid}"
                 self.err("OWN001",
                          f"'{name}' is owned but not released {context} "
                          f"(leaks on at least one path)", at_line,
@@ -322,23 +372,23 @@ class _Analyzer:
 
     def step(self, ins: Instr, st: State) -> None:
         if isinstance(ins, Acquire):
-            st.var[id(ins.sym)] = {VarState.OWNED}
+            st.var[st.mint(ins.sym)] = {VarState.OWNED}
             return
 
         if isinstance(ins, AcquireBuffer):
-            st.var[id(ins.sym)] = {VarState.OWNED}
+            st.var[st.mint(ins.sym)] = {VarState.OWNED}
             return
 
         if isinstance(ins, MoveInto):
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
-            st.var[id(ins.src)] = {VarState.MOVED}
-            st.var[id(ins.dst)] = {VarState.OWNED}
+            st.var[st.rid_of(ins.src)] = {VarState.MOVED}
+            st.var[st.mint(ins.dst)] = {VarState.OWNED}
             return
 
         if isinstance(ins, Release):
             subj = ins.sym.origin
             rkind = ins.sym.resource_kind
-            S = st.var.get(id(ins.sym), {VarState.OWNED})
+            S = st.var.get(st.rid_of(ins.sym), {VarState.OWNED})
             if {VarState.RELEASED} == S:
                 self.err("OWN003", f"'{ins.sym.name}' is released twice",
                          ins.line, subject=subj, resource_kind=rkind)
@@ -353,7 +403,7 @@ class _Analyzer:
                     self.err("OWN008",
                              f"cannot release '{ins.sym.name}' while it is borrowed",
                              ins.line, subject=subj, resource_kind=rkind)
-            st.var[id(ins.sym)] = {VarState.RELEASED}
+            st.var[st.rid_of(ins.sym)] = {VarState.RELEASED}
             return
 
         if isinstance(ins, Use):
@@ -411,7 +461,7 @@ class _Analyzer:
             if ins.sym is not None:
                 subj = ins.sym.origin
                 rkind = ins.sym.resource_kind
-                S = st.var.get(id(ins.sym), {VarState.OWNED})
+                S = st.var.get(st.rid_of(ins.sym), {VarState.OWNED})
                 if VarState.OWNED not in S:
                     if VarState.MOVED in S:
                         self.err("OWN005",
@@ -442,7 +492,7 @@ class _Analyzer:
                                  f"escaping buffer to faithful .NET (the caller gets "
                                  f"no handle to Return/Free), so returning it is "
                                  f"rejected", ins.line, subject=subj)
-                st.var[id(ins.sym)] = {VarState.ESCAPED}
+                st.var[st.rid_of(ins.sym)] = {VarState.ESCAPED}
             return
 
         assert_never(ins)
@@ -498,7 +548,7 @@ class _Analyzer:
                              f"the PoC code generator cannot lower an escaping "
                              f"buffer, so consuming it in '{callee}' is rejected",
                              line, subject=sym.origin)
-                st.var[id(sym)] = {VarState.ESCAPED}
+                st.var[st.rid_of(sym)] = {VarState.ESCAPED}
             elif eff == Effect.BORROW_MUT:
                 self._check_mut_borrowable(st, sym, line)
             elif eff == Effect.BORROW:

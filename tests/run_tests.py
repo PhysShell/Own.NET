@@ -1106,6 +1106,12 @@ def run() -> int:
     import test_ownership
     own5_rc = test_ownership.run()
 
+    # RID indirection (P-005 D5.4 step 0): the no-op handle->RID layer the alias
+    # model (step 1) builds on — 1:1 identity, the join invariant, behaviour
+    # unchanged.
+    import test_rid
+    rid_rc = test_rid.run()
+
     # Diagnostic rendering (P-015): the empty-evidence invariant (render()/render_pretty()
     # byte-for-byte unchanged) plus the ordered `note:` slice and the SARIF evidence builders.
     import test_diagnostics
@@ -1115,7 +1121,7 @@ def run() -> int:
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc or own5_rc or diag_rc) else 0
+                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc) else 0
 
 
 if __name__ == "__main__":
