@@ -3,14 +3,15 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Blind run, 2026-06-26: a FRESH external target with no documented baseline, to
-# see whether Own.NET surfaces any own-only (candidate false positives) or
-# oracle-only (recall gaps) on real code it hasn't been tuned against. Polly v8
-# targets net8/net6/netstandard2.0 only -> builds cleanly on the dotnet-8 runner,
-# so all three tools (own-check + CodeQL + Infer#) should fire. Real resource
-# surface: CancellationTokenSource, timers, IDisposable resilience pipelines.
-# Re-run to confirm the _is_test_path doc/snippet fix (fd6294e): the ~20
-# src/Snippets/Docs/* CodeQL findings should now be excluded as non-product, so
-# oracle-only should drop from 38 to ~18 (Infer# TimedLock over-reports + the 3
-# already-triaged product findings), with own-only still 0.
-App-vNext/Polly
+# Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
+# included — ScreenToGif's WPF won't build on Linux). Re-run after the OWN014
+# migration (PR #35): the fixture's SUBSCRIPTION leak (#1 — SystemEvents.Display
+# SettingsChanged += with no -=) is now lowered by the extractor to a `capture`
+# fact and reported as OWN014 (region escape), not OWN001; OWN014 was added to the
+# comparator's OWN_LEAK set. So #1 must STILL land "Own.NET-only" (CodeQL / Infer#
+# have no event-subscription-leak query) — this run confirms the migration kept the
+# differentiation, on real cross-tool output rather than the selftest's fixtures.
+# Expect: #1 Own.NET-only (now OWN014), #2/#3/#4 dispose leaks in "Agree", 0
+# oracle-only.
+local:corpus/fixtures/systemevents-console
+build=SystemEventsLeak.csproj
