@@ -1100,11 +1100,17 @@ def run() -> int:
     import test_ownir
     ownir_rc = test_ownir.run()
 
+    # Interprocedural ownership summaries (P-005 D5.0): the MOS solver — transfer
+    # lattice, depth-capped forward resolution, recursion convergence. Infra only;
+    # no findings wired yet (D5.1+).
+    import test_ownership
+    own5_rc = test_ownership.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc) else 0
+                 or spec_rc or ownir_rc or own5_rc) else 0
 
 
 if __name__ == "__main__":
