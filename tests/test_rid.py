@@ -59,7 +59,14 @@ def _codes(body: str) -> set[str]:
     return out
 
 
+# Every `_check` call appends its outcome here, so the summary derives its total
+# from the checks that actually ran — it cannot drift out of sync with a hardcoded
+# constant when checks are added or removed.
+_RAN: list[bool] = []
+
+
 def _check(name: str, ok: bool, detail: str = "") -> int:
+    _RAN.append(ok)
     mark = "ok  " if ok else "FAIL"
     suffix = f"  ({detail})" if detail and not ok else ""
     print(f"  {mark} {name}{suffix}")
@@ -68,6 +75,7 @@ def _check(name: str, ok: bool, detail: str = "") -> int:
 
 def run() -> int:
     print("rid (D5.4 step 0 — RID indirection):")
+    _RAN.clear()
     fails = 0
 
     # -- rid_of: an un-minted handle denotes its own resource (1:1 identity) ----
@@ -142,7 +150,7 @@ def run() -> int:
     fails += _check("a sibling RID still leaks before return (OWN001)",
                     leak_before_ret == {"OWN001"}, f"got {leak_before_ret}")
 
-    n = 13
+    n = len(_RAN)
     print(f"rid: {n - fails}/{n} RID-layer checks pass")
     return 1 if fails else 0
 
