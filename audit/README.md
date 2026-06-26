@@ -49,6 +49,7 @@ audit/
       codeql.sh      # build-free runner: CodeQL build-mode=none, security-and-quality
       xaml_check.py  # build-free runner: markup-only XAML perf/lifetime pass (stdlib XML, no SDK)
       xaml_facts.py  # XAML facts extractor (resource graph + binding facts) -> xaml-facts.json (Phase-2 seam)
+      xaml_join.py   # XAML<->C# Phase-2 join: xaml-facts.json + OwnIR -> XAML203 link findings (build-free)
       roslyn_pack.ps1 # build-required runner (local Windows): NetAnalyzers/Roslynator/... 
       infersharp.sh  # build-required runner: Infer# over built binaries
     inject/          # OwnAudit.Directory.Build.props/.targets (analyzer injection, gated)
@@ -112,6 +113,7 @@ python audit/aggregate/score.py --selftest
 python audit/aggregate/report.py --selftest
 python audit/static/tools/xaml_check.py --selftest   # XAML rules + line preservation + SARIF round-trip
 python audit/static/tools/xaml_facts.py --selftest   # XAML facts: binding parser + resource graph
+python audit/static/tools/xaml_join.py --selftest    # XAML<->C# join: XAML203 view-subscription leak
 python audit/static/run_static.py --selftest   # full pipeline end-to-end on fixtures
 ```
 
@@ -136,10 +138,16 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
   covered, not NO-TOOL. Design + the full rule catalogue, phasing, and the Phase-2
   binding-path join: [`../docs/notes/xaml-analyzer-design.md`](../docs/notes/xaml-analyzer-design.md).
 - **XAML Phase-2 seam — done:** `static/tools/xaml_facts.py` emits `xaml-facts.json` (resource graph
-  + binding facts: parsed binding paths / converters / handlers + the file's `x:Class`) from the same
-  parsed tree, in an OwnIR-parallel envelope. This is the structured input the binding-path join reads
-  next to the `OwnSharp.Extractor` OwnIR facts. The join itself (Roslyn-linked XAML2xx) and Phase 3
-  (runtime correlation) remain deferred.
+  + binding facts: parsed binding paths / converters / handlers + `x:Class` + `x:Name`) from the same
+  parsed tree, in an OwnIR-parallel envelope.
+- **XAML Phase-2 join (first slice) — done:** `static/tools/xaml_join.py` links `xaml-facts.json` to the
+  OwnIR facts own-check now persists (`--emit-facts` → `own-check.facts.json`) by the deterministic XAML
+  naming convention (`x:Class`→type, handler→method) — **build-free, no `.g.cs`/build needed**. First
+  rule **XAML203** (view subscribes from a load-lifecycle handler but the OwnIR verdict is
+  `released=false` → closed view retained), anchored at the XAML site and naming the C# subscription.
+  `run_static.py` runs the join whenever both fact sources are present and folds its SARIF into the
+  pipeline. Binding-path-hotness rules (XAML200/204, need the DataContext type) and an optional `.g.cs`
+  ground-truth cross-check are documented build-tier follow-ups. Phase 3 (runtime correlation) deferred.
 - **Runtime (Phase 2) — started:** the runtime→pipeline bridge (`runtime/ingest.py`,
   CI-gated), the leak-harness scenario schema + one scenario, runtime rule mappings
   in the taxonomy (categories 2/3/4/11), and the C# leak-harness skeleton. See

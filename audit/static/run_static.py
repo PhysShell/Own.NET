@@ -37,6 +37,7 @@ from owncheck import run_own_check  # noqa: E402
 from report import render_html, render_json, render_markdown, render_sarif  # noqa: E402
 from score import score  # noqa: E402
 from xaml_check import run_xaml_check  # noqa: E402
+from xaml_join import run_join  # noqa: E402
 
 try:
     from oracle_compare import parse_sarif
@@ -132,6 +133,19 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
         tiers.append(st)
         if st["available"] and st["sarif"]:
             sarif_inputs.append(("xaml", st["sarif"]))
+
+    # XAML Phase-2 join (docs/notes/xaml-analyzer-design.md → "Phase 2 mechanics"):
+    # link xaml-facts.json to the OwnIR facts own-check emitted (--emit-facts) and
+    # fold the XAML2xx link findings into the same pipeline. Build-free convention
+    # join; runs only when both fact sources are present (so it no-ops without an SDK
+    # for own-check, exactly like the other opportunistic pickups below).
+    xaml_facts = out_dir / "xaml-facts.json"
+    ownir_facts = out_dir / "own-check.facts.json"
+    if xaml_facts.exists() and ownir_facts.exists():
+        st = run_join(xaml_facts, ownir_facts, out_dir)
+        tiers.append(st)
+        if st["available"] and st["sarif"]:
+            sarif_inputs.append(("xaml-join", st["sarif"]))
 
     # Pick up any build-required SARIFs already dropped here by the Windows runners.
     # Roslyn writes ONE SARIF PER PROJECT under roslyn/ (see the injected props's
@@ -334,6 +348,35 @@ def _selftest() -> int:
               "xaml build-free tier must run and be reported by run()")
         check(res3["totals"]["candidates"] >= 1,
               "a XAML107 markup finding must flow through to a scored cluster")
+
+    # The XAML Phase-2 join must wire in when both fact sources are present: a view
+    # with a Loaded handler + an OwnIR component with an unreleased subscription ->
+    # a XAML203 cluster, on Linux with no SDK (own-check's facts are pre-placed here
+    # the way the Windows/SDK run would drop them).
+    with tempfile.TemporaryDirectory() as td4:
+        out4 = Path(td4) / "out"
+        out4.mkdir(parents=True)
+        src4 = Path(td4) / "src" / "Views"
+        src4.mkdir(parents=True)
+        (src4 / "CustomerView.xaml").write_text(
+            '<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"\n'
+            '             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"\n'
+            '             x:Class="App.Views.CustomerView" Loaded="OnLoaded" />\n',
+            encoding="utf-8")
+        # own-check's OwnIR facts (what --emit-facts would drop): CustomerView has an
+        # unreleased subscription.
+        (out4 / "own-check.facts.json").write_text(json.dumps({
+            "ownir_version": 0, "module": "App", "components": [
+                {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs",
+                 "subscriptions": [{"event": "_bus.Changed", "handler": "OnChanged",
+                                    "line": 21, "released": False}]}]}), encoding="utf-8")
+        profile4 = {"name": "t", "severity_floor": "warning",
+                    "tiers": {"build_free": ["xaml"]}}
+        res4 = run(str(Path(td4) / "src"), profile4, out4, target_name="t/p")
+        check(any(t["tool"] == "xaml-join" and t["available"] for t in res4["tiers"]),
+              "xaml-join tier must run when xaml-facts.json + own-check.facts.json exist")
+        check(res4["totals"]["clusters"] >= 1,
+              "a XAML203 join finding must flow through to a scored cluster")
 
     fails = [c for c in checks if c]
     for f in fails:

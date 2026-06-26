@@ -205,9 +205,17 @@ def document_facts(root: Node, rel_path: str) -> dict[str, Any]:
     merged: list[dict[str, Any]] = []
     bindings: list[dict[str, Any]] = []
     handlers: list[dict[str, Any]] = []
+    named: list[dict[str, Any]] = []
     converters: set[str] = set()
 
     for n in root.walk():
+        # x:Name / Name -> a generated field in the code-behind partial: a named
+        # element the code-behind can reference / subscribe / retain. The Phase-2
+        # join uses these to link XAML elements to code-behind symbols.
+        if not n.is_property_element() and n.type_name() not in ("Binding", "TemplateBinding"):
+            nm = n.attr("Name")
+            if nm:
+                named.append({"name": nm.strip(), "type": n.type_name(), "line": n.line})
         if n.local() == "MergedDictionaries" and n.is_property_element():
             for c in n.children:
                 src = c.attr("Source")
@@ -249,6 +257,7 @@ def document_facts(root: Node, rel_path: str) -> dict[str, Any]:
         "merged_dictionaries": merged,
         "bindings": bindings,
         "event_handlers": handlers,
+        "named_elements": named,
         "converters_used": sorted(converters),
     }
 
@@ -268,6 +277,7 @@ def module_facts(documents: list[dict[str, Any]], module: str = "target") -> dic
             "merged_dictionaries": total("merged_dictionaries"),
             "bindings": total("bindings"),
             "event_handlers": total("event_handlers"),
+            "named_elements": total("named_elements"),
         },
     }
 
@@ -357,7 +367,7 @@ def _selftest() -> int:
                 '    <TextBox Text="{Binding Name, Mode=TwoWay, '
                 'UpdateSourceTrigger=PropertyChanged}" />\n'
                 '    <TextBlock Text="{Binding Total, Converter={StaticResource money}}" />\n'
-                '    <Button Click="OnSave" Content="Save" />\n'
+                '    <Button x:Name="SaveButton" Click="OnSave" Content="Save" />\n'
                 '  </StackPanel>\n'
                 '</UserControl>\n')
     root = parse_xaml(doc_xaml)
@@ -379,6 +389,9 @@ def _selftest() -> int:
     check(any(h["event"] == "Click" and h["handler"] == "OnSave"
               and h["element"] == "Button" for h in d["event_handlers"]),
           f"event handler not captured: {d['event_handlers']}")
+    check(any(nm["name"] == "SaveButton" and nm["type"] == "Button"
+              for nm in d["named_elements"]),
+          f"x:Name not captured: {d['named_elements']}")
 
     # Explicit-wrapper resource block must keep its view-local scope, not "root".
     explicit = (f'<UserControl {_WPF_NS}>\n'
