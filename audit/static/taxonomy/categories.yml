@@ -65,6 +65,7 @@ rules:
   "XAML102": {category: 9, name: dynamic-resource-misuse} # DynamicResource for a static key
   "XAML103": {category: 9, name: per-instance-resource}   # x:Shared=False
   "XAML104": {category: 9, name: merged-dictionary-waste} # duplicate merged dict
+  "XAML105": {category: 9, name: merged-dictionary-shadowing}  # order-dependent key collision
   "XAML110": {category: 9, name: image-decode}            # full-size thumbnail decode
   "XAML111": {category: 8, name: layout-cost}             # LayoutTransform layout pass
   "XAML112": {category: 9, name: template-binding-opportunity}  # cheaper compiled binding

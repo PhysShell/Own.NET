@@ -32,6 +32,7 @@ we deliberately do not re-implement their correctness rules:
   XAML102  DynamicResourceLikelyStatic          (cat 9)  WPF-only, deferred-lookup cost
   XAML103  SuspiciousSharedFalse                (cat 9)  WPF-only, x:Shared opt-out
   XAML104  DuplicateMergedDictionaryInclude     (cat 9)  wasted load + order ambiguity
+  XAML105  MergedDictionaryKeyShadowing         (cat 9)  in-file key collision, order-dependent
   XAML106  FreezableResourceShouldFreeze        (cat 9)  WPF-only, change-notify overhead
   XAML107  VirtualizationExplicitlyDisabled     (cat 8)  virtualization accidentally killed
   XAML108  PerKeystrokeBindingWithoutDelay      (cat 6)  per-keystroke source flooding
@@ -43,10 +44,11 @@ we deliberately do not re-implement their correctness rules:
 
 XAML100 covers the recurring heavy-resource case across control-local scopes — both
 Freezables and Styles/templates (the latter on a full-subtree signature). XAML105
-MergedDictionaryKeyShadowing across *external* dictionaries (cross-file resolution)
-remains a later slice — documented so nothing on the wishlist quietly falls through.
-Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime correlation) live elsewhere per
-the design note.
+covers the *in-file* merged-dictionary key collision (inline dictionaries + the
+primary); the same shadowing across **external** ``Source=`` dictionaries needs
+cross-file resolution and remains a later slice — documented so nothing on the
+wishlist quietly falls through. Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime
+correlation) live elsewhere per the design note.
 
 WPF-only rules (XAML102/103/106) are skipped on Avalonia ``.axaml`` because the
 ``DynamicResource`` / ``x:Shared`` / ``Freezable`` semantics differ or do not exist
@@ -401,6 +403,44 @@ def _keyed_resources(rd: Node):
             yield key, c
 
 
+def _rule_merged_dict_shadowing(root: Node, avalonia: bool) -> list[XamlFinding]:
+    """XAML105 — the same ``x:Key`` defined in more than one **inline** merged
+    dictionary (or in the primary dictionary AND an inline merged one): the effective
+    value then depends on merge order (WPF: last merged wins, and a primary key beats
+    merged ones), a silent order-dependence that breaks when includes are reordered.
+
+    In-file only: dictionaries pulled in by ``Source="..."`` reference external files
+    this single-file pass can't resolve, so their keys aren't compared (the cross-file
+    variant is a documented later slice). FP-safe — only literal same-key collisions
+    flag, and a lone key (the normal case) never does."""
+    out: list[XamlFinding] = []
+    for md in root.walk():
+        if md.local() != "MergedDictionaries" or not md.is_property_element():
+            continue
+        host = md.parent  # the owning ResourceDictionary / <X.Resources>
+        # key -> [(where, line)] across the primary dict and each inline merged dict
+        keymap: dict[str, list[tuple[str, int]]] = {}
+        if host is not None:
+            for key, c in _keyed_resources(host):
+                keymap.setdefault(key, []).append(("primary", c.line))
+        inline_dicts = [c for c in md.children
+                        if c.type_name() == "ResourceDictionary" and c.attr("Source") is None]
+        for i, mdict in enumerate(inline_dicts, start=1):
+            for key, c in _keyed_resources(mdict):
+                keymap.setdefault(key, []).append((f"merged #{i}", c.line))
+
+        for key, occ in keymap.items():
+            if len(occ) < 2:
+                continue  # the normal case: a key defined once
+            where = ", ".join(f"{w} (line {ln})" for w, ln in occ)
+            out.append(XamlFinding(
+                "XAML105", occ[0][1],
+                f"resource key '{key}' is defined in {len(occ)} merged/primary scopes "
+                f"[{where}]; the effective value depends on merge order (last merged "
+                "wins, primary beats merged) [resource: merged dictionary]"))
+    return out
+
+
 def _scope_owner(rd: Node) -> str:
     """The element type that owns a resource dictionary — the nearest ``<X.Resources>``
     ancestor (``Grid``, ``Border``, ``DataTemplate`` …), or ``root`` for the document
@@ -725,6 +765,7 @@ def _rule_layout_transform(root: Node, avalonia: bool) -> list[XamlFinding]:
 
 RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
     _rule_resource_hoist,
+    _rule_merged_dict_shadowing,
     _rule_virtualization,
     _rule_template_complexity,
     _rule_per_keystroke_binding,
@@ -940,6 +981,39 @@ def _selftest() -> int:
     check("XAML104" in r, "XAML104 must flag a re-included dictionary")
     check(r.get("XAML104") and r["XAML104"].line == 5,
           "XAML104 must point at the duplicate include (line 5)")
+
+    # XAML105 — the same key in two inline merged dictionaries (order-dependent).
+    shadow = (f'<ResourceDictionary {_WPF_NS}>\n'
+              '  <ResourceDictionary.MergedDictionaries>\n'
+              '    <ResourceDictionary>\n'
+              '      <SolidColorBrush x:Key="accent" Color="Red" />\n'
+              '    </ResourceDictionary>\n'
+              '    <ResourceDictionary>\n'
+              '      <SolidColorBrush x:Key="accent" Color="Blue" />\n'
+              '    </ResourceDictionary>\n'
+              '  </ResourceDictionary.MergedDictionaries>\n'
+              '</ResourceDictionary>\n')
+    r = rules(shadow)
+    check("XAML105" in r, "XAML105 must flag a key defined in two inline merged dictionaries")
+    check(r.get("XAML105") and "accent" in r["XAML105"].message, "XAML105 must name the key")
+    # primary key + a merged-dictionary key collision is also shadowing.
+    primary = (f'<ResourceDictionary {_WPF_NS}>\n'
+               '  <SolidColorBrush x:Key="accent" Color="Green" />\n'
+               '  <ResourceDictionary.MergedDictionaries>\n'
+               '    <ResourceDictionary>\n'
+               '      <SolidColorBrush x:Key="accent" Color="Blue" />\n'
+               '    </ResourceDictionary>\n'
+               '  </ResourceDictionary.MergedDictionaries>\n'
+               '</ResourceDictionary>\n')
+    check("XAML105" in rules(primary),
+          "XAML105 must flag a primary key shadowed by a merged dictionary")
+    # distinct keys across merged dicts -> no collision, no finding.
+    nodup = shadow.replace('x:Key="accent" Color="Blue"', 'x:Key="other" Color="Blue"')
+    check("XAML105" not in rules(nodup),
+          "XAML105 false positive: distinct keys across merged dictionaries do not shadow")
+    # external Source dictionaries are not resolved -> not compared (deferred).
+    check("XAML105" not in rules(dup),
+          "XAML105 must not compare keys of external Source= dictionaries (cross-file deferred)")
 
     # XAML101 — duplicate stateless converter across dictionaries.
     conv = (f'<ResourceDictionary {_WPF_NS} xmlns:c="clr-namespace:App.Converters">\n'
