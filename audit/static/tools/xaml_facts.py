@@ -140,12 +140,64 @@ def parse_binding(value: str) -> dict[str, Any] | None:
     return fact
 
 
+def _resource_scope(rd: Node) -> str:
+    """The scope a resource dictionary belongs to: the type that owns the nearest
+    ``<X.Resources>`` ancestor (``UserControl``, ``Window``, ``Grid``, ``Application``,
+    …), or ``root`` for a true document-root dictionary (a standalone/merged-dict
+    file). This is derived from the owning ``*.Resources`` parent, NOT the dictionary
+    element itself — so the explicit-wrapper form
+    ``<UserControl.Resources><ResourceDictionary>…`` keeps its ``UserControl`` scope
+    instead of collapsing to ``root`` and losing the view-local-vs-global distinction
+    the Phase-2 resource graph relies on."""
+    node: Node | None = rd
+    while node is not None:
+        if node.is_property_element() and node.local() == "Resources":
+            return node.type_name()
+        node = node.parent
+    return "root"
+
+
+def binding_from_element(node: Node) -> dict[str, Any]:
+    """Build a binding fact from a property-element ``<Binding …/>`` /
+    ``<TemplateBinding …/>`` node (the form used once a binding needs a converter,
+    relative source, etc.), reading its attributes the way ``parse_binding`` reads a
+    markup-extension string. A nested ``<Binding.RelativeSource><RelativeSource …/>``
+    is honored too."""
+    is_tb = node.type_name() == "TemplateBinding"
+    fact: dict[str, Any] = {
+        "kind": "TemplateBinding" if is_tb else "Binding",
+        "path": node.attr("Path") or (node.attr("Property") if is_tb else None),
+        "mode": node.attr("Mode"),
+        "update_source_trigger": node.attr("UpdateSourceTrigger"),
+        "converter": _resource_key(node.attr("Converter")) if node.attr("Converter") else None,
+        "delay": node.attr("Delay"),
+        "relative_source": "TemplatedParent" if is_tb else None,
+        "element_name": node.attr("ElementName"),
+        "source": node.attr("Source"),
+    }
+    rs = node.attr("RelativeSource")
+    if rs:
+        m = _RELSOURCE_RE.search(rs)
+        fact["relative_source"] = m.group(1).strip() if m else rs.strip()
+    else:
+        # nested <Binding.RelativeSource><RelativeSource Mode=.. AncestorType=.. /></...>
+        rs_prop = next((c for c in node.children
+                        if c.is_property_element() and c.local() == "RelativeSource"), None)
+        if rs_prop is not None:
+            inner = next((c for c in rs_prop.children if c.type_name() == "RelativeSource"), None)
+            if inner is not None:
+                fact["relative_source"] = (inner.attr("Mode")
+                                           or ("FindAncestor" if inner.attr("AncestorType")
+                                               else "Self"))
+    return fact
+
+
 def document_facts(root: Node, rel_path: str) -> dict[str, Any]:
     """The fact document for one parsed ``.xaml`` tree: its resource graph, binding
     facts, event handlers and the converter keys it references."""
     resources: list[dict[str, Any]] = []
     for rd in _resource_dictionaries(root):
-        scope = rd.type_name() if rd.is_property_element() else "root"
+        scope = _resource_scope(rd)
         for key, c in _keyed_resources(rd):
             resources.append({"key": key, "type": c.type_name(),
                               "scope": scope, "line": c.line})
@@ -166,6 +218,15 @@ def document_facts(root: Node, rel_path: str) -> dict[str, Any]:
             if ev and h:
                 handlers.append({"element": "EventSetter", "event": ev.strip(),
                                  "handler": h.strip(), "line": n.line})
+        # Property-element binding: <TextBlock.Text><Binding Path="Name" .../></...>.
+        # The owning control + property come from the parent <Type.Prop> element.
+        if (n.type_name() in ("Binding", "TemplateBinding")
+                and n.parent is not None and n.parent.is_property_element()):
+            b = binding_from_element(n)
+            bindings.append({"element": n.parent.type_name(),
+                             "property": n.parent.local(), "line": n.line, **b})
+            if b["converter"]:
+                converters.add(b["converter"])
         for k, v in n.attrib.items():
             b = parse_binding(v)
             if b is not None:
@@ -318,6 +379,36 @@ def _selftest() -> int:
     check(any(h["event"] == "Click" and h["handler"] == "OnSave"
               and h["element"] == "Button" for h in d["event_handlers"]),
           f"event handler not captured: {d['event_handlers']}")
+
+    # Explicit-wrapper resource block must keep its view-local scope, not "root".
+    explicit = (f'<UserControl {_WPF_NS}>\n'
+                '  <UserControl.Resources>\n'
+                '    <ResourceDictionary>\n'
+                '      <SolidColorBrush x:Key="LocalBrush" Color="Red" />\n'
+                '    </ResourceDictionary>\n'
+                '  </UserControl.Resources>\n'
+                '</UserControl>\n')
+    ed = document_facts(parse_xaml(explicit), "x.xaml")
+    check(any(r["key"] == "LocalBrush" and r["scope"] == "UserControl"
+              for r in ed["resources"]),
+          f"explicit <X.Resources><ResourceDictionary> must keep X scope: {ed['resources']}")
+
+    # Property-element binding form must be captured (path + converter), with the
+    # owning control/property taken from the parent <Type.Prop> element.
+    pe = (f'<UserControl {_WPF_NS}>\n'
+          '  <TextBlock>\n'
+          '    <TextBlock.Text>\n'
+          '      <Binding Path="Name" Converter="{StaticResource money}" Mode="OneWay" />\n'
+          '    </TextBlock.Text>\n'
+          '  </TextBlock>\n'
+          '</UserControl>\n')
+    ped = document_facts(parse_xaml(pe), "p.xaml")
+    pb = next((x for x in ped["bindings"] if x["element"] == "TextBlock"), None)
+    check(pb is not None and pb["property"] == "Text" and pb["path"] == "Name"
+          and pb["converter"] == "money" and pb["mode"] == "OneWay" and pb["line"] == 4,
+          f"property-element binding fact wrong: {pb}")
+    check(ped["converters_used"] == ["money"],
+          f"property-element converter must reach converters_used: {ped['converters_used']}")
 
     # EventSetter handlers, and "a binding value is not an event handler".
     es = parse_xaml(f'<Style {_WPF_NS}><EventSetter Event="Click" Handler="OnClick" /></Style>\n')
