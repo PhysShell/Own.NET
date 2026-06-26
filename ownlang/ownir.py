@@ -1304,14 +1304,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             tn = n.get("then", [])
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             else_b = _lower_flow(en if isinstance(en, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the

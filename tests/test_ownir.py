@@ -1411,6 +1411,20 @@ def run() -> int:
         gotpr = [(x.component, x.code) for x in pr]
         fails.append("D5.2 T1: returning a parameter is not `fresh` (no false acquire of "
                      f"the result, no consume of the arg), got {gotpr}")
+    # the factory acquire must fire inside CONTROL FLOW too: a fresh-returning call in
+    # an `if` branch whose result is never disposed leaks, exactly like a top-level one.
+    # (Codex P2: the recursive _lower_flow calls must thread `mos` into nested bodies,
+    # else the D5.2 acquire is silently skipped in branch/loop bodies.)
+    checks += 1
+    fif = check_facts({"module": "M", "functions": [_MAKE,
+        {"name": "caller_if", "file": "T1.cs",
+         "body": [{"op": "if", "line": 9, "then": [
+             {"op": "call", "callee": "make", "args": [], "result": "r", "line": 10}],
+             "else": []}]}]})
+    gotfif = [(x.component, x.line, x.code) for x in fif]
+    if gotfif != [("caller_if", 10, "OWN001")]:
+        fails.append("D5.2 T1: a fresh factory call inside an `if` branch must also leak "
+                     f"OWN001@10 (mos threaded into nested flow), got {gotfif}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
