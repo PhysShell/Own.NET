@@ -805,6 +805,32 @@ def run() -> int:
             or rel[0]["physicalLocation"]["region"]["startLine"] != 5):
         fails.append(f"DI001 SARIF relatedLocations wrong: {rel!r}")
     checks += 1
+    # P-015: the captive's retention path also rides along as an ORDERED reachability slice
+    # (SARIF codeFlows) — the "why is this held, and through what?" trace relatedLocations
+    # cannot express. The direct captive is a 2-hop path: captor singleton -> captured scoped,
+    # each anchored at its registration site.
+    if em is None or em.flow != (
+            ("Startup.cs", 12, "singleton 'EmailSender' (captor)"),
+            ("Startup.cs", 13, "captures scoped service 'AppDbContext'")):
+        fails.append(f"DI001 EmailSender reachability flow wrong: {em.flow if em else None!r}")
+    checks += 1
+    em_flows = (em_sarif or {}).get("codeFlows")
+    em_locs = em_flows[0]["threadFlows"][0]["locations"] if em_flows else []
+    if (len(em_locs) != 2
+            or em_locs[0]["location"]["physicalLocation"]["region"]["startLine"] != 12
+            or em_locs[-1]["location"]["physicalLocation"]["region"]["startLine"] != 13):
+        fails.append(f"DI001 SARIF codeFlows wrong: {em_flows!r}")
+    checks += 1
+    # the TRANSITIVE captive (ReportService -> UnitOfWork(transient) -> AppDbContext(scoped))
+    # renders a 3-hop slice, with the transient a labelled pass-through middle step.
+    rs = next((x for x in difindings
+               if x.component == "ReportService" and x.code == "DI001"), None)
+    if rs is None or rs.flow != (
+            ("Startup.cs", 15, "singleton 'ReportService' (captor)"),
+            ("Startup.cs", 16, "via 'UnitOfWork'"),
+            ("Startup.cs", 13, "captures scoped service 'AppDbContext'")):
+        fails.append(f"DI001 ReportService transitive flow wrong: {rs.flow if rs else None!r}")
+    checks += 1
     # a DI001 whose ctor location is UNKNOWN degrades cleanly — no suffix, no related.
     nolocf = check_facts({"ownir_version": 0, "module": "X", "components": [], "functions": [],
                           "services": [
