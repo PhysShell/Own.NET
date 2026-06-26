@@ -1552,6 +1552,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # above; this models the return). A non-fresh / unknown return makes no
             # claim, so the result is never falsely owned (precision-first).
             result = n.get("result")
+            # Overwriting a tracked local KILLS its previous ownership binding: if the
+            # old handle was not released before this call, it leaks (the reference is
+            # lost). Drop the stale mapping before any optional fresh acquire, so
+            # `acquire x; x = Unknown(); release x` leaks the original x rather than
+            # reading as clean (CodeRabbit). A hoisted local keeps its single outer-scope
+            # handle (it is declared once and never re-bound), so leave it alone.
+            if isinstance(result, str) and result and result not in hoisted:
+                localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
                     and summ is not None and getattr(summ, "returns", None) == "fresh"):
                 handle = f"loc_{loc[0]}"

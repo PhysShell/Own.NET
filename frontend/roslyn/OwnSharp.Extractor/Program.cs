@@ -804,8 +804,13 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         // can apply the callee's per-argument ownership effects (consume/borrow)
                         // to a `var r = Wrap(stream)` — not just the fresh return. Untracked /
                         // non-identifier args are dropped (no local to attribute an effect to).
+                        // Positional args only: the bridge applies the callee's effects by
+                        // POSITION, so a NAMED argument (`Wrap(second: s2, first: s1)`) would
+                        // mis-attribute if kept in syntactic order. Dropping named args
+                        // under-claims (no effect on them) but never mis-aligns (CodeRabbit).
                         var fpArgs = v.Initializer?.Value is InvocationExpressionSyntax fpInv
                             ? fpInv.ArgumentList.Arguments
+                                  .Where(a => a.NameColon is null)
                                   .Select(a => a.Expression)
                                   .OfType<IdentifierNameSyntax>()
                                   .Select(id => id.Identifier.Text)
