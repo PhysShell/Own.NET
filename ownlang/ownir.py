@@ -975,11 +975,17 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
     if not returned:
         return ReturnSkeleton()  # void / no value return
     acquired = _collect_vars(nodes, "acquire", "var")
-    if all(v in acquired and v not in param_names for v in returned):
+    call_results = _call_result_callees(nodes)
+    # `fresh` only when EVERY returned local is acquired here and *nowhere else*. A local
+    # that is also a call result on another path is mixed-origin (`if c: x = acquire()
+    # else: x = other()`) — claiming fresh would make a caller acquire a value it does not
+    # own on the non-acquire path, fabricating OWN001/OWN002 there. Degrade (CodeRabbit).
+    if all(v in acquired and v not in param_names and v not in call_results
+           for v in returned):
         return ReturnSkeleton("fresh")
     if len(returned) == 1:
         (v,) = tuple(returned)
-        callee = _call_result_callees(nodes).get(v)
+        callee = call_results.get(v)
         if callee and v not in param_names and v not in acquired:
             return ReturnSkeleton("forward", callee=callee)
     return ReturnSkeleton()  # not provably owned -> no claim

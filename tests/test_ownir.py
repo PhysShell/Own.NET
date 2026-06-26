@@ -1425,6 +1425,25 @@ def run() -> int:
     if gotfif != [("caller_if", 10, "OWN001")]:
         fails.append("D5.2 T1: a fresh factory call inside an `if` branch must also leak "
                      f"OWN001@10 (mos threaded into nested flow), got {gotfif}")
+    # PRECISION (CodeRabbit): a returned local that is also a call RESULT is mixed-origin,
+    # not provably `fresh`. `mixed` acquires x, then overwrites it with `other`'s (non-
+    # owned) result, and returns it — `returned == acquired == {x}` would wrongly read as
+    # fresh, so a caller acquiring its dropped result would fabricate OWN001. The result
+    # must NOT be fresh -> the caller stays silent.
+    checks += 1
+    mxd = check_facts({"module": "M", "functions": [
+        {"name": "other", "file": "T1.cs", "body": []},
+        {"name": "mixed", "file": "T1.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 1},
+                  {"op": "call", "callee": "other", "args": [], "result": "x", "line": 2},
+                  {"op": "return", "var": "x", "line": 3}]},
+        {"name": "caller_mx", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "mixed", "args": [], "result": "r",
+                   "line": 10}]}]})
+    gotmxd = [(x.component, x.code) for x in mxd if x.component == "caller_mx"]
+    if gotmxd:
+        fails.append("D5.2 T1: a mixed-origin return (acquired AND a call result) is not "
+                     f"`fresh`, so the caller's dropped result must be silent, got {gotmxd}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
