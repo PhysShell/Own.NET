@@ -1,0 +1,25 @@
+// OwnLang model of NethermindEth/nethermind#9322 (fixed in Nethermind v1.35.0):
+// Nethermind.Trie/PatriciaTree.cs `Get` / `GetNodeByKey` Rent a byte[] from
+// ArrayPool for keys longer than the 64-byte stackalloc minimum, then call
+// `GetNew` (which can throw TrieException) and Return the buffer only on the
+// success path. When GetNew throws, the rented buffer leaks. The fix moves the
+// Return into a `finally` block.
+//
+// `acquire` == ArrayPool<byte>.Shared.Rent, `release` == .Return. The C# `throw`
+// is modeled as an early `return` arm that exits before the `release` — the path
+// that skips cleanup — so the core flags the un-released owned buffer as OWN001.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "byte[]"
+  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"
+  emit_release "ArrayPool<byte>.Shared.Return({0})"
+}
+fn Get(keyLength: int, throws: int) {
+  let array = acquire Buffer(keyLength);   // ArrayPool.Rent (key > 64-byte stackalloc)
+  if (throws) {
+    return;                                 // GetNew threw TrieException -> exits before Return
+  }
+  release array;                            // ArrayPool.Return -- only on the success path
+}
