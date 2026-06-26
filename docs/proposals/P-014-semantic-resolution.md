@@ -6,9 +6,17 @@
   advisory **OWN050** ("declaring type unresolved — leakage analysis skipped"), never a guessed
   leak. One `CSharpCompilation` over the inputs with framework + `OWN_EXTRA_REF_DIRS` references;
   the `--event-leaks`/`--no-event-leaks` gate defaults ON. CI-validated on the extractor sample.
-  **Tier B** (opt-in *full*-reference resolution via `MSBuildWorkspace` / a built `bin/**/*.dll`
-  reference set, to resolve third-party/DevExpress event types beyond the framework set) is
-  deferred (open question Q3), as are monorepo scoping (Q1) and a general check-selection surface (Q2).
+  **Tier B (light path) shipped:** `--ref-dir <dir>` (repeatable) widens the compilation's
+  reference set RECURSIVELY from a built `bin/` (or a restored package's `lib/`), so events on
+  third-party types (DevExpress, etc.) bind to real symbols instead of OWN050 — first simple-name
+  wins, so framework/TPA references are never double-added, and an unloadable DLL is skipped, not
+  fatal. CI-validated by an **A/B test** (the `tier-b-refs` job): the same sample subscribing to a
+  `CommunityToolkit.Mvvm.ObservableObject.PropertyChanged` yields OWN050 *without* the reference and
+  a real OWN001 *with* `--ref-dir` — proving resolution flips the verdict. Roslyn reads metadata
+  only, so a .NET Framework `bin/` resolves exactly as a modern-.NET one (only the DLLs differ).
+  **Still deferred:** the heavier auto-discovery of a project's *full transitive closure* from a
+  `.csproj`/`.sln` without a prior build (`MSBuildWorkspace`, open question Q3), monorepo scoping
+  (Q1), and a general check-selection surface (Q2).
 - **Depends on:**
   - [P-001](P-001-csharp-extractor.md) — the seam this deepens. P-001 defines the
     Roslyn-extractor → OwnIR → Python-core pipeline (P-001:71-77) *and* owns the

@@ -1065,6 +1065,70 @@ jobs:
           sarif_file: ${{ steps.own.outputs.sarif-file }}
           category: own-net-samples
 
+  # P-014 Tier B: external-reference resolution. The SAME sample, run two ways, must give two
+  # verdicts — proving the extractor binds a THIRD-PARTY event only when its DLL is referenced:
+  #   A (no refs)        -> ObservableObject is an error type -> OWN050 (honest skip), no leak
+  #   B (--ref-dir DLL)  -> PropertyChanged binds to an IEventSymbol -> real OWN001 leak, no OWN050
+  # The package DLL is fetched from nuget (a .nupkg is a zip) and pinned to a version known to
+  # expose the event; Roslyn reads its metadata only (no build, no source, no .NET Framework needed).
+  tier-b-refs:
+    name: P-014 Tier B — external reference resolution (--ref-dir)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Materialize a third-party reference (CommunityToolkit.Mvvm 8.2.2, pinned)
+        run: |
+          mkdir -p "$RUNNER_TEMP/refdir"
+          curl -sSL --retry 3 --max-time 120 -o "$RUNNER_TEMP/ct.nupkg" \
+            "https://api.nuget.org/v3-flatcontainer/communitytoolkit.mvvm/8.2.2/communitytoolkit.mvvm.8.2.2.nupkg"
+          # a .nupkg is a zip; lift just the netstandard2.0 assembly into the ref dir
+          unzip -o -j "$RUNNER_TEMP/ct.nupkg" "lib/netstandard2.0/CommunityToolkit.Mvvm.dll" -d "$RUNNER_TEMP/refdir"
+          test -s "$RUNNER_TEMP/refdir/CommunityToolkit.Mvvm.dll" \
+            || { echo "FAIL: could not materialize CommunityToolkit.Mvvm.dll"; exit 1; }
+          # pre-flight: confirm the fixture DLL actually exposes the event the A/B test binds to —
+          # read its .NET metadata in pure Python (no runtime). A clear "fixture rotted" failure
+          # beats a confusing "OWN001 not found" if the package ever drops/renames the member.
+          pip install --quiet dnfile
+          python - <<'PY'
+          import os, dnfile
+          pe = dnfile.dnPE(os.path.join(os.environ["RUNNER_TEMP"], "refdir", "CommunityToolkit.Mvvm.dll"))
+          ev = getattr(pe.net.mdtables, "Event", None)
+          events = {str(r.Name) for r in ev.rows} if ev else set()
+          types = {f"{r.TypeNamespace}.{r.TypeName}" for r in pe.net.mdtables.TypeDef.rows}
+          assert "PropertyChanged" in events, f"fixture DLL missing PropertyChanged event; has {sorted(events)}"
+          assert "CommunityToolkit.Mvvm.ComponentModel.ObservableObject" in types, "fixture DLL missing ObservableObject"
+          print("pre-flight OK: ObservableObject + PropertyChanged present in fixture metadata")
+          PY
+      - name: A — without the reference, the external event is OWN050 (honest skip), not a leak
+        run: |
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/TierBSample.cs -o "$RUNNER_TEMP/a.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/a.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "OWN050" \
+            || { echo "FAIL(A): expected OWN050 — ObservableObject unresolved without --ref-dir"; exit 1; }
+          if echo "$out" | grep -q "\[OWN001\]"; then
+            echo "FAIL(A): must NOT guess a leak when the declaring type is unresolved"; exit 1
+          fi
+      - name: B — with --ref-dir, the event resolves to a real subscription leak (OWN001)
+        run: |
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/TierBSample.cs --ref-dir "$RUNNER_TEMP/refdir" -o "$RUNNER_TEMP/b.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/b.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "\[OWN001\]" \
+            || { echo "FAIL(B): expected OWN001 — PropertyChanged resolved via --ref-dir"; exit 1; }
+          if echo "$out" | grep -q "OWN050"; then
+            echo "FAIL(B): the external event must RESOLVE, not stay OWN050"; exit 1
+          fi
+          echo "OK: Tier B A/B — external event OWN050 (no ref) -> OWN001 (with --ref-dir)"
+
   # P-012 slice 1: score the checker against the labeled corpus on REAL C# — not
   # just the .own reduction tests/test_corpus.py checks. Per case: the bug must be
   # CAUGHT in before.cs (recall) and the fix must be SILENT in after.cs

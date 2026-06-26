@@ -35,7 +35,7 @@ proposal is marked `done` with a pointer.
 | [P-011](P-011-editor-tooling.md) | Editor tooling & syntax highlighting | draft |
 | [P-012](P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | in progress (corpus benchmark + real-world cases, CI-gated) |
 | [P-013](P-013-distribution-surface.md) | Distribution surface (how people run Own.NET) | v0 built (CI/Action + dotnet tool) |
-| [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | in progress (Tier A shipped & default-on; Tier B deferred) |
+| [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | in progress (Tier A default-on + Tier B light path `--ref-dir`; full MSBuild closure deferred) |
 | [P-015](P-015-configuration-surface.md) | Configuration surface (check selection & per-category severity) | draft (stub) |
 | [P-016](P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering; loops) | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
 

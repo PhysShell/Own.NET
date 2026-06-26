@@ -31,6 +31,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 var rawInputs = new List<string>();
 string? outPath = null;
+// --ref-dir <dir> (repeatable, P-014 Tier B): widen the compilation's reference set with the
+// DLLs under <dir>, searched RECURSIVELY — point it at a project's built `bin/` output (or a
+// restored package's `lib/`) and the SemanticModel can then bind events on third-party types
+// (DevExpress, etc.) instead of surfacing them as OWN050. The first-class, scriptable twin of the
+// OWN_EXTRA_REF_DIRS env var (which stays non-recursive, for framework ref packs). Roslyn reads
+// metadata only, so it resolves a .NET Framework `bin/` exactly as a modern-.NET one — only the
+// DLLs differ. First simple-name wins, so a TPA/framework reference is never double-added.
+var refDirs = new List<string>();
 // Event-subscription detection is on by default now that it is type-aware
 // (P-014 Tier A graduates it from the interim off). `--no-event-leaks` opts out
 // (e.g. to run only the disposable/pool detectors); it is the first instance of
@@ -59,6 +67,7 @@ BodyThrowEdges = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
+    else if (args[i] == "--ref-dir" && i + 1 < args.Length) refDirs.Add(args[++i]);
     else if (args[i] == "--no-event-leaks") emitEvents = false;
     else if (args[i] == "--flow-locals") flowLocals = true;
     else if (args[i] == "--body-throw-edges") BodyThrowEdges = true;
@@ -68,7 +77,7 @@ for (int i = 0; i < args.Length; i++)
 
 if (rawInputs.Count == 0)
 {
-    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir> [...] [-o facts.json]");
+    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir> [...] [-o facts.json] [--ref-dir <bin-dir>]");
     return 2;
 }
 
@@ -2391,6 +2400,22 @@ foreach (var dir in (Environment.GetEnvironmentVariable("OWN_EXTRA_REF_DIRS") ??
         if (refNames.Add(Path.GetFileName(dll)))
         { references.Add(MetadataReference.CreateFromFile(dll)); added++; }
     Console.Error.WriteLine($"extractor: +{added} extra references from {dir}");
+}
+// P-014 Tier B: --ref-dir <dir> widens the reference set RECURSIVELY (a project's built `bin/`,
+// a restored package's `lib/`), so events on third-party types resolve to real symbols. First
+// simple-name wins (a TPA/framework or OWN_EXTRA_REF_DIRS reference already loaded is skipped),
+// so a `bin/` carrying multiple target-framework copies of the same assembly references one. A
+// reference that fails to load (a native DLL, a corrupt file) is skipped, not fatal — we only read
+// metadata, and a missing reference degrades to OWN050, never a crash.
+foreach (var dir in refDirs)
+{
+    if (!Directory.Exists(dir)) { Console.Error.WriteLine($"extractor: --ref-dir not found: {dir}"); continue; }
+    var added = 0;
+    foreach (var dll in Directory.EnumerateFiles(dir, "*.dll", SearchOption.AllDirectories))
+        if (refNames.Add(Path.GetFileName(dll)))
+            try { references.Add(MetadataReference.CreateFromFile(dll)); added++; }
+            catch (Exception ex) { Console.Error.WriteLine($"extractor: skipped {Path.GetFileName(dll)}: {ex.GetType().Name}"); }
+    Console.Error.WriteLine($"extractor: +{added} references from --ref-dir {dir} (recursive)");
 }
 var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
