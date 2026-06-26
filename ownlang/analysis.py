@@ -83,7 +83,8 @@ class LoanKind(Enum):
 @dataclass(frozen=True)
 class Loan:
     loan_id: int      # we use id(binding_symbol): unique per borrow scope
-    owner: int        # id(owner_symbol)
+    owner: int        # the owner's RID (rid_of(owner)) — so the loan is seen
+                      # through every owning alias of the borrowed resource
     binding: int      # id(binding_symbol)
     kind: LoanKind
 
@@ -195,10 +196,16 @@ class _Analyzer:
     # -- loan / permission helpers -----------------------------------------
 
     def loans_on(self, st: State, owner: Symbol) -> tuple[int, bool]:
+        # A loan's owner is recorded by RID (see BorrowStart), so a borrow of one
+        # owning alias is seen through ALL aliases of the same resource: releasing
+        # or using a different owning handle of a borrowed resource is still caught
+        # (OWN008 / OWN013). In the 1:1 case `rid_of` is identity, so this is the
+        # pre-alias behaviour exactly. (Codex P2 — alias loans follow the RID.)
+        owner_rid = st.rid_of(owner)
         shared = 0
         mut = False
         for ln in st.loans.values():
-            if ln.owner == id(owner):
+            if ln.owner == owner_rid:
                 if ln.kind == LoanKind.SHARED:
                     shared += 1
                 else:
@@ -459,8 +466,11 @@ class _Analyzer:
             else:
                 self._check_shared_borrowable(st, ins.owner, ins.line)
                 kind = LoanKind.SHARED
+            # Record the owner by RID so the loan is visible through every owning
+            # alias of the resource (Codex P2). `loan_id`/`binding` stay keyed by the
+            # binding handle (the borrow binding is its own handle, never aliased).
             st.loans[id(ins.binding)] = Loan(
-                loan_id=id(ins.binding), owner=id(ins.owner),
+                loan_id=id(ins.binding), owner=st.rid_of(ins.owner),
                 binding=id(ins.binding), kind=kind)
             return
 

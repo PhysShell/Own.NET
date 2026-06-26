@@ -1550,6 +1550,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # tracked local; an unknown `src` makes no claim (precision-first).
             name = str(n.get("var", "?"))
             src_h = localmap.get(str(n.get("src", "")))
+            # Overwriting a tracked local KILLS its previous ownership binding — the
+            # same rule as a call-result overwrite (D5.2). Drop the stale mapping FIRST,
+            # even when the new alias's `src` is untracked: we make no claim on the new
+            # handle, but the OLD obligation must not be silently discharged by a later
+            # `release name` resolving to the dead handle (Codex P2). It leaks instead.
+            # A hoisted local keeps its single outer-scope handle (declared once).
+            if name not in hoisted:
+                localmap.pop(name, None)
             if src_h is not None and name not in hoisted:
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1

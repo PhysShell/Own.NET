@@ -32,7 +32,21 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.analysis import State, _join_handle_rid, analyze
-from ownlang.cfg import Kind, Symbol, build_cfg, collect_signatures
+from ownlang.cfg import (
+    CFG,
+    Acquire,
+    AliasJoin,
+    Block,
+    BorrowEnd,
+    BorrowStart,
+    Instr,
+    Kind,
+    Release,
+    Symbol,
+    Use,
+    build_cfg,
+    collect_signatures,
+)
 from ownlang.diagnostics import Severity
 from ownlang.lexer import LexError
 from ownlang.parser import ParseError, parse
@@ -149,6 +163,32 @@ def run() -> int:
         "return c; }")
     fails += _check("a sibling RID still leaks before return (OWN001)",
                     leak_before_ret == {"OWN001"}, f"got {leak_before_ret}")
+
+    # -- alias loans follow the shared RID (Codex P2) --------------------------
+    # The OwnIR bridge has no borrow op, so the alias<->loan interaction is checked
+    # directly on a CFG: an owning alias of a borrowed resource is still subject to
+    # the loan, so releasing/using it through the OTHER handle is caught.
+    def _cfg_codes(instrs: list[Instr]) -> set[tuple[int, str]]:
+        cfg = CFG("f", [Block(id=0, instrs=instrs, succ=[])], 0, [], False)
+        return {(d.line, d.code) for d in analyze(cfg)}
+
+    inner = Symbol("inner", Kind.OWNED, 1)
+    w = Symbol("w", Kind.OWNED, 2)
+    b = Symbol("b", Kind.BORROW, 3)
+    # releasing an owning alias while the resource is borrowed through the other
+    # handle is OWN008 — the loan owner resolves through the shared RID.
+    rel_borrowed = _cfg_codes([
+        Acquire(inner, "R", 1), AliasJoin(w, inner, 2),
+        BorrowStart(inner, b, False, 3), Release(w, 4), BorrowEnd(inner, b, False, 5)])
+    fails += _check("releasing an owning alias of a borrowed RID is OWN008",
+                    rel_borrowed == {(4, "OWN008")}, f"got {rel_borrowed}")
+    # using an owning alias while the resource is mutably borrowed is OWN013.
+    use_mutborrowed = _cfg_codes([
+        Acquire(inner, "R", 1), AliasJoin(w, inner, 2),
+        BorrowStart(inner, b, True, 3), Use(w, 4), BorrowEnd(inner, b, True, 5),
+        Release(inner, 6)])
+    fails += _check("using an owning alias of a mut-borrowed RID is OWN013",
+                    use_mutborrowed == {(4, "OWN013")}, f"got {use_mutborrowed}")
 
     n = len(_RAN)
     print(f"rid: {n - fails}/{n} RID-layer checks pass")

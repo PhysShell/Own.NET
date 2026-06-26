@@ -1901,6 +1901,20 @@ def run() -> int:
         gotrw = [(x.component, x.code) for x in rw]
         fails.append("D5.4 T4: returning the wrapper escapes the shared obligation, so the "
                      f"dropped inner local must NOT leak, got {gotrw}")
+    # OVERWRITE kills the prior binding even when the new alias is UNTRACKED (Codex P2):
+    # `acquire w; alias_join w <- ghost; release w` overwrites `w` with an alias whose src
+    # is not tracked. The original `w` obligation is lost (it leaks OWN001@1); the later
+    # `release w` must NOT resolve to the dead handle and silently discharge it.
+    checks += 1
+    aov = check_facts({"module": "M", "functions": [
+        {"name": "C.M", "file": "T4.cs",
+         "body": [{"op": "acquire", "var": "w", "line": 1},
+                  {"op": "alias_join", "var": "w", "src": "ghost", "line": 2},
+                  {"op": "release", "var": "w", "line": 3}]}]})
+    gotaov = [(x.line, x.code) for x in aov]
+    if gotaov != [(1, "OWN001")]:
+        fails.append("D5.4 T4: an alias_join overwriting an owned local with an UNTRACKED src "
+                     f"must leak the original (OWN001@1), not read clean, got {gotaov}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
