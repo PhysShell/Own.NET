@@ -62,14 +62,15 @@ import json
 import re
 import sys
 import xml.parsers.expat
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 # ItemsControl-family types whose virtualization we care about (XAML107/109 anchors).
 ITEMS_CONTROLS = {
     "ListBox", "ListView", "DataGrid", "TreeView", "ComboBox", "ItemsControl",
-    "GridView", "DataGridControl", "ListView", "Selector", "HeaderedItemsControl",
+    "GridView", "DataGridControl", "Selector", "HeaderedItemsControl",
 }
 # Panels that DO virtualize — an ItemsPanel of any other panel disables it.
 VIRTUALIZING_PANELS = {"VirtualizingStackPanel", "VirtualizingPanel", "ItemsRepeater"}
@@ -121,8 +122,8 @@ class Node:
     tag: str
     attrib: dict[str, str]
     line: int
-    children: list["Node"] = field(default_factory=list)
-    parent: "Node | None" = None
+    children: list[Node] = field(default_factory=list)
+    parent: Node | None = None
 
     def local(self) -> str:
         """The unqualified element name: ``controls:DataGrid`` -> ``DataGrid``;
@@ -229,10 +230,6 @@ def _rule_virtualization(root: Node, avalonia: bool) -> list[XamlFinding]:
         if n.type_name() not in ITEMS_CONTROLS:
             continue
         # Attached/attribute opt-outs that switch virtualization off.
-        flags = {
-            "IsVirtualizing": "VirtualizingStackPanel.IsVirtualizing=False",
-            "CanContentScroll": "ScrollViewer.CanContentScroll=False",
-        }
         for k, v in n.attrib.items():
             local = k.split(":", 1)[-1].rsplit(".", 1)[-1]
             if local == "IsVirtualizing" and v.strip().lower() == "false":
@@ -915,8 +912,9 @@ def _selftest() -> int:
 
     # End-to-end SARIF: the emitted log must be readable by the shared parse_sarif,
     # with the real line surviving the round-trip (the contract with the pipeline).
-    sarif = _to_sarif([("Views/Main.xaml", XamlFinding("XAML107", 3, "x [resource: virtualization]")),
-                       ("Views/Main.xaml", XamlFinding("XAML104", 0, "file-level x"))])
+    sarif = _to_sarif([
+        ("Views/Main.xaml", XamlFinding("XAML107", 3, "x [resource: virtualization]")),
+        ("Views/Main.xaml", XamlFinding("XAML104", 0, "file-level x"))])
     here = Path(__file__).resolve()
     sys.path.insert(0, str(here.parents[3] / "scripts"))
     try:
