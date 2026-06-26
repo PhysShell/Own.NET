@@ -370,12 +370,17 @@ def to_json(result: dict[str, Any], target: str, commit: str) -> dict[str, Any]:
 
 
 def _is_test_path(path: str) -> bool:
-    """True if a finding path lives under a test/benchmark/sample/example tree —
-    non-product code. `--exclude-tests` drops these so the three tools are diffed
-    on the product code only (Infer# builds just the product project, so without
-    this own-check/CodeQL would also count test/benchmark leaks the others can't)."""
+    """True if a finding path lives under a non-product tree — tests, benchmarks,
+    samples, examples, or documentation snippets. `--exclude-tests` drops these so
+    the three tools are diffed on product code only (Infer# builds just the product
+    project, so without this own-check/CodeQL would also count leaks the others
+    can't). `doc`/`snippet` trees carry intentionally-undisposed illustrative code
+    (e.g. Polly's `src/Snippets/Docs/*`, where ~20 `HttpResponseMessage`/`HttpClient`
+    examples are never disposed by design) — counting them as product leaks inflates
+    the oracle-only recall gap with example code that was never meant to dispose."""
     for seg in path.lower().split("/"):
-        if seg in ("test", "tests") or seg.startswith(("benchmark", "sample", "example")):
+        if (seg in ("test", "tests", "doc", "docs")
+                or seg.startswith(("benchmark", "sample", "example", "snippet"))):
             return True
     return False
 
@@ -545,9 +550,12 @@ def _selftest() -> int:
     if [g.cls for g in pulse] != ["leak"]:
         fails.append(f"PULSE_RESOURCE_LEAK not classed as leak: {[g.cls for g in pulse]}")
     # --exclude-tests predicate: matches non-product trees, not product code.
+    # Doc/snippet trees (Polly's src/Snippets/Docs/*) are non-product illustrative
+    # code — intentionally-undisposed examples that would otherwise inflate oracle-only.
     if not all(_is_test_path(p) for p in
-               ("tests/Foo/Bar.cs", "benchmarks/X/Y.cs", "src/Test/Z.cs")):
-        fails.append("_is_test_path should match test/benchmark trees")
+               ("tests/Foo/Bar.cs", "benchmarks/X/Y.cs", "src/Test/Z.cs",
+                "src/Snippets/Docs/Fallback.cs", "src/MyLib/docs/Example.cs")):
+        fails.append("_is_test_path should match test/benchmark/doc/snippet trees")
     if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs")):
         fails.append("_is_test_path should not match product paths")
     # the scope note is gated on mode, not count: a product-only run that excluded
