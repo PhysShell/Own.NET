@@ -188,6 +188,11 @@ same as Dapper: "0 real misses *here*" is partly the luck of the finding mix —
 async/interprocedural code we under-analyse, so this is not proof of zero recall gaps in
 general.)
 
+> The idioms these runs surfaced — ownership transfer, deferred/callback disposal, pooled
+> disposables, struct-`using` locks — are collected as teachable patterns in
+> [`field-notes-patterns.md`](field-notes-patterns.md). Most `oracle-only` findings that
+> turn out FP-or-by-design hide one of them.
+
 ## Honest gaps (v1)
 
 - **No tool versions pinned in the report yet.** `microsoft/infersharpaction@v1.5`
