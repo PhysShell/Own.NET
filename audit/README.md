@@ -1,5 +1,21 @@
 # Own.NET Audit
 
+> **Status (2026-06-26): active development lives in the `OwnAudit` repo.**
+> This `audit/` subtree is the *base* the OwnAudit audit was taken from and
+> "brought to completion" — `OwnAudit` was scaffolded 2026-06-25 as an
+> "STS audit orchestrator"; its `fix/` (fix-arm), `arch/`, `oracle/` and
+> GitHub-facing `report/` layers plus the P-015 reachability-evidence work are
+> ahead of this copy. The CoStrict-integration track (`ownnet` CLI,
+> `ownnet.finding.v1` schema, fix-arm wiring) is being built there too —
+> see `OwnAudit/docs/costrict-integration-plan.md`.
+>
+> **Intent:** Own.NET is the destined home for the consolidated audit *and* the
+> `ownnet` CLI. The OwnAudit/Own.NET split is a temporary convenience (the
+> `audit/` subtree is decoupled and liftable, `Plan.md §7`), not the target
+> architecture. Consolidation back into Own.NET is **deferred** until the
+> OwnAudit refinements settle — until then, do not treat this subtree as the
+> current source of truth; the live audit is in `OwnAudit`.
+
 An audit **orchestrator** for a legacy .NET Framework 4.7.2 / WPF / DevExpress
 desktop application. It runs a fleet of mature, ready-made analyzers over the
 target, normalizes every tool's output to SARIF, scores findings by cross-tool
