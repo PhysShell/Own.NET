@@ -2411,10 +2411,18 @@ foreach (var dir in refDirs)
 {
     if (!Directory.Exists(dir)) { Console.Error.WriteLine($"extractor: --ref-dir not found: {dir}"); continue; }
     var added = 0;
-    foreach (var dll in Directory.EnumerateFiles(dir, "*.dll", SearchOption.AllDirectories))
-        if (refNames.Add(Path.GetFileName(dll)))
-            try { references.Add(MetadataReference.CreateFromFile(dll)); added++; }
-            catch (Exception ex) { Console.Error.WriteLine($"extractor: skipped {Path.GetFileName(dll)}: {ex.GetType().Name}"); }
+    // Ordinal sort makes "first simple-name wins" deterministic across platforms/filesystems
+    // (EnumerateFiles order is unspecified), so a `bin/` with multiple TFM copies picks the same one.
+    foreach (var dll in Directory.EnumerateFiles(dir, "*.dll", SearchOption.AllDirectories)
+                                 .OrderBy(p => p, StringComparer.Ordinal))
+    {
+        var name = Path.GetFileName(dll);
+        if (!refNames.Contains(name))
+            // Record the name only on a successful load, so a failed DLL here doesn't burn the
+            // name and silently skip a loadable same-named assembly elsewhere in the tree.
+            try { references.Add(MetadataReference.CreateFromFile(dll)); refNames.Add(name); added++; }
+            catch (Exception ex) { Console.Error.WriteLine($"extractor: skipped {name}: {ex.GetType().Name}"); }
+    }
     Console.Error.WriteLine($"extractor: +{added} references from --ref-dir {dir} (recursive)");
 }
 var compilation = CSharpCompilation.Create(

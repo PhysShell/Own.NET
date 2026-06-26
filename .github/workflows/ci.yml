@@ -1111,7 +1111,7 @@ jobs:
             frontend/roslyn/samples/TierBSample.cs -o "$RUNNER_TEMP/a.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/a.json" || true)
           echo "$out"
-          echo "$out" | grep -q "OWN050" \
+          echo "$out" | grep -q "\[OWN050\]" \
             || { echo "FAIL(A): expected OWN050 — ObservableObject unresolved without --ref-dir"; exit 1; }
           if echo "$out" | grep -q "\[OWN001\]"; then
             echo "FAIL(A): must NOT guess a leak when the declaring type is unresolved"; exit 1
@@ -1124,7 +1124,7 @@ jobs:
           echo "$out"
           echo "$out" | grep -q "\[OWN001\]" \
             || { echo "FAIL(B): expected OWN001 — PropertyChanged resolved via --ref-dir"; exit 1; }
-          if echo "$out" | grep -q "OWN050"; then
+          if echo "$out" | grep -q "\[OWN050\]"; then
             echo "FAIL(B): the external event must RESOLVE, not stay OWN050"; exit 1
           fi
           echo "OK: Tier B A/B — external event OWN050 (no ref) -> OWN001 (with --ref-dir)"

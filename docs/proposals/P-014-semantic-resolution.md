@@ -11,7 +11,7 @@
   third-party types (DevExpress, etc.) bind to real symbols instead of OWN050 — first simple-name
   wins, so framework/TPA references are never double-added, and an unloadable DLL is skipped, not
   fatal. CI-validated by an **A/B test** (the `tier-b-refs` job): the same sample subscribing to a
-  `CommunityToolkit.Mvvm.ObservableObject.PropertyChanged` yields OWN050 *without* the reference and
+  `CommunityToolkit.Mvvm.ComponentModel.ObservableObject.PropertyChanged` yields OWN050 *without* the reference and
   a real OWN001 *with* `--ref-dir` — proving resolution flips the verdict. Roslyn reads metadata
   only, so a .NET Framework `bin/` resolves exactly as a modern-.NET one (only the DLLs differ).
   **Still deferred:** the heavier auto-discovery of a project's *full transitive closure* from a
