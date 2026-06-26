@@ -1533,6 +1533,26 @@ def run() -> int:
     if not nst_raised:
         fails.append("bridge branch-scope: nested cross-branch acquire no longer raises — the "
                      "common-dominator hoist has landed; make this CLEAN and flip this lock")
+    # LOOP EXCLUSION (Codex P1): the hoist is for mutually-exclusive `if` branches only.
+    # A `while` body is cumulative, so hoisting `while { acquire r }; release r` to one
+    # acquire would HIDE the per-iteration leak (a false-clean). Loop-acquired locals are
+    # excluded, so this keeps its pre-existing LOUD behaviour (OWN030 -> OwnIRError) rather
+    # than silently returning no findings. A loop-aware model is a separate follow-up; this
+    # lock asserts the raise (NOT a false-clean) and flips when that model lands.
+    checks += 1
+    loop_raised = False
+    try:
+        check_facts({"module": "M", "functions": [
+            {"name": "loop_acq", "file": "T1.cs",
+             "body": [{"op": "while", "line": 1,
+                       "body": [{"op": "acquire", "var": "r", "line": 2}]},
+                      {"op": "release", "var": "r", "line": 3}]}]})
+    except OwnIRError:
+        loop_raised = True
+    if not loop_raised:
+        fails.append("bridge branch-scope: a while-body acquire released after the loop must "
+                     "NOT be silently hoisted to clean — it stays loud until a loop-aware model "
+                     "lands; got no raise (false-clean or premature loop hoist)")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the

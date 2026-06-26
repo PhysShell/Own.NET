@@ -311,7 +311,12 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   nested `if`, released at depth 1 in the enclosing block), function-top is not the
   common-dominator scope, so the hoist deliberately does not fire and the OWN030 raise persists —
   the correct fix is to hoist to the common-dominator block, tracked for a follow-up and locked
-  by the `nested_branch` xfail test. (Codex P2 on #116.)
+  by the `nested_branch` xfail test. **`while` bodies are also excluded:** `if` branches are
+  mutually exclusive (one acquire runs → unconditional is balanced), but loop iterations are
+  *cumulative*, so hoisting `while { r = acquire() }; release r` to a single acquire would hide a
+  per-iteration leak. A loop-acquired local keeps its pre-existing (loud OWN030) behaviour rather
+  than a silent false-clean; a loop-aware model is a separate follow-up, locked by the `loop_acq`
+  xfail test. (Codex P2 on #116; loop exclusion Codex P1 on #120.)
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
   factories.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit

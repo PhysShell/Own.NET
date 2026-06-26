@@ -1319,11 +1319,17 @@ def _hoisted_branch_locals(nodes: Any, mos: dict[str, Any] | None) -> dict[str, 
     (correct fix = hoist to the common-dominator block) remains a narrower limitation;
     the common method-level pattern (a local declared at method scope, assigned in a
     branch, disposed at method level) is depth-0 and fully covered. The returned line is
-    the first branch-acquire site, so a finding anchors near the acquire. (Bridge
-    branch-scope fix; Codex P2 on #116.)"""
+    the first branch-acquire site, so a finding anchors near the acquire.
+
+    Acquires inside a `while` body are also excluded: `if` branches are mutually
+    exclusive (one acquire runs → unconditional is balanced) but loop iterations are
+    cumulative, so hoisting `while { r = acquire() }; release r` to one acquire would
+    hide a per-iteration leak. A loop-aware model is a separate follow-up. (Bridge
+    branch-scope fix; Codex P2 on #116, loop exclusion Codex P1 on #120.)"""
     acq_depth: dict[str, int] = {}    # name -> shallowest acquire depth
     acq_line: dict[str, int] = {}     # name -> first-seen acquire line
     ref_depth: dict[str, int] = {}    # name -> shallowest non-acquire reference depth
+    loop_acq: set[str] = set()        # names acquired anywhere inside a `while` body
 
     def fresh_result(n: dict[str, Any]) -> str | None:
         callee, res = n.get("callee"), n.get("result")
@@ -1336,7 +1342,7 @@ def _hoisted_branch_locals(nodes: Any, mos: dict[str, Any] | None) -> dict[str, 
         if name not in ref_depth or depth < ref_depth[name]:
             ref_depth[name] = depth
 
-    def walk(ns: Any, depth: int) -> None:
+    def walk(ns: Any, depth: int, in_loop: bool) -> None:
         if not isinstance(ns, list):
             return
         for n in ns:
@@ -1350,6 +1356,8 @@ def _hoisted_branch_locals(nodes: Any, mos: dict[str, Any] | None) -> dict[str, 
                 if acq not in acq_depth or depth < acq_depth[acq]:
                     acq_depth[acq] = depth
                 acq_line.setdefault(acq, line)
+                if in_loop:
+                    loop_acq.add(acq)
             if op in ("use", "release", "overspan", "return"):
                 v = n.get("var")
                 if isinstance(v, str):
@@ -1358,14 +1366,19 @@ def _hoisted_branch_locals(nodes: Any, mos: dict[str, Any] | None) -> dict[str, 
                 for a in (n.get("args") or []):
                     note_ref(str(a), depth)
             if op == "if":
-                walk(n.get("then"), depth + 1)
-                walk(n.get("else"), depth + 1)
+                walk(n.get("then"), depth + 1, in_loop)
+                walk(n.get("else"), depth + 1, in_loop)
             elif op == "while":
-                walk(n.get("body"), depth + 1)
+                walk(n.get("body"), depth + 1, True)
 
-    walk(nodes, 0)
+    walk(nodes, 0, False)
+    # Only `if`-branch acquires are hoistable: branches are mutually exclusive, so
+    # exactly one acquire runs and a single unconditional one is balanced. A `while`
+    # body is CUMULATIVE — hoisting it would collapse 0..N iterations into one acquire
+    # and hide a per-iteration leak (Codex P1), so a loop-acquired local is excluded (it
+    # keeps its pre-existing behaviour; a loop-aware model is a separate follow-up).
     return {name: acq_line[name] for name, d in acq_depth.items()
-            if d >= 1 and ref_depth.get(name, -1) == 0}
+            if d >= 1 and ref_depth.get(name, -1) == 0 and name not in loop_acq}
 
 
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
