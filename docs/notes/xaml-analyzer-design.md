@@ -94,8 +94,10 @@ like the other build-free runners there. This is the cheapest deliverable of the
 > line-preservation requirement, and the SARIF round-trip through the shared `parse_sarif`. Of the
 > catalogue below it implements XAML101/102/103/104/106/107/108/109/110, plus three rules added from
 > the research-comb feedback — XAML111 (LayoutTransform cost), XAML112 (TemplateBinding opportunity)
-> and XAML113 (inline-Freezable duplication). XAML100 (cross-sibling scope model) and XAML105
-> (cross-*file* dictionary shadowing) are the documented deferred tail.
+> and XAML113 (inline-Freezable duplication). XAML100 (cross-sibling scope model) and XAML105 — both
+> its in-file form and the **cross-*file*** `Source=` dictionary shadowing — are now implemented too;
+> the cross-file pass resolves `MergedDictionaries` `Source=` to real files (relative / app-root /
+> `;component/` pack forms), conservatively skipping anything that doesn't land on a scanned file.
 
 **Line preservation is a hard requirement, not a detail.** A plain `xml.etree.ElementTree.parse`
 discards source positions, but our finding contract requires a real `line` and `report/sarif.py`
@@ -115,7 +117,7 @@ offending element's stamped line; a rule that can only locate a file-level issue
 | **XAML102** `DynamicResourceLikelyStatic` | `DynamicResource` for an app-local, lexically-stable, non-theme/system key | StaticResource recommended unless runtime-mutated; dynamic carries deferred lookup cost | ❌ Avalonia DynamicResource semantics differ |
 | **XAML103** `SuspiciousSharedFalse` | `x:Shared="False"` on converters/styles/brushes outside documented exceptions | resources shared by default; `x:Shared=false` is the deliberate opt-out | ❌ WPF-only attribute |
 | **XAML104** `DuplicateMergedDictionaryInclude` | same dictionary merged more than once | wasted load + order ambiguity | ~ (Avalonia has merged dicts, diff syntax) |
-| **XAML105** `MergedDictionaryKeyShadowing` ✅ *(in-file)* | key defined in ≥2 **inline** merged dictionaries (or primary + merged) → effective value depends on include order; external `Source=` dictionaries deferred (cross-file) | "last merged wins, primary beats merged" — silent order dependence | ~ |
+| **XAML105** `MergedDictionaryKeyShadowing` ✅ *(in-file + cross-file)* | key defined in ≥2 scopes — inline merged dictionaries, primary + merged, or (cross-file) an external `Source=` dictionary resolved to a real file → effective value depends on include order | "last merged wins, primary beats merged" — silent order dependence | ~ |
 | **XAML106** `FreezableResourceShouldFreeze` | `Freezable` resource, no bindings/dynamic-resource/animation, missing `PresentationOptions:Freeze="True"` | freezing drops change-notification overhead + working set | ❌ **Freezable is WPF-only** |
 | **XAML107** `VirtualizationExplicitlyDisabled` | `IsVirtualizing="False"`, `CanContentScroll="False"` on lists, non-virtualizing `ItemsPanel`, direct/mixed containers | virtualization critical for large item controls; these accidentally kill it | ✅ `VirtualizingStackPanel`/`ItemsRepeater` |
 | **XAML108** `PerKeystrokeBindingWithoutDelay` | `TwoWay` + `UpdateSourceTrigger=PropertyChanged` on an editable property with no `Delay` | `Text` defaults to `LostFocus` for a reason; `Delay` exists to avoid per-keystroke flooding | ✅ |
