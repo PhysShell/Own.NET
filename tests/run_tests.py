@@ -1106,11 +1106,16 @@ def run() -> int:
     import test_ownership
     own5_rc = test_ownership.run()
 
+    # Diagnostic rendering (P-015): the empty-evidence invariant (render()/render_pretty()
+    # byte-for-byte unchanged) plus the ordered `note:` slice and the SARIF evidence builders.
+    import test_diagnostics
+    diag_rc = test_diagnostics.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc or own5_rc) else 0
+                 or spec_rc or ownir_rc or own5_rc or diag_rc) else 0
 
 
 if __name__ == "__main__":

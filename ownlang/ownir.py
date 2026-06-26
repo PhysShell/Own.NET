@@ -138,6 +138,7 @@ from .di import (
     find_weak_captive_dependencies,
 )
 from .diagnostics import TITLES, Severity
+from .evidence import code_flow, di_path_steps
 from .ownership import (
     MethodSkeleton,
     ParamSkeleton,
@@ -292,6 +293,11 @@ class Finding:
     # along as SARIF `relatedLocations` (e.g. a DI captive's *consuming constructor*, distinct
     # from its registration-site anchor). Empty for findings with a single location.
     related: tuple[tuple[str, int, str], ...] = ()
+    # an ORDERED reachability slice — each an (file, line, label) triple — that explains the
+    # finding by the path it walks: a DI captive's `singleton -> transient -> scoped` retention
+    # chain, each hop anchored at a real registration site. Rides along as a SARIF `codeFlows`
+    # (the step-through trace `relatedLocations` cannot express). Empty for a single-point finding.
+    flow: tuple[tuple[str, int, str], ...] = ()
 
     def render(self, severity: str = "error") -> str:
         return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
@@ -382,6 +388,12 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
     ]
     if related:
         result["relatedLocations"] = related
+    # the ordered reachability slice (e.g. a DI captive's singleton -> transient -> scoped
+    # retention path): a SARIF consumer renders codeFlows as a click-through step trace, which
+    # is exactly the "why is this held, and through what?" question relatedLocations can't answer.
+    flows = code_flow(f.flow)
+    if flows:
+        result["codeFlows"] = flows
     return result
 
 
@@ -1746,11 +1758,16 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
         )
         for s in raw if isinstance(s, dict)
     ]
+    # registration site of each service, to anchor the hops of a finding's reachability slice:
+    # DI001..005 each carry a `path` of service names (singleton -> ... -> captured), and
+    # di_path_steps turns those names into ordered (file, line, label) steps via this map.
+    loc_by_name = {s.name: (s.file, s.line) for s in services if s.line >= 1}
     out = [
         Finding(
             file=c.file, line=c.line, code="DI001",
             component=c.singleton, event=c.captured, handler="",
-            message=c.message, kind="DI lifetime", related=_consumer_related(c))
+            message=c.message, kind="DI lifetime", related=_consumer_related(c),
+            flow=di_path_steps(c.path, loc_by_name, "captures scoped service"))
         for c in find_captive_dependencies(services)
     ]
     # DI003: a transient IDisposable captured by a singleton is promoted to application
@@ -1762,7 +1779,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             file=c.file, line=c.line, code="DI003",
             component=c.singleton, event=c.captured, handler="",
             message=c.message, kind="DI lifetime", severity="warning",
-            related=_consumer_related(c))
+            related=_consumer_related(c),
+            flow=di_path_steps(c.path, loc_by_name, "captures transient IDisposable"))
         for c in find_captured_transient_disposables(services)
     ]
     # DI002: a singleton holding a scoped service via WeakReference<T> (P-006). The weak
@@ -1774,7 +1792,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             file=c.file, line=c.line, code="DI002",
             component=c.singleton, event=c.captured, handler="",
             message=c.message, kind="DI lifetime", severity="warning",
-            related=_consumer_related(c))
+            related=_consumer_related(c),
+            flow=di_path_steps(c.path, loc_by_name, "weakly captures scoped service"))
         for c in find_weak_captive_dependencies(services)
     ]
     # DI004: a singleton that resolves a transient IDisposable BY HAND from its injected
@@ -1790,7 +1809,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             file=pf, line=pl, code="DI004",
             component=c.singleton, event=c.resolved, handler="",
             message=c.message, kind="DI lifetime", severity="warning",
-            related=_di004_related(c)))
+            related=_di004_related(c),
+            flow=di_path_steps(c.path, loc_by_name, "leaks transient IDisposable")))
     # DI005: a singleton that resolves a scoped service from a scope it CREATES
     # (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-operation
     # fix done wrong. The cached instance dangles after the scope is disposed (use-after-dispose)
@@ -1803,7 +1823,8 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             file=pf, line=pl, code="DI005",
             component=sc.singleton, event=sc.captured, handler="",
             message=sc.message, kind="DI lifetime", severity="warning",
-            related=_di005_related(sc)))
+            related=_di005_related(sc),
+            flow=di_path_steps(sc.path, loc_by_name, "caches scoped service")))
     return out
 
 
