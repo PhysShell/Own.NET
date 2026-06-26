@@ -1522,30 +1522,149 @@ def run() -> int:
     if gotbare:
         fails.append("D5.2 T1: a method with a non-owned (`return null`) path is not "
                      f"`fresh`, so a caller's dropped result must be silent, got {gotbare}")
-    # KNOWN BRIDGE LIMITATION (tracked separately — see docs/notes/d5-ownership-transfer.md
-    # "branch-scope" entry). A local acquired in BOTH branches of an `if` and released
-    # AFTER the merge currently crashes: the bridge's flat `localmap` emits each synthetic
-    # `Let` *inside* its branch block, so the post-merge `release` references an out-of-scope
-    # handle -> the core reports OWN030 (undefined name), which `check_facts` (correctly,
-    # strictly) refuses to map and raises OwnIRError. This predates D5.2 — it reproduces with
-    # a PLAIN `acquire` (no factory/fresh path), shown here so the bug is NOT attributed to
-    # D5.2's call-result acquire. This is an xfail-style LOCK: when the bridge is made branch-
-    # aware (hoist/declare synthetic handles at the merge scope), this balanced release must
-    # become CLEAN (no findings) and this assertion flips to `if bm_findings: fail`.
+    # BRIDGE BRANCH-SCOPE FIX. A local acquired in BOTH branches of an `if` and released
+    # AFTER the merge used to crash: the bridge emitted each synthetic `Let` *inside* its
+    # branch block, so the post-merge `release` referenced an out-of-scope handle -> the
+    # core reported OWN030 (undefined name) and `check_facts` raised OwnIRError. The bridge
+    # now HOISTS such cross-branch locals to the function's outer scope (declared once,
+    # in-branch acquires skipped), so a balanced release is CLEAN. `branch_merge` is the
+    # exact pre-existing repro (a PLAIN `acquire`, no factory path) — must not crash, no
+    # findings. (Codex P2 on #116.)
     checks += 1
-    bm_raised = False
     try:
-        check_facts({"module": "M", "functions": [
+        bmf = check_facts({"module": "M", "functions": [
             {"name": "branch_merge", "file": "T1.cs",
              "body": [{"op": "if", "line": 1,
                        "then": [{"op": "acquire", "var": "r", "line": 2}],
                        "else": [{"op": "acquire", "var": "r", "line": 3}]},
                       {"op": "release", "var": "r", "line": 4}]}]})
+        if bmf:
+            fails.append("bridge branch-scope: a cross-branch acquire released after the "
+                         f"merge must be CLEAN, got {[(x.component, x.code) for x in bmf]}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: cross-branch acquire still crashes ({e})")
+    # the leak is still caught when the cross-branch local is NOT released: hoisting makes
+    # the acquire unconditional, so an undischarged one is OWN001 (no false-clean).
+    checks += 1
+    bml = check_facts({"module": "M", "functions": [
+        {"name": "branch_leak", "file": "T1.cs",
+         "body": [{"op": "if", "line": 1,
+                   "then": [{"op": "acquire", "var": "r", "line": 2}],
+                   "else": [{"op": "acquire", "var": "r", "line": 3}]},
+                  {"op": "use", "var": "r", "line": 4}]}]})
+    gotbml = [(x.component, x.code) for x in bml]
+    if gotbml != [("branch_leak", "OWN001")]:
+        fails.append("bridge branch-scope: a cross-branch acquire that is used but never "
+                     f"released must still leak OWN001, got {gotbml}")
+    # and the factory-result form (D5.2 acquire inside a branch) is hoisted too: a fresh
+    # call result assigned in both branches and released after the merge is CLEAN.
+    checks += 1
+    try:
+        bmfr = check_facts({"module": "M", "functions": [_MAKE,
+            {"name": "branch_factory", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1,
+                       "then": [{"op": "call", "callee": "make", "args": [], "result": "r",
+                                 "line": 2}],
+                       "else": [{"op": "call", "callee": "make", "args": [], "result": "r",
+                                 "line": 3}]},
+                      {"op": "release", "var": "r", "line": 4}]}]})
+        if bmfr:
+            fails.append("bridge branch-scope: a cross-branch FACTORY result released after "
+                         f"the merge must be CLEAN, got {[(x.component, x.code) for x in bmfr]}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: cross-branch factory result still crashes ({e})")
+    # NARROWER REMAINING LIMITATION (xfail-style lock). When the reference is itself at
+    # depth >= 1 (acquired at depth 2 inside a nested `if`, released at depth 1 in the
+    # enclosing block), function-top is NOT the common-dominator scope, so the depth-0
+    # hoist deliberately does not fire — and the original OWN030 -> OwnIRError still
+    # occurs. The correct fix is to hoist to the common-dominator block; tracked for a
+    # follow-up. This lock asserts the current raise and flips when that lands.
+    checks += 1
+    nst_raised = False
+    try:
+        check_facts({"module": "M", "functions": [
+            {"name": "nested_branch", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1, "else": [],
+                       "then": [{"op": "if", "line": 2, "else": [],
+                                 "then": [{"op": "acquire", "var": "r", "line": 3}]},
+                                {"op": "release", "var": "r", "line": 4}]}]}]})
     except OwnIRError:
-        bm_raised = True
-    if not bm_raised:
-        fails.append("branch-acquire-after-merge no longer raises OwnIRError — the bridge "
-                     "branch-scope fix has landed; make this shape CLEAN and flip this lock")
+        nst_raised = True
+    if not nst_raised:
+        fails.append("bridge branch-scope: nested cross-branch acquire no longer raises — the "
+                     "common-dominator hoist has landed; make this CLEAN and flip this lock")
+    # LOOP EXCLUSION (Codex P1): the hoist is for mutually-exclusive `if` branches only.
+    # A `while` body is cumulative, so hoisting `while { acquire r }; release r` to one
+    # acquire would HIDE the per-iteration leak (a false-clean). Loop-acquired locals are
+    # excluded, so this keeps its pre-existing LOUD behaviour (OWN030 -> OwnIRError) rather
+    # than silently returning no findings. A loop-aware model is a separate follow-up; this
+    # lock asserts the raise (NOT a false-clean) and flips when that model lands.
+    checks += 1
+    loop_raised = False
+    try:
+        check_facts({"module": "M", "functions": [
+            {"name": "loop_acq", "file": "T1.cs",
+             "body": [{"op": "while", "line": 1,
+                       "body": [{"op": "acquire", "var": "r", "line": 2}]},
+                      {"op": "release", "var": "r", "line": 3}]}]})
+    except OwnIRError:
+        loop_raised = True
+    if not loop_raised:
+        fails.append("bridge branch-scope: a while-body acquire released after the loop must "
+                     "NOT be silently hoisted to clean — it stays loud until a loop-aware model "
+                     "lands; got no raise (false-clean or premature loop hoist)")
+    # SAFETY (CodeRabbit Major): the hoist must NOT fire when a branch early-`return`s on a
+    # path that did not acquire the local — an unconditional hoisted acquire would leak on
+    # that path, a FALSE OWN001. `guard` (`if c: acquire r else: return; release r`) is
+    # clean C# (else returns, r never acquired there). `_branch_hoist_safe` blocks the hoist,
+    # so this stays the pre-existing loud raise — never a fabricated OWN001.
+    checks += 1
+    guard_ok = False
+    try:
+        gf = check_facts({"module": "M", "functions": [
+            {"name": "guard", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1,
+                       "then": [{"op": "acquire", "var": "r", "line": 2}],
+                       "else": [{"op": "return", "line": 3}]},
+                      {"op": "release", "var": "r", "line": 4}]}]})
+        guard_ok = not gf  # if it lowered, it must NOT fabricate a finding
+    except OwnIRError:
+        guard_ok = True  # not hoisted -> loud raise, never a false OWN001
+    if not guard_ok:
+        fails.append("bridge branch-scope: an early-return branch must not be hoisted into a "
+                     "fabricated OWN001 (the hoist safety predicate must block it)")
+    # a one-branch acquire with NO early return IS safe to hoist (else falls through to the
+    # release; null-safe dispose). It must be CLEAN, not crash.
+    checks += 1
+    try:
+        ob = check_facts({"module": "M", "functions": [
+            {"name": "one_branch", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1, "else": [],
+                       "then": [{"op": "acquire", "var": "r", "line": 2}]},
+                      {"op": "release", "var": "r", "line": 3}]}]})
+        if ob:
+            gotob = [(x.component, x.code) for x in ob]
+            fails.append("bridge branch-scope: a one-branch acquire (no early return) released "
+                         f"after the merge must be CLEAN, got {gotob}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: a safe one-branch acquire must not crash ({e!r})")
+    # a hoisted ArrayPool rent keeps its `pool` kind: a cross-branch Rent that is never
+    # released leaks as a POOLED buffer (OWN025-style wording), not a generic disposable.
+    # (CodeRabbit: the hoist must preserve acquire `kind`.) Asserted via the leak being
+    # tagged pooled in its structured finding.
+    checks += 1
+    pl = check_facts({"module": "M", "functions": [
+        {"name": "pool_branch", "file": "T1.cs",
+         "body": [{"op": "if", "line": 1,
+                   "then": [{"op": "acquire", "var": "r", "kind": "pool", "line": 2}],
+                   "else": [{"op": "acquire", "var": "r", "kind": "pool", "line": 3}]},
+                  {"op": "use", "var": "r", "line": 4}]}]})
+    # assert the structured kind, not wording: dropping the pool flag would lower the
+    # hoisted handle to a generic "disposable" (CodeRabbit).
+    gotpl = [(x.code, x.kind) for x in pl]
+    if gotpl != [("OWN001", "pooled buffer")]:
+        fails.append("bridge branch-scope: a hoisted ArrayPool rent that leaks must stay tagged "
+                     f"kind='pooled buffer' (kind preserved through the hoist), got {gotpl}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the

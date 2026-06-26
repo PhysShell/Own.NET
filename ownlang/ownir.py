@@ -852,8 +852,24 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             localmap: dict[str, str] = {}
             fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
                                        released, mos)
-            fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                released, mos)
+            # Cross-branch locals (acquired inside an `if`/`while` branch but referenced
+            # after the merge) must be declared once at the function's outer scope, or
+            # the core rejects the post-merge reference as OWN030 (the bridge branch-
+            # scope fix). Pre-declare them here, then skip their in-branch acquire.
+            hoist = _hoisted_branch_locals(nodes, mos)
+            hoisted_lets: list[Stmt] = []
+            for hname in sorted(hoist):
+                hh = f"loc_{loc[0]}"
+                loc[0] += 1
+                hline, hpool = hoist[hname]
+                localmap[hname] = hh
+                handles[hh] = {"file": ffile, "line": hline, "event": hname,
+                               "component": fname, "resource": "flow-local",
+                               "ever_released": hname in released, "pool": hpool}
+                hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
+            fbody = [*hoisted_lets,
+                     *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
+                                  released, mos, set(hoist))]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1291,11 +1307,146 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     return out
 
 
+def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None) -> bool:
+    """Whether hoisting `name` to an *unconditional* outer-scope acquire is leak-safe.
+
+    Hoisting makes a conditional acquire unconditional, so it is only safe if no path
+    can EXIT (early `return`) before the post-merge release on a path where the source
+    did not already acquire `name` — otherwise the hoisted resource leaks on that path,
+    a *false* OWN001 (e.g. `if c: acquire r else: return; release r`). This is a
+    definite-assignment walk: an `if` establishes acquisition only when **both** arms
+    do, a `while` body never does (it may run zero times), and a `return` that does not
+    itself return `name` (a discharge) on a not-yet-acquired path is unsafe. (CodeRabbit
+    Major on #120.)"""
+    def acquires(n: dict[str, Any]) -> bool:
+        if n.get("op") == "acquire" and str(n.get("var", "")) == name:
+            return True
+        if n.get("op") == "call" and str(n.get("result", "")) == name:
+            summ = mos.get(str(n.get("callee", ""))) if mos is not None else None
+            return summ is not None and getattr(summ, "returns", None) == "fresh"
+        return False
+
+    def analyze(seq: Any, acquired: bool) -> tuple[bool, bool]:
+        # (safe, acquired_after); safe=False => a fabricated-leak exit exists.
+        if not isinstance(seq, list):
+            return True, acquired
+        for n in seq:
+            if not isinstance(n, dict):
+                continue
+            op = n.get("op")
+            if acquires(n):
+                acquired = True
+            elif op == "return":
+                if not acquired and str(n.get("var", "")) != name:
+                    return False, acquired
+            elif op == "if":
+                s1, a1 = analyze(n.get("then"), acquired)
+                if not s1:
+                    return False, acquired
+                s2, a2 = analyze(n.get("else"), acquired)
+                if not s2:
+                    return False, acquired
+                acquired = acquired or (a1 and a2)
+            elif op == "while":
+                s, _ = analyze(n.get("body"), acquired)  # 0-trip: no acquisition gained
+                if not s:
+                    return False, acquired
+        return True, acquired
+
+    return analyze(nodes, False)[0]
+
+
+def _hoisted_branch_locals(nodes: Any,
+                           mos: dict[str, Any] | None) -> dict[str, tuple[int, bool]]:
+    """Locals acquired INSIDE an `if`/`while` branch but referenced after the merge.
+
+    The core resolver is strictly lexical: an `if` pushes a scope per branch and pops
+    it at the merge, so a `Let` emitted inside a branch is out of scope afterwards.
+    The bridge's flat `localmap`, however, lets a later `release`/`use` resolve to
+    that branch-scoped handle — which the core then rejects as OWN030 (undefined
+    name), and `check_facts` raises. C# allows this shape (`IDisposable r; if (c) r =
+    new X(); else r = new Y(); r.Dispose();`) because the *declaration* lives in the
+    outer scope. So such a local must be declared once at the function's outer scope.
+
+    A name is hoisted iff (1) it is **acquired** (a plain `acquire`, or a `fresh`-
+    returning call `result`) at depth ≥ 1; (2) its shallowest **reference** (use/release/
+    return/call-arg) is at **depth 0** — the function top, so function-scope is the
+    common-dominator (a depth ≥ 1 reference, e.g. acquired at depth 2 / released at depth
+    1, is *not* dominated by function-top, so hoisting there would leak on a sibling path;
+    that nested variant stays a narrower limitation); (3) it is not acquired inside a
+    `while` body (loop iterations are cumulative — hoisting `while { r = acquire() };
+    release r` to one acquire would hide a per-iteration leak); and (4) `_branch_hoist_safe`
+    holds — no path can early-`return` before the release on a path that did not acquire
+    the local (else the unconditional hoisted acquire fabricates a leak — a *false*
+    OWN001). The returned `(line, pool)` is the first branch-acquire site and whether it
+    is an ArrayPool rent (so a hoisted pooled buffer keeps its kind). (Bridge branch-scope
+    fix; Codex P2 on #116, loop exclusion Codex P1 + safety/pool CodeRabbit on #120.)"""
+    acq_depth: dict[str, int] = {}    # name -> shallowest acquire depth
+    acq_line: dict[str, int] = {}     # name -> first-seen acquire line
+    acq_pool: dict[str, bool] = {}    # name -> is an ArrayPool rent (any acquire)
+    ref_depth: dict[str, int] = {}    # name -> shallowest non-acquire reference depth
+    loop_acq: set[str] = set()        # names acquired anywhere inside a `while` body
+
+    def fresh_result(n: dict[str, Any]) -> str | None:
+        callee, res = n.get("callee"), n.get("result")
+        if not (isinstance(res, str) and res and isinstance(callee, str) and callee):
+            return None
+        summ = mos.get(callee) if mos is not None else None
+        return res if (summ is not None and getattr(summ, "returns", None) == "fresh") else None
+
+    def note_ref(name: str, depth: int) -> None:
+        if name not in ref_depth or depth < ref_depth[name]:
+            ref_depth[name] = depth
+
+    def walk(ns: Any, depth: int, in_loop: bool) -> None:
+        if not isinstance(ns, list):
+            return
+        for n in ns:
+            if not isinstance(n, dict):
+                continue
+            op = n.get("op")
+            line = _as_int(n.get("line", 0))
+            acq = (str(n.get("var", "?")) if op == "acquire"
+                   else fresh_result(n) if op == "call" else None)
+            if acq is not None:
+                if acq not in acq_depth or depth < acq_depth[acq]:
+                    acq_depth[acq] = depth
+                acq_line.setdefault(acq, line)
+                if op == "acquire" and n.get("kind") == "pool":
+                    acq_pool[acq] = True
+                if in_loop:
+                    loop_acq.add(acq)
+            if op in ("use", "release", "overspan", "return"):
+                v = n.get("var")
+                if isinstance(v, str):
+                    note_ref(v, depth)
+            elif op == "call":
+                for a in (n.get("args") or []):
+                    note_ref(str(a), depth)
+            if op == "if":
+                walk(n.get("then"), depth + 1, in_loop)
+                walk(n.get("else"), depth + 1, in_loop)
+            elif op == "while":
+                walk(n.get("body"), depth + 1, True)
+
+    walk(nodes, 0, False)
+    # Only `if`-branch acquires are hoistable: branches are mutually exclusive, so
+    # exactly one acquire runs and a single unconditional one is balanced. A `while`
+    # body is CUMULATIVE — hoisting it would collapse 0..N iterations into one acquire
+    # and hide a per-iteration leak (Codex P1), so a loop-acquired local is excluded (it
+    # keeps its pre-existing behaviour; a loop-aware model is a separate follow-up).
+    return {name: (acq_line[name], acq_pool.get(name, False))
+            for name, d in acq_depth.items()
+            if d >= 1 and ref_depth.get(name, -1) == 0 and name not in loop_acq
+            and _branch_hoist_safe(nodes, name, mos)}
+
+
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handles: dict[str, dict[str, Any]], loc: list[int],
                 localmap: dict[str, str],
                 released_vars: set[str],
-                mos: dict[str, Any] | None = None) -> list[Stmt]:
+                mos: dict[str, Any] | None = None,
+                hoisted: set[str] | None = None) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1306,7 +1457,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
     P-005 D5.2 (T1): a `call` op that binds a `result` local, whose callee's solved
     summary (`mos`) returns `fresh`, is **also** lowered as an `acquire` of that
     local — the call site is a factory, so the result is a newly-owned obligation and
-    the existing leak / double-release / use-after-release checks apply to it."""
+    the existing leak / double-release / use-after-release checks apply to it.
+
+    `hoisted` names (see `_hoisted_branch_locals`) are declared once at the function's
+    outer scope by the caller, so an in-branch acquire of such a name is SKIPPED here
+    (the hoisted `Let` already declared+acquired it) — this keeps a cross-branch local
+    in scope after the merge instead of emitting a branch-scoped `Let` the core would
+    reject as OWN030."""
+    hoisted = hoisted or set()
     body: list[Stmt] = []
     for n in nodes:
         if not isinstance(n, dict):
@@ -1314,9 +1472,13 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
         op = n.get("op")
         line = _as_int(n.get("line", 0))
         if op == "acquire":
+            name = str(n.get("var", "?"))
+            if name in hoisted:
+                # declared+acquired once at the outer scope (cross-branch local) — the
+                # hoisted `Let` stands in for this in-branch acquire; emit nothing.
+                continue
             handle = f"loc_{loc[0]}"
             loc[0] += 1
-            name = str(n.get("var", "?"))
             localmap[name] = handle
             handles[handle] = {"file": ffile, "line": line, "event": name,
                                "component": fname, "resource": "flow-local",
@@ -1347,15 +1509,15 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
         elif op == "if":
             tn = n.get("then", [])
             en = n.get("else", [])
-            then_b = _lower_flow(tn if isinstance(tn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
-            else_b = _lower_flow(en if isinstance(en, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
+            then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
+            else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
-            body_b = _lower_flow(bn if isinstance(bn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars, mos)
+            body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
+                                 handles, loc, localmap, released_vars, mos, hoisted)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1379,7 +1541,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # claim, so the result is never falsely owned (precision-first).
             result = n.get("result")
             summ = mos.get(callee) if (mos is not None and callee) else None
-            if (isinstance(result, str) and result
+            if (isinstance(result, str) and result and result not in hoisted
                     and summ is not None and getattr(summ, "returns", None) == "fresh"):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
