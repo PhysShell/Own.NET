@@ -48,12 +48,18 @@ def _empty_evidence_invariant() -> list[str]:
     if "\n" in plain:
         fails.append("plain render of an evidence-free diagnostic must be one line")
 
+    # Pin the FULL rustc-style output byte-for-byte, so a regression in the header,
+    # gutter or caret spacing is caught (not merely the absence of note: lines). The
+    # caret sits under `b`: it is at column 9 of the source line, rendered after the
+    # 6-char "  3 | " gutter, i.e. 6 + 9 - 1 = 14 leading spaces.
     pretty = d.render_pretty("m.own", _SOURCE)
-    if "note:" in pretty:
-        fails.append("render_pretty must emit no note: line when evidence is empty")
-    # header + source line + caret, and nothing past the caret.
-    if not pretty.splitlines()[-1].strip().startswith("^"):
-        fails.append(f"render_pretty should end at the caret for empty evidence: {pretty!r}")
+    expected_pretty = "\n".join([
+        "m.own:3:9: error: [OWN002] use 'b' after it was released",
+        "  3 |     use b;",
+        " " * 14 + "^",
+    ])
+    if pretty != expected_pretty:
+        fails.append(f"pretty render changed for empty evidence: {pretty!r}")
     return fails
 
 
@@ -117,6 +123,13 @@ def _evidence_builders() -> list[str]:
         fails.append(f"code_flow should keep only the usable step: {flow!r}")
     if evidence.code_flow([]) != []:
         fails.append("code_flow of no steps must be [] so the caller can splice conditionally")
+    # all steps filtered out (empty file / no line) must still collapse to [],
+    # not a non-empty flow with zero locations.
+    all_dropped = [("", 11, "no file"), ("b.cs", 0, "no line")]
+    if evidence.code_flow(all_dropped) != []:
+        fails.append("code_flow must be [] when every supplied step is filtered out")
+    if evidence.related_locations(all_dropped) != []:
+        fails.append("related_locations must be [] when every supplied step is filtered out")
 
     loc_by_name = {"App": ("app.cs", 1), "Mid": ("mid.cs", 2), "Scoped": ("db.cs", 3)}
     di = evidence.di_path_steps(("App", "Mid", "Scoped"), loc_by_name, "captures scoped service")
