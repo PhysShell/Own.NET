@@ -732,9 +732,16 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
             results.append((rel, f))
         documents.append(document_facts(tree, rel))
 
-    sarif_path.write_text(json.dumps(_to_sarif(results), indent=2), encoding="utf-8")
     facts = module_facts(documents, module=Path(target).name or "target")
-    facts_path.write_text(json.dumps(facts, indent=2), encoding="utf-8")
+    try:
+        # Best-effort to the end: a permission/disk error on the artifact writes is
+        # recorded as a tier reason, not raised — the same never-crash contract as a
+        # missing target or absent SDK.
+        sarif_path.write_text(json.dumps(_to_sarif(results), indent=2), encoding="utf-8")
+        facts_path.write_text(json.dumps(facts, indent=2), encoding="utf-8")
+    except OSError as exc:
+        status["reason"] = f"failed to write XAML artifacts: {exc}"
+        return status
     status.update(available=True, sarif=str(sarif_path), facts=str(facts_path),
                   findings=len(results), files_scanned=scanned,
                   bindings=sum(len(d["bindings"]) for d in documents),
