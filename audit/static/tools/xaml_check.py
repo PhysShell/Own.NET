@@ -27,7 +27,7 @@ Phase-1 rules implemented here (see the catalogue in the design note). Each is t
 perf/lifetime axis that WpfAnalyzers / PropertyChangedAnalyzers do **not** cover —
 we deliberately do not re-implement their correctness rules:
 
-  XAML100  ResourceShouldBeHoisted              (cat 9)  Freezable keyed in N local scopes
+  XAML100  ResourceShouldBeHoisted              (cat 9)  Freezable/Style/template dup'd per-scope
   XAML101  DuplicateStatelessConverterResource  (cat 9)  per-instance resource churn
   XAML102  DynamicResourceLikelyStatic          (cat 9)  WPF-only, deferred-lookup cost
   XAML103  SuspiciousSharedFalse                (cat 9)  WPF-only, x:Shared opt-out
@@ -41,12 +41,12 @@ we deliberately do not re-implement their correctness rules:
   XAML112  TemplateBindingOpportunity           (cat 9)  cheaper compiled binding available
   XAML113  InlineFreezableDuplication           (cat 9)  identical inline brush/geometry
 
-XAML100 covers the recurring-Freezable case (the same keyed brush/geometry/transform
-declared in several control-local scopes); the Style/template variant (deep
-structural equivalence) and XAML105 MergedDictionaryKeyShadowing across *external*
-dictionaries (cross-file resolution) remain a later slice — documented so nothing on
-the wishlist quietly falls through. Phase 2 (Roslyn-linked XAML2xx) and Phase 3
-(runtime correlation) live elsewhere per the design note.
+XAML100 covers the recurring heavy-resource case across control-local scopes — both
+Freezables and Styles/templates (the latter on a full-subtree signature). XAML105
+MergedDictionaryKeyShadowing across *external* dictionaries (cross-file resolution)
+remains a later slice — documented so nothing on the wishlist quietly falls through.
+Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime correlation) live elsewhere per
+the design note.
 
 WPF-only rules (XAML102/103/106) are skipped on Avalonia ``.axaml`` because the
 ``DynamicResource`` / ``x:Shared`` / ``Freezable`` semantics differ or do not exist
@@ -95,6 +95,14 @@ DYNAMIC_KEY_TYPES = ("SystemColors", "SystemParameters", "SystemFonts")
 # the document root and the window/app/page-level dictionaries (XAML100).
 TOP_LEVEL_SCOPES = {"root", "Window", "UserControl", "Application", "Page",
                     "NavigationWindow", "ResourceDictionary"}
+# Heavy keyed resources worth hoisting when duplicated across control-local scopes
+# (XAML100): Freezables (a shallow sig would do) plus Styles/templates (which need the
+# DEEP structural signature, since their direct-child types alone — all `Setter` — say
+# nothing about the values).
+HOISTABLE_RESOURCE_TYPES = FREEZABLE_TYPES | {
+    "Style", "ControlTemplate", "DataTemplate", "HierarchicalDataTemplate",
+    "ItemsPanelTemplate",
+}
 
 # Binding markers for XAML108 (per-keystroke source updates).
 _TWOWAY_RE = re.compile(r"Mode\s*=\s*TwoWay", re.IGNORECASE)
@@ -131,6 +139,7 @@ class Node:
     line: int
     children: list[Node] = field(default_factory=list)
     parent: Node | None = None
+    text: str = ""   # accumulated character data (used by the deep XAML100 signature)
 
     def local(self) -> str:
         """The unqualified element name: ``controls:DataGrid`` -> ``DataGrid``;
@@ -190,8 +199,16 @@ def parse_xaml(text: str | bytes) -> Node | None:
         if stack:
             stack.pop()
 
+    def chardata(data: str) -> None:
+        # expat may deliver a run of text in several pieces; accumulate on the open
+        # element. Used by the deep XAML100 signature so templates that differ only
+        # in text (<TextBlock>OK</> vs Cancel) are not treated as identical.
+        if stack:
+            stack[-1].text += data
+
     parser.StartElementHandler = start
     parser.EndElementHandler = end
+    parser.CharacterDataHandler = chardata
     try:
         parser.Parse(text, True)
     except xml.parsers.expat.ExpatError:
@@ -396,24 +413,47 @@ def _scope_owner(rd: Node) -> str:
     return "root"
 
 
+def _is_xkey(name: str) -> bool:
+    """The XAML resource-key directive ``x:Key`` (any prefix bound to the xaml
+    namespace) — but NOT a CLR ``Key`` property such as ``KeyBinding.Key``, which is a
+    real value that must stay in the signature."""
+    return ":" in name and name.rsplit(":", 1)[-1] == "Key"
+
+
+def _deep_resource_sig(node: Node) -> tuple[Any, ...]:
+    """A *recursive* structural signature: the element's tag (sans namespace prefix,
+    keeping the property-element dotted form), its attributes (excluding only the
+    resource directive ``x:Key`` — a descendant CLR ``Key`` like ``KeyBinding Key=...``
+    is kept), its trimmed character data, and the signatures of all its children in
+    document order. Two resources share this only when their entire subtree —
+    elements, attribute values AND text — is structurally identical, so a
+    `Style`/`ControlTemplate` is matched on its actual setters/triggers/template/text,
+    not just "has Setter children". Child order is significant (a conservative choice:
+    only literal duplicates flag)."""
+    head = node.tag.split(":", 1)[-1]
+    attrs = tuple(sorted((k, v) for k, v in node.attrib.items() if not _is_xkey(k)))
+    kids = tuple(_deep_resource_sig(c) for c in node.children)
+    return (head, attrs, kids, node.text.strip())
+
+
 def _rule_resource_hoist(root: Node, avalonia: bool,
                          min_copies: int = 2) -> list[XamlFinding]:
-    """XAML100 — a heavy Freezable resource (brush/geometry/transform/image) declared
-    with ``x:Key`` in several **control-local** ``<X.Resources>`` scopes with the same
-    structure: each copy is a separate object multiplying working set across siblings,
-    when one shared resource at window/app scope would do (the "52x52 Brush collapse"
-    of the design note). Restricted to Freezables, where the shallow structural
-    signature is reliable; Styles/templates (deep structural equivalence) are a later
-    refinement. Resources already at a shared (root/window/app) scope are the hoist
-    *target*, not a finding."""
+    """XAML100 — a heavy keyed resource (Freezable brush/geometry/transform/image, or a
+    ``Style``/template) declared in several **control-local** ``<X.Resources>`` scopes
+    with the same *deep* structure: each copy is a separate object multiplying working
+    set across siblings, when one shared resource at window/app scope would do (the
+    "52x52 Brush collapse" of the design note). Equivalence is the full-subtree
+    ``_deep_resource_sig``, so a `Style`/template only collapses with a structurally
+    identical twin (same setters/values), never merely a same-shaped one. Resources
+    already at a shared (root/window/app) scope are the hoist *target*, not a finding."""
     by_sig: dict[tuple[Any, ...], list[Node]] = {}
     for rd in _resource_dictionaries(root):
         if _scope_owner(rd) in TOP_LEVEL_SCOPES:
             continue  # already a shared scope — the place to hoist *to*
         for _key, c in _keyed_resources(rd):
-            if c.type_name() not in FREEZABLE_TYPES:
+            if c.type_name() not in HOISTABLE_RESOURCE_TYPES:
                 continue
-            sig = _inline_freezable_sig(c)  # type + non-key attrs + child types
+            sig = _deep_resource_sig(c)  # full subtree: tag + non-key attrs + children
             if not sig[1] and not sig[2]:
                 continue  # empty/defaulted element — nothing meaningful to share
             by_sig.setdefault(sig, []).append(c)
@@ -1036,6 +1076,55 @@ def _selftest() -> int:
                              '    </StackPanel.Resources>')
     check("XAML100" not in rules(distinct),
           "XAML100 false positive: structurally distinct local resources are not duplicates")
+
+    # XAML100 for Styles — the deep signature: an IDENTICAL style in two local scopes
+    # is a duplicate, but two styles with different Setter values are NOT.
+    def _two_styles(setter1: str, setter2: str) -> str:
+        def blk(owner: str, setter: str) -> str:
+            return (f'    <{owner}><{owner}.Resources>\n'
+                    '      <Style x:Key="s" TargetType="Button">\n'
+                    f'        <Setter Property="Background" Value="{setter}" />\n'
+                    '      </Style>\n'
+                    f'    </{owner}.Resources></{owner}>\n')
+        return (f'<UserControl {_WPF_NS}>\n  <Grid>\n'
+                + blk("Border", setter1) + blk("StackPanel", setter2)
+                + '  </Grid>\n</UserControl>\n')
+    check("XAML100" in rules(_two_styles("Red", "Red")),
+          "XAML100 must flag an identical Style duplicated across control-local scopes")
+    check("XAML100" not in rules(_two_styles("Red", "Blue")),
+          "XAML100 false positive: Styles with different Setter values are not duplicates "
+          "(deep structural signature)")
+
+    # Deep signature must include character data: two DataTemplates that differ ONLY in
+    # text are not duplicates; identical text still collapses (recall preserved).
+    def _two_templates(text1: str, text2: str) -> str:
+        def blk(owner: str, txt: str) -> str:
+            return (f'    <{owner}><{owner}.Resources>\n'
+                    f'      <DataTemplate x:Key="t"><TextBlock Text="x">{txt}</TextBlock>'
+                    '</DataTemplate>\n'
+                    f'    </{owner}.Resources></{owner}>\n')
+        return (f'<UserControl {_WPF_NS}>\n  <Grid>\n'
+                + blk("Border", text1) + blk("StackPanel", text2)
+                + '  </Grid>\n</UserControl>\n')
+    check("XAML100" not in rules(_two_templates("OK", "Cancel")),
+          "XAML100 false positive: templates differing only in text are not duplicates")
+    check("XAML100" in rules(_two_templates("OK", "OK")),
+          "XAML100 must still flag templates that are identical incl. text")
+
+    # The x:Key exclusion must be prefix-aware: a CLR `Key` (e.g. KeyBinding.Key) is a
+    # real value, so templates differing only by it are NOT duplicates.
+    kb = ('<UserControl ' + _WPF_NS + '>\n  <Grid>\n'
+          '    <Border><Border.Resources><Style x:Key="s" TargetType="Window">\n'
+          '      <Setter Property="InputBindings"><Setter.Value>\n'
+          '        <KeyBinding Key="Enter" /></Setter.Value></Setter>\n'
+          '    </Style></Border.Resources></Border>\n'
+          '    <StackPanel><StackPanel.Resources><Style x:Key="s2" TargetType="Window">\n'
+          '      <Setter Property="InputBindings"><Setter.Value>\n'
+          '        <KeyBinding Key="Escape" /></Setter.Value></Setter>\n'
+          '    </Style></StackPanel.Resources></StackPanel>\n'
+          '  </Grid>\n</UserControl>\n')
+    check("XAML100" not in rules(kb),
+          "XAML100 false positive: descendant CLR Key (KeyBinding Key=) must stay in the signature")
 
     # Implicit <X.Resources> dictionary (the common WPF syntax, no <ResourceDictionary>
     # wrapper) must feed the keyed-resource rules — else XAML101/102/106 miss most files.
