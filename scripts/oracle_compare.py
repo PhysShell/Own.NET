@@ -379,8 +379,12 @@ def _is_test_path(path: str) -> bool:
     examples are never disposed by design) — counting them as product leaks inflates
     the oracle-only recall gap with example code that was never meant to dispose."""
     for seg in path.lower().split("/"):
-        if (seg in ("test", "tests", "doc", "docs")
-                or seg.startswith(("benchmark", "sample", "example", "snippet"))):
+        # Exact match for short, collision-prone names — a `snippet` *prefix* would
+        # wrongly drop product dirs like `SnippetEngine`/`SnippetService` (Polly's
+        # `src/Snippets/Docs/*` is caught by the exact `snippets`/`docs` segments
+        # anyway). Prefix match only for the long, unambiguous plural-able ones.
+        if (seg in ("test", "tests", "doc", "docs", "snippet", "snippets")
+                or seg.startswith(("benchmark", "sample", "example"))):
             return True
     return False
 
@@ -556,7 +560,10 @@ def _selftest() -> int:
                ("tests/Foo/Bar.cs", "benchmarks/X/Y.cs", "src/Test/Z.cs",
                 "src/Snippets/Docs/Fallback.cs", "src/MyLib/docs/Example.cs")):
         fails.append("_is_test_path should match test/benchmark/doc/snippet trees")
-    if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs")):
+    # ...but a product dir whose name merely *starts with* a marker word is NOT
+    # excluded — exact match for snippet/doc guards against dropping real code.
+    if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs",
+                                      "src/SnippetEngine/Foo.cs", "src/Documentation/Api.cs")):
         fails.append("_is_test_path should not match product paths")
     # the scope note is gated on mode, not count: a product-only run that excluded
     # nothing must still say so (else it reads like a full-scope run).
