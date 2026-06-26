@@ -1098,6 +1098,24 @@ def run() -> int:
     if [(x.code, x.severity) for x in warn] != [("OWN001", "warning")]:
         fails.append(f"injected sub without DI info should stay an OWN001 warning, "
                      f"got {[(x.code, x.severity) for x in warn]}")
+    # P-015: a DI-sourced subscription escape (OWN014) carries a CROSS-FILE slice — the
+    # subscribe site -> where the longer-lived source service was registered (its lifetime
+    # is *why* the subscriber escapes). The source hop comes from the services graph.
+    checks += 1
+    esc = check_facts({"ownir_version": 0, "module": "M", "functions": [],
+        "components": [{"name": "Vm", "file": "VM.cs", "subscriptions": [
+            {"event": "bus.Tick", "handler": "OnTick", "line": 11, "released": False,
+             "resource": "subscription", "source": "injected", "source_type": "IBus"}]}],
+        "services": [
+            {"name": "IBus", "lifetime": "singleton", "deps": [],
+             "file": "Startup.cs", "line": 7},
+            {"name": "Vm", "lifetime": "transient", "deps": ["IBus"],
+             "file": "Startup.cs", "line": 8}]})
+    e14 = next((x for x in esc if x.code == "OWN014"), None)
+    if e14 is None or e14.flow != (
+            ("VM.cs", 11, "'Vm' subscribes 'bus.Tick' to 'IBus' here"),
+            ("Startup.cs", 7, "source 'IBus' (singleton) registered here — outlives 'Vm'")):
+        fails.append(f"DI-source OWN014 escape flow wrong: {e14.flow if e14 else None!r}")
 
     # --- P-006/2b: COMPOSITIONAL ownership transfer through the bridge. A C#
     #     method's ownership contract (a `consume`/`borrow` parameter) lowers to a
@@ -1130,6 +1148,15 @@ def run() -> int:
             and "[resource: disposable]" in run_f[0].render()):
         fails.append(f"use-after-handoff should read as use-after-disposal, got "
                      f"{[x.render() for x in run_f]}")
+    checks += 1
+    # P-015: the flow-local finding carries a reachability slice — where the resource was
+    # acquired -> where it is used after its obligation moved (the precise violation line the
+    # primary anchor, at the acquire, does not itself show).
+    if not run_f or run_f[0].flow != (
+            ("Archiver.cs", 24, "acquired 's' here"),
+            ("Archiver.cs", 26, "used here after it was released/returned")):
+        fails.append(f"flow-local OWN002 reachability flow wrong: "
+                     f"{run_f[0].flow if run_f else None!r}")
 
     # regression (codex review): an undischarged `consume` parameter must MAP to a
     # finding AT the parameter, not crash check_facts. Before params carried an
