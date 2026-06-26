@@ -642,7 +642,8 @@ jobs:
           # detector cannot catch (use-after-dispose, double-dispose, leak-on-path).
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/FlowLocalsSample.cs \
-            frontend/roslyn/samples/MemoryOwnerEscapeSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+            frontend/roslyn/samples/MemoryOwnerEscapeSample.cs \
+            frontend/roslyn/samples/FactoryLeakSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
           echo "$out"
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
@@ -820,6 +821,16 @@ jobs:
           # cleanup) rather than emit a false leak -> silent.
           for ok in clean looped esc exemptTask whileClean asyncDisposed asyncDisposedCfg tfClean tfCatch tfRet tfNull cda daci cif ctorLater lamPrior other doClean swAll ncf captured shaClean stopped defer ctorMoved handedOwner tdClean vtc tif; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: silent/exempt case '$ok' was reported"; exit 1; fi
+          done
+          # P-005 D5.2 INTERPROCEDURAL fresh-returning factory (FactoryLeakSample.cs): the core
+          # infers `StreamFactory.Make` returns `fresh` (its `acquire; return <var>` body), so a
+          # caller that binds the result and drops it leaks at the CALL SITE — a finding the flat,
+          # intra-procedural detectors cannot see. The disposed caller and the factory itself stay
+          # silent (the factory transfers ownership out via its return).
+          echo "$out" | grep -qE "OWN001.*'factoryLeak'" \
+            || { echo "FAIL: expected the interprocedural OWN001 on the dropped factory result"; exit 1; }
+          for ok in factoryOk made; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Opt-in body-throw-edges tier (--body-throw-edges, P-016 throw firehose)

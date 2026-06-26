@@ -560,6 +560,28 @@ static string MethodName(BaseMethodDeclarationSyntax m) => m switch
     _ => "?",
 };
 
+// P-005 D5.2: a FIRST-PARTY method call whose result is an owned IDisposable — the
+// caller side of a fresh-returning factory. Because the callee is defined in source (not
+// the BCL), the core can see its body and infer whether it returns `fresh`; if so, a
+// `var r = Factory()` binding is an acquire and a caller that drops `r` leaks. The emitted
+// `callee` matches the `functions[]` key `{TypeName}.{MethodName}`. A null/extern symbol,
+// a void/non-disposable return, or a dispose-optional return is rejected (no claim); an
+// overload (non-unique name) resolves to `unknown` in the core and is silently safe.
+static bool IsFirstPartyDisposableFactory(ExpressionSyntax? expr, SemanticModel model, out string callee)
+{
+    callee = "";
+    if (expr is not InvocationExpressionSyntax inv)
+        return false;
+    if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m)
+        return false;
+    if (m.ReturnsVoid || m.DeclaringSyntaxReferences.Length == 0)
+        return false;   // void, or not first-party (no visible body to infer `fresh` from)
+    if (!ImplementsIDisposable(m.ReturnType) || IsDisposeOptional(m.ReturnType))
+        return false;
+    callee = $"{m.ContainingType.Name}.{m.Name}";
+    return true;
+}
+
 // A `Dispose()`/`Close()`/`DisposeAsync()` call — through member access (`x.Dispose()`)
 // or member binding (`x?.Dispose()`), and seen through a trailing `.ConfigureAwait(false)`
 // (the idiomatic `await x.DisposeAsync().ConfigureAwait(false)` is the release, not a
@@ -758,6 +780,13 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         // — the flow path previously mislabelled a pool buffer leaked on a throw edge.
                         nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v),
                                         kind = IsPoolRent(v.Initializer?.Value, model) ? "pool" : "disposable" });
+                    // P-005 D5.2: `var r = FirstPartyFactory()` — emit a `call` op (NOT an
+                    // acquire); the core mints the acquire only if it proves the callee returns
+                    // `fresh`, so a non-fresh first-party call is never falsely owned.
+                    else if (tracked.Contains(v.Identifier.Text)
+                             && IsFirstPartyDisposableFactory(v.Initializer?.Value, model, out var fpCallee))
+                        nodes.Add(new { op = "call", callee = fpCallee, args = Array.Empty<string>(),
+                                        result = v.Identifier.Text, line = LineOf(v) });
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
                     // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
                     // called on a non-acquire initializer, so scan it here for the overspan (Codex review).
@@ -849,7 +878,16 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 nodes.AddRange(chain);
             }
             else
-                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(rs) });
+            {
+                // P-005 D5.2: a tracked local returned BARE (outside any `finally`) is a
+                // fresh-factory transfer — emit it as the return's `var` so the core models the
+                // escape (a discharge: ownership moves to the caller) and classifies the method
+                // `returnsOwned: fresh`. A non-identifier / non-tracked return is a bare CFG exit.
+                var rvar = rs.Expression is IdentifierNameSyntax rid
+                           && tracked.Contains(rid.Identifier.Text)
+                    ? rid.Identifier.Text : (string?)null;
+                nodes.Add(new { op = "return", var = rvar, line = LineOf(rs) });
+            }
             return true;
         }
         case WhileStatementSyntax ws:
@@ -3181,6 +3219,12 @@ foreach (var (file, tree) in parsed)
                             candidates.Add(v.Identifier.Text);
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
                             candidates.Add(v.Identifier.Text);
+                        else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model, out _))
+                            // P-005 D5.2: `var r = FirstPartyFactory()` — a candidate acquire
+                            // IFF the core proves the callee returns `fresh` (it emits a `call`
+                            // op, not an `acquire`; the core decides). Checked last so `new` /
+                            // pool / BCL-factory initializers keep their existing classification.
+                            candidates.Add(v.Identifier.Text);
                 }
                 // `using (IMemoryOwner owner = MemoryPool.Rent(...)) { … }` STATEMENT form: track the owner
                 // too, so its returned view dangles after the scope-exit dispose (the desugar mirrors the
@@ -3254,9 +3298,20 @@ foreach (var (file, tree) in parsed)
                     // use of the returned owner trips OWN002 — the bare-owner twin of the returned-view
                     // dangle. A NON-using returned owner stays a genuine transfer (escaped → untracked →
                     // silent), so this never fires on `var o = Rent(); return o;`.
-                    if (idn.Parent is ReturnStatementSyntax)
+                    if (idn.Parent is ReturnStatementSyntax rsp)
                     {
-                        if (!usingMemoryOwners.Contains(nm))
+                        // P-005 D5.2: a `new`'d IDisposable returned BARE outside any `try` is a
+                        // fresh-returning FACTORY — keep it tracked so the flow body emits
+                        // `acquire …; return <var>`. The core then classifies the method
+                        // `returnsOwned: fresh` (and the `return <var>` discharges it, so the
+                        // factory itself stays silent), letting a caller that drops the result
+                        // leak. A return INSIDE a try threads `finally` edges the fresh path does
+                        // not model yet, so keep the old transfer (escape) there; a `using` owner
+                        // also stays tracked (its scope-exit dispose dangles the returned value).
+                        var freshFactory = newedDisposables.Contains(nm)
+                            && !rsp.Ancestors().TakeWhile(a => a != mbody)
+                                   .OfType<TryStatementSyntax>().Any();
+                        if (!usingMemoryOwners.Contains(nm) && !freshFactory)
                             escapedLocals.Add(nm);
                     }
                     // A pooled buffer handed as an argument is normally a BORROW (the renter Returns it),
