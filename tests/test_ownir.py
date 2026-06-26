@@ -1599,10 +1599,12 @@ def run() -> int:
                    "then": [{"op": "acquire", "var": "r", "kind": "pool", "line": 2}],
                    "else": [{"op": "acquire", "var": "r", "kind": "pool", "line": 3}]},
                   {"op": "use", "var": "r", "line": 4}]}]})
-    pooled = [x for x in pl if getattr(x, "pooled", False) or "pool" in (x.message or "").lower()]
-    if not pl or not pooled:
+    # assert the structured kind, not wording: dropping the pool flag would lower the
+    # hoisted handle to a generic "disposable" (CodeRabbit).
+    gotpl = [(x.code, x.kind) for x in pl]
+    if gotpl != [("OWN001", "pooled buffer")]:
         fails.append("bridge branch-scope: a hoisted ArrayPool rent that leaks must stay tagged "
-                     f"a pooled buffer (kind preserved), got {[(x.code, x.message) for x in pl]}")
+                     f"kind='pooled buffer' (kind preserved through the hoist), got {gotpl}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
