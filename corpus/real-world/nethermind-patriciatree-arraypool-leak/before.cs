@@ -1,13 +1,15 @@
 // BEFORE (buggy). Reduction of NethermindEth/nethermind#9322 — an ArrayPool
 // buffer leak in Nethermind.Trie/PatriciaTree.cs `Get` / `GetNodeByKey` (fixed in
 // Nethermind v1.35.0). For keys longer than the 64-byte stackalloc minimum the
-// methods Rent a byte[] from ArrayPool<byte>.Shared, then call GetNew (which can
-// throw TrieException) and Return the buffer only on the success path. A thrown
-// TrieException skips the Return and leaks the rented buffer — gradual memory
-// pressure under sustained RPC load with long keys.
+// methods Rent a byte[] from ArrayPool<byte>.Shared. The `Return` sat INSIDE the
+// try, after the may-throw `GetNew`, so a thrown TrieException skipped it and
+// leaked the rented buffer — gradual memory pressure under sustained RPC load with
+// long keys. The fix moves the `Return` into a `finally` block (see after.cs).
 //
-// Reduced + helpers stubbed so the file is self-contained; representative of the
-// pattern, not a verbatim copy of the PR diff.
+// The Return is inside the `try` (after the may-throw call) on purpose: that is the
+// real structure the PR fixed, and it is what the extractor's default throw-edge
+// model (a throw exit before each may-throw leaf in a try, `--flow-locals`) sees.
+// Reduced + helpers stubbed so the file is self-contained.
 using System;
 using System.Buffers;
 
@@ -19,9 +21,16 @@ namespace Corpus
         {
             int nibblesCount = 2 * rawKey.Length;
             byte[] array = ArrayPool<byte>.Shared.Rent(nibblesCount);   // Rent (long key)
-            byte[] result = GetNew(array);                             // can throw TrieException
-            ArrayPool<byte>.Shared.Return(array);                      // never reached if GetNew threw -> leak
-            return result;
+            try
+            {
+                byte[] result = GetNew(array);                         // can throw TrieException
+                ArrayPool<byte>.Shared.Return(array);                  // in the try -> skipped on throw -> LEAK
+                return result;
+            }
+            catch (TrieException)
+            {
+                throw;                                                 // buffer NOT returned on this path
+            }
         }
 
         private static byte[] GetNew(byte[] nibbles) => throw new TrieException();
