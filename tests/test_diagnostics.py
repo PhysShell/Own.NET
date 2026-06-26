@@ -29,7 +29,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import evidence
-from ownlang.diagnostics import Diagnostic, Evidence, Severity
+from ownlang.diagnostics import Diagnostic, Evidence
 
 # a source whose line 3 names `b`, so render_pretty can place a caret under it.
 _SOURCE = "module M\nfn f() {\n    use b;\n}\n"
@@ -39,7 +39,8 @@ def _empty_evidence_invariant() -> list[str]:
     """render()/render_pretty() must be unchanged when evidence == ()."""
     fails: list[str] = []
     d = Diagnostic(code="OWN002", message="use 'b' after it was released", line=3)
-    assert d.evidence == ()   # the default; the invariant is about this case
+    if d.evidence != ():   # the default; the invariant is about this case
+        fails.append("a freshly constructed Diagnostic must default to no evidence")
 
     plain = d.render("m.own")
     if plain != "m.own:3: error: [OWN002] use 'b' after it was released":
@@ -87,9 +88,9 @@ def _evidence_slice() -> list[str]:
     if pnotes != expected:
         fails.append(f"render_pretty evidence lines wrong/out of order: {pnotes!r}")
     # the notes come AFTER the caret, not before it.
-    caret_idx = next(i for i, ln in enumerate(pretty.splitlines()) if ln.strip().startswith("^"))
-    first_note_idx = next(i for i, ln in enumerate(pretty.splitlines())
-                          if ln.lstrip().startswith("note:"))
+    lines = pretty.splitlines()
+    caret_idx = next(i for i, ln in enumerate(lines) if ln.strip().startswith("^"))
+    first_note_idx = next(i for i, ln in enumerate(lines) if ln.lstrip().startswith("note:"))
     if first_note_idx <= caret_idx:
         fails.append("render_pretty must place note: lines after the caret block")
     return fails
