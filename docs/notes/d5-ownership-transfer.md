@@ -294,9 +294,19 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   never `fresh` (that is wrap/alias, T4/D5.4), and a non-fresh / unknown return makes no claim —
   the result is never falsely owned. Proven by synthetic OwnIR tests: factory-result leak
   (OWN001 @ the call), disposed-clean, use-after-dispose (OWN002), forward-return propagation,
-  and the param-return precision guard. **Remaining T1 door:** `out`/`ref`-owned parameters
-  (another `fresh` source) — extractor-side recognition of an out-assignment as a fresh acquire
-  — rides into a later slice before async.
+  and the param-return precision guard. **Extractor emission (shipped).** The Roslyn extractor
+  now produces the facts that drive this on real C# (`--flow-locals`): a `new`'d local returned
+  bare outside a `try` stays tracked and emits `acquire …; return <var>` (so a first-party
+  factory is classified `fresh`), and `var r = FirstPartyFactory()` — a call to a source-visible
+  method returning an owned `IDisposable` — emits a `call callee=… result=r` op (the core mints
+  the acquire only when it proves the callee `fresh`, so a non-fresh call is never falsely owned).
+  `IsFirstPartyDisposableFactory` gates on a source-declared, non-void, disposable, non-dispose-
+  optional return; overloads (non-unique names) resolve to `unknown` and stay silent. Validated
+  end-to-end by `FactoryLeakSample.cs` in CI: a dropped factory result leaks **interprocedurally**
+  (OWN001 at the call site — beyond the flat detectors), while the disposed caller and the factory
+  itself stay silent. **Remaining T1 door:** `out`/`ref`-owned parameters (another `fresh` source)
+  — extractor-side recognition of an out-assignment as a fresh acquire — rides into a later slice
+  before async.
 - **Bridge branch-scope fix (shipped — separate from the D5 transfer ladder).** The OwnIR→core
   bridge uses a *flat* `localmap` but emitted each synthetic `Let` *inside* the branch block it
   occurred in, so a local `acquire`d in **both** branches of an `if` and released **after** the

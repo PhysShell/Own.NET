@@ -1075,6 +1075,11 @@ _OWNERSHIP_SINK_EXTERNS = (
     ExternDecl("$borrow_mut",
                [EffectParam(Effect.BORROW_MUT, "Disposable", 0)], None, 0),
 )
+# The callee names a `call` op may resolve against in `lower_call` WITHOUT being a
+# first-party function summary — the fixed sink externs. A call to any other callee
+# that is not in the solved MOS is unresolvable (no signature) and must NOT be lowered
+# to a `Call` (it would raise OWN040); see the `call` handler in `_lower_flow`.
+_SINK_EXTERN_NAMES = frozenset(e.name for e in _OWNERSHIP_SINK_EXTERNS)
 
 # A forward to a sink extern is a *known* transfer, so a skeleton can record the
 # resolved path action directly — `$consume` is ownership leaving (a must-transfer),
@@ -1530,7 +1535,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # extractor (it is an escape, surfaced separately).
             callee = str(n.get("callee", ""))
             raw_args = n.get("args", [])
-            if callee and isinstance(raw_args, list):
+            summ = mos.get(callee) if (mos is not None and callee) else None
+            # Only emit the `Call` when the callee is RESOLVABLE — a first-party function
+            # with a summary, or a fixed ownership-sink extern. A real extraction surfaces
+            # calls to callees we did not lower as functions (BCL / extension methods like
+            # `GetRequiredService`); those have no signature, so `lower_call` would raise
+            # OWN040. Drop them (no effect, no claim) — precision-safe, never a crash.
+            if (summ is not None or callee in _SINK_EXTERN_NAMES) \
+                    and callee and isinstance(raw_args, list):
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
                 body.append(Call(callee, arg_refs, line))
@@ -1540,7 +1552,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # above; this models the return). A non-fresh / unknown return makes no
             # claim, so the result is never falsely owned (precision-first).
             result = n.get("result")
-            summ = mos.get(callee) if (mos is not None and callee) else None
+            # Overwriting a tracked local KILLS its previous ownership binding: if the
+            # old handle was not released before this call, it leaks (the reference is
+            # lost). Drop the stale mapping before any optional fresh acquire, so
+            # `acquire x; x = Unknown(); release x` leaks the original x rather than
+            # reading as clean (CodeRabbit). A hoisted local keeps its single outer-scope
+            # handle (it is declared once and never re-bound), so leave it alone.
+            if isinstance(result, str) and result and result not in hoisted:
+                localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
                     and summ is not None and getattr(summ, "returns", None) == "fresh"):
                 handle = f"loc_{loc[0]}"
@@ -1634,7 +1653,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         #     parameter's contract could not be inferred (an ambiguous pass-through
         #     stays plain) -- a "needs annotation / transitive inference" gap, not a
         #     leak. Surfacing these properly (with a subject) is a later step.
-        if d.code in ("OWN033", "OWN034", "OWN035", "OWN041"):
+        #   - OWN040: a `call` to a callee the bridge did not lower as a function
+        #     (an extension/BCL method surfaced by the extractor). The `call` handler
+        #     already drops unresolvable callees, so this is belt-and-suspenders — a
+        #     synthetic-call artifact, never a real C# bug (C# already binds the call).
+        if d.code in ("OWN033", "OWN034", "OWN035", "OWN040", "OWN041"):
             continue
         sub = handles.get(_handle_of(d) or "")
         if sub is None:
