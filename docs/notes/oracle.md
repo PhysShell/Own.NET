@@ -168,12 +168,14 @@ example is that the headline number is honest only after decomposition; 38 is **
   closed". These look like Infer# **over-reports on the struct-using lock pattern** (the
   same flavour as its `DbWrappedReader` over-reports on Dapper); Own.NET's `0` is the
   right verdict, not a recall gap.
-- **CodeQL ×~20 — `src/Snippets/Docs/*`.** Polly's documentation snippet tree: example
+- **CodeQL ×22 — `src/Snippets/Docs/*`.** Polly's documentation snippet tree: example
   code that creates `HttpResponseMessage`/`HttpClient`/rate-limiters and intentionally
   never disposes them. Not product code. The comparator's `--exclude-tests` predicate
-  (`_is_test_path`) was widened to treat `doc`/`docs`/`snippet*` segments as non-product
-  for exactly this reason — without it, illustrative code inflates the recall gap.
-- **The genuinely-product CodeQL findings (a handful) all resolve to FP-or-by-design:**
+  (`_is_test_path`) was widened to treat `doc`/`docs`/`snippet(s)` segments as non-product
+  for exactly this reason — without it, illustrative code inflates the recall gap. (This
+  is the slice that drops on re-run: `oracle-only` falls 38 → 16, CodeQL leak 26 → 4.)
+- **The remaining 4 product CodeQL findings (3 sites — the Bulkhead factory is two lines)
+  all resolve to FP-or-by-design:**
   - `Bulkhead/BulkheadSemaphoreFactory.cs:8,11` — the factory **returns** two
     `SemaphoreSlim` as a tuple; the caller `BulkheadPolicy` stores them in `readonly`
     fields and disposes them in `Dispose()`. Textbook **ownership transfer / owned
@@ -192,9 +194,11 @@ example is that the headline number is honest only after decomposition; 38 is **
     CFG class we don't model **by design** — and here benign (at worst a pool object not
     returned, which the GC reclaims).
 
-Net: on Polly's product code Own.NET's genuine recall gap is **≈ zero** — the whole
-`oracle-only 38` is Infer# struct-using over-reports, CodeQL doc snippets (now excluded),
-and three findings that are two CodeQL FPs plus one by-design exceptional-path skip.
+Net: on Polly's product code Own.NET's genuine recall gap is **≈ zero**. The whole
+`oracle-only 38` reconciles as **12 Infer# struct-`using` over-reports + 22 CodeQL doc
+snippets (now excluded) + 4 product CodeQL findings** — and those 4 are three false
+positives (`BulkheadSemaphoreFactory:8`, `:11`, `ConfigureBuilderContextExtensions:40`)
+plus one by-design exceptional-path skip (`TimeoutResilienceStrategy:67`).
 Combined with `own-only 0`, this is the double signal the oracle exists to produce:
 precision holds, and the "miss" pile is oracle noise, not our blind spot. (Honest caveat,
 same as Dapper: "0 real misses *here*" is partly the luck of the finding mix — Polly is
