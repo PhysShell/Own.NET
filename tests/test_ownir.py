@@ -1254,6 +1254,95 @@ def run() -> int:
     if cond:
         gotc = [(x.component, x.code) for x in cond]
         fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
+    # --- P-005 D5.1b: the per-call-site ownership-contract channel. The extractor
+    #     routes a call's per-argument ownership through fixed sink externs
+    #     ($consume / $borrow / $borrow_mut) the bridge pre-declares, so an effect
+    #     the callee's body cannot reveal (a BCL `leaveOpen: false`, an annotation)
+    #     is checked through the SAME lower_call path — no new checker.
+    # $consume takes ownership: a local acquired then handed to $consume has left, so
+    # a later USE is OWN002 (anchored at the acquire, like every transitive handoff).
+    checks += 1
+    csink = check_facts({"module": "M", "functions": [
+        {"name": "use_after_consume", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 10},
+                  {"op": "call", "callee": "$consume", "args": ["x"], "line": 11},
+                  {"op": "use", "var": "x", "line": 12}]}]})
+    gotcs = [(x.component, x.line, x.code) for x in csink]
+    if gotcs != [("use_after_consume", 10, "OWN002")]:
+        fails.append("D5.1b $consume channel: use after a $consume handoff must be "
+                     f"OWN002@10 (ownership left at the call), got {gotcs}")
+    # releasing AFTER $consume double-discharges (the obligation already moved out).
+    checks += 1
+    crel = check_facts({"module": "M", "functions": [
+        {"name": "release_after_consume", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 20},
+                  {"op": "call", "callee": "$consume", "args": ["x"], "line": 21},
+                  {"op": "release", "var": "x", "line": 22}]}]})
+    gotcr = [(x.component, x.line, x.code) for x in crel]
+    if gotcr != [("release_after_consume", 20, "OWN002")]:
+        fails.append("D5.1b $consume channel: release after a $consume handoff must be "
+                     f"OWN002@20, got {gotcr}")
+    # $borrow only LENDS for the call: the caller keeps ownership, so a local handed
+    # to $borrow and never released is still a leak (OWN001) — the channel does NOT
+    # over-consume a borrow into a (silent) transfer.
+    checks += 1
+    bleak = check_facts({"module": "M", "functions": [
+        {"name": "borrow_then_leak", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 30},
+                  {"op": "call", "callee": "$borrow", "args": ["x"], "line": 31}]}]})
+    gotbl = [(x.component, x.line, x.code) for x in bleak]
+    if gotbl != [("borrow_then_leak", 30, "OWN001")]:
+        fails.append("D5.1b $borrow channel: a borrowed-then-never-released local must "
+                     f"still leak OWN001@30 (borrow keeps ownership), got {gotbl}")
+    # and $borrow then releasing is clean — the loan is returned, the owner discharges.
+    checks += 1
+    bclean = check_facts({"module": "M", "functions": [
+        {"name": "borrow_then_release", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 40},
+                  {"op": "call", "callee": "$borrow", "args": ["x"], "line": 41},
+                  {"op": "release", "var": "x", "line": 42}]}]})
+    if bclean:
+        fails.append("D5.1b $borrow channel: borrow-then-release must be clean, "
+                     f"got {[(x.component, x.code) for x in bclean]}")
+    # the DIRECT $borrow_mut channel keeps the exclusive loan: like $borrow, it lends
+    # for the call and the caller keeps ownership, so a never-released local still
+    # leaks (OWN001) and a released one is clean. (The transitive shortcut for
+    # $borrow_mut is deliberately declined — the transfer lattice has no shared-vs-
+    # exclusive axis, so a wrapper would silently downgrade it; see _SINK_PATH_ACTION.)
+    checks += 1
+    bmleak = check_facts({"module": "M", "functions": [
+        {"name": "borrow_mut_leak", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 50},
+                  {"op": "call", "callee": "$borrow_mut", "args": ["x"], "line": 51}]}]})
+    gotbm = [(x.component, x.line, x.code) for x in bmleak]
+    if gotbm != [("borrow_mut_leak", 50, "OWN001")]:
+        fails.append("D5.1b $borrow_mut channel: a borrowed-then-never-released local "
+                     f"must still leak OWN001@50 (exclusive loan keeps ownership), got {gotbm}")
+    checks += 1
+    bmclean = check_facts({"module": "M", "functions": [
+        {"name": "borrow_mut_release", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "x", "line": 60},
+                  {"op": "call", "callee": "$borrow_mut", "args": ["x"], "line": 61},
+                  {"op": "release", "var": "x", "line": 62}]}]})
+    if bmclean:
+        fails.append("D5.1b $borrow_mut channel: borrow_mut-then-release must be clean, "
+                     f"got {[(x.component, x.code) for x in bmclean]}")
+    # the channel resolves TRANSITIVELY too: a param ONLY forwarded to $consume makes
+    # the method a must-consumer (the solver reads the sink as a known transfer), so a
+    # caller using its arg after the handoff is OWN002 — same as forwarding to a
+    # first-party consumer, but sourced from the per-call channel.
+    checks += 1
+    ctrans = check_facts({"module": "M", "functions": [
+        {"name": "wrap_consume", "file": "F.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "$consume", "args": ["s"], "line": 2}]},
+        {"name": "caller_t", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "wrap_consume", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    gotct = [(x.component, x.line, x.code) for x in ctrans]
+    if gotct != [("caller_t", 10, "OWN002")]:
+        fails.append("D5.1b $consume channel must propagate transitively: a param "
+                     f"forwarded to $consume makes the method consume, got {gotct}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
