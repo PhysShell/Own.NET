@@ -139,6 +139,7 @@ class Node:
     line: int
     children: list[Node] = field(default_factory=list)
     parent: Node | None = None
+    text: str = ""   # accumulated character data (used by the deep XAML100 signature)
 
     def local(self) -> str:
         """The unqualified element name: ``controls:DataGrid`` -> ``DataGrid``;
@@ -198,8 +199,16 @@ def parse_xaml(text: str | bytes) -> Node | None:
         if stack:
             stack.pop()
 
+    def chardata(data: str) -> None:
+        # expat may deliver a run of text in several pieces; accumulate on the open
+        # element. Used by the deep XAML100 signature so templates that differ only
+        # in text (<TextBlock>OK</> vs Cancel) are not treated as identical.
+        if stack:
+            stack[-1].text += data
+
     parser.StartElementHandler = start
     parser.EndElementHandler = end
+    parser.CharacterDataHandler = chardata
     try:
         parser.Parse(text, True)
     except xml.parsers.expat.ExpatError:
@@ -404,18 +413,27 @@ def _scope_owner(rd: Node) -> str:
     return "root"
 
 
+def _is_xkey(name: str) -> bool:
+    """The XAML resource-key directive ``x:Key`` (any prefix bound to the xaml
+    namespace) — but NOT a CLR ``Key`` property such as ``KeyBinding.Key``, which is a
+    real value that must stay in the signature."""
+    return ":" in name and name.rsplit(":", 1)[-1] == "Key"
+
+
 def _deep_resource_sig(node: Node) -> tuple[Any, ...]:
     """A *recursive* structural signature: the element's tag (sans namespace prefix,
-    keeping the property-element dotted form), its non-``x:Key`` attributes, and the
-    signatures of all its children in document order. Two resources share this only
-    when their entire subtree is structurally identical — so a `Style`/`ControlTemplate`
-    is matched on its actual setters/triggers/template, not just "has Setter children".
-    Child order is significant (a conservative choice: only literal duplicates flag)."""
+    keeping the property-element dotted form), its attributes (excluding only the
+    resource directive ``x:Key`` — a descendant CLR ``Key`` like ``KeyBinding Key=...``
+    is kept), its trimmed character data, and the signatures of all its children in
+    document order. Two resources share this only when their entire subtree —
+    elements, attribute values AND text — is structurally identical, so a
+    `Style`/`ControlTemplate` is matched on its actual setters/triggers/template/text,
+    not just "has Setter children". Child order is significant (a conservative choice:
+    only literal duplicates flag)."""
     head = node.tag.split(":", 1)[-1]
-    attrs = tuple(sorted((k.split(":", 1)[-1], v) for k, v in node.attrib.items()
-                         if k.split(":", 1)[-1] != "Key"))
+    attrs = tuple(sorted((k, v) for k, v in node.attrib.items() if not _is_xkey(k)))
     kids = tuple(_deep_resource_sig(c) for c in node.children)
-    return (head, attrs, kids)
+    return (head, attrs, kids, node.text.strip())
 
 
 def _rule_resource_hoist(root: Node, avalonia: bool,
@@ -1076,6 +1094,37 @@ def _selftest() -> int:
     check("XAML100" not in rules(_two_styles("Red", "Blue")),
           "XAML100 false positive: Styles with different Setter values are not duplicates "
           "(deep structural signature)")
+
+    # Deep signature must include character data: two DataTemplates that differ ONLY in
+    # text are not duplicates; identical text still collapses (recall preserved).
+    def _two_templates(text1: str, text2: str) -> str:
+        def blk(owner: str, txt: str) -> str:
+            return (f'    <{owner}><{owner}.Resources>\n'
+                    f'      <DataTemplate x:Key="t"><TextBlock Text="x">{txt}</TextBlock>'
+                    '</DataTemplate>\n'
+                    f'    </{owner}.Resources></{owner}>\n')
+        return (f'<UserControl {_WPF_NS}>\n  <Grid>\n'
+                + blk("Border", text1) + blk("StackPanel", text2)
+                + '  </Grid>\n</UserControl>\n')
+    check("XAML100" not in rules(_two_templates("OK", "Cancel")),
+          "XAML100 false positive: templates differing only in text are not duplicates")
+    check("XAML100" in rules(_two_templates("OK", "OK")),
+          "XAML100 must still flag templates that are identical incl. text")
+
+    # The x:Key exclusion must be prefix-aware: a CLR `Key` (e.g. KeyBinding.Key) is a
+    # real value, so templates differing only by it are NOT duplicates.
+    kb = ('<UserControl ' + _WPF_NS + '>\n  <Grid>\n'
+          '    <Border><Border.Resources><Style x:Key="s" TargetType="Window">\n'
+          '      <Setter Property="InputBindings"><Setter.Value>\n'
+          '        <KeyBinding Key="Enter" /></Setter.Value></Setter>\n'
+          '    </Style></Border.Resources></Border>\n'
+          '    <StackPanel><StackPanel.Resources><Style x:Key="s2" TargetType="Window">\n'
+          '      <Setter Property="InputBindings"><Setter.Value>\n'
+          '        <KeyBinding Key="Escape" /></Setter.Value></Setter>\n'
+          '    </Style></StackPanel.Resources></StackPanel>\n'
+          '  </Grid>\n</UserControl>\n')
+    check("XAML100" not in rules(kb),
+          "XAML100 false positive: descendant CLR Key (KeyBinding Key=) must stay in the signature")
 
     # Implicit <X.Resources> dictionary (the common WPF syntax, no <ResourceDictionary>
     # wrapper) must feed the keyed-resource rules — else XAML101/102/106 miss most files.
