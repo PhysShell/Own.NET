@@ -106,7 +106,10 @@ from typing import Any
 from .ast_nodes import (
     Acquire,
     Call,
+    Effect,
+    EffectParam,
     Expr,
+    ExternDecl,
     FnDecl,
     If,
     Let,
@@ -848,7 +851,9 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                     if _returns_value(nodes) else None)
             functions.append(FnDecl(fname, fparams, fret, fbody, 0))
     return (Module(str(facts.get("module", "Extracted")),
-                   resources=_prelude_resources(), functions=functions,
+                   resources=_prelude_resources(),
+                   externs=list(_OWNERSHIP_SINK_EXTERNS),
+                   functions=functions,
                    lifetimes=list(_CAPTURE_LIFETIMES) if any_capture else []),
             handles)
 
@@ -913,6 +918,31 @@ _PARAM_EFFECT_TYPE = {
     "borrow_mut": TypeRef("Disposable", True, True),  # exclusive loan, noescape
 }
 
+# P-005 D5.1b — the per-call-site ownership-contract channel. The extractor cannot
+# always pin a call's ownership effect from a first-party body: a BCL sink (e.g.
+# `new StreamReader(s, leaveOpen: false)`) or a `[ConsumesOwnership]`-style
+# annotation lives outside our summary set. Rather than grow a bespoke lowering for
+# each such case, we pre-declare three fixed sink externs and let the extractor
+# route any call's per-argument ownership through them: a `call $consume [x]` takes
+# ownership of `x`, `$borrow`/`$borrow_mut` lend it for the call. They resolve via
+# the SAME `collect_signatures` + `lower_call` path as any contracted call (so a
+# later use of a consumed `x` is OWN002, an un-discharged borrow is still OWN001) —
+# no new checker, no new flow lowering. Externs are declaration-only, never leak-
+# checked themselves, and the `$` prefix cannot collide with a real C# member name.
+_OWNERSHIP_SINK_EXTERNS = (
+    ExternDecl("$consume", [EffectParam(Effect.CONSUME, "Disposable", 0)], None, 0),
+    ExternDecl("$borrow", [EffectParam(Effect.BORROW, "Disposable", 0)], None, 0),
+    ExternDecl("$borrow_mut",
+               [EffectParam(Effect.BORROW_MUT, "Disposable", 0)], None, 0),
+)
+
+# A forward to a sink extern is a *known* transfer, so a skeleton records the
+# resolved path action directly — `$consume` is ownership leaving (a must-transfer),
+# `$borrow`/`$borrow_mut` is a kept loan — rather than a `forward` edge to an
+# unsummarized callee (which the solver would degrade to `unknown`, diluting a real
+# `must` to plain). Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
+_SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow", "$borrow_mut": "borrow"}
+
 
 def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     """Scan a flow body for how parameter `pname` is treated, returning
@@ -970,6 +1000,17 @@ def _forward_targets(pname: str, nodes: Any,
     return out
 
 
+def _forward_path_action(callee: str, arg: int) -> PathAction:
+    """The skeleton path action for one forward edge. A forward to a fixed
+    ownership-sink extern (D5.1b) is a *resolved* transfer recorded directly
+    (`$consume` → `dispose`, `$borrow*` → `borrow`); any other callee is a
+    `forward` edge the solver resolves against that callee's summary."""
+    kind = _SINK_PATH_ACTION.get(callee)
+    if kind is not None:
+        return PathAction(kind)
+    return PathAction("forward", callee, arg)
+
+
 def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     """Derive a Method Ownership Summary skeleton per first-party function from its
     flow body, for the D5.0 solver (P-005 D5.1). A parameter's path actions mirror
@@ -1025,7 +1066,7 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
                 elif passed:
                     allt = _forward_targets(cname, body)
                     top = _forward_targets(cname, body, recurse=False)
-                    paths = tuple(PathAction("forward", c, j) for c, j in allt)
+                    paths = tuple(_forward_path_action(c, j) for c, j in allt)
                     if not (len(allt) == 1 and len(top) == 1):
                         # not a single unconditional handoff: a no-transfer path
                         # exists (other branch / zero-trip loop / sibling call), so

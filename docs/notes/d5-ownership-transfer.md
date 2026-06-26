@@ -239,12 +239,21 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   first-party. Live catches, proven by synthetic OwnIR tests: double-dispose / use-after
   across a *transitive* (multi-hop) consuming call (OWN002), and the precision win where a
   correct forwarded handoff that used to read as a false OWN001 leak is now silent.
-- **D5.1b — `leaveOpen` Tier-B slice (next).** `StreamReader(stream, leaveOpen:…)` &c. is a
-  *per-call-site* contract — the same ctor consumes or borrows by the bool literal — so it
-  needs a per-call effect channel on the `call` op plus the extractor reading the literal,
-  rather than a per-method summary. Small, additive; pairs with a CI A/B sample on the real
-  extractor output (the end-to-end validation that first-party `call` ops are emitted for
-  forwarding chains).
+- **D5.1b — the per-call-site ownership-contract channel (shipped).** `StreamReader(stream,
+  leaveOpen:…)` &c. is a *per-call-site* contract — the same ctor consumes or borrows by the
+  bool literal — so it needs a per-call effect channel rather than a per-method summary. The
+  bridge now pre-declares three fixed sink externs (`$consume` / `$borrow` / `$borrow_mut`)
+  in every lowered `Module`; the extractor routes any call's per-argument ownership through
+  them (`call $consume [x]`), and they resolve via the **same** `collect_signatures` +
+  `lower_call` path as any contracted call — no new checker, no new flow lowering. The `$`
+  prefix cannot collide with a real C# member. The solver also reads a forward to a sink as a
+  *known* transfer (`$consume`→must, `$borrow*`→no), so the channel propagates **transitively**
+  through first-party wrappers, not just at the direct call. Proven by synthetic OwnIR tests:
+  use/double-release after `$consume` (OWN002), a `$borrow`'d-then-never-released local still
+  leaking (OWN001), a clean borrow-then-release, and transitive propagation through a wrapper.
+  The remaining piece is **CI/C#-only**: the extractor emitting these sink calls from the bool
+  literal / annotation (paired with an A/B sample on real extractor output) — Tier-B breadth
+  rides into D5.3.
 - **D5.2 — T1.** `fresh`-returning calls become acquire sites → factory leaks. Includes
   `out`/`ref`-owned (another `fresh` door) before async.
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
