@@ -430,8 +430,11 @@ def _rule_merged_dict_shadowing(root: Node, avalonia: bool) -> list[XamlFinding]
                 keymap.setdefault(key, []).append((f"merged #{i}", c.line))
 
         for key, occ in keymap.items():
-            if len(occ) < 2:
-                continue  # the normal case: a key defined once
+            # Shadowing requires the key in 2+ DISTINCT scopes (primary vs merged, or
+            # two different merged dicts). Two entries in the SAME scope are a
+            # duplicate-key error (runtime-invalid) — a different problem, not XAML105.
+            if len({w for w, _ln in occ}) < 2:
+                continue
             where = ", ".join(f"{w} (line {ln})" for w, ln in occ)
             out.append(XamlFinding(
                 "XAML105", occ[0][1],
@@ -1014,6 +1017,19 @@ def _selftest() -> int:
     # external Source dictionaries are not resolved -> not compared (deferred).
     check("XAML105" not in rules(dup),
           "XAML105 must not compare keys of external Source= dictionaries (cross-file deferred)")
+    # two primary entries with the SAME key are a duplicate-key error in ONE scope, not
+    # order-dependent merge shadowing -> XAML105 must not fire (needs 2+ distinct scopes).
+    samescope = (f'<ResourceDictionary {_WPF_NS}>\n'
+                 '  <SolidColorBrush x:Key="accent" Color="Green" />\n'
+                 '  <SolidColorBrush x:Key="accent" Color="Teal" />\n'
+                 '  <ResourceDictionary.MergedDictionaries>\n'
+                 '    <ResourceDictionary>\n'
+                 '      <SolidColorBrush x:Key="other" Color="Blue" />\n'
+                 '    </ResourceDictionary>\n'
+                 '  </ResourceDictionary.MergedDictionaries>\n'
+                 '</ResourceDictionary>\n')
+    check("XAML105" not in rules(samescope),
+          "XAML105 false positive: same-scope duplicate keys are not merge-order shadowing")
 
     # XAML101 — duplicate stateless converter across dictionaries.
     conv = (f'<ResourceDictionary {_WPF_NS} xmlns:c="clr-namespace:App.Converters">\n'
