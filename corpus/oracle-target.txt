@@ -9,5 +9,8 @@
 # targets net8/net6/netstandard2.0 only -> builds cleanly on the dotnet-8 runner,
 # so all three tools (own-check + CodeQL + Infer#) should fire. Real resource
 # surface: CancellationTokenSource, timers, IDisposable resilience pipelines.
-# No expectation pinned — this is exploratory; read the report, don't assert it.
+# Re-run to confirm the _is_test_path doc/snippet fix (fd6294e): the ~20
+# src/Snippets/Docs/* CodeQL findings should now be excluded as non-product, so
+# oracle-only should drop from 38 to ~18 (Infer# TimedLock over-reports + the 3
+# already-triaged product findings), with own-only still 0.
 App-vNext/Polly
