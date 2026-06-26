@@ -154,13 +154,18 @@ class Node:
             yield from c.walk()
 
 
-def parse_xaml(text: str) -> Node | None:
+def parse_xaml(text: str | bytes) -> Node | None:
     """Build a line-stamped ``Node`` tree from XAML markup via expat, or ``None`` if
     the markup is not well-formed (a broken file is skipped, never a crash — the
     continue-on-error discipline of the static layer). expat tracks
     ``CurrentLineNumber`` so every element carries its real source line; names are
     kept *as written* (prefixes intact), which is exactly what XAML tree patterns
-    match on."""
+    match on.
+
+    Pass **bytes** for real files so expat decodes them itself, honoring the BOM and
+    the XML declaration's ``encoding`` (legacy WPF XAML is often UTF-16): a forced
+    UTF-8 decode would corrupt those before parsing. In-memory ``str`` fixtures (no
+    encoding declaration) are accepted too."""
     parser = xml.parsers.expat.ParserCreate()
     root: list[Node | None] = [None]
     stack: list[Node] = []
@@ -321,9 +326,20 @@ def _rule_per_keystroke_binding(root: Node, avalonia: bool) -> list[XamlFinding]
 
 
 def _resource_dictionaries(root: Node):
-    """Yield every ResourceDictionary element (inline or the implicit *.Resources)."""
+    """Yield every resource scope: an explicit ``<ResourceDictionary>``, AND the
+    implicit dictionary of an ``<X.Resources>`` property element — the common WPF
+    syntax where keyed resources are direct children with no ``<ResourceDictionary>``
+    wrapper (e.g. ``<Window.Resources><SolidColorBrush x:Key="b" .../></...>``).
+
+    No double counting when an ``<X.Resources>`` wraps an explicit
+    ``<ResourceDictionary>``: the wrapper's own direct children carry no ``x:Key`` (the
+    only child is the dictionary), so ``_keyed_resources`` yields nothing for it, while
+    the inner dictionary is still picked up by the type check."""
     for n in root.walk():
-        if n.type_name() == "ResourceDictionary" and not n.is_property_element():
+        if n.is_property_element():
+            if n.local() == "Resources":
+                yield n
+        elif n.type_name() == "ResourceDictionary":
             yield n
 
 
@@ -627,8 +643,9 @@ RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
 ]
 
 
-def analyze_text(text: str) -> list[XamlFinding]:
-    """All Phase-1 rules over one markup string. Malformed markup -> no findings."""
+def analyze_text(text: str | bytes) -> list[XamlFinding]:
+    """All Phase-1 rules over one markup document (``str`` or raw ``bytes``).
+    Malformed markup -> no findings."""
     root = parse_xaml(text)
     if root is None:
         return []
@@ -684,12 +701,15 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
     scanned = 0
     for fp in files:
         try:
-            text = fp.read_text(encoding="utf-8", errors="replace")
+            # Read bytes, not text: expat then honors the BOM / XML-declaration
+            # encoding (UTF-16 legacy XAML), instead of a forced UTF-8 decode that
+            # would corrupt the markup and silently drop the file.
+            data = fp.read_bytes()
         except OSError:
             continue
         scanned += 1
         rel = fp.relative_to(root).as_posix()
-        for f in analyze_text(text):
+        for f in analyze_text(data):
             results.append((rel, f))
 
     sarif_path.write_text(json.dumps(_to_sarif(results), indent=2), encoding="utf-8")
@@ -896,6 +916,27 @@ def _selftest() -> int:
           '<RotateTransform Angle="90" /></TextBlock.LayoutTransform></TextBlock>\n'
           '</StackPanel>\n')
     check("XAML111" in rules(lt), "XAML111 must flag a LayoutTransform")
+
+    # Implicit <X.Resources> dictionary (the common WPF syntax, no <ResourceDictionary>
+    # wrapper) must feed the keyed-resource rules — else XAML101/102/106 miss most files.
+    implicit = (f'<Window {_WPF_NS}>\n'
+                '  <Window.Resources>\n'
+                '    <SolidColorBrush x:Key="b" Color="#FF010203" />\n'
+                '  </Window.Resources>\n'
+                '</Window>\n')
+    r = rules(implicit)
+    check("XAML106" in r, "keyed-resource rules must see implicit <X.Resources> dictionaries")
+    check(r.get("XAML106") and r["XAML106"].line == 3,
+          "implicit-dictionary finding must keep the resource's real line (3)")
+
+    # A UTF-16 file (BOM + encoding declaration) must be decoded by expat, not dropped:
+    # read-as-bytes lets the XML parser honor the declared encoding.
+    u16_src = (f'<UserControl {_WPF_NS}>\n'
+               '  <ListBox VirtualizingStackPanel.IsVirtualizing="False" />\n'
+               '</UserControl>\n')
+    u16 = ('<?xml version="1.0" encoding="utf-16"?>\n' + u16_src).encode("utf-16")
+    check("XAML107" in {f.rule for f in analyze_text(u16)},
+          "UTF-16 markup (BOM + declaration) must parse, not be silently dropped")
 
     # WPF-only rules must stay silent on Avalonia .axaml.
     ava = ('<ResourceDictionary xmlns="https://github.com/avaloniaui" '
