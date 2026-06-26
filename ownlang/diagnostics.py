@@ -1,6 +1,6 @@
 """Diagnostics for OwnLang. One place for every code and its human title.
 
-Numbering scheme (renumbered in this revision — see README changelog):
+Numbering scheme (renumbered in this revision -- see README changelog):
 
   001-013  flow-sensitive ownership & loan/permission violations
   020      unsupported construct (loops / async)
@@ -13,6 +13,14 @@ The split between *definite* (002 use-after-release, 005 use-after-move) and
 different, sharper message than one that holds on only some path through a
 branch. That distinction was the reviewer's strongest point and it falls out
 naturally from the set-of-states lattice.
+
+A diagnostic can also carry an ordered *reachability slice* (``Evidence``): the
+chain of program points that explains *why* it holds -- where a resource was
+acquired, where a borrow escapes, where the missing release should go. This is
+the structured successor to the textual ``[consumed by ... at file:line]``
+riders the DI findings append: same information, but a place a tool can point at
+instead of a string to parse (P-015). See ``ownlang.evidence`` for the SARIF
+projection.
 """
 
 from __future__ import annotations
@@ -71,8 +79,37 @@ TITLES = {
     "OWN040": "call to an undeclared function (unknown calls are forbidden)",
     "OWN041": "call argument mismatch",
     # ---- C# front-end resolution coverage (P-014; advisory) ----
-    "OWN050": "declaring type unresolved — leakage analysis skipped",
+    "OWN050": "declaring type unresolved -- leakage analysis skipped",
 }
+
+
+@dataclass(frozen=True)
+class Evidence:
+    """One secondary, structured location that explains a diagnostic -- a single step
+    in its reachability slice: where the resource was acquired, where a borrow
+    escapes, where the missing release should go, what consumed it. The primary
+    ``Diagnostic.line`` stays the anchor; evidence rides alongside it (rendered as
+    ``note:`` lines here; emitted as SARIF relatedLocations / codeFlows by
+    ``ownlang.evidence``).
+
+    This is the structured successor to the textual ``[consumed by ... at
+    file:line]`` riders: the same information, but a place a tool can point at
+    instead of a string to parse.
+    """
+
+    line: int
+    label: str
+    # the file of this step; None means "same file as the diagnostic's anchor".
+    file: str | None = None
+    # what this step is, for consumers that group/colour evidence: a plain "related"
+    # by default, or a resource-protocol role (acquired/released/escaped/consumed/step).
+    role: str = "related"
+
+    def render(self, anchor_file: str) -> str:
+        """A one-line ``note:`` rendering pointing at this step. ``anchor_file`` is
+        the diagnostic's own file, used when this step shares it (``file is None``)."""
+        where = self.file or anchor_file
+        return f"  note: {self.label} at {where}:{self.line}"
 
 
 @dataclass(frozen=True)
@@ -85,9 +122,15 @@ class Diagnostic:
     # diagnostic is about, so the report attributes it by symbol, not by name.
     subject: str | None = None
     # the resource's human "kind" (e.g. "subscription token"), when the finding
-    # is about a tagged resource. Rendered as a ` [resource: <kind>]` suffix —
+    # is about a tagged resource. Rendered as a ` [resource: <kind>]` suffix --
     # domain-neutral metadata a later profile (e.g. WPF) keys off.
     resource_kind: str | None = None
+    # ordered reachability slice that explains this diagnostic (acquire site, escape
+    # site, missing-release point, consuming call). Empty for a single-point finding.
+    # Rendered as `note:` lines; a SARIF consumer maps it to relatedLocations /
+    # codeFlows via ownlang.evidence. Declared LAST so the positional constructor
+    # contract (code, message, line, severity, subject, resource_kind) is preserved.
+    evidence: tuple[Evidence, ...] = ()
 
     @property
     def title(self) -> str:
@@ -113,17 +156,26 @@ class Diagnostic:
         stripped = len(src_line) - len(src_line.lstrip())
         return stripped + 1 if src_line.strip() else None
 
+    def _evidence_lines(self, filename: str) -> list[str]:
+        """The `note:` lines for this diagnostic's reachability slice, in order.
+        Empty when the finding carries no evidence (the common case), so the base
+        renderings stay byte-for-byte unchanged."""
+        return [e.render(filename) for e in self.evidence]
+
     def render(self, filename: str = "<input>") -> str:
-        """Plain one-line rendering: `file:line: severity: [code] message`."""
-        return (
+        """Plain rendering: `file:line: severity: [code] message`, followed by one
+        `note:` line per evidence step when present."""
+        head = (
             f"{filename}:{self.line}: {self.severity.value}: "
             f"[{self.code}] {self.message}{self._kind_suffix()}"
         )
+        return "\n".join([head, *self._evidence_lines(filename)])
 
     def render_pretty(self, filename: str, source: str) -> str:
         """A rustc-style rendering: a `file:line:col` header, the offending
-        source line, and a caret under the named identifier. Falls back to the
-        plain header when the line/column cannot be resolved."""
+        source line, a caret under the named identifier, and a `note:` line per
+        evidence step. Falls back to the plain header when the line/column cannot
+        be resolved."""
         lines = source.splitlines()
         src_line = lines[self.line - 1] if 1 <= self.line <= len(lines) else ""
         col = self._caret_col(src_line)
@@ -135,4 +187,5 @@ class Diagnostic:
             out.append(f"{gutter}{src_line}")
             if col:
                 out.append(" " * (len(gutter) + col - 1) + "^")
+        out.extend(self._evidence_lines(filename))
         return "\n".join(out)
