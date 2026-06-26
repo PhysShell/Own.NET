@@ -245,6 +245,6 @@ own scan. Label them as estimates wherever they appear.
 | [P-011](proposals/P-011-editor-tooling.md) | Editor tooling & syntax highlighting | side-track | draft |
 | [P-012](proposals/P-012-bug-corpus-mining.md) | Real-world bug corpus & mining | enabling | in progress (corpus benchmark + real-world cases, CI-gated) |
 | [P-013](proposals/P-013-distribution-surface.md) | Distribution surface (CI Action + dotnet tool) | enabling | v0 built |
-| [P-014](proposals/P-014-semantic-resolution.md) | Project-local semantic resolution (`+=` event vs number) | P0 | in progress (Tier A shipped & default-on; Tier B deferred) |
+| [P-014](proposals/P-014-semantic-resolution.md) | Project-local semantic resolution (`+=` event vs number) | P0 | in progress (Tier A default-on + Tier B light path `--ref-dir`; full MSBuild closure deferred) |
 | [P-015](proposals/P-015-configuration-surface.md) | Configuration surface (check selection & severity) | P2 | draft (stub) |
 | [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
