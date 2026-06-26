@@ -37,6 +37,7 @@ from owncheck import run_own_check  # noqa: E402
 from report import render_html, render_json, render_markdown, render_sarif  # noqa: E402
 from score import score  # noqa: E402
 from xaml_check import run_xaml_check  # noqa: E402
+from xaml_join import run_join  # noqa: E402
 
 try:
     from oracle_compare import parse_sarif
@@ -114,11 +115,14 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
 
     tiers: list[dict[str, Any]] = []
     sarif_inputs: list[tuple[str, str]] = []
+    ownir_facts: str | None = None   # OwnIR facts produced by own-check THIS run
+    xaml_facts: str | None = None    # xaml-facts.json produced by the xaml pass THIS run
     if "own-check" in build_free:
         st = run_own_check(target, out_dir, severity)
         tiers.append(st)
         if st["available"] and st["sarif"]:
             sarif_inputs.append(("own-check", st["sarif"]))
+        ownir_facts = st.get("facts")
     if "codeql" in build_free:
         st = _run_codeql(target, out_dir)
         tiers.append(st)
@@ -132,6 +136,20 @@ def run(target: str, profile: dict[str, Any], out_dir: Path, target_name: str = 
         tiers.append(st)
         if st["available"] and st["sarif"]:
             sarif_inputs.append(("xaml", st["sarif"]))
+        xaml_facts = st.get("facts")
+
+    # XAML Phase-2 join (docs/notes/xaml-analyzer-design.md → "Phase 2 mechanics"):
+    # link xaml-facts.json to the OwnIR facts own-check emitted (--emit-facts) and
+    # fold the XAML2xx link findings into the same pipeline. Gate on the fact files
+    # THIS run produced (the statuses' `facts` paths), never on bare existence — a
+    # re-run into an existing --out, or a profile without xaml/own-check (or no SDK),
+    # must not join a previous target's stale facts.
+    if (xaml_facts and Path(xaml_facts).exists()
+            and ownir_facts and Path(ownir_facts).exists()):
+        st = run_join(Path(xaml_facts), Path(ownir_facts), out_dir)
+        tiers.append(st)
+        if st["available"] and st["sarif"]:
+            sarif_inputs.append(("xaml-join", st["sarif"]))
 
     # Pick up any build-required SARIFs already dropped here by the Windows runners.
     # Roslyn writes ONE SARIF PER PROJECT under roslyn/ (see the injected props's
@@ -334,6 +352,70 @@ def _selftest() -> int:
               "xaml build-free tier must run and be reported by run()")
         check(res3["totals"]["candidates"] >= 1,
               "a XAML107 markup finding must flow through to a scored cluster")
+
+    # The XAML Phase-2 join must wire in when BOTH fact sources are produced THIS run:
+    # a view with a Loaded handler + an OwnIR component with an unreleased subscription
+    # -> a XAML203 cluster. own-check needs an SDK we don't have on Linux CI, so stub it
+    # to drop fresh OwnIR facts the way an --emit-facts run would (this also exercises
+    # the freshness gate: the join keys off the status's `facts` path, not bare
+    # existence).
+    _self = sys.modules[__name__]  # the running module (own-check is a module global)
+
+    def _fake_own_check(target_, out_dir_, severity_, root=None):
+        facts = Path(out_dir_) / "own-check.facts.json"
+        facts.write_text(json.dumps({"ownir_version": 0, "module": "App", "components": [
+            {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
+                {"event": "_bus.Changed", "handler": "OnChanged", "line": 21,
+                 "released": False}]}]}), encoding="utf-8")
+        sarif = Path(out_dir_) / "own-check.sarif"
+        sarif.write_text('{"version":"2.1.0","runs":[{"results":[]}]}', encoding="utf-8")
+        return {"tool": "own-check", "tier": "build-free", "available": True,
+                "sarif": str(sarif), "facts": str(facts), "findings": 0, "reason": ""}
+
+    with tempfile.TemporaryDirectory() as td4:
+        out4 = Path(td4) / "out"
+        src4 = Path(td4) / "src" / "Views"
+        src4.mkdir(parents=True)
+        (src4 / "CustomerView.xaml").write_text(
+            '<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"\n'
+            '             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"\n'
+            '             x:Class="App.Views.CustomerView" Loaded="OnLoaded" />\n',
+            encoding="utf-8")
+        profile4 = {"name": "t", "severity_floor": "warning",
+                    "tiers": {"build_free": ["own-check", "xaml"]}}
+        real_own_check = _self.run_own_check
+        _self.run_own_check = _fake_own_check
+        try:
+            res4 = run(str(Path(td4) / "src"), profile4, out4, target_name="t/p")
+        finally:
+            _self.run_own_check = real_own_check
+        check(any(t["tool"] == "xaml-join" and t["available"] for t in res4["tiers"]),
+              "xaml-join tier must run when this run produced both fact sources")
+        check(res4["totals"]["clusters"] >= 1,
+              "a XAML203 join finding must flow through to a scored cluster")
+
+    # The join must NOT run on stale facts: a re-run with own-check NOT a producer this
+    # time (and no SDK) must skip the join even though own-check.facts.json is on disk.
+    with tempfile.TemporaryDirectory() as td5:
+        out5 = Path(td5) / "out"
+        out5.mkdir(parents=True)
+        src5 = Path(td5) / "src" / "Views"
+        src5.mkdir(parents=True)
+        (src5 / "CustomerView.xaml").write_text(
+            '<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"\n'
+            '             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"\n'
+            '             x:Class="App.Views.CustomerView" Loaded="OnLoaded" />\n',
+            encoding="utf-8")
+        (out5 / "own-check.facts.json").write_text(json.dumps({
+            "ownir_version": 0, "module": "Stale", "components": [
+                {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs",
+                 "subscriptions": [{"event": "_bus.Changed", "handler": "OnChanged",
+                                    "line": 21, "released": False}]}]}), encoding="utf-8")
+        res5 = run(str(Path(td5) / "src"),
+                   {"name": "t", "severity_floor": "warning", "tiers": {"build_free": ["xaml"]}},
+                   out5, target_name="t/p")
+        check(not any(t["tool"] == "xaml-join" for t in res5["tiers"]),
+              "xaml-join must NOT run on a stale own-check.facts.json this run did not produce")
 
     fails = [c for c in checks if c]
     for f in fails:

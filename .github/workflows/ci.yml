@@ -63,6 +63,7 @@ jobs:
           python audit/aggregate/report.py --selftest
           python audit/static/tools/xaml_check.py --selftest
           python audit/static/tools/xaml_facts.py --selftest
+          python audit/static/tools/xaml_join.py --selftest
           python audit/static/run_static.py --selftest
           python audit/runtime/ingest.py --selftest
 

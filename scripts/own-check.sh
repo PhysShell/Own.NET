@@ -13,7 +13,10 @@
 # Usage:
 #   scripts/own-check.sh [--format human|github|msbuild|sarif] [--severity error|warning]
 #                        [--fail-on-finding] [--legacy] [--stats] [--body-throw-edges]
-#                        [--root <own.net checkout>] [--] <path|file> [more ...]
+#                        [--emit-facts <path>] [--root <own.net checkout>] [--] <path|file> [more ...]
+#
+# --emit-facts copies the OwnIR facts the extractor produced to <path> (the audit's
+# XAML Phase-2 join consumes them alongside xaml-facts.json); the verdict is unchanged.
 #
 # Defaults: --format human, --severity error, scans ".", does not fail the shell
 # on findings, --root is the repo this script lives in. --severity picks how a
@@ -38,6 +41,7 @@ fail_on_finding=0
 legacy=0
 stats=0
 body_throw_edges=0
+emit_facts=""
 paths=()
 
 while [[ $# -gt 0 ]]; do
@@ -51,6 +55,9 @@ while [[ $# -gt 0 ]]; do
     --severity)
       [[ $# -ge 2 ]] || { echo "own-check: --severity requires a value" >&2; exit 2; }
       severity="$2"; shift 2 ;;
+    --emit-facts)
+      [[ $# -ge 2 ]] || { echo "own-check: --emit-facts requires a value" >&2; exit 2; }
+      emit_facts="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
     --legacy)          legacy=1; shift ;;
     --stats)           stats=1; shift ;;
@@ -84,6 +91,13 @@ extractor_args=("${paths[@]}" -o "$facts")
 # cs/dispose-not-called-on-throw parity. CA2000-noisy, so off by default (oracle recall measurement).
 [[ "$body_throw_edges" -eq 1 ]] && extractor_args+=(--body-throw-edges)
 dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
+
+# Optional: persist the OwnIR facts (the audit's XAML Phase-2 join consumes them
+# alongside xaml-facts.json). The verdict still comes from stage 2; this is just a
+# copy of the intermediate the extractor already produced.
+if [[ -n "$emit_facts" ]]; then
+  cp "$facts" "$emit_facts"
+fi
 
 # Stage 2: the one checker produces the verdict at the C# location.
 set +e

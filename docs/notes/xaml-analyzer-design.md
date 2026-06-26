@@ -206,6 +206,26 @@ The link-fact record stays the canonical shape (so it rides the existing pipelin
 /`line` point at the **XAML** site (where a developer fixes it) and the message names the resolved C#
 symbol chain — markup and code stitched into one finding, not two disconnected alerts.
 
+**The link is the naming convention, not the `.g.cs` build artifact.** WPF's markup compiler emits a
+`.g.cs` (InitializeComponent / IComponentConnector glue, `x:Name` fields, `event += handler` wiring)
+into `obj/` — but only after a successful markup-compile, which would drag the join into the
+build-required tier, and a freshly-cloned legacy target (the kind own-check exists for) has no current
+`.g.cs`. We don't need it: the wiring it encodes is a **fixed contract** we synthesize without
+building — `x:Class`→code-behind type, `Click="OnSave"`→method, `x:Name="btn"`→field,
+`{Binding Qty}`→DataContext property. So the join stays **build-free** (Linux CI, broken solutions),
+and `.g.cs` is reserved as an *optional build-tier ground-truth cross-check* (confirm the
+convention-derived wiring, catch compiler-only edge cases like attached events / EventSetter
+connection-ids), folded in later like the other build-required tiers — never the mechanism. (BAML is
+even further down: a post-build binary, only for source-less audits — not on this roadmap.)
+
+**First slice built.** `audit/static/tools/xaml_join.py` implements **XAML203**: a view whose
+`x:Class` component has an OwnIR subscription the engine flagged `released=false`, wired from a
+load-lifecycle handler (`Loaded`/`Initialized`/`DataContextChanged`) — the closed-view-retained leak,
+anchored at the XAML site and naming the C# subscription. own-check persists its OwnIR facts via a new
+`--emit-facts`, and `run_static.py` runs the join whenever `xaml-facts.json` + `own-check.facts.json`
+are both present, folding the result into the pipeline. Binding-path-hotness (XAML200/204) needs the
+DataContext type — rarely static in markup — so it is the next increment, deliberately not guessed.
+
 **The Phase-1 → Phase-2 seam is built.** The markup pass now emits a structured fact document
 alongside its SARIF — `audit/static/tools/xaml_facts.py` writes `xaml-facts.json` from the *same*
 parsed tree (no second parser), in an envelope that mirrors OwnIR's `*.facts.json`

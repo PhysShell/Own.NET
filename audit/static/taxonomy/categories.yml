@@ -36,6 +36,12 @@ rules:
   OWN014: {category: 2, name: region-escape}     # escape to a longer-lived region
                                                  # (vm->App, SystemEvents) — NOT a
                                                  # generic subscription-leak
+  # XAML Phase-2 join: a view (x:Class) that subscribes from a load-lifecycle handler
+  # but never releases (OwnIR released=false). Categorized as a subscription leak so
+  # it scores as the P1 leak it is; the join already stitches the markup site to the
+  # C# subscription it names (the leak lives in the .xaml.cs, a different basename, so
+  # it does not spatially cluster with the own-check OWN001 on that file).
+  "XAML203": {category: 2, name: xaml-subscription-leak}
 
   # ── Category 5: INPC correctness ─────────────────────────────────────────────
   "INPC0*": {category: 5, name: inpc-correctness}   # PropertyChangedAnalyzers

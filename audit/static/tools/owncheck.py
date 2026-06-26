@@ -39,6 +39,11 @@ def run_own_check(target: str, out_dir: Path, severity: str = "warning",
     unavailable toolchain."""
     out_dir.mkdir(parents=True, exist_ok=True)
     sarif_path = out_dir / "own-check.sarif"
+    facts_path = out_dir / "own-check.facts.json"
+    # Clear any prior run's facts up front: own-check.sh writes this fixed path only on
+    # a successful extraction, so after a failed/unavailable run the file is simply
+    # absent — the XAML join can never pick up stale facts from another target/commit.
+    facts_path.unlink(missing_ok=True)
     status: dict[str, Any] = {"tool": "own-check", "tier": "build-free",
                               "available": False, "sarif": None, "reason": ""}
 
@@ -49,7 +54,10 @@ def run_own_check(target: str, out_dir: Path, severity: str = "warning",
         status["reason"] = "dotnet SDK not on PATH (needed by the C# fact extractor)"
         return status
 
-    cmd = [str(OWN_CHECK_SH), "--format", "sarif", "--severity", severity, "--", target]
+    # Persist the OwnIR facts too (--emit-facts): the XAML Phase-2 join consumes them
+    # alongside xaml-facts.json. Harmless if unused.
+    cmd = [str(OWN_CHECK_SH), "--format", "sarif", "--severity", severity,
+           "--emit-facts", str(facts_path), "--", target]
     if root is not None:
         cmd[1:1] = ["--root", str(root)]
     try:
@@ -70,6 +78,8 @@ def run_own_check(target: str, out_dir: Path, severity: str = "warning",
     except json.JSONDecodeError:
         n = 0
     status.update(available=True, sarif=str(sarif_path), findings=n)
+    if facts_path.exists():
+        status["facts"] = str(facts_path)
     return status
 
 
