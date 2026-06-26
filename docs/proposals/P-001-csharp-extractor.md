@@ -4,7 +4,7 @@
   core) is built and now extracts far more than the original `event += without -=` spike:
   WPF001–005 (events, timers, `IDisposable` fields, ignored `Subscribe`, static-event region
   escape → OWN014), the **DI registration + constructor graph** (DI001–DI005, P-006), the
-  **ArrayPool/Span** facts (POOL001–005, P-007), **path-sensitive per-method flow** facts
+  **ArrayPool/Span** facts (POOL001–003 built; 004/005 first slices, P-007), **path-sensitive per-method flow** facts
   (`--flow-locals`: acquire/use/release/loops/try, OWN001/002/003, P-016), and **project-local
   semantic resolution** (`SemanticModel`-bound `+=`, OWN050 for unresolved types, P-014 Tier A).
   All CI-validated end-to-end on the extractor samples.
