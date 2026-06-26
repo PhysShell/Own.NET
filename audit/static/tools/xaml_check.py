@@ -450,7 +450,8 @@ def _rule_merged_dict_shadowing(root: Node, avalonia: bool) -> list[XamlFinding]
     return out
 
 
-def _resolve_source(src: str, host_dir: Path, target_root: Path) -> Path | None:
+def _resolve_source(src: str, host_dir: Path, target_root: Path,
+                    proj_index: dict[str, set[Path]]) -> Path | None:
     """Resolve a ``MergedDictionaries`` ``Source="..."`` to a real ``.xaml``/``.axaml``
     file **inside the scanned target**, or ``None`` when it can't be pinned down — the
     conservative half of the cross-file rule. WPF source forms handled:
@@ -460,33 +461,50 @@ def _resolve_source(src: str, host_dir: Path, target_root: Path) -> Path | None:
     - app/site-root (``/Colors.xaml``)             -> against the target root;
     - pack/component (``pack://application:,,,/Asm;component/Themes/Colors.xaml`` or the
       bare ``/Asm;component/Themes/Colors.xaml``)  -> the path after ``;component/``,
-                                                      against the target root.
+                                                      resolved against the **named
+                                                      assembly's** project directory
+                                                      (the unique ``<Asm>.csproj`` in
+                                                      ``proj_index``), NOT blindly the
+                                                      target root.
 
-    Anything that escapes the target, carries an ``http(s)``/``siteoforigin`` scheme, or
-    doesn't land on an existing file returns ``None`` (skipped, never guessed) — so an
-    unresolved include can never manufacture a false collision."""
+    The component case keys off the assembly on purpose: in a multi-project target a
+    ``/Lib;component/Themes/Colors.xaml`` reference points at *Lib*'s dictionary, and the
+    app may have its own ``Themes/Colors.xaml`` — resolving against the target root would
+    silently compare the wrong file and invent a collision. When the assembly maps to no
+    project, or to more than one (ambiguous), the reference is skipped. Anything that
+    escapes the target, carries an ``http(s)``/``siteoforigin`` scheme, or doesn't land on
+    an existing file likewise returns ``None`` — an unresolved include can never
+    manufacture a false collision."""
     s = (src or "").strip()
     if not s:
         return None
     low = s.lower()
     if low.startswith(("http://", "https://")) or "siteoforigin" in low:
         return None
-    # pack/component: keep only the assembly-relative path after ';component/'.
+    troot = target_root.resolve()
+
+    # pack/component: resolve the assembly-relative path against THAT assembly's project.
     marker = ";component/"
     pos = low.find(marker)
     if pos != -1:
-        s = s[pos + len(marker):]
+        asm = s[:pos].rstrip("/").split("/")[-1].split(",")[-1].strip()
+        rel = s[pos + len(marker):].split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        roots = proj_index.get(asm)
+        if not rel or not roots or len(roots) != 1:
+            return None  # unknown / ambiguous assembly -> skip, don't guess
+        bases = [next(iter(roots))]
     elif s.startswith("pack:"):
         return None  # an unrecognized pack form — don't guess
-    s = s.split("?", 1)[0].split("#", 1)[0].lstrip("/")
-    if not s:
-        return None
-    troot = target_root.resolve()
-    candidates = [host_dir / s, troot / s] if not src.strip().startswith(("/", "pack:")) \
-        else [troot / s]
-    for cand in candidates:
+    else:
+        rel = s.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        if not rel:
+            return None
+        # relative -> host dir then target root; app-root ("/X") -> target root.
+        bases = [troot] if src.startswith("/") else [host_dir, troot]
+
+    for base in bases:
         try:
-            rc = cand.resolve()
+            rc = (base / rel).resolve()
         except OSError:
             continue
         if rc.is_file() and (rc == troot or troot in rc.parents):
@@ -527,6 +545,11 @@ def analyze_cross_file(parsed: list[tuple[str, Path, Node]],
             by_abs[abs_path.resolve()] = tree
         except OSError:
             continue
+    # assembly name -> project dir(s), so a pack ';component/' Source resolves against the
+    # named assembly's project rather than guessing under the target root (see _resolve_source).
+    proj_index: dict[str, set[Path]] = {}
+    for csproj in troot.rglob("*.csproj"):
+        proj_index.setdefault(csproj.stem, set()).add(csproj.parent)
     ext_cache: dict[Path, dict[str, int]] = {}
     out: list[tuple[str, XamlFinding]] = []
 
@@ -555,7 +578,7 @@ def analyze_cross_file(parsed: list[tuple[str, Path, Node]],
                         occ.setdefault(key, []).append((label, c.line, False))
                         in_scopes.setdefault(key, set()).add(label)
                     continue
-                resolved = _resolve_source(src, host_dir, troot)
+                resolved = _resolve_source(src, host_dir, troot, proj_index)
                 if resolved is None:
                     continue
                 ext_tree = by_abs.get(resolved)
@@ -1243,12 +1266,36 @@ def _selftest() -> int:
           "XAML105 cross-file must name the resolved external dictionary")
     check(xf.get("XAML105") and xf["XAML105"].line >= 1,
           "XAML105 cross-file must anchor at a real line in the host file")
-    # a pack:// '/Asm;component/...' Source resolves the assembly-relative path.
-    xfpack = xfile({"Themes/Colors.xaml": _theme("accent"),
+    # a pack '/Asm;component/...' Source resolves under the named assembly's project dir
+    # (located by a unique <Asm>.csproj), not blindly the target root.
+    xfpack = xfile({"MyAsm.csproj": "<Project />\n",
+                    "Themes/Colors.xaml": _theme("accent"),
                     "Views/Main.xaml": _host("/MyAsm;component/Themes/Colors.xaml",
                                              primary_key="accent")},
                    "Views/Main.xaml")
-    check("XAML105" in xfpack, "XAML105 cross-file must resolve a '/Asm;component/...' pack Source")
+    check("XAML105" in xfpack,
+          "XAML105 cross-file must resolve a '/Asm;component/...' pack Source via its csproj")
+    # multi-project: '/Lib;component/Themes/Colors.xaml' must resolve to *Lib*'s file, even
+    # though the app has its own Themes/Colors.xaml — the message names the Lib dictionary.
+    xfmulti = xfile({"Lib/Lib.csproj": "<Project />\n",
+                     "Lib/Themes/Colors.xaml": _theme("accent"),
+                     "App/App.csproj": "<Project />\n",
+                     "App/Themes/Colors.xaml": _theme("accent"),
+                     "App/Views/Main.xaml": _host("/Lib;component/Themes/Colors.xaml",
+                                                  primary_key="accent")},
+                    "App/Views/Main.xaml")
+    check("XAML105" in xfmulti and "Lib/Themes/Colors.xaml" in xfmulti["XAML105"].message,
+          "XAML105 cross-file must resolve a pack Source to the NAMED assembly's dictionary")
+    # Codex FP guard: if the named assembly has no such file, the resolver must NOT fall
+    # back to a same-named file in another project (which would be a false collision).
+    xffp = xfile({"Lib/Lib.csproj": "<Project />\n",
+                  "App/App.csproj": "<Project />\n",
+                  "App/Themes/Colors.xaml": _theme("accent"),
+                  "App/Views/Main.xaml": _host("/Lib;component/Themes/Colors.xaml",
+                                               primary_key="accent")},
+                 "App/Views/Main.xaml")
+    check("XAML105" not in xffp,
+          "XAML105 cross-file must not resolve a pack Source to another project's same-named file")
     # two external dictionaries that both define the key -> order-dependent across files.
     xfext = xfile({"Themes/A.xaml": _theme("accent"),
                    "Themes/B.xaml": _theme("accent"),
