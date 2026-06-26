@@ -299,24 +299,24 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   `OwnIRError`. It predated D5 (reproduced with a **plain `acquire`**, no fresh/factory path);
   D5.2's call-result acquire only added another way to reach it. Fixed by making `acquire`
   lowering **branch-aware**: `_hoisted_branch_locals` finds locals acquired at depth ≥ 1 whose
-  shallowest reference is at **depth 0** (the function top, always reached), and `to_module`
-  declares each **once at the function's outer scope** (a single `Let`), skipping the in-branch
-  acquire. A balanced cross-branch release is now CLEAN; an un-released one still leaks **OWN001**
-  (hoisting a conditional acquire to unconditional is precision-safe *because* the depth-0
-  reference also runs on every path — never a fabricated use/double-release). Covers both the
-  plain `acquire` and the `fresh` call-result form. We deliberately did **not** soft-skip OWN030
-  (it would mask genuine lowering drift; the strict map-or-raise invariant is load-bearing).
-  Tests: `branch_merge` (clean), `branch_leak` (OWN001), `branch_factory` (clean). **Narrower
-  remaining limitation:** when the reference is itself at depth ≥ 1 (acquired at depth 2 inside a
-  nested `if`, released at depth 1 in the enclosing block), function-top is not the
-  common-dominator scope, so the hoist deliberately does not fire and the OWN030 raise persists —
-  the correct fix is to hoist to the common-dominator block, tracked for a follow-up and locked
-  by the `nested_branch` xfail test. **`while` bodies are also excluded:** `if` branches are
-  mutually exclusive (one acquire runs → unconditional is balanced), but loop iterations are
-  *cumulative*, so hoisting `while { r = acquire() }; release r` to a single acquire would hide a
-  per-iteration leak. A loop-acquired local keeps its pre-existing (loud OWN030) behaviour rather
-  than a silent false-clean; a loop-aware model is a separate follow-up, locked by the `loop_acq`
-  xfail test. (Codex P2 on #116; loop exclusion Codex P1 on #120.)
+  shallowest reference is at **depth 0** (function-top, so function-scope is the common dominator),
+  and `to_module` declares each **once at the function's outer scope** (a single `Let`), skipping
+  the in-branch acquire. A balanced cross-branch release is now CLEAN; an un-released one still
+  leaks **OWN001**. Covers both the plain `acquire` and the `fresh` call-result form, and a hoisted
+  ArrayPool rent keeps its `pool` kind (so it still reports as a pooled buffer). We deliberately did
+  **not** soft-skip OWN030 (it would mask genuine lowering drift; the strict map-or-raise invariant
+  is load-bearing). Because hoisting makes a conditional acquire **unconditional**, it is gated by
+  `_branch_hoist_safe` — a definite-assignment walk that blocks the hoist when a branch can
+  early-`return` before the release on a path that did not acquire the local (else the hoisted
+  resource would leak there — a *false* OWN001, e.g. `if c: acquire r else: return; release r`).
+  Tests: `branch_merge` / `branch_factory` / `one_branch` (clean), `branch_leak` (OWN001),
+  `pool_branch` (pooled kind preserved), `guard` (early-return → not hoisted, no fabricated
+  finding). **Narrower remaining limitations** (each a documented xfail lock, fixed by a later
+  loop-/dominator-aware model): a reference at depth ≥ 1 inside a nested block (`nested_branch` —
+  function-top isn't the common dominator), a `while`-body acquire (`loop_acq` — iterations are
+  cumulative), and the early-return guard shape (`guard` — stays a loud OWN030 raise rather than a
+  false positive). (Bridge branch-scope fix: Codex P2 on #116; loop exclusion Codex P1, hoist
+  safety predicate + pool-kind preservation CodeRabbit on #120.)
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
   factories.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit

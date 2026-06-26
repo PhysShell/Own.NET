@@ -1553,6 +1553,56 @@ def run() -> int:
         fails.append("bridge branch-scope: a while-body acquire released after the loop must "
                      "NOT be silently hoisted to clean — it stays loud until a loop-aware model "
                      "lands; got no raise (false-clean or premature loop hoist)")
+    # SAFETY (CodeRabbit Major): the hoist must NOT fire when a branch early-`return`s on a
+    # path that did not acquire the local — an unconditional hoisted acquire would leak on
+    # that path, a FALSE OWN001. `guard` (`if c: acquire r else: return; release r`) is
+    # clean C# (else returns, r never acquired there). `_branch_hoist_safe` blocks the hoist,
+    # so this stays the pre-existing loud raise — never a fabricated OWN001.
+    checks += 1
+    guard_ok = False
+    try:
+        gf = check_facts({"module": "M", "functions": [
+            {"name": "guard", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1,
+                       "then": [{"op": "acquire", "var": "r", "line": 2}],
+                       "else": [{"op": "return", "line": 3}]},
+                      {"op": "release", "var": "r", "line": 4}]}]})
+        guard_ok = not gf  # if it lowered, it must NOT fabricate a finding
+    except OwnIRError:
+        guard_ok = True  # not hoisted -> loud raise, never a false OWN001
+    if not guard_ok:
+        fails.append("bridge branch-scope: an early-return branch must not be hoisted into a "
+                     "fabricated OWN001 (the hoist safety predicate must block it)")
+    # a one-branch acquire with NO early return IS safe to hoist (else falls through to the
+    # release; null-safe dispose). It must be CLEAN, not crash.
+    checks += 1
+    try:
+        ob = check_facts({"module": "M", "functions": [
+            {"name": "one_branch", "file": "T1.cs",
+             "body": [{"op": "if", "line": 1, "else": [],
+                       "then": [{"op": "acquire", "var": "r", "line": 2}]},
+                      {"op": "release", "var": "r", "line": 3}]}]})
+        if ob:
+            gotob = [(x.component, x.code) for x in ob]
+            fails.append("bridge branch-scope: a one-branch acquire (no early return) released "
+                         f"after the merge must be CLEAN, got {gotob}")
+    except OwnIRError as e:
+        fails.append(f"bridge branch-scope: a safe one-branch acquire must not crash ({e!r})")
+    # a hoisted ArrayPool rent keeps its `pool` kind: a cross-branch Rent that is never
+    # released leaks as a POOLED buffer (OWN025-style wording), not a generic disposable.
+    # (CodeRabbit: the hoist must preserve acquire `kind`.) Asserted via the leak being
+    # tagged pooled in its structured finding.
+    checks += 1
+    pl = check_facts({"module": "M", "functions": [
+        {"name": "pool_branch", "file": "T1.cs",
+         "body": [{"op": "if", "line": 1,
+                   "then": [{"op": "acquire", "var": "r", "kind": "pool", "line": 2}],
+                   "else": [{"op": "acquire", "var": "r", "kind": "pool", "line": 3}]},
+                  {"op": "use", "var": "r", "line": 4}]}]})
+    pooled = [x for x in pl if getattr(x, "pooled", False) or "pool" in (x.message or "").lower()]
+    if not pl or not pooled:
+        fails.append("bridge branch-scope: a hoisted ArrayPool rent that leaks must stay tagged "
+                     f"a pooled buffer (kind preserved), got {[(x.code, x.message) for x in pl]}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the
