@@ -27,6 +27,7 @@ Phase-1 rules implemented here (see the catalogue in the design note). Each is t
 perf/lifetime axis that WpfAnalyzers / PropertyChangedAnalyzers do **not** cover —
 we deliberately do not re-implement their correctness rules:
 
+  XAML100  ResourceShouldBeHoisted              (cat 9)  Freezable keyed in N local scopes
   XAML101  DuplicateStatelessConverterResource  (cat 9)  per-instance resource churn
   XAML102  DynamicResourceLikelyStatic          (cat 9)  WPF-only, deferred-lookup cost
   XAML103  SuspiciousSharedFalse                (cat 9)  WPF-only, x:Shared opt-out
@@ -40,11 +41,12 @@ we deliberately do not re-implement their correctness rules:
   XAML112  TemplateBindingOpportunity           (cat 9)  cheaper compiled binding available
   XAML113  InlineFreezableDuplication           (cat 9)  identical inline brush/geometry
 
-Deferred to a later Phase-1 slice (documented so nothing on the wishlist quietly
-falls through — the design note's stated goal): XAML100 ResourceShouldBeHoisted
-(needs the cross-sibling scope model) and XAML105 MergedDictionaryKeyShadowing
-across *external* dictionaries (needs cross-file resolution). Phase 2 (Roslyn-linked
-XAML2xx) and Phase 3 (runtime correlation) live elsewhere per the design note.
+XAML100 covers the recurring-Freezable case (the same keyed brush/geometry/transform
+declared in several control-local scopes); the Style/template variant (deep
+structural equivalence) and XAML105 MergedDictionaryKeyShadowing across *external*
+dictionaries (cross-file resolution) remain a later slice — documented so nothing on
+the wishlist quietly falls through. Phase 2 (Roslyn-linked XAML2xx) and Phase 3
+(runtime correlation) live elsewhere per the design note.
 
 WPF-only rules (XAML102/103/106) are skipped on Avalonia ``.axaml`` because the
 ``DynamicResource`` / ``x:Shared`` / ``Freezable`` semantics differ or do not exist
@@ -88,6 +90,11 @@ FREEZABLE_TYPES = {
 # Resource keys that are legitimately dynamic (theme/system) — XAML102 must skip.
 DYNAMIC_KEY_PREFIXES = ("System", "Theme", "{x:Static")
 DYNAMIC_KEY_TYPES = ("SystemColors", "SystemParameters", "SystemFonts")
+
+# Resource scopes that are already shared (a hoist *target*, not a control-local copy):
+# the document root and the window/app/page-level dictionaries (XAML100).
+TOP_LEVEL_SCOPES = {"root", "Window", "UserControl", "Application", "Page",
+                    "NavigationWindow", "ResourceDictionary"}
 
 # Binding markers for XAML108 (per-keystroke source updates).
 _TWOWAY_RE = re.compile(r"Mode\s*=\s*TwoWay", re.IGNORECASE)
@@ -377,6 +384,55 @@ def _keyed_resources(rd: Node):
             yield key, c
 
 
+def _scope_owner(rd: Node) -> str:
+    """The element type that owns a resource dictionary — the nearest ``<X.Resources>``
+    ancestor (``Grid``, ``Border``, ``DataTemplate`` …), or ``root`` for the document
+    root / a standalone ResourceDictionary file."""
+    node: Node | None = rd
+    while node is not None:
+        if node.is_property_element() and node.local() == "Resources":
+            return node.type_name()
+        node = node.parent
+    return "root"
+
+
+def _rule_resource_hoist(root: Node, avalonia: bool,
+                         min_copies: int = 2) -> list[XamlFinding]:
+    """XAML100 — a heavy Freezable resource (brush/geometry/transform/image) declared
+    with ``x:Key`` in several **control-local** ``<X.Resources>`` scopes with the same
+    structure: each copy is a separate object multiplying working set across siblings,
+    when one shared resource at window/app scope would do (the "52x52 Brush collapse"
+    of the design note). Restricted to Freezables, where the shallow structural
+    signature is reliable; Styles/templates (deep structural equivalence) are a later
+    refinement. Resources already at a shared (root/window/app) scope are the hoist
+    *target*, not a finding."""
+    by_sig: dict[tuple[Any, ...], list[Node]] = {}
+    for rd in _resource_dictionaries(root):
+        if _scope_owner(rd) in TOP_LEVEL_SCOPES:
+            continue  # already a shared scope — the place to hoist *to*
+        for _key, c in _keyed_resources(rd):
+            if c.type_name() not in FREEZABLE_TYPES:
+                continue
+            sig = _inline_freezable_sig(c)  # type + non-key attrs + child types
+            if not sig[1] and not sig[2]:
+                continue  # empty/defaulted element — nothing meaningful to share
+            by_sig.setdefault(sig, []).append(c)
+
+    out: list[XamlFinding] = []
+    for copies in by_sig.values():
+        if len(copies) < min_copies:
+            continue
+        first = copies[0]
+        for c in copies[1:]:
+            out.append(XamlFinding(
+                "XAML100", c.line,
+                f"{c.type_name()} resource is declared identically in "
+                f"{len(copies)} control-local scopes (first at line {first.line}); "
+                "hoist it to one shared window/app resource instead of multiplying "
+                "working set across siblings [resource: hoistable resource]"))
+    return out
+
+
 def _rule_duplicate_converter(root: Node, avalonia: bool) -> list[XamlFinding]:
     """XAML101 — an identical stateless converter declared in several dictionaries.
     Stateless = a keyed element with no child content and no configuring attributes
@@ -628,6 +684,7 @@ def _rule_layout_transform(root: Node, avalonia: bool) -> list[XamlFinding]:
 
 
 RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
+    _rule_resource_hoist,
     _rule_virtualization,
     _rule_template_complexity,
     _rule_per_keystroke_binding,
@@ -947,6 +1004,38 @@ def _selftest() -> int:
           '<RotateTransform Angle="90" /></TextBlock.LayoutTransform></TextBlock>\n'
           '</StackPanel>\n')
     check("XAML111" in rules(lt), "XAML111 must flag a LayoutTransform")
+
+    # XAML100 — the same heavy brush keyed in two CONTROL-LOCAL scopes -> hoist.
+    hoist = (f'<UserControl {_WPF_NS}>\n'
+             '  <Grid>\n'
+             '    <Border><Border.Resources>\n'
+             '      <SolidColorBrush x:Key="accent" Color="#FF0080FF" />\n'
+             '    </Border.Resources></Border>\n'
+             '    <StackPanel><StackPanel.Resources>\n'
+             '      <SolidColorBrush x:Key="accent2" Color="#FF0080FF" />\n'
+             '    </StackPanel.Resources></StackPanel>\n'
+             '  </Grid>\n'
+             '</UserControl>\n')
+    r = rules(hoist)
+    check("XAML100" in r, "XAML100 must flag a heavy resource duplicated across local scopes")
+    # The SAME brush at the (shared) UserControl scope is the hoist target -> no finding.
+    topscope = (f'<UserControl {_WPF_NS}>\n'
+                '  <UserControl.Resources>\n'
+                '    <SolidColorBrush x:Key="accent" Color="#FF0080FF" />\n'
+                '  </UserControl.Resources>\n'
+                '  <Border><Border.Resources>\n'
+                '    <SolidColorBrush x:Key="accent2" Color="#FF0080FF" />\n'
+                '  </Border.Resources></Border>\n'
+                '</UserControl>\n')
+    check("XAML100" not in rules(topscope),
+          "XAML100 false positive: only one control-local copy (the other is a shared scope)")
+    # Distinct brushes in two local scopes -> not the same resource, no finding.
+    distinct = hoist.replace('Color="#FF0080FF" />\n'
+                             '    </StackPanel.Resources>',
+                             'Color="#FF00FF80" />\n'
+                             '    </StackPanel.Resources>')
+    check("XAML100" not in rules(distinct),
+          "XAML100 false positive: structurally distinct local resources are not duplicates")
 
     # Implicit <X.Resources> dictionary (the common WPF syntax, no <ResourceDictionary>
     # wrapper) must feed the keyed-resource rules — else XAML101/102/106 miss most files.
