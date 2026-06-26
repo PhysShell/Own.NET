@@ -3,13 +3,11 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Real external repo, 2026-06-26: re-run the documented Dapper worked example on a
-# live clone AFTER the P-014 Tier A/B semantic-resolution work, to confirm the
-# cross-tool pipeline (clone -> build -> own-check + CodeQL + Infer#) still holds on
-# external code. Documented baseline (oracle.md): Own.NET 0 / Infer# 3 / CodeQL 2
-# leak-class, agree 0, own-only 0 (no false positives) on product code
-# (--exclude-tests drops the test/benchmark findings). Infer#'s 3 are over-reports
-# on Dapper's caller-owned DbWrappedReader (ownership transfer Own.NET treats as no
-# leak); CodeQL's 2 are dispose-on-throw, an exceptional-CFG recall gap we skip by
-# design. Expect: agree 0, own-only 0, oracle-only ~5 (the two named classes).
-DapperLib/Dapper
+# Blind run, 2026-06-26: a FRESH external target with no documented baseline, to
+# see whether Own.NET surfaces any own-only (candidate false positives) or
+# oracle-only (recall gaps) on real code it hasn't been tuned against. Polly v8
+# targets net8/net6/netstandard2.0 only -> builds cleanly on the dotnet-8 runner,
+# so all three tools (own-check + CodeQL + Infer#) should fire. Real resource
+# surface: CancellationTokenSource, timers, IDisposable resilience pipelines.
+# No expectation pinned — this is exploratory; read the report, don't assert it.
+App-vNext/Polly
