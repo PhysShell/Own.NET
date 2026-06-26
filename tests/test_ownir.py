@@ -570,6 +570,13 @@ def run() -> int:
     if len(di3b) != 1 or di3b[0].severity != "warning" or di3b[0].component != "Cache":
         fails.append(f"DI003 bridge finding wrong: "
                      f"{[(x.component, x.severity) for x in di3b]}")
+    checks += 1
+    # P-015 flow: captor singleton -> captured transient IDisposable, each at its registration
+    # site, ending with the DI003 family label.
+    if not di3b or di3b[0].flow != (
+            ("S.cs", 7, "singleton 'Cache' (captor)"),
+            ("S.cs", 8, "captures transient IDisposable 'Conn'")):
+        fails.append(f"DI003 flow wrong: {di3b[0].flow if di3b else None!r}")
 
     # --- DI002 (P-006): a scoped service held by a singleton via WeakReference<T> is a
     #     weak captive (warning). The weak edge lives in `weak_deps`, OFF the DI001 strong
@@ -618,6 +625,12 @@ def run() -> int:
     checks += 1
     if any(x.code == "DI001" for x in di2b):
         fails.append("DI002 bridge wrongly also produced a DI001")
+    checks += 1
+    # P-015 flow: ends with the DI002 family label "weakly captures scoped service".
+    if not di2only or di2only[0].flow != (
+            ("S.cs", 9, "singleton 'WeakCache' (captor)"),
+            ("S.cs", 10, "weakly captures scoped service 'Db'")):
+        fails.append(f"DI002 flow wrong: {di2only[0].flow if di2only else None!r}")
 
     # --- DI004 (P-006): a transient IDisposable resolved BY HAND from a singleton's injected
     #     root IServiceProvider (the service-locator anti-pattern, warning). Only singletons are
@@ -690,6 +703,17 @@ def run() -> int:
     # also produce a DI001/DI002/DI003 (the singleton has no scoped/transient ctor dependency).
     if any(x.code in ("DI001", "DI002", "DI003") for x in di4b):
         fails.append("DI004 wrongly also produced a graph DI00x finding")
+    checks += 1
+    # P-015 flow: DI004 anchors at the CALL site (R.cs:42), but the reachability slice begins at
+    # the REGISTRATION site (S.cs:5) and ends with "leaks transient IDisposable" — the flow's
+    # first hop deliberately differs from the finding's own (call-site) location.
+    if not di4only or di4only[0].flow != (
+            ("S.cs", 5, "singleton 'Resolver' (captor)"),
+            ("S.cs", 6, "leaks transient IDisposable 'Conn'")):
+        fails.append(f"DI004 flow wrong: {di4only[0].flow if di4only else None!r}")
+    checks += 1
+    if di4only and di4only[0].flow[0][:2] == (di4only[0].file, di4only[0].line):
+        fails.append("DI004 flow must start at the registration site, not the call-site anchor")
 
     # --- DI005 (P-006): a singleton that resolves a SCOPED service from a scope it CREATES
     #     (IServiceScopeFactory.CreateScope()) and CACHES it into a field — the scope-per-op
@@ -763,6 +787,16 @@ def run() -> int:
     # ctor dependency, so it must not also produce a DI001/DI002/DI003/DI004.
     if any(x.code in ("DI001", "DI002", "DI003", "DI004") for x in di5b):
         fails.append("DI005 wrongly also produced another DI00x finding")
+    checks += 1
+    # P-015 flow: DI005 anchors at the field-STORE site (C.cs:21), but the slice begins at the
+    # REGISTRATION site (S.cs:7) and ends with "caches scoped service".
+    if not di5only or di5only[0].flow != (
+            ("S.cs", 7, "singleton 'Cacher' (captor)"),
+            ("S.cs", 8, "caches scoped service 'Db'")):
+        fails.append(f"DI005 flow wrong: {di5only[0].flow if di5only else None!r}")
+    checks += 1
+    if di5only and di5only[0].flow[0][:2] == (di5only[0].file, di5only[0].line):
+        fails.append("DI005 flow must start at the registration site, not the store-site anchor")
 
     # bridge: the fixture surfaces exactly the two captive singletons as DI001
     # at their registration lines; the clock/scoped-to-scoped stay silent.
