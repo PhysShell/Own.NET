@@ -1706,6 +1706,15 @@ def run() -> int:
         fails.append(f"an `overspan` fact should raise OWN025 at the view line (12) "
                      f"tagged a pooled buffer, got "
                      f"{[(x.code, x.line, x.kind) for x in osp]}")
+    checks += 1
+    # P-015: the OWN025 slice runs Rent site -> view site (the primary anchor is the VIEW
+    # at line 12, but the flow's first hop is the Rent at line 10) — the pooled-buffer
+    # branch's own flow path, distinct from the OWN002 case above.
+    if not osp or osp[0].flow != (
+            ("Framer.cs", 10, "rented 'buf' here"),
+            ("Framer.cs", 12, "viewed here at full length, past what it was rented for")):
+        fails.append(f"OWN025 Rent->view reachability flow wrong: "
+                     f"{osp[0].flow if osp else None!r}")
 
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
