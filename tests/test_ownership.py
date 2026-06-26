@@ -106,6 +106,16 @@ def run() -> int:
     ])
     expect(_t(s, "A", 0) == Transfer.MUST, "2-hop forward chain resolves to must")
 
+    # Sparse skeleton: a wrapper `Create(cmd, reader)` lists only the disposable
+    # param at logical index 1. Forwarding to arg=1 must resolve by `.index`, not by
+    # tuple offset (else it falls off the end -> wrongly `unknown`). (Codex P2.)
+    s = solve([
+        _m("Caller", _p(0, PathAction("forward", "Create", 1), name="x")),
+        _m("Create", _p(1, PathAction("dispose"), name="reader")),  # only index 1 listed
+    ])
+    expect(_t(s, "Caller", 0) == Transfer.MUST,
+           "forward resolves the callee param by logical index, not tuple offset")
+
     # --- the extern boundary ------------------------------------------------
     s = solve([_m("Caller", _p(0, PathAction("forward", "Extern", 0)))])  # Extern unsummarized
     expect(_t(s, "Caller", 0) == Transfer.UNKNOWN, "forward to extern -> unknown")
@@ -155,6 +165,17 @@ def run() -> int:
 
     s = solve([_m("Void")])
     expect(s["Void"].returns == "none", "no owned return -> none")
+
+    # forward-return of a callee's aliasOf:<i>: <i> is in the callee's param space and
+    # cannot be remapped to our args without the call's arg mapping (a D5.4 concern),
+    # so it degrades to unknown rather than propagating a wrong index. (Codex P2.)
+    s = solve([
+        _m("Outer", _p(0, name="a"), _p(1, PathAction("forward", "Inner", 0), name="b"),
+           ret=ReturnSkeleton("forward", callee="Inner")),
+        _m("Inner", _p(0, PathAction("return")), ret=ReturnSkeleton("aliasOf", arg=0)),
+    ])
+    expect(s["Outer"].returns == "unknown",
+           "aliasOf through a forward-return degrades to unknown (no mis-mapped index)")
 
     # --- serialization ------------------------------------------------------
     s = solve([

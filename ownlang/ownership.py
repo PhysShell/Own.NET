@@ -151,9 +151,15 @@ def _resolve_param(key: str, i: int, depth: int, stack: frozenset[str],
                    cap: int, sk: dict[str, MethodSkeleton],
                    capped: list[str]) -> Transfer:
     skel = sk.get(key)
-    if skel is None or i < 0 or i >= len(skel.params):
+    if skel is None:
         return Transfer.UNKNOWN
-    p = skel.params[i]
+    # `i` is the callee's *logical* parameter index (`ParamSkeleton.index`), which
+    # need not equal the tuple offset — a skeleton may list only the disposable /
+    # interesting params, so a wrapper `Create(cmd, reader)` can carry just index 1.
+    # Resolve by `.index`, never by position.
+    p = next((q for q in skel.params if q.index == i), None)
+    if p is None:
+        return Transfer.UNKNOWN
     if not p.disposable:
         return Transfer.NO
     if not p.paths:
@@ -204,7 +210,15 @@ def _resolve_return(key: str, depth: int, stack: frozenset[str], cap: int,
             return "unknown"
         if r.callee in stack:
             return "unknown"
-        return _resolve_return(r.callee, depth + 1, stack | {r.callee}, cap, sk, capped)
+        inner = _resolve_return(r.callee, depth + 1, stack | {r.callee}, cap, sk, capped)
+        if inner.startswith("aliasOf:"):
+            # `inner` aliases one of the *callee's* params; remapping it to one of
+            # OUR args needs the call's argument mapping, which the skeleton does not
+            # carry yet (it arrives with the obligation-identity model in D5.4). Until
+            # then, never propagate a wrong index — degrade to unknown (precision-safe:
+            # nothing is acquired/aliased at lowering).
+            return "unknown"
+        return inner  # fresh / aliased / none / unknown propagate as-is
     return "none"  # explicit no-owned-return
 
 
@@ -222,11 +236,11 @@ def solve_with_log(skeletons: Iterable[MethodSkeleton], *,
         params = tuple(
             ParamSummary(
                 p.index, p.name, p.disposable,
-                _resolve_param(key, idx, 0, frozenset({key}), cap, sk, capped)
+                _resolve_param(key, p.index, 0, frozenset({key}), cap, sk, capped)
                 if p.disposable else Transfer.NO,
                 p.escapes,
             )
-            for idx, p in enumerate(skel.params)
+            for p in skel.params
         )
         returns = _resolve_return(key, 0, frozenset({key}), cap, sk, capped)
         out[key] = MethodSummary(key, params, returns, skel.file, skel.line)
