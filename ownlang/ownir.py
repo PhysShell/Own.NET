@@ -1041,6 +1041,12 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
         (v,) = tuple(returned)
         callee = call_results.get(v)
         if callee and v not in param_names and v not in acquired:
+            if _is_bcl_fresh_factory(callee):
+                # a thin wrapper returning a BCL factory's result is itself `fresh` — the
+                # caller owns it (Codex). Without this the return is a `forward` to an
+                # external (bodyless) callee, which the solver degrades to `unknown`, so a
+                # dropped `Make()` whose body is `return File.OpenRead(p)` leaks invisibly.
+                return ReturnSkeleton("fresh")
             return ReturnSkeleton("forward", callee=callee)
     return ReturnSkeleton()  # not provably owned -> no claim
 
@@ -1093,6 +1099,49 @@ _SINK_EXTERN_NAMES = frozenset(e.name for e in _OWNERSHIP_SINK_EXTERNS)
 # borrow contract). The DIRECT `call $borrow_mut [x]` channel is unaffected and keeps
 # full exclusivity through `lower_call`. Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
 _SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow"}
+
+
+# Tier B (P-005 D5.3 / P1a contracts): a curated table of well-known BCL *factories* whose
+# return the caller OWNS — the producer half of the boundary contract (the consume/borrow
+# *sink* half rides the `$consume`/`$borrow` channel above). These are pure factories: the
+# result is a fresh owned `IDisposable` and the arguments are not resources, so a leaked
+# `var s = File.OpenRead(p)` now surfaces as an OWN001 leak AT the factory call — it was
+# invisible before (no body to infer `fresh` from; see docs/notes/corpus-benchmark.md).
+# Overload-ambiguous *wrappers* that ADOPT an argument (e.g. `new StreamReader(stream)`) are
+# deliberately excluded — that is the sink / T4 case, not a pure factory. Keyed by
+# `Type.Method`; a callee matches on its last two dotted segments so a namespace-qualified
+# `System.IO.File.OpenRead` resolves the same.
+_BCL_FRESH_FACTORIES = frozenset({
+    "File.OpenRead", "File.OpenText", "File.OpenWrite",
+    "File.Open", "File.Create", "File.CreateText", "File.AppendText",
+})
+# the fully-qualified `System.IO.File.*` identities — accepted alongside the bare forms.
+_BCL_FRESH_FQNS = frozenset("System.IO." + e for e in _BCL_FRESH_FACTORIES)
+
+
+def _is_bcl_fresh_factory(callee: str) -> bool:
+    """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
+    ONLY the bare `Type.Method` (`File.OpenRead`) or the fully-qualified `System.IO.File.*`
+    identity (with an optional `global::` qualifier) — a same-named type in another namespace
+    (`MyCompany.File.OpenRead`) is NOT a match. Precision-first: we never fabricate ownership
+    for a non-BCL look-alike (Codex / CodeRabbit)."""
+    if not callee:
+        return False
+    name = callee.removeprefix("global::")
+    return name in _BCL_FRESH_FACTORIES or name in _BCL_FRESH_FQNS
+
+
+def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None) -> bool:
+    """Whether a `call` to `callee` yields a fresh owned result the caller must release.
+    A first-party summary is AUTHORITATIVE — if one exists we trust its `returns`, so a
+    same-named first-party `File.OpenRead` (Tier A) overrides the BCL table (Tier B) and is
+    never given a fabricated `fresh` (Codex). Only a callee we have no body for falls back to
+    the curated BCL factory table. The single source of truth shared by the leak pre-scan,
+    the branch-hoist safety walk, and the flow lowering, so all three agree."""
+    summ = mos.get(callee) if (mos is not None and callee) else None
+    if summ is not None:
+        return getattr(summ, "returns", None) == "fresh"
+    return _is_bcl_fresh_factory(callee)
 
 
 def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
@@ -1327,8 +1376,7 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None) -> boo
         if n.get("op") == "acquire" and str(n.get("var", "")) == name:
             return True
         if n.get("op") == "call" and str(n.get("result", "")) == name:
-            summ = mos.get(str(n.get("callee", ""))) if mos is not None else None
-            return summ is not None and getattr(summ, "returns", None) == "fresh"
+            return _callee_returns_fresh(str(n.get("callee", "")), mos)
         return False
 
     def analyze(seq: Any, acquired: bool) -> tuple[bool, bool]:
@@ -1396,8 +1444,7 @@ def _hoisted_branch_locals(nodes: Any,
         callee, res = n.get("callee"), n.get("result")
         if not (isinstance(res, str) and res and isinstance(callee, str) and callee):
             return None
-        summ = mos.get(callee) if mos is not None else None
-        return res if (summ is not None and getattr(summ, "returns", None) == "fresh") else None
+        return res if _callee_returns_fresh(callee, mos) else None
 
     def note_ref(name: str, depth: int) -> None:
         if name not in ref_depth or depth < ref_depth[name]:
@@ -1561,7 +1608,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             if isinstance(result, str) and result and result not in hoisted:
                 localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
-                    and summ is not None and getattr(summ, "returns", None) == "fresh"):
+                    and _callee_returns_fresh(callee, mos)):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[result] = handle

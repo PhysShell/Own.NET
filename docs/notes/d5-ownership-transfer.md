@@ -333,8 +333,31 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   cumulative), and the early-return guard shape (`guard` — stays a loud OWN030 raise rather than a
   false positive). (Bridge branch-scope fix: Codex P2 on #116; loop exclusion Codex P1, hoist
   safety predicate + pool-kind preservation CodeRabbit on #120.)
-- **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
-  factories.
+- **D5.3 — Tier B breadth.**
+  - **Producer side — `fresh` factories (shipped, first slice).** A curated
+    `_BCL_FRESH_FACTORIES` table in the OwnIR bridge (`ownir.py`) marks well-known BCL
+    factories whose return the caller owns (`File.OpenRead/OpenText/OpenWrite/Open/Create/
+    CreateText/AppendText`). A `call` to one binds a `fresh` result via the SAME `_callee_
+    returns_fresh` path the first-party T1 inference uses (now the single source of truth for
+    the leak pre-scan, branch-hoist safety, and lowering), so a leaked `var s =
+    File.OpenRead(p)` surfaces as OWN001 *at the factory call* — invisible before (no body to
+    infer from; see `corpus-benchmark.md`). Matched conservatively (Codex): ONLY the bare
+    `File.Method` or the fully-qualified `System.IO.File.Method` — a same-named factory in
+    another namespace (`MyCompany.File.OpenRead`) is **not** a match, so we never fabricate
+    ownership for a look-alike. A **first-party summary overrides** the table (`_callee_
+    returns_fresh` trusts a known body over Tier B), and a first-party **wrapper** that
+    returns a factory result (`Make(){ return File.OpenRead(p) }`) is itself `fresh`, so a
+    dropped `Make()` leaks too (the return skeleton propagates BCL freshness instead of
+    forwarding to the external, unsummarizable callee). Pure factories only — overload-
+    ambiguous *wrappers* that adopt an arg (`new StreamReader(stream)`) are excluded (sink/T4).
+    Tests in `test_ownir.py` (leak / disposed-clean / use-after-dispose / namespace-qualified /
+    non-System.IO look-alike rejected / first-party override / wrapper-fresh recall / a
+    non-disposable `File.ReadAllText` making no claim).
+  - **Sink side — `leaveOpen` breadth (remaining, extractor-side).** The documented
+    consume/borrow table (`StreamReader`/`StreamWriter`/`CryptoStream`/… by the `leaveOpen`
+    bool literal) rides the existing `$consume`/`$borrow` channel (D5.1b); its breadth is a
+    C#-extractor table (the bool literal is a per-call-site fact the extractor sees), so it is
+    CI/C#-only, not a pure-Python slice.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit
   cadence** so the core change is de-risked: **(step 0)** a *no-op identity refactor* —
   move resource state from per-binding to per-RID with a 1:1 binding↔RID mapping, behaviour
