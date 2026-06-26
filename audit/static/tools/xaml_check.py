@@ -433,12 +433,17 @@ def _rule_merged_dict_shadowing(root: Node, avalonia: bool) -> list[XamlFinding]
             # Shadowing requires the key in 2+ DISTINCT scopes (primary vs merged, or
             # two different merged dicts). Two entries in the SAME scope are a
             # duplicate-key error (runtime-invalid) — a different problem, not XAML105.
-            if len({w for w, _ln in occ}) < 2:
+            # Collapse to one line per scope (first occurrence) so the count and the
+            # "where" list reflect distinct scopes, not repeated same-scope entries.
+            by_scope: dict[str, int] = {}
+            for w, ln in occ:
+                by_scope.setdefault(w, ln)
+            if len(by_scope) < 2:
                 continue
-            where = ", ".join(f"{w} (line {ln})" for w, ln in occ)
+            where = ", ".join(f"{w} (line {ln})" for w, ln in by_scope.items())
             out.append(XamlFinding(
-                "XAML105", occ[0][1],
-                f"resource key '{key}' is defined in {len(occ)} merged/primary scopes "
+                "XAML105", next(iter(by_scope.values())),
+                f"resource key '{key}' is defined in {len(by_scope)} merged/primary scopes "
                 f"[{where}]; the effective value depends on merge order (last merged "
                 "wins, primary beats merged) [resource: merged dictionary]"))
     return out
@@ -1030,6 +1035,24 @@ def _selftest() -> int:
                  '</ResourceDictionary>\n')
     check("XAML105" not in rules(samescope),
           "XAML105 false positive: same-scope duplicate keys are not merge-order shadowing")
+    # a key duplicated in primary AND present in a merged dict still shadows across the
+    # two distinct scopes, but the same-scope dup must collapse: report 2 scopes (not 3),
+    # with 'primary' listed once.
+    dupprimary = (f'<ResourceDictionary {_WPF_NS}>\n'
+                  '  <SolidColorBrush x:Key="accent" Color="Green" />\n'
+                  '  <SolidColorBrush x:Key="accent" Color="Teal" />\n'
+                  '  <ResourceDictionary.MergedDictionaries>\n'
+                  '    <ResourceDictionary>\n'
+                  '      <SolidColorBrush x:Key="accent" Color="Blue" />\n'
+                  '    </ResourceDictionary>\n'
+                  '  </ResourceDictionary.MergedDictionaries>\n'
+                  '</ResourceDictionary>\n')
+    dp = rules(dupprimary)
+    check("XAML105" in dp, "XAML105 must flag a primary key also defined in a merged dict")
+    check(dp.get("XAML105") and "2 merged/primary scopes" in dp["XAML105"].message,
+          "XAML105 must collapse same-scope duplicates: 2 distinct scopes, not 3")
+    check(dp.get("XAML105") and dp["XAML105"].message.count("primary (line") == 1,
+          "XAML105 must list each distinct scope once (no repeated 'primary')")
 
     # XAML101 — duplicate stateless converter across dictionaries.
     conv = (f'<ResourceDictionary {_WPF_NS} xmlns:c="clr-namespace:App.Converters">\n'
