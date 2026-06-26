@@ -1565,6 +1565,34 @@ def _handle_of(diag: object) -> str | None:
     return subject.split("#", 1)[0]
 
 
+# the violation-site label per flow-local code, for the 2-step "origin -> manifestation"
+# reachability slice (P-015): the Rent/acquire site is where the resource came from, the
+# diagnostic line is where the obligation is violated.
+_FLOW_LOCAL_VIOLATION = {
+    "OWN002": "used here after it was released/returned",
+    "OWN003": "released/returned here a second time",
+    "OWN009": "may be used here after release on some path",
+    "OWN025": "viewed here at full length, past what it was rented for",
+}
+
+
+def _flow_local_steps(sub: dict[str, Any], code: str, dline: int,
+                      pool: bool) -> tuple[tuple[str, int, str], ...]:
+    """A reachability slice for a flow-local finding: the Rent/acquire site (where the
+    resource came from) -> the site where its obligation is violated (`dline`). Only the
+    use/return/view codes have a distinct second site; a plain leak (OWN001) is a single
+    point (the acquire itself) and gets no flow. Empty when a line is unknown or the two
+    sites coincide (then the primary location already says it all)."""
+    viol = _FLOW_LOCAL_VIOLATION.get(code)
+    acq = _as_int(sub.get("line", 0))
+    if viol is None or acq < 1 or dline < 1 or dline == acq:
+        return ()
+    f = str(sub.get("file", "?"))
+    name = sub.get("event", "?")
+    origin = f"rented '{name}' here" if pool else f"acquired '{name}' here"
+    return ((f, acq, origin), (f, dline, viol))
+
+
 def check_facts(facts: dict[str, Any]) -> list[Finding]:
     """Run the core checker over the lowered facts and return findings mapped
     back to their original C# locations (v0: the `event += without -=` leak).
@@ -1583,6 +1611,12 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
 
     mod, handles = to_module(facts)
     diags = check_module(mod)
+
+    # registration site of each DI service, to anchor a subscription-escape slice's
+    # source hop: the injected event SOURCE is a registered service (P-006 + P-004), so
+    # the reachability slice can point at where that longer-lived source was registered.
+    svc_loc = {str(s.get("name", "")): (str(s.get("file", "?")), _as_int(s.get("line", 0)))
+               for s in (facts.get("services") or []) if isinstance(s, dict)}
 
     findings: list[Finding] = []
     for d in diags:
@@ -1630,7 +1664,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                     message=(f"pooled buffer '{name}' is viewed at its full "
                              f"length, past the logical length it was rented for "
                              f"(over-read / over-clear)"),
-                    kind="pooled buffer"))
+                    kind="pooled buffer",
+                    flow=_flow_local_steps(sub, d.code, d.line, True)))
                 continue
             # An ArrayPool Rent is released by Return (a "pooled buffer"), not Dispose (a
             # "disposable"); the extractor stamps the acquire's kind so the flow path words
@@ -1669,7 +1704,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
-                kind="pooled buffer" if pool else "disposable"))
+                kind="pooled buffer" if pool else "disposable",
+                flow=_flow_local_steps(sub, d.code, d.line, bool(pool))))
             continue
         if sub.get("di_source_life"):
             # OWN014 region escape sourced from the DI graph (P-006 + P-004): the
@@ -1690,10 +1726,25 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                        f"subscription promotes '{component}' to the source's "
                        f"lifetime, so it can never be collected — a captive/region "
                        f"escape (leak, no release path)")
+            # reachability slice: the subscribe site -> where the longer-lived source was
+            # registered (its lifetime is why this escapes). The source hop is present only
+            # when the registration site is known from the services graph.
+            sub_ln = _as_int(sub.get("line", 0))
+            esc_flow: tuple[tuple[str, int, str], ...] = ()
+            if sub_ln >= 1:
+                steps = [(str(sub["file"]), sub_ln,
+                          f"'{component}' subscribes '{event}' to '{st}' here")]
+                sf, sl = svc_loc.get(st, ("?", 0))
+                if sl >= 1:
+                    steps.append((sf, sl,
+                                  f"source '{st}' ({life}) registered here — outlives "
+                                  f"'{component}'"))
+                if len(steps) >= 2:
+                    esc_flow = tuple(steps)
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
-                message=message, kind="subscription token"))
+                message=message, kind="subscription token", flow=esc_flow))
             continue
         if rkind == "capture":
             # OWN014 region escape (P-004): the lifetime engine proved the event
