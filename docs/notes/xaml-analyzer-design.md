@@ -206,6 +206,17 @@ The link-fact record stays the canonical shape (so it rides the existing pipelin
 /`line` point at the **XAML** site (where a developer fixes it) and the message names the resolved C#
 symbol chain — markup and code stitched into one finding, not two disconnected alerts.
 
+**The Phase-1 → Phase-2 seam is built.** The markup pass now emits a structured fact document
+alongside its SARIF — `audit/static/tools/xaml_facts.py` writes `xaml-facts.json` from the *same*
+parsed tree (no second parser), in an envelope that mirrors OwnIR's `*.facts.json`
+(`{xaml_facts_version, module, documents}`). Each document carries the two fact families above:
+**XamlResourceGraph** (`resources`, `merged_dictionaries`) and **XamlBindingFacts** (`bindings` with
+parsed path / mode / UpdateSourceTrigger / converter / Delay / RelativeSource, plus `event_handlers`,
+`converters_used`, and the file's `x_class`). Phase 2 is then purely the *join*: read `xaml-facts.json`
+next to the OwnIR facts from `OwnSharp.Extractor`, resolve each binding `path` against the
+`x_class` / DataContext type, and emit the `XAML2xx` link findings — no new XAML parsing, no second
+toolchain. Phase 2 consumes this artifact; it does not re-derive it.
+
 ## Phase 3 — runtime correlation (reuse `correlate.py`, don't add static cleverness)
 
 Externally validated by the research: *don't sell static as a guarantee — emit candidates, confirm at
