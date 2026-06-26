@@ -63,12 +63,20 @@ from typing import Any
 # here is owned by the view's lifetime, so an unreleased one leaks the closed view.
 LOAD_LIFECYCLE_EVENTS = {"Loaded", "Initialized", "DataContextChanged"}
 
+# OwnIR's components[].subscriptions is an UMBRELLA list: an untagged entry is a plain
+# event `+=` subscription, but the same list also carries timer / IDisposable / pool
+# leaks tagged via `resource`. XAML203 is specifically a category-2 *event subscription*
+# leak, so it must only fire on subscription-family records — a tagged timer/disposable
+# leak is a different category (3 / 1) already covered by own-check on the .cs.
+SUBSCRIPTION_RESOURCES = {None, "", "subscribe", "subscription", "subscription token", "event"}
+
 
 def _component_index(ownir: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Index OwnIR components by their unqualified type name (``CustomerView``), so a
     fully-qualified ``x:Class`` (``App.Views.CustomerView``) links by its last
     segment — the same basename-keyed robustness the rest of the audit uses for
-    cross-tool matching."""
+    cross-tool matching. Same-name collisions are disambiguated by code-behind path
+    in ``_linked_components`` (a name index can hold several entries)."""
     idx: dict[str, list[dict[str, Any]]] = {}
     for c in ownir.get("components") or []:
         name = str(c.get("name", ""))
@@ -77,10 +85,51 @@ def _component_index(ownir: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     return idx
 
 
+def _stem(path: str, suffixes: tuple[str, ...]) -> str:
+    """``path`` with the first matching suffix stripped, forward-slashed."""
+    p = str(path).replace("\\", "/")
+    for suf in suffixes:
+        if p.endswith(suf):
+            return p[: -len(suf)]
+    return p
+
+
+def _path_corresponds(xaml_file: str, component_file: str) -> bool:
+    """True if an OwnIR component's source file is the code-behind of this XAML — its
+    path stem (``Views/Admin/CustomerView`` after stripping ``.xaml.cs``/``.cs``)
+    matches the XAML's stem on a path-segment boundary. Suffix match tolerates the
+    prefix differences between how the two tools report paths."""
+    xs = _stem(xaml_file, (".axaml", ".xaml"))
+    cs = _stem(component_file, (".xaml.cs", ".axaml.cs", ".g.cs", ".g.i.cs", ".cs"))
+    if not xs or not cs:
+        return False
+    longer, shorter = (xs, cs) if len(xs) >= len(cs) else (cs, xs)
+    return longer == shorter or longer.endswith("/" + shorter)
+
+
+def _linked_components(doc: dict[str, Any],
+                       by_name: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """The OwnIR component(s) that are this view's code-behind. A unique simple-name
+    match links directly; when several types share the simple name (``Admin.CustomerView``
+    vs ``Sales.CustomerView``), require code-behind-path correspondence so a leak in
+    one view never lands on the other's XAML. If none correspond, link nothing rather
+    than cross-link."""
+    x_class = doc.get("x_class")
+    if not x_class:
+        return []
+    cands = by_name.get(str(x_class).rsplit(".", 1)[-1], [])
+    if len(cands) <= 1:
+        return cands
+    return [c for c in cands if _path_corresponds(str(doc.get("file", "")), str(c.get("file", "")))]
+
+
 def _unreleased(component: dict[str, Any]) -> list[dict[str, Any]]:
-    """Subscriptions the engine flagged as never released (the authoritative leak
-    verdict — it already looked for a matching ``-=`` across the whole class)."""
-    return [s for s in (component.get("subscriptions") or []) if s.get("released") is False]
+    """Event subscriptions the engine flagged as never released (the authoritative
+    leak verdict — it already looked for a matching ``-=`` across the whole class),
+    excluding the non-subscription resource leaks (timer / disposable / pool) that
+    share the OwnIR subscriptions list."""
+    return [s for s in (component.get("subscriptions") or [])
+            if s.get("released") is False and s.get("resource") in SUBSCRIPTION_RESOURCES]
 
 
 def join(xaml_facts: dict[str, Any], ownir: dict[str, Any]) -> list[dict[str, Any]]:
@@ -93,9 +142,9 @@ def join(xaml_facts: dict[str, Any], ownir: dict[str, Any]) -> list[dict[str, An
         x_class = doc.get("x_class")
         if not x_class:
             continue  # no code-behind type to link against
-        components = by_name.get(str(x_class).rsplit(".", 1)[-1])
+        components = _linked_components(doc, by_name)
         if not components:
-            continue  # x:Class resolves to no OwnIR component (not analysed / no leak)
+            continue  # x:Class resolves to no (unambiguous) OwnIR component
 
         # All unreleased subscriptions across the matched component(s).
         leaks = [s for c in components for s in _unreleased(c)]
@@ -215,6 +264,20 @@ def _selftest() -> int:
          "event_handlers": [{"element": "Button", "event": "Click",
                              "handler": "OnClick", "line": 7}],
          "bindings": [], "named_elements": []},
+        # a view whose component's unreleased record is a TIMER, not an event
+        # subscription -> NOT XAML203 (own-check covers timer leaks at cat 3).
+        {"file": "Views/TimerView.xaml", "x_class": "App.Views.TimerView",
+         "event_handlers": [{"element": "UserControl", "event": "Loaded",
+                             "handler": "OnLoaded", "line": 4}],
+         "bindings": [], "named_elements": []},
+        # two views share the simple name OrderView in different namespaces/folders;
+        # the leak is in Sales, so it must land on Sales's XAML, never Admin's.
+        {"file": "Views/Admin/OrderView.xaml", "x_class": "Admin.OrderView",
+         "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}],
+         "bindings": [], "named_elements": []},
+        {"file": "Views/Sales/OrderView.xaml", "x_class": "Sales.OrderView",
+         "event_handlers": [{"event": "Loaded", "handler": "OnLoaded", "line": 4}],
+         "bindings": [], "named_elements": []},
     ]}
     ownir = {"ownir_version": 0, "module": "App", "components": [
         {"name": "CustomerView", "file": "Views/CustomerView.xaml.cs", "subscriptions": [
@@ -223,12 +286,19 @@ def _selftest() -> int:
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": True}]},
         {"name": "NoLifecycle", "file": "Views/NoLifecycle.xaml.cs", "subscriptions": [
             {"event": "_bus.Changed", "handler": "OnChanged", "line": 30, "released": False}]},
+        {"name": "TimerView", "file": "Views/TimerView.xaml.cs", "subscriptions": [
+            {"event": "_timer.Tick", "handler": "OnTick", "line": 18,
+             "released": False, "resource": "timer"}]},
+        {"name": "OrderView", "file": "Views/Admin/OrderView.xaml.cs", "subscriptions": [
+            {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": True}]},
+        {"name": "OrderView", "file": "Views/Sales/OrderView.xaml.cs", "subscriptions": [
+            {"event": "_bus.Changed", "handler": "OnChanged", "line": 21, "released": False}]},
     ]}
 
     findings = join(xaml_facts, ownir)
     by_path = {f["path"]: f for f in findings}
 
-    check(len(findings) == 1, f"expected exactly 1 XAML203, got {len(findings)}: {findings}")
+    check(len(findings) == 2, f"expected exactly 2 XAML203, got {len(findings)}: {findings}")
     f = by_path.get("Views/CustomerView.xaml")
     check(f is not None and f["rule"] == "XAML203" and f["line"] == 4,
           f"XAML203 must anchor at the Loaded handler line (4): {f}")
@@ -241,6 +311,14 @@ def _selftest() -> int:
           "a released subscription must NOT produce a finding")
     check("Views/NoLifecycle.xaml" not in by_path,
           "a leak with no view-lifecycle handler must NOT be XAML203 (own-check covers it)")
+    check("Views/TimerView.xaml" not in by_path,
+          "an unreleased TIMER (not an event subscription) must NOT be a cat-2 XAML203")
+    # same-name disambiguation: the Sales leak lands on Sales's XAML, not Admin's.
+    check("Views/Admin/OrderView.xaml" not in by_path,
+          "a leak in Sales.OrderView must NOT cross-link to Admin.OrderView's XAML")
+    so = by_path.get("Views/Sales/OrderView.xaml")
+    check(so is not None and "Sales/OrderView.xaml.cs:21" in so["message"],
+          f"XAML203 must land on Sales's XAML and name Sales's code-behind: {so}")
 
     # x:Class that resolves to no component -> nothing (not analysed / no leak).
     unknown_doc = {"documents": [{"file": "x.xaml", "x_class": "App.Unknown",
@@ -255,8 +333,10 @@ def _selftest() -> int:
     try:
         from oracle_compare import parse_sarif
         parsed = parse_sarif(json.dumps(sarif), "xaml-join", [])
-        check(len(parsed) == 1 and parsed[0].rule == "XAML203" and parsed[0].line == 4,
-              "SARIF round-trip must preserve XAML203 at line 4")
+        cust = next((p for p in parsed if p.path.endswith("CustomerView.xaml")), None)
+        check(len(parsed) == len(findings) and cust is not None
+              and cust.rule == "XAML203" and cust.line == 4,
+              "SARIF round-trip must preserve every XAML203 with its anchor line (4)")
     except ImportError:
         check(False, "could not import scripts/oracle_compare.parse_sarif for round-trip")
 
