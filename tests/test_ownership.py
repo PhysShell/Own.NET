@@ -166,6 +166,11 @@ def run() -> int:
     s = solve([_m("Void")])
     expect(s["Void"].returns == "none", "no owned return -> none")
 
+    # an unrecognised return kind fails closed to unknown, never silently "none"
+    # (which would hide owned-return info). (CodeRabbit)
+    s = solve([_m("Weird", ret=ReturnSkeleton("bogus"))])
+    expect(s["Weird"].returns == "unknown", "unrecognised return kind -> unknown (fail closed)")
+
     # forward-return of a callee's aliasOf:<i>: <i> is in the callee's param space and
     # cannot be remapped to our args without the call's arg mapping (a D5.4 concern),
     # so it degrades to unknown rather than propagating a wrong index. (Codex P2.)
@@ -190,6 +195,16 @@ def run() -> int:
     expect(d["params"][1]["transfer"] == "no", "to_dict serializes the second param")
     expect(d["returns"] == {"owned": "none"}, "to_dict serializes the return")
     expect(d["source"] == "inferred", "to_dict defaults source to inferred")
+
+    # duplicate method keys must fail fast: key collision-freedom is an open design
+    # question, and silently keeping the last would make summaries input-order
+    # dependent and corrupt the call graph. (CodeRabbit)
+    raised = False
+    try:
+        solve([_m("Dup", _p(0, PathAction("dispose"))), _m("Dup", _p(0, PathAction("borrow")))])
+    except ValueError:
+        raised = True
+    expect(raised, "duplicate method keys raise ValueError (fail fast)")
 
     for f in fails:
         print(f"OWNERSHIP FAIL: {f}")

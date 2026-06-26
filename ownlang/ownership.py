@@ -219,7 +219,9 @@ def _resolve_return(key: str, depth: int, stack: frozenset[str], cap: int,
             # nothing is acquired/aliased at lowering).
             return "unknown"
         return inner  # fresh / aliased / none / unknown propagate as-is
-    return "none"  # explicit no-owned-return
+    if r.kind == "none":
+        return "none"  # explicit no-owned-return
+    return "unknown"  # an unrecognised kind fails closed, never silently "none"
 
 
 def solve_with_log(skeletons: Iterable[MethodSkeleton], *,
@@ -229,7 +231,14 @@ def solve_with_log(skeletons: Iterable[MethodSkeleton], *,
     Returns (summaries-by-key, capped-log). The log names every forward that hit
     the depth cap, so a run can surface what it gave up on (no silent
     truncation)."""
-    sk = {s.key: s for s in skeletons}
+    sk: dict[str, MethodSkeleton] = {}
+    for s in skeletons:
+        if s.key in sk:
+            # Key collision-freedom is an open design question (note's §10 q2). Silently
+            # keeping the last duplicate would corrupt the call graph and make summaries
+            # depend on input order — fail fast instead.
+            raise ValueError(f"duplicate MethodSkeleton key: {s.key}")
+        sk[s.key] = s
     capped: list[str] = []
     out: dict[str, MethodSummary] = {}
     for key, skel in sk.items():

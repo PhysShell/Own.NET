@@ -71,15 +71,17 @@ Two orthogonal axes plus evidence:
 - `escapes ∈ {yes, no}` — did the reference outlive the call (field / collection /
   returned)? Orthogonal to `transfer`: `escapes:yes, transfer:no` is the
   "stored-but-not-owned" container case.
-- `via` (optional evidence string) — `dispose` / `field:_inner` / `forward:Callee#0` /
-  `aliased-return`. For debugging, advisory text, and future precision.
+- `via` (optional, **debug-only** evidence string) — `dispose` / `field:_inner` /
+  `forward:Callee#0` / `aliased-return`. For debugging, advisory text, and future
+  precision. **Not** part of the canonical `summaries[]` contract and **not** emitted by
+  D5.0's `to_dict` (a later slice may serialize it); the JSON in §6 shows it illustratively.
 
 Derived caller-side meaning: **Consumed** = `transfer:must`; **Borrowed** =
 `transfer:no, escapes:no`; **Escape-without-transfer** = `escapes:yes, transfer:{no,unknown}`.
 
 ### Per-return
 
-`returnsOwned ∈ {fresh, aliased, aliasOf:<i>, unknown}`:
+`returnsOwned ∈ {fresh, aliased, aliasOf:<i>, none, unknown}`:
 
 - `fresh` — a newly-acquired disposable (or the `fresh` return of a callee) — the caller
   now owns it.
@@ -89,7 +91,9 @@ Derived caller-side meaning: **Consumed** = `transfer:must`; **Borrowed** =
   `@MustCallAlias`): a wrapper handed back to the caller that adopts arg `i`. Disposing the
   return discharges arg `i`; the caller must **not** also dispose arg `i`. This is the
   Dapper `DbWrappedReader.Create(reader)` shape.
-- `unknown`.
+- `none` — no owned return at all (the method returns `void` or a non-disposable). Distinct
+  from `unknown`: we *know* there is nothing for the caller to own. (`to_dict` emits this.)
+- `unknown` — insufficient evidence to classify.
 
 ### `source`
 
