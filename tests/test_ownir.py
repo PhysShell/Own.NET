@@ -1343,6 +1343,74 @@ def run() -> int:
     if gotct != [("caller_t", 10, "OWN002")]:
         fails.append("D5.1b $consume channel must propagate transitively: a param "
                      f"forwarded to $consume makes the method consume, got {gotct}")
+    # --- P-005 D5.2 (T1): a `fresh`-returning factory call becomes an acquire SITE.
+    #     A method that acquires a local and returns it (`make`) has returnsOwned=fresh;
+    #     a caller binding its result (`var r = make()`) now owns `r`, so the existing
+    #     leak / double-release / use-after checks apply to the call site. This is the
+    #     factory-leak class — silently lost before D5.2.
+    _MAKE = {"name": "make", "file": "T1.cs",
+             "body": [{"op": "acquire", "var": "x", "line": 1},
+                      {"op": "return", "var": "x", "line": 2}]}
+    # the result is never disposed -> the factory call site leaks (OWN001 @ the call).
+    checks += 1
+    fl = check_facts({"module": "M", "functions": [_MAKE,
+        {"name": "caller", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "make", "args": [], "result": "r",
+                   "line": 10}]}]})
+    gotfl = [(x.component, x.line, x.code) for x in fl]
+    if gotfl != [("caller", 10, "OWN001")]:
+        fails.append("D5.2 T1: a fresh-returning factory whose result is never disposed "
+                     f"must leak OWN001@10 at the call site, got {gotfl}")
+    # the same result, disposed, is clean (the obligation is discharged).
+    checks += 1
+    fok = check_facts({"module": "M", "functions": [_MAKE,
+        {"name": "caller_ok", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "make", "args": [], "result": "r", "line": 10},
+                  {"op": "release", "var": "r", "line": 11}]}]})
+    if fok:
+        fails.append("D5.2 T1: a factory result that IS disposed must be clean, "
+                     f"got {[(x.component, x.code) for x in fok]}")
+    # using the factory result after dispose is use-after-release (OWN002 @ the call).
+    checks += 1
+    fuar = check_facts({"module": "M", "functions": [_MAKE,
+        {"name": "caller_uar", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "make", "args": [], "result": "r", "line": 10},
+                  {"op": "release", "var": "r", "line": 11},
+                  {"op": "use", "var": "r", "line": 12}]}]})
+    gotuar = [(x.component, x.line, x.code) for x in fuar]
+    if gotuar != [("caller_uar", 10, "OWN002")]:
+        fails.append("D5.2 T1: using a factory result after dispose must be OWN002@10, "
+                     f"got {gotuar}")
+    # fresh propagates through a forward-return factory-of-factory: `relay` returns the
+    # result of `make`, so `relay` is fresh too, and a caller leaking it is OWN001.
+    checks += 1
+    ff = check_facts({"module": "M", "functions": [_MAKE,
+        {"name": "relay", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "make", "args": [], "result": "t", "line": 1},
+                  {"op": "return", "var": "t", "line": 2}]},
+        {"name": "caller_ff", "file": "T1.cs",
+         "body": [{"op": "call", "callee": "relay", "args": [], "result": "r",
+                   "line": 10}]}]})
+    gotff = [(x.component, x.line, x.code) for x in ff]
+    if gotff != [("caller_ff", 10, "OWN001")]:
+        fails.append("D5.2 T1: fresh must propagate through a forward-return factory-of-"
+                     f"factory, so the caller leaks OWN001@10, got {gotff}")
+    # PRECISION: a method that returns a PARAMETER is NOT fresh (that is the wrap/alias
+    # case, T4/D5.4). `ident(s){ return s }` must not make the caller acquire `r`, and
+    # must not consume the arg — so acquire/call/release of `a` stays clean and silent.
+    checks += 1
+    pr = check_facts({"module": "M", "functions": [
+        {"name": "ident", "file": "T1.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "return", "var": "s", "line": 2}]},
+        {"name": "caller_pr", "file": "T1.cs",
+         "body": [{"op": "acquire", "var": "a", "line": 10},
+                  {"op": "call", "callee": "ident", "args": ["a"], "result": "r",
+                   "line": 11},
+                  {"op": "release", "var": "a", "line": 12}]}]})
+    if pr:
+        gotpr = [(x.component, x.code) for x in pr]
+        fails.append("D5.2 T1: returning a parameter is not `fresh` (no false acquire of "
+                     f"the result, no consume of the arg), got {gotpr}")
     # POOL005: a full-length view of a pooled buffer (`overspan` flow fact) raises
     # OWN025 at the VIEW site (line 12, not the Rent site), tagged a pooled buffer;
     # the buffer is still returned, so there is no OWN001 leak. Routes through the

@@ -278,8 +278,19 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   Oxide's `shrd|uniq`, Polonius's per-loan invalidation — exclusivity is a distinct semantic
   axis, not coarser metadata. Tracked here so the deferral is recorded, not buried (Codex P2 /
   CodeRabbit Major on #113).
-- **D5.2 — T1.** `fresh`-returning calls become acquire sites → factory leaks. Includes
-  `out`/`ref`-owned (another `fresh` door) before async.
+- **D5.2 — T1 return-value door (shipped).** A `fresh`-returning call becomes an **acquire
+  site**. `_build_skeletons` now infers the return kind (`_infer_return_skeleton`): a body that
+  `acquire`s a local and returns it is `fresh` (a factory), and a single returned local that is
+  the result of a first-party `call` is a `forward`-return the solver propagates (factory-of-
+  factory). Caller-side, a `call` op that binds a `result` whose callee summary returns `fresh`
+  is **also** lowered to an `acquire` of that local, so the existing leak / double-release /
+  use-after-release checks apply at the call site. Precision-first: a returned **parameter** is
+  never `fresh` (that is wrap/alias, T4/D5.4), and a non-fresh / unknown return makes no claim —
+  the result is never falsely owned. Proven by synthetic OwnIR tests: factory-result leak
+  (OWN001 @ the call), disposed-clean, use-after-dispose (OWN002), forward-return propagation,
+  and the param-return precision guard. **Remaining T1 door:** `out`/`ref`-owned parameters
+  (another `fresh` source) — extractor-side recognition of an out-assignment as a fresh acquire
+  — rides into a later slice before async.
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
   factories.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit
