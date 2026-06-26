@@ -1513,6 +1513,44 @@ def run() -> int:
                          f"got {[(x.component, x.code) for x in unk]}")
     except OwnIRError as e:
         fails.append(f"D5.2: a call to an unknown callee must not crash (OWN040), got {e!r}")
+    # Tier B (D5.3 / P1a): a curated BCL *factory* (`File.OpenRead` &c.) returns an owned
+    # IDisposable even with no first-party body, so a leaked `var s = File.OpenRead(p)` is
+    # OWN001 AT the factory call (invisible before this table) — the producer half of the
+    # boundary contract. Contrast the unknown-callee case just above, which makes no claim.
+    def _bcl(body: list) -> list:
+        return check_facts({"module": "M", "functions": [
+            {"name": "Svc.Do", "file": "Bcl.cs", "body": body}]})
+    checks += 1
+    bleak = [(x.code, x.line, x.kind) for x in _bcl(
+        [{"op": "call", "callee": "File.OpenRead", "args": ["p"], "result": "s", "line": 5}])]
+    if bleak != [("OWN001", 5, "disposable")]:
+        fails.append(f"Tier B: a leaked BCL factory result must be OWN001@5 disposable, "
+                     f"got {bleak}")
+    checks += 1
+    if _bcl([{"op": "call", "callee": "File.OpenRead", "args": ["p"], "result": "s", "line": 5},
+             {"op": "release", "var": "s", "line": 6}]):
+        fails.append("Tier B: a disposed BCL factory result must be clean (silent)")
+    checks += 1
+    buar = [(x.code, x.line) for x in _bcl(
+        [{"op": "call", "callee": "File.OpenRead", "args": ["p"], "result": "s", "line": 5},
+         {"op": "release", "var": "s", "line": 6},
+         {"op": "use", "var": "s", "line": 7}])]
+    if buar != [("OWN002", 5)]:
+        fails.append(f"Tier B: using a BCL factory result after dispose must be OWN002@5, "
+                     f"got {buar}")
+    checks += 1
+    # a namespace-qualified callee resolves on its last two segments (`Type.Method`).
+    nsq = [(x.code, x.line) for x in _bcl(
+        [{"op": "call", "callee": "System.IO.File.Create", "args": ["p"],
+          "result": "s", "line": 9}])]
+    if nsq != [("OWN001", 9)]:
+        fails.append(f"Tier B: a namespace-qualified BCL factory must resolve, got {nsq}")
+    checks += 1
+    # a non-disposable BCL method (`File.ReadAllText` -> string) is NOT a factory — no false
+    # acquire of its result, stays silent (precision-first: the table is owned-returns only).
+    if _bcl([{"op": "call", "callee": "File.ReadAllText", "args": ["p"],
+              "result": "t", "line": 3}]):
+        fails.append("Tier B: a non-disposable BCL method must not be treated as a factory")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after
