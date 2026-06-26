@@ -1559,6 +1559,17 @@ def run() -> int:
               "result": "s", "line": 5}]):
         fails.append("Tier B precision: a non-System.IO `*.File.OpenRead` must NOT match")
     checks += 1
+    # a `global::`-qualified System.IO.File factory IS the BCL identity (the qualifier is
+    # stripped); a `global::`-qualified non-System.IO look-alike still must NOT match.
+    gq = [(x.code, x.line) for x in _bcl([{"op": "call",
+           "callee": "global::System.IO.File.OpenRead", "args": ["p"],
+           "result": "s", "line": 4}])]
+    if gq != [("OWN001", 4)]:
+        fails.append(f"Tier B: a `global::System.IO.File.*` factory must match, got {gq}")
+    if _bcl([{"op": "call", "callee": "global::MyCompany.File.OpenRead", "args": ["p"],
+              "result": "s", "line": 4}]):
+        fails.append("Tier B precision: `global::`-qualified non-System.IO must NOT match")
+    checks += 1
     # OVERRIDE (Codex): a first-party summary is authoritative — a first-party `File.OpenRead`
     # that returns its parameter is NOT fresh, so a caller dropping its result is clean; the
     # table must not fabricate ownership for a callee whose body we can see.

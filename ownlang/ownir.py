@@ -1122,9 +1122,13 @@ _BCL_FRESH_FQNS = frozenset("System.IO." + e for e in _BCL_FRESH_FACTORIES)
 def _is_bcl_fresh_factory(callee: str) -> bool:
     """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
     ONLY the bare `Type.Method` (`File.OpenRead`) or the fully-qualified `System.IO.File.*`
-    identity — a same-named type in another namespace (`MyCompany.File.OpenRead`) is NOT a
-    match. Precision-first: we never fabricate ownership for a non-BCL look-alike (Codex)."""
-    return bool(callee) and (callee in _BCL_FRESH_FACTORIES or callee in _BCL_FRESH_FQNS)
+    identity (with an optional `global::` qualifier) — a same-named type in another namespace
+    (`MyCompany.File.OpenRead`) is NOT a match. Precision-first: we never fabricate ownership
+    for a non-BCL look-alike (Codex / CodeRabbit)."""
+    if not callee:
+        return False
+    name = callee.removeprefix("global::")
+    return name in _BCL_FRESH_FACTORIES or name in _BCL_FRESH_FQNS
 
 
 def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None) -> bool:
