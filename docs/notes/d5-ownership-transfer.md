@@ -278,8 +278,33 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   Oxide's `shrd|uniq`, Polonius's per-loan invalidation — exclusivity is a distinct semantic
   axis, not coarser metadata. Tracked here so the deferral is recorded, not buried (Codex P2 /
   CodeRabbit Major on #113).
-- **D5.2 — T1.** `fresh`-returning calls become acquire sites → factory leaks. Includes
-  `out`/`ref`-owned (another `fresh` door) before async.
+- **D5.2 — T1 return-value door (shipped).** A `fresh`-returning call becomes an **acquire
+  site**. `_build_skeletons` now infers the return kind (`_infer_return_skeleton`): a body that
+  `acquire`s a local and returns it is `fresh` (a factory), and a single returned local that is
+  the result of a first-party `call` is a `forward`-return the solver propagates (factory-of-
+  factory). Caller-side, a `call` op that binds a `result` whose callee summary returns `fresh`
+  is **also** lowered to an `acquire` of that local, so the existing leak / double-release /
+  use-after-release checks apply at the call site. Precision-first: a returned **parameter** is
+  never `fresh` (that is wrap/alias, T4/D5.4), and a non-fresh / unknown return makes no claim —
+  the result is never falsely owned. Proven by synthetic OwnIR tests: factory-result leak
+  (OWN001 @ the call), disposed-clean, use-after-dispose (OWN002), forward-return propagation,
+  and the param-return precision guard. **Remaining T1 door:** `out`/`ref`-owned parameters
+  (another `fresh` source) — extractor-side recognition of an out-assignment as a fresh acquire
+  — rides into a later slice before async.
+- **Bridge branch-scope limitation (pre-existing, tracked separately — NOT a D5 deliverable).**
+  The OwnIR→core bridge uses a *flat* `localmap`, but emits each synthetic `Let` *inside* the
+  branch block it occurs in. So a local `acquire`d in **both** branches of an `if` and released
+  **after** the merge (`if c: r=acquire() else: r=acquire(); release r`) lowers to a post-merge
+  `release` of an out-of-scope handle → the core reports **OWN030 (undefined name)**, which
+  `check_facts` strictly refuses to map and raises `OwnIRError`. This predates D5 and reproduces
+  with a **plain `acquire`** (no fresh/factory path) — D5.2's call-result acquire merely adds one
+  more way to reach it. The fix belongs in the bridge, in its own slice: make `acquire` lowering
+  **branch-aware** — hoist / declare the synthetic handle at the common merge scope so a balanced
+  cross-branch release is accepted as CLEAN. We deliberately do **not** soft-skip OWN030 (it
+  would mask genuine lowering drift; the strict map-or-raise invariant is load-bearing). Locked
+  by an xfail-style regression in `tests/test_ownir.py` (`branch_merge`) that asserts the current
+  raise and flips to a clean-balanced-release assertion once the bridge fix lands. (Codex P2 on
+  #116.)
 - **D5.3 — Tier B breadth.** The rest of the documented BCL ownership table + `fresh`
   factories.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit

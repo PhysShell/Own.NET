@@ -142,6 +142,7 @@ from .ownership import (
     MethodSkeleton,
     ParamSkeleton,
     PathAction,
+    ReturnSkeleton,
     Transfer,
     solve,
 )
@@ -840,7 +841,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
                                        released, mos)
             fbody = _lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                released)
+                                released, mos)
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -903,6 +904,117 @@ def _returns_value(nodes: Any) -> bool:
         if op == "while" and _returns_value(n.get("body")):
             return True
     return False
+
+
+def _collect_vars(nodes: Any, op_kind: str, field: str) -> set[str]:
+    """Every string `field` of every `op_kind` op in a flow body (recursing into
+    if/while). Used to gather the locals a body `acquire`s and the locals it
+    `return`s, for P-005 D5.2 fresh-return inference."""
+    out: set[str] = set()
+    if not isinstance(nodes, list):
+        return out
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == op_kind:
+            v = n.get(field)
+            if isinstance(v, str):
+                out.add(v)
+        elif op == "if":
+            out |= _collect_vars(n.get("then"), op_kind, field)
+            out |= _collect_vars(n.get("else"), op_kind, field)
+        elif op == "while":
+            out |= _collect_vars(n.get("body"), op_kind, field)
+    return out
+
+
+def _has_bare_return(nodes: Any) -> bool:
+    """True if some `return` op carries NO `var` (a bare `return` / `return null` /
+    a non-local expression) anywhere in the body. Such a path returns a non-owned
+    value, so the method is not uniformly `fresh` — `_infer_return_skeleton` must not
+    claim fresh/forward when one exists (P-005 D5.2 precision; Codex)."""
+    if not isinstance(nodes, list):
+        return False
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "return" and n.get("var") is None:
+            return True
+        if op == "if" and (_has_bare_return(n.get("then"))
+                           or _has_bare_return(n.get("else"))):
+            return True
+        if op == "while" and _has_bare_return(n.get("body")):
+            return True
+    return False
+
+
+def _call_result_callees(nodes: Any) -> dict[str, str | None]:
+    """Map each `result` local of a `call` op to the callee that produced it (for
+    forward-return inference, P-005 D5.2). A local bound by two *different* callees
+    (e.g. on separate branches) maps to None — ambiguous, so never claimed as a
+    forward-return (precision-first)."""
+    out: dict[str, str | None] = {}
+    if not isinstance(nodes, list):
+        return out
+
+    def visit(ns: Any) -> None:
+        if not isinstance(ns, list):
+            return
+        for n in ns:
+            if not isinstance(n, dict):
+                continue
+            op = n.get("op")
+            if op == "call":
+                res = n.get("result")
+                callee = n.get("callee")
+                if isinstance(res, str) and isinstance(callee, str) and callee:
+                    out[res] = None if res in out and out[res] != callee else callee
+            elif op == "if":
+                visit(n.get("then"))
+                visit(n.get("else"))
+            elif op == "while":
+                visit(n.get("body"))
+
+    visit(nodes)
+    return out
+
+
+def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
+    """Infer a method's owned-return kind for the D5.0 solver (P-005 D5.2, T1).
+
+    `fresh` — every `return <var>` path returns a local the body itself `acquire`d
+    (a factory: `acquire x; …; return x`). A returned **parameter** is NOT fresh
+    (that is the wrap/alias case, T4 / D5.4) — claiming fresh there would make a
+    caller acquire a value it does not own. `forward` — a single returned local that
+    is the result of a first-party `call` (a factory-of-factory: `var t = Make();
+    return t;`); the solver propagates `Make`'s own return kind. Anything else stays
+    `none` (no claim) — precision-first: we only mark a call an acquire site when we
+    can prove the result is freshly owned."""
+    returned = _collect_vars(nodes, "return", "var")
+    if not returned:
+        return ReturnSkeleton()  # void / no value return
+    if _has_bare_return(nodes):
+        # some normal-return path yields a non-owned value (`return null` / bare
+        # `return`), so the method is not uniformly fresh — a caller dropping the
+        # result must not be charged a leak on that path. Make no claim (Codex).
+        return ReturnSkeleton()
+    acquired = _collect_vars(nodes, "acquire", "var")
+    call_results = _call_result_callees(nodes)
+    # `fresh` only when EVERY returned local is acquired here and *nowhere else*. A local
+    # that is also a call result on another path is mixed-origin (`if c: x = acquire()
+    # else: x = other()`) — claiming fresh would make a caller acquire a value it does not
+    # own on the non-acquire path, fabricating OWN001/OWN002 there. Degrade (CodeRabbit).
+    if all(v in acquired and v not in param_names and v not in call_results
+           for v in returned):
+        return ReturnSkeleton("fresh")
+    if len(returned) == 1:
+        (v,) = tuple(returned)
+        callee = call_results.get(v)
+        if callee and v not in param_names and v not in acquired:
+            return ReturnSkeleton("forward", callee=callee)
+    return ReturnSkeleton()  # not provably owned -> no claim
 
 
 # P-006/2b: a method's ownership CONTRACT is its parameters' effects. Encoding
@@ -1037,6 +1149,10 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
         (→ the caller stays plain), never a flattened `must`. Per-path structure is
         not modelled here — D5.1 deliberately under-claims rather than guess.
 
+    The return kind is inferred too (P-005 D5.2, T1): a body that `acquire`s a local
+    and returns it is `fresh` (a factory); `_infer_return_skeleton` keeps it
+    precision-first (a returned parameter is never `fresh`).
+
     Functions whose name is not unique are dropped (overload keys are not yet
     distinguishable — note's open question 2 — so a forward to such a name stays
     `unknown` → silent, the precision-safe choice)."""
@@ -1083,7 +1199,9 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
                 else:
                     paths = ()
             params.append(ParamSkeleton(i, cname, True, paths))
-        skels.append(MethodSkeleton(key, tuple(params)))
+        pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
+        ret = _infer_return_skeleton(body, pnames)
+        skels.append(MethodSkeleton(key, tuple(params), ret))
     return skels
 
 
@@ -1164,13 +1282,19 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handles: dict[str, dict[str, Any]], loc: list[int],
                 localmap: dict[str, str],
-                released_vars: set[str]) -> list[Stmt]:
+                released_vars: set[str],
+                mos: dict[str, Any] | None = None) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
     checks it, P-016 A1). Each acquire gets a globally-unique handle `loc_<n>` (so a
     finding maps back to the C# local); `localmap` resolves later references within
-    the same function and its branches/loops."""
+    the same function and its branches/loops.
+
+    P-005 D5.2 (T1): a `call` op that binds a `result` local, whose callee's solved
+    summary (`mos`) returns `fresh`, is **also** lowered as an `acquire` of that
+    local — the call site is a factory, so the result is a newly-owned obligation and
+    the existing leak / double-release / use-after-release checks apply to it."""
     body: list[Stmt] = []
     for n in nodes:
         if not isinstance(n, dict):
@@ -1212,14 +1336,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             tn = n.get("then", [])
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             else_b = _lower_flow(en if isinstance(en, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [],
-                                 ffile, fname, handles, loc, localmap, released_vars)
+                                 ffile, fname, handles, loc, localmap, released_vars, mos)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1236,6 +1360,23 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
                 body.append(Call(callee, arg_refs, line))
+            # P-005 D5.2 (T1): if the call binds a result and the callee is a known
+            # `fresh`-returning factory, the result is a newly-owned local — mint an
+            # acquire for it (the args' effects, if any, were applied by the Call
+            # above; this models the return). A non-fresh / unknown return makes no
+            # claim, so the result is never falsely owned (precision-first).
+            result = n.get("result")
+            summ = mos.get(callee) if (mos is not None and callee) else None
+            if (isinstance(result, str) and result
+                    and summ is not None and getattr(summ, "returns", None) == "fresh"):
+                handle = f"loc_{loc[0]}"
+                loc[0] += 1
+                localmap[result] = handle
+                handles[handle] = {"file": ffile, "line": line, "event": result,
+                                   "component": fname, "resource": "flow-local",
+                                   "ever_released": result in released_vars,
+                                   "pool": False}
+                body.append(Let(handle, Acquire("Disposable", [], line), line))
     return body
 
 
