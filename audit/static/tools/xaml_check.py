@@ -35,12 +35,15 @@ we deliberately do not re-implement their correctness rules:
   XAML107  VirtualizationExplicitlyDisabled     (cat 8)  virtualization accidentally killed
   XAML108  PerKeystrokeBindingWithoutDelay      (cat 6)  per-keystroke source flooding
   XAML109  TemplateComplexityHigh               (cat 8)  visual-tree / layout inflation
+  XAML110  ImageDecodedAtFullSize               (cat 9)  WPF-only, thumbnail full-size decode
+  XAML111  LayoutTransformSuspicious            (cat 8)  WPF-only, layout-pass cost
+  XAML112  TemplateBindingOpportunity           (cat 9)  cheaper compiled binding available
+  XAML113  InlineFreezableDuplication           (cat 9)  identical inline brush/geometry
 
 Deferred to a later Phase-1 slice (documented so nothing on the wishlist quietly
 falls through — the design note's stated goal): XAML100 ResourceShouldBeHoisted
-(needs the cross-sibling scope model), XAML105 MergedDictionaryKeyShadowing across
-*external* dictionaries (needs cross-file resolution), XAML110
-ThumbnailDecodedAtFullSize (needs decode-target heuristics). Phase 2 (Roslyn-linked
+(needs the cross-sibling scope model) and XAML105 MergedDictionaryKeyShadowing
+across *external* dictionaries (needs cross-file resolution). Phase 2 (Roslyn-linked
 XAML2xx) and Phase 3 (runtime correlation) live elsewhere per the design note.
 
 WPF-only rules (XAML102/103/106) are skipped on Avalonia ``.axaml`` because the
@@ -96,6 +99,13 @@ EDITABLE_PROPS = {"Text", "Value", "SelectedText", "SearchText", "FilterText", "
 # Markers that make a Freezable un-freezable (XAML106 exception list).
 _DYNAMIC_REF_RE = re.compile(r"\{\s*(DynamicResource|Binding|TemplateBinding|x:Reference)\b",
                              re.IGNORECASE)
+
+# XAML112 — a TemplatedParent binding that could be the cheaper {TemplateBinding}.
+_TPARENT_RE = re.compile(r"TemplatedParent", re.IGNORECASE)
+_CONVERTER_RE = re.compile(r"\bConverter\s*=", re.IGNORECASE)
+# XAML110 — an Image whose explicit display size is at or below this is a thumbnail,
+# so a full-size decode (string Source, no DecodePixelWidth) is wasteful.
+THUMBNAIL_MAX_DIP = 96.0
 
 TEMPLATE_TYPES = {"ControlTemplate", "DataTemplate", "HierarchicalDataTemplate",
                   "ItemsPanelTemplate"}
@@ -468,6 +478,142 @@ def _rule_dynamic_resource_static(root: Node, avalonia: bool) -> list[XamlFindin
     return out
 
 
+def _rule_image_decode(root: Node, avalonia: bool) -> list[XamlFinding]:
+    """XAML110 (WPF-only) — a thumbnail-sized Image whose Source is a plain URI
+    string: WPF decodes the bitmap at full native size, then scales down every
+    layout. A BitmapImage with DecodePixelWidth/Height decodes straight to the
+    display size (less working set, less GPU upload). The decode hint cannot be set
+    on a string Source, so the fix is the explicit BitmapImage form."""
+    if avalonia:
+        return []
+    out: list[XamlFinding] = []
+    for n in root.walk():
+        if n.type_name() != "Image" or n.is_property_element():
+            continue
+        src = n.attr("Source")
+        if not src or src.strip().startswith("{"):  # binding / markup ext: can't tell
+            continue
+        dims = []
+        for d in ("Width", "Height"):
+            v = n.attr(d)
+            if v is None:
+                continue
+            try:
+                dims.append(float(v.strip()))
+            except ValueError:
+                continue  # Auto / *
+        if dims and min(dims) <= THUMBNAIL_MAX_DIP:
+            out.append(XamlFinding(
+                "XAML110", n.line,
+                f"Image is shown at <={int(min(dims))}px but Source '{src}' is a "
+                "plain URI; WPF decodes it at full size. Use a BitmapImage with "
+                "DecodePixelWidth to decode-to-size [resource: image decode]"))
+    return out
+
+
+def _in_control_template(node: Node) -> bool:
+    """True if ``node`` is nested inside a ControlTemplate (where TemplatedParent —
+    and therefore TemplateBinding — is meaningful)."""
+    p = node.parent
+    while p is not None:
+        if p.type_name() == "ControlTemplate" and not p.is_property_element():
+            return True
+        p = p.parent
+    return False
+
+
+def _rule_template_binding_opportunity(root: Node, avalonia: bool) -> list[XamlFinding]:
+    """XAML112 — inside a ControlTemplate, a {Binding RelativeSource=TemplatedParent}
+    that carries no Converter and is not TwoWay could be the cheaper {TemplateBinding}
+    (compiled, no full Binding object). A candidate, not a guarantee: TemplateBinding
+    cannot do converters / two-way, which is exactly why those are excluded here."""
+    out: list[XamlFinding] = []
+    for n in root.walk():
+        if not _in_control_template(n):
+            continue
+        for k, v in n.attrib.items():
+            if (_BINDING_RE.search(v) and _TPARENT_RE.search(v)
+                    and not _CONVERTER_RE.search(v) and not _TWOWAY_RE.search(v)):
+                prop = k.split(":", 1)[-1].rsplit(".", 1)[-1]
+                out.append(XamlFinding(
+                    "XAML112", n.line,
+                    f"{n.type_name()}.{prop} binds to TemplatedParent with no "
+                    "converter/two-way; {TemplateBinding} is the cheaper compiled "
+                    "form here [resource: template binding]"))
+    return out
+
+
+def _inline_freezable_sig(node: Node) -> tuple[Any, ...]:
+    """Structural signature of an inline Freezable: type + non-key attributes + child
+    element types. Two inline values with the same signature are the same object
+    re-built per use, so they should be hoisted to one shared keyed resource."""
+    attrs = tuple(sorted((k.split(":", 1)[-1], v) for k, v in node.attrib.items()
+                         if k.split(":", 1)[-1] != "Key"))
+    kids = tuple(c.type_name() for c in node.children if not c.is_property_element())
+    return (node.type_name(), attrs, kids)
+
+
+def _rule_inline_freezable_duplication(root: Node, avalonia: bool) -> list[XamlFinding]:
+    """XAML113 — the same inline Freezable (brush/geometry/transform set directly as a
+    property value, not as a keyed resource) declared identically more than once.
+    Each occurrence is a separate object; hoisting to one keyed resource shares it.
+    Extends XAML100's hoisting story to the inline case (framework-agnostic)."""
+    out: list[XamlFinding] = []
+    first: dict[tuple[Any, ...], int] = {}
+    for n in root.walk():
+        if n.type_name() not in FREEZABLE_TYPES or n.is_property_element():
+            continue
+        if n.attr("Key") is not None:
+            continue  # already a shared keyed resource
+        if not (n.parent and n.parent.is_property_element()):
+            continue  # only inline property values, not free-standing
+        sig = _inline_freezable_sig(n)
+        if not sig[1] and not sig[2]:
+            continue  # empty/defaulted element — nothing to share
+        if sig in first:
+            out.append(XamlFinding(
+                "XAML113", n.line,
+                f"inline {n.type_name()} duplicates an identical one (first at line "
+                f"{first[sig]}); hoist it to a shared keyed resource instead of "
+                "rebuilding it per use [resource: inline freezable]"))
+        else:
+            first[sig] = n.line
+    return out
+
+
+def _rule_layout_transform(root: Node, avalonia: bool) -> list[XamlFinding]:
+    """XAML111 (WPF-only) — a LayoutTransform where a RenderTransform would do.
+    LayoutTransform re-runs measure/arrange on every change; RenderTransform is a
+    cheap render-time matrix. Legitimate only when layout must react to the transform
+    (e.g. rotated text that reflows), so this is a candidate to review."""
+    if avalonia:
+        return []
+    out: list[XamlFinding] = []
+    seen: set[int] = set()
+    for n in root.walk():
+        # Property-element form: <X.LayoutTransform><RotateTransform .../></X.LayoutTransform>
+        if n.local() == "LayoutTransform" and n.is_property_element():
+            if n.line not in seen:
+                seen.add(n.line)
+                out.append(XamlFinding(
+                    "XAML111", n.line,
+                    f"{n.type_name()} uses LayoutTransform, which forces a "
+                    "measure/arrange pass on change; prefer RenderTransform unless "
+                    "layout must react [resource: layout transform]"))
+            continue
+        # Attribute form (rare): LayoutTransform="..."
+        for k in n.attrib:
+            if k.split(":", 1)[-1].rsplit(".", 1)[-1] == "LayoutTransform":
+                if n.line not in seen:
+                    seen.add(n.line)
+                    out.append(XamlFinding(
+                        "XAML111", n.line,
+                        f"{n.type_name()} sets LayoutTransform, which forces a "
+                        "measure/arrange pass on change; prefer RenderTransform "
+                        "unless layout must react [resource: layout transform]"))
+    return out
+
+
 RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
     _rule_virtualization,
     _rule_template_complexity,
@@ -477,6 +623,10 @@ RULES: list[Callable[[Node, bool], list[XamlFinding]]] = [
     _rule_shared_false,
     _rule_freezable_freeze,
     _rule_dynamic_resource_static,
+    _rule_image_decode,
+    _rule_template_binding_opportunity,
+    _rule_inline_freezable_duplication,
+    _rule_layout_transform,
 ]
 
 
@@ -696,14 +846,69 @@ def _selftest() -> int:
              '</ResourceDictionary>\n')
     check("XAML109" not in rules(light), "XAML109 false positive: a tiny template is fine")
 
+    # XAML110 — a thumbnail Image with a full-size string Source; big image is fine.
+    img = (f'<UserControl {_WPF_NS}>\n'
+           '  <Image Source="Assets/logo.png" Width="32" Height="32" />\n'
+           '</UserControl>\n')
+    check("XAML110" in rules(img), "XAML110 must flag a thumbnail with a full-size source")
+    big = img.replace('Width="32" Height="32"', 'Width="512" Height="512"')
+    check("XAML110" not in rules(big), "XAML110 false positive: a full-size image is fine")
+    bound_src = img.replace('Source="Assets/logo.png"', 'Source="{Binding Icon}"')
+    check("XAML110" not in rules(bound_src),
+          "XAML110 false positive: a bound source size is unknowable from markup")
+
+    # XAML112 — a TemplatedParent binding inside a ControlTemplate; converters exempt.
+    tb = (f'<ResourceDictionary {_WPF_NS}>\n'
+          '  <ControlTemplate x:Key="t" TargetType="Button">\n'
+          '    <Border Background="{Binding Background, '
+          'RelativeSource={RelativeSource TemplatedParent}}" />\n'
+          '  </ControlTemplate>\n'
+          '</ResourceDictionary>\n')
+    check("XAML112" in rules(tb), "XAML112 must flag a TemplatedParent binding")
+    tb_conv = tb.replace("RelativeSource={RelativeSource TemplatedParent}}",
+                         "RelativeSource={RelativeSource TemplatedParent}, "
+                         "Converter={StaticResource c}}")
+    check("XAML112" not in rules(tb_conv),
+          "XAML112 false positive: a converter binding cannot become a TemplateBinding")
+    tb_outside = tb.replace("<ControlTemplate x:Key=\"t\" TargetType=\"Button\">",
+                            "<DataTemplate x:Key=\"t\">").replace(
+                            "</ControlTemplate>", "</DataTemplate>")
+    check("XAML112" not in rules(tb_outside),
+          "XAML112 false positive: TemplatedParent is only meaningful in a ControlTemplate")
+
+    # XAML113 — the same inline brush declared twice; a unique one is fine.
+    inline = (f'<StackPanel {_WPF_NS}>\n'
+              '  <Border><Border.Background><SolidColorBrush Color="#FF0080FF" />'
+              '</Border.Background></Border>\n'
+              '  <Border><Border.Background><SolidColorBrush Color="#FF0080FF" />'
+              '</Border.Background></Border>\n'
+              '</StackPanel>\n')
+    r = rules(inline)
+    check("XAML113" in r, "XAML113 must flag a duplicated inline brush")
+    uniq = (f'<StackPanel {_WPF_NS}>\n'
+            '  <Border><Border.Background><SolidColorBrush Color="#FF0080FF" />'
+            '</Border.Background></Border>\n'
+            '  <Border><Border.Background><SolidColorBrush Color="#FF00FF80" />'
+            '</Border.Background></Border>\n'
+            '</StackPanel>\n')
+    check("XAML113" not in rules(uniq), "XAML113 false positive: distinct inline brushes are fine")
+
+    # XAML111 — LayoutTransform (property-element form); WPF-only.
+    lt = (f'<StackPanel {_WPF_NS}>\n'
+          '  <TextBlock Text="hi"><TextBlock.LayoutTransform>'
+          '<RotateTransform Angle="90" /></TextBlock.LayoutTransform></TextBlock>\n'
+          '</StackPanel>\n')
+    check("XAML111" in rules(lt), "XAML111 must flag a LayoutTransform")
+
     # WPF-only rules must stay silent on Avalonia .axaml.
     ava = ('<ResourceDictionary xmlns="https://github.com/avaloniaui" '
            'xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">\n'
            '  <SolidColorBrush x:Key="b" Color="Red" />\n'
+           '  <Image Source="logo.png" Width="16" Height="16" />\n'
            '</ResourceDictionary>\n')
     ar = rules(ava)
-    check("XAML106" not in ar and "XAML103" not in ar and "XAML102" not in ar,
-          "WPF-only rules (102/103/106) must not fire on Avalonia markup")
+    check(not ({"XAML106", "XAML103", "XAML102", "XAML110", "XAML111"} & set(ar)),
+          "WPF-only rules (102/103/106/110/111) must not fire on Avalonia markup")
 
     # Malformed markup must be skipped, never crash.
     check(analyze_text("<Not><Closed>") == [], "malformed markup must yield no findings")

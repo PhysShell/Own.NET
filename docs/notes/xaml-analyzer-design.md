@@ -7,8 +7,9 @@
 > wired into [`audit/static/run_static.py`](../../audit/static/run_static.py) and the
 > `desktop-wpf` profile, with its rule→category map in
 > [`audit/static/taxonomy/categories.yml`](../../audit/static/taxonomy/categories.yml).
-> Implemented rules: XAML101/102/103/104/106/107/108/109. Phase 2 (Roslyn-linked)
-> and Phase 3 (runtime correlation) remain as described below.
+> Implemented rules: XAML101/102/103/104/106/107/108/109/110/111/112/113. Phase 2
+> (Roslyn-linked) and Phase 3 (runtime correlation) remain as described below; the
+> Phase-2 binding-path join is sketched in its own section near the end.
 
 The biggest honest gap in OwnAudit's `docs/wpf-audit-coverage.md` ("**XAML analyzer** — a large slice of the
 wishlist lives in `.xaml`, not `.cs` … Biggest gap — and technically cheap: XAML is XML, rules are
@@ -91,9 +92,10 @@ like the other build-free runners there. This is the cheapest deliverable of the
 > so it has *no* toolchain prerequisite and always runs on Linux CI (unlike own-check, which needs a
 > .NET SDK). The runner's selftest (`xaml_check.py --selftest`) gates the rules, the
 > line-preservation requirement, and the SARIF round-trip through the shared `parse_sarif`. Of the
-> catalogue below it implements XAML101/102/103/104/106/107/108/109; XAML100 (cross-sibling scope
-> model), XAML105 (cross-*file* dictionary shadowing) and XAML110 (decode-target heuristics) are the
-> documented deferred tail.
+> catalogue below it implements XAML101/102/103/104/106/107/108/109/110, plus three rules added from
+> the research-comb feedback — XAML111 (LayoutTransform cost), XAML112 (TemplateBinding opportunity)
+> and XAML113 (inline-Freezable duplication). XAML100 (cross-sibling scope model) and XAML105
+> (cross-*file* dictionary shadowing) are the documented deferred tail.
 
 **Line preservation is a hard requirement, not a detail.** A plain `xml.etree.ElementTree.parse`
 discards source positions, but our finding contract requires a real `line` and `report/sarif.py`
@@ -118,7 +120,10 @@ offending element's stamped line; a rule that can only locate a file-level issue
 | **XAML107** `VirtualizationExplicitlyDisabled` | `IsVirtualizing="False"`, `CanContentScroll="False"` on lists, non-virtualizing `ItemsPanel`, direct/mixed containers | virtualization critical for large item controls; these accidentally kill it | ✅ `VirtualizingStackPanel`/`ItemsRepeater` |
 | **XAML108** `PerKeystrokeBindingWithoutDelay` | `TwoWay` + `UpdateSourceTrigger=PropertyChanged` on an editable property with no `Delay` | `Text` defaults to `LostFocus` for a reason; `Delay` exists to avoid per-keystroke flooding | ✅ |
 | **XAML109** `TemplateComplexityHigh` | template-complexity score over threshold (node count, nested panels, Grid/StackPanel depth, trigger count, ItemsControl depth) | template expansion = extra visual-tree objects; layout is a 2-pass cost | ✅ |
-| **XAML110** `ThumbnailDecodedAtFullSize` | image shown small but declared without decode hints; large bitmap animated/scaled with no `BitmapScalingMode` | decode-to-size beats decode-full-then-scale; `LowQuality` smooths animated scaling | ✅ |
+| **XAML110** `ImageDecodedAtFullSize` | image shown small (explicit Width/Height ≤ thumbnail) but `Source` is a plain URI string, so no decode-to-size is possible | decode-to-size beats decode-full-then-scale; the hint needs a `BitmapImage`, not a string `Source` | ❌ WPF decode hints differ |
+| **XAML111** `LayoutTransformSuspicious` | a `LayoutTransform` (attribute or property element) where a `RenderTransform` would do | `LayoutTransform` re-runs measure/arrange on change; `RenderTransform` is a render-time matrix. Candidate — legit when layout must reflow | ❌ Avalonia uses `LayoutTransformControl` |
+| **XAML112** `TemplateBindingOpportunity` | inside a `ControlTemplate`, a `{Binding RelativeSource=TemplatedParent}` with no converter / not two-way | `{TemplateBinding}` is the cheaper compiled form; the converter/two-way exclusions are exactly TemplateBinding's limits | ✅ |
+| **XAML113** `InlineFreezableDuplication` | the same inline Freezable (brush/geometry/transform set as a property value, not keyed) declared identically more than once | each inline copy is a separate object; one shared keyed resource collapses them (the inline case of XAML100) | ✅ |
 
 Exception lists matter (this is where naive greps die): **XAML106** must skip Freezables that are
 animated, data-bound, or reference a `DynamicResource` (can't freeze); **XAML103** must allow the
@@ -144,6 +149,62 @@ the graph says *what it does*.
 **XAML203 reuses the existing acquire/release + region-escape engine** (the same one behind own-check
 OWN001 `+=`-without-`-=`): a XAML-originated leak becomes a lifetime fact on the same rails, not a new
 detector.
+
+### Phase 2 mechanics — the binding-path join (and where the link-extractor lives)
+
+The markup pass already separates two kinds of fact, and Phase 2 makes the seam explicit:
+
+- **`XamlPerfRules`** — resource scope, dictionaries, virtualization, layout, images, Freezables.
+  These are *self-contained in markup* and are exactly the Phase-1 rules already shipped; they need
+  no C# at all.
+- **`XamlLinkFacts`** — `x:Class`, `DataContext` type, binding paths, event handlers, converter
+  types, `ItemsSource`. These are **pointers into C#**: on their own they are inert; their value is
+  the *join* to a symbol.
+
+The join is the whole point — it is where the interprocedural core earns its keep and where this
+stops being "found a `DynamicResource`, nodded gravely":
+
+```
+  binding path in XAML  ─┐
+  (Text="{Binding Qty}") │
+  x:Class + DataContext ─┼─►  Roslyn resolves Qty -> the property symbol
+                         │       └─► own-check's interprocedural engine walks:
+                         │              getter (alloc? materialize?), setter,
+                         │              the PropertyChanged cascade it raises,
+                         │              the converter on the binding,
+                         │              the ItemsControl/template it invalidates
+                         └─►  report: "this TextBox updates the source on every
+                                       keystroke, runs this setter, raises these N
+                                       properties, hits this converter, invalidates
+                                       this ItemsControl"
+```
+
+**Where the link-extractor lives — the decision.** It does **not** get a new parallel C# checker in
+OwnAudit (`src/OwnAudit.Xaml/`). That would re-create the "two analyzers in two repos" problem this
+note opens by ruling out, and it contradicts the canonical-in-Own.NET rule (`README`/`Plan.md`:
+"*Don't reimplement it here*"). The XAML link-facts extractor is an **extension of `own-check`** — the
+existing error-tolerant `SemanticModel` extractor that already lives in Own.NET and already does the
+acquire/release + region-escape walk. own-check learns to read the `.xaml` next to the `.cs` it is
+already parsing (resolve `x:Class` → the code-behind type → the `DataContext`/binding symbols), and
+emits the binding-join findings as more `OWNxxx`/`XAML2xx` facts on the **same rails**. One extractor,
+one semantic model, one lifetime engine — no second toolchain to keep version-matched.
+
+`OwnAudit.Xaml` as a standalone C# project is the **post-lift-out product form** (Plan.md §7), not the
+way to build Phase 2: when `audit/` lifts out, the markup pass + the own-check XAML extension become
+that package. Building it standalone *before* lift-out just means maintaining the parallel surface the
+markup phase deliberately avoided.
+
+**Static is a candidate, runtime confirms (ties to Phase 3).** The join produces a *suspicion* —
+"this binding *can* flood the setter per keystroke". Whether it actually fires tens of thousands of
+times in a real screen is a runtime fact: the converter-call / `PropertyChanged` counters of Phase 3
+promote XAML108+the binding-join candidate from "structurally hot" to "measured hot" through the same
+`correlate.py` suspect/confirm split. That is the difference between "you have an un-delayed
+`PropertyChanged` binding" and "*this* is why the form freezes when you type one digit".
+
+The link-fact record stays the canonical shape (so it rides the existing pipeline): a
+`{tool: "own-check", rule: "XAML2xx", resource: "<binding path>", path, line, message}` where `path`
+/`line` point at the **XAML** site (where a developer fixes it) and the message names the resolved C#
+symbol chain — markup and code stitched into one finding, not two disconnected alerts.
 
 ## Phase 3 — runtime correlation (reuse `correlate.py`, don't add static cleverness)
 

@@ -127,10 +127,12 @@ python audit/static/run_static.py --selftest   # full pipeline end-to-end on fix
 - **XAML analyzer (Phase 1, markup-only) — done:** a build-free, stdlib-XML pass
   (`static/tools/xaml_check.py`) feeding the same pipeline as a second fact source —
   line-preserving parse, the canonical SARIF record, and rules XAML101/102/103/104/
-  106/107/108/109 (virtualization-off, per-keystroke binding, template complexity,
-  Freezable/x:Shared/DynamicResource/merged-dictionary perf). This makes category 8
-  (broken virtualization) statically covered, not NO-TOOL. Design + the full rule
-  catalogue and phasing: [`../docs/notes/xaml-analyzer-design.md`](../docs/notes/xaml-analyzer-design.md).
+  106/107/108/109/110/111/112/113 (virtualization-off, per-keystroke binding, template
+  complexity, Freezable/x:Shared/DynamicResource/merged-dictionary perf, image
+  decode-at-full-size, LayoutTransform cost, TemplateBinding opportunities, and inline
+  Freezable duplication). This makes category 8 (broken virtualization) statically
+  covered, not NO-TOOL. Design + the full rule catalogue, phasing, and the Phase-2
+  binding-path join: [`../docs/notes/xaml-analyzer-design.md`](../docs/notes/xaml-analyzer-design.md).
   Phase 2 (Roslyn-linked XAML2xx) and Phase 3 (runtime correlation) are deferred.
 - **Runtime (Phase 2) — started:** the runtime→pipeline bridge (`runtime/ingest.py`,
   CI-gated), the leak-harness scenario schema + one scenario, runtime rule mappings
