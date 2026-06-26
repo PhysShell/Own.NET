@@ -56,6 +56,7 @@ rules:
   #    -> baseline -> ratchet path as a .cs finding. Exact ids win over the XAML1*
   #    glob, which is a safety net so a not-yet-mapped XAML rule never lands in
   #    `uncategorized` (the design note's "nothing quietly falls through").
+  "XAML100": {category: 9, name: resource-hoist}          # heavy resource duplicated per-scope
   "XAML107": {category: 8, name: broken-virtualization}   # virtualization disabled
   "XAML109": {category: 8, name: template-complexity}     # visual-tree inflation
   "XAML108": {category: 6, name: binding-update-frequency}  # per-keystroke source flood

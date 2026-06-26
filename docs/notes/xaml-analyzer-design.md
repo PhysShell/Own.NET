@@ -110,7 +110,7 @@ offending element's stamped line; a rule that can only locate a file-level issue
 
 | Rule | What it flags | Doc rationale | Avalonia |
 |---|---|---|---|
-| **XAML100** `ResourceShouldBeHoisted` | heavy shared resource (Brush/Style/Geometry/Transform/BitmapImage/template) declared in a control-local dictionary, recurring across siblings | per-instance control resources multiply working set; app/window scope shares (the 52×52 Brush collapse) | ✅ scope model maps |
+| **XAML100** `ResourceShouldBeHoisted` ✅ *(Freezables)* | heavy shared resource (Brush/Geometry/Transform/Image — Style/template deferred) keyed identically in ≥2 control-local `.Resources` scopes | per-instance control resources multiply working set; app/window scope shares (the 52×52 Brush collapse) | ✅ scope model maps |
 | **XAML101** `DuplicateStatelessConverterResource` | identical stateless converter declared in many local dictionaries | converters are normally one shared instance; duplication is churn | ✅ |
 | **XAML102** `DynamicResourceLikelyStatic` | `DynamicResource` for an app-local, lexically-stable, non-theme/system key | StaticResource recommended unless runtime-mutated; dynamic carries deferred lookup cost | ❌ Avalonia DynamicResource semantics differ |
 | **XAML103** `SuspiciousSharedFalse` | `x:Shared="False"` on converters/styles/brushes outside documented exceptions | resources shared by default; `x:Shared=false` is the deliberate opt-out | ❌ WPF-only attribute |
