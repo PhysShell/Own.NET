@@ -33,14 +33,16 @@ Rule implemented (first slice):
   lifetime owner that subscribed but never releases, so a closed view is retained.
   ``released: false`` is authoritative — the engine already checked for a matching
   ``-=`` anywhere in the class (code-behind included) — so no XAML ``Unloaded``
-  heuristic is needed. The finding is anchored at the XAML lifecycle attribute (where
-  a developer adds the cleanup) and names the C# subscription site, stitching markup
-  and code into one finding. It is mapped to category 2 (subscription leak) so it is
-  classified and scored as the P1 leak it is. (It does not auto-cluster with the
-  own-check ``OWN001`` on the ``.xaml.cs``: clustering keys on basename and the leak
-  lives in a different file — the join *is* the cross-source link here, carried in
-  the message rather than by spatial agreement.) Phase 3 promotes it to a measured
-  retention path via the heap walker.
+  heuristic is needed. The finding is anchored at the **code-behind subscription
+  site** (where the matching ``-=`` goes), with the XAML view + the lifecycle handler
+  that wired it named in the message. It is mapped to category 2 (subscription leak),
+  so it lands at the same file+line as own-check's ``OWN001`` and **clusters with it
+  into one high-confidence finding** — two independent sources agreeing on the leak
+  (the static→static agreement of Plan.md §3.5) — instead of double-reporting it on a
+  separate ``.xaml`` line. The join's value is exactly this: it upgrades the
+  own-check subscription finding to high-confidence and tags it as a view-lifecycle
+  (closed-view-retained) leak, not a second copy of it. Phase 3 promotes it to a
+  measured retention path via the heap walker.
 
 Binding-path-hotness rules (XAML200/204) need the DataContext type, which markup
 rarely declares statically; they are a later increment, deliberately not guessed
@@ -142,7 +144,15 @@ def _unreleased(component: dict[str, Any]) -> list[dict[str, Any]]:
 
 def join(xaml_facts: dict[str, Any], ownir: dict[str, Any]) -> list[dict[str, Any]]:
     """Produce XAML203 link findings from the two fact sources. Each finding is a
-    plain dict ``{rule, path, line, message, resource}`` ready for SARIF."""
+    plain dict ``{rule, path, line, message, resource}`` ready for SARIF.
+
+    One finding **per unreleased subscription**, anchored at the **code-behind
+    subscription site** (``component.file : subscription.line``) — the same spot
+    own-check reports OWN001, and where the matching ``-=`` actually goes. That makes
+    the join cluster with own-check into one **high-confidence** finding (two sources
+    agree) instead of double-reporting the same leak on a separate ``.xaml`` line; the
+    XAML view + the lifecycle handler that wired it ride in the message. (Only a
+    component with no file metadata falls back to anchoring on the XAML itself.)"""
     by_name = _component_index(ownir)
     out: list[dict[str, Any]] = []
 
@@ -154,32 +164,33 @@ def join(xaml_facts: dict[str, Any], ownir: dict[str, Any]) -> list[dict[str, An
         if not components:
             continue  # x:Class resolves to no (unambiguous) OwnIR component
 
-        # All unreleased subscriptions across the matched component(s).
-        leaks = [s for c in components for s in _unreleased(c)]
-        if not leaks:
-            continue
-
         load_handlers = [h for h in (doc.get("event_handlers") or [])
                          if h.get("event") in LOAD_LIFECYCLE_EVENTS]
         if not load_handlers:
             continue  # the leak exists but is not wired from a view-lifecycle handler
 
-        # Anchor at the first load-lifecycle handler (where the dev adds cleanup).
         anchor = min(load_handlers, key=lambda h: h.get("line") or 0)
-        site = ", ".join(
-            f"{s.get('event', '?')} ({c.get('file', '?')}:{s.get('line', '?')})"
-            for c in components for s in _unreleased(c))
-        out.append({
-            "rule": "XAML203",
-            "path": doc.get("file", "?"),
-            "line": anchor.get("line") or 0,
-            "message": (
-                f"view {str(x_class).rsplit('.', 1)[-1]} wires {anchor['event']}="
-                f"{anchor.get('handler', '?')} and subscribes without releasing "
-                f"[{site}]; a closed view is retained — add the matching unsubscribe "
-                "[resource: subscription token]"),
-            "resource": "subscription token",
-        })
+        view = str(x_class).rsplit(".", 1)[-1]
+        xaml_file = doc.get("file", "?")
+        wired = f"{anchor['event']}={anchor.get('handler', '?')}"
+        for c in components:
+            cb = c.get("file")
+            for s in _unreleased(c):
+                ev = s.get("event", "?")
+                if cb:                                  # anchor on the code-behind
+                    path, line = cb, (s.get("line") or 0)
+                else:                                   # no file -> fall back to markup
+                    path, line = xaml_file, (anchor.get("line") or 0)
+                out.append({
+                    "rule": "XAML203",
+                    "path": path,
+                    "line": line,
+                    "message": (
+                        f"view {view} ({xaml_file}, {wired}) subscribes to {ev} "
+                        "without releasing — a closed view is retained; add the "
+                        "matching unsubscribe [resource: subscription token]"),
+                    "resource": "subscription token",
+                })
     return out
 
 
@@ -312,31 +323,34 @@ def _selftest() -> int:
     ]}
 
     findings = join(xaml_facts, ownir)
+    # One finding per leaking subscription, ANCHORED ON THE CODE-BEHIND (.xaml.cs) so it
+    # clusters with own-check's OWN001 — keyed here by that path.
     by_path = {f["path"]: f for f in findings}
 
     check(len(findings) == 3, f"expected exactly 3 XAML203, got {len(findings)}: {findings}")
-    check("Views/CaptureView.xaml" in by_path,
+    check("Views/CaptureView.xaml.cs" in by_path,
           "a 'capture' (region-escape) subscription must be a XAML203")
-    f = by_path.get("Views/CustomerView.xaml")
-    check(f is not None and f["rule"] == "XAML203" and f["line"] == 4,
-          f"XAML203 must anchor at the Loaded handler line (4): {f}")
+    f = by_path.get("Views/CustomerView.xaml.cs")
+    check(f is not None and f["rule"] == "XAML203" and f["line"] == 21,
+          f"XAML203 must anchor at the code-behind subscription line (21): {f}")
     check(f is not None and "_bus.Changed" in f["message"]
-          and "CustomerView.xaml.cs:21" in f["message"],
-          f"XAML203 message must name the C# subscription site: {f}")
+          and "CustomerView" in f["message"] and "Views/CustomerView.xaml" in f["message"]
+          and "Loaded=OnLoaded" in f["message"],
+          f"XAML203 message must name the view, its XAML, the handler and the event: {f}")
     check(f is not None and f["resource"] == "subscription token",
           "XAML203 must carry the subscription-token resource tag (cat-2 mapping)")
-    check("Views/CleanView.xaml" not in by_path,
+    check("Views/CleanView.xaml.cs" not in by_path,
           "a released subscription must NOT produce a finding")
-    check("Views/NoLifecycle.xaml" not in by_path,
+    check("Views/NoLifecycle.xaml.cs" not in by_path,
           "a leak with no view-lifecycle handler must NOT be XAML203 (own-check covers it)")
-    check("Views/TimerView.xaml" not in by_path,
+    check("Views/TimerView.xaml.cs" not in by_path,
           "an unreleased TIMER (not an event subscription) must NOT be a cat-2 XAML203")
-    # same-name disambiguation: the Sales leak lands on Sales's XAML, not Admin's.
-    check("Views/Admin/OrderView.xaml" not in by_path,
-          "a leak in Sales.OrderView must NOT cross-link to Admin.OrderView's XAML")
-    so = by_path.get("Views/Sales/OrderView.xaml")
-    check(so is not None and "Sales/OrderView.xaml.cs:21" in so["message"],
-          f"XAML203 must land on Sales's XAML and name Sales's code-behind: {so}")
+    # same-name disambiguation: the Sales leak lands on Sales's code-behind, not Admin's.
+    check("Views/Admin/OrderView.xaml.cs" not in by_path,
+          "a leak in Sales.OrderView must NOT cross-link to Admin.OrderView")
+    so = by_path.get("Views/Sales/OrderView.xaml.cs")
+    check(so is not None and "Views/Sales/OrderView.xaml" in so["message"],
+          f"XAML203 must anchor on Sales's code-behind and name Sales's view: {so}")
 
     # x:Class that resolves to no component -> nothing (not analysed / no leak).
     unknown_doc = {"documents": [{"file": "x.xaml", "x_class": "App.Unknown",
@@ -362,10 +376,10 @@ def _selftest() -> int:
     try:
         from oracle_compare import parse_sarif
         parsed = parse_sarif(json.dumps(sarif), "xaml-join", [])
-        cust = next((p for p in parsed if p.path.endswith("CustomerView.xaml")), None)
+        cust = next((p for p in parsed if p.path.endswith("CustomerView.xaml.cs")), None)
         check(len(parsed) == len(findings) and cust is not None
-              and cust.rule == "XAML203" and cust.line == 4,
-              "SARIF round-trip must preserve every XAML203 with its anchor line (4)")
+              and cust.rule == "XAML203" and cust.line == 21,
+              "SARIF round-trip must preserve every XAML203 at its code-behind line (21)")
     except ImportError:
         check(False, "could not import scripts/oracle_compare.parse_sarif for round-trip")
 

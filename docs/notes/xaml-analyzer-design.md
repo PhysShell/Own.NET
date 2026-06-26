@@ -220,11 +220,17 @@ even further down: a post-build binary, only for source-less audits — not on t
 
 **First slice built.** `audit/static/tools/xaml_join.py` implements **XAML203**: a view whose
 `x:Class` component has an OwnIR subscription the engine flagged `released=false`, wired from a
-load-lifecycle handler (`Loaded`/`Initialized`/`DataContextChanged`) — the closed-view-retained leak,
-anchored at the XAML site and naming the C# subscription. own-check persists its OwnIR facts via a new
-`--emit-facts`, and `run_static.py` runs the join whenever `xaml-facts.json` + `own-check.facts.json`
-are both present, folding the result into the pipeline. Binding-path-hotness (XAML200/204) needs the
-DataContext type — rarely static in markup — so it is the next increment, deliberately not guessed.
+load-lifecycle handler (`Loaded`/`Initialized`/`DataContextChanged`) — the closed-view-retained leak.
+It is anchored at the **code-behind subscription site** (where the matching `-=` goes), so it lands at
+the same file+line as own-check's `OWN001` and **clusters with it into one high-confidence finding**
+rather than double-reporting the same leak on a separate `.xaml` line; the XAML view that wired it
+rides in the message. The join's honest value here is *not* new detection (own-check already finds the
+subscription leak in the `.cs`) but the cross-source **confidence upgrade + view-lifecycle framing** —
+where the join finds what neither source can alone (binding→`List<T>` getter, allocating converter on a
+hot binding) it needs the DataContext type and OwnIR getter/converter facts, which is the XAML200/204
+increment, deliberately not guessed here. own-check persists its OwnIR facts via a new `--emit-facts`,
+and `run_static.py` runs the join whenever both fact sources are produced *this run*, folding the
+result into the pipeline.
 
 **The Phase-1 → Phase-2 seam is built.** The markup pass now emits a structured fact document
 alongside its SARIF — `audit/static/tools/xaml_facts.py` writes `xaml-facts.json` from the *same*
