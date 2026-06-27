@@ -3,8 +3,8 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Blind cross-tool run on a mature, well-disciplined C# library — JSON readers/
-# writers are IDisposable (JsonTextReader/JsonTextWriter wrap StreamReader/Writer).
-# Precision probe: expect own-only ~0; triage any oracle-only into field-notes
+# Blind cross-tool run on a logging library — file/rolling sinks wrap
+# StreamWriter/TextWriter and buffers (resource-heavy paths). Higher chance of a
+# real oracle-only recall finding than a pure data lib; triage into field-notes
 # per the oracle.md maintenance requirement.
-JamesNK/Newtonsoft.Json
+serilog/serilog
