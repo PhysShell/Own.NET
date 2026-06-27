@@ -1296,6 +1296,49 @@ def _forward_path_action(callee: str, arg: int) -> PathAction:
     return PathAction("forward", callee, arg)
 
 
+def _merge_returns(rets: list[ReturnSkeleton]) -> ReturnSkeleton:
+    """The conservative return of a set of same-name overloads. Only a kind ALL
+    overloads agree on survives (so a call to the name returns it regardless of which
+    overload bound); a `forward`, an `aliasOf` (whose index is overload-specific), or
+    any disagreement degrades to a no-op `unknown` return — never a fabricated `fresh`
+    (which would mint a phantom acquire at the caller)."""
+    kinds = {r.kind for r in rets}
+    if kinds == {"fresh"}:
+        return ReturnSkeleton("fresh")
+    if kinds == {"none"}:
+        return ReturnSkeleton("none")
+    if kinds == {"aliased"}:
+        return ReturnSkeleton("aliased")
+    return ReturnSkeleton("unknown")  # mixed / forward / aliasOf -> fails closed
+
+
+def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
+    """Collapse same-name overloads into ONE conservative summary. The extractor
+    names a call's callee `{Type}.{Method}` with no parameter signature (note's open
+    question 2), so a forward to an overloaded name cannot pick an overload. Rather
+    than drop them all (every such forward then stays `unknown`), join them on the
+    lattice at (name, parameter-index) granularity: a parameter transfers `must` only
+    when EVERY overload carrying that index consumes it, and an overload that merely
+    keeps an index contributes a `borrow` path so the join can never fabricate a
+    `must`. Disambiguating by argument type would need call-site type info the fact
+    stream does not carry; arity is available but not modelled here (the join is
+    already precision-safe, just coarser than a per-arity split would be)."""
+    if len(group) == 1:
+        return group[0]
+    by_index: dict[int, list[PathAction]] = {}
+    names: dict[int, str] = {}
+    for sk in group:
+        for p in sk.params:
+            # an overload that does nothing with this index KEEPS it (= `no`); record
+            # that as a borrow path so it joins in rather than vanishing from concat.
+            by_index.setdefault(p.index, []).extend(p.paths or (PathAction("borrow"),))
+            names.setdefault(p.index, p.name)
+    params = tuple(
+        ParamSkeleton(i, names[i], True, tuple(by_index[i])) for i in sorted(by_index)
+    )
+    return MethodSkeleton(group[0].key, params, _merge_returns([sk.ret for sk in group]))
+
+
 def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     """Derive a Method Ownership Summary skeleton per first-party function from its
     flow body, for the D5.0 solver (P-005 D5.1). A parameter's path actions mirror
@@ -1320,21 +1363,23 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     and returns it is `fresh` (a factory); `_infer_return_skeleton` keeps it
     precision-first (a returned parameter is never `fresh`).
 
-    Functions whose name is not unique are dropped (overload keys are not yet
-    distinguishable — note's open question 2 — so a forward to such a name stays
-    `unknown` → silent, the precision-safe choice)."""
+    Same-name overloads are MERGED into one conservative summary (`_merge_skeletons`)
+    rather than dropped: the call node names its callee without a parameter signature
+    (note's open question 2), so a forward to an overloaded name cannot pick an
+    overload, but a lattice join over the overloads still resolves it precision-safely
+    (and lets a uniformly-`fresh` overloaded factory be seen as fresh)."""
     counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
-    # every first-party method name (even overloaded/dropped ones): the BCL fresh-factory
-    # table must NOT apply to a call whose target we compile from source — Tier A (the
+    # every first-party method name (even overloaded ones): the BCL fresh-factory table
+    # must NOT apply to a call whose target we compile from source — Tier A (the
     # first-party summary) authoritatively overrides Tier B (the curated BCL table) even
     # when the source method happens to share a BCL factory's name (Codex P2).
     first_party = frozenset(_canonical_callee_name(k) for k in counts if k)
-    skels: list[MethodSkeleton] = []
+    by_key: dict[str, list[MethodSkeleton]] = {}
     for fn in raw_fns:
         if not isinstance(fn, dict):
             continue
         key = str(fn.get("name", ""))
-        if not key or counts[key] != 1:
+        if not key:
             continue
         body = fn.get("body", [])
         body = body if isinstance(body, list) else []
@@ -1373,8 +1418,10 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
         ret = _infer_return_skeleton(body, pnames, first_party)
-        skels.append(MethodSkeleton(key, tuple(params), ret))
-    return skels
+        by_key.setdefault(key, []).append(MethodSkeleton(key, tuple(params), ret))
+    # one skeleton per name: solve() keys by name (a forward names its callee with no
+    # signature), so same-name overloads are joined into a single conservative summary.
+    return [_merge_skeletons(group) for group in by_key.values()]
 
 
 def _infer_param_effect(pname: str, nodes: Any,

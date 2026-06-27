@@ -1341,6 +1341,45 @@ def run() -> int:
     if cond:
         gotc = [(x.component, x.code) for x in cond]
         fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
+    # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
+    # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
+    # caller using the local after the handoff is OWN002. Before the merge the name was
+    # dropped → the forward stayed unknown → this leak was silently missed.
+    checks += 1
+    ovc = check_facts({"module": "M", "functions": [
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "release", "var": "b", "line": 6}]},
+        {"name": "ov_fwd", "file": "F.cs", "params": [{"name": "s", "line": 10}],
+         "body": [{"op": "call", "callee": "C.M", "args": ["s"], "line": 11}]},
+        {"name": "ov_use", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 20},
+                  {"op": "call", "callee": "ov_fwd", "args": ["s"], "line": 21},
+                  {"op": "use", "var": "s", "line": 22}]}]})
+    gotov = sorted((x.component, x.code) for x in ovc)
+    if gotov != [("ov_use", "OWN002")]:
+        fails.append("§10 q2 agreeing overloads should resolve the forward to consume "
+                     f"(ov_use OWN002), got {gotov}")
+    # (§10 q2) when overloads DISAGREE (one consumes, one only borrows) the merge joins
+    # to `may`, so the forward stays plain and a caller that releases the local itself is
+    # clean — the conservative join never fabricates a `must` from an ambiguous name.
+    checks += 1
+    ovd = check_facts({"module": "M", "functions": [
+        {"name": "C.N", "file": "F.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "C.N", "file": "F.cs", "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "use", "var": "b", "line": 6}]},
+        {"name": "ovn_fwd", "file": "F.cs", "params": [{"name": "s", "line": 10}],
+         "body": [{"op": "call", "callee": "C.N", "args": ["s"], "line": 11}]},
+        {"name": "ovn_use", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 20},
+                  {"op": "call", "callee": "ovn_fwd", "args": ["s"], "line": 21},
+                  {"op": "release", "var": "s", "line": 22}]}]})
+    if ovd:
+        gotn = [(x.component, x.code) for x in ovd]
+        fails.append("§10 q2 disagreeing overloads must join to `may` (caller stays "
+                     f"silent), got {gotn}")
     # --- P-005 D5.1b: the per-call-site ownership-contract channel. The extractor
     #     routes a call's per-argument ownership through fixed sink externs
     #     ($consume / $borrow / $borrow_mut) the bridge pre-declares, so an effect
