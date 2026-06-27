@@ -1,0 +1,21 @@
+// OwnLang model of NLog's TimeoutContinuation teardown (src/NLog/Internal/
+// TimeoutContinuation.cs, StopTimer). The owned Timer field is released by the atomic
+// detach-and-dispose idiom: `Interlocked.Exchange(ref _timeoutTimer, null)` hands back
+// the live timer and nulls the field, then `WaitForDispose(this Timer)` stops and
+// disposes it. before.cs omits the teardown — the generic OWN001 owned-field leak,
+// modelled here as an acquire with no `release`. after.cs releases it via the idiom,
+// which the extractor recognises by binding the exchange result to the field
+// (RefExchangeNulledField) and following the sink's dispose effect (CallReleasesReceiver).
+module Corpus
+resource Timer {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Timer"
+  emit_acquire "new Timer({args})"
+  emit_release "Interlocked.Exchange(ref {0}, null)?.WaitForDispose()"
+}
+fn Continuation(callback: int) {
+  let timer = acquire Timer(callback);   // _timer = new Timer(_ => { }, null, 0, 1000)
+  // no `release timer;` — the timer is never detached or disposed (OWN001)
+}

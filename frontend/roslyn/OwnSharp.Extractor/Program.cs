@@ -2515,6 +2515,35 @@ static bool CallReleasesReceiver(IMethodSymbol? sym, SemanticModel model)
                          new HashSet<ISymbol>(SymbolEqualityComparer.Default));
 }
 
+// `Interlocked.Exchange(ref _field, null)` — the atomic "detach and hand back"
+// teardown idiom — atomically nulls the field and RETURNS the object it used to
+// own, so a local bound to that result aliases the field's just-detached owned
+// object: disposing the local releases the field's resource (mined on NLog's
+// TimeoutContinuation.StopTimer, `Interlocked.Exchange(ref _timeoutTimer, null)
+// ?.WaitForDispose(...)`). Returns that field's name so the alias map can bind it
+// like a plain `var x = _field;` alias. Restricted to a `null`/`default` replacement
+// — the unambiguous teardown: an Exchange that installs a NEW non-null value re-arms
+// the field with a fresh object whose fate the syntactic scan cannot follow, so
+// crediting the field there could hide a real leak (precision-first: decline).
+static string? RefExchangeNulledField(ExpressionSyntax init, SemanticModel model)
+{
+    if (init is not InvocationExpressionSyntax inv
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m
+        || m.Name != "Exchange"
+        || m.ContainingType is not { Name: "Interlocked" } ct
+        || ct.ContainingNamespace?.ToString() != "System.Threading")
+        return null;
+    var args = inv.ArgumentList.Arguments;
+    if (args.Count != 2
+        || !args[0].RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+        || !(args[1].Expression.IsKind(SyntaxKind.NullLiteralExpression)
+             || args[1].Expression.IsKind(SyntaxKind.DefaultLiteralExpression)))
+        return null;
+    return ThisFieldName(args[0].Expression) is { } f
+           && model.GetSymbolInfo(args[0].Expression).Symbol is IFieldSymbol
+        ? f : null;
+}
+
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
 // semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
 // the value, so injected/borrowed disposables are not flagged. Timer types are
@@ -3303,12 +3332,21 @@ foreach (var (file, tree) in parsed)
                 reassignedAliases.Add(als);
         var aliasToField = new Dictionary<ISymbol, string>(SymbolEqualityComparer.Default);
         foreach (var decl in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
-            if (decl.Initializer?.Value is { } init
-                && ThisFieldName(init) is { } af
-                && model.GetSymbolInfo(init).Symbol is IFieldSymbol
-                && model.GetDeclaredSymbol(decl) is ILocalSymbol aliasSym
-                && !reassignedAliases.Contains(aliasSym))
+        {
+            if (decl.Initializer?.Value is not { } init
+                || model.GetDeclaredSymbol(decl) is not ILocalSymbol aliasSym
+                || reassignedAliases.Contains(aliasSym))
+                continue;
+            // a plain `var x = _field;` / `var x = this._field;` alias, OR the
+            // `Interlocked.Exchange(ref _field, null)` teardown whose result IS the
+            // field's just-detached owned object — both make `x` an alias of the field.
+            string? af = ThisFieldName(init) is { } direct
+                         && model.GetSymbolInfo(init).Symbol is IFieldSymbol
+                ? direct
+                : RefExchangeNulledField(init, model);
+            if (af is not null)
                 aliasToField[aliasSym] = af;
+        }
         // a `.Dispose()`/`.DisposeAsync()`/`.Close()` on a field — directly (`_f.Dispose()` / `this._f.…`)
         // or through an alias local (translated by SYMBOL via aliasToField) — releases that field.
         // `Close()` counts as a release here exactly as it already does for LOCAL disposables (DisposesLocal

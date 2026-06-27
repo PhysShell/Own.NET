@@ -20,16 +20,15 @@
 # (fields genuinely never disposed, but wrapping managed-memory-only resources).
 # Those are NOT baselined; they are real catches the oracle's leak query misses.
 
-# --- NLog/NLog : one timer disposed through an alias we don't yet track ----------
-# The four sibling timer FPs (AsyncTaskTarget._taskTimeoutTimer/_lazyWriterTimer,
-# AsyncTargetWrapper._lazyWriterTimer, BufferingTargetWrapper._flushTimer) were here
-# too, but the CallReleasesReceiver extractor fix now traces their release through
-# the `WaitForDispose(this Timer)` sink (called on the field directly or via a simple
-# `var t = _field;` alias) — confirmed cleared on a live NLog oracle run (own-only
-# 8 -> 4), so they are deleted. Only TimeoutContinuation remains: it disposes the
-# RESULT of `Interlocked.Exchange(ref _timeoutTimer, null)`, a ref-exchange alias the
-# extractor does not yet bind to the field, so the sink call is not seen as a release.
-NLog/NLog | TimeoutContinuation.cs | OWN001 | _timeoutTimer | disposed via Dispose() -> StopTimer() -> Timer.WaitForDispose() on the result of Interlocked.Exchange(ref _timeoutTimer, null) — a ref-exchange alias the extractor does not yet track (CallReleasesReceiver clears the direct/simple-alias siblings, not this one)
+# --- NLog/NLog : all WaitForDispose timer FPs fixed at the source ----------------
+# All five NLog timers disposed through the `WaitForDispose(this Timer)` sink are now
+# cleared in the extractor — no baseline entries remain. Four (AsyncTaskTarget
+# _taskTimeoutTimer/_lazyWriterTimer, AsyncTargetWrapper _lazyWriterTimer,
+# BufferingTargetWrapper _flushTimer) by CallReleasesReceiver (direct / simple-alias
+# receiver), and TimeoutContinuation _timeoutTimer by RefExchangeNulledField (its
+# receiver is the `Interlocked.Exchange(ref _timeoutTimer, null)` result, now bound to
+# the field). The three remaining NLog own-only findings (XmlParser _xmlSource,
+# FileTarget _reusable*Stream) are genuine undisposed fields, kept visible.
 
 # --- protobuf-net/protobuf-net --------------------------------------------------
 protobuf-net/protobuf-net | ProtoWriter.BufferWriter.cs | OWN001 | _nullWriter | intentional null-object kept attached for pooled reuse; Dispose() documents "don't cascade dispose to the null one"
