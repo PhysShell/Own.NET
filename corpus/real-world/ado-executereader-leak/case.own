@@ -1,0 +1,18 @@
+// OwnLang model of the canonical ADO.NET reader leak (P1a, ADO.NET tranche). A DbDataReader
+// from DbCommand.ExecuteReader() is a fresh owned IDisposable the caller must dispose; here it
+// is acquired, read, and never released — the generic OWN001 leak. The command is a borrowed
+// parameter and the reader does not escape (only a count is returned), so it stays tracked.
+// See notes.md for the recognition rule (return type implements System.Data.IDataReader).
+module Corpus
+resource Reader {
+  acquire open
+  release dispose
+  kind "disposable"
+  emit_type    "DbDataReader"
+  emit_acquire "{args}.ExecuteReader()"
+  emit_release "{0}.Dispose()"
+}
+fn Run(cmd: int) {
+  let reader = acquire Reader(cmd);   // var reader = cmd.ExecuteReader()
+  // rows read via reader.Read(); no `release reader;` — never disposed (OWN001)
+}
