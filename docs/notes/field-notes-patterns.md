@@ -214,17 +214,110 @@ not luck — and the next recall lever for this family is the deferred field-sto
 anything in step 2's scope. *(Confidence: high — dispositions verified against the pinned
 Polly source, not just the SARIF excerpts.)*
 
+## 8. Event subscription on a freshly-created, *returned* publisher
+
+**Seen in:** Newtonsoft.Json `Src/Newtonsoft.Json/JsonSerializer.cs:717`
+(`ApplySerializerSettings`, commit `4f73e74`).
+
+A factory configures a new object and wires an event on it before handing it back;
+the subscription is never `-=`'d, but it doesn't need to be.
+
+```csharp
+public static JsonSerializer Create(JsonSerializerSettings? settings)
+{
+    JsonSerializer serializer = new JsonSerializer();
+    if (settings != null) ApplySerializerSettings(serializer, settings);
+    return serializer;                              // publisher escapes to the caller
+}
+private static void ApplySerializerSettings(JsonSerializer serializer, JsonSerializerSettings settings)
+{
+    if (settings.Error != null)
+        serializer.Error += settings.Error;         // <- flagged: "+= but never -="
+}
+```
+
+**Why:** the *publisher* (`serializer`) is the returned object. The handler lives
+exactly as long as the serializer the caller now holds; when that is collected, the
+subscription dies with it. No `-=` is needed — there is no longer-lived source
+retaining a shorter-lived target (the dangerous direction our OWN001/OWN014
+subscription leak targets). It's the publisher itself that is short/caller-scoped.
+
+**Analyzer angle — this is an *own-only* over-report (the first in this notebook
+where Own.NET, not the oracle, is too strict).** CodeQL/Infer# have no
+event-subscription-leak query, so they stay silent (correctly). Own.NET fires
+because, *inside* `ApplySerializerSettings`, `serializer` is an opaque **parameter**
+— `SubscriptionSourceKind` can't see that the caller `new`s it and `return`s it, so
+it conservatively tiers it `injected` and emits a **warning** (not a hard error;
+P-004 severity tiering already hedges unknown-lifetime publishers). So the default
+`error` posture is unaffected — it only surfaces under `--severity warning` (the
+oracle's setting). **Subscription-leak analysis is the dual of ownership transfer:
+a `+=` on a publisher that *escapes by return* is as bounded as a returned
+`IDisposable` — the fix is the same "follow the reference" escape rule, but
+interprocedural (the construct-and-return is in the caller), which is the hard part.
+The honest interim posture — advisory warning, never a hard error — is already in
+place.**
+
+## 9. Owning field whose IDisposable holds no unmanaged resource
+
+**Seen in:** Newtonsoft.Json `Src/Newtonsoft.Json/Serialization/TraceJsonReader.cs:37,38`
+and `TraceJsonWriter.cs:39` (commit `4f73e74`).
+
+A type owns a disposable field but never disposes it — and that is fine, because the
+field's `Dispose()` frees nothing real.
+
+```csharp
+internal class TraceJsonReader : JsonReader   // JsonReader : IDisposable, no Dispose override
+{
+    private readonly StringWriter _sw;         // StringBuilder-backed: Dispose() is a no-op
+    private readonly JsonTextWriter _textWriter;  // wraps _sw; at most returns a pooled char buffer
+    public TraceJsonReader(JsonReader inner)
+    {
+        _sw = new StringWriter(CultureInfo.InvariantCulture);
+        _textWriter = new JsonTextWriter(_sw);
+    }
+}
+```
+
+**Why:** these are short-lived, per-call diagnostic helpers (created only when a
+`TraceWriter` is attached at `Verbose`) that capture the JSON text into an in-memory
+`StringWriter`. A `StringWriter` wraps a `StringBuilder` — no OS handle, no
+unmanaged state; `Dispose()` just flips a closed flag. Not disposing it leaks
+nothing the GC won't reclaim.
+
+**Analyzer angle — also an *own-only* over-report.** CodeQL/Infer# stay silent
+(they model real resource handles; an undisposed `StringWriter` isn't one). Own.NET's
+owning-field detector flags every `IDisposable` field equally. The lever already
+exists: `IsOwnedDisposableType` exempts `IsDisposeOptional` types (Task/ValueTask/
+DataTable/DataSet/DataView — "Dispose is a no-op / only a lazy wait handle"). The
+fix for the two `StringWriter` fields is to **add `System.IO.StringWriter`/
+`StringReader` to that exemption** — a one-liner mirroring the existing set. The
+third field (`JsonTextWriter`, a third-party writer over the StringWriter, which on
+Dispose returns a pooled char buffer) is not generically exemptable by name and
+stays a low-value residual. **Rule of thumb: "owns an `IDisposable` field" is only a
+leak when the field owns a *real* resource — a string/in-memory writer is not one,
+and the `IsDisposeOptional` allowlist is where that knowledge belongs.**
+
 ---
 
 ## The through-line
 
-Five of six entries are the *same lesson from different angles*: **disposal
+Entries 1–6 are the *same lesson from different angles*: **disposal
 responsibility travels with the reference** — out of a factory (1, 6), forward in
 time via a callback (2), into a pool (3), or down a `using` on a value type (4).
 Naive "every disposable needs a lexical `using`/`Dispose` on every path" checks
 misread all of them, which is why Infer#/CodeQL over-report here and a
-transfer/escape-aware checker (Own.NET) correctly stays quiet. Worth learning as
-C#; worth pinning as the precision frontier.
+transfer/escape-aware checker (Own.NET) correctly stays quiet. (Entry 7 is a run
+ledger — an audit record of a Polly re-run, not an idiom.)
+
+Entries 8–9 are the **mirror image — the first cases where _Own.NET_ is the one
+over-reporting and the oracle is correctly silent.** They map our own precision
+frontier: a subscription on a publisher that *escapes by return* (8, the dual of
+ownership transfer — bounded, but the construct-and-return is interprocedural), and
+an owning field whose `IDisposable` holds no real resource (9, a `StringWriter` is
+not a handle — belongs in the `IsDisposeOptional` allowlist). Same moral as 1–6,
+pointed back at us: **a leak is about the *resource* and the *reference's
+lifetime*, not the mere presence of an `IDisposable` and a missing `Dispose`/`-=`.**
+Worth learning as C#; worth pinning as the precision frontier.
 
 ## Maintaining this notebook (a repo requirement)
 

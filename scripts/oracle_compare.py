@@ -378,14 +378,24 @@ def _is_test_path(path: str) -> bool:
     (e.g. Polly's `src/Snippets/Docs/*`, where ~20 `HttpResponseMessage`/`HttpClient`
     examples are never disposed by design) — counting them as product leaks inflates
     the oracle-only recall gap with example code that was never meant to dispose."""
-    for seg in path.lower().split("/"):
-        # Exact match for short, collision-prone names — a `snippet` *prefix* would
-        # wrongly drop product dirs like `SnippetEngine`/`SnippetService` (Polly's
-        # `src/Snippets/Docs/*` is caught by the exact `snippets`/`docs` segments
-        # anyway). Prefix match only for the long, unambiguous plural-able ones.
-        if (seg in ("test", "tests", "doc", "docs", "snippet", "snippets")
-                or seg.startswith(("benchmark", "sample", "example"))):
-            return True
+    # Only DIRECTORY segments classify a finding as non-product — NEVER the file's own
+    # name (the last segment). A product file literally named `Test.cs` / `Doc.cs` /
+    # `Foo.Tests.cs` is real product code and must NOT be dropped from the diff, or we
+    # under-count findings (Codex). So iterate the directory segments only (`segs[:-1]`).
+    segs = path.lower().split("/")
+    for seg in segs[:-1]:
+        # Split each directory segment on '.' before matching, for the ubiquitous .NET
+        # `<Project>.Tests` / `Foo.Benchmarks` directory convention: the dir
+        # `Newtonsoft.Json.Tests` is ONE path segment, so a bare-segment check
+        # misses it (and silently drags ~485 test findings into the diff). Matching
+        # each dot-component catches the `tests` tail while keeping the original
+        # guards intact — exact match for short, collision-prone names (so a single
+        # component `SnippetEngine`/`Documentation` is NOT dropped, only an exact
+        # `snippet`/`doc`), prefix only for the long, unambiguous plural-able ones.
+        for part in seg.split("."):
+            if (part in ("test", "tests", "doc", "docs", "snippet", "snippets")
+                    or part.startswith(("benchmark", "sample", "example"))):
+                return True
     return False
 
 
@@ -560,10 +570,24 @@ def _selftest() -> int:
                ("tests/Foo/Bar.cs", "benchmarks/X/Y.cs", "src/Test/Z.cs",
                 "src/Snippets/Docs/Fallback.cs", "src/MyLib/docs/Example.cs")):
         fails.append("_is_test_path should match test/benchmark/doc/snippet trees")
+    # The .NET `<Project>.Tests` / `Foo.Benchmarks` convention: the dotted dir is a
+    # single path segment, so it must be matched on its dot-components — else a repo
+    # like Newtonsoft.Json (test tree `Newtonsoft.Json.Tests`) leaks ~485 test
+    # findings into the product diff (own-only 489 vs the true 4). The sibling
+    # product dir `Newtonsoft.Json` must stay IN scope.
+    if not all(_is_test_path(p) for p in
+               ("Src/Newtonsoft.Json.Tests/Bson/BsonReaderTests.cs",
+                "src/Foo.Benchmarks/Bench.cs")):
+        fails.append("_is_test_path should match dotted .NET test/benchmark project dirs")
     # ...but a product dir whose name merely *starts with* a marker word is NOT
-    # excluded — exact match for snippet/doc guards against dropping real code.
+    # excluded — exact match for snippet/doc guards against dropping real code, and
+    # the dot-split must leave a non-test dotted product namespace untouched. Critically,
+    # the dot-split must NOT look at the FILE name: a product file literally named
+    # `Test.cs` / `Doc.cs` / `Foo.Tests.cs` is real code, not a test tree (Codex).
     if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs",
-                                      "src/SnippetEngine/Foo.cs", "src/Documentation/Api.cs")):
+                                      "src/SnippetEngine/Foo.cs", "src/Documentation/Api.cs",
+                                      "Src/Newtonsoft.Json/JsonSerializer.cs",
+                                      "src/Test.cs", "src/Doc.cs", "src/Foo.Tests.cs")):
         fails.append("_is_test_path should not match product paths")
     # the scope note is gated on mode, not count: a product-only run that excluded
     # nothing must still say so (else it reads like a full-scope run).
@@ -607,7 +631,7 @@ def _selftest() -> int:
         fails.append(f"non-SARIF JSON masked as clean: {len(not_sarif)} findings, "
                      f"{ns_drift} unparsed")
 
-    total = 24
+    total = 25
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

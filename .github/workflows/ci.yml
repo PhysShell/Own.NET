@@ -257,6 +257,12 @@ jobs:
           if echo "$out" | grep -q "HolderWithDisposeOptional"; then
             echo "FAIL: a dispose-optional (Task/DataTable) field was wrongly flagged"; exit 1
           fi
+          # the same rule for string-backed reader/writer fields (field-notes #8, Newtonsoft
+          # TraceJsonReader/Writer): a new'd, undisposed StringWriter/StringReader holds no
+          # unmanaged resource -> must stay SILENT (IsDisposeOptional, System.IO).
+          if echo "$out" | grep -q "HolderWithStringWriter"; then
+            echo "FAIL: a dispose-optional (StringWriter/StringReader) field was wrongly flagged"; exit 1
+          fi
           # field release recognition (mined: ImageSharp). #2 null-conditional dispose
           # `field?.Dispose()` must be recognized -> silent; the undisposed control still warns.
           if echo "$out" | grep -q "DisposesViaConditional"; then
