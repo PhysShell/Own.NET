@@ -378,8 +378,13 @@ def _is_test_path(path: str) -> bool:
     (e.g. Polly's `src/Snippets/Docs/*`, where ~20 `HttpResponseMessage`/`HttpClient`
     examples are never disposed by design) — counting them as product leaks inflates
     the oracle-only recall gap with example code that was never meant to dispose."""
-    for seg in path.lower().split("/"):
-        # Split each segment on '.' before matching, for the ubiquitous .NET
+    # Only DIRECTORY segments classify a finding as non-product — NEVER the file's own
+    # name (the last segment). A product file literally named `Test.cs` / `Doc.cs` /
+    # `Foo.Tests.cs` is real product code and must NOT be dropped from the diff, or we
+    # under-count findings (Codex). So iterate the directory segments only (`segs[:-1]`).
+    segs = path.lower().split("/")
+    for seg in segs[:-1]:
+        # Split each directory segment on '.' before matching, for the ubiquitous .NET
         # `<Project>.Tests` / `Foo.Benchmarks` directory convention: the dir
         # `Newtonsoft.Json.Tests` is ONE path segment, so a bare-segment check
         # misses it (and silently drags ~485 test findings into the diff). Matching
@@ -576,10 +581,13 @@ def _selftest() -> int:
         fails.append("_is_test_path should match dotted .NET test/benchmark project dirs")
     # ...but a product dir whose name merely *starts with* a marker word is NOT
     # excluded — exact match for snippet/doc guards against dropping real code, and
-    # the dot-split must leave a non-test dotted product namespace untouched.
+    # the dot-split must leave a non-test dotted product namespace untouched. Critically,
+    # the dot-split must NOT look at the FILE name: a product file literally named
+    # `Test.cs` / `Doc.cs` / `Foo.Tests.cs` is real code, not a test tree (Codex).
     if any(_is_test_path(p) for p in ("Dapper/SqlMapper.cs", "src/Lib/A.cs",
                                       "src/SnippetEngine/Foo.cs", "src/Documentation/Api.cs",
-                                      "Src/Newtonsoft.Json/JsonSerializer.cs")):
+                                      "Src/Newtonsoft.Json/JsonSerializer.cs",
+                                      "src/Test.cs", "src/Doc.cs", "src/Foo.Tests.cs")):
         fails.append("_is_test_path should not match product paths")
     # the scope note is gated on mode, not count: a product-only run that excluded
     # nothing must still say so (else it reads like a full-scope run).
