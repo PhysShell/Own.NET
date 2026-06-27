@@ -2290,8 +2290,29 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
              && IsInNamespace(xt, "System", "Xml"))
             || (sym.Name == "Parse"
                 && sym.ContainingType is { Name: "JsonDocument" } jt
-                && IsInNamespace(jt, "System", "Text", "Json"))))
+                && IsInNamespace(jt, "System", "Text", "Json")))
+        // ...but ONLY the overloads that take no disposable input. The Stream/TextReader/
+        // TextWriter overloads do NOT own that input (XmlReaderSettings.CloseInput /
+        // XmlWriterSettings.CloseOutput default false, JsonDocument.Parse never closes its
+        // stream), so claiming a pure factory there would let the escape pass drop the
+        // caller-owned input and suppress its leak (Codex). The common string/URI/path
+        // overloads have no disposable arg and still resolve. (precision over recall.)
+        && !AnyDisposableArgument(i, model))
         return true;
+    return false;
+}
+
+// True if any argument to the call resolves to a type implementing IDisposable — a disposable
+// the callee might NOT take ownership of, so an enclosing owned-factory claim must be declined
+// rather than silently drop that argument from leak tracking.
+static bool AnyDisposableArgument(InvocationExpressionSyntax inv, SemanticModel model)
+{
+    foreach (var arg in inv.ArgumentList.Arguments)
+    {
+        var t = model.GetTypeInfo(arg.Expression).Type;
+        if (t is not null && ImplementsIDisposable(t))
+            return true;
+    }
     return false;
 }
 
