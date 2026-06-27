@@ -51,9 +51,47 @@ def main() -> int:
     edges = codes("EffectEdges.tsx")
     assert edges == ["OWN001"], f"EffectEdges -> {edges}"
 
+    # Parser hardening: a string with commas/braces does not truncate a body or
+    # split deps; deps brackets nest (`items[0]`); a listener is released only by a
+    # matching target+handler+options. -> one OWN001 (options dropped) + one EFF001.
+    hardening = codes("EffectHardening.tsx")
+    assert hardening == ["OWN001", "EFF001"], f"EffectHardening -> {hardening}"
+
+    # addEventListener release must match the receiver and capture/options, not just
+    # the handler (dropping `true` or changing the target still leaks).
+    sub = next(a for a in ownts.ACQUIRES if a.resource == "subscription")
+
+    def rel(setup: str, cleanup: str) -> bool:
+        return ownts._is_released(sub, setup, setup.index(".addEventListener"), cleanup)
+
+    assert rel('window.addEventListener("x", onX)', 'window.removeEventListener("x", onX)')
+    assert rel('window.addEventListener("x", onX, true)',
+               'window.removeEventListener("x", onX, true)')
+    assert not rel('window.addEventListener("x", onX, true)',
+                   'window.removeEventListener("x", onX)'), "dropped options must still leak"
+    assert not rel('window.addEventListener("x", onX)',
+                   'window.removeEventListener("x", onX, true)'), \
+        "omitted capture (false) is not released by remove(..., true)"
+    assert rel('window.addEventListener("x", onX, {capture: true})',
+               'window.removeEventListener("x", onX, true)'), \
+        "{capture:true} and true are the same listener"
+    assert rel('window.addEventListener("x", onX, {passive: true})',
+               'window.removeEventListener("x", onX)'), \
+        "a non-capture option (passive) does not change removal identity"
+    assert not rel('el.addEventListener("x", onX)',
+                   'other.removeEventListener("x", onX)'), "wrong target must still leak"
+    assert not rel('window.addEventListener("scroll", onX)',
+                   'window.removeEventListener("resize", onX)'), \
+        "a different event name is a different listener (still leaks)"
+    assert rel('nodes[i].addEventListener("x", onX)',
+               'nodes[i].removeEventListener("x", onX)'), "indexed receiver matches itself"
+    assert not rel('nodes[i].addEventListener("x", onX)',
+                   'nodes[j].removeEventListener("x", onX)'), \
+        "a different index is a different target (still leaks)"
+
     print("OwnTS spike OK: leaky=3xOWN001+EFF001, clean=0, kinds=timer/subscribe/"
-          "subscription, EffectStorm=2xEFF001, EffectEdges=1xOWN001 (per-resource "
-          "cleanup + render-scope-only bindings).")
+          "subscription, EffectStorm=2xEFF001, EffectEdges=1xOWN001, "
+          "EffectHardening=OWN001+EFF001 (literal-proof parser + strict listener match).")
     return 0
 
 

@@ -1076,6 +1076,18 @@ jobs:
             || { echo "FAIL: expected exactly one OWN001 (the uncleared timer)"; exit 1; }
           echo "$edges" | grep -q "pollB" \
             || { echo "FAIL: the leak must be the second (uncleared) interval"; exit 1; }
+      - name: Parser hardening — string literals, nested dep brackets, listener options
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectHardening.tsx \
+            -o "$RUNNER_TEMP/hard.facts.json"
+          hard=$(python -m ownlang ownir "$RUNNER_TEMP/hard.facts.json" || true)
+          echo "$hard"
+          # a string with commas/braces does not truncate the body (the timer is cleared);
+          # the leak is the options-dropped listener; the object dep fires EFF001 once
+          [ "$(echo "$hard" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 2 ] \
+            || { echo "FAIL: expected one OWN001 (listener) + one EFF001 (object dep)"; exit 1; }
+          echo "$hard" | grep -q "scroll" \
+            || { echo "FAIL: the leak must be the options-dropped scroll listener"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
