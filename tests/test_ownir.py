@@ -1445,6 +1445,24 @@ def run() -> int:
     if ovret2:
         fails.append("§10 q2 disagreeing-return overloads must make no fresh claim (silent), "
                      f"got {[(x.component, x.code) for x in ovret2]}")
+    # (CodeRabbit) the overload channel matches on the CANONICAL name, so a `global::`-qualified
+    # direct call to an overloaded method still applies the merged contract: both overloads
+    # consume, so `global::C.M(s); release s` is release-after-consume OWN002 (raw-key matching
+    # would have dropped the handoff and silently missed the double-discharge).
+    checks += 1
+    ovq = check_facts({"module": "M", "functions": [
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "release", "var": "b", "line": 6}]},
+        {"name": "dQ", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "global::C.M", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    gotq = sorted((x.component, x.code) for x in ovq)
+    if gotq != [("dQ", "OWN002")]:
+        fails.append("§10 q2 qualified (global::) call to agreeing-consume overloads should "
+                     f"apply the merged consume (dQ OWN002), got {gotq}")
     # --- P-005 D5.1b: the per-call-site ownership-contract channel. The extractor
     #     routes a call's per-argument ownership through fixed sink externs
     #     ($consume / $borrow / $borrow_mut) the bridge pre-declares, so an effect

@@ -881,7 +881,10 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
         # but the core's call-signature table keeps only ONE same-name FnDecl (last-wins), so a
         # DIRECT `Call` to an overloaded name would mis-apply one overload's effects. Route those
         # args through the merged contract instead (see the `call` handler in `_lower_flow`).
-        overloaded = frozenset(n for n, c in Counter(fp_names).items() if c > 1)
+        # Keyed on the CANONICAL name (like `first_party`), so a `global::`-qualified direct call
+        # to an overloaded method still matches (CodeRabbit).
+        overloaded = frozenset(
+            n for n, c in Counter(_canonical_callee_name(x) for x in fp_names).items() if c > 1)
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
@@ -1763,17 +1766,25 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # `localmap`; an uncontracted call is simply not emitted by the
             # extractor (it is an escape, surfaced separately).
             callee = str(n.get("callee", ""))
+            identity = _canonical_callee_name(callee)
             raw_args = n.get("args", [])
             summ = mos.get(callee) if (mos is not None and callee) else None
-            if callee in overloaded and summ is not None and isinstance(raw_args, list):
+            # The merged summary, resolving a `global::`-qualified call to its bare key (like
+            # `_callee_returns_fresh`). Used only by the overload channel below; the direct-`Call`
+            # path stays on the raw `summ` so it never names a callee absent from the core
+            # signature table (which would raise OWN040).
+            merged = summ if summ is not None else (
+                mos.get(identity) if (mos is not None and identity != callee) else None)
+            if identity in overloaded and merged is not None and isinstance(raw_args, list):
                 # OVERLOADED name: do NOT emit a `Call` resolved against the core's last-wins
                 # signature table (it stores one same-name FnDecl, so it would mis-apply one
                 # overload's effect — a false OWN002 when overloads disagree). Apply the MERGED
                 # MOS contract per argument through the `$consume`/`$borrow` channel instead,
                 # exactly as a FORWARD to this name resolves (`must`→consume, `no`→borrow,
-                # `may`/`unknown`→plain). (Codex P2.)
+                # `may`/`unknown`→plain). The channel emits sink externs (never the callee name),
+                # so a qualified callee is safe here. (Codex P2 / CodeRabbit.)
                 for j, a in enumerate(raw_args):
-                    ps = next((q for q in summ.params if q.index == j), None)
+                    ps = next((q for q in merged.params if q.index == j), None)
                     channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
                     if channel is not None:
                         body.append(Call(channel,
