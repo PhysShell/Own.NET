@@ -33,11 +33,10 @@
 # --- protobuf-net/protobuf-net --------------------------------------------------
 protobuf-net/protobuf-net | ProtoWriter.BufferWriter.cs | OWN001 | _nullWriter | intentional null-object kept attached for pooled reuse; Dispose() documents "don't cascade dispose to the null one"
 protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (protobuf 'assorted' sample/extension tree); NetTranscoder is a long-lived singleton holding one ReaderWriterLockSlim for app lifetime
-# [fix-pending experiment] CommandLineOptions XsltMessageEncountered is cleared by the
-# PropertyReturnsOwnedMember fix — the source `XsltOptions` is a get-only property over a
-# constructed field, a self-cycle. Disabled here to confirm on a live protobuf oracle run
-# that it no longer fires; if confirmed it is deleted, if it resurfaces it is restored.
-# protobuf-net/protobuf-net | CommandLineOptions.cs | OWN001 | XsltMessageEncountered | non-product (assorted/ProtoGen) + self-subscription: publisher (xsltOptions) and the lambda subscriber are both owned by the same CommandLineOptions, co-lifetimed
+# CommandLineOptions XsltMessageEncountered was here (self-cycle: source `XsltOptions` is
+# a get-only property over a constructed XsltArgumentList field, handler captures `this`).
+# Now fixed at the source by PropertyReturnsOwnedMember — confirmed cleared on a live
+# protobuf oracle run (own-only 0, the finding absent from own-only and baselined) — deleted.
 protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight sample); the timer is disposed by an enclosing `using (timer) { ... }` the extractor missed
 
 # --- JamesNK/Newtonsoft.Json ----------------------------------------------------

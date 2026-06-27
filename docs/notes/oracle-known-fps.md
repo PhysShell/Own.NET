@@ -23,16 +23,27 @@ reason: we and the oracles occupy orthogonal niches.
 
 | disposition | count | what happens on re-run |
 |---|---:|---|
-| **Fixed in the extractor** | 5 | no longer fire (all NLog `WaitForDispose` timers — see below) |
-| **Baselined FP** | 7 | moved to "Known FP (baselined)", out of the triage queue |
+| **Fixed in the extractor** | 6 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle — see below) |
+| **Baselined FP** | 6 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
 | **True-but-benign — kept, baselined-as-sample** | 2 | (protobuf `assorted/` samples) baselined as non-product |
 
-The 7 baselined FPs + the 2 non-product-sample reals = 9 findings, covered by
-**8 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
+The 6 baselined FPs + the 2 non-product-sample reals = 8 findings, covered by
+**7 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
 share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
 drops; the 4 true positives are deliberately **not** suppressed.
+
+**Update (extractor fix landed — protobuf self-cycle).** `CommandLineOptions.XsltOptions.
+XsltMessageEncountered` — a `this`-capturing handler subscribed to an event on
+`XsltOptions`, a get-only property over a constructed field the class owns — is now
+**fixed at the source** by `PropertyReturnsOwnedMember` (the self-owned-source exemption
+now covers a property receiver, not just `this`/fields/locals). A live protobuf re-run
+confirmed it: own-only **0**, the finding absent from own-only and baselined. See
+root-cause #3. Corpus fixture: `subscription-self-owned-property`. Newtonsoft's
+`serializer.Error` stays baselined — its source escapes (a returned `Create()` result)
+and the handler is a parameter's delegate, so proving non-leak needs lifetime modelling;
+the "may outlive" warning is honest, not a clear FP.
 
 **Update (extractor fix landed — all NLog timers).** All 5 of the original NLog
 `WaitForDispose` timer FPs are now **fixed at the source**, baseline entries deleted.
@@ -147,14 +158,22 @@ entry and let the oracle re-confirm clean.
    structurally a no-op AND not worth surfacing. Revisit whether benign-managed
    field leaks should be downgraded as a class.
 
-3. **Lifetime-unaware subscription** *(protobuf `XsltOptions`, Newtonsoft
-   `serializer.Error` self-subscriptions; CsvHelper process-lived host).* OWN014's
-   premise — a long-lived source outlives a shorter-lived subscriber — fails when
-   publisher and subscriber are **co-lifetimed** (same owner, or both freshly
-   created in one call) or the subscriber is **itself process-lived**. *Fix:*
-   compare subscriber vs. source lifetime (extend the `source: "self"` handling to
-   co-created locals and to process-lived hosts) rather than keying on "source is
-   static/injected". See [`subscription-leaks-and-profiles.md`](subscription-leaks-and-profiles.md).
+3. **Lifetime-unaware subscription — PARTLY FIXED** *(was protobuf `XsltOptions`,
+   Newtonsoft `serializer.Error`; CsvHelper process-lived host).* OWN014's premise —
+   a long-lived source outlives a shorter-lived subscriber — fails when publisher and
+   subscriber are **co-lifetimed** or the subscriber is **itself process-lived**.
+   **Shipped fix:** `PropertyReturnsOwnedMember` extends the self-owned-source exemption
+   to a **property** receiver — `this.OwnedProp.Event += handler`, where `OwnedProp` is a
+   get-only property over a member the class constructs, is the same collectable
+   self-cycle as the owned field directly (get-only required: a settable property could
+   be reassigned to an injected object). Cleared protobuf `XsltOptions` on a live re-run
+   (own-only 0); corpus fixture `subscription-self-owned-property`. **Still open:**
+   Newtonsoft `serializer.Error` — the source is a returned `Create()` result (escapes)
+   and the handler is a parameter's delegate; the source's lifetime relative to the
+   handler is genuinely unprovable syntactically, so the "may outlive" warning is honest
+   (baselined, not a clear FP). CsvHelper's process-lived host needs a "subscriber is
+   itself process-lived" signal — still open. See
+   [`subscription-leaks-and-profiles.md`](subscription-leaks-and-profiles.md).
 
 4. **Non-product trees** *(protobuf `assorted/`, CsvHelper `docs-src/`, protobuf
    `BuildToolsUnitTests/`).* Sample/extension/doc-generator code that was never
