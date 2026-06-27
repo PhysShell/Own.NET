@@ -101,8 +101,10 @@ EXPLANATIONS = {
         "intended per-scope/per-call semantics are lost and it may leak. DI002-DI005 are the "
         "specific shapes (singleton->scoped, singleton->transient, scoped-from-root, "
         "disposable-transient-from-a-long-scope).\n"
-        "Fix: don't capture the shorter-lived service directly — inject a factory "
-        "(`Func<T>` / `IServiceScopeFactory`) and resolve it per use, or align the lifetimes."
+        "Fix: don't capture the shorter-lived service directly — inject `IServiceScopeFactory`, "
+        "create a scope per use, and resolve from it (or align the lifetimes). A `Func<T>` "
+        "factory also works but the built-in container does not auto-resolve `Func<T>` — you must "
+        "register it (or use a container that does)."
     ),
     "OWN001": (
         "An owned resource is acquired but not released on every path out of its owner — "
@@ -151,13 +153,16 @@ EXPLANATIONS = {
         "A singleton captures a scoped service: the scoped instance is pinned to the singleton "
         "for the whole app lifetime, defeating per-scope (e.g. per-request) semantics and often "
         "leaking a DbContext-like object.\n"
-        "Fix: don't inject the scoped service into the singleton — inject a factory "
-        "(`Func<T>` / `IServiceScopeFactory`) and resolve it per use."
+        "Fix: don't inject the scoped service into the singleton — inject `IServiceScopeFactory`, "
+        "create a scope per use, and resolve the scoped service from it. (A registered `Func<T>` "
+        "factory also works, but the built-in container does not auto-resolve `Func<T>`.)"
     ),
     "DI003": (
         "A singleton captures a transient service: the transient is created once and lives for "
         "the app lifetime, so its intended short life is lost.\n"
-        "Fix: inject a factory and create the transient per use instead of holding the instance."
+        "Fix: resolve the transient per use from a scope (`IServiceScopeFactory`) instead of "
+        "holding the instance — or inject a `Func<T>` factory you have registered (the built-in "
+        "container does not auto-resolve `Func<T>`)."
     ),
     "DI004": (
         "A scoped service is resolved from the root provider, so it is captured for the whole "
