@@ -2324,6 +2324,22 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
                 && ImplementsSystemDataInterface(sym.ContainingType, "IDbConnection")
                 && ImplementsSystemDataInterface(sym.ReturnType, "IDbTransaction"))))
         return true;
+    // Network "accept" owned factories — a server that accepts a connection OWNS the returned
+    // client/socket and must dispose it; dropping it leaks the accepted connection (the handle is
+    // held until finalization), a classic accept-loop server leak. INSTANCE methods, matched by the
+    // concrete BCL receiver type + method name (Socket / TcpListener are not subclassed in practice,
+    // like the File branch) with the result's IDisposable pinned, so the async variants
+    // (AcceptAsync / AcceptTcpClientAsync -> Task/ValueTask, not IDisposable) are excluded:
+    //   * Socket.Accept()               -> a new connected Socket the caller must dispose
+    //   * TcpListener.AcceptSocket()    -> a new connected Socket the caller must dispose
+    //   * TcpListener.AcceptTcpClient() -> a new TcpClient the caller must dispose
+    if (!AnyDisposableArgument(i, model)
+        && ImplementsIDisposable(sym.ReturnType)
+        && ((sym.Name == "Accept" && sym.ContainingType is { Name: "Socket" })
+            || (sym.Name is "AcceptSocket" or "AcceptTcpClient"
+                && sym.ContainingType is { Name: "TcpListener" }))
+        && IsInNamespace(sym.ContainingType, "System", "Net", "Sockets"))
+        return true;
     return false;
 }
 

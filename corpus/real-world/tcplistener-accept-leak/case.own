@@ -1,0 +1,18 @@
+// OwnLang model of the canonical TCP accept-loop leak (owned-API tranche). A TcpClient from
+// TcpListener.AcceptTcpClient() is a fresh owned IDisposable the caller must dispose; here it is
+// accepted, used, and never released — the generic OWN001 leak. The listener is a borrowed
+// parameter and the client does not escape, so it stays tracked. Sibling accept members
+// (Socket.Accept, TcpListener.AcceptSocket) are recognised the same way. See notes.md.
+module Corpus
+resource Client {
+  acquire accept
+  release dispose
+  kind "disposable"
+  emit_type    "TcpClient"
+  emit_acquire "{args}.AcceptTcpClient()"
+  emit_release "{0}.Dispose()"
+}
+fn Serve(listener: int) {
+  let client = acquire Client(listener);   // var client = listener.AcceptTcpClient()
+  // client used (client.Connected); no `release client;` — never disposed (OWN001)
+}
