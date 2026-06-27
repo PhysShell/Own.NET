@@ -1598,6 +1598,92 @@ def run() -> int:
     if wrap != [("Caller2", 10, "OWN001")]:
         fails.append(f"Tier B: a wrapper returning a BCL factory result must be fresh "
                      f"(caller leak OWN001@10), got {wrap}")
+    checks += 1
+    # D5.3 breadth: a crypto algorithm `Create()` is an owned IDisposable factory — a leaked
+    # `using var sha = SHA256.Create()` is OWN001; disposed is clean; used after dispose is
+    # OWN002. Resolves bare and under System.Security.Cryptography.
+    cleak = [(x.code, x.line) for x in _bcl(
+        [{"op": "call", "callee": "SHA256.Create", "args": [], "result": "h", "line": 5}])]
+    if cleak != [("OWN001", 5)]:
+        fails.append(f"Tier B: a leaked crypto Create() factory must be OWN001@5, got {cleak}")
+    checks += 1
+    if _bcl([{"op": "call", "callee": "Aes.Create", "args": [], "result": "a", "line": 5},
+             {"op": "release", "var": "a", "line": 6}]):
+        fails.append("Tier B: a disposed crypto Create() factory must be clean")
+    checks += 1
+    cfqn = [(x.code, x.line) for x in _bcl([{"op": "call",
+             "callee": "System.Security.Cryptography.RSA.Create", "args": [],
+             "result": "r", "line": 7}])]
+    if cfqn != [("OWN001", 7)]:
+        fails.append(f"Tier B: a namespace-qualified crypto factory must resolve, got {cfqn}")
+    checks += 1
+    # a same-named crypto type in ANOTHER namespace must NOT match (precision).
+    if _bcl([{"op": "call", "callee": "MyCrypto.SHA256.Create", "args": [],
+              "result": "h", "line": 5}]):
+        fails.append("Tier B precision: a non-System crypto `*.SHA256.Create` must NOT match")
+    checks += 1
+    # `Process.Start` is deliberately EXCLUDED — it is a static owned-Process factory but ALSO
+    # an instance method returning `bool`, so a bare match would fabricate ownership for the
+    # instance form. The table must make no claim on it.
+    if _bcl([{"op": "call", "callee": "Process.Start", "args": ["x"], "result": "p", "line": 5}]):
+        fails.append("Tier B precision: overload-ambiguous `Process.Start` must NOT be a factory")
+    checks += 1
+    # OVERRIDE through a WRAPPER (Codex P2): Tier A beats Tier B even one hop removed. A
+    # first-party method named `SHA256.Create` that returns its parameter is NOT fresh; a
+    # wrapper `Make` that returns `SHA256.Create(x)` must inherit THAT (non-fresh) summary,
+    # not the bare BCL table — so a caller dropping `Make()` is clean. Before the fix the
+    # wrapper's return skeleton short-circuited to `fresh` via the BCL name match, fabricating
+    # OWN001 on the caller even though the same-named callee has a visible (non-owning) body.
+    ov_wrap = check_facts({"module": "M", "functions": [
+        {"name": "SHA256.Create", "file": "B.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "return", "var": "x", "line": 2}]},
+        {"name": "Make", "file": "B.cs", "params": [{"name": "x", "line": 5}],
+         "body": [{"op": "call", "callee": "SHA256.Create", "args": ["x"],
+                   "result": "r", "line": 6},
+                  {"op": "return", "var": "r", "line": 7}]},
+        {"name": "Caller3", "file": "B.cs", "body": [
+            {"op": "acquire", "var": "a", "line": 9},
+            {"op": "call", "callee": "Make", "args": ["a"], "result": "m", "line": 10},
+            {"op": "release", "var": "a", "line": 11}]}]})
+    if ov_wrap:
+        fails.append("Tier B: a wrapper around a same-named first-party method must inherit "
+                     "its (non-fresh) summary, not the BCL table, got "
+                     f"{[(x.component, x.code) for x in ov_wrap]}")
+    checks += 1
+    # OVERRIDE on a DIRECT call to an OVERLOADED first-party method (CodeRabbit): an
+    # overloaded source method named `SHA256.Create` is dropped from `mos` (no unique
+    # summary), but it is still first-party — the BCL table must not fire for it, or a
+    # dropped `var h = SHA256.Create(a)` would be a false OWN001 on a direct call while the
+    # wrapper path stays silent. Tier A's reach covers dropped overloads too: no claim.
+    ov_overload = check_facts({"module": "M", "functions": [
+        {"name": "SHA256.Create", "file": "B.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "return", "var": "a", "line": 2}]},
+        {"name": "SHA256.Create", "file": "B.cs",
+         "params": [{"name": "a", "line": 3}, {"name": "b", "line": 3}],
+         "body": [{"op": "return", "var": "a", "line": 4}]},
+        {"name": "Caller4", "file": "B.cs", "body": [
+            {"op": "call", "callee": "SHA256.Create", "args": [], "result": "h", "line": 9}]}]})
+    if ov_overload:
+        fails.append("Tier B: an overloaded (dropped) first-party method with a BCL name must "
+                     "not fall back to the BCL table on a direct call, got "
+                     f"{[(x.component, x.code) for x in ov_overload]}")
+    checks += 1
+    # OVERRIDE survives `global::` qualification (CodeRabbit): the BCL matcher strips
+    # `global::`, so the first-party check must too — else a source `…SHA256.Create` called as
+    # `global::…SHA256.Create` misses both `mos` and `first_party` and falls through to the
+    # table as fresh. A first-party (non-fresh) method invoked global-qualified stays silent.
+    ov_global = check_facts({"module": "M", "functions": [
+        {"name": "System.Security.Cryptography.SHA256.Create", "file": "B.cs",
+         "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "return", "var": "a", "line": 2}]},
+        {"name": "Caller5", "file": "B.cs", "body": [
+            {"op": "call",
+             "callee": "global::System.Security.Cryptography.SHA256.Create",
+             "args": [], "result": "h", "line": 9}]}]})
+    if ov_global:
+        fails.append("Tier B: a `global::`-qualified call to a first-party method must resolve "
+                     "to its (non-fresh) summary, not the BCL table, got "
+                     f"{[(x.component, x.code) for x in ov_global]}")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after

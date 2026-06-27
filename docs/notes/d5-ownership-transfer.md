@@ -334,17 +334,22 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   false positive). (Bridge branch-scope fix: Codex P2 on #116; loop exclusion Codex P1, hoist
   safety predicate + pool-kind preservation CodeRabbit on #120.)
 - **D5.3 — Tier B breadth.**
-  - **Producer side — `fresh` factories (shipped, first slice).** A curated
-    `_BCL_FRESH_FACTORIES` table in the OwnIR bridge (`ownir.py`) marks well-known BCL
-    factories whose return the caller owns (`File.OpenRead/OpenText/OpenWrite/Open/Create/
-    CreateText/AppendText`). A `call` to one binds a `fresh` result via the SAME `_callee_
-    returns_fresh` path the first-party T1 inference uses (now the single source of truth for
-    the leak pre-scan, branch-hoist safety, and lowering), so a leaked `var s =
-    File.OpenRead(p)` surfaces as OWN001 *at the factory call* — invisible before (no body to
-    infer from; see `corpus-benchmark.md`). Matched conservatively (Codex): ONLY the bare
-    `File.Method` or the fully-qualified `System.IO.File.Method` — a same-named factory in
-    another namespace (`MyCompany.File.OpenRead`) is **not** a match, so we never fabricate
-    ownership for a look-alike. A **first-party summary overrides** the table (`_callee_
+  - **Producer side — `fresh` factories (shipped).** A curated `_BCL_FRESH_BY_NS` table in the
+    OwnIR bridge (`ownir.py`), grouped by namespace, marks well-known BCL factories whose
+    return the caller owns: **System.IO** stream factories (`File.OpenRead/OpenText/OpenWrite/
+    Open/Create/CreateText/AppendText/OpenHandle`) and **System.Security.Cryptography**
+    algorithm factories (`SHA1/SHA256/SHA384/SHA512/MD5.Create`, `Aes/RSA/ECDsa.Create` — a
+    leaked `using var sha = SHA256.Create()` is a common real leak). A `call` to one binds a
+    `fresh` result via the SAME `_callee_returns_fresh` path the first-party T1 inference uses
+    (now the single source of truth for the leak pre-scan, branch-hoist safety, and lowering),
+    so a leaked `var s = File.OpenRead(p)` surfaces as OWN001 *at the factory call* — invisible
+    before (no body to infer from; see `corpus-benchmark.md`). Matched conservatively (Codex):
+    ONLY the bare `Type.Method` or the fully-qualified identity under that type's real namespace
+    (`System.IO.File.OpenRead`, `System.Security.Cryptography.SHA256.Create`) — a same-named
+    factory in another namespace (`MyCompany.File.OpenRead`, `MyCrypto.SHA256.Create`) is **not**
+    a match. Overload-ambiguous names are excluded (`new StreamReader(stream)` adopts its arg;
+    `Process.Start` is also an instance method returning `bool`), so we never fabricate ownership
+    for a look-alike. A **first-party summary overrides** the table (`_callee_
     returns_fresh` trusts a known body over Tier B), and a first-party **wrapper** that
     returns a factory result (`Make(){ return File.OpenRead(p) }`) is itself `fresh`, so a
     dropped `Make()` leaks too (the return skeleton propagates BCL freshness instead of
