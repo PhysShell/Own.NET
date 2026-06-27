@@ -1185,6 +1185,17 @@ _BCL_FRESH_BY_NS = {
         "SHA1.Create", "SHA256.Create", "SHA384.Create", "SHA512.Create", "MD5.Create",
         "Aes.Create", "RSA.Create", "ECDsa.Create",
     ),
+    # P1a (stdlib contract pack): more well-known static factories whose result the caller
+    # OWNS and must dispose. `XmlReader`/`XmlWriter.Create` return a fresh reader/writer; a
+    # `JsonDocument` from `Parse` pools memory and must be disposed (a `var doc =
+    # JsonDocument.Parse(json)` that drops `doc` is a common real leak). Kept in lockstep with
+    # the extractor's `IsOwningFactory` (frontend/roslyn/.../Program.cs).
+    "System.Xml": (
+        "XmlReader.Create", "XmlWriter.Create",
+    ),
+    "System.Text.Json": (
+        "JsonDocument.Parse",
+    ),
 }
 _BCL_FRESH_FACTORIES = frozenset(e for es in _BCL_FRESH_BY_NS.values() for e in es)
 # the fully-qualified identities (each under its real namespace), accepted beside the bare forms.
