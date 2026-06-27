@@ -870,13 +870,21 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
         except Exception:
             mos = {}
-        # every first-party method name (including overloaded ones dropped from `mos`): the
-        # Tier B BCL table must never fire for a callee we compiled from source — Tier A is
-        # authoritative even with no usable summary (CodeRabbit). Threaded into the freshness
-        # checks so direct calls agree with the wrapper-return path in `_infer_return_skeleton`.
-        first_party = frozenset(
-            _canonical_callee_name(str(fn.get("name", ""))) for fn in raw_fns
-            if isinstance(fn, dict) and fn.get("name"))
+        # every first-party method name: the Tier B BCL table must never fire for a callee we
+        # compiled from source — Tier A is authoritative even with no usable summary
+        # (CodeRabbit). Threaded into the freshness checks so direct calls agree with the
+        # wrapper-return path in `_infer_return_skeleton`.
+        fp_names = [str(fn.get("name", "")) for fn in raw_fns
+                    if isinstance(fn, dict) and fn.get("name")]
+        first_party = frozenset(_canonical_callee_name(n) for n in fp_names)
+        # Names defined more than once are OVERLOADS. Their merged MOS summary is conservative,
+        # but the core's call-signature table keeps only ONE same-name FnDecl (last-wins), so a
+        # DIRECT `Call` to an overloaded name would mis-apply one overload's effects. Route those
+        # args through the merged contract instead (see the `call` handler in `_lower_flow`).
+        # Keyed on the CANONICAL name (like `first_party`), so a `global::`-qualified direct call
+        # to an overloaded method still matches (CodeRabbit).
+        overloaded = frozenset(
+            n for n, c in Counter(_canonical_callee_name(x) for x in fp_names).items() if c > 1)
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
@@ -910,7 +918,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
             fbody = [*hoisted_lets,
                      *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                  released, mos, set(hoist), first_party)]
+                                  released, mos, set(hoist), first_party, overloaded)]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1146,6 +1154,11 @@ _SINK_EXTERN_NAMES = frozenset(e.name for e in _OWNERSHIP_SINK_EXTERNS)
 # full exclusivity through `lower_call`. Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
 _SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow"}
 
+# A merged-overload transfer → the sink-extern channel that applies it at a DIRECT call
+# site (so an overloaded name uses its conservative MOS contract, not the core's last-wins
+# signature). `may`/`unknown` map to nothing (plain) — precision-first, never a guess.
+_CHANNEL_FOR_TRANSFER = {Transfer.MUST: "$consume", Transfer.NO: "$borrow"}
+
 
 # Tier B (P-005 D5.3 / P1a contracts): a curated table of well-known BCL *factories* whose
 # return the caller OWNS — the producer half of the boundary contract (the consume/borrow
@@ -1296,6 +1309,49 @@ def _forward_path_action(callee: str, arg: int) -> PathAction:
     return PathAction("forward", callee, arg)
 
 
+def _merge_returns(rets: list[ReturnSkeleton]) -> ReturnSkeleton:
+    """The conservative return of a set of same-name overloads. Only a kind ALL
+    overloads agree on survives (so a call to the name returns it regardless of which
+    overload bound); a `forward`, an `aliasOf` (whose index is overload-specific), or
+    any disagreement degrades to a no-op `unknown` return — never a fabricated `fresh`
+    (which would mint a phantom acquire at the caller)."""
+    kinds = {r.kind for r in rets}
+    if kinds == {"fresh"}:
+        return ReturnSkeleton("fresh")
+    if kinds == {"none"}:
+        return ReturnSkeleton("none")
+    if kinds == {"aliased"}:
+        return ReturnSkeleton("aliased")
+    return ReturnSkeleton("unknown")  # mixed / forward / aliasOf -> fails closed
+
+
+def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
+    """Collapse same-name overloads into ONE conservative summary. The extractor
+    names a call's callee `{Type}.{Method}` with no parameter signature (note's open
+    question 2), so a forward to an overloaded name cannot pick an overload. Rather
+    than drop them all (every such forward then stays `unknown`), join them on the
+    lattice at (name, parameter-index) granularity: a parameter transfers `must` only
+    when EVERY overload carrying that index consumes it, and an overload that merely
+    keeps an index contributes a `borrow` path so the join can never fabricate a
+    `must`. Disambiguating by argument type would need call-site type info the fact
+    stream does not carry; arity is available but not modelled here (the join is
+    already precision-safe, just coarser than a per-arity split would be)."""
+    if len(group) == 1:
+        return group[0]
+    by_index: dict[int, list[PathAction]] = {}
+    names: dict[int, str] = {}
+    for sk in group:
+        for p in sk.params:
+            # an overload that does nothing with this index KEEPS it (= `no`); record
+            # that as a borrow path so it joins in rather than vanishing from concat.
+            by_index.setdefault(p.index, []).extend(p.paths or (PathAction("borrow"),))
+            names.setdefault(p.index, p.name)
+    params = tuple(
+        ParamSkeleton(i, names[i], True, tuple(by_index[i])) for i in sorted(by_index)
+    )
+    return MethodSkeleton(group[0].key, params, _merge_returns([sk.ret for sk in group]))
+
+
 def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     """Derive a Method Ownership Summary skeleton per first-party function from its
     flow body, for the D5.0 solver (P-005 D5.1). A parameter's path actions mirror
@@ -1320,21 +1376,23 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     and returns it is `fresh` (a factory); `_infer_return_skeleton` keeps it
     precision-first (a returned parameter is never `fresh`).
 
-    Functions whose name is not unique are dropped (overload keys are not yet
-    distinguishable — note's open question 2 — so a forward to such a name stays
-    `unknown` → silent, the precision-safe choice)."""
+    Same-name overloads are MERGED into one conservative summary (`_merge_skeletons`)
+    rather than dropped: the call node names its callee without a parameter signature
+    (note's open question 2), so a forward to an overloaded name cannot pick an
+    overload, but a lattice join over the overloads still resolves it precision-safely
+    (and lets a uniformly-`fresh` overloaded factory be seen as fresh)."""
     counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
-    # every first-party method name (even overloaded/dropped ones): the BCL fresh-factory
-    # table must NOT apply to a call whose target we compile from source — Tier A (the
+    # every first-party method name (even overloaded ones): the BCL fresh-factory table
+    # must NOT apply to a call whose target we compile from source — Tier A (the
     # first-party summary) authoritatively overrides Tier B (the curated BCL table) even
     # when the source method happens to share a BCL factory's name (Codex P2).
     first_party = frozenset(_canonical_callee_name(k) for k in counts if k)
-    skels: list[MethodSkeleton] = []
+    by_key: dict[str, list[MethodSkeleton]] = {}
     for fn in raw_fns:
         if not isinstance(fn, dict):
             continue
         key = str(fn.get("name", ""))
-        if not key or counts[key] != 1:
+        if not key:
             continue
         body = fn.get("body", [])
         body = body if isinstance(body, list) else []
@@ -1373,8 +1431,10 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
         ret = _infer_return_skeleton(body, pnames, first_party)
-        skels.append(MethodSkeleton(key, tuple(params), ret))
-    return skels
+        by_key.setdefault(key, []).append(MethodSkeleton(key, tuple(params), ret))
+    # one skeleton per name: solve() keys by name (a forward names its callee with no
+    # signature), so same-name overloads are joined into a single conservative summary.
+    return [_merge_skeletons(group) for group in by_key.values()]
 
 
 def _infer_param_effect(pname: str, nodes: Any,
@@ -1592,7 +1652,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 released_vars: set[str],
                 mos: dict[str, Any] | None = None,
                 hoisted: set[str] | None = None,
-                first_party: frozenset[str] = frozenset()) -> list[Stmt]:
+                first_party: frozenset[str] = frozenset(),
+                overloaded: frozenset[str] = frozenset()) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1684,16 +1745,16 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1705,14 +1766,35 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # `localmap`; an uncontracted call is simply not emitted by the
             # extractor (it is an escape, surfaced separately).
             callee = str(n.get("callee", ""))
+            identity = _canonical_callee_name(callee)
             raw_args = n.get("args", [])
             summ = mos.get(callee) if (mos is not None and callee) else None
+            # The merged summary, resolving a `global::`-qualified call to its bare key (like
+            # `_callee_returns_fresh`). Used only by the overload channel below; the direct-`Call`
+            # path stays on the raw `summ` so it never names a callee absent from the core
+            # signature table (which would raise OWN040).
+            merged = summ if summ is not None else (
+                mos.get(identity) if (mos is not None and identity != callee) else None)
+            if identity in overloaded and merged is not None and isinstance(raw_args, list):
+                # OVERLOADED name: do NOT emit a `Call` resolved against the core's last-wins
+                # signature table (it stores one same-name FnDecl, so it would mis-apply one
+                # overload's effect — a false OWN002 when overloads disagree). Apply the MERGED
+                # MOS contract per argument through the `$consume`/`$borrow` channel instead,
+                # exactly as a FORWARD to this name resolves (`must`→consume, `no`→borrow,
+                # `may`/`unknown`→plain). The channel emits sink externs (never the callee name),
+                # so a qualified callee is safe here. (Codex P2 / CodeRabbit.)
+                for j, a in enumerate(raw_args):
+                    ps = next((q for q in merged.params if q.index == j), None)
+                    channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
+                    if channel is not None:
+                        body.append(Call(channel,
+                                         [VarRef(localmap.get(str(a), str(a)), line)], line))
             # Only emit the `Call` when the callee is RESOLVABLE — a first-party function
             # with a summary, or a fixed ownership-sink extern. A real extraction surfaces
             # calls to callees we did not lower as functions (BCL / extension methods like
             # `GetRequiredService`); those have no signature, so `lower_call` would raise
             # OWN040. Drop them (no effect, no claim) — precision-safe, never a crash.
-            if (summ is not None or callee in _SINK_EXTERN_NAMES) \
+            elif (summ is not None or callee in _SINK_EXTERN_NAMES) \
                     and callee and isinstance(raw_args, list):
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
