@@ -65,6 +65,7 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 import xml.parsers.expat
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -446,6 +447,176 @@ def _rule_merged_dict_shadowing(root: Node, avalonia: bool) -> list[XamlFinding]
                 f"resource key '{key}' is defined in {len(by_scope)} merged/primary scopes "
                 f"[{where}]; the effective value depends on merge order (last merged "
                 "wins, primary beats merged) [resource: merged dictionary]"))
+    return out
+
+
+def _resolve_source(src: str, host_dir: Path, target_root: Path,
+                    proj_index: dict[str, set[Path]]) -> Path | None:
+    """Resolve a ``MergedDictionaries`` ``Source="..."`` to a real ``.xaml``/``.axaml``
+    file **inside the scanned target**, or ``None`` when it can't be pinned down — the
+    conservative half of the cross-file rule. WPF source forms handled:
+
+    - relative (``Themes/Colors.xaml``)            -> against the host file's directory
+                                                      **only** (WPF resolves a plain
+                                                      relative ``Source`` against the
+                                                      containing file's base URI, with no
+                                                      app-root fallback);
+    - app/site-root (``/Colors.xaml``)             -> against the target root;
+    - pack/component (``pack://application:,,,/Asm;component/Themes/Colors.xaml`` or the
+      bare ``/Asm;component/Themes/Colors.xaml``)  -> the path after ``;component/``,
+                                                      resolved against the **named
+                                                      assembly's** project directory
+                                                      (the unique ``<Asm>.csproj`` in
+                                                      ``proj_index``), NOT blindly the
+                                                      target root.
+
+    The component case keys off the assembly on purpose: in a multi-project target a
+    ``/Lib;component/Themes/Colors.xaml`` reference points at *Lib*'s dictionary, and the
+    app may have its own ``Themes/Colors.xaml`` — resolving against the target root would
+    silently compare the wrong file and invent a collision. When the assembly maps to no
+    project, or to more than one (ambiguous), the reference is skipped. Anything that
+    escapes the target, carries an ``http(s)``/``siteoforigin`` scheme, or doesn't land on
+    an existing file likewise returns ``None`` — an unresolved include can never
+    manufacture a false collision."""
+    s = (src or "").strip()
+    if not s:
+        return None
+    low = s.lower()
+    if low.startswith(("http://", "https://")) or "siteoforigin" in low:
+        return None
+    troot = target_root.resolve()
+
+    # pack/component: resolve the assembly-relative path against THAT assembly's project.
+    marker = ";component/"
+    pos = low.find(marker)
+    if pos != -1:
+        asm = s[:pos].rstrip("/").split("/")[-1].split(",")[-1].strip()
+        rel = s[pos + len(marker):].split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        roots = proj_index.get(asm)
+        if not rel or not roots or len(roots) != 1:
+            return None  # unknown / ambiguous assembly -> skip, don't guess
+        bases = [next(iter(roots))]
+    elif s.startswith("pack:"):
+        return None  # an unrecognized pack form — don't guess
+    else:
+        rel = s.split("?", 1)[0].split("#", 1)[0].lstrip("/")
+        if not rel:
+            return None
+        # relative -> host dir ONLY (WPF base-URI resolution, no app-root fallback);
+        # app-root ("/X") -> target root.
+        bases = [troot] if src.startswith("/") else [host_dir]
+
+    for base in bases:
+        try:
+            rc = (base / rel).resolve()
+        except OSError:
+            continue
+        if rc.is_file() and (rc == troot or troot in rc.parents):
+            return rc
+    return None
+
+
+def _external_keys(tree: Node | None) -> dict[str, int]:
+    """The directly-keyed resources of an external ResourceDictionary file (its root is
+    a ``<ResourceDictionary>``), key -> first source line. Nested merges inside the
+    referenced file aren't followed — one level only, the FP-safe bound."""
+    if tree is None or tree.type_name() != "ResourceDictionary":
+        return {}
+    out: dict[str, int] = {}
+    for key, c in _keyed_resources(tree):
+        out.setdefault(key, c.line)
+    return out
+
+
+def analyze_cross_file(parsed: list[tuple[str, Path, Node]],
+                       target_root: Path) -> list[tuple[str, XamlFinding]]:
+    """XAML105 — the **cross-file** half: an ``x:Key`` that collides across a host
+    dictionary's scopes when at least one of them is an **external** ``Source=`` merged
+    dictionary resolved to a real file (the in-file rule, ``_rule_merged_dict_shadowing``,
+    already covers primary/inline-only collisions). The classic shape is a theme
+    dictionary silently overriding — or being overridden by — an app dictionary's key,
+    order-dependent and invisible to a single-file pass.
+
+    Disjoint from the in-file rule by construction: it emits only when an external file
+    participates AND the host's own (primary+inline) scopes don't already collide on
+    their own (``< 2`` distinct in-file scopes for that key) — so a host that the in-file
+    rule already flags is never double-reported. Findings are anchored in the **host**
+    file (the include site), at the same path the host's other findings use."""
+    troot = target_root.resolve()
+    by_abs: dict[Path, Node] = {}
+    for _rel, abs_path, tree in parsed:
+        try:
+            by_abs[abs_path.resolve()] = tree
+        except OSError:
+            continue
+    # assembly name -> project dir(s), so a pack ';component/' Source resolves against the
+    # named assembly's project rather than guessing under the target root (see _resolve_source).
+    proj_index: dict[str, set[Path]] = {}
+    for csproj in troot.rglob("*.csproj"):
+        proj_index.setdefault(csproj.stem, set()).add(csproj.parent)
+    ext_cache: dict[Path, dict[str, int]] = {}
+    out: list[tuple[str, XamlFinding]] = []
+
+    for rel_host, host_abs, tree in parsed:
+        host_dir = host_abs.parent
+        for md in tree.walk():
+            if md.local() != "MergedDictionaries" or not md.is_property_element():
+                continue
+            host = md.parent  # the owning ResourceDictionary / <X.Resources>
+            # key -> [(origin, line, is_external)]; in_scopes -> distinct in-file origins
+            occ: dict[str, list[tuple[str, int, bool]]] = {}
+            in_scopes: dict[str, set[str]] = {}
+            if host is not None:
+                for key, c in _keyed_resources(host):
+                    occ.setdefault(key, []).append(("primary", c.line, False))
+                    in_scopes.setdefault(key, set()).add("primary")
+            inline_i = 0
+            for child in md.children:
+                if child.type_name() != "ResourceDictionary":
+                    continue
+                src = child.attr("Source")
+                if src is None:
+                    inline_i += 1
+                    label = f"inline #{inline_i}"
+                    for key, c in _keyed_resources(child):
+                        occ.setdefault(key, []).append((label, c.line, False))
+                        in_scopes.setdefault(key, set()).add(label)
+                    continue
+                resolved = _resolve_source(src, host_dir, troot, proj_index)
+                if resolved is None:
+                    continue
+                ext_tree = by_abs.get(resolved)
+                if ext_tree is None:
+                    continue  # referenced file not in the scanned set / malformed
+                if resolved not in ext_cache:
+                    ext_cache[resolved] = _external_keys(ext_tree)
+                ext_label = resolved.relative_to(troot).as_posix()
+                for key in ext_cache[resolved]:
+                    # anchor at the include site (child.line) in the host file
+                    occ.setdefault(key, []).append((ext_label, child.line, True))
+
+            for key, entries in occ.items():
+                if not any(ext for _o, _ln, ext in entries):
+                    continue  # in-file rule's territory (no external participant)
+                if len({o for o, _ln, _ext in entries}) < 2:
+                    continue  # only one distinct origin: no collision
+                if len(in_scopes.get(key, set())) >= 2:
+                    continue  # in-file rule already flags this host/key — don't repeat
+                by_origin: dict[str, int] = {}
+                for o, ln, _ext in entries:
+                    by_origin.setdefault(o, ln)
+                # Anchor at the include site (the earliest external Source= line), not the
+                # earliest origin overall — for a primary+external collision the primary
+                # resource often sits above the include, and the actionable site is the
+                # include. The any(ext) guard above guarantees a non-empty external set.
+                finding_line = min(ln for _o, ln, ext in entries if ext)
+                where = ", ".join(f"{o} (line {ln})" for o, ln in by_origin.items())
+                out.append((rel_host, XamlFinding(
+                    "XAML105", finding_line,
+                    f"resource key '{key}' is defined in {len(by_origin)} dictionaries "
+                    f"[{where}], at least one an external Source= merged dictionary; the "
+                    "effective value depends on include order (last merged wins, primary "
+                    "beats merged) [resource: merged dictionary]")))
     return out
 
 
@@ -860,6 +1031,7 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
 
     results: list[tuple[str, XamlFinding]] = []
     documents: list[dict[str, Any]] = []
+    parsed: list[tuple[str, Path, Node]] = []   # (rel, abs, tree) for the cross-file pass
     scanned = 0
     for fp in files:
         try:
@@ -877,6 +1049,12 @@ def run_xaml_check(target: str, out_dir: Path) -> dict[str, Any]:
         for f in analyze_root(tree):
             results.append((rel, f))
         documents.append(document_facts(tree, rel))
+        parsed.append((rel, fp, tree))
+
+    # Cross-file XAML105: needs every parsed tree + their paths at once (it resolves
+    # MergedDictionaries Source= across files), so it runs here, outside the per-file
+    # RULES loop. Disjoint from the in-file rule — see analyze_cross_file.
+    results.extend(analyze_cross_file(parsed, root))
 
     facts = module_facts(documents, module=Path(target).name or "target")
     try:
@@ -1053,6 +1231,125 @@ def _selftest() -> int:
           "XAML105 must collapse same-scope duplicates: 2 distinct scopes, not 3")
     check(dp.get("XAML105") and dp["XAML105"].message.count("primary (line") == 1,
           "XAML105 must list each distinct scope once (no repeated 'primary')")
+
+    # XAML105 cross-file — Source= merged dictionaries resolved across real files on
+    # disk (the deferred-tail variant). analyze_cross_file needs a target tree, so each
+    # case writes a tiny project to a temp dir and runs the cross-file pass.
+    def xfile(files: dict[str, str], host_rel: str) -> dict[str, XamlFinding]:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            parsed: list[tuple[str, Path, Node]] = []
+            for rel, text in files.items():
+                fp = root / rel
+                fp.parent.mkdir(parents=True, exist_ok=True)
+                fp.write_text(text, encoding="utf-8")
+                tree = parse_xaml(text)
+                if tree is not None:
+                    parsed.append((rel, fp, tree))
+            return {f.rule: f for p, f in analyze_cross_file(parsed, root) if p == host_rel}
+
+    def _theme(key: str) -> str:
+        return (f'<ResourceDictionary {_WPF_NS}>\n'
+                f'  <SolidColorBrush x:Key="{key}" Color="Red" />\n'
+                '</ResourceDictionary>\n')
+
+    def _host(source: str, primary_key: str | None = None) -> str:
+        prim = f'  <SolidColorBrush x:Key="{primary_key}" Color="Green" />\n' if primary_key else ''
+        return (f'<ResourceDictionary {_WPF_NS}>\n'
+                f'{prim}'
+                '  <ResourceDictionary.MergedDictionaries>\n'
+                f'    <ResourceDictionary Source="{source}" />\n'
+                '  </ResourceDictionary.MergedDictionaries>\n'
+                '</ResourceDictionary>\n')
+
+    # primary key + an external Source dict that redefines it -> cross-file shadowing,
+    # anchored in the HOST file (the include site), naming the external dictionary.
+    xf = xfile({"Themes/Colors.xaml": _theme("accent"),
+                "Views/Main.xaml": _host("../Themes/Colors.xaml", primary_key="accent")},
+               "Views/Main.xaml")
+    check("XAML105" in xf,
+          "XAML105 cross-file must flag a primary key an external Source= redefines")
+    check(xf.get("XAML105") and "external Source=" in xf["XAML105"].message,
+          "XAML105 cross-file message must call out the external Source= dictionary")
+    check(xf.get("XAML105") and "Themes/Colors.xaml" in xf["XAML105"].message,
+          "XAML105 cross-file must name the resolved external dictionary")
+    # the primary resource sits on line 2 but the Source= include is line 4 — the finding
+    # must anchor at the include site (line 4), not the earlier primary origin.
+    check(xf.get("XAML105") and xf["XAML105"].line == 4,
+          "XAML105 cross-file must anchor at the Source= include site, not the primary line")
+    # a pack '/Asm;component/...' Source resolves under the named assembly's project dir
+    # (located by a unique <Asm>.csproj), not blindly the target root.
+    xfpack = xfile({"MyAsm.csproj": "<Project />\n",
+                    "Themes/Colors.xaml": _theme("accent"),
+                    "Views/Main.xaml": _host("/MyAsm;component/Themes/Colors.xaml",
+                                             primary_key="accent")},
+                   "Views/Main.xaml")
+    check("XAML105" in xfpack,
+          "XAML105 cross-file must resolve a '/Asm;component/...' pack Source via its csproj")
+    # multi-project: '/Lib;component/Themes/Colors.xaml' must resolve to *Lib*'s file, even
+    # though the app has its own Themes/Colors.xaml — the message names the Lib dictionary.
+    xfmulti = xfile({"Lib/Lib.csproj": "<Project />\n",
+                     "Lib/Themes/Colors.xaml": _theme("accent"),
+                     "App/App.csproj": "<Project />\n",
+                     "App/Themes/Colors.xaml": _theme("accent"),
+                     "App/Views/Main.xaml": _host("/Lib;component/Themes/Colors.xaml",
+                                                  primary_key="accent")},
+                    "App/Views/Main.xaml")
+    check("XAML105" in xfmulti and "Lib/Themes/Colors.xaml" in xfmulti["XAML105"].message,
+          "XAML105 cross-file must resolve a pack Source to the NAMED assembly's dictionary")
+    # Codex FP guard: if the named assembly has no such file, the resolver must NOT fall
+    # back to a same-named file in another project (which would be a false collision).
+    xffp = xfile({"Lib/Lib.csproj": "<Project />\n",
+                  "App/App.csproj": "<Project />\n",
+                  "App/Themes/Colors.xaml": _theme("accent"),
+                  "App/Views/Main.xaml": _host("/Lib;component/Themes/Colors.xaml",
+                                               primary_key="accent")},
+                 "App/Views/Main.xaml")
+    check("XAML105" not in xffp,
+          "XAML105 cross-file must not resolve a pack Source to another project's same-named file")
+    # two external dictionaries that both define the key -> order-dependent across files.
+    xfext = xfile({"Themes/A.xaml": _theme("accent"),
+                   "Themes/B.xaml": _theme("accent"),
+                   "Views/Main.xaml": (f'<ResourceDictionary {_WPF_NS}>\n'
+                                       '  <ResourceDictionary.MergedDictionaries>\n'
+                                       '    <ResourceDictionary Source="../Themes/A.xaml" />\n'
+                                       '    <ResourceDictionary Source="../Themes/B.xaml" />\n'
+                                       '  </ResourceDictionary.MergedDictionaries>\n'
+                                       '</ResourceDictionary>\n')},
+                  "Views/Main.xaml")
+    check("XAML105" in xfext,
+          "XAML105 cross-file must flag a key shared by two external Source= dicts")
+    # distinct keys across files -> no collision, no finding.
+    xfok = xfile({"Themes/Colors.xaml": _theme("other"),
+                  "Views/Main.xaml": _host("../Themes/Colors.xaml", primary_key="accent")},
+                 "Views/Main.xaml")
+    check("XAML105" not in xfok,
+          "XAML105 cross-file false positive: distinct keys across files do not shadow")
+    # an unresolvable Source (no such file) is skipped, never guessed -> no finding.
+    xfmiss = xfile({"Views/Main.xaml": _host("../Themes/Nope.xaml", primary_key="accent")},
+                   "Views/Main.xaml")
+    check("XAML105" not in xfmiss,
+          "XAML105 cross-file must skip a Source resolving to no real file")
+    # an http(s) Source is external-world, not a file -> skipped.
+    xfweb = xfile({"Views/Main.xaml": _host("http://x.test/Colors.xaml", primary_key="accent")},
+                  "Views/Main.xaml")
+    check("XAML105" not in xfweb,
+          "XAML105 cross-file must skip an http(s) Source")
+    # disjoint from the in-file rule: when primary+inline already collide (in-file fires),
+    # the external participant must NOT trigger a second cross-file finding for that key.
+    disjoint_host = (f'<ResourceDictionary {_WPF_NS}>\n'
+                     '  <SolidColorBrush x:Key="accent" Color="Green" />\n'
+                     '  <ResourceDictionary.MergedDictionaries>\n'
+                     '    <ResourceDictionary>\n'
+                     '      <SolidColorBrush x:Key="accent" Color="Teal" />\n'
+                     '    </ResourceDictionary>\n'
+                     '    <ResourceDictionary Source="../Themes/Colors.xaml" />\n'
+                     '  </ResourceDictionary.MergedDictionaries>\n'
+                     '</ResourceDictionary>\n')
+    xfdis = xfile({"Themes/Colors.xaml": _theme("accent"), "Views/Main.xaml": disjoint_host},
+                  "Views/Main.xaml")
+    check("XAML105" not in xfdis,
+          "XAML105 cross-file must not double-report a host the in-file rule already flags")
 
     # XAML101 — duplicate stateless converter across dictionaries.
     conv = (f'<ResourceDictionary {_WPF_NS} xmlns:c="clr-namespace:App.Converters">\n'
