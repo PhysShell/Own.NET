@@ -86,6 +86,8 @@ TITLES = {
     "DI003": "singleton captures a transient service (captive dependency)",
     "DI004": "scoped service resolved from the root provider (captured for the app lifetime)",
     "DI005": "disposable transient resolved from a long-lived scope (delayed disposal)",
+    # ---- reactive-effect stability (P-020; a separate analysis, like DI001) ----
+    "EFF001": "reactive effect re-runs on an unstable dependency identity (render-time IO storm)",
 }
 
 
@@ -175,6 +177,15 @@ EXPLANATIONS = {
         "container tracks it and only disposes it when that scope ends, delaying disposal.\n"
         "Fix: resolve disposable transients within a short-lived scope you dispose, or manage "
         "their lifetime explicitly."
+    ),
+    "EFF001": (
+        "A React `useEffect` re-runs whenever one of its declared dependencies changes identity. "
+        "A dependency that is an object/array literal created in render scope gets a fresh "
+        "identity on every render, so the effect re-fires every render; if the effect does IO "
+        "(a `fetch`), that is a render-rate request storm — not a memory leak, a request leak.\n"
+        "Fix: stabilise the dependency — wrap the object/array in `useMemo`/`useCallback` (or a "
+        "`useRef`), depend on the primitive fields instead of the object, or move the value out "
+        "of render scope."
     ),
 }
 
