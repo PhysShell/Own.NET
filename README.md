@@ -158,7 +158,8 @@ but a *region escape*: the extractor lowers it to a tokenless `capture` fact, an
 matching `-=` clears the finding) — the WPF escape as a profile of the general
 region model, not a separate detector (P-004 WPF005; sample
 `StaticEventEscapeViewModel`). An injected source (unknown lifetime) stays an
-OWN001 warning until ownership modelling can prove its lifetime.
+OWN001 warning — the subscription profile's deliberate down-tier (OWN001 is otherwise
+an error) — until ownership modelling can prove its lifetime.
 
 There is one core (not a second checker written in C#): the extractor only
 produces facts. dotnet exists only in CI (the `wpf-extractor` job runs the
@@ -214,10 +215,11 @@ public static void process(int size)
 ```
 
 `Main` and the `Fill`/`Hash` stubs in `Program.cs` are host code, written by hand
-(`extern fn` is the host's promise; the host supplies the body). A caveat: `AsSpan()`
-takes the whole rented array (Rent may return more than requested); an honest version
-would write `AsSpan(0, size)`, but the length is not available to the borrow template
-— a deliberate simplification for the smoke test.
+(`extern fn` is the host's promise; the host supplies the body). A caveat: this snippet is
+**emitter output verbatim, so it is illustrative, not normative** — `AsSpan()` takes the
+whole rented array (Rent may return more than requested); an honest version would write
+`AsSpan(0, size)`, but the length is not available to the borrow template, a deliberate
+simplification for the smoke test.
 
 ---
 

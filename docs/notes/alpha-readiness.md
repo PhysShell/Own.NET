@@ -37,15 +37,16 @@ The bar for "showable": a person can reproduce the wow in ~3 minutes
 | | Item | Status (2026-06-27) | Gap to close |
 |---|------|--------------------|--------------|
 | **A** | `dotnet tool` one-command CLI | ◑ **partial** — the *extractor* is `PackAsTool` (`ownsharp-extract`, P-013); the core is Python. The delightful `ownsharp check MyApp.sln` single tool isn't packaged. | Wrap extractor+core into one `dotnet tool` (or a self-contained CLI) that takes a `.sln`/dir and prints findings. |
-| **B** | GitHub Action | ✅ **built** — `action.yml`: `path`/`severity`/`format` (github / msbuild / human / sarif), purple shield branding. Matches the "stupidly simple YAML" bar. | Publish to Marketplace; pin the 6-line usage in the README. |
+| **B** | GitHub Action | ✅ **built** — `action.yml`: `path`/`severity`/`format` (`github` / `msbuild` / `human` / `sarif`), purple shield branding. Matches the "stupidly simple YAML" bar. | Publish to Marketplace; pin the 6-line usage in the README. |
 | **C** | SARIF / PR annotations | ✅ **built** — SARIF 2.1.0 + GitHub annotations + reachability/evidence (P-015). | — |
 | **D** | 5 core diagnostics | ✅ **built, well past** — OWN001/002/003, OWN014, DI001–005, POOL001–005, WPF001–005 (catalog). The comment's `SUB001/SUB002/TMR001/DISP001/DI001` all exist *semantically*; the `SUB/TMR/DISP` catalog rename is the deferred consolidation item, not new work. | (naming only) land the catalog rename with the OwnIR-v1/profile-label work. |
 | **E** | 10 bad/ok examples | ✅ **built** — 12 test-pinned gallery cases (`examples/gallery/`, incl. `00_ok_clean`) + extractor samples. | Add `.cs`-native (not `.own`) bad/ok pairs for the C# audience. |
 | **F** | 3 real-world case studies | ◑ **partial** — one honest mining write-up (`real-world-mining.md`: Dapper, CsvHelper, **ScreenToGif** flagship `VideoSource` + two `SystemEvents` leaks, all TPs, clean on disciplined libs) + a 20-case `corpus/real-world/`. Raw material for 3 studies exists; the *packaged* studies don't. | Write 3 `bad → fixed → what others miss → how Own reports it` studies from existing finds. |
 | **G** | suppression + false-positive policy | ◑ **partial** — `[OwnIgnore("reason")]` designed (P-004), project-wide config is P-015 (draft); precision behaviour is strong & documented ("no FP from `using`"). | One consolidated user-facing page: suppression mechanism + explicit FP policy. |
 
-**Plus the front door (not in A–G but the real blocker):** `README.md` is still
-`# OwnLang — PoC` — deep, Russian, research-framed. There is **no 20-second landing /
+**Plus the front door (not in A–G but the real blocker):** `README.md` is now
+bilingual (English default + a `README.ru.md` variant), but still `# OwnLang — PoC` —
+deep, research-framed, no wedge landing. There is **no 20-second landing /
 copy-paste install / Action quickstart** at the top. Per the comment's own
 open-source-path list (README-in-20s → copy-paste → bad/ok → Action → SARIF →
 suppression → "why not Sonar/CodeQL"), this is the highest-leverage missing piece.
