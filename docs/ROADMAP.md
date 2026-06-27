@@ -131,6 +131,13 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 | **P2** | async resource lifecycle; `ValueTask` affine usage; typestate/protocols | [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
 
+> **Are we showable yet?** The concrete "delicious .NET alpha" gate — the A–G bar
+> (`dotnet tool` / Action / SARIF / 5 diagnostics / bad-ok examples / case studies /
+> suppression policy), the honest current status against it, and the 80/20 rule —
+> lives in [docs/notes/alpha-readiness.md](notes/alpha-readiness.md). Short version:
+> capability is past alpha; the gap to "people install it" is *packaging* (a single
+> `ownsharp check MyApp.sln` CLI, a wedge landing README, packaged case studies).
+
 **The five concrete diagnostics to build first** (balanced across real pain,
 architectural strictness, and the borrow-checker showcase):
 
