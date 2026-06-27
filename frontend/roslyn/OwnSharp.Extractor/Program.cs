@@ -138,8 +138,18 @@ static bool IsSkipped(string path)
 static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
 {
     var full = Path.GetFullPath(csproj);
-    var dir = Path.GetDirectoryName(full) ?? ".";
     var result = new List<string>();
+    // A missing project file must NOT degrade to "scan its parent directory": a typo'd
+    // `--project src/Missing.csproj` would otherwise analyse all of src/**/*.cs (an
+    // unintended source set), or throw if the parent is absent too. Skip the bad input with
+    // a warning — the directory-scan fallback below is only for a PRESENT-but-malformed
+    // project (whose <Compile> links we could not read), never an absent one. (Codex P2.)
+    if (!File.Exists(full))
+    {
+        Console.Error.WriteLine($"ownsharp-extract: project not found: {csproj}");
+        return result;
+    }
+    var dir = Path.GetDirectoryName(full) ?? ".";
     foreach (var f in Directory.EnumerateFiles(dir, "*.cs", opts))
         if (!IsSkipped(f))
             result.Add(f);
