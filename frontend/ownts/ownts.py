@@ -390,12 +390,17 @@ def _cleanup_span(mbody: str) -> tuple[int, int] | None:
         prefix = mbody[:m.start()]
         if prefix.count("{") - prefix.count("}") != 1:  # 1 == the effect body's own brace
             continue
-        brace = mbody.find("{", m.end())
-        if brace == -1:
-            # `return () => clearInterval(id)` — single-expression cleanup, no block.
-            nl = mbody.find("\n", m.end())
-            return (m.start(), nl if nl != -1 else len(mbody))
-        return (m.start(), _match_block(mbody, brace))
+        rest = mbody[m.end():]
+        stripped = rest.lstrip()
+        if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
+            brace = m.end() + (len(rest) - len(stripped))
+            return (m.start(), _match_block(mbody, brace))
+        # single-expression cleanup — ends at the line break. Crucially NOT a
+        # `find("{")`, which would mistake an options object inside the call (e.g.
+        # `=> el.removeEventListener("x", h, {capture: true})`) for the cleanup block
+        # and truncate the trailing `)`, breaking _listener_call into a false leak.
+        nl = mbody.find("\n", m.end())
+        return (m.start(), nl if nl != -1 else len(mbody))
     return None
 
 
