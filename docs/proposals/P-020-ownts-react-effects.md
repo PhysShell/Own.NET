@@ -3,6 +3,12 @@
 - **Status:** draft — **experiment / proposal, explicitly not mainline.** A
   marketing-shaped spike under the OwnTS frontend, on the record so the framing is
   honest before any code.
+- **Spike landed:** the honest `EFF003`/`EFF004` slice (timer / subscribe /
+  listener acquire with no cleanup `return` → core `OWN001`) is implemented in
+  `frontend/ownts/` and CI-pinned (the `ownts-react-effects` job). `EFF001/002`
+  (the effect-storm stability analysis) is **not** built — the spike only emits a
+  clearly-labelled frontend-only heuristic note for it, never a core finding, per
+  Open question 1 below.
 - **Depends on:** [P-017](P-017-multi-stack-frontends.md) (the OwnTS frontend &
   confidence tiers that this profile feeds), `spec/OwnCore.md` (the acquire/release
   vocabulary), [P-004](P-004-wpf-lifetime-profile.md) (WPF — the same lifecycle

@@ -998,6 +998,42 @@ jobs:
             || { echo "FAIL: --project flag and positional .csproj emit different OwnIR facts"; exit 1; }
           echo "OK: .csproj input resolves to its source set and feeds the core identically (positional == --project, fact-level parity)"
 
+  # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
+  # React .tsx instead of C#. A useEffect acquire (timer / subscribe / listener)
+  # with no cleanup return is the core's OWN001 — proving the leak model is
+  # cross-language, not .NET-only. No dotnet needed; pure-Python frontend.
+  ownts-react-effects:
+    name: OwnTS (React useEffect) -> OwnIR -> core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Pin the spike (leaky=3xOWN001, clean=0, EFF001 heuristic)
+        run: python frontend/ownts/test_ownts.py
+      - name: Extract OwnIR facts from a React .tsx and check through the core
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/Dashboard.tsx \
+            -o "$RUNNER_TEMP/dash.facts.json"
+          cat "$RUNNER_TEMP/dash.facts.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/dash.facts.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "Dashboard.tsx" \
+            || { echo "FAIL: expected findings located at the .tsx"; exit 1; }
+          echo "$out" | grep -q "resource: timer" \
+            || { echo "FAIL: expected the setInterval [resource: timer] leak"; exit 1; }
+          echo "$out" | grep -qE "3 finding" \
+            || { echo "FAIL: expected three OWN001 leaks from the leaky effects"; exit 1; }
+      - name: The clean fixture (cleanup returns) is silent
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
+            -o "$RUNNER_TEMP/clean.facts.json"
+          clean=$(python -m ownlang ownir "$RUNNER_TEMP/clean.facts.json" || true)
+          echo "$clean"
+          echo "$clean" | grep -q "0 finding" \
+            || { echo "FAIL: cleaned-up effects must not leak"; exit 1; }
+
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
   # GitHub Action (PR annotations) and a VS Error List (MSBuild) consume — and
