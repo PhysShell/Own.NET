@@ -536,7 +536,11 @@ def extract(path: str) -> list[Component]:
     for eff in _USE_EFFECT.finditer(masked):
         body_m, body_start, _deps, end = _effect_callback(masked, eff.end())
         body_o = text[body_start:end]  # original (unmasked) body — same positions
-        span = _cleanup_span(body_m)
+        # An ASYNC effect callback returns a Promise, so React never runs its
+        # returned function as cleanup — credit no cleanup for it (a `return () => …`
+        # inside `useEffect(async () => …)` is dead, so the resource still leaks).
+        is_async = bool(re.match(r"\s*async\b", masked[eff.end():]))
+        span = None if is_async else _cleanup_span(body_m)
         if span:
             cs, ce, cov_start = span
             setup_m = body_m[:cs] + body_m[ce:]

@@ -68,7 +68,7 @@ def main() -> int:
     # returned cleanup over an unconditional acquire) must STILL report the leak —
     # the broadened matchers must not over-suppress.
     leaks = codes("EffectLeakControl.tsx")
-    assert leaks == ["OWN001", "OWN001", "OWN001"], f"EffectLeakControl -> {leaks}"
+    assert leaks == ["OWN001"] * 4, f"EffectLeakControl -> {leaks}"
 
     # Transpiled-ES5 shape: `function () { … return function () { … } }`. The parser
     # handles `function` callbacks + `return function` cleanups — a matched cleanup is
