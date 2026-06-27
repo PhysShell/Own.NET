@@ -1598,6 +1598,35 @@ def run() -> int:
     if wrap != [("Caller2", 10, "OWN001")]:
         fails.append(f"Tier B: a wrapper returning a BCL factory result must be fresh "
                      f"(caller leak OWN001@10), got {wrap}")
+    checks += 1
+    # D5.3 breadth: a crypto algorithm `Create()` is an owned IDisposable factory — a leaked
+    # `using var sha = SHA256.Create()` is OWN001; disposed is clean; used after dispose is
+    # OWN002. Resolves bare and under System.Security.Cryptography.
+    cleak = [(x.code, x.line) for x in _bcl(
+        [{"op": "call", "callee": "SHA256.Create", "args": [], "result": "h", "line": 5}])]
+    if cleak != [("OWN001", 5)]:
+        fails.append(f"Tier B: a leaked crypto Create() factory must be OWN001@5, got {cleak}")
+    checks += 1
+    if _bcl([{"op": "call", "callee": "Aes.Create", "args": [], "result": "a", "line": 5},
+             {"op": "release", "var": "a", "line": 6}]):
+        fails.append("Tier B: a disposed crypto Create() factory must be clean")
+    checks += 1
+    cfqn = [(x.code, x.line) for x in _bcl([{"op": "call",
+             "callee": "System.Security.Cryptography.RSA.Create", "args": [],
+             "result": "r", "line": 7}])]
+    if cfqn != [("OWN001", 7)]:
+        fails.append(f"Tier B: a namespace-qualified crypto factory must resolve, got {cfqn}")
+    checks += 1
+    # a same-named crypto type in ANOTHER namespace must NOT match (precision).
+    if _bcl([{"op": "call", "callee": "MyCrypto.SHA256.Create", "args": [],
+              "result": "h", "line": 5}]):
+        fails.append("Tier B precision: a non-System crypto `*.SHA256.Create` must NOT match")
+    checks += 1
+    # `Process.Start` is deliberately EXCLUDED — it is a static owned-Process factory but ALSO
+    # an instance method returning `bool`, so a bare match would fabricate ownership for the
+    # instance form. The table must make no claim on it.
+    if _bcl([{"op": "call", "callee": "Process.Start", "args": ["x"], "result": "p", "line": 5}]):
+        fails.append("Tier B precision: overload-ambiguous `Process.Start` must NOT be a factory")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after

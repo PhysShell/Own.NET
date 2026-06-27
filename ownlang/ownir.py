@@ -1111,20 +1111,34 @@ _SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow"}
 # deliberately excluded — that is the sink / T4 case, not a pure factory. Keyed by
 # `Type.Method`; a callee matches on its last two dotted segments so a namespace-qualified
 # `System.IO.File.OpenRead` resolves the same.
-_BCL_FRESH_FACTORIES = frozenset({
-    "File.OpenRead", "File.OpenText", "File.OpenWrite",
-    "File.Open", "File.Create", "File.CreateText", "File.AppendText",
-})
-# the fully-qualified `System.IO.File.*` identities — accepted alongside the bare forms.
-_BCL_FRESH_FQNS = frozenset("System.IO." + e for e in _BCL_FRESH_FACTORIES)
+# The table, grouped by namespace so each entry's fully-qualified identity is exact. Only
+# UNAMBIGUOUS static factories whose return the caller owns are listed — overload-ambiguous
+# names are excluded on purpose (e.g. `new StreamReader(stream)` ADOPTS its arg; `Process.Start`
+# is a static owned-Process factory but ALSO an instance method returning `bool`, so a bare
+# match would fabricate ownership for `proc.Start()`). Crypto algorithm `Create()` factories are
+# the high-value addition: `using var sha = SHA256.Create()` not disposed is a common real leak.
+_BCL_FRESH_BY_NS = {
+    "System.IO": (
+        "File.OpenRead", "File.OpenText", "File.OpenWrite", "File.Open",
+        "File.Create", "File.CreateText", "File.AppendText", "File.OpenHandle",
+    ),
+    "System.Security.Cryptography": (
+        "SHA1.Create", "SHA256.Create", "SHA384.Create", "SHA512.Create", "MD5.Create",
+        "Aes.Create", "RSA.Create", "ECDsa.Create",
+    ),
+}
+_BCL_FRESH_FACTORIES = frozenset(e for es in _BCL_FRESH_BY_NS.values() for e in es)
+# the fully-qualified identities (each under its real namespace), accepted beside the bare forms.
+_BCL_FRESH_FQNS = frozenset(f"{ns}.{e}" for ns, es in _BCL_FRESH_BY_NS.items() for e in es)
 
 
 def _is_bcl_fresh_factory(callee: str) -> bool:
     """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
-    ONLY the bare `Type.Method` (`File.OpenRead`) or the fully-qualified `System.IO.File.*`
-    identity (with an optional `global::` qualifier) — a same-named type in another namespace
-    (`MyCompany.File.OpenRead`) is NOT a match. Precision-first: we never fabricate ownership
-    for a non-BCL look-alike (Codex / CodeRabbit)."""
+    ONLY the bare `Type.Method` (`File.OpenRead`, `SHA256.Create`) or its fully-qualified
+    identity under that type's real namespace (`System.IO.File.OpenRead`,
+    `System.Security.Cryptography.SHA256.Create`), with an optional `global::` qualifier — a
+    same-named type in ANOTHER namespace (`MyCrypto.SHA256.Create`) is NOT a match.
+    Precision-first: we never fabricate ownership for a non-BCL look-alike (Codex / CodeRabbit)."""
     if not callee:
         return False
     name = callee.removeprefix("global::")
