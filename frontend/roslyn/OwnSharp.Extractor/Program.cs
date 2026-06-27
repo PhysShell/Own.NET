@@ -634,7 +634,8 @@ static HashSet<ISymbol> DisposedOwningFields(INamedTypeSymbol w, SemanticModel m
         if (recv is null)
             continue;
         if (dm.GetSymbolInfo(recv).Symbol is IFieldSymbol f
-            && SymbolEqualityComparer.Default.Equals(f.ContainingType, w))
+            && !f.IsStatic                          // a static field is shared across instances,
+            && SymbolEqualityComparer.Default.Equals(f.ContainingType, w))  // not per-wrapper ownership
             result.Add(f);
     }
     return result;
@@ -667,25 +668,23 @@ static bool TryAdoptedArgIndex(BaseObjectCreationExpressionSyntax oce, SemanticM
         || cds.Body is not { } cbody)
         return false;
     var cm = model.Compilation.GetSemanticModel(cds.SyntaxTree);
-    var matched = -1;
-    foreach (var st in cbody.Statements)           // TOP-LEVEL `_f = p;` only
-    {
-        if (st is not ExpressionStatementSyntax es
-            || es.Expression is not AssignmentExpressionSyntax asg
-            || !asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
-            continue;
-        if (cm.GetSymbolInfo(asg.Left).Symbol is not IFieldSymbol lf
-            || !SymbolEqualityComparer.Default.Equals(lf, field))
-            continue;
-        if (cm.GetSymbolInfo(asg.Right).Symbol is not IParameterSymbol p
-            || !SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, ctor))
-            return false;                          // field set from a non-parameter — bail
-        if (matched >= 0 && matched != p.Ordinal)
-            return false;                          // the field assigned from two params — bail
-        matched = p.Ordinal;
-    }
-    if (matched < 0)
+    // v1 accepts only a PURE single-assignment adopter ctor `{ _f = p; }`. Any sibling
+    // statement could rebind the field or mutate the param (`_f = p; Rebind(other);`), which
+    // would over-claim adoption — so a multi-statement ctor is DECLINED (deferred to a later
+    // slice). Precision-first: under-claim, never fabricate a false double-dispose (CodeRabbit).
+    if (cbody.Statements.Count != 1
+        || cbody.Statements[0] is not ExpressionStatementSyntax es
+        || es.Expression is not AssignmentExpressionSyntax asg
+        || !asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
         return false;
+    if (cm.GetSymbolInfo(asg.Left).Symbol is not IFieldSymbol lf
+        || lf.IsStatic                             // shared storage, not per-instance ownership
+        || !SymbolEqualityComparer.Default.Equals(lf, field))
+        return false;
+    if (cm.GetSymbolInfo(asg.Right).Symbol is not IParameterSymbol p
+        || !SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, ctor))
+        return false;                              // field set from a non-parameter — bail
+    var matched = p.Ordinal;
     // the call must be POSITIONAL up to the adopted slot, so the arg index == the param
     // ordinal (a named/reordered call would mis-attribute). Require enough positional args.
     if (oce.ArgumentList is not { } al || al.Arguments.Count <= matched
@@ -706,22 +705,47 @@ static ExpressionSyntax? AdoptedArg(BaseObjectCreationExpressionSyntax oce, Sema
 // RHS, passed on as an argument, or captured by a closure)? Deliberately OVER-approximates
 // — any arg-pass counts, even a borrow — because it only gates the *adopt* exception below:
 // over-escaping the wrapper makes us DECLINE the alias (under-claim), never fabricate one.
-// `w.Dispose()` (a member access) is not an escape, so a disposed wrapper still qualifies.
+// `w.Dispose()` (a member access where `w` is the receiver) is a use, not an escape, so a
+// disposed wrapper still qualifies. The escape test WALKS ANCESTORS through value-wrapping
+// expressions (casts, `??`, parens, conditionals) so `return (IDisposable)w;` / `x = w ?? f;`
+// / `Foo((object)w)` are all caught, not just a direct-parent return/arg/assignment-RHS
+// (CodeRabbit).
 static bool LocalEscapesSyntactically(string name, BlockSyntax mbody)
 {
     foreach (var idn in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
     {
         if (idn.Identifier.Text != name)
             continue;
-        if (idn.Parent is ReturnStatementSyntax)
-            return true;
-        if (idn.Parent is AssignmentExpressionSyntax a && a.Right == idn)
-            return true;
-        if (idn.Parent is ArgumentSyntax)
-            return true;
+        // a bare receiver `name.Member(...)` / `name?.Member` is a use/release, not an escape.
+        if (idn.Parent is MemberAccessExpressionSyntax ma && ma.Expression == idn)
+            continue;
+        // captured by a closure (lambda / local function) — outlives the method.
+        var captured = false;
         for (var p = idn.Parent; p is not null && p != mbody; p = p.Parent)
             if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
-                return true;
+            {
+                captured = true;
+                break;
+            }
+        if (captured)
+            return true;
+        // climb the value's wrapping expressions to where it lands: a return, an argument, or
+        // an assignment RHS is an escape; reaching the enclosing statement first is not.
+        SyntaxNode child = idn;
+        var escapes = false;
+        for (var p = idn.Parent; p is not null; child = p, p = p.Parent)
+        {
+            if (p is ReturnStatementSyntax or ArgumentSyntax
+                || (p is AssignmentExpressionSyntax asg && asg.Right == child))
+            {
+                escapes = true;
+                break;
+            }
+            if (p is StatementSyntax)               // reached the enclosing statement, no escape
+                break;
+        }
+        if (escapes)
+            return true;
     }
     return false;
 }
