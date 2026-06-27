@@ -1,0 +1,47 @@
+# Cross-tool oracle — verified false-positive baseline.
+#
+# Each line is one own-only finding that was triaged against the target's REAL
+# source (at the run commit) and confirmed NOT to be a leak. The comparator
+# (scripts/oracle_compare.py --baseline) moves these out of "Own.NET only" into a
+# separate "Known FP (baselined)" section, so a re-run's triage queue shows only
+# genuinely-new findings. Full per-entry rationale: docs/notes/oracle-known-fps.md.
+#
+# Format (｜-delimited, '#' starts a full-line comment, blank lines ignored):
+#   <owner/repo> | <file-basename> | <OWN code> | <message-substring> | <reason>
+#
+# The match key is (repo, basename, OWN code, message-substring) — deliberately
+# NOT the line number: re-runs clone the target at its current HEAD and the lines
+# drift, but the field/event/local name in the message is stable. Keep substrings
+# specific enough to bind to exactly the intended finding.
+#
+# This file suppresses ONLY confirmed false positives. True findings stay visible
+# even when benign — e.g. serilog BatchingSink._shutdownSignal (a CTS never
+# Dispose()d) and NLog's XmlParser._xmlSource / FileTarget._reusable*Stream
+# (fields genuinely never disposed, but wrapping managed-memory-only resources).
+# Those are NOT baselined; they are real catches the oracle's leak query misses.
+
+# --- NLog/NLog : timers disposed through an indirection we don't trace ----------
+# Every one is released via the `WaitForDispose(this Timer, TimeSpan)` extension
+# method (AsyncHelpers.cs) on a local alias of the field — an interprocedural
+# custom dispose-sink the extractor's intra-Dispose() field scan can't see. Two
+# also dispose only in the dispose-pattern override / lifecycle hook (Dispose(bool
+# disposing), CloseTarget()), neither of which the field scan visits.
+NLog/NLog | TimeoutContinuation.cs | OWN001 | _timeoutTimer | disposed via Dispose() -> StopTimer() -> Timer.WaitForDispose(); interprocedural custom dispose-sink not traced
+NLog/NLog | AsyncTaskTarget.cs | OWN001 | _taskTimeoutTimer | disposed in Dispose(bool disposing) via Timer.WaitForDispose(); dispose-pattern override + custom sink not traced
+NLog/NLog | AsyncTaskTarget.cs | OWN001 | _lazyWriterTimer | disposed in Dispose(bool disposing) via Timer.WaitForDispose(); dispose-pattern override + custom sink not traced
+NLog/NLog | AsyncTargetWrapper.cs | OWN001 | _lazyWriterTimer | disposed in CloseTarget() -> StopLazyWriterThread() -> Timer.WaitForDispose(); lifecycle hook + custom sink not traced
+NLog/NLog | BufferingTargetWrapper.cs | OWN001 | _flushTimer | disposed in CloseTarget() via Timer.WaitForDispose(); lifecycle hook + custom sink not traced
+
+# --- protobuf-net/protobuf-net --------------------------------------------------
+protobuf-net/protobuf-net | ProtoWriter.BufferWriter.cs | OWN001 | _nullWriter | intentional null-object kept attached for pooled reuse; Dispose() documents "don't cascade dispose to the null one"
+protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (protobuf 'assorted' sample/extension tree); NetTranscoder is a long-lived singleton holding one ReaderWriterLockSlim for app lifetime
+protobuf-net/protobuf-net | CommandLineOptions.cs | OWN001 | XsltMessageEncountered | non-product (assorted/ProtoGen) + self-subscription: publisher (xsltOptions) and the lambda subscriber are both owned by the same CommandLineOptions, co-lifetimed
+protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight sample); the timer is disposed by an enclosing `using (timer) { ... }` the extractor missed
+
+# --- JamesNK/Newtonsoft.Json ----------------------------------------------------
+JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | no-op dispose: a JsonTextWriter over an in-memory StringWriter/StringBuilder holds no unmanaged resource, so leaving it undisposed releases nothing
+JamesNK/Newtonsoft.Json | JsonSerializer.cs | OWN001 | serializer.Error | intra-call self-subscription: the serializer is freshly created from the same JsonSerializerSettings whose .Error handler it subscribes; source and handler are co-lifetimed
+
+# --- JoshClose/CsvHelper --------------------------------------------------------
+JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | AppDomain.CurrentDomain.ProcessExit | non-product (docs-src/ doc-generator) + process-lived subscriber: ConsoleHost itself lives for the whole process, so promoting it to a process-lived event source changes nothing
+JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | Console.CancelKeyPress | non-product (docs-src/ doc-generator) + process-lived subscriber: same — a process-lived host subscribing to a process-lived event source is not a lifetime leak

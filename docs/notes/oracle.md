@@ -28,6 +28,17 @@ Two classes sit **outside** the three-way diff and are reported separately:
 - **Oracle findings outside our scope** — Infer#'s `NULL_DEREFERENCE`,
   thread-safety, taint, etc. Listed as context (counts by rule), not a gap.
 
+A fourth, optional bucket keeps the triage queue actionable across re-runs:
+
+- **Known FP (baselined)** — own-only findings already triaged against the
+  target's real source and confirmed false. The
+  [`corpus/oracle-fp-baseline.txt`](../../corpus/oracle-fp-baseline.txt) allowlist
+  (passed as `--baseline`) moves them out of "own-only" so a re-run surfaces only
+  *new* findings, matched by name (repo + basename + OWN code + message-substring)
+  rather than line so it survives the target drifting at HEAD. Confirmed **false
+  positives only** — true-but-benign catches stay visible. The five-repo triage
+  that seeded it is in [`oracle-known-fps.md`](oracle-known-fps.md).
+
 ## Why this is a fair-but-honest comparison
 
 - **Own.NET needs no build.** The Roslyn extractor reads a best-effort
