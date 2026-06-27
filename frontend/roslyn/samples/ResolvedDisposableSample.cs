@@ -52,3 +52,16 @@ public sealed class HolderWithDisposeOptional
 
     public int Use() => this.task.Id + this.table.Columns.Count;
 }
+
+// String-backed reader/writer dispose-optional control (field-notes #8, mined on
+// Newtonsoft.Json's TraceJsonReader/TraceJsonWriter): a StringWriter wraps a
+// StringBuilder and a StringReader reads a string — no unmanaged resource, so Dispose()
+// frees nothing real. A new'd, undisposed field of these must stay SILENT (IsDisposeOptional).
+// Contrast HolderWithRealDisposable's MemoryStream above, which still warns.
+public sealed class HolderWithStringWriter
+{
+    private readonly StringWriter writer = new();
+    private readonly StringReader reader = new("x");
+
+    public string Use() => this.writer.ToString() + this.reader.ReadToEnd();
+}

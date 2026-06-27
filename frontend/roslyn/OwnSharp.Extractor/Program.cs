@@ -714,7 +714,14 @@ static bool IsDisposeOptional(ITypeSymbol t)
 {
     var ns = t.ContainingNamespace?.ToString();
     return (ns == "System.Threading.Tasks" && t.Name is "Task" or "ValueTask")
-        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView");
+        || (ns == "System.Data" && t.Name is "DataTable" or "DataSet" or "DataView")
+        // System.IO string-backed reader/writer: a StringWriter wraps a StringBuilder
+        // and a StringReader reads a string — neither holds an OS handle / unmanaged
+        // resource, so Dispose() frees nothing real and an undisposed one is not a leak.
+        // (field-notes #8, mined on Newtonsoft.Json's TraceJsonReader/TraceJsonWriter,
+        // where these are owning fields the trace helpers never dispose.) MemoryStream is
+        // deliberately NOT here — it can own a real buffer, so it still warns.
+        || (ns == "System.IO" && t.Name is "StringWriter" or "StringReader");
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
