@@ -88,12 +88,26 @@ def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
         tok = _lhs_token(setup, pos)
         return bool(tok and re.search(
             rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup))
-    if acq.resource == "subscription":  # addEventListener(event, handler)
-        hm = re.search(r"addEventListener\s*\(\s*[^,]+,\s*([A-Za-z_$][\w$.]*)",
-                       setup[pos:])
-        handler = hm.group(1) if hm else None
-        return bool(handler and re.search(
-            rf"removeEventListener\s*\(\s*[^,]+,\s*{re.escape(handler)}\b", cleanup))
+    if acq.resource == "subscription":  # target.addEventListener(event, handler[, opts])
+        am = re.match(
+            r"\.addEventListener\s*\(\s*[^,]+,\s*([A-Za-z_$][\w$.]*)\s*(?:,\s*([^)]+?))?\s*\)",
+            setup[pos:])
+        if not am:
+            return False
+        handler = am.group(1)
+        opts = (am.group(2) or "").strip()
+        # the receiver the listener is attached to (`window`, `el`, `this.ref`) — a
+        # `removeEventListener` on a DIFFERENT target does not release this one.
+        rm = re.search(r"([A-Za-z_$][\w$.]*)\s*$", setup[:pos])
+        recv = rm.group(1) if rm else ""
+        # require: same receiver, same handler, and — if this acquire passed a
+        # capture/options arg — the same options in cleanup (dropping `true` /
+        # `{capture:true}` is a different listener that still leaks).
+        recv_pat = rf"{re.escape(recv)}\s*\.\s*" if recv else r""
+        pat = rf"{recv_pat}removeEventListener\s*\(\s*[^,]+,\s*{re.escape(handler)}\b"
+        if opts:
+            pat += rf"[^)]*{re.escape(opts)}"
+        return bool(re.search(pat, cleanup))
     return False
 
 # A React component is a function whose name is Capitalized (the JSX convention).
@@ -206,6 +220,68 @@ def _match_block(text: str, open_idx: int) -> int:
     return len(text)
 
 
+def _mask_strings(text: str) -> str:
+    """Blank the CONTENT of string/template literals — keeping the delimiters, the
+    length, and every newline — so the structural scanners (brace/paren/bracket
+    depth, top-level commas, the deps array) are never fooled by punctuation inside
+    a literal: `fetch("/a,b")`, `const s = "{"`, a `;` inside a string. Comments are
+    already gone (`_strip_comments`). Positions are preserved, so a match found on
+    the masked copy slices identically out of the original text."""
+    out = list(text)
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in "\"'`":
+            i += 1
+            while i < n and text[i] != c:
+                if text[i] == "\\" and i + 1 < n:
+                    for k in (i, i + 1):
+                        if text[k] != "\n":
+                            out[k] = " "
+                    i += 2
+                    continue
+                if text[i] != "\n":
+                    out[i] = " "
+                i += 1
+            i += 1  # past the closing delimiter (kept)
+        else:
+            i += 1
+    return "".join(out)
+
+
+def _match_pair(text: str, i: int, open_c: str, close_c: str) -> int:
+    """Index just past the `close_c` matching the `open_c` at/after `i`. Assumes
+    string contents are already masked (so no quote-skipping is needed here)."""
+    i = text.index(open_c, i)
+    depth = 0
+    while i < len(text):
+        if text[i] == open_c:
+            depth += 1
+        elif text[i] == close_c:
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return len(text)
+
+
+def _split_top_commas(s: str) -> list[str]:
+    """Split on commas at bracket/paren/brace depth 0, so a dependency like
+    `items[i]` or `f(a, b)` stays one entry instead of being torn at its inner comma."""
+    parts: list[str] = []
+    depth, start = 0, 0
+    for j, c in enumerate(s):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            parts.append(s[start:j])
+            start = j + 1
+    parts.append(s[start:])
+    return [p.strip() for p in parts if p.strip()]
+
+
 def _component_at(text: str, idx: int) -> str:
     """Name of the React component enclosing position `idx` — the nearest preceding
     Capitalized function declaration. Falls back to a synthetic name."""
@@ -233,24 +309,35 @@ def _expr_end(text: str, i: int) -> int:
     return i
 
 
-def _effect_callback(text: str, after_open: int) -> tuple[str, int, list[str] | None, int]:
-    """Parse `useEffect(<cb>, [deps])` from just past the `(`. Returns
+def _effect_callback(masked: str, after_open: int) -> tuple[str, int, list[str] | None, int]:
+    """Parse `useEffect(<cb>, [deps])` from just past the `(`, over the STRING-MASKED
+    source (so literals never truncate a body or split a dep). Returns
     (body, body_start, deps, end). Handles BOTH a block `() => { ... }` and an
     expression `() => fetch(url)` callback — calling `_match_block` blindly on the
     latter would jump to an unrelated `{` or run off the end. `deps` is None when no
-    dependency array is present; `body` includes the braces for a block callback."""
-    arrow = text.find("=>", after_open)
+    dependency array is present; the array is matched by BALANCED brackets so a dep
+    like `items[i]` survives. `body` includes the braces for a block callback."""
+    arrow = masked.find("=>", after_open)
     i = (arrow + 2) if arrow != -1 else after_open
-    while i < len(text) and text[i] in " \t\r\n":
+    while i < len(masked) and masked[i] in " \t\r\n":
         i += 1
-    if i < len(text) and text[i] == "{":
-        end = _match_block(text, i)
+    if i < len(masked) and masked[i] == "{":
+        end = _match_block(masked, i)
     else:
-        end = _expr_end(text, i)
-    body = text[i:end]
-    deps_m = re.search(r"\s*,\s*\[([^\]]*)\]", text[end:end + 200])
-    deps = ([d.strip() for d in deps_m.group(1).split(",") if d.strip()]
-            if deps_m else None)
+        end = _expr_end(masked, i)
+    body = masked[i:end]
+    # the dependency array is the balanced `[ ... ]` after an optional `, `
+    deps: list[str] | None = None
+    j = end
+    while j < len(masked) and masked[j] in " \t\r\n":
+        j += 1
+    if j < len(masked) and masked[j] == ",":
+        j += 1
+        while j < len(masked) and masked[j] in " \t\r\n":
+            j += 1
+        if j < len(masked) and masked[j] == "[":
+            close = _match_pair(masked, j, "[", "]")
+            deps = _split_top_commas(masked[j + 1:close - 1])
     return body, i, deps, end
 
 
@@ -276,18 +363,21 @@ def _split_cleanup(body: str) -> tuple[str, str]:
 
 def extract(path: str) -> list[Component]:
     text = _strip_comments(open(path, encoding="utf-8").read())
+    masked = _mask_strings(text)  # scan structure on this; show snippets from `text`
     comps: dict[str, Component] = {}
-    for eff in _USE_EFFECT.finditer(text):
-        body, body_start, _deps, _end = _effect_callback(text, eff.end())
+    for eff in _USE_EFFECT.finditer(masked):
+        body, body_start, _deps, _end = _effect_callback(masked, eff.end())
         setup, cleanup = _split_cleanup(body)
-        cname = _component_at(text, eff.start())
+        cname = _component_at(masked, eff.start())
         comp = comps.setdefault(cname, Component(cname, path))
         for acq in ACQUIRES:
             for hit in acq.pattern.finditer(setup):
-                line = text.count("\n", 0, body_start + hit.start()) + 1
+                abs_pos = body_start + hit.start()
+                line = masked.count("\n", 0, abs_pos) + 1
                 released = _is_released(acq, setup, hit.start(), cleanup)
-                # the acquire expression, trimmed to the call head for a readable tag
-                snippet = setup[hit.start():].splitlines()[0].strip().rstrip("{").strip()
+                # the acquire expression for the tag — from the ORIGINAL text, so the
+                # message shows the real call (string args intact), trimmed to one line.
+                snippet = text[abs_pos:].splitlines()[0].strip().rstrip("{").strip()
                 comp.resources.append(
                     Resource(snippet or acq.name, line, released, acq.resource, acq.eff))
     return [c for c in comps.values() if c.resources]
@@ -361,8 +451,10 @@ def _classify_rhs(rhs: str) -> tuple[str, list[str]]:
 
 
 def _render_bindings(text: str) -> dict[str, list[dict]]:
-    """The render-scope binding table per component: only bindings declared DIRECTLY
-    in the component body (brace-depth 1). A `const filters = {...}` inside a
+    """The render-scope binding table per component, scanned over STRING-MASKED
+    source so a brace/quote inside a literal cannot shift the depth. Only bindings
+    declared DIRECTLY in the component body (brace-depth 1) count. A `const filters
+    = {...}` inside a
     `useEffect` callback, an event handler, or any nested block is NOT render scope —
     it must not shadow the real outer dependency of the same name and mint a false
     EFF001. Excluding a render-level `if`/`try` binding only costs a missed finding
@@ -393,16 +485,17 @@ def extract_effects(path: str) -> list[dict]:
     whether its body does network IO, and the render-scope binding table of the
     component it lives in. The core's effects analysis turns these into a verdict."""
     text = _strip_comments(open(path, encoding="utf-8").read())
-    binds_by_comp = _render_bindings(text)
+    masked = _mask_strings(text)
+    binds_by_comp = _render_bindings(masked)
     effects: list[dict] = []
-    for eff in _USE_EFFECT.finditer(text):
-        body, _start, deps, _end = _effect_callback(text, eff.end())
+    for eff in _USE_EFFECT.finditer(masked):
+        body, _start, deps, _end = _effect_callback(masked, eff.end())
         if deps is None:  # no dep array -> not an EFF001 candidate (by-design re-run cadence)
             continue
-        cname = _component_at(text, eff.start())
+        cname = _component_at(masked, eff.start())
         effects.append({
             "component": cname, "file": path,
-            "line": text.count("\n", 0, eff.start()) + 1,
+            "line": masked.count("\n", 0, eff.start()) + 1,
             "io": bool(_IO.search(body)),
             "deps": deps,
             "bindings": binds_by_comp.get(cname, []),
