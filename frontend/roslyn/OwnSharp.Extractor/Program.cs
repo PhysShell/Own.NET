@@ -65,6 +65,12 @@ bool flowLocals = false;
 // flow-analysed vs honestly skipped for an unmodelled construct) and stamp the
 // same counts into the facts JSON. Turns "0 findings" into "clean vs didn't-reach".
 bool reportStats = false;
+// --no-project-refs: opt out of the automatic reference derivation below. By default, when an
+// input is a `.csproj`/`.sln`, the project's built `bin/` output (if present) is auto-added to
+// the reference set — the scriptable `--ref-dir` you'd otherwise pass by hand — so third-party
+// events on a restored/built project bind to real symbols instead of surfacing as OWN050. This
+// flag turns that off (e.g. to measure raw Tier-A coverage, or when bin/ is stale).
+bool noProjectRefs = false;
 // --body-throw-edges (opt-in, P-016 throw tier): also treat an ESCAPING body-level may-throw
 // call/`new` (not only those inside a `try`) as a dispose-not-called-on-throw point — CodeQL
 // cs/dispose-not-called-on-throw parity. OFF by default: it is the CA2000 firehose (flags even
@@ -82,6 +88,43 @@ BodyThrowEdges = false;
 // own-check orchestrator, `explain` is `python -m ownlang explain`; the C# tool is not a
 // second checker.) A different first token (a path/flag) is left untouched as input.
 var args0 = args.Length > 0 && args[0] == "extract" ? args[1..] : args;
+// `-h` / `--help`: print the full usage (commands, inputs, options) and exit 0. A discoverable
+// CLI is the value the roslyn-tools `System.CommandLine` shape buys; we render it by hand (no
+// preview dependency) rather than adopt the framework — the surface is small and stable.
+const string UsageText = """
+ownsharp-extract — emit OwnIR leak facts from C# for the Own.NET core to check.
+
+Usage:
+  ownsharp-extract [extract] <input>... [options]
+
+`extract` is an optional leading verb (the tool's one job; the bare form is the default).
+The sibling verbs live elsewhere by design — `check` is scripts/own-check.sh (extractor +
+core), `explain` is `python -m ownlang explain OWN001`. One checker: this tool only emits facts.
+
+Inputs (any mix; positional, or via --project/--solution):
+  file.cs            a single C# file
+  dir                a directory, walked recursively (skips bin/obj, generated, vendor)
+  App.csproj         a project — resolved to its source set (no MSBuild evaluation)
+  App.sln            a solution — fans out over its member projects
+
+Options:
+  -o, --out FILE     write the OwnIR facts JSON to FILE (default: stdout)
+  --project FILE     add a .csproj input (flag twin of the positional form)
+  --solution FILE    add a .sln input
+  --ref-dir DIR      add DIR's DLLs (recursively) to the reference set, so third-party
+                     events bind to real symbols instead of OWN050 (repeatable)
+  --no-project-refs  don't auto-add a .csproj/.sln project's bin/ output to the references
+  --no-event-leaks   skip event-subscription detection (run only disposable/pool detectors)
+  --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
+  --stats            print flow-locals coverage (requires --flow-locals)
+  --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
+  -h, --help         show this help and exit
+""";
+if (args0.Contains("-h") || args0.Contains("--help"))
+{
+    Console.WriteLine(UsageText);
+    return 0;
+}
 for (int i = 0; i < args0.Length; i++)
 {
     // `--out FILE` is the long-form twin of `-o FILE` (the advertised `extract --out` UX).
@@ -92,6 +135,7 @@ for (int i = 0; i < args0.Length; i++)
     // the positional form keeps the command unambiguous next to dotnet's own `run --project`.
     else if ((args0[i] == "--project" || args0[i] == "--solution") && i + 1 < args0.Length) rawInputs.Add(args0[++i]);
     else if (args0[i] == "--ref-dir" && i + 1 < args0.Length) refDirs.Add(args0[++i]);
+    else if (args0[i] == "--no-project-refs") noProjectRefs = true;
     else if (args0[i] == "--no-event-leaks") emitEvents = false;
     else if (args0[i] == "--flow-locals") flowLocals = true;
     else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
@@ -102,6 +146,7 @@ for (int i = 0; i < args0.Length; i++)
 if (rawInputs.Count == 0)
 {
     Console.Error.WriteLine("usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [...] [-o|--out facts.json] [--ref-dir <bin-dir>]");
+    Console.Error.WriteLine("       ownsharp-extract --help   for the full option list");
     return 2;
 }
 
@@ -322,6 +367,33 @@ static List<string> SolutionProjects(string sln)
     return projects;
 }
 
+// The built `bin/` output directory of each `.csproj` (or each member project of a `.sln`) among
+// the inputs — the references to auto-derive (P-014 Tier B convenience). Returns only directories
+// that exist, deduped: an unbuilt project contributes nothing (and its third-party events degrade
+// to OWN050, never a crash). The caller adds these to the reference set exactly like a hand-passed
+// `--ref-dir`, so a built/restored project's third-party events bind without one.
+static List<string> ProjectBinDirs(IEnumerable<string> rawInputs)
+{
+    var bins = new List<string>();
+    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    void AddFor(string csproj)
+    {
+        var full = Path.GetFullPath(csproj);
+        if (!File.Exists(full)) return;                       // missing project: nothing to derive
+        var dir = Path.GetDirectoryName(full);
+        if (dir is null) return;
+        var bin = Path.Combine(dir, "bin");
+        if (Directory.Exists(bin) && seen.Add(bin)) bins.Add(bin);
+    }
+    foreach (var p in rawInputs)
+    {
+        if (p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)) AddFor(p);
+        else if (p.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
+            foreach (var proj in SolutionProjects(p)) AddFor(proj);
+    }
+    return bins;
+}
+
 // Expand inputs into their .cs files. A directory is walked recursively; a `.csproj`/`.sln`
 // is resolved to its source set (so `ownsharp-extract App.csproj` / `App.sln` works, the
 // CLI-first project input borrowed from the roslyn-tools tooling shape); an explicit file
@@ -365,6 +437,17 @@ static IEnumerable<string> Expand(IEnumerable<string> roots)
 // MSBuild diagnostic points at the right file even when two files share a name.
 static string Rel(string path) =>
     Path.GetRelativePath(Directory.GetCurrentDirectory(), path).Replace('\\', '/');
+
+// Auto-derive project references (unless --no-project-refs): for a .csproj/.sln input, add its
+// built bin/ output to the reference set so third-party events bind without a hand-passed --ref-dir.
+// Appended to refDirs before the reference set is built; the recursive, first-name-wins --ref-dir
+// loader handles it from there (a framework/TPA simple-name already loaded is never double-added).
+if (!noProjectRefs)
+    foreach (var bin in ProjectBinDirs(rawInputs))
+    {
+        refDirs.Add(bin);
+        Console.Error.WriteLine($"extractor: auto-referencing project output {bin} (--no-project-refs to disable)");
+    }
 
 var inputs = Expand(rawInputs).Distinct().ToList();
 

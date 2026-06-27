@@ -1010,6 +1010,22 @@ jobs:
                <(jq -S . "$RUNNER_TEMP/proj-facts-verb.json") \
             || { echo "FAIL: 'extract --out' verb form disagrees with the bare form"; exit 1; }
           echo "OK: .csproj input resolves to its source set and feeds the core identically (bare == --project == 'extract --out', fact-level parity)"
+          # --help renders the discoverable usage (commands/inputs/options) and exits 0.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- --help > "$RUNNER_TEMP/help.txt"
+          grep -q "Usage:" "$RUNNER_TEMP/help.txt" && grep -q -- "--no-project-refs" "$RUNNER_TEMP/help.txt" \
+            || { echo "FAIL: --help did not render the usage/options"; exit 1; }
+          # --no-project-refs is accepted and (with no bin/ on the sample) yields identical facts.
+          # Guard the precondition: the parity below only holds while the sample is unbuilt, so a
+          # future step that builds it fails here with a clear message, not a confusing facts diff.
+          [ ! -d frontend/roslyn/project-input-sample/bin ] \
+            || { echo "FAIL: sample project must be unbuilt for the --no-project-refs parity check"; exit 1; }
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            --no-project-refs --project frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
+            --out "$RUNNER_TEMP/proj-facts-norefs.json"
+          diff <(jq -S . "$RUNNER_TEMP/proj-facts.json") \
+               <(jq -S . "$RUNNER_TEMP/proj-facts-norefs.json") \
+            || { echo "FAIL: --no-project-refs changed the facts for an unbuilt sample project"; exit 1; }
+          echo "OK: --help renders the option list; --no-project-refs is accepted"
       # explain: the diagnostic-catalogue CLI surface lives in the core (one checker). Smoke
       # it end-to-end — explain a code, and harvest+explain every code in a real findings file.
       - name: explain command (code + --json harvest)

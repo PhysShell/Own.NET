@@ -143,9 +143,24 @@ output — not from `facts.ownir.json`, which carries extractor facts, no codes.
   why it fires, and how to fix it; `--json` harvests every code from a findings/SARIF
   file so you can explain exactly what a run produced.
 
-A `System.CommandLine` migration of the C# tool (auto `--help`, validation) and
-`--ref-dir`-from-project-`bin` auto-derivation remain the next polish — deferred over
-a blind framework swap, since the extractor builds only in CI here.
+### CLI polish (landed) — and why not `System.CommandLine`
+
+Two pieces of the "discoverable CLI" value landed:
+
+- **`-h` / `--help`** — a full hand-rendered usage block (commands, inputs, options), plus
+  a `--help` pointer on the no-input error.
+- **`--ref-dir`-from-project-`bin` auto-derivation** — for a `.csproj`/`.sln` input, the
+  project's built `bin/` output is auto-added to the reference set (the `--ref-dir` you'd
+  otherwise pass by hand), so a built/restored project's third-party events bind to real
+  symbols instead of surfacing as OWN050. `--no-project-refs` opts out; an unbuilt project
+  contributes nothing (no crash, just degrades to OWN050). See `ProjectBinDirs` in `Program.cs`.
+
+We **did not** adopt the `System.CommandLine` package itself. It buys auto-`--help`,
+validation, and completions — but it is a churn-prone *preview* dependency, and the migration
+is a large restructure of a 3,400-line entry point that **builds only in CI here** (no local
+`dotnet`). The hand-rolled help/validation delivers the same user-facing surface at a fraction
+of the risk; the framework swap stays available if tab-completion / generated help ever earns
+its keep.
 
 ## Earlier next-PR sketch (kept for the record)
 

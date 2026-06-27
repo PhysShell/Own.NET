@@ -63,6 +63,13 @@ graph) is the `ProjectDependencies`-category work parked for DI/solution scans, 
 the v0 leak extractor — see
 [`docs/notes/roslyn-tools-and-cli.md`](../../docs/notes/roslyn-tools-and-cli.md).
 
+When the input is a `.csproj`/`.sln`, the project's built `bin/` output is
+**auto-added to the reference set** (the `--ref-dir` you'd otherwise pass by hand),
+so a built/restored project's third-party events (WPF/DevExpress) bind to real
+symbols instead of surfacing as OWN050. `--no-project-refs` opts out; an unbuilt
+project just contributes nothing. Run `dotnet run --project OwnSharp.Extractor -- --help`
+for the full option list.
+
 ## Use it on a real repo / in CI (P-013)
 
 The two stages are chained by one orchestrator script, so you don't run them by
