@@ -836,6 +836,13 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
         except Exception:
             mos = {}
+        # every first-party method name (including overloaded ones dropped from `mos`): the
+        # Tier B BCL table must never fire for a callee we compiled from source — Tier A is
+        # authoritative even with no usable summary (CodeRabbit). Threaded into the freshness
+        # checks so direct calls agree with the wrapper-return path in `_infer_return_skeleton`.
+        first_party = frozenset(
+            str(fn.get("name", "")) for fn in raw_fns
+            if isinstance(fn, dict) and fn.get("name"))
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
@@ -856,7 +863,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             # after the merge) must be declared once at the function's outer scope, or
             # the core rejects the post-merge reference as OWN030 (the bridge branch-
             # scope fix). Pre-declare them here, then skip their in-branch acquire.
-            hoist = _hoisted_branch_locals(nodes, mos)
+            hoist = _hoisted_branch_locals(nodes, mos, first_party)
             hoisted_lets: list[Stmt] = []
             for hname in sorted(hoist):
                 hh = f"loc_{loc[0]}"
@@ -869,7 +876,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
             fbody = [*hoisted_lets,
                      *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                  released, mos, set(hoist))]
+                                  released, mos, set(hoist), first_party)]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1149,16 +1156,27 @@ def _is_bcl_fresh_factory(callee: str) -> bool:
     return name in _BCL_FRESH_FACTORIES or name in _BCL_FRESH_FQNS
 
 
-def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None) -> bool:
+def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None,
+                          first_party: frozenset[str] = frozenset()) -> bool:
     """Whether a `call` to `callee` yields a fresh owned result the caller must release.
     A first-party summary is AUTHORITATIVE — if one exists we trust its `returns`, so a
     same-named first-party `File.OpenRead` (Tier A) overrides the BCL table (Tier B) and is
     never given a fabricated `fresh` (Codex). Only a callee we have no body for falls back to
     the curated BCL factory table. The single source of truth shared by the leak pre-scan,
-    the branch-hoist safety walk, and the flow lowering, so all three agree."""
+    the branch-hoist safety walk, and the flow lowering, so all three agree.
+
+    `first_party` carries Tier A's reach beyond the summary set: a method we compiled from
+    source but DROPPED from `mos` (an overloaded name — see `_build_skeletons`) has no summary,
+    yet the BCL table still must not apply to it, else a dropped/overloaded source `SHA256.Create`
+    would look fresh on a direct call while a wrapper around it (which `_infer_return_skeleton`
+    already excludes) stays silent. Suppress the Tier B fallback for any first-party name so
+    direct and wrapper-returned paths agree (CodeRabbit). Precision-safe: no summary + first-party
+    => no claim (a dropped overload we cannot prove owns its result)."""
     summ = mos.get(callee) if (mos is not None and callee) else None
     if summ is not None:
         return getattr(summ, "returns", None) == "fresh"
+    if callee in first_party:
+        return False
     return _is_bcl_fresh_factory(callee)
 
 
@@ -1384,7 +1402,8 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     return out
 
 
-def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None) -> bool:
+def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None,
+                       first_party: frozenset[str] = frozenset()) -> bool:
     """Whether hoisting `name` to an *unconditional* outer-scope acquire is leak-safe.
 
     Hoisting makes a conditional acquire unconditional, so it is only safe if no path
@@ -1399,7 +1418,7 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None) -> boo
         if n.get("op") == "acquire" and str(n.get("var", "")) == name:
             return True
         if n.get("op") == "call" and str(n.get("result", "")) == name:
-            return _callee_returns_fresh(str(n.get("callee", "")), mos)
+            return _callee_returns_fresh(str(n.get("callee", "")), mos, first_party)
         return False
 
     def analyze(seq: Any, acquired: bool) -> tuple[bool, bool]:
@@ -1433,7 +1452,9 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None) -> boo
 
 
 def _hoisted_branch_locals(nodes: Any,
-                           mos: dict[str, Any] | None) -> dict[str, tuple[int, bool]]:
+                           mos: dict[str, Any] | None,
+                           first_party: frozenset[str] = frozenset(),
+                           ) -> dict[str, tuple[int, bool]]:
     """Locals acquired INSIDE an `if`/`while` branch but referenced after the merge.
 
     The core resolver is strictly lexical: an `if` pushes a scope per branch and pops
@@ -1467,7 +1488,7 @@ def _hoisted_branch_locals(nodes: Any,
         callee, res = n.get("callee"), n.get("result")
         if not (isinstance(res, str) and res and isinstance(callee, str) and callee):
             return None
-        return res if _callee_returns_fresh(callee, mos) else None
+        return res if _callee_returns_fresh(callee, mos, first_party) else None
 
     def note_ref(name: str, depth: int) -> None:
         if name not in ref_depth or depth < ref_depth[name]:
@@ -1513,7 +1534,7 @@ def _hoisted_branch_locals(nodes: Any,
     return {name: (acq_line[name], acq_pool.get(name, False))
             for name, d in acq_depth.items()
             if d >= 1 and ref_depth.get(name, -1) == 0 and name not in loop_acq
-            and _branch_hoist_safe(nodes, name, mos)}
+            and _branch_hoist_safe(nodes, name, mos, first_party)}
 
 
 def _lower_flow(nodes: list[Any], ffile: str, fname: str,
@@ -1521,7 +1542,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 localmap: dict[str, str],
                 released_vars: set[str],
                 mos: dict[str, Any] | None = None,
-                hoisted: set[str] | None = None) -> list[Stmt]:
+                hoisted: set[str] | None = None,
+                first_party: frozenset[str] = frozenset()) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1585,14 +1607,17 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             tn = n.get("then", [])
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
-                                 handles, loc, localmap, released_vars, mos, hoisted)
+                                 handles, loc, localmap, released_vars, mos, hoisted,
+                                 first_party)
             else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
-                                 handles, loc, localmap, released_vars, mos, hoisted)
+                                 handles, loc, localmap, released_vars, mos, hoisted,
+                                 first_party)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
-                                 handles, loc, localmap, released_vars, mos, hoisted)
+                                 handles, loc, localmap, released_vars, mos, hoisted,
+                                 first_party)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1631,7 +1656,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             if isinstance(result, str) and result and result not in hoisted:
                 localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
-                    and _callee_returns_fresh(callee, mos)):
+                    and _callee_returns_fresh(callee, mos, first_party)):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[result] = handle

@@ -1649,6 +1649,24 @@ def run() -> int:
         fails.append("Tier B: a wrapper around a same-named first-party method must inherit "
                      "its (non-fresh) summary, not the BCL table, got "
                      f"{[(x.component, x.code) for x in ov_wrap]}")
+    checks += 1
+    # OVERRIDE on a DIRECT call to an OVERLOADED first-party method (CodeRabbit): an
+    # overloaded source method named `SHA256.Create` is dropped from `mos` (no unique
+    # summary), but it is still first-party — the BCL table must not fire for it, or a
+    # dropped `var h = SHA256.Create(a)` would be a false OWN001 on a direct call while the
+    # wrapper path stays silent. Tier A's reach covers dropped overloads too: no claim.
+    ov_overload = check_facts({"module": "M", "functions": [
+        {"name": "SHA256.Create", "file": "B.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "return", "var": "a", "line": 2}]},
+        {"name": "SHA256.Create", "file": "B.cs",
+         "params": [{"name": "a", "line": 3}, {"name": "b", "line": 3}],
+         "body": [{"op": "return", "var": "a", "line": 4}]},
+        {"name": "Caller4", "file": "B.cs", "body": [
+            {"op": "call", "callee": "SHA256.Create", "args": [], "result": "h", "line": 9}]}]})
+    if ov_overload:
+        fails.append("Tier B: an overloaded (dropped) first-party method with a BCL name must "
+                     "not fall back to the BCL table on a direct call, got "
+                     f"{[(x.component, x.code) for x in ov_overload]}")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after
