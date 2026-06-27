@@ -1117,11 +1117,17 @@ def run() -> int:
     import test_diagnostics
     diag_rc = test_diagnostics.run()
 
+    # `explain` command: the diagnostic-catalogue CLI surface (text + exit codes +
+    # --json code harvest + DI catalogue coverage + dispatch).
+    import test_explain
+    explain_rc = test_explain.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc) else 0
+                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc
+                 or explain_rc) else 0
 
 
 if __name__ == "__main__":

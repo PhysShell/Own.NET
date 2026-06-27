@@ -80,6 +80,88 @@ TITLES = {
     "OWN041": "call argument mismatch",
     # ---- C# front-end resolution coverage (P-014; advisory) ----
     "OWN050": "declaring type unresolved -- leakage analysis skipped",
+    # ---- DI container lifetimes (P-006; emitted by the OwnIR bridge) ----
+    "DI001": "captive dependency: a shorter-lived service is captured by a longer-lived one",
+    "DI002": "singleton captures a scoped service (captive dependency)",
+    "DI003": "singleton captures a transient service (captive dependency)",
+    "DI004": "scoped service resolved from the root provider (captured for the app lifetime)",
+    "DI005": "disposable transient resolved from a long-lived scope (delayed disposal)",
+}
+
+
+# Long-form `explain` text: a paragraph of "what this means / why it leaks / how
+# to fix", keyed by code. The `explain` command (`python -m ownlang explain OWN001`)
+# prints this; a code with no entry here falls back to its one-line TITLE, so the
+# command always answers. Kept deliberately to the codes a user actually meets via
+# the Roslyn extractor pipeline (subscription/disposable/DI), not the whole grammar.
+EXPLANATIONS = {
+    "OWN001": (
+        "An owned resource is acquired but not released on every path out of its owner — "
+        "a possible leak. For a C# event, `target += handler` with no matching `target -= "
+        "handler` keeps the handler (and everything it captures) alive for as long as the "
+        "event source lives.\n"
+        "Fix: release on every path — unsubscribe (`-=`) in Dispose/Unloaded, dispose the "
+        "owned field in the owner's Dispose, or capture and dispose the IDisposable a "
+        "Subscribe() returns."
+    ),
+    "OWN002": (
+        "A resource is used after it was released, so the access touches a freed/disposed "
+        "object.\nFix: move the use before the release, or do not release while the value is "
+        "still needed."
+    ),
+    "OWN003": (
+        "A resource is released twice on some path (double dispose/return).\n"
+        "Fix: release on exactly one path; guard the second release or restructure so the "
+        "branches don't both release."
+    ),
+    "OWN009": (
+        "A resource is used after a release that happens on only *some* paths, so whether the "
+        "value is live depends on the branch taken.\n"
+        "Fix: make release happen on all paths or none before the use, so the state is "
+        "unambiguous at the use site."
+    ),
+    "OWN014": (
+        "A value escapes into a longer-lived region than its own (lifetime promotion) — e.g. a "
+        "ViewModel stored where it outlives the View that owns it.\n"
+        "Fix: keep the value within its region, or transfer ownership explicitly to the "
+        "longer-lived holder so its disposal is accounted for there."
+    ),
+    "OWN025": (
+        "A full-length view (Span/Memory over the whole array) of a pooled buffer reaches past "
+        "the buffer's logical length — ArrayPool.Rent may return a larger array than requested.\n"
+        "Fix: slice to the logical length (`buf.AsSpan(0, len)`) before viewing the rented array."
+    ),
+    "OWN050": (
+        "Advisory, not a leak verdict: the declaring type of a `+=`/`-=` (e.g. a third-party "
+        "WPF/DevExpress event) could not be resolved, so leakage analysis was skipped for it "
+        "rather than guessed (P-014 Tier A). It never fails a build.\n"
+        "Fix (to check it): give the extractor the type's assembly via `--ref-dir <bin>` so the "
+        "SemanticModel can bind the event."
+    ),
+    "DI002": (
+        "A singleton captures a scoped service: the scoped instance is pinned to the singleton "
+        "for the whole app lifetime, defeating per-scope (e.g. per-request) semantics and often "
+        "leaking a DbContext-like object.\n"
+        "Fix: don't inject the scoped service into the singleton — inject a factory "
+        "(`Func<T>` / `IServiceScopeFactory`) and resolve it per use."
+    ),
+    "DI003": (
+        "A singleton captures a transient service: the transient is created once and lives for "
+        "the app lifetime, so its intended short life is lost.\n"
+        "Fix: inject a factory and create the transient per use instead of holding the instance."
+    ),
+    "DI004": (
+        "A scoped service is resolved from the root provider, so it is captured for the whole "
+        "application lifetime instead of the intended scope.\n"
+        "Fix: resolve scoped services from a created scope (`IServiceScopeFactory.CreateScope()`), "
+        "not from the root provider."
+    ),
+    "DI005": (
+        "A disposable transient is resolved from a long-lived scope (often the root): the "
+        "container tracks it and only disposes it when that scope ends, delaying disposal.\n"
+        "Fix: resolve disposable transients within a short-lived scope you dispose, or manage "
+        "their lifetime explicitly."
+    ),
 }
 
 
