@@ -34,6 +34,7 @@ whole point — P-020); a `useMemo`/primitive dep clears it.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 # stability lattice
@@ -41,6 +42,10 @@ STABLE = "stable"
 UNKNOWN = "unknown"
 UNSTABLE = "unstable"
 _RANK = {STABLE: 0, UNKNOWN: 1, UNSTABLE: 2}
+
+# a plain identifier or member chain (`tenantId`, `props.id`) — referentially stable
+# when it has no render-scope binding; anything else (a literal/ctor/call) is not.
+_IDENT = re.compile(r"^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$")
 
 # initialiser kinds the frontend can observe syntactically
 _FRESH = frozenset({"object", "array", "new"})         # fresh identity every render
@@ -144,8 +149,13 @@ class _Lattice:
             return self._stab[name], self._origin.get(name, name), self._path.get(name, (name,))
         b = self._by_name.get(name)
         if b is None:
-            # a name with no render-scope binding is a prop/state/global — stable.
-            return STABLE, name, (name,)
+            # A dep with no render-scope binding: a plain identifier or member chain
+            # (`tenantId`, `props.id`) is a prop/state/global — referentially stable.
+            # A non-identifier dep the frontend forwarded verbatim (`{}`, `new URL(x)`,
+            # `f()`) is NOT provably stable — stay conservative (UNKNOWN, no finding)
+            # rather than assert STABLE and silence a real fresh-identity storm.
+            stab = STABLE if _IDENT.match(name) else UNKNOWN
+            return stab, name, (name,)
         if name in on_stack:
             # an identity cycle (a = b; b = a): cannot prove unstable — stay safe.
             return UNKNOWN, name, (name,)

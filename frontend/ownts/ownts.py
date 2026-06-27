@@ -44,33 +44,79 @@ from dataclasses import dataclass, field
 # --- acquire catalog: how each React acquire maps onto a core resource kind -----
 #
 # Each acquire has (a) a regex that spots the acquire call, (b) the OwnIR `resource`
-# discriminator the core understands, (c) the cleanup verb that releases it, and
-# (d) the EFF id + tag for provenance. The `resource` value is the *only* field the
-# core acts on; `eff`/`profile` ride along as additive provenance the core ignores.
+# discriminator the core understands, and (c) the EFF id + tag for provenance. The
+# `resource` value is the *only* field the core acts on; `eff`/`profile` ride along
+# as additive provenance the core ignores. Whether a *specific* acquire is released
+# is decided per-resource by `_is_released` (matched to its own token/handler — not
+# a kind-level "is there any cleanup verb", which would mark every same-kind acquire
+# released as soon as one is cleaned up).
 @dataclass(frozen=True)
 class Acquire:
     name: str            # human label, e.g. "setInterval"
     pattern: re.Pattern  # spots the acquire call
     resource: str        # OwnIR resource kind: timer / subscribe / subscription
-    release: re.Pattern  # the cleanup verb that releases it
     eff: str             # Own.React catalog id
 
 ACQUIRES: list[Acquire] = [
-    Acquire("setInterval", re.compile(r"\bsetInterval\s*\("),
-            "timer", re.compile(r"\bclearInterval\s*\("), "EFF004"),
-    Acquire("setTimeout", re.compile(r"\bsetTimeout\s*\("),
-            "timer", re.compile(r"\bclearTimeout\s*\("), "EFF004"),
-    Acquire(".subscribe", re.compile(r"\.subscribe\s*\("),
-            "subscribe", re.compile(r"\.unsubscribe\s*\(|\.remove\s*\("), "EFF003"),
+    Acquire("setInterval", re.compile(r"\bsetInterval\s*\("), "timer", "EFF004"),
+    Acquire("setTimeout", re.compile(r"\bsetTimeout\s*\("), "timer", "EFF004"),
+    Acquire(".subscribe", re.compile(r"\.subscribe\s*\("), "subscribe", "EFF003"),
     Acquire("addEventListener", re.compile(r"\.addEventListener\s*\("),
-            "subscription", re.compile(r"\.removeEventListener\s*\("), "EFF003"),
+            "subscription", "EFF003"),
 ]
+
+
+def _lhs_token(setup: str, pos: int) -> str | None:
+    """The variable an acquire's result is bound to, e.g. `id` in
+    `const id = setInterval(...)` or `sub` in `const sub = obs.subscribe(...)`.
+    Scoped to the current statement so an earlier `const` does not bleed in."""
+    head = re.split(r"[;\n{}]", setup[:pos])[-1]
+    m = re.search(r"(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=", head)
+    return m.group(1) if m else None
+
+
+def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
+    """Whether THIS acquire (at `pos` in `setup`) is released by the effect's cleanup
+    — matched to its own handle, so two `setInterval`s with one `clearInterval` leave
+    the other a leak. A resource with no capturable handle (a bare `setInterval(...)`
+    or an ignored `.subscribe(...)` result) can never be released → False."""
+    if acq.resource == "timer":
+        tok = _lhs_token(setup, pos)
+        return bool(tok and re.search(
+            rf"\bclear(?:Interval|Timeout)\s*\(\s*{re.escape(tok)}\b", cleanup))
+    if acq.resource == "subscribe":
+        tok = _lhs_token(setup, pos)
+        return bool(tok and re.search(
+            rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup))
+    if acq.resource == "subscription":  # addEventListener(event, handler)
+        hm = re.search(r"addEventListener\s*\(\s*[^,]+,\s*([A-Za-z_$][\w$.]*)",
+                       setup[pos:])
+        handler = hm.group(1) if hm else None
+        return bool(handler and re.search(
+            rf"removeEventListener\s*\(\s*[^,]+,\s*{re.escape(handler)}\b", cleanup))
+    return False
 
 # A React component is a function whose name is Capitalized (the JSX convention).
 _COMPONENT = re.compile(
-    r"(?:function\s+([A-Z]\w*)\s*\(|"
+    r"(?:function\s+([A-Z]\w*)\b|"
     r"(?:const|let|var)\s+([A-Z]\w*)\s*=\s*(?:\([^)]*\)|\w+)\s*(?::[^=]+)?=>)"
 )
+
+
+def _body_brace(text: str, start: int) -> int:
+    """Index of a component's body `{`, scanning from `start` (just past the name or
+    `=>`). Skips the parameter list by paren depth, so a destructured param
+    `({ x }: { x: T })` is not mistaken for the body block."""
+    depth = 0
+    for i in range(start, len(text)):
+        c = text[i]
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif c == "{" and depth == 0:
+            return i
+    return -1
 _USE_EFFECT = re.compile(r"\buseEffect\s*\(")
 
 
@@ -169,35 +215,77 @@ def _component_at(text: str, idx: int) -> str:
     return name or "AnonymousComponent"
 
 
+def _expr_end(text: str, i: int) -> int:
+    """End index of an expression body — the first top-level `,` or `)` from `i`
+    (so the `, [deps])` tail and the `useEffect(` close are not swallowed)."""
+    depth = 0
+    while i < len(text):
+        c = text[i]
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            if depth == 0:
+                return i
+            depth -= 1
+        elif c == "," and depth == 0:
+            return i
+        i += 1
+    return i
+
+
+def _effect_callback(text: str, after_open: int) -> tuple[str, int, list[str] | None, int]:
+    """Parse `useEffect(<cb>, [deps])` from just past the `(`. Returns
+    (body, body_start, deps, end). Handles BOTH a block `() => { ... }` and an
+    expression `() => fetch(url)` callback — calling `_match_block` blindly on the
+    latter would jump to an unrelated `{` or run off the end. `deps` is None when no
+    dependency array is present; `body` includes the braces for a block callback."""
+    arrow = text.find("=>", after_open)
+    i = (arrow + 2) if arrow != -1 else after_open
+    while i < len(text) and text[i] in " \t\r\n":
+        i += 1
+    if i < len(text) and text[i] == "{":
+        end = _match_block(text, i)
+    else:
+        end = _expr_end(text, i)
+    body = text[i:end]
+    deps_m = re.search(r"\s*,\s*\[([^\]]*)\]", text[end:end + 200])
+    deps = ([d.strip() for d in deps_m.group(1).split(",") if d.strip()]
+            if deps_m else None)
+    return body, i, deps, end
+
+
 def _split_cleanup(body: str) -> tuple[str, str]:
-    """Split an effect body into (setup, cleanup). Cleanup is the block of the
-    `return () => { ... }` the effect hands back to React; setup is the rest."""
-    m = re.search(r"return\s*(?:\(\s*\)|\w+)\s*=>", body)
-    if not m:
-        return body, ""
-    brace = body.find("{", m.end())
-    if brace == -1:
-        # `return () => clearInterval(id)` — single-expression cleanup, no block.
-        nl = body.find("\n", m.end())
-        tail = body[m.end(): nl if nl != -1 else len(body)]
-        return body[: m.start()], tail
-    end = _match_block(body, brace)
-    return body[: m.start()] + body[end:], body[brace:end]
+    """Split an effect block body into (setup, cleanup). Cleanup is the block of the
+    effect's OWN top-level `return () => { ... }` — a `return ... =>` nested inside a
+    callback (brace-depth > 1) is NOT the effect cleanup and must not suppress a
+    leak. For an expression-bodied effect there is no cleanup."""
+    for m in re.finditer(r"return\s*(?:\(\s*\)|\w+)\s*=>", body):
+        prefix = body[:m.start()]
+        if prefix.count("{") - prefix.count("}") != 1:  # 1 == the effect body's own brace
+            continue
+        brace = body.find("{", m.end())
+        if brace == -1:
+            # `return () => clearInterval(id)` — single-expression cleanup, no block.
+            nl = body.find("\n", m.end())
+            tail = body[m.end(): nl if nl != -1 else len(body)]
+            return body[: m.start()], tail
+        end = _match_block(body, brace)
+        return body[: m.start()] + body[end:], body[brace:end]
+    return body, ""
 
 
 def extract(path: str) -> list[Component]:
     text = _strip_comments(open(path, encoding="utf-8").read())
     comps: dict[str, Component] = {}
     for eff in _USE_EFFECT.finditer(text):
-        end = _match_block(text, eff.end())
-        body = text[eff.end():end]
+        body, body_start, _deps, _end = _effect_callback(text, eff.end())
         setup, cleanup = _split_cleanup(body)
         cname = _component_at(text, eff.start())
         comp = comps.setdefault(cname, Component(cname, path))
         for acq in ACQUIRES:
             for hit in acq.pattern.finditer(setup):
-                line = text.count("\n", 0, eff.end() + hit.start()) + 1
-                released = bool(acq.release.search(cleanup))
+                line = text.count("\n", 0, body_start + hit.start()) + 1
+                released = _is_released(acq, setup, hit.start(), cleanup)
                 # the acquire expression, trimmed to the call head for a readable tag
                 snippet = setup[hit.start():].splitlines()[0].strip().rstrip("{").strip()
                 comp.resources.append(
@@ -272,27 +360,45 @@ def _classify_rhs(rhs: str) -> tuple[str, list[str]]:
     return "unknown", []
 
 
+def _render_bindings(text: str) -> dict[str, list[dict]]:
+    """The render-scope binding table per component: only bindings declared DIRECTLY
+    in the component body (brace-depth 1). A `const filters = {...}` inside a
+    `useEffect` callback, an event handler, or any nested block is NOT render scope —
+    it must not shadow the real outer dependency of the same name and mint a false
+    EFF001. Excluding a render-level `if`/`try` binding only costs a missed finding
+    (the dep reads as stable), never a false one — the safe direction."""
+    out: dict[str, list[dict]] = {}
+    for cm in _COMPONENT.finditer(text):
+        name = cm.group(1) or cm.group(2)
+        brace = _body_brace(text, cm.end())  # skips a destructured param list
+        if brace == -1:
+            continue
+        body_end = _match_block(text, brace)
+        body = text[brace + 1:body_end]
+        base = text.count("\n", 0, brace + 1)  # 0-based line index of the body start
+        binds: list[dict] = []
+        for m in _BINDING.finditer(body):
+            prefix = body[:m.start()]
+            if prefix.count("{") != prefix.count("}"):
+                continue  # inside a nested block -> not the component's render scope
+            kind, refs = _classify_rhs(m.group(2))
+            binds.append({"name": m.group(1), "init": kind, "refs": refs,
+                          "line": base + prefix.count("\n") + 1})
+        out[name] = binds
+    return out
+
+
 def extract_effects(path: str) -> list[dict]:
     """Extract the EFF001 stability facts: for each `useEffect`, its dependency list,
     whether its body does network IO, and the render-scope binding table of the
     component it lives in. The core's effects analysis turns these into a verdict."""
     text = _strip_comments(open(path, encoding="utf-8").read())
-    # render-scope bindings, attributed to their enclosing component.
-    binds_by_comp: dict[str, list[dict]] = {}
-    for m in _BINDING.finditer(text):
-        kind, refs = _classify_rhs(m.group(2))
-        binds_by_comp.setdefault(_component_at(text, m.start()), []).append({
-            "name": m.group(1), "init": kind, "refs": refs,
-            "line": text.count("\n", 0, m.start()) + 1,
-        })
+    binds_by_comp = _render_bindings(text)
     effects: list[dict] = []
     for eff in _USE_EFFECT.finditer(text):
-        end = _match_block(text, eff.end())
-        body = text[eff.end():end]
-        deps_m = re.search(r",\s*\[([^\]]*)\]\s*\)", text[end - 1:end + 200])
-        if not deps_m:  # no dep array -> not an EFF001 candidate (by-design re-run cadence)
+        body, _start, deps, _end = _effect_callback(text, eff.end())
+        if deps is None:  # no dep array -> not an EFF001 candidate (by-design re-run cadence)
             continue
-        deps = [d.strip() for d in deps_m.group(1).split(",") if d.strip()]
         cname = _component_at(text, eff.start())
         effects.append({
             "component": cname, "file": path,

@@ -4,7 +4,8 @@
 //
 //   python frontend/ownts/ownts.py frontend/ownts/examples/Dashboard.tsx --check
 //
-// Expect three OWN001 findings (EFF004 timer, EFF003 subscribe, EFF003 listener).
+// Expect three OWN001 findings (EFF004 timer, EFF003 subscribe, EFF003 listener)
+// plus one EFF001 effect-storm finding (the unstable `filters` dependency below).
 import { useEffect } from "react";
 
 export function Dashboard({ tenantId }: { tenantId: string }) {
@@ -28,7 +29,7 @@ export function Dashboard({ tenantId }: { tenantId: string }) {
     // no `return () => window.removeEventListener("resize", onResize)` — leak
   }, []);
 
-  // EFF001 (frontend heuristic only — NOT a core OWN001): `filters` is a fresh
+  // EFF001 (a separate core analysis — NOT an OWN001 leak): `filters` is a fresh
   // object identity every render, and the effect does IO -> request storm.
   const filters = { tenantId };
   useEffect(() => {

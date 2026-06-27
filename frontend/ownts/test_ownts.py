@@ -44,9 +44,16 @@ def main() -> int:
     storm = codes("EffectStorm.tsx")
     assert storm == ["EFF001", "EFF001"], f"EffectStorm -> {storm}"
 
+    # Edge cases: two same-kind timers with only one cleared -> exactly ONE OWN001
+    # (per-resource cleanup matching, not kind-level); a like-named local inside an
+    # effect callback must NOT shadow the memoized render-scope dep into a false
+    # EFF001 (render-scope-only bindings).
+    edges = codes("EffectEdges.tsx")
+    assert edges == ["OWN001"], f"EffectEdges -> {edges}"
+
     print("OwnTS spike OK: leaky=3xOWN001+EFF001, clean=0, kinds=timer/subscribe/"
-          "subscription, EffectStorm=2xEFF001 (core stability analysis, propagation "
-          "+ conservative).")
+          "subscription, EffectStorm=2xEFF001, EffectEdges=1xOWN001 (per-resource "
+          "cleanup + render-scope-only bindings).")
     return 0
 
 

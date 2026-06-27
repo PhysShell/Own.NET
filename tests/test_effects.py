@@ -72,8 +72,9 @@ def run() -> int:
         Effect("D", ("filters",), True, (Binding("filters", "object", (), 32),), "D.tsx", 33)])
     check(len(fire) == 1 and fire[0].dep == "filters" and fire[0].decl_line == 32,
           "IO + unstable dep must fire one EFF001 anchored at the effect line")
-    check("request storm" in fire[0].message and "object literal" in fire[0].message,
-          "the message must name the storm and the unstable kind")
+    if fire:  # guard the deref so a regression reports all failures, not an IndexError
+        check("request storm" in fire[0].message and "object literal" in fire[0].message,
+              "the message must name the storm and the unstable kind")
 
     silent_cases = [
         ("no IO", Effect("D", ("f",), False, (Binding("f", "object", (), 1),), "D.tsx", 2)),
@@ -88,10 +89,13 @@ def run() -> int:
     # derivation finding names the upstream origin and the path.
     derived = find_effect_storms([
         Effect("D", ("c",), True,
-               (Binding("a", "object", (), 1), Binding("c", "ident", ("a",), 2)), "D.tsx", 3)])[0]
-    check(derived.origin == "a" and derived.path == ("c", "a"),
-          "a derived storm must point at the upstream unstable origin")
-    check("derives from 'a'" in derived.message, "the message must explain the derivation")
+               (Binding("a", "object", (), 1), Binding("c", "ident", ("a",), 2)), "D.tsx", 3)])
+    check(len(derived) == 1, "the derived-alias case must produce one EFF001")
+    if derived:
+        d = derived[0]
+        check(d.origin == "a" and d.path == ("c", "a"),
+              "a derived storm must point at the upstream unstable origin")
+        check("derives from 'a'" in d.message, "the message must explain the derivation")
 
     # ---- the OwnIR bridge ----
     facts = {
@@ -108,9 +112,10 @@ def run() -> int:
     findings = check_facts(facts)
     eff = [f for f in findings if f.code == "EFF001"]
     check(len(eff) == 1, f"bridge must yield one EFF001 (memo silent), got {len(eff)}")
-    check(eff[0].file == "Dashboard.tsx" and eff[0].line == 33,
-          "EFF001 must anchor at the effect call site")
-    check(bool(eff[0].flow), "EFF001 must carry a reachability slice (effect -> fix site)")
+    if eff:
+        check(eff[0].file == "Dashboard.tsx" and eff[0].line == 33,
+              "EFF001 must anchor at the effect call site")
+        check(bool(eff[0].flow), "EFF001 must carry a reachability slice (effect -> fix site)")
 
     # the code reaches the SARIF rules catalogue with its title.
     rules = {r["id"]: r["shortDescription"]["text"] for r in
@@ -120,6 +125,12 @@ def run() -> int:
     # malformed effects degrade gracefully (additive/optional, never a crash).
     check(check_facts({"ownir_version": 0, "components": [], "effects": "nope"}) == [],
           "a malformed effects block must not crash check_facts")
+    # a per-entry malformed effect is SKIPPED, not coerced: `deps: "a"` must NOT
+    # become `("a",)` and emit a spurious EFF001 on the direct check_facts() path.
+    coerce = check_facts({"ownir_version": 0, "components": [], "effects": [
+        {"component": "X", "file": "X.tsx", "line": 1, "io": True, "deps": "a",
+         "bindings": [{"name": "a", "init": "object", "refs": [], "line": 1}]}]})
+    check(coerce == [], f"a malformed deps='a' entry must be skipped, got {coerce}")
 
     for f in fails:
         print(f"EFFECTS FAIL: {f}")

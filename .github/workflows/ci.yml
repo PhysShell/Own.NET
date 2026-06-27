@@ -1051,7 +1051,8 @@ jobs:
             || { echo "FAIL: expected three OWN001 leaks"; exit 1; }
           echo "$out" | grep -q "\[EFF001\].*request storm" \
             || { echo "FAIL: expected the EFF001 effect-storm verdict"; exit 1; }
-          echo "$out" | grep -qE "4 finding" \
+          # exact finding count (a code-tagged line each), not a substring of "4 finding"
+          [ "$(echo "$out" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 4 ] \
             || { echo "FAIL: expected 3 OWN001 + 1 EFF001 = 4 findings"; exit 1; }
       - name: EFF001 stability showcase — only provable storms fire (low FP)
         run: |
@@ -1060,17 +1061,28 @@ jobs:
           storm=$(python -m ownlang ownir "$RUNNER_TEMP/storm.facts.json" || true)
           echo "$storm"
           # the direct object dep and its derived alias fire; memo/ref/call/primitive/no-IO stay silent
-          echo "$storm" | grep -qE "2 finding" \
+          [ "$(echo "$storm" | grep -c '\[EFF001\]')" -eq 2 ] \
             || { echo "FAIL: expected exactly two EFF001 (object dep + derived alias)"; exit 1; }
           echo "$storm" | grep -q "derives from" \
             || { echo "FAIL: expected the derivation (propagation) verdict"; exit 1; }
+      - name: Edge cases — partial timer cleanup + nested-scope shadow
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectEdges.tsx \
+            -o "$RUNNER_TEMP/edges.facts.json"
+          edges=$(python -m ownlang ownir "$RUNNER_TEMP/edges.facts.json" || true)
+          echo "$edges"
+          # only the SECOND, uncleared interval leaks; the memoized dep is not shadowed
+          [ "$(echo "$edges" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 1 ] \
+            || { echo "FAIL: expected exactly one OWN001 (the uncleared timer)"; exit 1; }
+          echo "$edges" | grep -q "pollB" \
+            || { echo "FAIL: the leak must be the second (uncleared) interval"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
             -o "$RUNNER_TEMP/clean.facts.json"
           clean=$(python -m ownlang ownir "$RUNNER_TEMP/clean.facts.json" || true)
           echo "$clean"
-          echo "$clean" | grep -q "0 finding" \
+          [ "$(echo "$clean" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
             || { echo "FAIL: cleaned-up + memoised effects must not fire"; exit 1; }
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a

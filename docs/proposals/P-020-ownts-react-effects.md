@@ -156,7 +156,7 @@ has on the .NET side (P-013/P-015); 1/2/6/7 are this proposal's actual work.
 
 ## Open questions
 
-1. **The new analysis for `EFF001/002`.** ✅ **Answered (implemented).** It is a
+1. **The new analysis for `EFF001`.** ✅ **Answered (implemented).** It is a
    genuinely new core analysis, not an `OWN001` acquire-site — and *not* a frontend
    verdict either. The resolution: the frontend emits per-binding **facts** (each
    render-scope binding's syntactic `init` kind + the names it references, the dep
@@ -166,6 +166,8 @@ has on the .NET side (P-013/P-015); 1/2/6/7 are this proposal's actual work.
    effect is `EFF001` iff it does IO **and** a dep is *provably* `UNSTABLE`
    (`UNKNOWN`/memoised/primitive clear it — low false positives). The gating
    discipline held: `EFF001` is its own core code (like `DI001`), never an `OWN001`.
+   `EFF002` (network IO with no stable guard) is intended to reuse this same
+   lattice but is **not yet implemented** — it remains the next increment.
 2. **Confidence tier.** `EFF001` clearly wants TS-mode type info (is the dep an
    object literal? does the body do IO?). What, if anything, survives into JS mode
    (P-017's heuristic tier) as a warning?

@@ -37,7 +37,7 @@ python frontend/ownts/test_ownts.py
 `DashboardClean.tsx` (every acquire has a cleanup `return`, and the unstable dep is
 `useMemo`'d) is silent.
 
-```
+```text
 Dashboard.tsx:13: error: [OWN001] timer 'setInterval(() =>' ... never stopped ... (leak) [resource: timer]
 Dashboard.tsx:21: error: [OWN001] the result of '.subscribe(...)' is ignored ... (leak) [resource: subscription token]
 Dashboard.tsx:27: error: [OWN001] event '.addEventListener(...)' ... never unsubscribed ... (leak) [resource: subscription token]
@@ -71,7 +71,7 @@ each `useEffect`, its dep list, whether the body does IO, and a render-scope
 It does **not** pre-judge stability. The **core** runs an identity-stability lattice
 (`STABLE < UNKNOWN < UNSTABLE`) to a fixpoint over the references and decides:
 
-```
+```text
 EFF001 fires  ⟺  the effect does IO  ∧  some dep is *provably* UNSTABLE
 ```
 

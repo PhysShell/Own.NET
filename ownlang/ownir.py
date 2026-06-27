@@ -2250,22 +2250,37 @@ def _effect_findings(facts: dict[str, Any]) -> list[Finding]:
         return []
     effects: list[ReactEffect] = []
     for e in raw:
+        # Validate each entry's shape and SKIP a malformed one (do not coerce). This
+        # mirrors load(), but also guards the direct check_facts() path (tests /
+        # embedders) that never went through load() — a `deps: "a"` must not become
+        # `("a",)` and emit a spurious EFF001.
         if not isinstance(e, dict):
             continue
-        bindings = tuple(
-            EffectBinding(
-                name=str(b.get("name", "?")),
-                init=str(b.get("init", "unknown")),
-                refs=tuple(str(r) for r in b.get("refs", [])),
-                line=_as_int(b.get("line", 0)),
-            )
-            for b in e.get("bindings", []) if isinstance(b, dict)
-        )
+        deps_raw = e.get("deps", [])
+        io = e.get("io", False)
+        binds_raw = e.get("bindings", [])
+        if (not isinstance(deps_raw, list) or not all(isinstance(d, str) for d in deps_raw)
+                or not isinstance(io, bool) or not isinstance(binds_raw, list)):
+            continue
+        bindings: list[EffectBinding] = []
+        malformed = False
+        for b in binds_raw:
+            refs = b.get("refs", []) if isinstance(b, dict) else None
+            if (not isinstance(b, dict) or not isinstance(b.get("name", ""), str)
+                    or not isinstance(b.get("init", "unknown"), str)
+                    or not isinstance(refs, list) or not all(isinstance(r, str) for r in refs)):
+                malformed = True
+                break
+            bindings.append(EffectBinding(
+                name=str(b.get("name", "?")), init=str(b.get("init", "unknown")),
+                refs=tuple(refs), line=_as_int(b.get("line", 0))))
+        if malformed:
+            continue
         effects.append(ReactEffect(
             component=str(e.get("component", "?")),
-            deps=tuple(str(d) for d in e.get("deps", [])),
-            io=e.get("io") is True,
-            bindings=bindings,
+            deps=tuple(deps_raw),
+            io=io,
+            bindings=tuple(bindings),
             file=str(e.get("file", "?")),
             line=_as_int(e.get("line", 0)),
         ))
