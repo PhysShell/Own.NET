@@ -387,13 +387,29 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
     alias minted inside one branch of an `if` that merges with a non-aliasing path is out of v1
     scope (the bridge emits it straight-line at the wrapper site); the conflicting-merge raise
     in `_join_handle_rid` keeps that loud rather than silently wrong.
-  - **Step 2 — extractor emission (next).** Turn on the Roslyn recogniser branches that emit
-    the `alias_join` flow op for *verified* wrapper / factory / ctor-adopt sites: **(a)** the arg
-    is forwarded to an `aliasOf` position and the method returns that call's result, or **(b)**
-    the arg is stored into a single owning field whose `Dispose()` releases it (§11). Result:
-    **Dapper / Polly** (`BulkheadSemaphoreFactory` → owning fields) modelled explicitly and added
-    as oracle regression anchors that resolve *with a recorded reason* (cross-link
-    `field-notes-patterns.md`).
+  - **Step 2 — extractor emission, ctor-adopt at the construction site (shipped, first slice).**
+    The Roslyn extractor now emits the `alias_join` flow op for a *verified* constructor adopt:
+    `var w = new W(x)` where `W` is first-party and adopts `x` into an owning field. The adopt is
+    proven, never guessed (§11 must-only): `TryAdoptedArgIndex` requires `W` to dispose **exactly
+    one** owning field **unconditionally** in its `Dispose()` (`DisposedOwningFields` — a top-level
+    `_f.Dispose()`/`_f?.Dispose()`, conditional/nested excluded) **and** that field to be assigned
+    **directly from a single ctor parameter** (`_f = p;`); the call must be positional up to that
+    slot. Any ambiguity → no claim. The escape pass gains a matching exception
+    (`IsAdoptedArgOfBoundedWrapper`): the adopted arg stays tracked **only** when the wrapper is a
+    non-`using` local candidate that does not itself escape (`LocalEscapesSyntactically`,
+    deliberately over-approximating so we *decline* rather than fabricate). Then the construction
+    site emits `alias_join var=w src=x` instead of an acquire, so the per-RID core (steps 0/1) does
+    the rest: dispose either → clean, dispose both → OWN003, drop both → one OWN001 on the inner.
+    Validated end-to-end on real C# by `FactoryAdoptSample.cs` in CI (adopt-clean / dispose-inner-
+    clean silent, drop-both OWN001 on the inner once, dispose-both OWN003, and a **non-adopting
+    holder** making no claim so disposing both is not a false double-dispose).
+  - **Step 2 remainder (deferred).** Shape **(a)** — return-alias / caller-side propagation
+    (`var r = Create(reader)` where `Create` returns `aliasOf:reader`) — and the field-store-to-
+    `this` form of (b) (the wrapper adopts into *its own* field across the boundary, e.g. Polly's
+    `BulkheadPolicy(factory())`), plus the cases the v1 gate declines (a `using` or escaping
+    wrapper). These need return-skeleton `aliasOf:i` inference and/or cross-method field analysis;
+    they ride a later slice. Once shape (a) lands, **Dapper / Polly** become oracle regression
+    anchors that resolve *with a recorded reason* (cross-link `field-notes-patterns.md`).
 - **D5.5 — Tier C annotations** (`[OwnTransfers]` / `[MustCallAlias]` + external file).
 - **D5.x — advisory** `OWN051` for `may`/`unknown`, and the strict/pessimistic mode.
 
