@@ -45,6 +45,7 @@ on:
   push:
     branches:
       - claude/zen-pasteur-76hfs1
+      - claude/mos-ownership-summary-n3q3j4
     paths:
       - corpus/oracle-target.txt
 
