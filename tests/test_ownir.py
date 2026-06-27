@@ -1694,9 +1694,12 @@ def run() -> int:
     # P1a (stdlib pack): more curated owned-returning factories. A dropped XmlReader/XmlWriter/
     # JsonDocument result leaks at the factory call (OWN001), the same producer-side contract as
     # File.Open* — both the bare `Type.Method` and the namespace-qualified identity resolve.
-    for fresh_callee, ln in (("XmlReader.Create", 5), ("XmlWriter.Create", 6),
-                             ("JsonDocument.Parse", 7),
-                             ("System.Text.Json.JsonDocument.Parse", 8)):
+    for fresh_callee, ln in (("XmlReader.Create", 5),
+                             ("System.Xml.XmlReader.Create", 6),
+                             ("XmlWriter.Create", 7),
+                             ("System.Xml.XmlWriter.Create", 8),
+                             ("JsonDocument.Parse", 9),
+                             ("System.Text.Json.JsonDocument.Parse", 10)):
         checks += 1
         leak = [(x.code, x.line) for x in _bcl(
             [{"op": "call", "callee": fresh_callee, "args": ["a"], "result": "s", "line": ln}])]
