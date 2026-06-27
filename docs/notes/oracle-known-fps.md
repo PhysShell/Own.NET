@@ -23,15 +23,26 @@ reason: we and the oracles occupy orthogonal niches.
 
 | disposition | count | what happens on re-run |
 |---|---:|---|
-| **Baselined FP** | 12 | moved to "Known FP (baselined)", out of the triage queue |
+| **Fixed in the extractor** | 4 | no longer fire (NLog `WaitForDispose` timers — see below) |
+| **Baselined FP** | 8 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
 | **True-but-benign — kept, baselined-as-sample** | 2 | (protobuf `assorted/` samples) baselined as non-product |
 
-The 12 baselined FPs + the 2 non-product-sample reals = 14 findings, covered by
-**13 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
+The 8 baselined FPs + the 2 non-product-sample reals = 10 findings, covered by
+**9 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
 share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
 drops; the 4 true positives are deliberately **not** suppressed.
+
+**Update (extractor fix landed).** 4 of the original 12 baselined FPs — the NLog
+`AsyncTaskTarget._taskTimeoutTimer`/`_lazyWriterTimer`,
+`AsyncTargetWrapper._lazyWriterTimer`, `BufferingTargetWrapper._flushTimer` timers
+disposed through `WaitForDispose(this Timer)` — are now **fixed at the source**
+(`CallReleasesReceiver`, see root-cause #1) and their baseline entries deleted. A
+live NLog oracle re-run with those entries disabled confirmed it: own-only leak
+total **8 → 4**, the 4 timers absent from both own-only and the baselined section.
+Only `TimeoutContinuation._timeoutTimer` remains baselined (its
+`Interlocked.Exchange(ref _timer, null)` ref-alias is out of the fix's scope).
 
 ## Per-finding verdicts
 
@@ -39,11 +50,11 @@ drops; the 4 true positives are deliberately **not** suppressed.
 
 | field / class | verdict | why |
 |---|---|---|
-| `_timeoutTimer` / TimeoutContinuation | **FP → baseline** | `Dispose()` → `StopTimer()` → `Timer.WaitForDispose()` (ext method) |
-| `_taskTimeoutTimer` / AsyncTaskTarget | **FP → baseline** | `Dispose(bool disposing)` → `Timer.WaitForDispose()` |
-| `_lazyWriterTimer` / AsyncTaskTarget | **FP → baseline** | `Dispose(bool disposing)` → `Timer.WaitForDispose()` |
-| `_lazyWriterTimer` / AsyncTargetWrapper | **FP → baseline** | `CloseTarget()` → `StopLazyWriterThread()` → `Timer.WaitForDispose()` |
-| `_flushTimer` / BufferingTargetWrapper | **FP → baseline** | `CloseTarget()` → `Timer.WaitForDispose()` |
+| `_timeoutTimer` / TimeoutContinuation | **FP → baseline** | `Dispose()` → `StopTimer()` → `Timer.WaitForDispose()` on the `Interlocked.Exchange(ref _timer, null)` result (ref-alias, out of fix scope) |
+| `_taskTimeoutTimer` / AsyncTaskTarget | **FP → fixed** | `Dispose(bool disposing)` → `Timer.WaitForDispose()` (direct field receiver) |
+| `_lazyWriterTimer` / AsyncTaskTarget | **FP → fixed** | `Dispose(bool disposing)` → `Timer.WaitForDispose()` (direct field receiver) |
+| `_lazyWriterTimer` / AsyncTargetWrapper | **FP → fixed** | `CloseTarget()` → `StopLazyWriterThread()` → `Timer.WaitForDispose()` (simple alias) |
+| `_flushTimer` / BufferingTargetWrapper | **FP → fixed** | `CloseTarget()` → `Timer.WaitForDispose()` (simple alias) |
 | `_xmlSource` / XmlParser | **true positive → keep** | never disposed (benign: a `CharEnumerator` over a `StringReader` over a string — no unmanaged resource) |
 | `_reusableFileWriteStream` / FileTarget | **true positive → keep** | never disposed (benign: `ReusableStreamCreator` over a `MemoryStream` — managed memory only) |
 | `_reusableBatchFileWriteStream` / FileTarget | **true positive → keep** | never disposed (same) |
@@ -102,19 +113,22 @@ The baselined FPs cluster into four analyzer limitations. Each baseline entry is
 standing request for the corresponding capability — when it lands, retire the
 entry and let the oracle re-confirm clean.
 
-1. **Interprocedural / custom dispose-sink not traced** *(5 NLog timers,
-   protobuf `Page.xaml.cs` using-block).* Field-disposal recognition only scans
-   top-level `Dispose()` statements for a direct `field.Dispose()`. It misses the
-   dispose-pattern override `Dispose(bool disposing)`, `DisposeAsync`, lifecycle
-   hooks (`CloseTarget()`/`Close()`), helper-method indirection, disposal of a
-   **local alias** of the field, custom dispose-sink methods like
-   `WaitForDispose(this Timer)`, and the `using (preExistingLocal)` statement form.
-   *Fix:* extend `DisposedOwningFields` (extractor) to additional dispose entry
-   points + one level of intra-class call/alias following; longer-term, real
-   interprocedural escape/dispose analysis. The cheap, sound first step
-   (recognise `Dispose(bool disposing)` + `DisposeAsync` direct field disposal) is
-   correct and low-risk but does **not** by itself clear these NLog cases, because
-   their disposal is laundered through a local alias **and** a custom-named sink.
+1. **Custom dispose-sink — MOSTLY FIXED** *(was 5 NLog timers; 4 now cleared, 1
+   remains).* The disposal scan already covers the whole class (so
+   `Dispose(bool disposing)`, `CloseTarget()`, helper methods, simple `var t = _f;`
+   aliases, and null-conditional `_f?.Dispose()` were all already handled) — the one
+   gap was the disposing-method **name**: NLog releases its timers through a custom
+   extension `WaitForDispose(this Timer)`, not a literal `.Dispose()`. **Shipped fix:**
+   `CallReleasesReceiver` (extractor) credits `field.M(...)` as a release when `M` is a
+   first-party extension method whose receiver it disposes — proved by reusing
+   `ConsumesParam` on `M`'s reduced receiver parameter (inspects the real body, follows
+   first-party forwarding, cycle-guarded, IDisposable-only), never guessed from the
+   name. A live NLog re-run confirmed it: own-only 8 → 4, the 4 direct/simple-alias
+   timers cleared. **Still open:** `TimeoutContinuation._timeoutTimer` disposes the
+   result of `Interlocked.Exchange(ref _timer, null)` — a ref-exchange alias not bound
+   to the field — and the protobuf `Page.xaml.cs` `using (preExistingLocal)` local form;
+   both remain baselined until ref-exchange/using-statement alias tracking lands.
+   Corpus fixture: `field-dispose-via-helper`.
 
 2. **No-op `Dispose` not modelled** *(Newtonsoft `TraceJsonReader._textWriter`).*
    We flag any undisposed `IDisposable` structurally, without modelling that the

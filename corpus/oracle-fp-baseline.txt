@@ -20,20 +20,16 @@
 # (fields genuinely never disposed, but wrapping managed-memory-only resources).
 # Those are NOT baselined; they are real catches the oracle's leak query misses.
 
-# --- NLog/NLog : timers disposed through an indirection we don't trace ----------
-# Every one is released via the `WaitForDispose(this Timer, TimeSpan)` extension
-# method (AsyncHelpers.cs) on a local alias of the field — an interprocedural
-# custom dispose-sink the extractor's intra-Dispose() field scan can't see. Two
-# also dispose only in the dispose-pattern override / lifecycle hook (Dispose(bool
-# disposing), CloseTarget()), neither of which the field scan visits.
+# --- NLog/NLog : one timer disposed through an alias we don't yet track ----------
+# The four sibling timer FPs (AsyncTaskTarget._taskTimeoutTimer/_lazyWriterTimer,
+# AsyncTargetWrapper._lazyWriterTimer, BufferingTargetWrapper._flushTimer) were here
+# too, but the CallReleasesReceiver extractor fix now traces their release through
+# the `WaitForDispose(this Timer)` sink (called on the field directly or via a simple
+# `var t = _field;` alias) — confirmed cleared on a live NLog oracle run (own-only
+# 8 -> 4), so they are deleted. Only TimeoutContinuation remains: it disposes the
+# RESULT of `Interlocked.Exchange(ref _timeoutTimer, null)`, a ref-exchange alias the
+# extractor does not yet bind to the field, so the sink call is not seen as a release.
 NLog/NLog | TimeoutContinuation.cs | OWN001 | _timeoutTimer | disposed via Dispose() -> StopTimer() -> Timer.WaitForDispose() on the result of Interlocked.Exchange(ref _timeoutTimer, null) — a ref-exchange alias the extractor does not yet track (CallReleasesReceiver clears the direct/simple-alias siblings, not this one)
-# [fix-pending experiment] The four entries below are cleared by the CallReleasesReceiver
-# extractor fix (commit 6f4818c) — disabled here to confirm on a live NLog oracle run that
-# they no longer fire; if confirmed they are deleted, if they resurface they are restored.
-# NLog/NLog | AsyncTaskTarget.cs | OWN001 | _taskTimeoutTimer | disposed in Dispose(bool disposing) via Timer.WaitForDispose(); dispose-pattern override + custom sink not traced
-# NLog/NLog | AsyncTaskTarget.cs | OWN001 | _lazyWriterTimer | disposed in Dispose(bool disposing) via Timer.WaitForDispose(); dispose-pattern override + custom sink not traced
-# NLog/NLog | AsyncTargetWrapper.cs | OWN001 | _lazyWriterTimer | disposed in CloseTarget() -> StopLazyWriterThread() -> Timer.WaitForDispose(); lifecycle hook + custom sink not traced
-# NLog/NLog | BufferingTargetWrapper.cs | OWN001 | _flushTimer | disposed in CloseTarget() via Timer.WaitForDispose(); lifecycle hook + custom sink not traced
 
 # --- protobuf-net/protobuf-net --------------------------------------------------
 protobuf-net/protobuf-net | ProtoWriter.BufferWriter.cs | OWN001 | _nullWriter | intentional null-object kept attached for pooled reuse; Dispose() documents "don't cascade dispose to the null one"
