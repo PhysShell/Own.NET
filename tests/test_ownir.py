@@ -1380,6 +1380,71 @@ def run() -> int:
         gotn = [(x.component, x.code) for x in ovd]
         fails.append("§10 q2 disagreeing overloads must join to `may` (caller stays "
                      f"silent), got {gotn}")
+    # (Codex P2) a DIRECT call to disagreeing overloads must NOT mis-apply the last same-name
+    # signature: the merged contract is `may`, so `acquire s; C.N(s); release s` stays silent.
+    # (Before the fix the core's last-wins signature consumed s → a false OWN002.)
+    checks += 1
+    ovdir = check_facts({"module": "M", "functions": [
+        {"name": "C.N", "file": "F.cs", "params": [{"name": "b", "line": 1}],
+         "body": [{"op": "use", "var": "b", "line": 2}]},          # borrow
+        {"name": "C.N", "file": "F.cs", "params": [{"name": "a", "line": 5}],
+         "body": [{"op": "release", "var": "a", "line": 6}]},      # consume (defined last)
+        {"name": "dN", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.N", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if ovdir:
+        fails.append("§10 q2 direct call to disagreeing overloads must stay silent (merged "
+                     f"may), got {[(x.component, x.code) for x in ovdir]}")
+    # the same DIRECT path DOES apply consume when every overload agrees: both consume, so
+    # `acquire s; C.M(s); use s` is use-after-consume OWN002 (the channel carries the merged
+    # `must`, not a dropped effect).
+    checks += 1
+    ovdir2 = check_facts({"module": "M", "functions": [
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "release", "var": "b", "line": 6}]},
+        {"name": "dM", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.M", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    gotdm = sorted((x.component, x.code) for x in ovdir2)
+    if gotdm != [("dM", "OWN002")]:
+        fails.append("§10 q2 direct call to agreeing-consume overloads should apply consume "
+                     f"(dM OWN002), got {gotdm}")
+    # (_merge_returns) overloaded FACTORY: every overload returns fresh, so a dropped result
+    # leaks interprocedurally (OWN001 at the call) — the merge restores the `fresh` resolution
+    # that dropping the overloaded name used to lose.
+    checks += 1
+    ovret = check_facts({"module": "M", "functions": [
+        {"name": "C.F", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},
+        {"name": "C.F", "file": "F.cs", "params": [{"name": "p", "line": 4}],
+         "body": [{"op": "acquire", "var": "r", "line": 5},
+                  {"op": "return", "var": "r", "line": 6}]},
+        {"name": "fdrop", "file": "F.cs",
+         "body": [{"op": "call", "callee": "C.F", "args": [], "result": "x", "line": 10}]}]})
+    gotfr = sorted((x.component, x.code) for x in ovret)
+    if gotfr != [("fdrop", "OWN001")]:
+        fails.append("§10 q2 agreeing fresh overloaded factory: dropped result must leak "
+                     f"(fdrop OWN001), got {gotfr}")
+    # when overloads DISAGREE on the return (one fresh, one not), the merge degrades to a
+    # non-fresh return, so a dropped result makes NO claim (precision-first: a real leak via
+    # the fresh overload is a tolerated miss, never a fabricated acquire).
+    checks += 1
+    ovret2 = check_facts({"module": "M", "functions": [
+        {"name": "C.G", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},                 # fresh
+        {"name": "C.G", "file": "F.cs", "params": [{"name": "p", "line": 4}],
+         "body": [{"op": "use", "var": "p", "line": 5}]},                    # no owned return
+        {"name": "gdrop", "file": "F.cs",
+         "body": [{"op": "call", "callee": "C.G", "args": [], "result": "x", "line": 10}]}]})
+    if ovret2:
+        fails.append("§10 q2 disagreeing-return overloads must make no fresh claim (silent), "
+                     f"got {[(x.component, x.code) for x in ovret2]}")
     # --- P-005 D5.1b: the per-call-site ownership-contract channel. The extractor
     #     routes a call's per-argument ownership through fixed sink externs
     #     ($consume / $borrow / $borrow_mut) the bridge pre-declares, so an effect

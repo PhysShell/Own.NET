@@ -110,7 +110,10 @@ class ReturnSkeleton:
 
 @dataclass(frozen=True)
 class MethodSkeleton:
-    key: str  # canonical signature key (stable, collision-free — open question 2)
+    key: str  # method identity the call graph resolves on. NOT a full signature key: the
+    #           extractor names a callee `{Type}.{Method}` with no parameter signature, so
+    #           same-name overloads share a key and are merged conservatively before solving
+    #           (`_merge_skeletons` in ownir.py — note's open question 2, partially addressed).
     params: tuple[ParamSkeleton, ...] = ()
     ret: ReturnSkeleton = field(default_factory=ReturnSkeleton)
     file: str = "?"

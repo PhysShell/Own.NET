@@ -870,13 +870,18 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
         except Exception:
             mos = {}
-        # every first-party method name (including overloaded ones dropped from `mos`): the
-        # Tier B BCL table must never fire for a callee we compiled from source — Tier A is
-        # authoritative even with no usable summary (CodeRabbit). Threaded into the freshness
-        # checks so direct calls agree with the wrapper-return path in `_infer_return_skeleton`.
-        first_party = frozenset(
-            _canonical_callee_name(str(fn.get("name", ""))) for fn in raw_fns
-            if isinstance(fn, dict) and fn.get("name"))
+        # every first-party method name: the Tier B BCL table must never fire for a callee we
+        # compiled from source — Tier A is authoritative even with no usable summary
+        # (CodeRabbit). Threaded into the freshness checks so direct calls agree with the
+        # wrapper-return path in `_infer_return_skeleton`.
+        fp_names = [str(fn.get("name", "")) for fn in raw_fns
+                    if isinstance(fn, dict) and fn.get("name")]
+        first_party = frozenset(_canonical_callee_name(n) for n in fp_names)
+        # Names defined more than once are OVERLOADS. Their merged MOS summary is conservative,
+        # but the core's call-signature table keeps only ONE same-name FnDecl (last-wins), so a
+        # DIRECT `Call` to an overloaded name would mis-apply one overload's effects. Route those
+        # args through the merged contract instead (see the `call` handler in `_lower_flow`).
+        overloaded = frozenset(n for n, c in Counter(fp_names).items() if c > 1)
         for fn in raw_fns:
             if not isinstance(fn, dict):
                 continue
@@ -910,7 +915,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
             fbody = [*hoisted_lets,
                      *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                  released, mos, set(hoist), first_party)]
+                                  released, mos, set(hoist), first_party, overloaded)]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1145,6 +1150,11 @@ _SINK_EXTERN_NAMES = frozenset(e.name for e in _OWNERSHIP_SINK_EXTERNS)
 # borrow contract). The DIRECT `call $borrow_mut [x]` channel is unaffected and keeps
 # full exclusivity through `lower_call`. Kept in sync with `_OWNERSHIP_SINK_EXTERNS`.
 _SINK_PATH_ACTION = {"$consume": "dispose", "$borrow": "borrow"}
+
+# A merged-overload transfer → the sink-extern channel that applies it at a DIRECT call
+# site (so an overloaded name uses its conservative MOS contract, not the core's last-wins
+# signature). `may`/`unknown` map to nothing (plain) — precision-first, never a guess.
+_CHANNEL_FOR_TRANSFER = {Transfer.MUST: "$consume", Transfer.NO: "$borrow"}
 
 
 # Tier B (P-005 D5.3 / P1a contracts): a curated table of well-known BCL *factories* whose
@@ -1639,7 +1649,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 released_vars: set[str],
                 mos: dict[str, Any] | None = None,
                 hoisted: set[str] | None = None,
-                first_party: frozenset[str] = frozenset()) -> list[Stmt]:
+                first_party: frozenset[str] = frozenset(),
+                overloaded: frozenset[str] = frozenset()) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1731,16 +1742,16 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party)
+                                 first_party, overloaded)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1754,12 +1765,25 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             callee = str(n.get("callee", ""))
             raw_args = n.get("args", [])
             summ = mos.get(callee) if (mos is not None and callee) else None
+            if callee in overloaded and summ is not None and isinstance(raw_args, list):
+                # OVERLOADED name: do NOT emit a `Call` resolved against the core's last-wins
+                # signature table (it stores one same-name FnDecl, so it would mis-apply one
+                # overload's effect — a false OWN002 when overloads disagree). Apply the MERGED
+                # MOS contract per argument through the `$consume`/`$borrow` channel instead,
+                # exactly as a FORWARD to this name resolves (`must`→consume, `no`→borrow,
+                # `may`/`unknown`→plain). (Codex P2.)
+                for j, a in enumerate(raw_args):
+                    ps = next((q for q in summ.params if q.index == j), None)
+                    channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
+                    if channel is not None:
+                        body.append(Call(channel,
+                                         [VarRef(localmap.get(str(a), str(a)), line)], line))
             # Only emit the `Call` when the callee is RESOLVABLE — a first-party function
             # with a summary, or a fixed ownership-sink extern. A real extraction surfaces
             # calls to callees we did not lower as functions (BCL / extension methods like
             # `GetRequiredService`); those have no signature, so `lower_call` would raise
             # OWN040. Drop them (no effect, no claim) — precision-safe, never a crash.
-            if (summ is not None or callee in _SINK_EXTERN_NAMES) \
+            elif (summ is not None or callee in _SINK_EXTERN_NAMES) \
                     and callee and isinstance(raw_args, list):
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
