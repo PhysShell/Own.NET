@@ -3,8 +3,9 @@
 
 Pure-Python, no extractor, no dotnet: hand-author method skeletons and assert the
 solved Method Ownership Summaries. Exercises the transfer lattice (must/may/no/
-unknown), the depth-capped bottom-up resolution, recursion/SCC convergence, the
-extern boundary, return-kind resolution (fresh/aliasOf/aliased), and the
+unknown), the summary fixpoint over the call graph's SCC condensation (deep chains
+resolve without a depth cap; recursion is solved, not truncated), the extern
+boundary and its log, return-kind resolution (fresh/aliasOf/aliased), and the
 `summaries[]` serialization.
 
 Run:  python tests/test_ownership.py
@@ -120,30 +121,50 @@ def run() -> int:
     s = solve([_m("Caller", _p(0, PathAction("forward", "Extern", 0)))])  # Extern unsummarized
     expect(_t(s, "Caller", 0) == Transfer.UNKNOWN, "forward to extern -> unknown")
 
-    # --- depth cap ----------------------------------------------------------
-    chain = [
+    # --- deep chains: no depth cap (the SCC condensation bounds the work) -----
+    # A 4-hop forward chain a former depth-3 cap would have degraded to `unknown`
+    # now resolves end-to-end: the consumer at the bottom propagates up exactly.
+    deep = [
         _m("A", _p(0, PathAction("forward", "B", 0))),
         _m("B", _p(0, PathAction("forward", "C", 0))),
-        _m("C", _p(0, PathAction("dispose"))),
+        _m("C", _p(0, PathAction("forward", "D", 0))),
+        _m("D", _p(0, PathAction("dispose"))),
     ]
-    s2, log = solve_with_log(chain, cap=2)
-    expect(s2["A"].params[0].transfer == Transfer.UNKNOWN, "chain past cap=2 -> unknown")
-    expect(any("C#0" in e for e in log), "depth cap is logged, not silent")
+    s2, log = solve_with_log(deep)
+    expect(s2["A"].params[0].transfer == Transfer.MUST, "deep chain resolves (no cap)")
+    expect(log == [], "a fully-summarized graph leaves nothing unresolved")
+
+    # The log is not silent about the one residual unknown: an extern (unsummarized)
+    # forward boundary is named, so a run can see exactly what it could not resolve.
+    _, log2 = solve_with_log([_m("Caller", _p(0, PathAction("forward", "Extern", 0)))])
+    expect(any("Extern#0" in e for e in log2), "extern forward is logged, not silent")
 
     # --- recursion / SCC convergence ----------------------------------------
-    # Mutual recursion that never disposes -> no (and, crucially, terminates).
+    # Mutual recursion that never disposes -> no (the cycle seeds at bottom and the
+    # fixpoint settles at `no`; crucially, it terminates).
     s = solve([
         _m("F", _p(0, PathAction("forward", "G", 0))),
         _m("G", _p(0, PathAction("forward", "F", 0))),
     ])
     expect(_t(s, "F", 0) == Transfer.NO, "mutual recursion w/o dispose -> no (terminates)")
 
-    # Self-recursion with a base-case dispose: provable on some but not all paths
-    # through the recursion -> may (precision-safe; never a hard must).
+    # Self-recursion with a base-case dispose: every *terminating* path disposes (the
+    # recursive edge defers, it does not keep), so the fixpoint resolves it to `must`.
+    # The old depth-broken resolver injected a spurious `no` at the cycle and got the
+    # weaker `may`; the least-fixpoint over the lattice is exact here.
     s = solve([
         _m("Rec", _p(0, PathAction("dispose"), PathAction("forward", "Rec", 0))),
     ])
-    expect(_t(s, "Rec", 0) == Transfer.MAY, "self-recursion + base dispose -> may")
+    expect(_t(s, "Rec", 0) == Transfer.MUST, "self-recursion + base dispose -> must")
+
+    # Mutual recursion where the only ground is a dispose deep in the cycle: the
+    # fixpoint carries it across the SCC, where breaking the cycle at `no` would not.
+    s = solve([
+        _m("P", _p(0, PathAction("forward", "Q", 0))),
+        _m("Q", _p(0, PathAction("dispose"), PathAction("forward", "P", 0))),
+    ])
+    expect(_t(s, "P", 0) == Transfer.MUST, "mutual recursion grounded by dispose -> must")
+    expect(_t(s, "Q", 0) == Transfer.MUST, "the grounding method is must too")
 
     # --- return-kind resolution ---------------------------------------------
     s = solve([_m("Factory", ret=ReturnSkeleton("fresh"))])
