@@ -451,6 +451,11 @@ class _FnGen:
         if isinstance(st, A.Call):
             return [f"{ind}{st.callee}({', '.join(self._arg(a) for a in st.args)});"]
         if isinstance(st, A.AliasJoin):
+            # a (re)declaration of this name shadows any stale buffer bookkeeping from
+            # an earlier same-named buffer, exactly as the Let branch does — else a later
+            # `release {st.name}` could emit that stale cleanup (CodeRabbit).
+            self.buffer_cleanup.pop(st.name, None)
+            self.buffer_vars.pop(st.name, None)
             # `name` is an owning alias of `src` (they share one obligation). Carry
             # the resource/buffer bookkeeping across so a later release of either
             # emits the right cleanup; `src` stays valid (no move-out comment).
