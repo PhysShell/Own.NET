@@ -3,8 +3,8 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Blind cross-tool run on a Redis client — sockets, pipes, connection
-# multiplexers (lots of native/IDisposable resources, async/interprocedural).
-# Large; Infer# build may be partial. Triage oracle-only into field-notes per
-# the oracle.md maintenance requirement.
-StackExchange/StackExchange.Redis
+# Blind cross-tool run on an HTTP client lib — HttpClient/HttpRequestMessage
+# ownership-transfer patterns (the Polly Bulkhead shape that exercised our
+# escape analysis). Triage oracle-only into field-notes per the oracle.md
+# maintenance requirement.
+RestSharp/RestSharp
