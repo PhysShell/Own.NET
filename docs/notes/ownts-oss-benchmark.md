@@ -130,14 +130,19 @@ Hook *libraries* clean up by design, so the honest hunt for a real leak moved to
 (`ScrollToBottom/Composer.js:574`):
 
 ```js
+// as published — transpiled ES5: a `function () {}` cleanup, not an arrow
 target.addEventListener('focus', handleFocus, { capture: true, passive: true });
-return () => target.removeEventListener('focus', handleFocus);   // default capture (false)
+return function () {
+  return target.removeEventListener('focus', handleFocus);       // default capture (false)
+};
 ```
 
 `removeEventListener` must match the capture flag; `capture: true` is added but the
 removal uses the default `false`, so the listener is **never removed** — a new one
-piles up every time `target` changes. This is exactly the capture-mismatch class the
-listener-key matching (P-148/#145) models, and OwnTS flags it. A second real one:
+piles up every time `target` changes. (The cleanup is an ES5 `function () {}`, so it
+is only reachable after the parser change below; the bug is then the capture-mismatch
+class the listener-key matching (P-148/#145) models, not a missing cleanup.) A second
+real one:
 **`@reactuses/core@6.4.0`** passes `onPressed('mouse')` (a freshly *returned*
 function) to both add and remove, so the drag/touch listeners can never be removed.
 
