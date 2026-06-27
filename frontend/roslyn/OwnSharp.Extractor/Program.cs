@@ -150,8 +150,20 @@ static Func<string, bool> SpecMatcher(string spec, string dir)
         else rx.Append(Regex.Escape(c.ToString()));
     }
     rx.Append('$');
-    var regex = new Regex(rx.ToString(), RegexOptions.IgnoreCase);
-    return path => regex.IsMatch(Path.GetRelativePath(dir, path).Replace('\\', '/'));
+    // `.csproj` content is untrusted in CI, and adjacent wildcards (`**/**`, `**/*`) translate to
+    // ambiguous adjacent quantifiers the backtracking .NET engine can blow up on (ReDoS). Bound the
+    // match with a timeout, and treat a timeout as "no match" rather than letting it crash the run.
+    var regex = new Regex(rx.ToString(), RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+    return path =>
+    {
+        var rel = Path.GetRelativePath(dir, path).Replace('\\', '/');
+        try { return regex.IsMatch(rel); }
+        catch (RegexMatchTimeoutException)
+        {
+            Console.Error.WriteLine($"ownsharp-extract: glob match timed out for '{spec}' on '{rel}'; treated as no match");
+            return false;
+        }
+    };
 }
 
 // Resolve a `.csproj` to its C# source set. Doing this the MSBuild way needs a full
