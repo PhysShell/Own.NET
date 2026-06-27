@@ -28,6 +28,31 @@ python -m ownlang ownir facts.json
 #    (OrdersViewModel unsubscribes in Dispose -> nothing reported)
 ```
 
+### Inputs: files, directories, `.csproj`, `.sln`
+
+Inputs may be `.cs` files, directories (walked recursively, skipping `bin`/`obj`/
+generated), a **`.csproj`**, or a **`.sln`** — so you can hand the extractor a
+project or solution the way the borrowed roslyn-tools CLI shape advertises:
+
+```bash
+dotnet run --project OwnSharp.Extractor -- App.csproj -o facts.json     # positional
+dotnet run --project OwnSharp.Extractor -- --project App.csproj -o facts.json
+dotnet run --project OwnSharp.Extractor -- --solution App.sln -o facts.json
+```
+
+A `.csproj` resolves to its source set by scanning the project's directory for
+`*.cs` (the SDK default-compile-items behaviour) plus any concrete linked
+`<Compile Include="..\Shared\Foo.cs" />` outside the project tree — while honouring
+the project's explicit compile set: `<EnableDefaultCompileItems>false` switches to
+include-driven, and `<Compile Remove="...">` subtracts excluded files (so the
+extractor doesn't emit findings from files the project doesn't compile). A `.sln`
+fans out over its member projects. This is a **dependency-free** resolution
+(text/XML glob matching, no MSBuild evaluation) — enough for the common
+Include/Remove forms; full MSBuild evaluation (and the project/package/reference
+graph) is the `ProjectDependencies`-category work parked for DI/solution scans, not
+the v0 leak extractor — see
+[`docs/notes/roslyn-tools-and-cli.md`](../../docs/notes/roslyn-tools-and-cli.md).
+
 ## Use it on a real repo / in CI (P-013)
 
 The two stages are chained by one orchestrator script, so you don't run them by

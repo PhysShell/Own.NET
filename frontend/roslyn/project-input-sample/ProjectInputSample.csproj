@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A throwaway SDK-style project used only to exercise project-file input
+       resolution (pointing ownsharp-extract at App.csproj rather than a file list).
+       It is never built or referenced by the extractor's own build; the extractor
+       reads it only as a source manifest (ProjectCsFiles scans this directory for
+       .cs files the SDK-default way). The CI wpf-extractor job points the extractor
+       at this csproj and asserts the known event leak in CustomerSubscription.cs
+       surfaces as OWN001, proving the project-input seam matches the per-file path. -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -93,18 +93,40 @@ frontend (generics / async / interprocedural dataflow) is explicitly rejected as
   It must **not** decide ownership, join states at merges, reason about borrows,
   or otherwise produce an alternative truth. One checker; the C# side feeds it.
 
-## Next PR (concrete, no scope creep)
+## Project/solution input (landed)
 
-`OwnSharp.Extractor` CLI: turn a `.csproj` into `facts.ownir.json`, then firm up
-the contract and a golden until it's presentable.
+The first borrowed plyushka is real: the extractor now accepts a `.csproj` or
+`.sln` as input (positional or via `--project` / `--solution`), not just a file
+list — the CLI-first project resolution the mature tooling repos start from.
 
 ```bash
-dotnet run --project frontend/roslyn/OwnSharp.Extractor \
-  --project samples/WpfLeakSample/WpfLeakSample.csproj \
-  --out artifacts/facts.ownir.json
+dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+  frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
+  -o artifacts/facts.ownir.json
 python -m ownlang ownir artifacts/facts.ownir.json
-# -> CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged'
+# -> CustomerSubscription.cs:11: warning: [OWN001] event 'bus.CustomerChanged'
 #    is subscribed (handler 'OnCustomerChanged') but never unsubscribed
+```
+
+Resolution is **dependency-free** (text/XML, no MSBuild evaluation): a `.csproj`
+maps to its directory's `*.cs` the SDK default-compile-items way plus concrete
+linked `<Compile>` files; a `.sln` fans out over its member projects (see
+`ProjectCsFiles` / `SolutionProjects` in `Program.cs`). It deliberately stops
+short of the full project/package/reference graph — that is the
+`ProjectDependencies`-category work, parked for DI/solution scans. A
+`wpf-extractor` CI step pins the `.csproj` path to a golden (positional ==
+`--project`).
+
+## Next PR (concrete, no scope creep)
+
+Firm up the rest of the advertised CLI: `extract` / `check` / `explain`
+subcommands (`System.CommandLine`), and `--ref-dir`-from-project-`bin`
+auto-derivation once `ProjectDependencies`-style graph reading lands.
+
+```bash
+ownsharp extract --project App.csproj --out facts.ownir.json
+ownsharp check   --solution App.sln
+ownsharp explain OWN001 --json diagnostic.json
 ```
 
 A facts record carries enough to place and explain the finding — kind, resource,
