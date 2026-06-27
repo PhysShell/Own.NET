@@ -127,7 +127,20 @@ false alarms confined to four named, understood patterns — a real step toward 
 
 ```bash
 # (egress to npm only; github.com is blocked in this environment)
-npm pack @mantine/hooks @react-hookz/web @uidotdev/usehooks usehooks-ts
+# versions pinned to the exact builds benchmarked above, so reruns are reproducible
+npm pack @mantine/hooks@9.4.0 @react-hookz/web@25.2.0 \
+         @uidotdev/usehooks@2.4.1 usehooks-ts@3.1.1
 # extract each tarball, then run ownts.extract + extract_effects + check_facts
 # over every *.js/*.mjs (skip *.d.ts); triage each finding against the source.
 ```
+
+### Soundness of the new matchers
+
+The broadened release matchers stay **fail-closed** — a release-shaped cleanup that
+does not actually release *this* resource still reports the leak, pinned by
+`EffectLeakControl.tsx`: a listener bound to `c1.signal` torn down by `c2.abort()`,
+a `ro.subscribe(a, h)` "released" by `ro.unsubscribe(b, h)`, and a cleanup returned
+only under `if (enabled)` over an unconditional `setInterval` — all three remain
+`OWN001`. The signal is tied to its controller, the observer to its argument list,
+and a conditional cleanup only releases acquires it dominates (co-guarded in the
+same block).

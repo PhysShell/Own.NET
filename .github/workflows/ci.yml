@@ -1132,6 +1132,16 @@ jobs:
           # cleanup, observer.subscribe/unsubscribe — all released, zero findings.
           [ "$(echo "$rw" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
             || { echo "FAIL: real-world cleanup patterns must not be reported"; exit 1; }
+      - name: False-negative controls (wrong controller / args / conditional cleanup) still leak
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectLeakControl.tsx \
+            -o "$RUNNER_TEMP/leak.facts.json"
+          leak=$(python -m ownlang ownir "$RUNNER_TEMP/leak.facts.json" || true)
+          echo "$leak"
+          # a release-shaped cleanup that does not release THIS resource must not be
+          # over-suppressed — all three controls stay OWN001
+          [ "$(echo "$leak" | grep -c 'OWN001')" -eq 3 ] \
+            || { echo "FAIL: broadened matchers must not over-suppress real leaks"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \

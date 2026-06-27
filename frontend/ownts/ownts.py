@@ -121,6 +121,36 @@ def _receiver(text: str, end: int) -> str:
     return m.group(1) if m else ""
 
 
+def _call_args(s: str) -> str | None:
+    """The normalized (whitespace-stripped) argument text of the first call in `s`,
+    e.g. `target,handler` for `.subscribe(target, handler)`. None if no `(`."""
+    i = s.find("(")
+    if i == -1:
+        return None
+    close = _match_pair(s, i, "(", ")")
+    return re.sub(r"\s+", "", s[i + 1:close - 1])
+
+
+def _signal_controller(setup: str, opts: str) -> str | None:
+    """The AbortController whose `signal` an addEventListener options arg uses, so a
+    cleanup is only credited when THAT controller is aborted. `{ signal: c.signal }`
+    → `c`; the shorthand `{ signal }` is resolved back through `const signal =
+    c.signal` / `const { signal } = c` in setup. None when it can't be tied."""
+    m = re.search(r"\bsignal\s*:\s*([A-Za-z_$][\w$.]*)", opts)
+    if m:
+        return re.sub(r"\.signal$", "", m.group(1))
+    if re.search(r"\bsignal\b", opts):  # shorthand `{ signal }`
+        m = re.search(r"(?:const|let|var)\s+signal\s*=\s*([A-Za-z_$][\w$]*)\s*\.\s*signal\b",
+                      setup)
+        if m:
+            return m.group(1)
+        m = re.search(r"(?:const|let|var)\s*\{\s*signal\b[^}]*\}\s*=\s*([A-Za-z_$][\w$]*)",
+                      setup)
+        if m:
+            return m.group(1)
+    return None
+
+
 def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
     """Whether THIS acquire (at `pos` in `setup`) is released by the effect's cleanup
     — matched to its own handle, so two `setInterval`s with one `clearInterval` leave
@@ -135,21 +165,33 @@ def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
         if tok and re.search(
                 rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup):
             return True
-        # a bare `recv.subscribe(...)` (no token) is released by `recv.unsubscribe(...)`
-        # / `recv.disconnect()` on the SAME receiver in cleanup — the observer pattern.
+        # a bare `recv.subscribe(args)` (no token) is released only by a cleanup
+        # `recv.unsubscribe(args)` on the SAME receiver AND the same argument list
+        # (a `disconnect()` with no args tears down everything). Iterating + comparing
+        # in Python gives an exact receiver match (no `otherro` substring) and no
+        # interpolated regex.
         recv = _receiver(setup, pos)
-        return bool(recv and re.search(
-            rf"{re.escape(recv)}\s*\.\s*(?:unsubscribe|disconnect)\s*\(", cleanup))
+        if not recv:
+            return False
+        sub_args = _call_args(setup[pos:])
+        for um in re.finditer(
+                r"([A-Za-z_$][\w$.\[\]]*)\s*\.\s*(?:unsubscribe|disconnect)\s*\(", cleanup):
+            if um.group(1) == recv and _call_args(cleanup[um.end() - 1:]) in ("", sub_args):
+                return True
+        return False
     if acq.resource == "subscription":  # target.addEventListener(event, handler[, opts])
         a = _listener_call(setup[pos:])
         if a is None:
             return False
-        # AbortController: a listener bound to an AbortSignal is released when the
-        # effect aborts the controller — `addEventListener(.., {signal})` torn down by
-        # `controller.abort()` removes every signal-bound listener at once.
+        # AbortController: a signal-bound listener is released only when THE controller
+        # backing that signal is aborted in cleanup — tie `{ signal }` back to its
+        # controller and require `<that controller>.abort()`, not any `.abort()`.
         am = _LISTENER.match(setup[pos:].lstrip())
         opts = (am.group(3) or "") if am else ""
-        if re.search(r"\bsignal\b", opts) and re.search(r"\.abort\s*\(", cleanup):
+        ctrl = _signal_controller(setup, opts)
+        if ctrl and any(
+                ab.group(1) == ctrl for ab in
+                re.finditer(r"([A-Za-z_$][\w$.\[\]]*)\s*\.\s*abort\s*\(", cleanup)):
             return True
         # Otherwise the full listener key is (receiver, event, handler, capture): a
         # listener is released ONLY by a removeEventListener whose whole key matches —
@@ -399,15 +441,20 @@ def _effect_callback(masked: str, after_open: int) -> tuple[str, int, list[str] 
     return body, i, deps, end
 
 
-def _cleanup_span(mbody: str) -> tuple[int, int] | None:
-    """The (start, end) span of the effect's OWN cleanup within `mbody` (the masked
-    body), or None. The cleanup is the `return () => …` directly in the effect
-    callback — possibly inside an `if`/`try`/`.then()` BLOCK, but NOT inside a nested
-    CALLBACK (an event handler defined in the effect). So the test is FUNCTION depth,
-    not brace depth: a block `{` keeps us in the effect; an arrow/`function` body `{`
-    is a new function. A return at function-depth 1 (only the effect body encloses) is
-    the cleanup; deeper is some inner callback's return. The span is returned (not
-    sliced) so the caller can cut it from BOTH the masked and the original body."""
+def _cleanup_span(mbody: str) -> tuple[int, int, int] | None:
+    """`(start, end, cov_start)` for the effect's OWN cleanup within `mbody` (masked),
+    or None. The cleanup is the `return () => …` directly in the effect callback —
+    possibly inside an `if`/`try`/`.then()` BLOCK, but NOT inside a nested CALLBACK. So
+    the test is FUNCTION depth, not brace depth: a block `{` keeps us in the effect; an
+    arrow/`function` body `{` is a new function. A return at function-depth 1 is the
+    cleanup; deeper is some inner callback's return.
+
+    `cov_start` bounds which acquires the cleanup may credit: only acquires at body
+    position `cov_start < p < start` are co-guarded with the cleanup. For a top-level
+    cleanup that is the whole effect body (`cov_start == 0`); for a cleanup inside a
+    block it is that block's `{` (so an acquire OUTSIDE the branch is NOT released by a
+    conditional cleanup); for a *braceless* guard (`if (x) return …`) it is `start`
+    (empty), so a conditionally-returned cleanup releases nothing it does not dominate."""
     # function-body braces: the effect body's own `{` (index 0), plus every `=> {`
     # and `function (...) {`. Every other `{` is a plain block (if/try/for/object).
     fn_braces = {0}
@@ -416,30 +463,35 @@ def _cleanup_span(mbody: str) -> tuple[int, int] | None:
     for fm in re.finditer(r"\bfunction\b[^{;]*?\)\s*\{", mbody):
         fn_braces.add(fm.end() - 1)
     ret_re = re.compile(r"return\s*(?:\(\s*\)|\w+)\s*=>")
-    stack: list[bool] = []  # True where the open brace started a function body
+    stack: list[tuple[bool, int]] = []  # (is_function_body, open_index) per open brace
     fdepth = 0
     i, n = 0, len(mbody)
     while i < n:
         c = mbody[i]
         if c == "{":
             is_fn = i in fn_braces
-            stack.append(is_fn)
+            stack.append((is_fn, i))
             fdepth += 1 if is_fn else 0
             i += 1
             continue
         if c == "}":
-            if stack and stack.pop():
+            if stack and stack.pop()[0]:
                 fdepth -= 1
             i += 1
             continue
         if c == "r" and fdepth == 1:
             m = ret_re.match(mbody, i)
             if m:
+                cov_start = stack[-1][1] if stack else 0  # innermost enclosing block
+                b = max(mbody.rfind(";", 0, i), mbody.rfind("{", 0, i),
+                        mbody.rfind("}", 0, i))
+                if re.search(r"\b(?:if|else|for|while)\b", mbody[b + 1:i]):
+                    cov_start = m.start()  # braceless conditional guard -> covers nothing
                 rest = mbody[m.end():]
                 stripped = rest.lstrip()
                 if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
                     brace = m.end() + (len(rest) - len(stripped))
-                    return (m.start(), _match_block(mbody, brace))
+                    return (m.start(), _match_block(mbody, brace), cov_start)
                 # single-expression cleanup — consume the WHOLE expression across line
                 # breaks, stopping at a top-level `;` or the effect body's own close.
                 j, depth = m.end(), 0
@@ -454,7 +506,7 @@ def _cleanup_span(mbody: str) -> tuple[int, int] | None:
                     elif cj == ";" and depth == 0:
                         break
                     j += 1
-                return (m.start(), j)
+                return (m.start(), j, cov_start)
         i += 1
     return None
 
@@ -468,11 +520,12 @@ def extract(path: str) -> list[Component]:
         body_o = text[body_start:end]  # original (unmasked) body — same positions
         span = _cleanup_span(body_m)
         if span:
-            cs, ce = span
+            cs, ce, cov_start = span
             setup_m = body_m[:cs] + body_m[ce:]
             setup_o = body_o[:cs] + body_o[ce:]
             cleanup_o = body_o[cs:ce]
         else:
+            cs = ce = cov_start = -1
             setup_m, setup_o, cleanup_o = body_m, body_o, ""
         cname = _component_at(masked, eff.start())
         comp = comps.setdefault(cname, Component(cname, path))
@@ -481,9 +534,16 @@ def extract(path: str) -> list[Component]:
             # decide release on the ORIGINAL setup/cleanup (so event-name strings and
             # handles are intact for the full-key comparison).
             for hit in acq.pattern.finditer(setup_m):
-                abs_pos = body_start + hit.start()
+                # map the setup position back to the body (the cleanup span was cut out)
+                sp = hit.start()
+                bp = sp if (cs < 0 or sp < cs) else sp + (ce - cs)
+                abs_pos = body_start + bp
                 line = masked.count("\n", 0, abs_pos) + 1
-                released = _is_released(acq, setup_o, hit.start(), cleanup_o)
+                # a conditional cleanup only releases acquires it dominates (co-guarded
+                # in the same block); an acquire outside that block keeps its own cleanup
+                # empty, so a `return` guarded by a branch cannot silence it.
+                covered = cs < 0 or cov_start < bp < cs
+                released = _is_released(acq, setup_o, sp, cleanup_o if covered else "")
                 # the acquire expression for the tag — from the ORIGINAL text, so the
                 # message shows the real call (string args intact), trimmed to one line.
                 snippet = text[abs_pos:].splitlines()[0].strip().rstrip("{").strip()
