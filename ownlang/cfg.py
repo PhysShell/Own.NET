@@ -152,13 +152,24 @@ class BorrowEnd:
 
 
 @dataclass
+class AliasJoin:
+    """`handle` becomes a new owning alias of `src`'s resource obligation (its
+    RID): the two handles denote one underlying resource. Releasing/escaping
+    either discharges it; releasing both is a double-release. The T4 wrap/adopt
+    primitive (P-005 D5.4). `src` is NOT invalidated (unlike `MoveInto`)."""
+    handle: Symbol
+    src: Symbol
+    line: int
+
+
+@dataclass
 class Return:
     sym: Symbol | None
     line: int
 
 
 Instr = (Acquire | AcquireBuffer | MoveInto | Release | Use | Overspan | Invoke
-         | BorrowStart | BorrowEnd | Return)
+         | BorrowStart | BorrowEnd | AliasJoin | Return)
 
 
 # ---------------------------------------------------------------------------
@@ -354,6 +365,8 @@ class _Builder:
             return cur
         if isinstance(st, A.Call):
             return self.lower_call(st, cur)
+        if isinstance(st, A.AliasJoin):
+            return self.lower_alias_join(st, cur)
         if isinstance(st, A.BorrowBlock):
             return self.lower_borrow(st, cur)
         if isinstance(st, A.If):
@@ -423,6 +436,28 @@ class _Builder:
             dst.type_name = "int"
             return cur
         assert_never(rhs)
+
+    def lower_alias_join(self, st: A.AliasJoin, cur: Block) -> Block:
+        """`name` joins `src`'s resource obligation as a new owning alias. `src`
+        must be an owned resource; `name` is a fresh owning handle that shares
+        `src`'s RID (and inherits its origin/type/kind so a per-RID finding
+        attributes to the one underlying resource). Unlike `move`, `src` stays
+        owning."""
+        src = self.lookup(st.src, st.line)
+        if src is not None and src.kind != Kind.OWNED:
+            self.diags.append(Diagnostic(
+                "OWN034",
+                f"cannot alias '{st.src}': it is not an owned resource "
+                f"({src.kind.name.lower()})", st.line))
+            src = None
+        handle = self.declare(st.name, Kind.OWNED, st.line)
+        if src is not None:
+            handle.origin = src.origin
+            handle.type_name = src.type_name
+            handle.resource_kind = src.resource_kind
+            handle.buffer = src.buffer
+            cur.instrs.append(AliasJoin(handle, src, st.line))
+        return cur
 
     def lower_buffer(self, st: A.Let, rhs: A.BufferIntent, cur: Block) -> Block:
         if rhs.ns != "Buffer":

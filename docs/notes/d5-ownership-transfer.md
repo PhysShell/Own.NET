@@ -359,13 +359,41 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
     C#-extractor table (the bool literal is a per-call-site fact the extractor sees), so it is
     CI/C#-only, not a pure-Python slice.
 - **D5.4 — T4 wrap/adopt** (the obligation-identity model, §11). Lands in a **three-commit
-  cadence** so the core change is de-risked: **(step 0)** a *no-op identity refactor* —
-  move resource state from per-binding to per-RID with a 1:1 binding↔RID mapping, behaviour
-  unchanged, validated against the green D5.0–D5.3 corpus; **(step 1)** add the `alias_join`
-  lowering; **(step 2)** turn on the extractor branches that emit `aliasOf:i` for *verified*
-  wrapper / factory / ctor-adopt sites. Result: **Dapper / Polly** modelled explicitly and
-  added as oracle regression anchors that now resolve *with a recorded reason* (cross-link
-  `field-notes-patterns.md`).
+  cadence** so the core change is de-risked.
+  - **Step 0 — the no-op RID identity refactor (shipped).** Resource state in the core flow
+    analysis (`analysis.py`) moved from per-binding to per-**RID**: `State.var` is keyed by an
+    obligation id, and a handle (local/param `Symbol`) denotes a RID through `State.handle_rid`.
+    The mapping is **1:1** (each `acquire`/owned-param `mint`s its own RID, `RID == id(sym)`),
+    so the analysis is byte-for-byte the pre-RID behaviour — the whole green corpus is the
+    proof. `join` merges `handle_rid` and raises (always-on, `-O`-safe) on a conflicting
+    mapping, locking the single-mapping invariant. Tested directly in `test_rid.py` (rid_of
+    1:1 default, mint, the join union/raise, and end-to-end leak/release/double/return-escape
+    unchanged).
+  - **Step 1 — the `alias_join` lowering (shipped).** A new core primitive `AliasJoin(handle,
+    src)` (AST + CFG + `analysis.step`) makes `handle` a **new owning alias of `src`'s RID**:
+    the two handles denote one obligation, `src` stays owning (unlike `move`). Because state
+    lives on the RID, the existing per-RID checks now do T4 for free — releasing or escaping
+    through **either** alias discharges the one resource (clean), a leak of the shared RID is
+    reported **once**, releasing **both** is OWN003, and using either after release is OWN002.
+    The OwnIR bridge lowers an `alias_join` flow op (`var` = the new owning handle, `src` = the
+    adopted local) to it; an `alias_join` over an untracked `src` makes no claim (optimistic-
+    silent, the v1 must-only rule, §11). **T4a ≡ T4b**: one primitive, two extractor recognisers
+    (step 2). The **Dapper precision win** is proven — a factory that acquires `inner` locally,
+    `alias_join`s a wrapper `w`, and **returns `w`** drops `inner` as a local but its obligation
+    escaped through `w`, so per-RID evaluation reports **no leak** (the own-only-0-with-a-reason
+    case the model exists for). Tests in `test_ownir.py` (release-wrapper / release-inner clean,
+    drop-both leaks once, double-release OWN003, use-after-release OWN002, untracked-src silent,
+    return-wrapper precision). *Limitation (deferred):* `alias_join` is straight-line only — an
+    alias minted inside one branch of an `if` that merges with a non-aliasing path is out of v1
+    scope (the bridge emits it straight-line at the wrapper site); the conflicting-merge raise
+    in `_join_handle_rid` keeps that loud rather than silently wrong.
+  - **Step 2 — extractor emission (next).** Turn on the Roslyn recogniser branches that emit
+    the `alias_join` flow op for *verified* wrapper / factory / ctor-adopt sites: **(a)** the arg
+    is forwarded to an `aliasOf` position and the method returns that call's result, or **(b)**
+    the arg is stored into a single owning field whose `Dispose()` releases it (§11). Result:
+    **Dapper / Polly** (`BulkheadSemaphoreFactory` → owning fields) modelled explicitly and added
+    as oracle regression anchors that resolve *with a recorded reason* (cross-link
+    `field-notes-patterns.md`).
 - **D5.5 — Tier C annotations** (`[OwnTransfers]` / `[MustCallAlias]` + external file).
 - **D5.x — advisory** `OWN051` for `may`/`unknown`, and the strict/pessimistic mode.
 

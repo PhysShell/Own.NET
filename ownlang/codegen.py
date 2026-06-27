@@ -450,6 +450,22 @@ class _FnGen:
                     f"// full-length view over the pooled tail (over-read)"]
         if isinstance(st, A.Call):
             return [f"{ind}{st.callee}({', '.join(self._arg(a) for a in st.args)});"]
+        if isinstance(st, A.AliasJoin):
+            # a (re)declaration of this name shadows any stale buffer bookkeeping from
+            # an earlier same-named buffer, exactly as the Let branch does — else a later
+            # `release {st.name}` could emit that stale cleanup (CodeRabbit).
+            self.buffer_cleanup.pop(st.name, None)
+            self.buffer_vars.pop(st.name, None)
+            # `name` is an owning alias of `src` (they share one obligation). Carry
+            # the resource/buffer bookkeeping across so a later release of either
+            # emits the right cleanup; `src` stays valid (no move-out comment).
+            if st.src in self.buffer_cleanup:
+                self.buffer_cleanup[st.name] = self.buffer_cleanup[st.src]
+            if st.src in self.buffer_vars:
+                self.buffer_vars[st.name] = self.buffer_vars[st.src]
+            self.owned_resource[st.name] = self.owned_resource.get(st.src, "")
+            return [f"{ind}var {st.name} = {st.src}; "
+                    f"// owning alias of {st.src} (shared obligation)"]
         if isinstance(st, A.BorrowBlock):
             kind = "mutable" if st.kind == A.BorrowKind.MUT else "shared"
             rt = self.owned_resource.get(st.owner, "")
