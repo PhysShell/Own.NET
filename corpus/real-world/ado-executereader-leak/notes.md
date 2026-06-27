@@ -9,7 +9,10 @@ until finalization — the single most common real-world ADO.NET resource leak.
 - **after.cs** — `using var reader = …` disposes it on every path → clean.
 
 Recognised by the extractor's `IsOwningFactory` (P1a, ADO.NET tranche): matched by method
-name + the resolved return type implementing `System.Data.IDataReader`, so it covers every
+name + **both** the receiver and the return type implementing the `System.Data` contract
+interfaces — the receiver an `IDbCommand` and the return an `IDataReader` — so it covers every
 provider (`SqlDataReader`, `NpgsqlDataReader`, …), the abstract `DbDataReader`, and the
-interface. Sibling members `CreateCommand` (→ `IDbCommand`) and `BeginTransaction`
-(→ `IDbTransaction`) are recognised the same way.
+interface, while a non-ADO helper that merely exposes an `ExecuteReader` returning a borrowed
+reader is not mistaken for an owned factory. Sibling members `CreateCommand`
+(`IDbConnection` → `IDbCommand`) and `BeginTransaction` (`IDbConnection` → `IDbTransaction`)
+are recognised the same way.

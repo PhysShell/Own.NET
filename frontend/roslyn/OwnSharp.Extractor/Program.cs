@@ -2300,21 +2300,29 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
         && !AnyDisposableArgument(i, model))
         return true;
     // ADO.NET owned-returning members — the canonical real-world disposable leak. These are
-    // INSTANCE methods on a connection/command/transaction, but the acquire path (op="acquire")
-    // does not care static-vs-instance, and the receiver is not an argument so it is never
-    // dropped. Provider types vary (SqlCommand / NpgsqlCommand / SqliteCommand / ...), so match
-    // by method name + the RESOLVED return type implementing the System.Data contract interface,
-    // which covers every provider, the abstract base (DbDataReader/DbCommand/DbTransaction), and
-    // the interface itself:
-    //   * ExecuteReader()     -> a DbDataReader the caller must dispose (also frees the cursor)
-    //   * CreateCommand()     -> a DbCommand the caller must dispose
-    //   * BeginTransaction()  -> a DbTransaction the caller must dispose
+    // INSTANCE methods on a connection/command, but the acquire path (op="acquire") does not care
+    // static-vs-instance, and the receiver is not an argument so it is never dropped. Provider
+    // types vary (SqlCommand / NpgsqlCommand / SqliteCommand / ...), so match by method name + the
+    // RESOLVED types implementing the System.Data contract interfaces, which covers every provider,
+    // the abstract base (DbDataReader/DbCommand/DbTransaction), and the interface itself. BOTH the
+    // RECEIVER and the RETURN are pinned (like every other factory branch verifies its declaring
+    // type), so a non-ADO helper that merely exposes an `ExecuteReader` returning a borrowed/cached
+    // IDataReader is NOT mistaken for an owned factory (Codex):
+    //   * IDbCommand.ExecuteReader()    -> a DbDataReader the caller must dispose (frees the cursor)
+    //   * IDbConnection.CreateCommand() -> a DbCommand the caller must dispose
+    //   * IDbConnection.BeginTransaction() -> a DbTransaction the caller must dispose
     // Arguments are non-disposable (CommandBehavior / IsolationLevel enums); the guard keeps any
     // odd overload from dropping a disposable input.
     if (!AnyDisposableArgument(i, model)
-        && ((sym.Name == "ExecuteReader" && ImplementsSystemDataInterface(sym.ReturnType, "IDataReader"))
-            || (sym.Name == "CreateCommand" && ImplementsSystemDataInterface(sym.ReturnType, "IDbCommand"))
-            || (sym.Name == "BeginTransaction" && ImplementsSystemDataInterface(sym.ReturnType, "IDbTransaction"))))
+        && ((sym.Name == "ExecuteReader"
+             && ImplementsSystemDataInterface(sym.ContainingType, "IDbCommand")
+             && ImplementsSystemDataInterface(sym.ReturnType, "IDataReader"))
+            || (sym.Name == "CreateCommand"
+                && ImplementsSystemDataInterface(sym.ContainingType, "IDbConnection")
+                && ImplementsSystemDataInterface(sym.ReturnType, "IDbCommand"))
+            || (sym.Name == "BeginTransaction"
+                && ImplementsSystemDataInterface(sym.ContainingType, "IDbConnection")
+                && ImplementsSystemDataInterface(sym.ReturnType, "IDbTransaction"))))
         return true;
     return false;
 }
