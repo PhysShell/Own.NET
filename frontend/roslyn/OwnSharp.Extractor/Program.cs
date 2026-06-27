@@ -2299,8 +2299,32 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
         // overloads have no disposable arg and still resolve. (precision over recall.)
         && !AnyDisposableArgument(i, model))
         return true;
+    // ADO.NET owned-returning members — the canonical real-world disposable leak. These are
+    // INSTANCE methods on a connection/command/transaction, but the acquire path (op="acquire")
+    // does not care static-vs-instance, and the receiver is not an argument so it is never
+    // dropped. Provider types vary (SqlCommand / NpgsqlCommand / SqliteCommand / ...), so match
+    // by method name + the RESOLVED return type implementing the System.Data contract interface,
+    // which covers every provider, the abstract base (DbDataReader/DbCommand/DbTransaction), and
+    // the interface itself:
+    //   * ExecuteReader()     -> a DbDataReader the caller must dispose (also frees the cursor)
+    //   * CreateCommand()     -> a DbCommand the caller must dispose
+    //   * BeginTransaction()  -> a DbTransaction the caller must dispose
+    // Arguments are non-disposable (CommandBehavior / IsolationLevel enums); the guard keeps any
+    // odd overload from dropping a disposable input.
+    if (!AnyDisposableArgument(i, model)
+        && ((sym.Name == "ExecuteReader" && ImplementsSystemDataInterface(sym.ReturnType, "IDataReader"))
+            || (sym.Name == "CreateCommand" && ImplementsSystemDataInterface(sym.ReturnType, "IDbCommand"))
+            || (sym.Name == "BeginTransaction" && ImplementsSystemDataInterface(sym.ReturnType, "IDbTransaction"))))
+        return true;
     return false;
 }
+
+// True if `t` IS, or implements, the named `System.Data` interface (e.g. IDataReader). Covers a
+// provider's concrete type (SqlDataReader), the abstract base (DbDataReader), and the interface.
+static bool ImplementsSystemDataInterface(ITypeSymbol? t, string iface) =>
+    t is not null
+    && ((t.Name == iface && IsInNamespace(t as INamedTypeSymbol, "System", "Data"))
+        || t.AllInterfaces.Any(i => i.Name == iface && IsInNamespace(i, "System", "Data")));
 
 // True if any argument to the call resolves to a type implementing IDisposable — a disposable
 // the callee might NOT take ownership of, so an enclosing owned-factory claim must be declined
