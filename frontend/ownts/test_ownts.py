@@ -57,6 +57,19 @@ def main() -> int:
     hardening = codes("EffectHardening.tsx")
     assert hardening == ["OWN001", "EFF001"], f"EffectHardening -> {hardening}"
 
+    # Real-world cleanup patterns from the OSS benchmark (AbortController signal,
+    # ref/pre-declared timer handles, cleanup returned from a nested block,
+    # observer.subscribe released by observer.unsubscribe) must all read as released.
+    real = codes("EffectRealWorld.tsx")
+    assert real == [], f"EffectRealWorld should be silent -> {real}"
+
+    # False-negative controls: a release-shaped cleanup that does NOT release THIS
+    # resource (wrong AbortController, mismatched unsubscribe args, a conditionally
+    # returned cleanup over an unconditional acquire) must STILL report the leak —
+    # the broadened matchers must not over-suppress.
+    leaks = codes("EffectLeakControl.tsx")
+    assert leaks == ["OWN001", "OWN001", "OWN001"], f"EffectLeakControl -> {leaks}"
+
     # an expression-bodied cleanup whose removeEventListener carries an options
     # object must parse (the `{` belongs to the call, not the cleanup block) — the
     # listener is released, so no false-positive leak.
