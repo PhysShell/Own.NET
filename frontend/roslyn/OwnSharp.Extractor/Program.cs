@@ -2494,6 +2494,27 @@ static bool DisposesLocal(SyntaxNode body, string name)
     return false;
 }
 
+// Does the call `recv.M(...)` RELEASE its receiver — i.e. is `M` a first-party
+// EXTENSION method whose body disposes the value it is invoked on? The dispose is
+// then laundered through a custom "drain and dispose" sink (e.g. NLog's
+// `timer.WaitForDispose(timeout)`, which calls `timer.Change(...)` then disposes
+// it) rather than a literal `recv.Dispose()`, so the disposal scan that only keys
+// on `Dispose`/`Close`/`DisposeAsync` misses it and reports a false leak. We reuse
+// `ConsumesParam` on the reduced extension method's RECEIVER parameter (the
+// `this T` at index 0): that inspects M's real body, follows first-party
+// forwarding, is cycle-guarded, and demands an IDisposable param — so we only ever
+// credit a release we can SEE happen, never an unknown/borrowing callee. Scope is
+// deliberately narrow (extension methods only): an instance method disposing its
+// own `this` is not a real dispose-delegation shape, and widening to it would also
+// have to reason about virtual dispatch — left out to keep the surface minimal.
+static bool CallReleasesReceiver(IMethodSymbol? sym, SemanticModel model)
+{
+    if (sym?.ReducedFrom is not { } def || def.Parameters.Length == 0)
+        return false;
+    return ConsumesParam(def, def.Parameters[0], model,
+                         new HashSet<ISymbol>(SymbolEqualityComparer.Default));
+}
+
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
 // semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
 // the value, so injected/borrowed disposables are not flagged. Timer types are
@@ -3300,8 +3321,13 @@ foreach (var (file, tree) in parsed)
         // `this`/bare receiver syntactically.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
-                && m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
-                && ThisFieldName(m.Expression) is { } df)
+                && ThisFieldName(m.Expression) is { } df
+                // a literal `.Dispose()/.Close()/.DisposeAsync()`, OR a first-party
+                // extension method that disposes its receiver (`timer.WaitForDispose()`):
+                // both release the field. The name check is first (cheap) — the symbol
+                // resolution behind CallReleasesReceiver only runs for the rarer custom call.
+                && (m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                    || CallReleasesReceiver(model.GetSymbolInfo(inv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(m.Expression).Symbol is ILocalSymbol ls
                              && aliasToField.TryGetValue(ls, out var fa) ? fa : df);
         // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
@@ -3312,8 +3338,9 @@ foreach (var (file, tree) in parsed)
         // (The same alias-by-symbol translation applies — `cts?.Dispose()` on an aliasing local.)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
             if (ThisFieldName(cae.Expression) is { } cdf   // this-instance field / alias only (not `other._f?.Close()`)
-                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
-                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close")
+                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb } cinv
+                && (mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                    || CallReleasesReceiver(model.GetSymbolInfo(cinv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
                              && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
 
