@@ -154,7 +154,7 @@ has on the .NET side (P-013/P-015); 1/2/6/7 are this proposal's actual work.
 2. **Confidence tier.** `EFF001` clearly wants TS-mode type info (is the dep an
    object literal? does the body do IO?). What, if anything, survives into JS mode
    (P-017's heuristic tier) as a warning?
-3. **Overlap with P-017's `OWNTS003/004`.** `EFF003/004` restate the cleanup rules
-   from the OwnTS authoring surface — keep one canonical home (the `Own.React`
-   profile here) and have P-017's ESLint rules reference it, not duplicate the
-   semantics.
+3. **Overlap with P-017's cleanup rules.** `EFF004`/`EFF003`/`EFF005` (timer /
+   `subscribe` / `AbortController`) restate the OwnTS authoring rules
+   `OWNTS002`/`003`/`004` — keep one canonical home (the `Own.React` profile here)
+   and have P-017's ESLint rules reference it, not duplicate the semantics.

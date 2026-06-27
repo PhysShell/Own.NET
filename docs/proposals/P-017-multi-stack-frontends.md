@@ -132,8 +132,10 @@ surface in this ecosystem (`npm install`, drop into an existing config):
 The `useEffect`/React rows above are the authoring surface; the deeper **`Own.React`
 effect profile** (the `EFF001–005` catalog, the effect-storm analysis, and the
 honest Cloudflare framing) is specified in
-[P-020](P-020-ownts-react-effects.md). `OWNTS003/004` and `EFF003/004` are the same
-cleanup semantics — P-020 is the canonical home; the ESLint rules reference it.
+[P-020](P-020-ownts-react-effects.md). The cleanup rules overlap one-to-one with the
+`Own.React` catalog — `OWNTS002`/`003`/`004` (timer / `subscribe` / `AbortController`)
+are the same semantics as `EFF004`/`EFF003`/`EFF005` respectively — so P-020 is the
+canonical home and the ESLint rules reference it rather than redefine it.
 
 ```
 eslint-plugin-own        ← authoring rules for JS/TS (the user-facing surface)
@@ -142,9 +144,12 @@ ownlang/ (core)          ← OwnIR → diagnostics            (unchanged)
 ```
 
 The `OWNTS001` React `useEffect`-cleanup case is the recommended **marketing
-spike**: a 10-line bug everyone recognises, a "request storm / Cloudflare-style"
-story that sells itself, and the easiest plugin to distribute. It is a spike, not
-a frontend — one rule, one tier, end-to-end, before any breadth.
+spike**: a 10-line bug everyone recognises, and the easiest plugin to distribute. It
+is a spike, not a frontend — one rule, one tier, end-to-end, before any breadth.
+(The *request-storm / Cloudflare* angle is a **different** shape — `EFF001/002` in
+[P-020](P-020-ownts-react-effects.md), which needs new dependency-stability analysis
+the core does not have yet — not this cleanup rule. Don't market `OWNTS001` as
+catching request storms; that conflation is exactly what P-020 is careful to avoid.)
 
 ---
 
