@@ -1009,7 +1009,8 @@ def _call_result_callees(nodes: Any) -> dict[str, str | None]:
     return out
 
 
-def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
+def _infer_return_skeleton(nodes: Any, param_names: set[str],
+                           first_party: frozenset[str] = frozenset()) -> ReturnSkeleton:
     """Infer a method's owned-return kind for the D5.0 solver (P-005 D5.2, T1).
 
     `fresh` — every `return <var>` path returns a local the body itself `acquire`d
@@ -1041,11 +1042,14 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str]) -> ReturnSkeleton:
         (v,) = tuple(returned)
         callee = call_results.get(v)
         if callee and v not in param_names and v not in acquired:
-            if _is_bcl_fresh_factory(callee):
+            if callee not in first_party and _is_bcl_fresh_factory(callee):
                 # a thin wrapper returning a BCL factory's result is itself `fresh` — the
                 # caller owns it (Codex). Without this the return is a `forward` to an
                 # external (bodyless) callee, which the solver degrades to `unknown`, so a
                 # dropped `Make()` whose body is `return File.OpenRead(p)` leaks invisibly.
+                # Tier A overrides Tier B: if `callee` is a first-party method (it has its
+                # own summary, fresh or not), do NOT apply the bare BCL table — `forward` so
+                # the solver resolves the wrapper through that summary instead (Codex P2).
                 return ReturnSkeleton("fresh")
             return ReturnSkeleton("forward", callee=callee)
     return ReturnSkeleton()  # not provably owned -> no claim
@@ -1253,6 +1257,11 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     distinguishable — note's open question 2 — so a forward to such a name stays
     `unknown` → silent, the precision-safe choice)."""
     counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
+    # every first-party method name (even overloaded/dropped ones): the BCL fresh-factory
+    # table must NOT apply to a call whose target we compile from source — Tier A (the
+    # first-party summary) authoritatively overrides Tier B (the curated BCL table) even
+    # when the source method happens to share a BCL factory's name (Codex P2).
+    first_party = frozenset(k for k in counts if k)
     skels: list[MethodSkeleton] = []
     for fn in raw_fns:
         if not isinstance(fn, dict):
@@ -1296,7 +1305,7 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
                     paths = ()
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
-        ret = _infer_return_skeleton(body, pnames)
+        ret = _infer_return_skeleton(body, pnames, first_party)
         skels.append(MethodSkeleton(key, tuple(params), ret))
     return skels
 

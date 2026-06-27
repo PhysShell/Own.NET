@@ -1627,6 +1627,28 @@ def run() -> int:
     # instance form. The table must make no claim on it.
     if _bcl([{"op": "call", "callee": "Process.Start", "args": ["x"], "result": "p", "line": 5}]):
         fails.append("Tier B precision: overload-ambiguous `Process.Start` must NOT be a factory")
+    checks += 1
+    # OVERRIDE through a WRAPPER (Codex P2): Tier A beats Tier B even one hop removed. A
+    # first-party method named `SHA256.Create` that returns its parameter is NOT fresh; a
+    # wrapper `Make` that returns `SHA256.Create(x)` must inherit THAT (non-fresh) summary,
+    # not the bare BCL table — so a caller dropping `Make()` is clean. Before the fix the
+    # wrapper's return skeleton short-circuited to `fresh` via the BCL name match, fabricating
+    # OWN001 on the caller even though the same-named callee has a visible (non-owning) body.
+    ov_wrap = check_facts({"module": "M", "functions": [
+        {"name": "SHA256.Create", "file": "B.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "return", "var": "x", "line": 2}]},
+        {"name": "Make", "file": "B.cs", "params": [{"name": "x", "line": 5}],
+         "body": [{"op": "call", "callee": "SHA256.Create", "args": ["x"],
+                   "result": "r", "line": 6},
+                  {"op": "return", "var": "r", "line": 7}]},
+        {"name": "Caller3", "file": "B.cs", "body": [
+            {"op": "acquire", "var": "a", "line": 9},
+            {"op": "call", "callee": "Make", "args": ["a"], "result": "m", "line": 10},
+            {"op": "release", "var": "a", "line": 11}]}]})
+    if ov_wrap:
+        fails.append("Tier B: a wrapper around a same-named first-party method must inherit "
+                     "its (non-fresh) summary, not the BCL table, got "
+                     f"{[(x.component, x.code) for x in ov_wrap]}")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after
