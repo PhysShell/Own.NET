@@ -16,9 +16,14 @@
 // `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
 //
-// Usage: ownsharp-extract <file.cs | dir | *.csproj | *.sln> [more ...] [-o facts.json]
-//        ownsharp-extract --project App.csproj   (flag twin of the positional form)
+// Usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [more ...] [-o|--out facts.json]
+//        ownsharp-extract extract --project App.csproj --out facts.json
 //        ownsharp-extract --solution App.sln
+//
+// `extract` is an optional leading verb (the tool's one job); the bare form is the
+// default. The sibling `check`/`explain` verbs are NOT here — `check` is the
+// own-check orchestrator that chains this + the core, and `explain` is `python -m
+// ownlang explain OWN001`. One checker: the C# tool only emits facts.
 //
 // Inputs may be .cs files, directories, a .csproj, or a .sln. A directory is walked
 // recursively for *.cs, skipping build output (bin/obj), VCS/vendor dirs (.git,
@@ -70,25 +75,33 @@ bool reportStats = false;
 // run that did not request it (the other config — emitEvents/flowLocals/reportStats — are locals,
 // re-initialized each call, so they need no reset; only this static one does). CodeRabbit.
 BodyThrowEdges = false;
-for (int i = 0; i < args.Length; i++)
+// `extract` verb: the tool's one job is extraction, so an optional leading `extract`
+// makes the advertised `ownsharp-extract extract --project App.csproj --out facts.json`
+// UX real while the bare form (no verb) stays the default and back-compatible. (The
+// sibling `check`/`explain` verbs live where the architecture puts them — `check` is the
+// own-check orchestrator, `explain` is `python -m ownlang explain`; the C# tool is not a
+// second checker.) A different first token (a path/flag) is left untouched as input.
+var args0 = args.Length > 0 && args[0] == "extract" ? args[1..] : args;
+for (int i = 0; i < args0.Length; i++)
 {
-    if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
+    // `--out FILE` is the long-form twin of `-o FILE` (the advertised `extract --out` UX).
+    if ((args0[i] == "-o" || args0[i] == "--out") && i + 1 < args0.Length) outPath = args0[++i];
     // `--project <App.csproj>` / `--solution <App.sln>`: the explicit-flag twin of passing the
     // project/solution as a positional input (both resolve through Expand). The flag form matches
     // the advertised `ownsharp extract --project ...` UX borrowed from the roslyn-tools CLI shape;
     // the positional form keeps the command unambiguous next to dotnet's own `run --project`.
-    else if ((args[i] == "--project" || args[i] == "--solution") && i + 1 < args.Length) rawInputs.Add(args[++i]);
-    else if (args[i] == "--ref-dir" && i + 1 < args.Length) refDirs.Add(args[++i]);
-    else if (args[i] == "--no-event-leaks") emitEvents = false;
-    else if (args[i] == "--flow-locals") flowLocals = true;
-    else if (args[i] == "--body-throw-edges") BodyThrowEdges = true;
-    else if (args[i] == "--stats") reportStats = true;
-    else rawInputs.Add(args[i]);
+    else if ((args0[i] == "--project" || args0[i] == "--solution") && i + 1 < args0.Length) rawInputs.Add(args0[++i]);
+    else if (args0[i] == "--ref-dir" && i + 1 < args0.Length) refDirs.Add(args0[++i]);
+    else if (args0[i] == "--no-event-leaks") emitEvents = false;
+    else if (args0[i] == "--flow-locals") flowLocals = true;
+    else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
+    else if (args0[i] == "--stats") reportStats = true;
+    else rawInputs.Add(args0[i]);
 }
 
 if (rawInputs.Count == 0)
 {
-    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir | *.csproj | *.sln> [...] [-o facts.json] [--ref-dir <bin-dir>]");
+    Console.Error.WriteLine("usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [...] [-o|--out facts.json] [--ref-dir <bin-dir>]");
     return 2;
 }
 

@@ -3,6 +3,17 @@
 - **Status:** draft — **experiment / proposal, explicitly not mainline.** A
   marketing-shaped spike under the OwnTS frontend, on the record so the framing is
   honest before any code.
+- **Spike landed:** the honest `EFF003`/`EFF004` slice (timer / subscribe /
+  listener acquire with no cleanup `return` → core `OWN001`) is implemented in
+  `frontend/ownts/` and CI-pinned (the `ownts-react-effects` job).
+- **`EFF001` is now a real core analysis** (`ownlang/effects.py`), answering Open
+  question 1 below: a self-contained **dependency-identity stability** lattice with
+  reference propagation, computed by the **core** over an OwnIR `effects` fact block
+  the frontend emits — *not* a frontend heuristic, and *not* an `OWN001`. It is its
+  own core code (`EFF001`), exactly as the DI captive check is `DI001`. The frontend
+  states only what each render-scope binding syntactically is; the core decides
+  stability. `EFF002` (network IO with no stable guard) is governed by the same
+  analysis and left as the next increment.
 - **Depends on:** [P-017](P-017-multi-stack-frontends.md) (the OwnTS frontend &
   confidence tiers that this profile feeds), `spec/OwnCore.md` (the acquire/release
   vocabulary), [P-004](P-004-wpf-lifetime-profile.md) (WPF — the same lifecycle
@@ -145,12 +156,18 @@ has on the .NET side (P-013/P-015); 1/2/6/7 are this proposal's actual work.
 
 ## Open questions
 
-1. **The new analysis for `EFF001/002`.** Detecting "dependency identity is unstable
-   across renders" needs render-scope object-literal/identity reasoning the core
-   has no model for. Is that a small, self-contained *stability* fact
-   (`unstable(dep, effect)`) the OwnTS frontend can emit and the core treat like an
-   acquire-site, or a genuinely new core analysis? This is the gating question — do
-   not let `EFF001` masquerade as an `OWN001` leak.
+1. **The new analysis for `EFF001`.** ✅ **Answered (implemented).** It is a
+   genuinely new core analysis, not an `OWN001` acquire-site — and *not* a frontend
+   verdict either. The resolution: the frontend emits per-binding **facts** (each
+   render-scope binding's syntactic `init` kind + the names it references, the dep
+   list, whether the body does IO) in an OwnIR `effects` block; the **core**
+   (`ownlang/effects.py`) runs an identity-stability lattice (`STABLE < UNKNOWN <
+   UNSTABLE`) to a fixpoint over the references and decides `unstable(dep)`. An
+   effect is `EFF001` iff it does IO **and** a dep is *provably* `UNSTABLE`
+   (`UNKNOWN`/memoised/primitive clear it — low false positives). The gating
+   discipline held: `EFF001` is its own core code (like `DI001`), never an `OWN001`.
+   `EFF002` (network IO with no stable guard) is intended to reuse this same
+   lattice but is **not yet implemented** — it remains the next increment.
 2. **Confidence tier.** `EFF001` clearly wants TS-mode type info (is the dep an
    object literal? does the body do IO?). What, if anything, survives into JS mode
    (P-017's heuristic tier) as a warning?
