@@ -456,8 +456,11 @@ def _resolve_source(src: str, host_dir: Path, target_root: Path,
     file **inside the scanned target**, or ``None`` when it can't be pinned down — the
     conservative half of the cross-file rule. WPF source forms handled:
 
-    - relative (``Themes/Colors.xaml``)            -> against the host file's directory,
-                                                      then against the target root;
+    - relative (``Themes/Colors.xaml``)            -> against the host file's directory
+                                                      **only** (WPF resolves a plain
+                                                      relative ``Source`` against the
+                                                      containing file's base URI, with no
+                                                      app-root fallback);
     - app/site-root (``/Colors.xaml``)             -> against the target root;
     - pack/component (``pack://application:,,,/Asm;component/Themes/Colors.xaml`` or the
       bare ``/Asm;component/Themes/Colors.xaml``)  -> the path after ``;component/``,
@@ -499,8 +502,9 @@ def _resolve_source(src: str, host_dir: Path, target_root: Path,
         rel = s.split("?", 1)[0].split("#", 1)[0].lstrip("/")
         if not rel:
             return None
-        # relative -> host dir then target root; app-root ("/X") -> target root.
-        bases = [troot] if src.startswith("/") else [host_dir, troot]
+        # relative -> host dir ONLY (WPF base-URI resolution, no app-root fallback);
+        # app-root ("/X") -> target root.
+        bases = [troot] if src.startswith("/") else [host_dir]
 
     for base in bases:
         try:
@@ -601,9 +605,14 @@ def analyze_cross_file(parsed: list[tuple[str, Path, Node]],
                 by_origin: dict[str, int] = {}
                 for o, ln, _ext in entries:
                     by_origin.setdefault(o, ln)
+                # Anchor at the include site (the earliest external Source= line), not the
+                # earliest origin overall — for a primary+external collision the primary
+                # resource often sits above the include, and the actionable site is the
+                # include. The any(ext) guard above guarantees a non-empty external set.
+                finding_line = min(ln for _o, ln, ext in entries if ext)
                 where = ", ".join(f"{o} (line {ln})" for o, ln in by_origin.items())
                 out.append((rel_host, XamlFinding(
-                    "XAML105", min(by_origin.values()),
+                    "XAML105", finding_line,
                     f"resource key '{key}' is defined in {len(by_origin)} dictionaries "
                     f"[{where}], at least one an external Source= merged dictionary; the "
                     "effective value depends on include order (last merged wins, primary "
@@ -1264,8 +1273,10 @@ def _selftest() -> int:
           "XAML105 cross-file message must call out the external Source= dictionary")
     check(xf.get("XAML105") and "Themes/Colors.xaml" in xf["XAML105"].message,
           "XAML105 cross-file must name the resolved external dictionary")
-    check(xf.get("XAML105") and xf["XAML105"].line >= 1,
-          "XAML105 cross-file must anchor at a real line in the host file")
+    # the primary resource sits on line 2 but the Source= include is line 4 — the finding
+    # must anchor at the include site (line 4), not the earlier primary origin.
+    check(xf.get("XAML105") and xf["XAML105"].line == 4,
+          "XAML105 cross-file must anchor at the Source= include site, not the primary line")
     # a pack '/Asm;component/...' Source resolves under the named assembly's project dir
     # (located by a unique <Asm>.csproj), not blindly the target root.
     xfpack = xfile({"MyAsm.csproj": "<Project />\n",
