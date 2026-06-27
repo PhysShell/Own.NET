@@ -1,0 +1,15 @@
+// OwnLang model of the TcpListener.AcceptSocket() accept-loop leak (owned-API tranche). The
+// accepted Socket is a fresh owned IDisposable, used and never released -> OWN001. See notes.md.
+module Corpus
+resource Sock {
+  acquire accept
+  release dispose
+  kind "disposable"
+  emit_type    "Socket"
+  emit_acquire "{args}.AcceptSocket()"
+  emit_release "{0}.Dispose()"
+}
+fn Serve(listener: int) {
+  let sock = acquire Sock(listener);   // var sock = listener.AcceptSocket()
+  // sock used (sock.Connected); no `release sock;` -> OWN001
+}
