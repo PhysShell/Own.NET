@@ -28,10 +28,12 @@ the caller on **every** normal-return path. The fixpoint seeds each recursive ed
 at the lattice bottom (⊥, "no evidence yet") rather than at a spurious `no`, so a
 method that disposes on its base case and recurses otherwise resolves to `must`
 (every *terminating* path disposes), and mutual recursion that never disposes
-settles at `no`. A forward to an unsummarized (extern) callee is the only residual
-`unknown`, and `solve_with_log` surfaces every such boundary — never a guessed
-`must`. That keeps the project's precision-first stance: we only ever *claim*
-transfer when we can prove it.
+settles at `no`. A residual `unknown` is never a guessed `must`: it comes either
+from an extern (unsummarized) callee — which `solve_with_log` surfaces in its log —
+or from a deliberate precision-safe degradation intrinsic to the input (a
+return-forward cycle, an `aliasOf` that cannot be re-mapped without the call's arg
+mapping, an unrecognised or sparse shape), which is not logged. That keeps the
+project's precision-first stance: we only ever *claim* transfer when we can prove it.
 """
 
 from __future__ import annotations
@@ -243,9 +245,12 @@ def solve_with_log(skeletons: Iterable[MethodSkeleton]) -> tuple[
     """Resolve every method's MOS by a summary fixpoint over the call graph's SCC
     condensation.
 
-    Returns (summaries-by-key, unresolved-log). The log names every forward that
-    crosses an extern (unsummarized) boundary — the only place a transfer or return
-    degrades to `unknown`. There is no depth cap and so no silent truncation: the
+    Returns (summaries-by-key, unresolved-log). The log names every forward — param
+    or return — that crosses an extern (unsummarized) boundary: the `unknown`s that
+    come from *outside* the analyzed set. It is NOT a log of all `unknown`s — the
+    intrinsic, precision-safe degradations (a return-forward cycle, an un-remappable
+    `aliasOf`, a missing param index or unrecognised shape) are deterministic from
+    the input and not logged. There is no depth cap, so no work is truncated: the
     condensation makes the work linear, and recursion is solved, not cut off."""
     sk: dict[str, MethodSkeleton] = {}
     for s in skeletons:

@@ -139,6 +139,12 @@ def run() -> int:
     _, log2 = solve_with_log([_m("Caller", _p(0, PathAction("forward", "Extern", 0)))])
     expect(any("Extern#0" in e for e in log2), "extern forward is logged, not silent")
 
+    # The return chase logs its extern boundary too (a separate code path from the
+    # param forward above) — a forward-return to an unsummarized callee.
+    s3, log3 = solve_with_log([_m("Caller", ret=ReturnSkeleton("forward", callee="Extern"))])
+    expect(s3["Caller"].returns == "unknown", "forward-return to extern -> unknown")
+    expect(any("return Extern" in e for e in log3), "extern forward-return is logged")
+
     # A deep but acyclic chain must not blow Python's recursion limit (the solver is
     # iterative end to end; a RecursionError here would, via the bridge's catch-all,
     # drop the WHOLE input's MOS to empty over one long chain). 3000 > default limit.
