@@ -1122,6 +1122,16 @@ jobs:
           # the listener is released, so no false-positive leak
           [ "$(echo "$expr" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
             || { echo "FAIL: a properly-released listener must not be reported"; exit 1; }
+      - name: Real-world cleanup patterns (OSS-benchmark FP fixes) are silent
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectRealWorld.tsx \
+            -o "$RUNNER_TEMP/rw.facts.json"
+          rw=$(python -m ownlang ownir "$RUNNER_TEMP/rw.facts.json")
+          echo "$rw"
+          # AbortController signal, ref/pre-declared timer handles, nested-block
+          # cleanup, observer.subscribe/unsubscribe — all released, zero findings.
+          [ "$(echo "$rw" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
+            || { echo "FAIL: real-world cleanup patterns must not be reported"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \

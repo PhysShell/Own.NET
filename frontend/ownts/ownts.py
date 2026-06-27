@@ -67,12 +67,19 @@ ACQUIRES: list[Acquire] = [
 
 
 def _lhs_token(setup: str, pos: int) -> str | None:
-    """The variable an acquire's result is bound to, e.g. `id` in
-    `const id = setInterval(...)` or `sub` in `const sub = obs.subscribe(...)`.
-    Scoped to the current statement so an earlier `const` does not bleed in."""
+    """The handle an acquire's result is bound to, so a matching `clearTimeout(handle)`
+    / `handle.unsubscribe()` in cleanup can be found. Covers a declaration
+    (`const id = setInterval(...)`), a plain reassignment of a pre-declared variable
+    (`let i; … i = setInterval(...)`), and a ref/member store
+    (`timeoutRef.current = setTimeout(...)`). Scoped to the current statement; takes
+    the LAST assignment target before the call."""
     head = re.split(r"[;\n{}]", setup[:pos])[-1]
-    m = re.search(r"(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=", head)
-    return m.group(1) if m else None
+    tok = None
+    for m in re.finditer(
+            r"(?:(?:const|let|var)\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*=(?!=)",
+            head):
+        tok = m.group(1)
+    return tok
 
 
 def _capture_flag(opts: str) -> str:
@@ -125,17 +132,29 @@ def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
             rf"\bclear(?:Interval|Timeout)\s*\(\s*{re.escape(tok)}\b", cleanup))
     if acq.resource == "subscribe":
         tok = _lhs_token(setup, pos)
-        return bool(tok and re.search(
-            rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup))
+        if tok and re.search(
+                rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup):
+            return True
+        # a bare `recv.subscribe(...)` (no token) is released by `recv.unsubscribe(...)`
+        # / `recv.disconnect()` on the SAME receiver in cleanup — the observer pattern.
+        recv = _receiver(setup, pos)
+        return bool(recv and re.search(
+            rf"{re.escape(recv)}\s*\.\s*(?:unsubscribe|disconnect)\s*\(", cleanup))
     if acq.resource == "subscription":  # target.addEventListener(event, handler[, opts])
-        # The full listener key is (receiver, event, handler, capture). A listener is
-        # released ONLY by a removeEventListener whose whole key matches — a different
-        # event name, target, or capture flag is a different listener that still
-        # leaks. Fail closed: if the acquire's own target can't be identified, or no
-        # cleanup call matches every field, treat it as a leak.
         a = _listener_call(setup[pos:])
         if a is None:
             return False
+        # AbortController: a listener bound to an AbortSignal is released when the
+        # effect aborts the controller — `addEventListener(.., {signal})` torn down by
+        # `controller.abort()` removes every signal-bound listener at once.
+        am = _LISTENER.match(setup[pos:].lstrip())
+        opts = (am.group(3) or "") if am else ""
+        if re.search(r"\bsignal\b", opts) and re.search(r"\.abort\s*\(", cleanup):
+            return True
+        # Otherwise the full listener key is (receiver, event, handler, capture): a
+        # listener is released ONLY by a removeEventListener whose whole key matches —
+        # a different event name, target, or capture flag is a different listener that
+        # still leaks. Fail closed if the target can't be identified.
         a_recv = _receiver(setup, pos)
         if not a_recv:
             return False
@@ -381,39 +400,62 @@ def _effect_callback(masked: str, after_open: int) -> tuple[str, int, list[str] 
 
 
 def _cleanup_span(mbody: str) -> tuple[int, int] | None:
-    """The (start, end) span of the effect's OWN top-level cleanup within `mbody`
-    (the masked body), or None. A `return ... =>` nested inside a callback
-    (brace-depth > 1) is NOT the effect cleanup and must not suppress a leak. The
-    span is returned (not slices) so the caller can cut it out of BOTH the masked
-    body (for acquire scanning) and the original body (for event/string comparison)."""
-    for m in re.finditer(r"return\s*(?:\(\s*\)|\w+)\s*=>", mbody):
-        prefix = mbody[:m.start()]
-        if prefix.count("{") - prefix.count("}") != 1:  # 1 == the effect body's own brace
-            continue
-        rest = mbody[m.end():]
-        stripped = rest.lstrip()
-        if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
-            brace = m.end() + (len(rest) - len(stripped))
-            return (m.start(), _match_block(mbody, brace))
-        # single-expression cleanup. Consume the WHOLE expression across line breaks
-        # — stopping at a top-level `;` or the effect body's own closing brace, NOT
-        # the first newline (which truncates a multi-line call) and NOT a `find("{")`
-        # (which would mistake an options object like `{capture: true}` inside the
-        # call for the cleanup block). Both truncations drop the closing `)` and turn
-        # a released listener into a false leak.
-        i, depth = m.end(), 0
-        while i < len(mbody):
-            c = mbody[i]
-            if c in "([{":
-                depth += 1
-            elif c in ")]}":
-                if depth == 0:  # the effect body's closing brace — expression ends
-                    break
-                depth -= 1
-            elif c == ";" and depth == 0:
-                break
+    """The (start, end) span of the effect's OWN cleanup within `mbody` (the masked
+    body), or None. The cleanup is the `return () => …` directly in the effect
+    callback — possibly inside an `if`/`try`/`.then()` BLOCK, but NOT inside a nested
+    CALLBACK (an event handler defined in the effect). So the test is FUNCTION depth,
+    not brace depth: a block `{` keeps us in the effect; an arrow/`function` body `{`
+    is a new function. A return at function-depth 1 (only the effect body encloses) is
+    the cleanup; deeper is some inner callback's return. The span is returned (not
+    sliced) so the caller can cut it from BOTH the masked and the original body."""
+    # function-body braces: the effect body's own `{` (index 0), plus every `=> {`
+    # and `function (...) {`. Every other `{` is a plain block (if/try/for/object).
+    fn_braces = {0}
+    for fm in re.finditer(r"=>\s*\{", mbody):
+        fn_braces.add(fm.end() - 1)
+    for fm in re.finditer(r"\bfunction\b[^{;]*?\)\s*\{", mbody):
+        fn_braces.add(fm.end() - 1)
+    ret_re = re.compile(r"return\s*(?:\(\s*\)|\w+)\s*=>")
+    stack: list[bool] = []  # True where the open brace started a function body
+    fdepth = 0
+    i, n = 0, len(mbody)
+    while i < n:
+        c = mbody[i]
+        if c == "{":
+            is_fn = i in fn_braces
+            stack.append(is_fn)
+            fdepth += 1 if is_fn else 0
             i += 1
-        return (m.start(), i)
+            continue
+        if c == "}":
+            if stack and stack.pop():
+                fdepth -= 1
+            i += 1
+            continue
+        if c == "r" and fdepth == 1:
+            m = ret_re.match(mbody, i)
+            if m:
+                rest = mbody[m.end():]
+                stripped = rest.lstrip()
+                if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
+                    brace = m.end() + (len(rest) - len(stripped))
+                    return (m.start(), _match_block(mbody, brace))
+                # single-expression cleanup — consume the WHOLE expression across line
+                # breaks, stopping at a top-level `;` or the effect body's own close.
+                j, depth = m.end(), 0
+                while j < n:
+                    cj = mbody[j]
+                    if cj in "([{":
+                        depth += 1
+                    elif cj in ")]}":
+                        if depth == 0:
+                            break
+                        depth -= 1
+                    elif cj == ";" and depth == 0:
+                        break
+                    j += 1
+                return (m.start(), j)
+        i += 1
     return None
 
 
