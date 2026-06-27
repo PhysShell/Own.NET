@@ -127,7 +127,13 @@ surface in this ecosystem (`npm install`, drop into an existing config):
 | `OWNTS002` | `setInterval` / `setTimeout` with no `clear*` | `OWN001` |
 | `OWNTS003` | `subscribe()` result never `unsubscribe`d | `OWN001` |
 | `OWNTS004` | `AbortController` created but never `abort()`ed | `OWN001` |
-| `OWNTS005` | unstable dependency re-triggers an external effect | (effect/region) |
+| `OWNTS005` | unstable dependency re-triggers an external effect | (effect/region — see P-020) |
+
+The `useEffect`/React rows above are the authoring surface; the deeper **`Own.React`
+effect profile** (the `EFF001–005` catalog, the effect-storm analysis, and the
+honest Cloudflare framing) is specified in
+[P-020](P-020-ownts-react-effects.md). `OWNTS003/004` and `EFF003/004` are the same
+cleanup semantics — P-020 is the canonical home; the ESLint rules reference it.
 
 ```
 eslint-plugin-own        ← authoring rules for JS/TS (the user-facing surface)

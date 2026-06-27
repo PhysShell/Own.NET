@@ -35,6 +35,46 @@ The long-term identity the backlog is aiming at:
 > typestate, effects, capabilities, and domain-specific types **without
 > rewriting the codebase.**
 
+### Positioning against the competition (not another SAST)
+
+The competition is already standing around this field with shovels and enterprise
+sales badges. CodeQL (semantic queries / code scanning), Sonar (quality / bugs /
+smells), Semgrep (rule-based AppSec), Snyk Code (SAST), and the AI PR reviewers all
+sell the **broad** promise: *"we'll find vulnerabilities / bugs / smells."* Entering
+that arena as *"another static analyzer / AI code reviewer / SAST"* is a fight lost
+to marketing budget, not to merit.
+
+So Own.NET must **not** be pitched as any of those. The narrower, defensible niche:
+
+> a **cross-language resource / lifetime / effect contract checker** — who holds
+> whom, who must release, which resource outlives which, which effect can
+> runaway, where a lifecycle contract is broken.
+
+That is a different promise from *"an AI reviewer said this looks suspicious."* And
+it is deterministic where the AI reviewers are not — the grown-up framing is *an
+LLM may **propose** a suspicious lifecycle contract; Own **verifies** it
+deterministically* (reproducible rule, SARIF, suppression/spec, cross-language
+model). Not a head-on fight with AI review — a layer underneath it.
+
+### From memory leaks to effect storms (one model, many skins)
+
+The "big idea" that makes the niche coherent: four bugs that look unrelated are the
+**same lifecycle/resource-contract failure** in different ecosystems —
+
+| Bug | The contract that broke |
+|-----|-------------------------|
+| WPF event leak | a long-lived publisher keeps a `ViewModel` alive |
+| DI captive dependency | a long-lived service retains a scoped service |
+| ArrayPool view-after-return | released backing storage still has a borrowed view |
+| **React effect storm** | an unstable dependency repeatedly re-triggers a network effect |
+
+One model (source lifetime / resource / effect / cleanup / stability), one IR
+(OwnIR facts), one checker (the `ownlang/` core). The React row is the
+Cloudflare-shaped hook — used **honestly**: *"not all lifecycle bugs leak memory;
+some leak requests,"* never *"we'd have prevented the Cloudflare outage."* Its
+design is [P-020](proposals/P-020-ownts-react-effects.md) (the `Own.React` effect
+profile under the OwnTS frontend, [P-017](proposals/P-017-multi-stack-frontends.md)).
+
 ## Design philosophy (the load-bearing constraints)
 
 - **One checker.** The Python core in `ownlang/` is the single source of truth.
@@ -264,3 +304,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-015](proposals/P-015-configuration-surface.md) | Configuration surface (check selection & severity) | P2 | draft (stub) |
 | [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
 | [P-017](proposals/P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | horizon | draft |
+| [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
