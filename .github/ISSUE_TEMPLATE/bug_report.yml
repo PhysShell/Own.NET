@@ -1,0 +1,58 @@
+name: 🐞 Баг
+description: Ложное срабатывание, пропущенная утечка, краш или неверный C# на выходе.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за репорт! Поля со звёздочкой обязательны — без них форму не
+        отправить (это и есть валидация формата на этапе создания).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Что произошло и чем это отличается от ожидаемого.
+      placeholder: own-check помечает OWN001 на коде, где ресурс корректно освобождён в finally…
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Как воспроизвести
+      description: Минимальный `.own` / `.cs` и команда. Чем меньше — тем лучше.
+      placeholder: |
+        // buffer.own
+        resource Buf { ... }
+
+        $ python -m ownlang check buffer.own
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      description: Что должно было произойти.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия / коммит
+      description: Вывод `git rev-parse --short HEAD` или тег.
+      placeholder: c624441
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python
+      description: Вывод `python --version` (PoC требует 3.11+).
+      placeholder: "3.11.9"
+    validations:
+      required: false

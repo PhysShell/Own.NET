@@ -1,0 +1,49 @@
+name: 💡 Фича / предложение
+description: Новая диагностика, расширение языка, улучшение тулинга или анализа.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Поля со звёздочкой обязательны. Если это большое изменение языка/анализа —
+        возможно, его место в `docs/proposals/` (см. существующие P-0NN).
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Описание
+      description: Что предлагаешь и какую проблему это решает.
+      placeholder: Добавить диагностику OWN0NN на … потому что сейчас анализатор молчит про …
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Мотивация / сценарий
+      description: Реальный пример кода или случай, где это нужно.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      description: Что рассматривал ещё и почему это хуже. Можно «нет».
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область
+      options:
+        - analyzer (dataflow / loans / permissions)
+        - codegen (C# emit)
+        - diagnostics (OWN-коды)
+        - tooling (scripts / CLI / CI)
+        - audit (Own.NET Audit)
+        - docs
+        - другое
+    validations:
+      required: true
