@@ -22,6 +22,9 @@ python frontend/ownts/ownts.py frontend/ownts/examples/Dashboard.tsx
 # extract + run straight through the core (the "catch")
 python frontend/ownts/ownts.py frontend/ownts/examples/Dashboard.tsx --check
 
+# the EFF001 stability showcase (propagation + the conservative silent cases)
+python frontend/ownts/ownts.py frontend/ownts/examples/EffectStorm.tsx --check
+
 # or the real two-step CLI, same as the C# side:
 python frontend/ownts/ownts.py frontend/ownts/examples/Dashboard.tsx -o facts.json
 python -m ownlang ownir facts.json --format sarif
@@ -30,42 +33,56 @@ python -m ownlang ownir facts.json --format sarif
 python frontend/ownts/test_ownts.py
 ```
 
-`Dashboard.tsx` drops three `OWN001` leaks; `DashboardClean.tsx` (every acquire
-has a cleanup `return`) is silent.
+`Dashboard.tsx` drops three `OWN001` leaks **and** one `EFF001` effect storm;
+`DashboardClean.tsx` (every acquire has a cleanup `return`, and the unstable dep is
+`useMemo`'d) is silent.
 
 ```
 Dashboard.tsx:13: error: [OWN001] timer 'setInterval(() =>' ... never stopped ... (leak) [resource: timer]
 Dashboard.tsx:21: error: [OWN001] the result of '.subscribe(...)' is ignored ... (leak) [resource: subscription token]
 Dashboard.tsx:27: error: [OWN001] event '.addEventListener(...)' ... never unsubscribed ... (leak) [resource: subscription token]
+Dashboard.tsx:34: error: [EFF001] effect re-runs on every render: dependency 'filters' is an object literal ... can become a request storm ... [resource: react effect]
 ```
 
 ## What it catches — the honest `Own.React` slice
 
-| EFF | Pattern | OwnIR `resource` | Core verdict |
-|-----|---------|------------------|--------------|
-| `EFF004` | `setInterval`/`setTimeout` in an effect, no `clearInterval`/`clearTimeout` cleanup | `timer` | `OWN001` |
-| `EFF003` | `X.subscribe(...)` with no `unsubscribe` cleanup | `subscribe` | `OWN001` |
-| `EFF003` | `addEventListener` with no `removeEventListener` cleanup | `subscription` | `OWN001` |
+| EFF | Pattern | OwnIR fact | Core verdict |
+|-----|---------|-----------|--------------|
+| `EFF004` | `setInterval`/`setTimeout` in an effect, no `clearInterval`/`clearTimeout` cleanup | `resource: timer` | `OWN001` |
+| `EFF003` | `X.subscribe(...)` with no `unsubscribe` cleanup | `resource: subscribe` | `OWN001` |
+| `EFF003` | `addEventListener` with no `removeEventListener` cleanup | `resource: subscription` | `OWN001` |
+| `EFF001` | IO effect with a render-unstable dependency identity | `effects` block | `EFF001` (new core analysis — see below) |
 
 These three **are** the existing acquire→release model, just emitted by an OwnTS
 frontend. The core is untouched.
 
-## What it does NOT do (and why that's honest)
+## EFF001 — a real core analysis (not a heuristic, not OWN001)
 
-`EFF001/002` — the unstable-dependency "effect storm" (the Cloudflare 12-Sep-2025
+`EFF001` — the unstable-dependency "effect storm" (the Cloudflare 12-Sep-2025
 shape: a `useEffect` whose dep object is re-created each render, re-firing the
-effect and storming the API) — **is not an acquire/release leak.** It needs a new
-core capability (dependency-identity *stability*), which the core does not have.
-Per P-020, `EFF001` must **not** masquerade as `OWN001`.
+effect and storming the API) — **is not an acquire/release leak.** It is a new core
+analysis: **dependency-identity stability** (`ownlang/effects.py`), its own core
+code like `DI001`, *never* an `OWN001`.
 
-So the scanner only emits a *frontend-only, clearly-labelled* heuristic note for
-`EFF001` candidates on **stderr** — never a core-verified finding:
+The honest split is preserved end-to-end. The frontend emits only **facts** — for
+each `useEffect`, its dep list, whether the body does IO, and a render-scope
+**binding table** (what each binding syntactically is: `object`/`array`/`new`,
+`memo`/`callback`/`ref`, `ident` derivation + the names it references, `call`, …).
+It does **not** pre-judge stability. The **core** runs an identity-stability lattice
+(`STABLE < UNKNOWN < UNSTABLE`) to a fixpoint over the references and decides:
 
 ```
-Dashboard.tsx:34: EFF001 (frontend heuristic, NOT core-verified): dependency
-'filters' is a fresh object/array identity every render; the effect does IO —
-possible request storm. Stabilise with useMemo.
+EFF001 fires  ⟺  the effect does IO  ∧  some dep is *provably* UNSTABLE
 ```
+
+- object/array literal in render scope → UNSTABLE (fresh identity every render)
+- `useMemo`/`useCallback`/`useRef`, prop, primitive → STABLE
+- an alias/derivation → the worst of what it references (instability *propagates*)
+- an opaque `call(...)` → UNKNOWN → **no finding** (conservative; low false positives)
+
+See `examples/EffectStorm.tsx`: two storms fire (a direct object dep and the alias
+that derives from it — `derives from 'filters' ... (via alias -> filters)`), while
+the memoised, ref, opaque-call, primitive, and no-IO effects all stay silent.
 
 The one-liner the spike pays for: **"Not all lifecycle bugs leak memory. Some
 leak requests."** We make **no** "Own would have prevented the Cloudflare outage"

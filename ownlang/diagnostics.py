@@ -80,6 +80,8 @@ TITLES = {
     "OWN041": "call argument mismatch",
     # ---- C# front-end resolution coverage (P-014; advisory) ----
     "OWN050": "declaring type unresolved -- leakage analysis skipped",
+    # ---- reactive-effect stability (P-020; a separate analysis, like DI001) ----
+    "EFF001": "reactive effect re-runs on an unstable dependency identity (render-time IO storm)",
 }
 
 

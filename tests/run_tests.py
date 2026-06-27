@@ -1117,11 +1117,19 @@ def run() -> int:
     import test_diagnostics
     diag_rc = test_diagnostics.run()
 
+    # Reactive-effect stability (P-020): the EFF001 effect-storm analysis — the
+    # identity lattice, reference propagation, cycle safety, and the OwnIR bridge
+    # mapping the optional `effects` block to an EFF001 finding (a new core
+    # analysis dimension, like DI001, not the acquire/release leak model).
+    import test_effects
+    effects_rc = test_effects.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc) else 0
+                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc
+                 or effects_rc) else 0
 
 
 if __name__ == "__main__":

@@ -139,6 +139,9 @@ from .di import (
     find_weak_captive_dependencies,
 )
 from .diagnostics import TITLES, Severity
+from .effects import Binding as EffectBinding
+from .effects import Effect as ReactEffect
+from .effects import find_effect_storms
 from .evidence import code_flow, di_path_steps
 from .ownership import (
     MethodSkeleton,
@@ -542,6 +545,36 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError(
                 "service 'scope_cache_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
+    # Optional reactive-effect graph (EFF001 — effect storm, P-020). Additive and
+    # optional: an older core simply ignores it. Each effect carries its render-scope
+    # binding table; the core (ownlang/effects.py) decides identity stability.
+    effs = result.get("effects", [])
+    if not isinstance(effs, list) or not all(isinstance(eff, dict) for eff in effs):
+        raise OwnIRError("OwnIR 'effects' must be a JSON array of objects")
+    for eff in effs:
+        deps = eff.get("deps", [])
+        if not isinstance(deps, list) or not all(isinstance(d, str) for d in deps):
+            raise OwnIRError("effect 'deps' must be an array of strings")
+        io = eff.get("io", False)
+        if not isinstance(io, bool):
+            raise OwnIRError(f"effect 'io' must be a boolean, got {io!r}")
+        eln = eff.get("line", 0)
+        if not isinstance(eln, int) or isinstance(eln, bool):
+            raise OwnIRError("effect 'line' must be an integer")
+        binds = eff.get("bindings", [])
+        if not isinstance(binds, list) or not all(isinstance(b, dict) for b in binds):
+            raise OwnIRError("effect 'bindings' must be a JSON array of objects")
+        for b in binds:
+            if not isinstance(b.get("name", ""), str):
+                raise OwnIRError("binding 'name' must be a string")
+            if not isinstance(b.get("init", "unknown"), str):
+                raise OwnIRError("binding 'init' must be a string")
+            refs = b.get("refs", [])
+            if not isinstance(refs, list) or not all(isinstance(r, str) for r in refs):
+                raise OwnIRError("binding 'refs' must be an array of strings")
+            bln = b.get("line", 0)
+            if not isinstance(bln, int) or isinstance(bln, bool):
+                raise OwnIRError("binding 'line' must be an integer")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -1996,6 +2029,12 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # it (see ownlang/di.py). Findings carry the registration site as file/line.
     findings.extend(_di_findings(facts))
 
+    # EFF001 (effect storm): a separate core analysis over the render-scope binding
+    # graph (ownlang/effects.py), NOT the acquire/release model. The bridge routes
+    # the optional `effects` facts to it; the frontend only states what each binding
+    # syntactically is — the stability verdict is the core's.
+    findings.extend(_effect_findings(facts))
+
     # OWN050 (P-014 Tier A): a `+=` whose declaring type could not be resolved —
     # an advisory "leakage analysis skipped" note, never a leak. Routed through
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
@@ -2199,6 +2238,52 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             message=sc.message, kind="DI lifetime", severity="warning",
             related=_di005_related(sc),
             flow=di_path_steps(sc.path, loc_by_name, "caches scoped service")))
+    return out
+
+
+def _effect_findings(facts: dict[str, Any]) -> list[Finding]:
+    """Run the reactive-effect stability check over the facts' `effects` graph and
+    map each EFF001 storm to a Finding at the effect's call site (ownlang/effects.py).
+    Additive/optional, like `services`: absent or malformed `effects` -> no findings."""
+    raw = facts.get("effects", [])
+    if not isinstance(raw, list):
+        return []
+    effects: list[ReactEffect] = []
+    for e in raw:
+        if not isinstance(e, dict):
+            continue
+        bindings = tuple(
+            EffectBinding(
+                name=str(b.get("name", "?")),
+                init=str(b.get("init", "unknown")),
+                refs=tuple(str(r) for r in b.get("refs", [])),
+                line=_as_int(b.get("line", 0)),
+            )
+            for b in e.get("bindings", []) if isinstance(b, dict)
+        )
+        effects.append(ReactEffect(
+            component=str(e.get("component", "?")),
+            deps=tuple(str(d) for d in e.get("deps", [])),
+            io=e.get("io") is True,
+            bindings=bindings,
+            file=str(e.get("file", "?")),
+            line=_as_int(e.get("line", 0)),
+        ))
+    out: list[Finding] = []
+    for s in find_effect_storms(effects):
+        # reachability slice: where the effect re-fires -> where the unstable
+        # identity is minted (the fix site).
+        flow: tuple[tuple[str, int, str], ...] = ()
+        if s.line >= 1 and s.decl_line >= 1:
+            flow = (
+                (s.file, s.line, f"effect re-runs here on '{s.dep}'"),
+                (s.file, s.decl_line,
+                 f"'{s.origin}' gets a fresh identity here — stabilise with useMemo"),
+            )
+        out.append(Finding(
+            file=s.file, line=s.line, code="EFF001",
+            component=s.component, event=s.dep, handler="",
+            message=s.message, kind="react effect", flow=flow))
     return out
 
 

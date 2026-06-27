@@ -999,9 +999,12 @@ jobs:
           echo "OK: .csproj input resolves to its source set and feeds the core identically (positional == --project, fact-level parity)"
 
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
-  # React .tsx instead of C#. A useEffect acquire (timer / subscribe / listener)
-  # with no cleanup return is the core's OWN001 — proving the leak model is
-  # cross-language, not .NET-only. No dotnet needed; pure-Python frontend.
+  # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
+  # acquire (timer / subscribe / listener) with no cleanup return is the core's
+  # OWN001 — the cross-language leak model; (2) EFF001, a NEW core analysis
+  # (ownlang/effects.py) — an IO effect whose dependency identity is unstable
+  # (a render-scope object literal) re-fires every render: the effect storm. The
+  # frontend emits only facts; the stability verdict is the core's. No dotnet.
   ownts-react-effects:
     name: OwnTS (React useEffect) -> OwnIR -> core
     runs-on: ubuntu-latest
@@ -1010,7 +1013,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Pin the spike (leaky=3xOWN001, clean=0, EFF001 heuristic)
+      - name: Pin the spike (leaky=3xOWN001+EFF001, clean=0, showcase=2xEFF001)
         run: python frontend/ownts/test_ownts.py
       - name: Extract OwnIR facts from a React .tsx and check through the core
         run: |
@@ -1023,16 +1026,31 @@ jobs:
             || { echo "FAIL: expected findings located at the .tsx"; exit 1; }
           echo "$out" | grep -q "resource: timer" \
             || { echo "FAIL: expected the setInterval [resource: timer] leak"; exit 1; }
-          echo "$out" | grep -qE "3 finding" \
-            || { echo "FAIL: expected three OWN001 leaks from the leaky effects"; exit 1; }
-      - name: The clean fixture (cleanup returns) is silent
+          [ "$(echo "$out" | grep -c 'OWN001')" -eq 3 ] \
+            || { echo "FAIL: expected three OWN001 leaks"; exit 1; }
+          echo "$out" | grep -q "\[EFF001\].*request storm" \
+            || { echo "FAIL: expected the EFF001 effect-storm verdict"; exit 1; }
+          echo "$out" | grep -qE "4 finding" \
+            || { echo "FAIL: expected 3 OWN001 + 1 EFF001 = 4 findings"; exit 1; }
+      - name: EFF001 stability showcase — only provable storms fire (low FP)
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectStorm.tsx \
+            -o "$RUNNER_TEMP/storm.facts.json"
+          storm=$(python -m ownlang ownir "$RUNNER_TEMP/storm.facts.json" || true)
+          echo "$storm"
+          # the direct object dep and its derived alias fire; memo/ref/call/primitive/no-IO stay silent
+          echo "$storm" | grep -qE "2 finding" \
+            || { echo "FAIL: expected exactly two EFF001 (object dep + derived alias)"; exit 1; }
+          echo "$storm" | grep -q "derives from" \
+            || { echo "FAIL: expected the derivation (propagation) verdict"; exit 1; }
+      - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
             -o "$RUNNER_TEMP/clean.facts.json"
           clean=$(python -m ownlang ownir "$RUNNER_TEMP/clean.facts.json" || true)
           echo "$clean"
           echo "$clean" | grep -q "0 finding" \
-            || { echo "FAIL: cleaned-up effects must not leak"; exit 1; }
+            || { echo "FAIL: cleaned-up + memoised effects must not fire"; exit 1; }
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the

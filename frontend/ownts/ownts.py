@@ -15,11 +15,14 @@ EFF catalog — the rules that *are* the existing acquire->release model:
     EFF004  setInterval/setTimeout in an effect with no cleanup            -> OWN001
     (addEventListener with no removeEventListener cleanup)                  -> OWN001
 
-It does NOT implement EFF001/002 (the unstable-dependency "effect storm"): that is
-a genuinely new core analysis (dependency-identity stability), not an
-acquire->release leak, and P-020 is explicit that EFF001 must not masquerade as
-OWN001. As a courtesy the scanner emits a clearly-labelled, *frontend-only*
-heuristic note for EFF001 candidates on stderr — never as a core-verified finding.
+It ALSO feeds the new **EFF001** core analysis (the unstable-dependency "effect
+storm"): a genuinely new dimension — dependency-identity *stability*, not an
+acquire->release leak. The honest split is preserved end-to-end: this frontend
+emits only *facts* (each render-scope binding's syntactic shape, the dep list, and
+whether the effect body does IO) into the OwnIR `effects` block; the stability
+VERDICT is the core's (ownlang/effects.py), exactly as the DI captive check decides
+over the `services` graph. EFF001 does NOT masquerade as OWN001 — it is its own
+core code, like DI001.
 
 The extraction is heuristic (brace matching + verb detection), not a real TS parse.
 That is fine for a spike whose job is to prove the seam, not to ship a frontend.
@@ -202,8 +205,9 @@ def extract(path: str) -> list[Component]:
     return [c for c in comps.values() if c.resources]
 
 
-def to_ownir(comps: list[Component], module: str) -> dict:
-    return {
+def to_ownir(comps: list[Component], module: str,
+             effects: list[dict] | None = None) -> dict:
+    facts = {
         "ownir_version": 0,
         "module": module,
         "components": [
@@ -222,33 +226,82 @@ def to_ownir(comps: list[Component], module: str) -> dict:
             for c in comps
         ],
     }
+    if effects:
+        # The EFF001 stability facts the core's effects analysis decides on. The
+        # frontend states only what each binding syntactically IS — it does NOT
+        # pre-judge stability (that gate lives in ownlang/effects.py).
+        facts["effects"] = effects
+    return facts
 
 
-def _eff001_notes(path: str) -> list[str]:
-    """Frontend-only heuristic for EFF001 (unstable dependency -> effect storm).
-    NOT a core finding — the core has no stability model (P-020 open question 1).
-    Flags `useEffect(..., [dep])` where `dep` is a local object/array literal that
-    does IO, i.e. a fresh identity every render."""
+# Network-IO calls in an effect body — the "leaks requests, not memory" trigger.
+_IO = re.compile(r"\bfetch\s*\(|\baxios\b|\.(?:get|post|put|patch|delete)\s*\(|XMLHttpRequest")
+# `const/let/var NAME = RHS` (simple binding; destructures fall through to stable).
+_BINDING = re.compile(r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^\n;]+)")
+
+
+def _classify_rhs(rhs: str) -> tuple[str, list[str]]:
+    """Map a binding's right-hand side to an OwnIR identity `init` kind (+ the names
+    it references, for derivations). Purely syntactic — the stability VERDICT is the
+    core's; this only reports the shape the core reasons over."""
+    r = rhs.strip()
+    if r.startswith("{"):
+        return "object", []
+    if r.startswith("["):
+        return "array", []
+    if r.startswith("new "):
+        return "new", []
+    if r.startswith("useMemo"):
+        return "memo", []
+    if r.startswith("useCallback"):
+        return "callback", []
+    if r.startswith("useRef"):
+        return "ref", []
+    if r.startswith("function") or re.match(r"^(?:async\s+)?\(?[\w$,\s]*\)?\s*=>", r):
+        return "fn", []
+    if re.match(r"^(?:['\"`]|-?\d|true\b|false\b|null\b|undefined\b)", r):
+        return "primitive", []
+    # a bare identifier or member chain (`a`, `a.b.c`) — an alias/derivation of one root
+    m = re.match(r"^([A-Za-z_$][\w$]*)(?:\.[A-Za-z_$][\w$]*)*$", r)
+    if m:
+        return "ident", [m.group(1)]
+    # a function call returns an opaque (possibly fresh) identity -> let the core stay
+    # conservative (UNKNOWN, no finding) rather than guess.
+    if re.match(r"^[A-Za-z_$][\w$.]*\s*\(", r):
+        return "call", []
+    return "unknown", []
+
+
+def extract_effects(path: str) -> list[dict]:
+    """Extract the EFF001 stability facts: for each `useEffect`, its dependency list,
+    whether its body does network IO, and the render-scope binding table of the
+    component it lives in. The core's effects analysis turns these into a verdict."""
     text = _strip_comments(open(path, encoding="utf-8").read())
-    notes = []
+    # render-scope bindings, attributed to their enclosing component.
+    binds_by_comp: dict[str, list[dict]] = {}
+    for m in _BINDING.finditer(text):
+        kind, refs = _classify_rhs(m.group(2))
+        binds_by_comp.setdefault(_component_at(text, m.start()), []).append({
+            "name": m.group(1), "init": kind, "refs": refs,
+            "line": text.count("\n", 0, m.start()) + 1,
+        })
+    effects: list[dict] = []
     for eff in _USE_EFFECT.finditer(text):
         end = _match_block(text, eff.end())
-        block = text[eff.end():end]
-        # deps array sits just past the effect body block: `}, [a, b])`
-        deps = re.search(r",\s*\[([^\]]*)\]\s*\)", text[end - 1:end + 120])
-        if not deps:
+        body = text[eff.end():end]
+        deps_m = re.search(r",\s*\[([^\]]*)\]\s*\)", text[end - 1:end + 200])
+        if not deps_m:  # no dep array -> not an EFF001 candidate (by-design re-run cadence)
             continue
-        does_io = re.search(r"\bfetch\s*\(|\baxios\b|\.get\s*\(|\.post\s*\(", block)
-        for dep in (d.strip() for d in deps.group(1).split(",") if d.strip()):
-            decl = re.search(
-                rf"(?:const|let|var)\s+{re.escape(dep)}\s*=\s*(\{{|\[)", text)
-            if decl and does_io:
-                line = text.count("\n", 0, eff.start()) + 1
-                notes.append(
-                    f"{path}:{line}: EFF001 (frontend heuristic, NOT core-verified): "
-                    f"dependency '{dep}' is a fresh object/array identity every render; "
-                    f"the effect does IO — possible request storm. Stabilise with useMemo.")
-    return notes
+        deps = [d.strip() for d in deps_m.group(1).split(",") if d.strip()]
+        cname = _component_at(text, eff.start())
+        effects.append({
+            "component": cname, "file": path,
+            "line": text.count("\n", 0, eff.start()) + 1,
+            "io": bool(_IO.search(body)),
+            "deps": deps,
+            "bindings": binds_by_comp.get(cname, []),
+        })
+    return effects
 
 
 def main(argv: list[str]) -> int:
@@ -264,10 +317,8 @@ def main(argv: list[str]) -> int:
     path = args[0]
     module = re.sub(r"\.[jt]sx?$", "", path.rsplit("/", 1)[-1])
     comps = extract(path)
-    facts = to_ownir(comps, module)
-
-    for note in _eff001_notes(path):
-        print(note, file=sys.stderr)
+    effects = extract_effects(path)
+    facts = to_ownir(comps, module, effects)
 
     if "--check" in flags:
         # Run the extracted facts straight through the existing core.
