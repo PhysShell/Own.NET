@@ -1,0 +1,19 @@
+// OwnLang model of the self-owned-property subscription discrimination, mined on
+// protobuf-net's CommandLineOptions: a `this`-capturing handler is subscribed to an
+// event on a source the component OWNS (a get-only property over a constructed field),
+// which is a collectable self-cycle, NOT a leak. before.cs is the leaky counterpart —
+// the same subscription on an INJECTED bus (external lifetime), never detached — the
+// generic OWN001 subscription leak, modelled here as a Subscription acquire with no
+// release. The extractor tells the two apart by resolving the event source: an owned
+// member (this/field/get-only-owned-property) is dropped (self-cycle), an injected one
+// stays a warning. See notes.md for the recognition rule (PropertyReturnsOwnedMember).
+module Corpus
+resource Subscription {
+  acquire Subscribe
+  release Unsubscribe
+  kind "subscription token"
+}
+fn Watch(bus: int) {
+  let token = acquire Subscription(bus);   // _bus.Changed += (s, e) => _count++
+  // no `release token;` — the injected bus is never `-=`'d -> handler leak (OWN001)
+}

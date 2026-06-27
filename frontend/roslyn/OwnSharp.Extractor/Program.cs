@@ -486,7 +486,52 @@ static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
     if (m.Expression is ThisExpressionSyntax)
         return true;
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
-    return (recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name);
+    if ((recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name))
+        return true;
+    // A `this`-instance get-only PROPERTY whose value the class owns (`this.Child.Event
+    // += h`, Child a `=> _owned` / `{ get; } = new()` property) is the SAME collectable
+    // self-cycle as the owned field directly — this, the owned child, and the handler
+    // are collected together. The property must resolve to a member the class constructs.
+    return recv is IPropertySymbol { IsStatic: false } p
+           && PropertyReturnsOwnedMember(p, owned, model);
+}
+
+// A GET-ONLY property whose value the class OWNS: an auto-property initialised to
+// `new X()`, or one whose getter returns a field/property the class constructs
+// (`=> _owned`, `get => _owned`, `get { return _owned; }`). Such a property is part of
+// `this`'s own object graph, so a subscription on its event is the same collectable
+// self-cycle as subscribing on the owned field. GET-ONLY is required: a settable
+// property could be reassigned to an INJECTED, longer-lived object after construction,
+// which we cannot prove bounded — so we decline it (precision-first: never silently
+// drop a real leak). Only the dominant owned-property shapes are recognised; anything
+// else (a computed getter, a getter returning a parameter/injected field) falls through.
+static bool PropertyReturnsOwnedMember(IPropertySymbol prop, HashSet<string> owned,
+                                       SemanticModel model)
+{
+    if (prop.SetMethod is not null)
+        return false;
+    foreach (var sref in prop.DeclaringSyntaxReferences)
+    {
+        if (sref.GetSyntax() is not PropertyDeclarationSyntax pd)
+            continue;
+        // auto-property `public T X { get; } = new T();` — the value is constructed here.
+        if (pd.Initializer?.Value is ObjectCreationExpressionSyntax
+                                  or ImplicitObjectCreationExpressionSyntax)
+            return true;
+        // `=> expr`, `get => expr`, or `get { return expr; }` returning an owned member.
+        var get = pd.AccessorList?.Accessors
+            .FirstOrDefault(ac => ac.IsKind(SyntaxKind.GetAccessorDeclaration));
+        var returned = pd.ExpressionBody?.Expression
+            ?? get?.ExpressionBody?.Expression
+            ?? get?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
+        if (returned is null)
+            continue;
+        var pm = model.Compilation.GetSemanticModel(pd.SyntaxTree);
+        var rsym = pm.GetSymbolInfo(returned).Symbol;
+        if (rsym is IFieldSymbol or IPropertySymbol && owned.Contains(rsym.Name))
+            return true;
+    }
+    return false;
 }
 
 // P-004 (ext): a control fetching one of its OWN template parts —
