@@ -318,39 +318,59 @@ def solve_with_log(skeletons: Iterable[MethodSkeleton]) -> tuple[
             v = cur[m]
             param_val[m] = v if v is not None else Transfer.NO
 
-    # --- returns: a memoized, cycle-safe chase along forward-return edges --------
+    # --- returns: an iterative, memoized, cycle-safe chase along forward edges ----
+    # A return has at most ONE forward target, so resolution is a linked-list walk,
+    # not a tree. Done iteratively (not recursively) so a deep but acyclic wrapper
+    # chain cannot blow Python's recursion limit — which, since the bridge catches a
+    # solve() exception by dropping to an EMPTY MOS, would otherwise disable every
+    # method's summary over one long chain rather than just that chain (Codex P2).
     ret_val: dict[str, str] = {}
 
-    def resolve_return(key: str, visiting: frozenset[str]) -> str:
-        if key in ret_val:
-            return ret_val[key]  # context-insensitive: a return has one forward target
-        r = sk[key].ret
+    def _terminal(r: ReturnSkeleton) -> str:
         if r.kind == "fresh":
-            v = "fresh"
-        elif r.kind == "aliasOf":
-            v = f"aliasOf:{r.arg}"
-        elif r.kind == "aliased":
-            v = "aliased"
-        elif r.kind == "none":
-            v = "none"  # explicit no-owned-return
-        elif r.kind == "forward":
+            return "fresh"
+        if r.kind == "aliasOf":
+            return f"aliasOf:{r.arg}"
+        if r.kind == "aliased":
+            return "aliased"
+        if r.kind == "none":
+            return "none"  # explicit no-owned-return
+        return "unknown"  # an unrecognised kind fails closed, never silently "none"
+
+    def resolve_return(start: str) -> str:
+        if start in ret_val:
+            return ret_val[start]  # context-insensitive: one forward target per return
+        path: list[str] = []  # forward nodes above the stop node (shallow -> deep)
+        on_path: set[str] = set()
+        key = start
+        while True:
+            if key in ret_val:
+                val = ret_val[key]
+                break
+            r = sk[key].ret
+            if r.kind != "forward":
+                val = ret_val[key] = _terminal(r)
+                break
             if r.callee not in sk:
                 unresolved.add(f"return {r.callee} (extern, no summary)")
-                v = "unknown"
-            elif r.callee in visiting:
-                v = "unknown"  # return-forward cycle: no ground to stand on
-            else:
-                inner = resolve_return(r.callee, visiting | {key})
-                # `inner` aliasOf:<i> aliases one of the *callee's* params; remapping it
-                # to OUR args needs the call's argument mapping, which the skeleton does
-                # not carry yet (the obligation-identity model, D5.4). Never propagate a
-                # wrong index — degrade to unknown (precision-safe: nothing aliased at
-                # lowering). fresh / aliased / none / unknown propagate as-is.
-                v = "unknown" if inner.startswith("aliasOf:") else inner
-        else:
-            v = "unknown"  # an unrecognised kind fails closed, never silently "none"
-        ret_val[key] = v
-        return v
+                val = ret_val[key] = "unknown"
+                break
+            if r.callee == key or r.callee in on_path:
+                # forward-return cycle: this node (and all that feed it) have no ground
+                val = ret_val[key] = "unknown"
+                break
+            path.append(key)
+            on_path.add(key)
+            key = r.callee
+        # Propagate the stop node's value up the forward chain. At each hop an
+        # aliasOf:<i> aliases one of the *callee's* params; remapping it to OUR args
+        # needs the call's argument mapping the skeleton does not carry yet (the
+        # obligation-identity model, D5.4) — so degrade to unknown rather than
+        # propagate a wrong index. fresh / aliased / none / unknown propagate as-is.
+        for k in reversed(path):
+            val = "unknown" if val.startswith("aliasOf:") else val
+            ret_val[k] = val
+        return ret_val[start]
 
     out: dict[str, MethodSummary] = {}
     for key, skel in sk.items():
@@ -362,7 +382,7 @@ def solve_with_log(skeletons: Iterable[MethodSkeleton]) -> tuple[
             )
             for p in skel.params
         )
-        returns = resolve_return(key, frozenset())
+        returns = resolve_return(key)
         out[key] = MethodSummary(key, params, returns, skel.file, skel.line)
     return out, sorted(unresolved)
 

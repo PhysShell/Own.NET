@@ -139,6 +139,21 @@ def run() -> int:
     _, log2 = solve_with_log([_m("Caller", _p(0, PathAction("forward", "Extern", 0)))])
     expect(any("Extern#0" in e for e in log2), "extern forward is logged, not silent")
 
+    # A deep but acyclic chain must not blow Python's recursion limit (the solver is
+    # iterative end to end; a RecursionError here would, via the bridge's catch-all,
+    # drop the WHOLE input's MOS to empty over one long chain). 3000 > default limit.
+    N = 3000
+    param_chain = [
+        _m(f"L{i}", _p(0, PathAction("forward", f"L{i + 1}", 0))) for i in range(N)
+    ] + [_m(f"L{N}", _p(0, PathAction("dispose")))]
+    expect(_t(solve(param_chain), "L0", 0) == Transfer.MUST,
+           "deep param forward chain resolves without RecursionError")
+    ret_chain = [
+        _m(f"R{i}", ret=ReturnSkeleton("forward", callee=f"R{i + 1}")) for i in range(N)
+    ] + [_m(f"R{N}", ret=ReturnSkeleton("fresh"))]
+    expect(solve(ret_chain)["R0"].returns == "fresh",
+           "deep forward-return chain resolves without RecursionError")
+
     # --- recursion / SCC convergence ----------------------------------------
     # Mutual recursion that never disposes -> no (the cycle seeds at bottom and the
     # fixpoint settles at `no`; crucially, it terminates).
