@@ -69,6 +69,15 @@ def main() -> int:
                'window.removeEventListener("x", onX, true)')
     assert not rel('window.addEventListener("x", onX, true)',
                    'window.removeEventListener("x", onX)'), "dropped options must still leak"
+    assert not rel('window.addEventListener("x", onX)',
+                   'window.removeEventListener("x", onX, true)'), \
+        "omitted capture (false) is not released by remove(..., true)"
+    assert rel('window.addEventListener("x", onX, {capture: true})',
+               'window.removeEventListener("x", onX, true)'), \
+        "{capture:true} and true are the same listener"
+    assert rel('window.addEventListener("x", onX, {passive: true})',
+               'window.removeEventListener("x", onX)'), \
+        "a non-capture option (passive) does not change removal identity"
     assert not rel('el.addEventListener("x", onX)',
                    'other.removeEventListener("x", onX)'), "wrong target must still leak"
 

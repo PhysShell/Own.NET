@@ -75,6 +75,23 @@ def _lhs_token(setup: str, pos: int) -> str | None:
     return m.group(1) if m else None
 
 
+def _capture_flag(opts: str) -> str:
+    """The capture flag an addEventListener/removeEventListener options arg implies —
+    the only field that identifies a listener for removal. `'true'`/`'false'`, or
+    `'unknown'` for a non-literal we cannot read. An omitted arg, or an options
+    object without a `capture` key, defaults to capture **false** (the DOM default);
+    `passive`/`once`/`signal` do not affect removal identity."""
+    o = opts.strip()
+    if o in ("", "false"):
+        return "false"
+    if o == "true":
+        return "true"
+    if o.startswith("{"):
+        m = re.search(r"\bcapture\s*:\s*(true|false)\b", o)
+        return m.group(1) if m else "false"
+    return "unknown"  # a variable/call — compare verbatim (equal only to itself)
+
+
 def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
     """Whether THIS acquire (at `pos` in `setup`) is released by the effect's cleanup
     — matched to its own handle, so two `setInterval`s with one `clearInterval` leave
@@ -95,19 +112,22 @@ def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
         if not am:
             return False
         handler = am.group(1)
-        opts = (am.group(2) or "").strip()
+        acq_cap = _capture_flag(am.group(2) or "")
         # the receiver the listener is attached to (`window`, `el`, `this.ref`) — a
         # `removeEventListener` on a DIFFERENT target does not release this one.
         rm = re.search(r"([A-Za-z_$][\w$.]*)\s*$", setup[:pos])
         recv = rm.group(1) if rm else ""
-        # require: same receiver, same handler, and — if this acquire passed a
-        # capture/options arg — the same options in cleanup (dropping `true` /
-        # `{capture:true}` is a different listener that still leaks).
         recv_pat = rf"{re.escape(recv)}\s*\.\s*" if recv else r""
-        pat = rf"{recv_pat}removeEventListener\s*\(\s*[^,]+,\s*{re.escape(handler)}\b"
-        if opts:
-            pat += rf"[^)]*{re.escape(opts)}"
-        return bool(re.search(pat, cleanup))
+        # released only by a cleanup with the SAME receiver, handler, AND capture
+        # flag. The capture flag is what identifies a listener for removal; it
+        # defaults to false when omitted, so add(...,true) is not released by
+        # remove(...) and add(...) is not released by remove(...,true).
+        for cm in re.finditer(
+                rf"{recv_pat}removeEventListener\s*\(\s*[^,]+,\s*"
+                rf"{re.escape(handler)}\b\s*(?:,\s*([^)]+?))?\s*\)", cleanup):
+            if _capture_flag(cm.group(1) or "") == acq_cap:
+                return True
+        return False
     return False
 
 # A React component is a function whose name is Capitalized (the JSX convention).
