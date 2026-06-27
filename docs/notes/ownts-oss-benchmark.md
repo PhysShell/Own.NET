@@ -123,6 +123,39 @@ The honest takeaway: OwnTS is now quiet on idiomatic cleanup, with its remaining
 false alarms confined to four named, understood patterns — a real step toward the
 "low false positives" bar P-020 set, without a single guessed release.
 
+## First confirmed TRUE positive — a real hanging effect
+
+Hook *libraries* clean up by design, so the honest hunt for a real leak moved to
+*application-shaped* component code. In **`react-scroll-to-bottom@4.2.0`**
+(`ScrollToBottom/Composer.js:574`):
+
+```js
+target.addEventListener('focus', handleFocus, { capture: true, passive: true });
+return () => target.removeEventListener('focus', handleFocus);   // default capture (false)
+```
+
+`removeEventListener` must match the capture flag; `capture: true` is added but the
+removal uses the default `false`, so the listener is **never removed** — a new one
+piles up every time `target` changes. This is exactly the capture-mismatch class the
+listener-key matching (P-148/#145) models, and OwnTS flags it. A second real one:
+**`@reactuses/core@6.4.0`** passes `onPressed('mouse')` (a freshly *returned*
+function) to both add and remove, so the drag/touch listeners can never be removed.
+
+## ES5 (`function () {}`) build coverage
+
+The benchmark above is arrow-ESM only. To reach the capture-mismatch bug for the
+*right* reason — and to widen the corpus to transpiled output (`ahooks`,
+`react-use`, and the Composer file above ship ES5 `function(){}`) — the frontend now
+parses `function` callbacks and `return function () {}` cleanups
+(`EffectFunctionCallback.tsx` pins it: a matched ES5 cleanup is silent, the
+capture-mismatch is the one finding). The ES5 corpus (`ahooks` + `react-use`, ~93
+`useEffect`) then yields 11 findings, again triaged as FPs from the known patterns
+plus one new transpilation artifact: **optional-chaining desugaring**
+(`ref.current?.removeEventListener` → `(_a = ref.current) ? … : _a.removeEventListener`)
+makes the cleanup receiver a temp `_a ≠ ref.current`, which the exact-receiver match
+rejects. Documented as residual; alias-resolving `_a` back to `ref.current` is the
+next increment.
+
 ### Reproduce
 
 ```bash

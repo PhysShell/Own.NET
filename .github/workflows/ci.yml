@@ -1142,6 +1142,18 @@ jobs:
           # over-suppressed — all three controls stay OWN001
           [ "$(echo "$leak" | grep -c 'OWN001')" -eq 3 ] \
             || { echo "FAIL: broadened matchers must not over-suppress real leaks"; exit 1; }
+      - name: ES5 `function` callbacks parse; capture-mismatch leak caught (real bug shape)
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectFunctionCallback.tsx \
+            -o "$RUNNER_TEMP/fn.facts.json"
+          fn=$(python -m ownlang ownir "$RUNNER_TEMP/fn.facts.json" || true)
+          echo "$fn"
+          # the matched ES5 cleanup is silent; the capture:true-vs-default mismatch
+          # (react-scroll-to-bottom@4.2.0 shape) is the one OWN001
+          [ "$(echo "$fn" | grep -c 'OWN001')" -eq 1 ] \
+            || { echo "FAIL: expected exactly the capture-mismatch leak"; exit 1; }
+          echo "$fn" | grep -q "focus" \
+            || { echo "FAIL: the leak must be the capture-mismatched focus listener"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
