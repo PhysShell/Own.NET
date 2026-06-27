@@ -172,6 +172,21 @@ architectural strictness, and the borrow-checker showcase):
    Nethermind, AiDotNet.Tensors).
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
    (P-008). The architectural X-ray — landed *after* the leak checkers prove value.
+6. **Platform-agnostic core (multi-stack)** — *horizon, on the record for
+   consideration only.* The same OwnIR seam, reused for non-.NET stacks to prove the
+   "one core, frontends only extract facts" spine was not .NET-shaped luck (P-017).
+   Decision recorded: **JS/TS = one frontend family (`OwnTS`), two confidence tiers**
+   (TS type-aware via the TypeScript Compiler API; JS best-effort via syntax/JSDoc) —
+   *not* two products; **Java/Kotlin = split frontends** (`OwnJava` via Error Prone/
+   JDT/Spoon, `OwnKotlin` via Detekt/KSP/K2) **unified by one `OwnJVM` profile** —
+   because the JVM lifecycle/resource model is shared but the source tooling is not.
+   The axis the naive layout conflates is **language frontend** (`OwnTS`/`OwnJava`/
+   `OwnKotlin`) vs **platform profile** (`OwnReact`/`OwnJVM`/`OwnAndroid`/`OwnSpring`)
+   vs **core** — a brand-per-framework layout "is not a product line, it is a census."
+   Gated behind a tasty .NET alpha + a real cross-stack bug; the first slices are a
+   `useEffect`-cleanup *marketing* spike and a listener-leak *research* spike, each
+   `acquire` without `release` → the existing `OWN001`. See
+   [P-017](proposals/P-017-multi-stack-frontends.md).
 
 ## What static analysis can and cannot catch (the reality matrix)
 
@@ -248,3 +263,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-014](proposals/P-014-semantic-resolution.md) | Project-local semantic resolution (`+=` event vs number) | P0 | in progress (Tier A default-on + Tier B light path `--ref-dir`; full MSBuild closure deferred) |
 | [P-015](proposals/P-015-configuration-surface.md) | Configuration surface (check selection & severity) | P2 | draft (stub) |
 | [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
+| [P-017](proposals/P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | horizon | draft |

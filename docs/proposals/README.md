@@ -38,6 +38,7 @@ proposal is marked `done` with a pointer.
 | [P-014](P-014-semantic-resolution.md) | Project-local semantic resolution (kills `+=` false positives) | in progress (Tier A default-on + Tier B light path `--ref-dir`; full MSBuild closure deferred) |
 | [P-015](P-015-configuration-surface.md) | Configuration surface (check selection & per-category severity) | draft (stub) |
 | [P-016](P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering; loops) | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
+| [P-017](P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
