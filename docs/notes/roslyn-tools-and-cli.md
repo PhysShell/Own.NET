@@ -117,11 +117,37 @@ short of the full project/package/reference graph — that is the
 `wpf-extractor` CI step pins the `.csproj` path to a golden (positional ==
 `--project`).
 
-## Next PR (concrete, no scope creep)
+## The `extract` / `check` / `explain` surface (landed)
 
-Firm up the rest of the advertised CLI: `extract` / `check` / `explain`
-subcommands (`System.CommandLine`), and `--ref-dir`-from-project-`bin`
-auto-derivation once `ProjectDependencies`-style graph reading lands.
+The advertised three-verb CLI is realised — but split to where the architecture
+puts each, not bolted onto one binary (there is one checker; the C# tool only
+emits facts):
+
+```bash
+ownsharp-extract extract --project App.csproj --out facts.ownir.json   # C# extractor (facts)
+scripts/own-check.sh --format sarif -- App.sln > findings.sarif        # `check`: the orchestrator
+python -m ownlang explain OWN001                                       # `explain`: the core's catalogue
+python -m ownlang explain --json findings.sarif                        #   (explain every code a run produced)
+```
+
+(`explain --json` harvests diagnostic *codes* from the checker's findings/SARIF
+output — not from `facts.ownir.json`, which carries extractor facts, no codes.)
+
+- **`extract`** is an optional leading verb on the C# tool (the bare form stays the
+  default), plus `--out` as the long twin of `-o`. The tool's one job.
+- **`check`** is *not* a C# verb: `own-check.sh` already chains the extractor and the
+  core, and since the project/solution PR it takes a `.csproj`/`.sln` directly.
+  Re-implementing a checker in C# is the rejected path.
+- **`explain`** lives in the core next to the diagnostic catalogue
+  (`ownlang/diagnostics.py`: `TITLES` + `EXPLANATIONS`): it prints what a code means,
+  why it fires, and how to fix it; `--json` harvests every code from a findings/SARIF
+  file so you can explain exactly what a run produced.
+
+A `System.CommandLine` migration of the C# tool (auto `--help`, validation) and
+`--ref-dir`-from-project-`bin` auto-derivation remain the next polish — deferred over
+a blind framework swap, since the extractor builds only in CI here.
+
+## Earlier next-PR sketch (kept for the record)
 
 ```bash
 ownsharp extract --project App.csproj --out facts.ownir.json

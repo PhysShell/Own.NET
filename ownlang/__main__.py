@@ -7,6 +7,13 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
     python -m ownlang ownir  facts.json --format github|msbuild|human|sarif
+    python -m ownlang explain OWN001 [DI002 ...]     # explain diagnostic code(s): what/why/fix
+    python -m ownlang explain --json findings.json   # explain every code in a findings/SARIF file
+
+`explain` is the diagnostic catalogue side of the CLI (the `ownsharp explain` the
+roslyn-tools-shaped surface advertises): it prints what a code means, why it fires,
+and how to fix it. It lives in the core, next to the catalogue, because there is one
+checker — the C# extractor emits facts, it does not own the diagnostics.
 
 `--format` (ownir only) selects the finding surface: `human` (default CLI line),
 `github` (CI annotations on the PR diff), `msbuild` (VS Error List), or `sarif`
@@ -23,6 +30,7 @@ Exit code is non-zero if any error-level diagnostic was produced.
 
 from __future__ import annotations
 
+import re
 import sys
 from typing import TYPE_CHECKING
 
@@ -192,6 +200,82 @@ def _read(path: str) -> str:
         return f.read()
 
 
+# A diagnostic code is OWN/WPF/DI followed by three digits. Used to validate an
+# `explain` argument and to harvest codes out of a findings/SARIF JSON file.
+_CODE_RE = re.compile(r"^(OWN|WPF|DI)\d{3}$")
+
+
+def _explain_one(code: str) -> str:
+    """The explanation block for one code: its title and the long-form what/why/fix
+    (falling back to just the title when no long-form exists), or an 'unknown code'
+    line. Pure text so it is trivially testable."""
+    from .diagnostics import EXPLANATIONS, TITLES
+    code = code.upper()
+    title = TITLES.get(code)
+    body = EXPLANATIONS.get(code)
+    if title is None and body is None:
+        return f"{code}: unknown diagnostic code"
+    out = f"{code}: {title}" if title else code
+    if body:
+        out += "\n\n" + body
+    return out
+
+
+def _codes_from_json(obj: object) -> list[str]:
+    """Every distinct diagnostic code reachable in a decoded JSON value, in first-seen
+    order. Harvests the values of any `code`/`ruleId` key (so it reads a findings array,
+    a single finding, or a SARIF log's results) that look like a diagnostic code."""
+    seen: dict[str, None] = {}
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key, val in node.items():
+                if key in {"code", "ruleId"} and isinstance(val, str) and _CODE_RE.match(val):
+                    seen.setdefault(val, None)
+                else:
+                    walk(val)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(obj)
+    return list(seen)
+
+
+def cmd_explain(codes: list[str], json_path: str | None) -> int:
+    """Explain diagnostic code(s): print what each means, why it fires, and how to fix
+    it. Codes come from the command line (`explain OWN001 DI002`) and/or are harvested
+    from a findings/SARIF JSON (`--json findings.json`), so you can explain exactly the
+    codes a run produced. Exit 2 on a usage error (no codes) or an unreadable JSON."""
+    import json
+    all_codes = list(codes)
+    if json_path is not None:
+        try:
+            with open(json_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"explain: cannot read {json_path}: {e}", file=sys.stderr)
+            return 2
+        found = _codes_from_json(data)
+        if not found:
+            print(f"explain: no diagnostic codes found in {json_path}", file=sys.stderr)
+            return 2
+        # de-dupe against any codes already given on the command line, preserving order
+        for c in found:
+            if c not in all_codes:
+                all_codes.append(c)
+    if not all_codes:
+        print("explain: give a code (e.g. OWN001) or --json <findings.json>", file=sys.stderr)
+        return 2
+    from .diagnostics import EXPLANATIONS, TITLES
+    print("\n\n".join(_explain_one(c) for c in all_codes))
+    # If every requested code is unknown, that is almost certainly a typo — fail (2)
+    # rather than silently succeed. A mix of known + unknown still exits 0.
+    if all(c.upper() not in TITLES and c.upper() not in EXPLANATIONS for c in all_codes):
+        return 2
+    return 0
+
+
 def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
               verbosity: str = "normal") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
@@ -261,10 +345,31 @@ _VERBOSITY = {"quiet", "normal", "verbose"}
 
 
 def main(argv: list[str]) -> int:
-    if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir"}:
+    if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir", "explain"}:
         print(__doc__)
         return 2
     cmd = argv[0]
+    # `explain` has its own shape — zero-or-more code positionals plus an optional
+    # `--json <file>` — so it is handled before the single-positional path below.
+    if cmd == "explain":
+        codes: list[str] = []
+        json_path: str | None = None
+        rest = argv[1:]
+        i = 0
+        while i < len(rest):
+            a = rest[i]
+            if a == "--json":
+                if i + 1 >= len(rest):
+                    print("--json requires a value", file=sys.stderr)
+                    return 2
+                json_path, i = rest[i + 1], i + 2
+                continue
+            if a.startswith("--json="):
+                json_path, i = a.split("=", 1)[1], i + 1
+                continue
+            codes.append(a)
+            i += 1
+        return cmd_explain(codes, json_path)
     # Pull the optional value-flags (`--format`/`--severity`/`--verbosity`, ownir
     # only) out of the arguments in either `--flag V` or `--flag=V` form; everything
     # else is positional. Keeps the other commands' single positional-path contract.
