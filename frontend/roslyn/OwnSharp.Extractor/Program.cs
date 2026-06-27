@@ -27,7 +27,9 @@
 // to its source set (SDK-style directory scan + concrete linked <Compile> files; no full
 // MSBuild evaluation — see ProjectCsFiles); a .sln fans out over its member projects.
 
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -122,19 +124,52 @@ static bool IsSkipped(string path)
     return IsGenerated(path);
 }
 
+// Translate an MSBuild item spec (a path, optionally with `*`, `?`, `**` globs and either
+// separator) into a predicate over a full file path, evaluated RELATIVE to the project dir.
+// Enough for the common `<Compile Include>` / `<Compile Remove>` forms (a concrete path, `*.cs`,
+// `**/*.cs`, `Folder/**`) without a full MSBuild glob engine: `**` matches across directories,
+// `*` / `?` within a single path segment. Match is case-insensitive (MSBuild globbing is).
+static Func<string, bool> SpecMatcher(string spec, string dir)
+{
+    var glob = spec.Replace('\\', '/').Trim();
+    var rx = new StringBuilder("^");
+    for (int i = 0; i < glob.Length; i++)
+    {
+        var c = glob[i];
+        if (c == '*')
+        {
+            if (i + 1 < glob.Length && glob[i + 1] == '*')       // `**` -> any chars, including '/'
+            {
+                rx.Append(".*");
+                i++;
+                if (i + 1 < glob.Length && glob[i + 1] == '/') i++;   // swallow the slash after `**`
+            }
+            else rx.Append("[^/]*");                              // `*` -> within one path segment
+        }
+        else if (c == '?') rx.Append("[^/]");
+        else rx.Append(Regex.Escape(c.ToString()));
+    }
+    rx.Append('$');
+    var regex = new Regex(rx.ToString(), RegexOptions.IgnoreCase);
+    return path => regex.IsMatch(Path.GetRelativePath(dir, path).Replace('\\', '/'));
+}
+
 // Resolve a `.csproj` to its C# source set. Doing this the MSBuild way needs a full
 // project evaluation (and the `Microsoft.CodeAnalysis.Workspaces.MSBuild` + MSBuildLocator
 // dependency that P-014 / the "ProjectDependencies as a category" note deliberately parks
 // for the DI/solution-graph work — not for the v0 leak extractor). The pragmatic resolution
-// that covers the SDK-style common case WITHOUT that baggage: scan the project's directory
-// recursively for *.cs — exactly the SDK default-compile-items behaviour, with bin/obj and
-// generated files already excluded by IsSkipped — and additionally pick up any concrete
-// linked `<Compile Include="..\Shared\Foo.cs" />` that points OUTSIDE the project tree.
-// This can over-approximate a legacy explicit-list project (it analyses sibling *.cs the
-// project might exclude), which for a fact extractor is harmless: it never invents files,
-// it only reads a few extra. Globs inside <Compile Include> are left to the directory scan.
-// Builds a list rather than yielding so the XML read can sit in a try/catch (an iterator
-// may not yield from inside one) and a malformed project degrades to the directory scan.
+// that covers the SDK-style common case WITHOUT that baggage:
+//   - candidates = every in-tree *.cs (SDK default-compile-items), with bin/obj and generated
+//     files already excluded by IsSkipped;
+//   - but honour the project's explicit compile set: `<EnableDefaultCompileItems>false` turns the
+//     default OFF (then only files an explicit `<Compile Include>` selects are kept), and
+//     `<Compile Remove="...">` subtracts excluded files — so `.csproj` input does not emit findings
+//     from files the project does not actually compile (CodeRabbit: a source-set mismatch, not a
+//     harmless over-approximation);
+//   - plus any concrete linked `<Compile Include="..\Shared\Foo.cs" />` that points OUTSIDE the tree.
+// Include/Remove globs are matched by SpecMatcher (not a full MSBuild engine, but enough for the
+// common forms). Builds a list rather than yielding so the XML read can sit in a try/catch (an
+// iterator may not yield from inside one); a malformed project degrades to the plain directory scan.
 static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
 {
     var full = Path.GetFullPath(csproj);
@@ -143,39 +178,88 @@ static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
     // `--project src/Missing.csproj` would otherwise analyse all of src/**/*.cs (an
     // unintended source set), or throw if the parent is absent too. Skip the bad input with
     // a warning — the directory-scan fallback below is only for a PRESENT-but-malformed
-    // project (whose <Compile> links we could not read), never an absent one. (Codex P2.)
+    // project (whose <Compile> items we could not read), never an absent one. (Codex P2.)
     if (!File.Exists(full))
     {
         Console.Error.WriteLine($"ownsharp-extract: project not found: {csproj}");
         return result;
     }
     var dir = Path.GetDirectoryName(full) ?? ".";
-    foreach (var f in Directory.EnumerateFiles(dir, "*.cs", opts))
-        if (!IsSkipped(f))
-            result.Add(f);
 
     XDocument? doc = null;
     try { doc = XDocument.Load(full); }
     catch (Exception ex)
     {
         Console.Error.WriteLine(
-            $"ownsharp-extract: {csproj}: reading <Compile> links failed ({ex.Message}); used directory scan only");
+            $"ownsharp-extract: {csproj}: reading <Compile> items failed ({ex.Message}); used directory scan only");
+    }
+    var elements = (doc?.Descendants() ?? Enumerable.Empty<XElement>()).ToList();
+
+    // `<EnableDefaultCompileItems>false</…>` (last value wins, as MSBuild evaluates top-to-bottom)
+    // turns off the implicit "every *.cs is compiled" default.
+    var defaultItems = elements
+        .Where(e => e.Name.LocalName == "EnableDefaultCompileItems")
+        .Select(e => e.Value.Trim())
+        .LastOrDefault();
+    var defaultCompile = !string.Equals(defaultItems, "false", StringComparison.OrdinalIgnoreCase);
+
+    var includes = elements.Where(e => e.Name.LocalName == "Compile")
+        .Select(e => e.Attribute("Include")?.Value)
+        .Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!).ToList();
+    var removes = elements.Where(e => e.Name.LocalName == "Compile")
+        .Select(e => e.Attribute("Remove")?.Value)
+        .Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => v!).ToList();
+
+    var candidates = Directory.EnumerateFiles(dir, "*.cs", opts).Where(f => !IsSkipped(f)).ToList();
+    if (defaultCompile)
+        result.AddRange(candidates);
+    else
+    {
+        // Explicit-list project: keep only in-tree files an `<Compile Include>` selects.
+        var incMatch = includes.Select(s => SpecMatcher(s, dir)).ToList();
+        result.AddRange(candidates.Where(f => incMatch.Any(m => m(f))));
     }
 
+    // Concrete linked `<Compile Include>` that points OUTSIDE the project tree, in either mode.
     var dirPrefix = dir.EndsWith(Path.DirectorySeparatorChar) ? dir : dir + Path.DirectorySeparatorChar;
-    foreach (var inc in (doc?.Descendants() ?? Enumerable.Empty<XElement>())
-                 .Where(e => e.Name.LocalName == "Compile")
-                 .Select(e => e.Attribute("Include")?.Value)
-                 .Where(v => !string.IsNullOrWhiteSpace(v)))
+    foreach (var inc in includes)
     {
-        if (inc!.IndexOfAny(new[] { '*', '?' }) >= 0) continue;            // a glob — the dir scan covers it
+        if (inc.IndexOfAny(new[] { '*', '?' }) >= 0) continue;            // a glob — handled above / by the scan
         var path = Path.GetFullPath(Path.Combine(dir, inc.Replace('\\', Path.DirectorySeparatorChar)));
         if (path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
             && File.Exists(path) && !IsSkipped(path)
-            && !path.StartsWith(dirPrefix, StringComparison.Ordinal))    // in-dir links already yielded
+            && !path.StartsWith(dirPrefix, StringComparison.Ordinal))    // in-tree links already added
             result.Add(path);
     }
-    return result;
+
+    // Honour `<Compile Remove="...">`: drop excluded files (concrete or glob, relative to the dir).
+    if (removes.Count > 0)
+    {
+        var rmMatch = removes.Select(s => SpecMatcher(s, dir)).ToList();
+        result.RemoveAll(f => rmMatch.Any(m => m(f)));
+    }
+
+    return result.Distinct().ToList();
+}
+
+// Extract the double-quoted fields from a solution `Project(...)` line tail, in order. The fields
+// are `"Name", "relpath", "{guid}"`; splitting on quotes (not raw commas) means a comma INSIDE a
+// quoted name or path no longer misreads the line — CodeRabbit flagged the naive `Split(',')`,
+// which could skip a valid project or resolve the wrong path. (`.sln` does not use `""` escaping.)
+static List<string> QuotedFields(string s)
+{
+    var fields = new List<string>();
+    int i = 0;
+    while (true)
+    {
+        int a = s.IndexOf('"', i);
+        if (a < 0) break;
+        int b = s.IndexOf('"', a + 1);
+        if (b < 0) break;
+        fields.Add(s.Substring(a + 1, b - a - 1));
+        i = b + 1;
+    }
+    return fields;
 }
 
 // Resolve a classic `.sln` to its member `.csproj` paths. The solution file lists each project
@@ -200,10 +284,11 @@ static List<string> SolutionProjects(string sln)
         if (!t.StartsWith("Project(", StringComparison.Ordinal)) continue;
         var eq = t.IndexOf('=');
         if (eq < 0) continue;
-        // After '=' the fields are comma-separated, each double-quoted: "Name", "relpath", "{guid}".
-        var parts = t.Substring(eq + 1).Split(',');
-        if (parts.Length < 2) continue;
-        var rel = parts[1].Trim().Trim('"');
+        // The path is the SECOND double-quoted field after '=' ("Name", "relpath", "{guid}");
+        // quote-aware extraction tolerates a comma inside the name or path.
+        var fields = QuotedFields(t.Substring(eq + 1));
+        if (fields.Count < 2) continue;
+        var rel = fields[1].Trim();
         if (!rel.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)) continue;
         var path = Path.GetFullPath(Path.Combine(dir, rel.Replace('\\', Path.DirectorySeparatorChar)));
         if (File.Exists(path)) projects.Add(path);
