@@ -124,11 +124,14 @@ puts each, not bolted onto one binary (there is one checker; the C# tool only
 emits facts):
 
 ```bash
-ownsharp-extract extract --project App.csproj --out facts.ownir.json   # C# extractor
-scripts/own-check.sh --format human -- App.sln                         # `check`: the orchestrator
+ownsharp-extract extract --project App.csproj --out facts.ownir.json   # C# extractor (facts)
+scripts/own-check.sh --format sarif -- App.sln > findings.sarif        # `check`: the orchestrator
 python -m ownlang explain OWN001                                       # `explain`: the core's catalogue
-python -m ownlang explain --json facts.ownir.json                      #   (or every code in a findings/SARIF file)
+python -m ownlang explain --json findings.sarif                        #   (explain every code a run produced)
 ```
+
+(`explain --json` harvests diagnostic *codes* from the checker's findings/SARIF
+output — not from `facts.ownir.json`, which carries extractor facts, no codes.)
 
 - **`extract`** is an optional leading verb on the C# tool (the bare form stays the
   default), plus `--out` as the long twin of `-o`. The tool's one job.

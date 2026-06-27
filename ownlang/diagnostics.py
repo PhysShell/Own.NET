@@ -95,6 +95,15 @@ TITLES = {
 # command always answers. Kept deliberately to the codes a user actually meets via
 # the Roslyn extractor pipeline (subscription/disposable/DI), not the whole grammar.
 EXPLANATIONS = {
+    "DI001": (
+        "Captive dependency (the umbrella verdict): a longer-lived service holds a reference to a "
+        "shorter-lived one, so the shorter-lived instance is pinned to the longer life — its "
+        "intended per-scope/per-call semantics are lost and it may leak. DI002-DI005 are the "
+        "specific shapes (singleton->scoped, singleton->transient, scoped-from-root, "
+        "disposable-transient-from-a-long-scope).\n"
+        "Fix: don't capture the shorter-lived service directly — inject a factory "
+        "(`Func<T>` / `IServiceScopeFactory`) and resolve it per use, or align the lifetimes."
+    ),
     "OWN001": (
         "An owned resource is acquired but not released on every path out of its owner — "
         "a possible leak. For a C# event, `target += handler` with no matching `target -= "

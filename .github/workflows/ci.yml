@@ -1010,7 +1010,11 @@ jobs:
         run: |
           python -m ownlang explain OWN001 | grep -q "Fix:" \
             || { echo "FAIL: explain OWN001 missing a Fix line"; exit 1; }
-          python -m ownlang ownir "$RUNNER_TEMP/proj-facts.json" --format sarif > "$RUNNER_TEMP/proj.sarif" || true
+          # ownir exits 1 when findings exist (expected — the sample leaks); only 2+ is a real
+          # error (bad facts / emit regression). Tolerate 1, surface 2+, so a genuine SARIF
+          # generation failure is not masked by a blanket `|| true` (CodeRabbit).
+          rc=0; python -m ownlang ownir "$RUNNER_TEMP/proj-facts.json" --format sarif > "$RUNNER_TEMP/proj.sarif" || rc=$?
+          [ "$rc" -le 1 ] || { echo "FAIL: SARIF generation errored (rc=$rc)"; exit 1; }
           python -m ownlang explain --json "$RUNNER_TEMP/proj.sarif" | grep -q "OWN001" \
             || { echo "FAIL: explain --json did not harvest OWN001 from the SARIF log"; exit 1; }
           echo "OK: explain answers a code and harvests codes from a real findings/SARIF file"
