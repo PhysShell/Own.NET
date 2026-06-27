@@ -36,5 +36,15 @@ export function LeakControl({ enabled }: { enabled: boolean }) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  // (5) async ES5 effect: same async suppression, but the transpiled
+  // `async function () { … }` shape — React still ignores the returned
+  // `function () {}` cleanup, so the listener leaks.
+  useEffect(async function () {
+    window.addEventListener("online", onOnline);
+    return function () {
+      window.removeEventListener("online", onOnline);
+    };
+  }, []);
+
   return <div>leak control</div>;
 }

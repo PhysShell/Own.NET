@@ -65,10 +65,11 @@ def main() -> int:
 
     # False-negative controls: a release-shaped cleanup that does NOT release THIS
     # resource (wrong AbortController, mismatched unsubscribe args, a conditionally
-    # returned cleanup over an unconditional acquire) must STILL report the leak —
-    # the broadened matchers must not over-suppress.
+    # returned cleanup over an unconditional acquire, an async arrow effect, and an
+    # async ES5 `function` effect) must STILL report the leak — the broadened
+    # matchers and async suppression must not over-suppress.
     leaks = codes("EffectLeakControl.tsx")
-    assert leaks == ["OWN001"] * 4, f"EffectLeakControl -> {leaks}"
+    assert leaks == ["OWN001"] * 5, f"EffectLeakControl -> {leaks}"
 
     # Transpiled-ES5 shape: `function () { … return function () { … } }`. The parser
     # handles `function` callbacks + `return function` cleanups — a matched cleanup is
