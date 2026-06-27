@@ -412,19 +412,30 @@ def _expr_end(text: str, i: int) -> int:
 def _effect_callback(masked: str, after_open: int) -> tuple[str, int, list[str] | None, int]:
     """Parse `useEffect(<cb>, [deps])` from just past the `(`, over the STRING-MASKED
     source (so literals never truncate a body or split a dep). Returns
-    (body, body_start, deps, end). Handles BOTH a block `() => { ... }` and an
-    expression `() => fetch(url)` callback — calling `_match_block` blindly on the
-    latter would jump to an unrelated `{` or run off the end. `deps` is None when no
+    (body, body_start, deps, end). Handles a block arrow `() => { ... }`, an
+    expression arrow `() => fetch(url)`, AND a `function () { ... }` expression
+    (transpiled ES5 output) — calling `_match_block` blindly, or keying on `=>`,
+    would jump to an unrelated `{`/arrow or run off the end. `deps` is None when no
     dependency array is present; the array is matched by BALANCED brackets so a dep
     like `items[i]` survives. `body` includes the braces for a block callback."""
-    arrow = masked.find("=>", after_open)
-    i = (arrow + 2) if arrow != -1 else after_open
-    while i < len(masked) and masked[i] in " \t\r\n":
-        i += 1
-    if i < len(masked) and masked[i] == "{":
-        end = _match_block(masked, i)
+    j0 = after_open
+    while j0 < len(masked) and masked[j0] in " \t\r\n":
+        j0 += 1
+    if re.match(r"(?:async\s+)?function\b", masked[j0:]):
+        # function-expression callback: the body `{` follows the parameter list.
+        i = _body_brace(masked, after_open)
+        end = _match_block(masked, i) if i != -1 else len(masked)
+        if i == -1:
+            i = after_open
     else:
-        end = _expr_end(masked, i)
+        arrow = masked.find("=>", after_open)
+        i = (arrow + 2) if arrow != -1 else after_open
+        while i < len(masked) and masked[i] in " \t\r\n":
+            i += 1
+        if i < len(masked) and masked[i] == "{":
+            end = _match_block(masked, i)
+        else:
+            end = _expr_end(masked, i)
     body = masked[i:end]
     # the dependency array is the balanced `[ ... ]` after an optional `, `
     deps: list[str] | None = None
@@ -462,7 +473,8 @@ def _cleanup_span(mbody: str) -> tuple[int, int, int] | None:
         fn_braces.add(fm.end() - 1)
     for fm in re.finditer(r"\bfunction\b[^{;]*?\)\s*\{", mbody):
         fn_braces.add(fm.end() - 1)
-    ret_re = re.compile(r"return\s*(?:\(\s*\)|\w+)\s*=>")
+    # a cleanup is `return <arrow>` or `return <function expression>` (ES5 output).
+    ret_re = re.compile(r"return\s*(?:(?:\(\s*\)|\w+)\s*=>|(?:async\s+)?function\b)")
     stack: list[tuple[bool, int]] = []  # (is_function_body, open_index) per open brace
     fdepth = 0
     i, n = 0, len(mbody)
@@ -487,6 +499,12 @@ def _cleanup_span(mbody: str) -> tuple[int, int, int] | None:
                         mbody.rfind("}", 0, i))
                 if re.search(r"\b(?:if|else|for|while)\b", mbody[b + 1:i]):
                     cov_start = m.start()  # braceless conditional guard -> covers nothing
+                if "function" in m.group():  # `return function () { ... }` (ES5 cleanup)
+                    brace = _body_brace(mbody, m.end())  # body brace after the params
+                    if brace != -1:
+                        return (m.start(), _match_block(mbody, brace), cov_start)
+                    i += 1
+                    continue
                 rest = mbody[m.end():]
                 stripped = rest.lstrip()
                 if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
@@ -518,7 +536,11 @@ def extract(path: str) -> list[Component]:
     for eff in _USE_EFFECT.finditer(masked):
         body_m, body_start, _deps, end = _effect_callback(masked, eff.end())
         body_o = text[body_start:end]  # original (unmasked) body — same positions
-        span = _cleanup_span(body_m)
+        # An ASYNC effect callback returns a Promise, so React never runs its
+        # returned function as cleanup — credit no cleanup for it (a `return () => …`
+        # inside `useEffect(async () => …)` is dead, so the resource still leaks).
+        is_async = bool(re.match(r"\s*async\b", masked[eff.end():]))
+        span = None if is_async else _cleanup_span(body_m)
         if span:
             cs, ce, cov_start = span
             setup_m = body_m[:cs] + body_m[ce:]

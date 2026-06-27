@@ -65,10 +65,18 @@ def main() -> int:
 
     # False-negative controls: a release-shaped cleanup that does NOT release THIS
     # resource (wrong AbortController, mismatched unsubscribe args, a conditionally
-    # returned cleanup over an unconditional acquire) must STILL report the leak —
-    # the broadened matchers must not over-suppress.
+    # returned cleanup over an unconditional acquire, an async arrow effect, and an
+    # async ES5 `function` effect) must STILL report the leak — the broadened
+    # matchers and async suppression must not over-suppress.
     leaks = codes("EffectLeakControl.tsx")
-    assert leaks == ["OWN001", "OWN001", "OWN001"], f"EffectLeakControl -> {leaks}"
+    assert leaks == ["OWN001"] * 5, f"EffectLeakControl -> {leaks}"
+
+    # Transpiled-ES5 shape: `function () { … return function () { … } }`. The parser
+    # handles `function` callbacks + `return function` cleanups — a matched cleanup is
+    # silent, and a real capture-flag mismatch (the react-scroll-to-bottom@4.2.0 bug)
+    # is caught precisely via the listener key.
+    fn_cb = codes("EffectFunctionCallback.tsx")
+    assert fn_cb == ["OWN001"], f"EffectFunctionCallback -> {fn_cb}"
 
     # an expression-bodied cleanup whose removeEventListener carries an options
     # object must parse (the `{` belongs to the call, not the cleanup block) — the

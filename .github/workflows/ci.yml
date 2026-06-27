@@ -1132,16 +1132,30 @@ jobs:
           # cleanup, observer.subscribe/unsubscribe — all released, zero findings.
           [ "$(echo "$rw" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
             || { echo "FAIL: real-world cleanup patterns must not be reported"; exit 1; }
-      - name: False-negative controls (wrong controller / args / conditional cleanup) still leak
+      - name: False-negative controls (wrong controller / args / conditional / async arrow+ES5) still leak
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/EffectLeakControl.tsx \
             -o "$RUNNER_TEMP/leak.facts.json"
           leak=$(python -m ownlang ownir "$RUNNER_TEMP/leak.facts.json" || true)
           echo "$leak"
-          # a release-shaped cleanup that does not release THIS resource must not be
-          # over-suppressed — all three controls stay OWN001
-          [ "$(echo "$leak" | grep -c 'OWN001')" -eq 3 ] \
+          # a release-shaped cleanup that does not release THIS resource (wrong
+          # controller / mismatched args / conditional return / async arrow effect /
+          # async ES5 `function` effect) must not be over-suppressed — all five
+          # controls stay OWN001
+          [ "$(echo "$leak" | grep -c 'OWN001')" -eq 5 ] \
             || { echo "FAIL: broadened matchers must not over-suppress real leaks"; exit 1; }
+      - name: ES5 `function` callbacks parse; capture-mismatch leak caught (real bug shape)
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectFunctionCallback.tsx \
+            -o "$RUNNER_TEMP/fn.facts.json"
+          fn=$(python -m ownlang ownir "$RUNNER_TEMP/fn.facts.json" || true)
+          echo "$fn"
+          # the matched ES5 cleanup is silent; the capture:true-vs-default mismatch
+          # (react-scroll-to-bottom@4.2.0 shape) is the one OWN001
+          [ "$(echo "$fn" | grep -c 'OWN001')" -eq 1 ] \
+            || { echo "FAIL: expected exactly the capture-mismatch leak"; exit 1; }
+          echo "$fn" | grep -q "focus" \
+            || { echo "FAIL: the leak must be the capture-mismatched focus listener"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
