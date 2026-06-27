@@ -650,7 +650,7 @@ static HashSet<ISymbol> DisposedOwningFields(INamedTypeSymbol w, SemanticModel m
 // non-positional call — yields no claim (false, idx -1). This is the only gate that lets the
 // extractor emit an `alias_join`, so it must never over-claim (a false adopt would fabricate
 // a double-dispose), only under-claim.
-static bool TryAdoptedArgIndex(ObjectCreationExpressionSyntax oce, SemanticModel model,
+static bool TryAdoptedArgIndex(BaseObjectCreationExpressionSyntax oce, SemanticModel model,
                                out int idx)
 {
     idx = -1;
@@ -697,7 +697,9 @@ static bool TryAdoptedArgIndex(ObjectCreationExpressionSyntax oce, SemanticModel
 
 // P-005 D5.4: the adopted-argument expression of `new W(x)`, or null if W does not adopt an
 // argument (TryAdoptedArgIndex). Wraps the index lookup so callers work with the syntax.
-static ExpressionSyntax? AdoptedArg(ObjectCreationExpressionSyntax oce, SemanticModel model) =>
+// Covers both `new W(x)` and target-typed `new(x)` (BaseObjectCreationExpressionSyntax) —
+// the adopt verification resolves the ctor from the symbol either way (Codex).
+static ExpressionSyntax? AdoptedArg(BaseObjectCreationExpressionSyntax oce, SemanticModel model) =>
     TryAdoptedArgIndex(oce, model, out var i) ? oce.ArgumentList!.Arguments[i].Expression : null;
 
 // P-005 D5.4: does the local `name` ESCAPE this method (returned, stored as an assignment
@@ -734,7 +736,7 @@ static bool IsAdoptedArgOfBoundedWrapper(IdentifierNameSyntax idn, SemanticModel
                                          HashSet<string> candidates, BlockSyntax mbody)
 {
     if (idn.Parent is not ArgumentSyntax { Parent: ArgumentListSyntax
-            { Parent: ObjectCreationExpressionSyntax oce } })
+            { Parent: BaseObjectCreationExpressionSyntax oce } })
         return false;
     if (AdoptedArg(oce, model) != idn)              // idn must BE the adopted arg
         return false;
@@ -940,7 +942,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     // disposing either discharges the one resource, disposing both is OWN003. The
                     // arg `x` is kept tracked by the matching escape exception above.
                     if (tracked.Contains(v.Identifier.Text)
-                        && v.Initializer?.Value is ObjectCreationExpressionSyntax adoptOce
+                        && v.Initializer?.Value is BaseObjectCreationExpressionSyntax adoptOce
                         && AdoptedArg(adoptOce, model) is IdentifierNameSyntax adoptedId
                         && tracked.Contains(adoptedId.Identifier.Text))
                         nodes.Add(new { op = "alias_join", var = v.Identifier.Text,

@@ -63,6 +63,15 @@ namespace OwnSharp.Samples
             adoptInnerDirect.Dispose();
         }
 
+        // TARGET-TYPED `new(...)`: the adopt must be recognised for an implicit object creation
+        // too (Codex P2). Disposing the inner directly discharges the shared obligation -> CLEAN.
+        public static void AdoptTargetTyped()
+        {
+            var adoptInnerTt = new MemoryStream();
+            StreamAdopter adoptWrapTt = new(adoptInnerTt);
+            adoptInnerTt.Dispose();
+        }
+
         // PRECISION CONTROL: a NON-adopting holder. No alias is claimed, so the inner escapes as
         // an argument (silent) and disposing both must NOT be a false double-dispose.
         public static void NonAdoptDoubleOk()

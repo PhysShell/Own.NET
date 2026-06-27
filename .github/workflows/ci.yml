@@ -852,7 +852,8 @@ jobs:
             || { echo "FAIL: expected OWN003 (double-dispose through the alias)"; exit 1; }
           # clean / inner-only / non-adopt cases stay silent (no finding on their locals); the
           # leaked WRAPPER alias must also be silent (one finding, attributed to the inner).
-          for ok in adoptInnerClean adoptWrapClean adoptInnerDirect adoptWrapDirect holdInner holdWrap adoptWrapLeak; do
+          for ok in adoptInnerClean adoptWrapClean adoptInnerDirect adoptWrapDirect \
+                    adoptInnerTt adoptWrapTt holdInner holdWrap adoptWrapLeak; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.4 case '$ok' must be silent"; exit 1; fi
           done
           echo "OK: D5.4 T4 alias_join on real C# — adopt verified (Dispose-field + ctor-param), double-dispose caught, non-adopt makes no claim"
