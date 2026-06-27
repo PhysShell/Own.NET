@@ -150,17 +150,35 @@ policy — see §5.
 
 ## 4. The fixpoint (the interprocedural pass)
 
-- Build a call graph over first-party methods.
-- A method's summary depends on the summaries of methods it forwards a param to / returns
-  the result of. Compute **bottom-up** with a worklist; iterate SCCs (recursion /
-  mutual recursion) to a fixpoint on the small lattice.
+> **Implemented** in `ownlang/ownership.py` (`solve` / `solve_with_log`). This is the
+> shipped algorithm; an earlier slice used a depth-capped recursive descent, which the
+> SCC condensation below replaced (it removed both the exponential the cap was guarding
+> against *and* the cap-induced false `unknown`s on deep chains).
+
+- Build a call graph over first-party methods (an edge `M → C` for every callee `C` whose
+  summary `M`'s summary reads: a forwarded param, or a forwarded return).
+- **Condense into SCCs** (iterative Tarjan, emitted bottom-up = reverse-topological) and
+  process components in that order. The summary is **context-insensitive** — one MOS per
+  method, independent of caller or depth — so a callee is resolved **once** and reused
+  (the summary *is* the memoization; only same-SCC callees are still mid-iteration).
+- **Param transfers**: within a component, seed each `(method, param)` at the lattice
+  **bottom** (⊥, "no evidence yet") and iterate the transfer equations to their **least
+  fixpoint** on the small lattice; a residual ⊥ finalizes as `no`. Seeding at ⊥ (not a
+  spurious `no`) is what makes recursion *exact*: a method that disposes on its base case
+  and recurses otherwise resolves to `must` (every *terminating* path disposes), and
+  mutual recursion grounded by a dispose carries that `must` across the whole SCC, while
+  recursion that never disposes settles at `no`.
+- **Returns**: a single forward target per return ⇒ an **iterative** (not recursive),
+  memoized, cycle-safe chase along forward-return edges (a return-forward cycle → `unknown`).
+  Iterative so a deep but acyclic wrapper chain cannot overflow the stack.
 - **Lattice monotonicity is biased toward precision** (§5): uncertainty resolves toward
-  "caller does not own".
-- **Cap the work.** Default interprocedural chain depth **3** (matching CA2000's
-  `max_interprocedural_method_call_chain` default); configurable. On cap, emit `unknown`
-  (→ silent) and **log the cap** — no silent truncation (project discipline).
-- The domain is intentionally tiny (4 transfer values × 1 escape bit × 4 return values),
-  so a bottom-up summary pass stays practical even on large graphs.
+  "caller does not own". The **only** `unknown` the log surfaces is an extern
+  (unsummarized) callee boundary — `solve_with_log` returns those, sorted; other
+  `unknown`s (return-forward cycle, un-remappable `aliasOf`, missing/unrecognised shape)
+  are intrinsic precision-safe degradations, deterministic from the input, not logged.
+- **No depth cap.** The condensation bounds the work (each method resolved once; the
+  domain is tiny — 4 transfer values × 1 escape bit × 4 return values), so the pass stays
+  linear on large graphs without truncating deep chains.
 
 ---
 
@@ -228,8 +246,8 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
 
 - **D5.0 — infra.** MOS dataclass (two-axis), first-party call graph, bottom-up
   SCC fixpoint, serialize to `summaries[]`. No behaviour change — compute, serialize,
-  and **unit-test the lattice in pure Python** (monotonicity, SCC convergence, cap
-  behaviour). First PR; fully local, no SDK.
+  and **unit-test the lattice in pure Python** (monotonicity, SCC convergence, deep-chain
+  termination, extern-boundary logging). First PR; fully local, no SDK.
 - **D5.1a — first-party T2/T3 wiring (shipped).** The OwnIR bridge now derives a
   skeleton per `functions[]` entry, runs the D5.0 solver once, and feeds the resolved
   transfer into `_infer_param_effect`'s **forwarded** branch — the exact give-up it used
@@ -301,7 +319,8 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   method returning an owned `IDisposable` — emits a `call callee=… result=r` op (the core mints
   the acquire only when it proves the callee `fresh`, so a non-fresh call is never falsely owned).
   `IsFirstPartyDisposableFactory` gates on a source-declared, non-void, disposable, non-dispose-
-  optional return; overloads (non-unique names) resolve to `unknown` and stay silent. Validated
+  optional return; same-name overloads are merged into one conservative summary (§10 q2) —
+  classified `fresh` only when **every** overload returns fresh, else silent. Validated
   end-to-end by `FactoryLeakSample.cs` in CI: a dropped factory result leaks **interprocedurally**
   (OWN001 at the call site — beyond the flat detectors), while the disposed caller and the factory
   itself stay silent. **Remaining T1 door:** `out`/`ref`-owned parameters (another `fresh` source)
@@ -444,7 +463,8 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
   *release operation*, not the *transfer shape*.
 - Summaries are may/must per the lattice, biased to precision — not a proof of disposal on
   *every* path beyond what `--flow-locals` already does.
-- Cap the fixpoint; log caps.
+- No depth cap: the SCC condensation bounds the work (§4); the only logged residual is an
+  extern-boundary forward (`solve_with_log`).
 
 ---
 
@@ -452,8 +472,15 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
 
 1. ~~`aliasOf` in the core: shared resource id vs a synthetic discharge edge.~~
    **Resolved → §11 (the obligation-identity model): Variant B, a shared RID / alias-set.**
-2. Signature-key canonicalisation across overloads / generics / partial classes (the
-   `method` key must be stable and collision-free).
+2. ~~Signature-key canonicalisation across overloads / generics / partial classes (the
+   `method` key must be stable and collision-free).~~ **Partially addressed:** the call
+   node names its callee `{Type}.{Method}` with no parameter signature, so a true
+   signature key is not reconstructable core-side. Instead, same-name overloads are
+   **merged into one conservative summary** (`_merge_skeletons` in `ownir.py`): a join at
+   (name, parameter-index) granularity — `must` only when every overload consumes that
+   index, `fresh` only when all agree — never a fabricated `must`/`fresh`. **Residual:**
+   argument-type / per-arity disambiguation would need call-site type info the fact stream
+   does not carry (arity is available but not yet modelled).
 3. Whether `escape-without-transfer` ever deserves its own advisory (e.g. "stored in a
    non-owning field — who owns this?") or stays silent. (Start silent.)
 
