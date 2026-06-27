@@ -178,6 +178,41 @@ viewed through an adapter. **When a type wraps a disposable it doesn't own, the
 correct behaviour is to forward disposal, not perform it — and an analyzer must
 not count the wrapped allocation against the wrapper.**
 
+## 7. Run ledger — Polly re-run after D5.4 step 2 (ctor-adopt `alias_join`)
+
+**Seen in:** the oracle re-run of `App-vNext/Polly` (`src/`, product code only) at
+commit `976983f` *after* P-005 D5.4 step 2 shipped — the Roslyn extractor now emits
+`alias_join` for a verified constructor adopt (`var w = new W(x)`). This entry is the
+**audit record** the maintenance rule below requires: it pins no new idiom (entries 1–4
+already cover Polly's), but documents that the new emission stayed precise and accounts
+for every `oracle-only` finding.
+
+**Buckets (unchanged from the pre-step-2 run):** Own.NET leak findings **0**; Agree 0;
+**Own.NET-only 0**; oracle-only **16**. The new `alias_join` path produced **zero**
+own-only findings on real code — the precision floor held end-to-end.
+
+**The 16 oracle-only, each accounted for (all oracle FP or by-design):**
+
+| # | site | tool | disposition → entry |
+|---|---|---|---|
+| 12 | `TimedLock.Lock(...)` across `CircuitBreaker/*` + `TimedLock.cs:32` | Infer# `PULSE_RESOURCE_LEAK` | struct-`using` over-report → **entry 4** |
+| 1 | `CircuitBreakerResiliencePipelineBuilderExtensions.cs:75` | Infer# `PULSE_RESOURCE_LEAK` | strategy ctor allocation, disposed by the pipeline → **entry 1/2** |
+| 2 | `BulkheadSemaphoreFactory.cs:8,11` | CodeQL `cs/local-not-disposed` | factory returns, adopted into owning fields → **entry 1** |
+| 1 | `ConfigureBuilderContextExtensions.cs:40` | CodeQL `cs/local-not-disposed` | CTS disposed in an `OnPipelineDisposed` callback (`#pragma CA2000`) → **entry 2** |
+| 1 | `TimeoutResilienceStrategy.cs:67` | CodeQL `cs/dispose-not-called-on-throw` | pooled CTS `Get`/`Return` (catch-all around the throwing await) → **entry 3** |
+
+**Analyzer angle / the recall boundary this run pins.** `BulkheadSemaphoreFactory`
+(entry 1) is the shape people expect step 2 to "fix", but it is **not** the construction-
+site ctor-adopt step 2 models — it is *factory-returns-fresh* + *caller-stores-in-an-
+owning-field* (the deferred T4b field-store-to-`this` shape). So step 2 correctly leaves
+it untouched, and CodeQL's two FPs there stay `oracle-only` (we must **not** flag them —
+the semaphores are owned by `BulkheadPolicy`). Both CodeQL CTS findings are also
+non-leaks (callback-deferred dispose; pooled return), so **there is nothing on Polly we
+could newly catch without manufacturing a false positive.** own-only-0 here is principled,
+not luck — and the next recall lever for this family is the deferred field-store adopt, not
+anything in step 2's scope. *(Confidence: high — dispositions verified against the pinned
+Polly source, not just the SARIF excerpts.)*
+
 ---
 
 ## The through-line
