@@ -11,5 +11,13 @@ export function ExprCleanup() {
     return () => window.removeEventListener("scroll", onScroll, { capture: true });
   }, []);
 
+  // a MULTI-LINE expression-bodied cleanup must not be cut at the first newline
+  // after `=>` (which would leave an empty cleanup and a false leak).
+  useEffect(() => {
+    el.addEventListener("resize", onResize);
+    return () =>
+      el.removeEventListener("resize", onResize);
+  }, []);
+
   return <div>expr cleanup</div>;
 }

@@ -395,12 +395,25 @@ def _cleanup_span(mbody: str) -> tuple[int, int] | None:
         if stripped.startswith("{"):  # block-bodied cleanup: `=> { ... }`
             brace = m.end() + (len(rest) - len(stripped))
             return (m.start(), _match_block(mbody, brace))
-        # single-expression cleanup — ends at the line break. Crucially NOT a
-        # `find("{")`, which would mistake an options object inside the call (e.g.
-        # `=> el.removeEventListener("x", h, {capture: true})`) for the cleanup block
-        # and truncate the trailing `)`, breaking _listener_call into a false leak.
-        nl = mbody.find("\n", m.end())
-        return (m.start(), nl if nl != -1 else len(mbody))
+        # single-expression cleanup. Consume the WHOLE expression across line breaks
+        # — stopping at a top-level `;` or the effect body's own closing brace, NOT
+        # the first newline (which truncates a multi-line call) and NOT a `find("{")`
+        # (which would mistake an options object like `{capture: true}` inside the
+        # call for the cleanup block). Both truncations drop the closing `)` and turn
+        # a released listener into a false leak.
+        i, depth = m.end(), 0
+        while i < len(mbody):
+            c = mbody[i]
+            if c in "([{":
+                depth += 1
+            elif c in ")]}":
+                if depth == 0:  # the effect body's closing brace — expression ends
+                    break
+                depth -= 1
+            elif c == ";" and depth == 0:
+                break
+            i += 1
+        return (m.start(), i)
     return None
 
 
