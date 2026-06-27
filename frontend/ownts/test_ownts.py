@@ -80,6 +80,14 @@ def main() -> int:
         "a non-capture option (passive) does not change removal identity"
     assert not rel('el.addEventListener("x", onX)',
                    'other.removeEventListener("x", onX)'), "wrong target must still leak"
+    assert not rel('window.addEventListener("scroll", onX)',
+                   'window.removeEventListener("resize", onX)'), \
+        "a different event name is a different listener (still leaks)"
+    assert rel('nodes[i].addEventListener("x", onX)',
+               'nodes[i].removeEventListener("x", onX)'), "indexed receiver matches itself"
+    assert not rel('nodes[i].addEventListener("x", onX)',
+                   'nodes[j].removeEventListener("x", onX)'), \
+        "a different index is a different target (still leaks)"
 
     print("OwnTS spike OK: leaky=3xOWN001+EFF001, clean=0, kinds=timer/subscribe/"
           "subscription, EffectStorm=2xEFF001, EffectEdges=1xOWN001, "

@@ -92,6 +92,28 @@ def _capture_flag(opts: str) -> str:
     return "unknown"  # a variable/call — compare verbatim (equal only to itself)
 
 
+_LISTENER = re.compile(
+    r"\.\s*(?:add|remove)EventListener\s*\(\s*([^,]+?)\s*,\s*([A-Za-z_$][\w$.]*)\s*"
+    r"(?:,\s*([^)]+?))?\s*\)")
+
+
+def _listener_call(s: str) -> tuple[str, str, str] | None:
+    """Parse a `.addEventListener`/`.removeEventListener` head into the
+    (event, handler, capture) triple that identifies the listener for removal, or
+    None when it doesn't parse. `s` starts at the `.`."""
+    m = _LISTENER.match(s.lstrip())
+    if not m:
+        return None
+    return (m.group(1).strip(), m.group(2), _capture_flag(m.group(3) or ""))
+
+
+def _receiver(text: str, end: int) -> str:
+    """The receiver expression ending at `end` (just before `.addEventListener`),
+    allowing a member/index chain like `this.ref` or `nodes[i]`."""
+    m = re.search(r"([A-Za-z_$][\w$.\[\]]*)$", text[:end])
+    return m.group(1) if m else ""
+
+
 def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
     """Whether THIS acquire (at `pos` in `setup`) is released by the effect's cleanup
     — matched to its own handle, so two `setInterval`s with one `clearInterval` leave
@@ -106,26 +128,23 @@ def _is_released(acq: Acquire, setup: str, pos: int, cleanup: str) -> bool:
         return bool(tok and re.search(
             rf"\b{re.escape(tok)}\s*\.\s*(?:unsubscribe|remove)\s*\(", cleanup))
     if acq.resource == "subscription":  # target.addEventListener(event, handler[, opts])
-        am = re.match(
-            r"\.addEventListener\s*\(\s*[^,]+,\s*([A-Za-z_$][\w$.]*)\s*(?:,\s*([^)]+?))?\s*\)",
-            setup[pos:])
-        if not am:
+        # The full listener key is (receiver, event, handler, capture). A listener is
+        # released ONLY by a removeEventListener whose whole key matches — a different
+        # event name, target, or capture flag is a different listener that still
+        # leaks. Fail closed: if the acquire's own target can't be identified, or no
+        # cleanup call matches every field, treat it as a leak.
+        a = _listener_call(setup[pos:])
+        if a is None:
             return False
-        handler = am.group(1)
-        acq_cap = _capture_flag(am.group(2) or "")
-        # the receiver the listener is attached to (`window`, `el`, `this.ref`) — a
-        # `removeEventListener` on a DIFFERENT target does not release this one.
-        rm = re.search(r"([A-Za-z_$][\w$.]*)\s*$", setup[:pos])
-        recv = rm.group(1) if rm else ""
-        recv_pat = rf"{re.escape(recv)}\s*\.\s*" if recv else r""
-        # released only by a cleanup with the SAME receiver, handler, AND capture
-        # flag. The capture flag is what identifies a listener for removal; it
-        # defaults to false when omitted, so add(...,true) is not released by
-        # remove(...) and add(...) is not released by remove(...,true).
-        for cm in re.finditer(
-                rf"{recv_pat}removeEventListener\s*\(\s*[^,]+,\s*"
-                rf"{re.escape(handler)}\b\s*(?:,\s*([^)]+?))?\s*\)", cleanup):
-            if _capture_flag(cm.group(1) or "") == acq_cap:
+        a_recv = _receiver(setup, pos)
+        if not a_recv:
+            return False
+        for rm in re.finditer(r"([A-Za-z_$][\w$.\[\]]*)\s*\.\s*removeEventListener\s*\(",
+                              cleanup):
+            if rm.group(1) != a_recv:
+                continue
+            b = _listener_call(cleanup[rm.start() + len(rm.group(1)):])
+            if b == a:
                 return True
         return False
     return False
@@ -361,24 +380,23 @@ def _effect_callback(masked: str, after_open: int) -> tuple[str, int, list[str] 
     return body, i, deps, end
 
 
-def _split_cleanup(body: str) -> tuple[str, str]:
-    """Split an effect block body into (setup, cleanup). Cleanup is the block of the
-    effect's OWN top-level `return () => { ... }` — a `return ... =>` nested inside a
-    callback (brace-depth > 1) is NOT the effect cleanup and must not suppress a
-    leak. For an expression-bodied effect there is no cleanup."""
-    for m in re.finditer(r"return\s*(?:\(\s*\)|\w+)\s*=>", body):
-        prefix = body[:m.start()]
+def _cleanup_span(mbody: str) -> tuple[int, int] | None:
+    """The (start, end) span of the effect's OWN top-level cleanup within `mbody`
+    (the masked body), or None. A `return ... =>` nested inside a callback
+    (brace-depth > 1) is NOT the effect cleanup and must not suppress a leak. The
+    span is returned (not slices) so the caller can cut it out of BOTH the masked
+    body (for acquire scanning) and the original body (for event/string comparison)."""
+    for m in re.finditer(r"return\s*(?:\(\s*\)|\w+)\s*=>", mbody):
+        prefix = mbody[:m.start()]
         if prefix.count("{") - prefix.count("}") != 1:  # 1 == the effect body's own brace
             continue
-        brace = body.find("{", m.end())
+        brace = mbody.find("{", m.end())
         if brace == -1:
             # `return () => clearInterval(id)` — single-expression cleanup, no block.
-            nl = body.find("\n", m.end())
-            tail = body[m.end(): nl if nl != -1 else len(body)]
-            return body[: m.start()], tail
-        end = _match_block(body, brace)
-        return body[: m.start()] + body[end:], body[brace:end]
-    return body, ""
+            nl = mbody.find("\n", m.end())
+            return (m.start(), nl if nl != -1 else len(mbody))
+        return (m.start(), _match_block(mbody, brace))
+    return None
 
 
 def extract(path: str) -> list[Component]:
@@ -386,15 +404,26 @@ def extract(path: str) -> list[Component]:
     masked = _mask_strings(text)  # scan structure on this; show snippets from `text`
     comps: dict[str, Component] = {}
     for eff in _USE_EFFECT.finditer(masked):
-        body, body_start, _deps, _end = _effect_callback(masked, eff.end())
-        setup, cleanup = _split_cleanup(body)
+        body_m, body_start, _deps, end = _effect_callback(masked, eff.end())
+        body_o = text[body_start:end]  # original (unmasked) body — same positions
+        span = _cleanup_span(body_m)
+        if span:
+            cs, ce = span
+            setup_m = body_m[:cs] + body_m[ce:]
+            setup_o = body_o[:cs] + body_o[ce:]
+            cleanup_o = body_o[cs:ce]
+        else:
+            setup_m, setup_o, cleanup_o = body_m, body_o, ""
         cname = _component_at(masked, eff.start())
         comp = comps.setdefault(cname, Component(cname, path))
         for acq in ACQUIRES:
-            for hit in acq.pattern.finditer(setup):
+            # find the acquire on the MASKED setup (a keyword inside a string is gone);
+            # decide release on the ORIGINAL setup/cleanup (so event-name strings and
+            # handles are intact for the full-key comparison).
+            for hit in acq.pattern.finditer(setup_m):
                 abs_pos = body_start + hit.start()
                 line = masked.count("\n", 0, abs_pos) + 1
-                released = _is_released(acq, setup, hit.start(), cleanup)
+                released = _is_released(acq, setup_o, hit.start(), cleanup_o)
                 # the acquire expression for the tag — from the ORIGINAL text, so the
                 # message shows the real call (string args intact), trimmed to one line.
                 snippet = text[abs_pos:].splitlines()[0].strip().rstrip("{").strip()
