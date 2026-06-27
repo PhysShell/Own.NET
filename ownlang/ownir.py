@@ -841,7 +841,7 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
         # authoritative even with no usable summary (CodeRabbit). Threaded into the freshness
         # checks so direct calls agree with the wrapper-return path in `_infer_return_skeleton`.
         first_party = frozenset(
-            str(fn.get("name", "")) for fn in raw_fns
+            _canonical_callee_name(str(fn.get("name", ""))) for fn in raw_fns
             if isinstance(fn, dict) and fn.get("name"))
         for fn in raw_fns:
             if not isinstance(fn, dict):
@@ -1049,7 +1049,8 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str],
         (v,) = tuple(returned)
         callee = call_results.get(v)
         if callee and v not in param_names and v not in acquired:
-            if callee not in first_party and _is_bcl_fresh_factory(callee):
+            if _canonical_callee_name(callee) not in first_party \
+                    and _is_bcl_fresh_factory(callee):
                 # a thin wrapper returning a BCL factory's result is itself `fresh` — the
                 # caller owns it (Codex). Without this the return is a `forward` to an
                 # external (bodyless) callee, which the solver degrades to `unknown`, so a
@@ -1143,6 +1144,15 @@ _BCL_FRESH_FACTORIES = frozenset(e for es in _BCL_FRESH_BY_NS.values() for e in 
 _BCL_FRESH_FQNS = frozenset(f"{ns}.{e}" for ns, es in _BCL_FRESH_BY_NS.items() for e in es)
 
 
+def _canonical_callee_name(name: str) -> str:
+    """The identity a callee/method name is matched on: its `global::`-stripped form. The
+    extractor may emit a fully-qualified call as `global::System.…` while the corresponding
+    method definition (and so `mos` / `first_party`) carries the bare form. Stripping the
+    qualifier on BOTH sides keeps a source-visible call from missing Tier A and falling through
+    to the Tier B BCL table (CodeRabbit)."""
+    return name.removeprefix("global::")
+
+
 def _is_bcl_fresh_factory(callee: str) -> bool:
     """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
     ONLY the bare `Type.Method` (`File.OpenRead`, `SHA256.Create`) or its fully-qualified
@@ -1152,7 +1162,7 @@ def _is_bcl_fresh_factory(callee: str) -> bool:
     Precision-first: we never fabricate ownership for a non-BCL look-alike (Codex / CodeRabbit)."""
     if not callee:
         return False
-    name = callee.removeprefix("global::")
+    name = _canonical_callee_name(callee)
     return name in _BCL_FRESH_FACTORIES or name in _BCL_FRESH_FQNS
 
 
@@ -1172,10 +1182,15 @@ def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None,
     already excludes) stays silent. Suppress the Tier B fallback for any first-party name so
     direct and wrapper-returned paths agree (CodeRabbit). Precision-safe: no summary + first-party
     => no claim (a dropped overload we cannot prove owns its result)."""
-    summ = mos.get(callee) if (mos is not None and callee) else None
+    if not callee:
+        return False
+    identity = _canonical_callee_name(callee)
+    summ = mos.get(callee) if mos is not None else None
+    if summ is None and mos is not None and identity != callee:
+        summ = mos.get(identity)  # a `global::`-qualified call resolves to its bare summary
     if summ is not None:
         return getattr(summ, "returns", None) == "fresh"
-    if callee in first_party:
+    if identity in first_party:
         return False
     return _is_bcl_fresh_factory(callee)
 
@@ -1279,7 +1294,7 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     # table must NOT apply to a call whose target we compile from source — Tier A (the
     # first-party summary) authoritatively overrides Tier B (the curated BCL table) even
     # when the source method happens to share a BCL factory's name (Codex P2).
-    first_party = frozenset(k for k in counts if k)
+    first_party = frozenset(_canonical_callee_name(k) for k in counts if k)
     skels: list[MethodSkeleton] = []
     for fn in raw_fns:
         if not isinstance(fn, dict):

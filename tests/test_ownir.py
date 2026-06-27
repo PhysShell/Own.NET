@@ -1667,6 +1667,23 @@ def run() -> int:
         fails.append("Tier B: an overloaded (dropped) first-party method with a BCL name must "
                      "not fall back to the BCL table on a direct call, got "
                      f"{[(x.component, x.code) for x in ov_overload]}")
+    checks += 1
+    # OVERRIDE survives `global::` qualification (CodeRabbit): the BCL matcher strips
+    # `global::`, so the first-party check must too — else a source `…SHA256.Create` called as
+    # `global::…SHA256.Create` misses both `mos` and `first_party` and falls through to the
+    # table as fresh. A first-party (non-fresh) method invoked global-qualified stays silent.
+    ov_global = check_facts({"module": "M", "functions": [
+        {"name": "System.Security.Cryptography.SHA256.Create", "file": "B.cs",
+         "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "return", "var": "a", "line": 2}]},
+        {"name": "Caller5", "file": "B.cs", "body": [
+            {"op": "call",
+             "callee": "global::System.Security.Cryptography.SHA256.Create",
+             "args": [], "result": "h", "line": 9}]}]})
+    if ov_global:
+        fails.append("Tier B: a `global::`-qualified call to a first-party method must resolve "
+                     "to its (non-fresh) summary, not the BCL table, got "
+                     f"{[(x.component, x.code) for x in ov_global]}")
     # OVERWRITE kills the prior binding (CodeRabbit): `acquire x; x = Unknown(); release x`
     # — the call's result reuses an owned local and the call is dropped (unknown callee),
     # so the ORIGINAL x leaks (its reference is lost), not read as clean. The release after
