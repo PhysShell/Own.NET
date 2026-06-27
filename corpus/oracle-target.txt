@@ -3,8 +3,8 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# Blind cross-tool run on an HTTP client lib — HttpClient/HttpRequestMessage
-# ownership-transfer patterns (the Polly Bulkhead shape that exercised our
-# escape analysis). Triage oracle-only into field-notes per the oracle.md
-# maintenance requirement.
-RestSharp/RestSharp
+# Clean re-run after fixing _is_test_path to drop dotted .NET test dirs
+# (Newtonsoft.Json.Tests). The first run leaked ~485 test findings into the diff
+# (own-only 489); with the fix the product picture is own-only 4. This confirms it
+# on fresh cross-tool output, not just the local replay.
+JamesNK/Newtonsoft.Json
