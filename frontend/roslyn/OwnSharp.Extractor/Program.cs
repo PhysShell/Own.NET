@@ -16,12 +16,16 @@
 // `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
 //
-// Usage: ownsharp-extract <file.cs | dir> [more ...] [-o facts.json]
+// Usage: ownsharp-extract <file.cs | dir | *.csproj | *.sln> [more ...] [-o facts.json]
+//        ownsharp-extract --project App.csproj   (flag twin of the positional form)
+//        ownsharp-extract --solution App.sln
 //
-// Inputs may be .cs files or directories. A directory is walked recursively for
-// *.cs, skipping build output (bin/obj), VCS/vendor dirs (.git, node_modules)
-// and generated files (*.g.cs, *.Designer.cs) — so you can point it at a whole
-// repo (this is what the `own-check` script / GitHub Action do).
+// Inputs may be .cs files, directories, a .csproj, or a .sln. A directory is walked
+// recursively for *.cs, skipping build output (bin/obj), VCS/vendor dirs (.git,
+// node_modules) and generated files (*.g.cs, *.Designer.cs) — so you can point it at a
+// whole repo (this is what the `own-check` script / GitHub Action do). A .csproj resolves
+// to its source set (SDK-style directory scan + concrete linked <Compile> files; no full
+// MSBuild evaluation — see ProjectCsFiles); a .sln fans out over its member projects.
 
 using System.Text.Json;
 using System.Xml.Linq;
@@ -67,6 +71,11 @@ BodyThrowEdges = false;
 for (int i = 0; i < args.Length; i++)
 {
     if (args[i] == "-o" && i + 1 < args.Length) outPath = args[++i];
+    // `--project <App.csproj>` / `--solution <App.sln>`: the explicit-flag twin of passing the
+    // project/solution as a positional input (both resolve through Expand). The flag form matches
+    // the advertised `ownsharp extract --project ...` UX borrowed from the roslyn-tools CLI shape;
+    // the positional form keeps the command unambiguous next to dotnet's own `run --project`.
+    else if ((args[i] == "--project" || args[i] == "--solution") && i + 1 < args.Length) rawInputs.Add(args[++i]);
     else if (args[i] == "--ref-dir" && i + 1 < args.Length) refDirs.Add(args[++i]);
     else if (args[i] == "--no-event-leaks") emitEvents = false;
     else if (args[i] == "--flow-locals") flowLocals = true;
@@ -77,7 +86,7 @@ for (int i = 0; i < args.Length; i++)
 
 if (rawInputs.Count == 0)
 {
-    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir> [...] [-o facts.json] [--ref-dir <bin-dir>]");
+    Console.Error.WriteLine("usage: ownsharp-extract <file.cs | dir | *.csproj | *.sln> [...] [-o facts.json] [--ref-dir <bin-dir>]");
     return 2;
 }
 
@@ -113,9 +122,91 @@ static bool IsSkipped(string path)
     return IsGenerated(path);
 }
 
-// Expand directories into their .cs files; pass explicit files through as-is.
-// IgnoreInaccessible tolerates an unreadable subdir mid-walk (otherwise the
-// whole scan would abort with an unhandled exception on a locked directory).
+// Resolve a `.csproj` to its C# source set. Doing this the MSBuild way needs a full
+// project evaluation (and the `Microsoft.CodeAnalysis.Workspaces.MSBuild` + MSBuildLocator
+// dependency that P-014 / the "ProjectDependencies as a category" note deliberately parks
+// for the DI/solution-graph work — not for the v0 leak extractor). The pragmatic resolution
+// that covers the SDK-style common case WITHOUT that baggage: scan the project's directory
+// recursively for *.cs — exactly the SDK default-compile-items behaviour, with bin/obj and
+// generated files already excluded by IsSkipped — and additionally pick up any concrete
+// linked `<Compile Include="..\Shared\Foo.cs" />` that points OUTSIDE the project tree.
+// This can over-approximate a legacy explicit-list project (it analyses sibling *.cs the
+// project might exclude), which for a fact extractor is harmless: it never invents files,
+// it only reads a few extra. Globs inside <Compile Include> are left to the directory scan.
+// Builds a list rather than yielding so the XML read can sit in a try/catch (an iterator
+// may not yield from inside one) and a malformed project degrades to the directory scan.
+static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
+{
+    var full = Path.GetFullPath(csproj);
+    var dir = Path.GetDirectoryName(full) ?? ".";
+    var result = new List<string>();
+    foreach (var f in Directory.EnumerateFiles(dir, "*.cs", opts))
+        if (!IsSkipped(f))
+            result.Add(f);
+
+    XDocument? doc = null;
+    try { doc = XDocument.Load(full); }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine(
+            $"ownsharp-extract: {csproj}: reading <Compile> links failed ({ex.Message}); used directory scan only");
+    }
+
+    var dirPrefix = dir.EndsWith(Path.DirectorySeparatorChar) ? dir : dir + Path.DirectorySeparatorChar;
+    foreach (var inc in (doc?.Descendants() ?? Enumerable.Empty<XElement>())
+                 .Where(e => e.Name.LocalName == "Compile")
+                 .Select(e => e.Attribute("Include")?.Value)
+                 .Where(v => !string.IsNullOrWhiteSpace(v)))
+    {
+        if (inc!.IndexOfAny(new[] { '*', '?' }) >= 0) continue;            // a glob — the dir scan covers it
+        var path = Path.GetFullPath(Path.Combine(dir, inc.Replace('\\', Path.DirectorySeparatorChar)));
+        if (path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+            && File.Exists(path) && !IsSkipped(path)
+            && !path.StartsWith(dirPrefix, StringComparison.Ordinal))    // in-dir links already yielded
+            result.Add(path);
+    }
+    return result;
+}
+
+// Resolve a classic `.sln` to its member `.csproj` paths. The solution file lists each project
+// as `Project("{type-guid}") = "Name", "rel\path.csproj", "{guid}"`; solution folders use the
+// same line shape but their path is not a `.csproj`, so filtering on the extension drops them.
+// Text parsing (no MSBuild) keeps this dependency-free; a missing member is reported and skipped,
+// never fatal — a solution-wide scan should survive one stale project reference.
+static List<string> SolutionProjects(string sln)
+{
+    var dir = Path.GetDirectoryName(Path.GetFullPath(sln)) ?? ".";
+    var projects = new List<string>();
+    string[] lines;
+    try { lines = File.ReadAllLines(sln); }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"ownsharp-extract: cannot read solution {sln} ({ex.Message})");
+        return projects;
+    }
+    foreach (var line in lines)
+    {
+        var t = line.TrimStart();
+        if (!t.StartsWith("Project(", StringComparison.Ordinal)) continue;
+        var eq = t.IndexOf('=');
+        if (eq < 0) continue;
+        // After '=' the fields are comma-separated, each double-quoted: "Name", "relpath", "{guid}".
+        var parts = t.Substring(eq + 1).Split(',');
+        if (parts.Length < 2) continue;
+        var rel = parts[1].Trim().Trim('"');
+        if (!rel.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)) continue;
+        var path = Path.GetFullPath(Path.Combine(dir, rel.Replace('\\', Path.DirectorySeparatorChar)));
+        if (File.Exists(path)) projects.Add(path);
+        else Console.Error.WriteLine($"ownsharp-extract: {sln}: project not found: {rel}");
+    }
+    return projects;
+}
+
+// Expand inputs into their .cs files. A directory is walked recursively; a `.csproj`/`.sln`
+// is resolved to its source set (so `ownsharp-extract App.csproj` / `App.sln` works, the
+// CLI-first project input borrowed from the roslyn-tools tooling shape); an explicit file
+// passes through as-is. IgnoreInaccessible tolerates an unreadable subdir mid-walk (otherwise
+// the whole scan would abort with an unhandled exception on a locked directory).
 static IEnumerable<string> Expand(IEnumerable<string> roots)
 {
     var opts = new EnumerationOptions
@@ -130,6 +221,17 @@ static IEnumerable<string> Expand(IEnumerable<string> roots)
             foreach (var f in Directory.EnumerateFiles(p, "*.cs", opts))
                 if (!IsSkipped(f))
                     yield return f;
+        }
+        else if (p.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var proj in SolutionProjects(p))
+                foreach (var f in ProjectCsFiles(proj, opts))
+                    yield return f;
+        }
+        else if (p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var f in ProjectCsFiles(p, opts))
+                yield return f;
         }
         else
         {

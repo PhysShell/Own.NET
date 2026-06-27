@@ -945,6 +945,30 @@ jobs:
             fi
           done
           echo "OK: WinForms modeless Form.Show() = call-site release (framework-owned); conditional show leaks on the no-show path; modal ShowDialog() leak caught; disposed modal silent"
+      # Project-file input (the CLI-first project/solution resolution borrowed from the
+      # roslyn-tools tooling shape): point the extractor at a .csproj instead of a file
+      # list and assert the same event leak surfaces. Proves ProjectCsFiles resolves the
+      # SDK-style project to its source set and feeds the core identically to the per-file
+      # path. Both the positional and the `--project` flag forms are exercised.
+      - name: Project-file input (.csproj -> source set -> core)
+        run: |
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
+            -o "$RUNNER_TEMP/proj-facts.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/proj-facts.json" || true)
+          echo "$out"
+          echo "$out" | grep -q "CustomerSubscription.cs" \
+            || { echo "FAIL: .csproj input did not resolve CustomerSubscription.cs"; exit 1; }
+          echo "$out" | grep -qE "CustomerSubscription\.cs:[0-9]+:.*\[OWN001\]" \
+            || { echo "FAIL: expected OWN001 via .csproj input"; exit 1; }
+          # the `--project` flag form must resolve to the same source set as the positional form.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            --project frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
+            -o "$RUNNER_TEMP/proj-facts-flag.json"
+          diff <(python -m ownlang ownir "$RUNNER_TEMP/proj-facts.json" || true) \
+               <(python -m ownlang ownir "$RUNNER_TEMP/proj-facts-flag.json" || true) \
+            || { echo "FAIL: --project flag and positional .csproj disagree"; exit 1; }
+          echo "OK: .csproj input resolves to its source set and feeds the core identically (positional == --project)"
 
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
