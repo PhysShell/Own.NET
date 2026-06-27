@@ -35,6 +35,46 @@ The long-term identity the backlog is aiming at:
 > typestate, effects, capabilities, and domain-specific types **without
 > rewriting the codebase.**
 
+### Positioning against the competition (not another SAST)
+
+The competition is already standing around this field with shovels and enterprise
+sales badges. CodeQL (semantic queries / code scanning), Sonar (quality / bugs /
+smells), Semgrep (rule-based AppSec), Snyk Code (SAST), and the AI PR reviewers all
+sell the **broad** promise: *"we'll find vulnerabilities / bugs / smells."* Entering
+that arena as *"another static analyzer / AI code reviewer / SAST"* is a fight lost
+to marketing budget, not to merit.
+
+So Own.NET must **not** be pitched as any of those. The narrower, defensible niche:
+
+> a **cross-language resource / lifetime / effect contract checker** — who holds
+> whom, who must release, which resource outlives which, which effect can
+> runaway, where a lifecycle contract is broken.
+
+That is a different promise from *"an AI reviewer said this looks suspicious."* And
+it is deterministic where the AI reviewers are not — the grown-up framing is *an
+LLM may **propose** a suspicious lifecycle contract; Own **verifies** it
+deterministically* (reproducible rule, SARIF, suppression/spec, cross-language
+model). Not a head-on fight with AI review — a layer underneath it.
+
+### From memory leaks to effect storms (one model, many skins)
+
+The "big idea" that makes the niche coherent: four bugs that look unrelated are the
+**same lifecycle/resource-contract failure** in different ecosystems —
+
+| Bug | The contract that broke |
+|-----|-------------------------|
+| WPF event leak | a long-lived publisher keeps a `ViewModel` alive |
+| DI captive dependency | a long-lived service retains a scoped service |
+| ArrayPool view-after-return | released backing storage still has a borrowed view |
+| **React effect storm** | an unstable dependency repeatedly re-triggers a network effect |
+
+One model (source lifetime / resource / effect / cleanup / stability), one IR
+(OwnIR facts), one checker (the `ownlang/` core). The React row is the
+Cloudflare-shaped hook — used **honestly**: *"not all lifecycle bugs leak memory;
+some leak requests,"* never *"we'd have prevented the Cloudflare outage."* Its
+design is [P-020](proposals/P-020-ownts-react-effects.md) (the `Own.React` effect
+profile under the OwnTS frontend, [P-017](proposals/P-017-multi-stack-frontends.md)).
+
 ## Design philosophy (the load-bearing constraints)
 
 - **One checker.** The Python core in `ownlang/` is the single source of truth.
@@ -90,6 +130,13 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 | **P1** | ArrayPool/Span ownership-view bugs; hidden effects / architecture rules | [P-007](proposals/P-007-arraypool-span.md), [P-008](proposals/P-008-effects-and-resources.md) |
 | **P2** | async resource lifecycle; `ValueTask` affine usage; typestate/protocols | [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
+
+> **Are we showable yet?** The concrete "delicious .NET alpha" gate — the A–G bar
+> (`dotnet tool` / Action / SARIF / 5 diagnostics / bad-ok examples / case studies /
+> suppression policy), the honest current status against it, and the 80/20 rule —
+> lives in [docs/notes/alpha-readiness.md](notes/alpha-readiness.md). Short version:
+> capability is past alpha; the gap to "people install it" is *packaging* (a single
+> `ownsharp check MyApp.sln` CLI, a wedge landing README, packaged case studies).
 
 **The five concrete diagnostics to build first** (balanced across real pain,
 architectural strictness, and the borrow-checker showcase):
@@ -172,6 +219,21 @@ architectural strictness, and the borrow-checker showcase):
    Nethermind, AiDotNet.Tensors).
 5. **Effects** — `pure` / `use !Db` / `use !Log` / `use Clock`, layer policies
    (P-008). The architectural X-ray — landed *after* the leak checkers prove value.
+6. **Platform-agnostic core (multi-stack)** — *horizon, on the record for
+   consideration only.* The same OwnIR seam, reused for non-.NET stacks to prove the
+   "one core, frontends only extract facts" spine was not .NET-shaped luck (P-017).
+   Decision recorded: **JS/TS = one frontend family (`OwnTS`), two confidence tiers**
+   (TS type-aware via the TypeScript Compiler API; JS best-effort via syntax/JSDoc) —
+   *not* two products; **Java/Kotlin = split frontends** (`OwnJava` via Error Prone/
+   JDT/Spoon, `OwnKotlin` via Detekt/KSP/K2) **unified by one `OwnJVM` profile** —
+   because the JVM lifecycle/resource model is shared but the source tooling is not.
+   The axis the naive layout conflates is **language frontend** (`OwnTS`/`OwnJava`/
+   `OwnKotlin`) vs **platform profile** (`OwnReact`/`OwnJVM`/`OwnAndroid`/`OwnSpring`)
+   vs **core** — a brand-per-framework layout "is not a product line, it is a census."
+   Gated behind a tasty .NET alpha + a real cross-stack bug; the first slices are a
+   `useEffect`-cleanup *marketing* spike and a listener-leak *research* spike, each
+   `acquire` without `release` → the existing `OWN001`. See
+   [P-017](proposals/P-017-multi-stack-frontends.md).
 
 ## What static analysis can and cannot catch (the reality matrix)
 
@@ -248,3 +310,5 @@ own scan. Label them as estimates wherever they appear.
 | [P-014](proposals/P-014-semantic-resolution.md) | Project-local semantic resolution (`+=` event vs number) | P0 | in progress (Tier A default-on + Tier B light path `--ref-dir`; full MSBuild closure deferred) |
 | [P-015](proposals/P-015-configuration-surface.md) | Configuration surface (check selection & severity) | P2 | draft (stub) |
 | [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
+| [P-017](proposals/P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | horizon | draft |
+| [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |

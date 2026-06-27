@@ -1,90 +1,92 @@
+**English** · [Русский](README.ru.md)
+
 # OwnLang — PoC
 
-Рабочий прототип того, о чём шла речь в твоих документах: маленький
-ownership-язык со строгой дисциплиной владения в духе Rust, который
-компилируется в C#. Это **передняя половина** всей задумки — ровно тот слой,
-который документ №2 советовал строить первым (annotations/subset → analyzer →
-IR), и сознательно **до** backend'а на Boogie/Dafny/F\*.
+A working prototype of what the design documents were about: a small
+ownership language with strict Rust-style ownership discipline that compiles to
+C#. This is the **front half** of the whole idea — exactly the layer document №2
+advised building first (annotations/subset → analyzer → IR), and deliberately
+**before** a Boogie/Dafny/F\* backend.
 
-Не «Rust для C#». Честнее так:
+Not "Rust for C#". More honestly:
 
-> Статический ownership-checker для маленького ресурсного подмножества,
-> с flow-sensitive анализом, моделью loans/permissions, строгой границей вызовов
-> и кодогенерацией в C#.
+> A static ownership checker for a small resource subset, with flow-sensitive
+> analysis, a loans/permissions model, a strict call boundary, and code
+> generation to C#.
 
-Эта ревизия — переработка по ревью. Что изменилось: явная модель
-**loans + permissions** (владелец остаётся `Owned`, borrow'ы — отдельные факты),
-**`extern fn`** с запретом неизвестных вызовов, разделение диагностик на точные
-коды (в т.ч. «definite» против «maybe»), и один golden-пример, лоуэрящийся в
-**настоящий `ArrayPool<byte>`-код**. Маппинг старых кодов на новые — в разделе
-[Changelog](#changelog-перенумерация-кодов).
+This revision is a rework after review. What changed: an explicit
+**loans + permissions** model (the owner stays `Owned`, borrows are separate
+facts), **`extern fn`** with unknown calls forbidden, diagnostics split into
+precise codes (including "definite" vs "maybe"), and one golden example that
+lowers into **real `ArrayPool<byte>` code**. The old-to-new code mapping is in the
+[Changelog](#changelog-code-renumbering) section.
 
 ---
 
-## Что оно реально делает сегодня
+## What it actually does today
 
 ```
-.own файл
+.own file
    ↓  lexer + recursive-descent parser
 AST  (resource + extern fn + fn)
-   ↓  scope/kind resolver  (имена → Symbol, классификация OWNED/BORROW/PLAIN)
-   ↓  collect_signatures   (extern + локальные fn → таблица ownership-эффектов)
+   ↓  scope/kind resolver  (names → Symbol, classification OWNED/BORROW/PLAIN)
+   ↓  collect_signatures   (extern + local fn → table of ownership effects)
    ↓  lowering
-CFG  (настоящие basic blocks, ветвления, merge, terminal на return, Invoke на вызов)
-   ↓  flow-sensitive dataflow  (var-states + active loans; union на слиянии)
-диагностики OWN0xx
+CFG  (real basic blocks, branches, merges, terminal on return, Invoke on a call)
+   ↓  flow-sensitive dataflow  (var-states + active loans; union at the merge)
+OWN0xx diagnostics
    ↓  codegen
-C#  (шаблоны emit_* → реальный .NET; try/finally на straight-line случае)
+C#  (emit_* templates → real .NET; try/finally on the straight-line case)
 ```
 
-Всё запускается без зависимостей, на голом Python 3.11+. Никакого `rustc`,
-никакого `dotnet` — C# только **генерируется**, не компилируется (компилятора в
-песочнице нет). Golden-пример проверен *по построению* + чекером; запустить его
-ты можешь у себя через `dotnet run` (см. ниже).
+Everything runs with no dependencies, on bare Python 3.11+. No `rustc`, no
+`dotnet` — C# is only **generated**, not compiled (there is no compiler in the
+sandbox). The golden example is verified *by construction* + by the checker; you
+can run it yourself via `dotnet run` (see below).
 
-### Запуск
+### Running it
 
 ```bash
-# запускать из корня репозитория (там, где лежит пакет ownlang/ и examples/)
-python -m ownlang check  examples/ok_extern_calls.own        # проверка
-python -m ownlang emit   examples/golden_arraypool/buffer.own # проверка + печать C#
-python -m ownlang cfg    examples/bad_maybe_release.own       # дамп CFG
-python -m ownlang report examples/buffer_scratch.own          # buffer-отчёт + .ownreport.json
+# run from the repository root (where the ownlang/ package and examples/ live)
+python -m ownlang check  examples/ok_extern_calls.own        # check
+python -m ownlang emit   examples/golden_arraypool/buffer.own # check + print C#
+python -m ownlang cfg    examples/bad_maybe_release.own       # dump the CFG
+python -m ownlang report examples/buffer_scratch.own          # buffer report + .ownreport.json
 
-python tests/run_tests.py                                     # кейсы + codegen + golden + buffer smoke
+python tests/run_tests.py                                     # cases + codegen + golden + buffer smoke
 ```
 
-`check` возвращает ненулевой код при наличии ошибок — годится для CI.
-`emit` **отказывается** генерировать C#, если в `.own` есть хоть одна ошибка.
+`check` returns a non-zero exit code when there are errors — good for CI.
+`emit` **refuses** to generate C# if the `.own` has even a single error.
 
-### Что оно ловит — галерея
+### What it catches — the gallery
 
-В `examples/gallery/` лежат маленькие программы «как в жизни»: каждая роняет ровно
-одну диагностику и снабжена C#-аналогом в комментарии. Каждый файл прибит к своему
-коду тестом (`tests/test_gallery.py`), так что демо не разъезжается с тем, что
-checker реально делает. Прогнать всё разом:
+`examples/gallery/` holds small "real-life" programs: each drops exactly one
+diagnostic and carries a C# analogue in a comment. Every file is pinned to its own
+code by a test (`tests/test_gallery.py`), so the demo doesn't drift from what the
+checker actually does. Run the whole thing at once:
 
 ```bash
 python tests/test_gallery.py
 ```
 
-| Файл | Код | Реальный C#-аналог |
+| File | Code | Real C# analogue |
 |------|-----|--------------------|
-| `01_leak_on_error_path` | **OWN001** | забыл `Dispose()` на early-out ветке |
-| `02_use_after_release` | **OWN002** | обращение к стриму после `Dispose()` |
-| `03_double_release` | **OWN003** | `Dispose()` дважды |
-| `04_use_after_move` | **OWN005** | использовал значение после передачи владения |
-| `05_dispose_while_view_live` | **OWN008** | `ArrayPool.Return`, пока жив `Span<byte>` над массивом |
-| `06_exclusive_while_shared` | **OWN006** | пишут через `Span`, который алиасит живой `ReadOnlySpan` |
-| `07_use_after_handoff` | **OWN002** | тронул буфер после того, как его забрал вызов |
-| `08_stack_buffer_escapes` | **OWN015** | вернул `Span<byte>` над `stackalloc` (dangling) |
-| `09_untracked_call` | **OWN040** | владение «отмыли» через непрозрачный вызов |
+| `01_leak_on_error_path` | **OWN001** | forgot `Dispose()` on an early-out branch |
+| `02_use_after_release` | **OWN002** | touched a stream after `Dispose()` |
+| `03_double_release` | **OWN003** | `Dispose()` twice |
+| `04_use_after_move` | **OWN005** | used a value after handing off ownership |
+| `05_dispose_while_view_live` | **OWN008** | `ArrayPool.Return` while a `Span<byte>` over the array is still alive |
+| `06_exclusive_while_shared` | **OWN006** | writing through a `Span` that aliases a live `ReadOnlySpan` |
+| `07_use_after_handoff` | **OWN002** | touched the buffer after a call took it |
+| `08_stack_buffer_escapes` | **OWN015** | returned a `Span<byte>` over a `stackalloc` (dangling) |
+| `09_untracked_call` | **OWN040** | ownership "laundered" through an opaque call |
 
-`00_ok_clean` — чистый happy-path (rent → view → return), лоуэрится в exception-safe
-`ArrayPool` Rent/Return.
+`00_ok_clean` — a clean happy path (rent → view → return) that lowers into
+exception-safe `ArrayPool` Rent/Return.
 
-`check` печатает ошибку в стиле rustc — `file:line:col`, сама строка исходника и
-каретка под виновным именем:
+`check` prints the error rustc-style — `file:line:col`, the source line itself, and
+a caret under the offending name:
 
 ```text
 $ python -m ownlang check examples/gallery/05_dispose_while_view_live.own
@@ -93,21 +95,21 @@ examples/gallery/05_dispose_while_view_live.own:9:13: error: [OWN008] cannot rel
                   ^
 ```
 
-### Бизнес-применение: WPF lifetime-утечки (модуль `lifetimes`)
+### Business use case: WPF lifetime leaks (the `lifetimes` module)
 
-Performance-профиль (`stackalloc`/pool) — это игрушка для performance-зоопарка.
-Бизнес-софт чаще умирает не от того, что `Span<byte>` на 7 нс медленнее, а от
-зомби-ViewModel: кто-то подписался на singleton-event и не отписался — окно
-закрыто, а `CustomerViewModel` жива весь день, потому что event bus держит на неё
-strong-ссылку. GC не телепат.
+The performance profile (`stackalloc`/pool) is a toy for the performance zoo.
+Business software more often dies not because a `Span<byte>` is 7 ns slower, but
+because of a zombie ViewModel: someone subscribed to a singleton event and never
+unsubscribed — the window is closed, but `CustomerViewModel` lives all day,
+because the event bus holds a strong reference to it. The GC is not a telepath.
 
-Ключевой разворот: **это уже выразимо текущим ownership-ядром.** Моделируем
-ViewModel как scope (конструктор = начало, `Dispose` = конец); подписка =
-`acquire` токена, отписка = `release`. Тогда «подписался и не Dispose» —
-это обычный **OWN001**, а «тронул после Dispose» — **OWN002**. Новый, доменно-
-нейтральный кусок: у `resource` появился тег `kind`, который вешается на
-диагностику как `[resource: ...]` — это шов, за который позже зацепится WPF-
-профиль/Roslyn-фронт, не зная про WPF в самом ядре.
+The key turn: **this is already expressible with the current ownership core.** We
+model the ViewModel as a scope (constructor = start, `Dispose` = end); a
+subscription = `acquire` of a token, unsubscription = `release`. Then "subscribed
+and never Disposed" is plain **OWN001**, and "touched after Dispose" is **OWN002**.
+The new, domain-neutral piece: a `resource` now carries a `kind` tag, attached to
+the diagnostic as `[resource: ...]` — the seam a WPF profile / Roslyn frontend
+hooks into later, without the core knowing anything about WPF.
 
 ```text
 $ python -m ownlang check corpus/wpf/zombie-viewmodel/case.own
@@ -117,11 +119,11 @@ case.own:16:9: error: [OWN001] 'customerChanged' is owned but not released at
                ^
 ```
 
-**Slice #2 — lifetime-регионы (region escape).** Это уже *новый* анализ, а не
-переиспользование. Объявляем регионы с порядком и вешаем lifetime на объект и
-сервисы; сильная подписка на более долгоживущий источник промотит объект до его
-lifetime и течёт — `OWN014`. Именно **порядок** делает это утечкой: подписка на
-равный-или-более-короткий источник — чисто.
+**Slice #2 — lifetime regions (region escape).** This is already a *new* analysis,
+not reuse. We declare regions with an ordering and attach a lifetime to the object
+and to services; a strong subscription to a longer-lived source promotes the object
+to that source's lifetime and it leaks — `OWN014`. It is the **ordering** that makes
+it a leak: a subscription to an equal-or-shorter-lived source is clean.
 
 ```text
 $ python -m ownlang check corpus/wpf/viewmodel-escapes-to-app/case.own
@@ -134,58 +136,61 @@ case.own:15:23: error: [OWN014] 'bus' (lifetime 'App') outlives the captured
 ```ownlang
 lifetime App;  lifetime Window < App;  lifetime ViewModel < Window;
 fn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {
-    subscribe self to bus;          // App > ViewModel -> промоушн -> OWN014
+    subscribe self to bus;          // App > ViewModel -> promotion -> OWN014
 }
 ```
 
-**P-001 — настоящий C# (а не hand-reduced).** Узкий Roslyn-экстрактор
-(`frontend/roslyn/`, type-aware: project-local `SemanticModel`, см. P-014) находит
-`event += без -=` в реальном `.cs` (по семантике: `sum += value` — не событие, а
-арифметика) и эмитит OwnIR-факты; Python-мост (`python -m ownlang ownir facts.json`)
-прогоняет их через **то же ядро** и выдаёт OWN001 **на месте C#**:
+**P-001 — real C# (not hand-reduced).** A narrow Roslyn extractor
+(`frontend/roslyn/`, type-aware: project-local `SemanticModel`, see P-014) finds
+`event += without -=` in real `.cs` (by semantics: `sum += value` is arithmetic, not
+an event) and emits OwnIR facts; the Python bridge (`python -m ownlang ownir
+facts.json`) runs them through **the same core** and produces OWN001 **at the C#
+site**:
 
 ```text
 CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribed
   (handler 'OnCustomerChanged') but never unsubscribed — ... (leak)
   [resource: subscription token]
 ```
-А `+=` со **статическим** событием (например `SystemEvents.*`) — это уже не
-токен-утечка, а *region escape*: экстрактор понижает его в бестокенный
-`capture`-факт, и **то же ядро** выдаёт **OWN014** (объект промотится в
-process-lifetime; парный `-=` снимает находку) — WPF-escape как профиль общей
-region-модели, а не отдельный детектор (P-004 WPF005; сэмпл
-`StaticEventEscapeViewModel`). Источник-инъекция (неизвестное время жизни)
-остаётся OWN001-warning'ом, пока ownership-моделирование не докажет его время жизни.
+And a `+=` on a **static** event (e.g. `SystemEvents.*`) is no longer a token leak
+but a *region escape*: the extractor lowers it to a tokenless `capture` fact, and
+**the same core** produces **OWN014** (the object is promoted to process lifetime; a
+matching `-=` clears the finding) — the WPF escape as a profile of the general
+region model, not a separate detector (P-004 WPF005; sample
+`StaticEventEscapeViewModel`). An injected source (unknown lifetime) stays an
+OWN001 warning — the subscription profile's deliberate down-tier (OWN001 is otherwise
+an error) — until ownership modelling can prove its lifetime.
 
-Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet
-есть лишь в CI (job `wpf-extractor` гоняет экстрактор на сэмплах сквозняком);
-Python-мост тестируется локально (`tests/test_ownir.py`) на рукописных фактах.
-Объём v0 и не-цели — в [`docs/proposals/P-001`](docs/proposals/P-001-csharp-extractor.md).
+There is one core (not a second checker written in C#): the extractor only
+produces facts. dotnet exists only in CI (the `wpf-extractor` job runs the
+extractor over the samples end-to-end); the Python bridge is tested locally
+(`tests/test_ownir.py`) against hand-written facts. The v0 scope and non-goals are
+in [`docs/proposals/P-001`](docs/proposals/P-001-csharp-extractor.md).
 
-`corpus/wpf/` — self-checking корпус реальных WPF-паттернов (`before.cs`/
-`after.cs`/`case.own`/expected), прибитый `tests/test_wpf.py`; региональная
-теорема — `tests/test_lifetimes.py` (10 кейсов). Полный план модуля (каталог
-OWN-WPF, границы слайсов, что отложено) — в [`docs/lifetimes.md`](docs/lifetimes.md).
-Честно: `case.own` — hand reduction паттерна (region-escape со **статическим**
-источником экстрактор уже эмитит сам — `+=` → `capture` → OWN014, см.
-`StaticEventEscapeViewModel` и `corpus/wpf/systemevents-region-escape`; cross-
-procedural points-to и прочие региональные факты — пока hand reduction);
-`self`/`source` — это scope самой функции и её параметры, без cross-procedural
-points-to.
+`corpus/wpf/` is a self-checking corpus of real WPF patterns (`before.cs`/
+`after.cs`/`case.own`/expected), pinned by `tests/test_wpf.py`; the region theorem
+is `tests/test_lifetimes.py` (10 cases). The full module plan (the OWN-WPF catalog,
+slice boundaries, what is deferred) is in [`docs/lifetimes.md`](docs/lifetimes.md).
+Honestly: `case.own` is a hand reduction of the pattern (a region escape with a
+**static** source the extractor already emits on its own — `+=` → `capture` →
+OWN014, see `StaticEventEscapeViewModel` and `corpus/wpf/systemevents-region-escape`;
+cross-procedural points-to and other region facts are still hand reductions);
+`self`/`source` are the function's own scope and its parameters, with no
+cross-procedural points-to.
 
-### Golden-пример: настоящий ArrayPool
+### Golden example: a real ArrayPool
 
 ```bash
 cd examples/golden_arraypool
-# Здесь лежат buffer.own (источник) и Program.cs (сгенерённый process + host).
-# Своего .csproj PoC не возит; чтобы запустить — заверни Program.cs в console-проект:
+# Here live buffer.own (source) and Program.cs (the generated process + host).
+# The PoC ships no .csproj of its own; to run, wrap Program.cs in a console project:
 dotnet new console -o demo && cp Program.cs demo/ && cd demo && dotnet run
-# (требует .NET SDK; в песочнице PoC его нет — проверено по построению, не запуском)
+# (requires the .NET SDK; the PoC sandbox has none — verified by construction, not by running)
 ```
 
-`buffer.own` объявляет ресурс `Buffer` с шаблонами `emit_*`, отображающими его на
-`System.Buffers.ArrayPool<byte>`. `python -m ownlang emit` выдаёт метод
-`process` дословно так, как он вклеен в `Program.cs`:
+`buffer.own` declares a resource `Buffer` with `emit_*` templates mapping it onto
+`System.Buffers.ArrayPool<byte>`. `python -m ownlang emit` produces the `process`
+method verbatim, exactly as it is pasted into `Program.cs`:
 
 ```csharp
 public static void process(int size)
@@ -209,283 +214,284 @@ public static void process(int size)
 }
 ```
 
-`Main` и заглушки `Fill`/`Hash` в `Program.cs` — это host-код, написанный руками
-(`extern fn` — обещание хоста, тело даёт хост). Нюанс: `AsSpan()` берёт весь
-арендованный массив (Rent может вернуть длиннее запрошенного); честная версия
-писала бы `AsSpan(0, size)`, но шаблону borrow'а длина недоступна — это
-сознательное упрощение для smoke-теста.
+`Main` and the `Fill`/`Hash` stubs in `Program.cs` are host code, written by hand
+(`extern fn` is the host's promise; the host supplies the body). A caveat: this snippet is
+**emitter output verbatim, so it is illustrative, not normative** — `AsSpan()` takes the
+whole rented array (Rent may return more than requested); an honest version would write
+`AsSpan(0, size)`, but the length is not available to the borrow template, a deliberate
+simplification for the smoke test.
 
 ---
 
-## Язык
+## The language
 
-Сознательно крошечный. Вся грамматика — в docstring `parser.py`.
+Deliberately tiny. The whole grammar is in the `parser.py` docstring.
 
 ```
 module Demo
 
-resource Buffer {        // ресурс с методами acquire/release
-  acquire rent           //   -> в C#: Buffer.rent(...)   (или шаблон emit_acquire)
-  release give           //   -> в C#: x.give()           (или шаблон emit_release)
-  emit_type    "byte[]"                                   // опционально:
-  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"      //   реальное лоуэрение
-  emit_release "ArrayPool<byte>.Shared.Return({0})"       //   вместо схематичного
+resource Buffer {        // a resource with acquire/release methods
+  acquire rent           //   -> in C#: Buffer.rent(...)   (or the emit_acquire template)
+  release give           //   -> in C#: x.give()           (or the emit_release template)
+  emit_type    "byte[]"                                   // optional:
+  emit_acquire "ArrayPool<byte>.Shared.Rent({args})"      //   the real lowering
+  emit_release "ArrayPool<byte>.Shared.Return({0})"       //   instead of the schematic one
   emit_borrow  "{0}.AsSpan()"
 }
 
-extern fn Fill(borrow_mut Buffer);   // обещание хоста: эффект каждого аргумента
+extern fn Fill(borrow_mut Buffer);   // the host's promise: the effect of each argument
 extern fn Hash(borrow Buffer);
-extern fn Store(consume Buffer);     // единственный способ «выпустить» владение
+extern fn Store(consume Buffer);     // the only way to "release" ownership outward
 
 fn process(size: int) {
   let buf = acquire Buffer(size);    // buf: Owned<Buffer>
-  borrow_mut buf as bytes {          // эксклюзивный borrow на время блока
+  borrow_mut buf as bytes {          // exclusive borrow for the duration of the block
     Fill(bytes);
   }
-  Hash(buf);                         // временный shared borrow на время вызова
-  release buf;                       // consume; после этого buf мёртв
+  Hash(buf);                         // temporary shared borrow for the duration of the call
+  release buf;                       // consume; after this buf is dead
 }
 ```
 
-Операции владения: `acquire`, `let y = move x`, `borrow x as y { }`,
+Ownership operations: `acquire`, `let y = move x`, `borrow x as y { }`,
 `borrow_mut x as y { }`, `release x`, `use x`, `callee(args)`, `return x`.
-Параметры бывают владеющие (`x: Buffer`) и заимствованные
+Parameters come as owning (`x: Buffer`) or borrowed
 (`x: &Buffer`, `x: &mut Buffer`).
 
 ---
 
-## Модель: loans + permissions
+## The model: loans + permissions
 
-Это ключевая поправка по ревью. Раньше описание состояния выглядело как
-`Owned → SharedBorrowed(n) → …`, будто borrow *заменяет* `Owned`. Ревьюер
-справедливо назвал это костылём. Важная деталь: **сам код и в прошлой версии**
-держал счётчики borrow'ов отдельно от линейного состояния владельца — то есть
-владелец и так не «терял» `Owned`. Здесь это сделано **явным** и поименованным.
+This is the key fix from review. The old state description looked like
+`Owned → SharedBorrowed(n) → …`, as if a borrow *replaces* `Owned`. The reviewer
+rightly called that a crutch. An important detail: **the code already**, in the
+previous version, kept borrow counters separate from the owner's linear state — so
+the owner never actually "lost" `Owned`. Here that is made **explicit** and named.
 
-**Variable state** (на каждый owned-символ) — множество из
-`{OWNED, MOVED, RELEASED, ESCAPED}`. `ESCAPED` = владение покинуло функцию
-(вернули через `return` или отдали в `consume`-вызов). Владелец остаётся `OWNED`
-всё время, пока его одолжили — borrow никогда не перезаписывает состояние
-владельца.
+**Variable state** (per owned symbol) — a subset of
+`{OWNED, MOVED, RELEASED, ESCAPED}`. `ESCAPED` = ownership left the function
+(returned via `return` or handed to a `consume` call). The owner stays `OWNED` the
+entire time it is loaned out — a borrow never overwrites the owner's state.
 
-**Active loans** — borrow это объект первого класса `Loan(owner, binding, kind)`,
-который **добавляется** при открытии и **удаляется** при закрытии. Loans живут
-рядом с состояниями переменных, а не внутри них.
+**Active loans** — a borrow is a first-class object `Loan(owner, binding, kind)`,
+**added** when it opens and **removed** when it closes. Loans live beside the
+variable states, not inside them.
 
-**Permissions** выводятся на лету из (variable-state + active loans):
+**Permissions** are derived on the fly from (variable-state + active loans):
 
-| Состояние владельца | Permissions |
+| Owner state | Permissions |
 |---|---|
-| `Owned`, нет loans | Own + Read + Write + Drop |
-| `Owned`, есть shared loan | Read (Own/Write/Drop подвешены) |
-| `Owned`, есть mutable loan | — (эксклюзив: владелец недоступен) |
+| `Owned`, no loans | Own + Read + Write + Drop |
+| `Owned`, a shared loan | Read (Own/Write/Drop suspended) |
+| `Owned`, a mutable loan | — (exclusive: the owner is unavailable) |
 | `Moved` / `Released` / `Escaped` | — |
 
-Каждая операция проверяет нужное ей право и репортит точный код: `move`/`consume`
-требуют Own (подвешивается *любым* loan'ом → OWN007), `release` требует Drop
-(→ OWN008), `use` владельца требует Read (подвешивается mutable loan'ом → OWN013),
-`borrow_mut` требует эксклюзива (живой shared → OWN006, живой mut → OWN011),
-`borrow` несовместим с живым mut (→ OWN012).
+Each operation checks the right it needs and reports a precise code: `move`/`consume`
+require Own (suspended by *any* loan → OWN007), `release` requires Drop
+(→ OWN008), `use` of the owner requires Read (suspended by a mutable loan → OWN013),
+`borrow_mut` requires exclusivity (a live shared → OWN006, a live mut → OWN011),
+`borrow` is incompatible with a live mut (→ OWN012).
 
-Поскольку borrow'ы блок-скоупные (loan, открытый в теле `while`, закрывается там
-же, в той же итерации), множество активных loans **одинаково** на всех
-предшественниках любого merge — включая back-edge цикла. Это инвариант, который
-`join()` **проверяет ассертом**, а не предполагает (см. ниже про OWN010-ревьюера).
-
----
-
-## Граница вызовов: `extern fn` и строгая escape-политика
-
-Вторая большая поправка. Ревью: «неизвестный вызов — дыра размером с автобус».
-Согласен полностью. Теперь:
-
-* **Любой вызов обязан резолвиться** в объявленный `extern fn` или локальный `fn`.
-  Неизвестный вызов — жёсткая ошибка **OWN040**. Протуннелить чекер через
-  `SomeCSharpCall(x)` больше нельзя.
-* Каждый параметр несёт **ownership-эффект**: `borrow` (временный shared loan на
-  время вызова), `borrow_mut` (временный эксклюзив), `consume` (забирает владение
-  → владелец становится `ESCAPED`), либо plain (например `int`).
-* **Строгая escape-политика (MVP):** `borrow`/`borrow_mut`-параметры всегда
-  *noescape* — у языка просто нет способа выразить «сохранить borrow». Выпустить
-  значение наружу можно **только** через `consume`/Owned. Никаких `escapes`-
-  аннотаций: borrow по определению безопасен.
-
-Локальные `fn` тоже дают сигнатуру: `&mut`-параметр → `borrow_mut`,
-`&` → `borrow`, owned-ресурс → `consume`, прочее → plain. Несовместимость
-аргумента (shared туда, где нужен `&mut`; plain туда, где нужен ресурс; consume
-через borrow; неверная арность) → **OWN041**.
+Because borrows are block-scoped (a loan opened in a `while` body closes there, in
+the same iteration), the set of active loans is **identical** on all predecessors of
+any merge — including a loop's back-edge. This is an invariant that `join()`
+**checks with an assert**, rather than assuming (see the note on the OWN010 reviewer
+below).
 
 ---
 
-## Правила, которые проверяются
+## The call boundary: `extern fn` and a strict escape policy
 
-### Поток владения / loans / permissions
+The second big fix. Review: "an unknown call is a bus-sized hole." Fully agreed. Now:
 
-| Код | Что ловит |
-|-----|-----------|
-| **OWN001** | owned-ресурс не освобождён на каком-то пути (утечка) |
-| **OWN002** | use/… после release или consume (**definite** — на всех путях) |
-| **OWN003** | двойной release |
-| **OWN004** | borrow убегает из своей области (например, `return` borrow'а) |
-| **OWN005** | use/… после move (**definite**) |
-| **OWN006** | `borrow_mut` при живом shared borrow |
-| **OWN007** | move/consume/return владельца под живым borrow'ом |
-| **OWN008** | release владельца под живым borrow'ом |
-| **OWN009** | операция над ресурсом, который **мог** быть освобождён на каком-то пути (**maybe**) |
-| **OWN010** | операция над ресурсом, который **мог** быть перемещён на каком-то пути (**maybe**) |
-| **OWN011** | `borrow_mut` при живом `borrow_mut` (два эксклюзива) |
-| **OWN012** | shared borrow при живом `borrow_mut` |
-| **OWN013** | прямое обращение к владельцу, пока он `borrow_mut` |
+* **Every call must resolve** to a declared `extern fn` or a local `fn`. An unknown
+  call is a hard error **OWN040**. You can no longer tunnel the checker through
+  `SomeCSharpCall(x)`.
+* Each parameter carries an **ownership effect**: `borrow` (a temporary shared loan
+  for the duration of the call), `borrow_mut` (a temporary exclusive), `consume`
+  (takes ownership → the owner becomes `ESCAPED`), or plain (e.g. `int`).
+* **Strict escape policy (MVP):** `borrow`/`borrow_mut` parameters are always
+  *noescape* — the language simply has no way to express "keep the borrow." A value
+  can only be released outward through `consume`/Owned. No `escapes` annotations: a
+  borrow is safe by definition.
 
-### Буферы: storage policies
-
-| Код | Что ловит |
-|-----|-----------|
-| OWN015 | stack-backed буфер (`stack`/`scratch`/`inline`) пытается убежать из функции (`return`) |
-| OWN016 | stack-backed буфер отдан в `consume`-вызов (move в более долгоживущего владельца) |
-| OWN017 | movable-буфер (`pooled`/`native`) escape'ит — модель это разрешает, но PoC-codegen пока не умеет честно лоуэрить escape (см. ниже) |
-| OWN019 | inline-ёмкость слишком велика для stack-backed политики (выше потолка стека) |
-| OWN021 | `stack`/`inline` динамического размера без статической границы (нет `max =`) |
-| OWN023 | `scratch` с `fallback = forbidden`, но размер может превысить inline-лимит |
-| OWN024 | буфер помечен `sensitive`, но не зануляется на release (нет `clear = true`) |
-
-### Неподдерживаемое / структурное / граница
-
-| Код | Что ловит |
-|-----|-----------|
-| OWN020 | неподдерживаемая конструкция (`for`/`loop`-итерация, async; `while` поддержан) |
-| OWN030 | неизвестное имя |
-| OWN031 | переопределение в области видимости |
-| OWN032 | owned-ресурс скопирован без `move` |
-| OWN033 | функция с типом возврата может дойти до конца без `return` |
-| OWN034 | операция применена не к owned-ресурсу |
-| OWN035 | несовпадение типа возврата |
-| OWN036 | циклический порядок lifetime-регионов |
-| OWN040 | вызов необъявленной функции (неизвестные вызовы запрещены) |
-| OWN041 | несовместимость аргумента вызова (арность / kind / plain-vs-resource) |
-
-Lifetime-регионы (модуль `lifetimes`): **OWN014** — объект промотится в более
-долгоживущий регион через сильную подписку (region escape); **OWN036** — цикл в
-`<`-порядке; ссылки на необъявленный регион — **OWN030**.
-
-Разделение **definite (002/005)** против **maybe (009/010)** — прямо по ревью:
-ошибка на *всех* путях и ошибка на *каком-то* пути — это разные по резкости
-сообщения, и это разделение естественно выпадает из решётки множеств состояний.
-Каждый код покрыт тестом и примером в `examples/`.
+Local `fn`s also yield a signature: a `&mut` parameter → `borrow_mut`,
+`&` → `borrow`, an owned resource → `consume`, anything else → plain. An incompatible
+argument (a shared where `&mut` is needed; plain where a resource is needed; consume
+through a borrow; the wrong arity) → **OWN041**.
 
 ---
 
-## Где живёт настоящая работа: слияние ветвей
+## The rules that are checked
 
-Документ №4 правильно показывал пальцем: вся сложность не в парсере, а в **join
-состояний на merge control-flow**.
+### Ownership / loans / permissions flow
 
-Состояние каждого owned-символа — **множество** из
-`{OWNED, MOVED, RELEASED, ESCAPED}`: «что *может* быть истинно здесь по всем
-путям». На слиянии берётся **объединение**:
+| Code | What it catches |
+|-----|-----------|
+| **OWN001** | an owned resource not released on some path (a leak) |
+| **OWN002** | use/… after release or consume (**definite** — on all paths) |
+| **OWN003** | double release |
+| **OWN004** | a borrow escapes its region (e.g. `return` of a borrow) |
+| **OWN005** | use/… after move (**definite**) |
+| **OWN006** | `borrow_mut` while a shared borrow is live |
+| **OWN007** | move/consume/return of an owner under a live borrow |
+| **OWN008** | release of an owner under a live borrow |
+| **OWN009** | an operation on a resource that **might** have been released on some path (**maybe**) |
+| **OWN010** | an operation on a resource that **might** have been moved on some path (**maybe**) |
+| **OWN011** | `borrow_mut` while a `borrow_mut` is live (two exclusives) |
+| **OWN012** | shared borrow while a `borrow_mut` is live |
+| **OWN013** | direct access to the owner while it is `borrow_mut` |
+
+### Buffers: storage policies
+
+| Code | What it catches |
+|-----|-----------|
+| OWN015 | a stack-backed buffer (`stack`/`scratch`/`inline`) tries to escape the function (`return`) |
+| OWN016 | a stack-backed buffer handed to a `consume` call (a move into a longer-lived owner) |
+| OWN017 | a movable buffer (`pooled`/`native`) escapes — the model allows it, but PoC codegen can't yet honestly lower the escape (see below) |
+| OWN019 | an inline capacity too large for a stack-backed policy (above the stack ceiling) |
+| OWN021 | a `stack`/`inline` of dynamic size with no static bound (no `max =`) |
+| OWN023 | a `scratch` with `fallback = forbidden`, but the size may exceed the inline limit |
+| OWN024 | a buffer marked `sensitive` but not zeroed on release (no `clear = true`) |
+
+### Unsupported / structural / boundary
+
+| Code | What it catches |
+|-----|-----------|
+| OWN020 | an unsupported construct (`for`/`loop` iteration, async; `while` is supported) |
+| OWN030 | unknown name |
+| OWN031 | redefinition in scope |
+| OWN032 | an owned resource copied without `move` |
+| OWN033 | a function with a return type can reach the end without a `return` |
+| OWN034 | an operation applied to a non-owned resource |
+| OWN035 | return type mismatch |
+| OWN036 | a cyclic ordering of lifetime regions |
+| OWN040 | a call to an undeclared function (unknown calls are forbidden) |
+| OWN041 | an incompatible call argument (arity / kind / plain-vs-resource) |
+
+Lifetime regions (the `lifetimes` module): **OWN014** — an object promoted to a
+longer-lived region through a strong subscription (region escape); **OWN036** — a
+cycle in the `<` ordering; references to an undeclared region — **OWN030**.
+
+The split of **definite (002/005)** vs **maybe (009/010)** is straight from review:
+an error on *all* paths and an error on *some* path are different in sharpness, and
+the split falls naturally out of the lattice of state sets. Each code is covered by a
+test and an example in `examples/`.
+
+---
+
+## Where the real work lives: branch merges
+
+Document №4 pointed the finger correctly: all the difficulty is not in the parser,
+but in the **join of states at a control-flow merge**.
+
+Each owned symbol's state is a **subset** of
+`{OWNED, MOVED, RELEASED, ESCAPED}`: "what *may* be true here across all paths." At a
+merge we take the **union**:
 
 ```
 let c = acquire Conn(flag);
 if (flag) { release c; }     // then: c -> {RELEASED}
-                             // else: (пусто) c -> {OWNED}
+                             // else: (empty) c -> {OWNED}
 // merge: {RELEASED} ∪ {OWNED} = {RELEASED, OWNED}
-// use c здесь            =>  OWN009 (мог быть освобождён по then-пути)
-// конец функции          =>  OWN001 (утечка по else-пути)
+// use c here             =>  OWN009 (may have been released on the then-path)
+// end of function        =>  OWN001 (leaks on the else-path)
 ```
 
-Проверки на каждой операции спрашивают «безопасно ли это **на всех** путях»:
-- `OWNED ∉` состояния → **definite** (OWN002/OWN005);
-- `OWNED ∈`, но рядом `RELEASED`/`ESCAPED` → **maybe** (OWN009);
-- `OWNED ∈`, но рядом `MOVED` → **maybe** (OWN010);
-- на выходе `OWNED ∈` → OWN001.
+The checks at each operation ask "is this safe **on all** paths":
+- `OWNED ∉` the state → **definite** (OWN002/OWN005);
+- `OWNED ∈`, but `RELEASED`/`ESCAPED` is alongside → **maybe** (OWN009);
+- `OWNED ∈`, but `MOVED` is alongside → **maybe** (OWN010);
+- on exit `OWNED ∈` → OWN001.
 
-Обход — worklist до fixpoint: `while` даёт back-edge, и блок переоценивается, пока
-его in-состояние не перестанет расти (решётка `{OWNED,MOVED,RELEASED,ESCAPED}`
-конечна, merge = объединение, transfer монотонен → сходится без widening). На CFG
-без циклов это вырождается в один проход на блок — как прежний топологический обход.
-Диагностики печатаются вторым проходом, по сошедшимся состояниям (один раз, не на
-каждой итерации fixpoint).
+The traversal is a worklist to fixpoint: `while` gives a back-edge, and a block is
+re-evaluated until its in-state stops growing (the lattice
+`{OWNED,MOVED,RELEASED,ESCAPED}` is finite, merge = union, the transfer is monotone →
+it converges without widening). On a cycle-free CFG this degenerates into one pass
+per block — like the old topological traversal. Diagnostics are printed in a second
+pass, over the converged states (once, not on every fixpoint iteration).
 
-### Важный разворот про false positives
+### An important turn on false positives
 
-В Snipper твоя прайм-директива была «ложное срабатывание хуже пропуска». Здесь
-она **сознательно переворачивается**. Это checker безопасности: пропущенный
-use-after-release — реальный баг в проде, а лишний OWN001 — просто отвергнутая
-валидная программа. Поэтому анализ намеренно консервативен. Ровно так же ведёт
-себя borrow checker в Rust.
+In Snipper your prime directive was "a false positive is worse than a miss." Here it
+is **deliberately inverted**. This is a safety checker: a missed use-after-release is
+a real production bug, while a spurious OWN001 is just a rejected valid program. So
+the analysis is intentionally conservative. The Rust borrow checker behaves exactly
+the same way.
 
 ---
 
-## Кодоген в C#
+## Codegen to C#
 
-Две стратегии, выбираются автоматически.
+Two strategies, chosen automatically.
 
-**try/finally hoist** — для функций без ветвлений, без `move` и без owned-`return`.
-Каждый ресурс освобождается ровно один раз, поэтому release поднимается в
-`finally` (см. golden-пример выше). Чекер **уже доказал** release-ровно-один-раз;
-`finally` вдобавок держит это при исключениях.
+**try/finally hoist** — for functions with no branching, no `move`, and no owned
+`return`. Each resource is released exactly once, so the release is hoisted into a
+`finally` (see the golden example above). The checker has **already proven**
+release-exactly-once; the `finally` additionally holds that under exceptions.
 
-**Почему нет runtime-флага `bReleased`.** Ревью предлагало на случай явного
-`release` в середине плюс auto-`finally` завести рантайм-флаг. Я с этим **не
-согласен для PoC**. Если чекер доказал release-ровно-один-раз на каждом пути
-(а он доказал), то release поднимается *из* `try` — он не дублируется в теле, —
-и `finally` срабатывает ровно один раз без всякого охранника. Рантайм-флаг имеет
-смысл, только если мы не доверяем статическому результату; а если не доверяем —
-не надо его шипать. Поэтому в PoC сознательно выбран **explicit release required**
-(не RAII auto-release), а `finally` — только защита от исключений.
+**Why there is no runtime `bReleased` flag.** Review suggested, for the case of an
+explicit `release` in the middle plus an auto-`finally`, introducing a runtime flag. I
+**disagree for the PoC**. If the checker proved release-exactly-once on every path
+(and it did), then the release is hoisted *out of* `try` — it is not duplicated in
+the body — and the `finally` fires exactly once with no guard. A runtime flag only
+makes sense if we don't trust the static result; and if we don't trust it, we
+shouldn't ship it. So the PoC deliberately chooses **explicit release required** (not
+RAII auto-release), with `finally` only as exception protection.
 
-**faithful inline** — для функций с ветвлениями/передачей владения releases
-эмитятся ровно там, где они в исходнике. Автоподъём releases из произвольного
-control-flow в `finally` — настоящая работа, она в roadmap, а не подделана.
+**faithful inline** — for functions with branching / ownership transfer, releases are
+emitted exactly where they are in the source. Auto-hoisting releases out of arbitrary
+control flow into a `finally` is real work; it is on the roadmap, not faked.
 
-Шаблоны `emit_*` на ресурсе превращают схематичный `Resource.method()` в
-реальный .NET (`ArrayPool<byte>.Shared.Rent/Return`, `byte[]`, `.AsSpan()`).
+The `emit_*` templates on a resource turn the schematic `Resource.method()` into real
+.NET (`ArrayPool<byte>.Shared.Rent/Return`, `byte[]`, `.AsSpan()`).
 
 ---
 
-## Буферы: storage policies + логирование
+## Buffers: storage policies + logging
 
-`stackalloc` — это не оптимизация сама по себе. Это **storage strategy с жёстким
-lifetime-контрактом**. Поэтому буфер в OwnLang — это owned-ресурс (release ровно
-один раз, escape-проверки, конфликты borrow'ов — всё как обычно), но с явной
-**политикой хранения**. Модель: *пользователь задаёт intent → checker проверяет
-lifetime/ownership → backend выбирает или строго соблюдает storage → codegen
-генерит безопасный C# → логи показывают фактический выбор → benchmark доказывает
-выигрыш*. Не «компилятор молча решил за тебя» — а «ты задал политику, компилятор
-её соблюл, runtime показал, что реально выбралось».
+`stackalloc` is not an optimization in itself. It is a **storage strategy with a hard
+lifetime contract**. So a buffer in OwnLang is an owned resource (release exactly
+once, escape checks, borrow conflicts — all as usual), but with an explicit
+**storage policy**. The model: *the user sets intent → the checker verifies
+lifetime/ownership → the backend chooses or strictly enforces storage → codegen emits
+safe C# → logs show the actual choice → a benchmark proves the win*. Not "the
+compiler silently decided for you" — but "you set a policy, the compiler enforced it,
+the runtime showed what was actually chosen."
 
-### Режимы
+### Modes
 
 ```
-let a = Buffer.stack(256);                              // только stackalloc, fallback запрещён
-let b = Buffer.stack(size, max = 1024);                 // динамика, но с забором (guard)
-let c = Buffer.scratch(size, inline = 1024, fallback = pool);  // стек, иначе ArrayPool
-let d = Buffer.pooled(size);                            // только ArrayPool; movable, Return обязателен
-let e = Buffer.native(size);                            // NativeMemory; unsafe, Free обязателен
-let f = Buffer.inline(128);                             // фиксированный compile-time стековый буфер
+let a = Buffer.stack(256);                              // stackalloc only, fallback forbidden
+let b = Buffer.stack(size, max = 1024);                 // dynamic, but with a guard
+let c = Buffer.scratch(size, inline = 1024, fallback = pool);  // stack, else ArrayPool
+let d = Buffer.pooled(size);                            // ArrayPool only; movable, Return required
+let e = Buffer.native(size);                            // NativeMemory; unsafe, Free required
+let f = Buffer.inline(128);                             // a fixed compile-time stack buffer
 ```
 
-Главное правило: **`stack` никогда не падает в heap**; **`scratch` может**, потому
-что пользователь явно разрешил fallback. API, который врёт про память, — это не
-абстракция. `stack`/`scratch`/`inline` — stack-backed → не могут escape (OWN015/016).
+The main rule: **`stack` never falls back to the heap**; **`scratch` may**, because
+the user explicitly allowed the fallback. An API that lies about memory is not an
+abstraction. `stack`/`scratch`/`inline` are stack-backed → they cannot escape
+(OWN015/016).
 
-Буфер можно `move` внутри функции — владение и storage-политика переходят на
-нового владельца, и `release` нового имени освобождает исходный backing. Namespace
-обязан быть `Buffer`: `Foo.stack(...)` (опечатка/чужой идентификатор) — это
-**OWN030**, а не тихая аллокация.
+A buffer can be `move`d inside a function — ownership and the storage policy pass to
+the new owner, and a `release` of the new name frees the original backing. The
+namespace must be `Buffer`: `Foo.stack(...)` (a typo / foreign identifier) is
+**OWN030**, not a silent allocation.
 
-`pooled`/`native` в **ownership-модели** movable (теоретически их можно
-`return`/`consume`). Но **deliverable здесь — checker, а codegen лишь доказывает,
-что модель лоуэрится в настоящий .NET**, и не раздувается в самоцель. Честно
-лоуэрить *escaping* буфер нечем: значение внутри функции — это `Span<byte>`, а
-отдавать наружу надо handle (`byte[]`/`byte*`+длина), которым вызывающий сделает
-`Return`/`Free`. Поэтому PoC **отвергает** escape movable-буфера (**OWN017**), а не
-шипает C#, который течёт или не компилируется. Локально `pooled`/`native` работают
-полноценно (rent→borrow→release с реальным `ArrayPool.Return`/`NativeMemory.Free`).
-Полноценный movable-lowering (через `byte[]`-handle или обёртку
-`IMemoryOwner<byte>`) — **roadmap**.
+`pooled`/`native` are movable in the **ownership model** (in theory they can be
+`return`/`consume`d). But **the deliverable here is a checker, and codegen only proves
+the model lowers into real .NET**, without ballooning into an end in itself. There is
+nothing to honestly lower an *escaping* buffer with: the value inside the function is
+a `Span<byte>`, but to hand it out you need a handle (`byte[]`/`byte*`+length) the
+caller will `Return`/`Free`. So the PoC **rejects** the escape of a movable buffer
+(**OWN017**), rather than shipping C# that leaks or doesn't compile. Locally
+`pooled`/`native` work fully (rent→borrow→release with a real
+`ArrayPool.Return`/`NativeMemory.Free`). Full movable lowering (through a `byte[]`
+handle or an `IMemoryOwner<byte>` wrapper) is on the **roadmap**.
 
-### `scratch` лоуэрится так (это и есть golden buffer-пример)
+### `scratch` lowers like this (this is the golden buffer example)
 
 ```csharp
 byte[]? tmp_rented = null;
@@ -513,313 +519,313 @@ finally
 }
 ```
 
-### Логирование — обязательная часть, а не опция
+### Logging — a mandatory part, not an option
 
-Без логов `scratch` стал бы той самой «умной» абстракцией, которая молча выбрала
-pool, а ты три часа смотришь на GC-график. Поэтому логи — в трёх местах:
+Without logs, `scratch` would become exactly the kind of "smart" abstraction that
+silently picked the pool while you stare at a GC graph for three hours. So logging is
+in three places:
 
-1. **Compile-time report** (`python -m ownlang report file.own`): что checker/codegen
-   решил по каждому буферу — mode, inline-лимит, fallback, escape-policy, clear,
-   сгенерированные ветки и какие проверки прошли. Выводится текстом и пишется в
-   `file.ownreport.json` (удобно для ревью/CI).
+1. **Compile-time report** (`python -m ownlang report file.own`): what the
+   checker/codegen decided for each buffer — mode, inline limit, fallback, escape
+   policy, clear, the generated branches and which checks passed. Printed as text and
+   written to `file.ownreport.json` (handy for review/CI).
 
-2. **Runtime trace** — хук `OwnTrace.*` в сгенерированном C#: какой backend реально
-   выбран при конкретном `size`. Под `[Conditional("OWNSHARP_TRACE")]` — в обычном
-   Release вызовы вырезаются, логирование не становится новым bottleneck'ом.
+2. **Runtime trace** — the `OwnTrace.*` hook in the generated C#: which backend was
+   actually chosen at a concrete `size`. Under `[Conditional("OWNSHARP_TRACE")]` — in a
+   normal Release the calls are stripped out, so logging doesn't become a new bottleneck.
 
 3. **Runtime counters** — `OwnCounters` (`ScratchStackHits`, `ScratchPoolFallbacks`,
    `ScratchPoolBytesRented`, `ScratchPoolBytesReturned`, `ScratchTotalRequestedBytes`,
-   `ScratchMaxRequestedBytes`, `ScratchReleaseCount`, `ScratchForcedClears`) под
-   `[Conditional("OWNSHARP_COUNTERS")]`. Отвечают на главный вопрос: мы реально часто
-   попадаем в стек, или inline-лимит подобран мимо?
+   `ScratchMaxRequestedBytes`, `ScratchReleaseCount`, `ScratchForcedClears`) under
+   `[Conditional("OWNSHARP_COUNTERS")]`. They answer the main question: do we really hit
+   the stack often, or is the inline limit set wrong?
 
-### Политики
+### Policies
 
-`policy`-блок — это переиспользуемый набор дефолтов; буфер ссылается на него через
-`policy =`, инлайновые опции перекрывают:
+A `policy` block is a reusable set of defaults; a buffer references it via
+`policy =`, and inline options override it:
 
 ```
 policy SensitiveScratch {
     inline_bytes     = 512;
     fallback         = pool;
     counters         = true;
-    clear_on_release = true;       // занулить байты перед возвратом в пул
+    clear_on_release = true;       // zero the bytes before returning to the pool
 }
 
 fn handle(size: int) {
     let secret = Buffer.scratch(size, policy = SensitiveScratch);
     borrow_mut secret as m { Fill(m); }
-    release secret;                 // codegen: secret.Clear(); затем Return
+    release secret;                 // codegen: secret.Clear(); then Return
 }
 ```
 
 ### Runnable golden
 
-`buffer_scratch_program.cs.txt` — запускаемый пример: метод `parse` и классы
-`OwnTrace`/`OwnCounters` вклеены **дословно** из `python -m ownlang emit
-buffer_scratch.own`, а `Fill`/`Hash`/`Main` — host-код. Доказывает, что
-buffer-модель лоуэрится в настоящий .NET с реальным `ArrayPool.Rent/Return`:
+`buffer_scratch_program.cs.txt` — a runnable example: the `parse` method and the
+`OwnTrace`/`OwnCounters` classes are pasted **verbatim** from `python -m ownlang emit
+buffer_scratch.own`, and `Fill`/`Hash`/`Main` are host code. It proves the buffer
+model lowers into real .NET with a real `ArrayPool.Rent/Return`:
 
 ```bash
 dotnet run -p:DefineConstants="OWNSHARP_TRACE;OWNSHARP_COUNTERS"
-# parse(64)   -> stackalloc-ветка (heap не трогаем)
-# parse(4096) -> ArrayPool-ветка  (реальные Rent/Return), trace + counters в выводе
+# parse(64)   -> the stackalloc branch (we don't touch the heap)
+# parse(4096) -> the ArrayPool branch  (real Rent/Return), trace + counters in the output
 ```
 
-### Где это жульничает
+### Where it cheats
 
-Элемент буфера зафиксирован как `byte` (как во всех примерах). В straight-line
-функции (без `if`/`move`/owned-return) буферы и обычные ресурсы лоуэрятся в порядке
-исходника, каждый в свой exception-safe `try/finally` со split'ом по точке
-`release` — **но только если времена жизни laminar** (любая пара вложена или
-раздельна) **и каждый `release` на верхнем уровне**: непересекающиеся остаются
-раздельными (a возвращается до аренды b), вложенные — нестятся (LIFO). Частичное
-пересечение (`let a; let b; release a; … release b;`), `release` во вложенном
-`borrow`/`if`-блоке, или ресурс, consume'нутый вызовом, hoist'ить нельзя без
-искажения lifetime'а / двойной очистки, поэтому такие функции лоуэрятся
-faithful-inline (release ровно там, где написан; без `try/finally`).
-`scratch`/`stack`/`native` динамического размера guard'ят некорректный (в т.ч.
-отрицательный) запрос **до** любого trace/counter, чтобы битый ввод не портил
-метрики. Размер буфера обязан быть целым числом — `Buffer.pooled(flag: bool)`, owned-ресурс
-или plain неизвестного типа (например копия borrow'а) как размер это **OWN018**;
-а `inline` требует compile-time литерала — `Buffer.inline(n, max = …)` это
-**OWN021** (для динамики есть `stack`). Plain-локал, объявленный в теле буфера и
-использованный после release, не оборачивается в hoist'нутый `try` (иначе вышел бы
-из C#-scope) — такой буфер лоуэрится inline.
-Булевы настройки (`clear_on_release`, `counters`, `sensitive`) и `trace`
-валидируются: опечатка вроде `clear_on_release = ture` — **OWN030**, а не тихое
-отключение clear на sensitive-буфере. А `sensitive = true` без `clear = true` —
-**OWN024**: пометил секретным — обязан занулить перед тем, как backing-память
-(пул/аллокатор/кадр стека) переиспользуют. `counters` теперь и
-`ScratchTotalRequestedBytes`/`ScratchMaxRequestedBytes` (распределение запросов),
-`ScratchPoolBytesReturned` (баланс с `Rented`) и `ScratchForcedClears`. `native` хранит `byte*` (backing, освобождается на release), но наружу
-отдаёт `Span<byte>`-view — borrow/call видят тот же логический тип, что и
-pooled/stack/scratch. Borrow-параметр типа `Buffer` (и в `extern`, и в **локальной**
-`fn`) рендерится как `Span<byte>`/`ReadOnlySpan<byte>`, так что один
-`fn helper(x: &mut Buffer)` лоуэрится в одну C#-сигнатуру для всех storage-режимов,
-а вызов `helper(b)` компилируется. Отчёт атрибутирует диагностики по идентичности
-буфера (`name#line:col`, переносится через `move`-алиасы), а не по имени в тексте —
-два одноимённых буфера в соседних скоупах не путаются.
-В ветвистой функции (есть `if`/`move`/owned-return) используется inline-режим:
-буфер с чистым вложением получает `try/finally`, а перекрывающиеся времена жизни,
-ветвистый release и moved-алиасы — inline-release (реальный cleanup в местах
-release'ов, без подъёма в `finally`; обычные ресурсы там тоже inline — подъём из
-произвольного control-flow это roadmap). `native` динамического размера
-guard'ит отрицательный запрос перед `NativeMemory.Alloc`. Escaping movable-буферы
-отвергаются (OWN017), полноценный movable-lowering — roadmap. Неизвестные значения
-**и имена** настроек (mode, namespace, policy, fallback, а также сами имена опций
-буфера и ключей policy-блока) ловятся как **OWN030** — опечатка в
-`fallback = forbidden`, `fallback = 0` или `fallbak = forbidden` не «протечёт» в
-heap, а будет отвергнута. Повторённая опция/ключ (`fallback = forbidden,
-fallback = pool`) — тоже **OWN030**: конфликтующее обещание не разрешается
-правилом «последний выигрывает». Бенчмарк-матрица из дизайн-дока
-(safe vs unsafe, stack vs pool на размерах 32 B … 1 MB) — **следующий слой**:
-правило «unsafe-backend разрешён только при выигрыше ≥ 10-15 % с disassembly-
-обоснованием» задаёт дисциплину, но прогон бенчей вне песочницы. Unsafe-контракты
-(`UNS0xx`) пока не реализованы: `native` лоуэрится в `NativeMemory.Alloc/Free` в
-`unsafe`-блоке, но pointer-escape проверки — roadmap.
+The buffer element is fixed as `byte` (as in all examples). In a straight-line
+function (no `if`/`move`/owned-return), buffers and ordinary resources lower in source
+order, each into its own exception-safe `try/finally` split at the `release` point —
+**but only if the lifetimes are laminar** (any pair is nested or disjoint) **and every
+`release` is at the top level**: non-overlapping ones stay separate (a returns before
+b is rented), nested ones nest (LIFO). A partial overlap (`let a; let b; release a; …
+release b;`), a `release` inside a nested `borrow`/`if` block, or a resource consumed by
+a call cannot be hoisted without distorting the lifetime / double cleanup, so such
+functions lower faithful-inline (release exactly where written; no `try/finally`).
+A `scratch`/`stack`/`native` of dynamic size guards an invalid (including negative)
+request **before** any trace/counter, so broken input doesn't pollute the metrics. The
+buffer size must be an integer — `Buffer.pooled(flag: bool)`, an owned resource, or
+plain of unknown type (e.g. a copy of a borrow) as the size is **OWN018**; and `inline`
+requires a compile-time literal — `Buffer.inline(n, max = …)` is **OWN021** (for dynamic
+sizes there is `stack`). A plain local declared in the buffer body and used after release
+is not wrapped in a hoisted `try` (otherwise it would leave the C# scope) — such a buffer
+lowers inline.
+Boolean settings (`clear_on_release`, `counters`, `sensitive`) and `trace` are
+validated: a typo like `clear_on_release = ture` is **OWN030**, not a silent disabling
+of clear on a sensitive buffer. And `sensitive = true` without `clear = true` is
+**OWN024**: you marked it secret — you must zero it before the backing memory
+(pool/allocator/stack frame) is reused. `counters` now also includes
+`ScratchTotalRequestedBytes`/`ScratchMaxRequestedBytes` (the request distribution),
+`ScratchPoolBytesReturned` (the balance with `Rented`) and `ScratchForcedClears`.
+`native` stores a `byte*` (the backing, freed on release), but hands out a
+`Span<byte>` view — borrows/calls see the same logical type as pooled/stack/scratch. A
+borrow parameter of type `Buffer` (both in `extern` and in a **local** `fn`) renders as
+`Span<byte>`/`ReadOnlySpan<byte>`, so a single `fn helper(x: &mut Buffer)` lowers into one
+C# signature for all storage modes, and a call `helper(b)` compiles. The report
+attributes diagnostics by buffer identity (`name#line:col`, carried across `move`
+aliases), not by name in the text — two same-named buffers in adjacent scopes don't get
+confused.
+In a branchy function (there is an `if`/`move`/owned-return) inline mode is used: a
+buffer with clean nesting gets a `try/finally`, while overlapping lifetimes, branchy
+release and moved aliases get inline-release (real cleanup at the release sites, with no
+hoist into `finally`; ordinary resources are inline there too — hoisting out of
+arbitrary control flow is on the roadmap). A `native` of dynamic size guards a negative
+request before `NativeMemory.Alloc`. Escaping movable buffers are rejected (OWN017);
+full movable lowering is on the roadmap. Unknown values **and names** of settings (mode,
+namespace, policy, fallback, plus the buffer option names and policy-block keys
+themselves) are caught as **OWN030** — a typo in `fallback = forbidden`, `fallback = 0`
+or `fallbak = forbidden` won't "leak" into the heap, it will be rejected. A repeated
+option/key (`fallback = forbidden, fallback = pool`) is also **OWN030**: a conflicting
+promise is not resolved by a "last one wins" rule. The benchmark matrix from the design
+doc (safe vs unsafe, stack vs pool over sizes 32 B … 1 MB) is the **next layer**: the
+rule "an unsafe backend is allowed only at a ≥ 10–15 % win with a disassembly
+justification" sets the discipline, but running the benchmarks is outside the sandbox.
+Unsafe contracts (`UNS0xx`) are not yet implemented: `native` lowers into
+`NativeMemory.Alloc/Free` in an `unsafe` block, but pointer-escape checks are on the
+roadmap.
 
 ---
 
-## Changelog: перенумерация кодов
+## Changelog: code renumbering
 
-Коды переразложены в связную схему. Если ты смотришь вывод прошлой версии:
+The codes were re-laid-out into a coherent scheme. If you're looking at output from a
+previous version:
 
-| Было | Стало | Заметка |
+| Was | Now | Note |
 |------|-------|---------|
-| OWN006 (catch-all borrow) | OWN006 / 007 / 008 / 011 / 012 / 013 | расщеплён на конкретные нарушения |
-| OWN002 (любой use-after-release) | OWN002 (definite) + OWN009 (maybe) | разделено definite/maybe |
-| OWN005 (любой use-after-move) | OWN005 (definite) + OWN010 (maybe) | разделено definite/maybe |
-| OWN007 (operation-requires-owned) | OWN034 | освобождён номер под loans |
+| OWN006 (catch-all borrow) | OWN006 / 007 / 008 / 011 / 012 / 013 | split into concrete violations |
+| OWN002 (any use-after-release) | OWN002 (definite) + OWN009 (maybe) | split definite/maybe |
+| OWN005 (any use-after-move) | OWN005 (definite) + OWN010 (maybe) | split definite/maybe |
+| OWN007 (operation-requires-owned) | OWN034 | the number freed up under loans |
 | OWN010 (undefined name) | OWN030 | |
 | OWN011 (redefinition) | OWN031 | |
 | OWN012 (copy-owned) | OWN032 | |
 | OWN013 (missing-return) | OWN033 | |
-| — | OWN040 / OWN041 | новая граница вызовов |
+| — | OWN040 / OWN041 | the new call boundary |
 
-Про **OWN010-ревьюера «incompatible-state-at-join»**: в блок-скоупном языке
-несовместимых loans на merge быть не может (borrow всегда сбалансирован внутри
-ветки — и внутри тела `while`, так что back-edge цикла тоже несёт тот же набор
-loans). Поэтому это не user-facing код, а **ассерт-инвариант** в `join()`.
-Добавлять диагностику, которая структурно никогда не сработает, — это та самая
-декорация, против которой вся затея. Если появится ранний выход из borrow'а
-(`break` из тела с открытым loan), ассерт превратится в реальный код. (Номер
-OWN010 в новой схеме занят «maybe-move».)
-
----
-
-## Где оно жульничает (читать обязательно)
-
-Это PoC. Список дырок — намеренно явный.
-
-1. **Граница вызовов закрыта, граница полей — нет.** `extern fn` + запрет
-   неизвестных вызовов (OWN040) закрывают ту самую «дыру размером с автобус»:
-   протуннелить владение через анонимный C#-вызов больше нельзя. Но **полей всё
-   ещё нет**, поэтому «borrow сохранён в поле/замыкании/таймере» не моделируется —
-   а в реальном C# это главный источник утечек (ViewModel, события). Это
-   следующий шаг escape-анализа.
-
-2. **Нет доказательств.** Это checker, не verifier. Никакого Boogie/Dafny/F\*.
-   Soundness не доказан — он аргументирован и протестирован. Трансляция в Dafny/F\*
-   и доказательство — **следующий слой**, не этот.
-
-3. **`while` анализируется** (worklist + fixpoint по back-edge: cross-iteration
-   leak/use-after-release/double-release, см. `tests/test_loops.py`). А вот
-   `for`/`loop`-итерация и async пока отвергаются (OWN020) — для них нужна
-   десугаризация в `while` либо отдельная модель; CFG и worklist к этому готовы.
-
-4. **В песочнице PoC нет .NET** — golden проверен *по построению* и чекером. Но
-   **CI его реально компилирует и запускает** настоящим компилятором (job
-   `dotnet-golden`: сверяет emit-вывод с host'ом, затем `dotnet run`), так что
-   лоуэрение проверено исполнением — просто не в этой песочнице. У себя: `dotnet
-   run` в `examples/golden_arraypool`.
-
-5. **Нет настоящей системы типов.** Ресурсы номинальные, аргументы `acquire` не
-   типизируются, арифметики нет. Условие в `if` — непрозрачный текст: моделируется
-   control-flow, а не значения. Возвращаемое значение вызова не отслеживается
-   (вызов как statement; если локальный `fn` возвращает ресурс — он не трекается).
-
-6. **Запрещено shadowing** (OWN031). Rust разрешает; для PoC запрет проще.
-
-7. **CI-экшены не запинены по commit-SHA** (`actions/checkout@v4` и пр. на тегах,
-   без `persist-credentials: false`) — SAST (zizmor) это флагует. Сознательно
-   отложено: SHA-пиннинг — repo-wide политика, которую ведёт Dependabot / отдельный
-   hardening-проход, а не один PR; джобы только checkout + прогон тестов, без push
-   и без секретов, так что экспозиция минимальна.
+About the **reviewer's OWN010 "incompatible-state-at-join"**: in a block-scoped
+language there can be no incompatible loans at a merge (a borrow is always balanced
+inside a branch — and inside the `while` body, so a loop's back-edge carries the same
+loan set too). So it is not a user-facing code, but an **assert invariant** in
+`join()`. Adding a diagnostic that structurally never fires is exactly the kind of
+decoration the whole effort is against. If an early exit from a borrow ever appears (a
+`break` out of a body with an open loan), the assert turns into real code. (The number
+OWN010 is taken by "maybe-move" in the new scheme.)
 
 ---
 
-## Как это ложится на твои документы
+## Where it cheats (mandatory reading)
 
-| Слой из документов | Статус в PoC |
+This is a PoC. The list of holes is deliberately explicit.
+
+1. **The call boundary is closed, the field boundary is not.** `extern fn` + the ban
+   on unknown calls (OWN040) close that "bus-sized hole": you can no longer tunnel
+   ownership through an anonymous C# call. But **there are still no fields**, so "a
+   borrow saved into a field/closure/timer" is not modelled — and in real C# that is the
+   main source of leaks (ViewModels, events). This is the next step of escape analysis.
+
+2. **No proofs.** This is a checker, not a verifier. No Boogie/Dafny/F\*. Soundness is
+   not proven — it is argued and tested. Translation to Dafny/F\* and a proof are the
+   **next layer**, not this one.
+
+3. **`while` is analyzed** (worklist + fixpoint over the back-edge: cross-iteration
+   leak/use-after-release/double-release, see `tests/test_loops.py`). But `for`/`loop`
+   iteration and async are rejected for now (OWN020) — they need desugaring into `while`
+   or a separate model; the CFG and worklist are ready for it.
+
+4. **The PoC sandbox has no .NET** — the golden is verified *by construction* and by the
+   checker. But **CI actually compiles and runs it** with a real compiler (the
+   `dotnet-golden` job: it diffs the emit output against the host, then `dotnet run`), so
+   the lowering is verified by execution — just not in this sandbox. On your machine:
+   `dotnet run` in `examples/golden_arraypool`.
+
+5. **No real type system.** Resources are nominal, `acquire` arguments are not typed,
+   there is no arithmetic. The condition in an `if` is opaque text: control flow is
+   modelled, not values. A call's return value is not tracked (a call as a statement; if
+   a local `fn` returns a resource, it is not tracked).
+
+6. **Shadowing is forbidden** (OWN031). Rust allows it; for the PoC the ban is simpler.
+
+7. **CI actions are not pinned by commit SHA** (`actions/checkout@v4` and so on on tags,
+   without `persist-credentials: false`) — SAST (zizmor) flags this. Deliberately
+   deferred: SHA pinning is a repo-wide policy run by Dependabot / a separate hardening
+   pass, not a single PR; the jobs are only checkout + running tests, with no push and no
+   secrets, so the exposure is minimal.
+
+---
+
+## How this maps to the design documents
+
+| Layer from the documents | Status in the PoC |
 |--------------------|--------------|
-| OwnLang v0: ownership-ядро, borrow-блоки, must-release, C# codegen (док №4) | **сделано** |
-| OwnSharp IR: CFG + ownership facts (док №2, Phase 2) | **сделано** (CFG + dataflow + loans/permissions) |
-| Явная граница interop / escape-policy (док №2/3) | **частично** — вызовы закрыты (OWN040/041), поля нет |
-| Roslyn analyzer для C# с аннотациями (док №2, Phase 1; док №1, Option 1) | не здесь — альтернативный фронтенд |
-| Boogie backend / proof obligations (док №2, Phase 3) | roadmap |
-| Dafny backend (док №2, Phase 4) | roadmap |
-| F\* soundness ядра (док №2, Phase 6) | roadmap |
-| IDE-визуализация в стиле RustOwl (док №1; док №4) | roadmap — CFG-дамп это зачаток |
+| OwnLang v0: ownership core, borrow blocks, must-release, C# codegen (doc №4) | **done** |
+| OwnSharp IR: CFG + ownership facts (doc №2, Phase 2) | **done** (CFG + dataflow + loans/permissions) |
+| Explicit interop boundary / escape policy (doc №2/3) | **partial** — calls are closed (OWN040/041), fields are not |
+| Roslyn analyzer for C# with annotations (doc №2, Phase 1; doc №1, Option 1) | not here — an alternative frontend |
+| Boogie backend / proof obligations (doc №2, Phase 3) | roadmap |
+| Dafny backend (doc №2, Phase 4) | roadmap |
+| F\* soundness of the core (doc №2, Phase 6) | roadmap |
+| RustOwl-style IDE visualization (doc №1; doc №4) | roadmap — the CFG dump is a seed |
 
-Ближайший следующий шаг: **escape через поля** (пункт 1), потом **Boogie backend** —
-генерить из той же CFG proof obligations и гонять через Z3.
+The nearest next step: **escape through fields** (item 1), then the **Boogie backend** —
+generate proof obligations from the same CFG and run them through Z3.
 
 ---
 
-## Related work / позиционирование
+## Related work / positioning
 
-Честно: **мы не первый и не лучший детектор утечек ресурсов для C#.** Ниша плотно
-занята зрелыми инструментами, и притворяться иначе — ровно та декорация, против
-которой вся затея:
+Honestly: **we are not the first or the best resource-leak detector for C#.** The niche
+is densely occupied by mature tools, and pretending otherwise is exactly the decoration
+the whole effort is against:
 
-| Инструмент | Что ловит | Как |
+| Tool | What it catches | How |
 |---|---|---|
-| **Infer#** (Microsoft, на базе Facebook Infer) | resource leak, null-deref, thread-safety, taint | интерпроцедурно, separation logic; по скомпилированным `.dll`+`.pdb` |
-| **CodeQL** `cs/local-not-disposed` | локальный `IDisposable` без `Dispose` | dataflow по собранной CodeQL-базе |
-| **IDisposableAnalyzers** (`IDISP0xx`) | dispose / ownership-transfer | Roslyn-аналайзер (синтаксис + символы), в IDE |
-| **CA2000 / CA2213** (.NET SDK analyzers) | dispose до выхода из scope; недиспоженные поля | flow-sensitive, но transfer-распознавание — список типов |
-| **SonarC#, PVS-Studio (V3178), ReSharper `[MustDisposeResource]`** | dispose-утечки | паттерны / аннотации |
+| **Infer#** (Microsoft, on top of Facebook Infer) | resource leak, null-deref, thread-safety, taint | interprocedural, separation logic; over compiled `.dll`+`.pdb` |
+| **CodeQL** `cs/local-not-disposed` | a local `IDisposable` without `Dispose` | dataflow over a built CodeQL database |
+| **IDisposableAnalyzers** (`IDISP0xx`) | dispose / ownership-transfer | a Roslyn analyzer (syntax + symbols), in the IDE |
+| **CA2000 / CA2213** (.NET SDK analyzers) | dispose before leaving scope; undisposed fields | flow-sensitive, but transfer recognition is a list of types |
+| **SonarC#, PVS-Studio (V3178), ReSharper `[MustDisposeResource]`** | dispose leaks | patterns / annotations |
 
-Все они сильнее нас в **leak-recall** на больших базах: интерпроцедурные,
-обстрелянные, без нашего «honest skip». Это **планка**, и мы это признаём.
+All of them beat us on **leak recall** over large bases: interprocedural, battle-tested,
+without our "honest skip." That is the **bar**, and we acknowledge it.
 
-**Чем мы отличаемся — модель, а не охват.** Перечисленные инструменты по сути
-отвечают на один вопрос: *«этот `IDisposable` освобождён?»*. Own.NET моделирует
-**владение целиком** в духе Rust — и из этого выпадают классы дефектов, которых у
-leak-only инструментов нет в их основном запросе:
+**What sets us apart — the model, not the coverage.** The tools listed essentially
+answer one question: *"is this `IDisposable` released?"*. Own.NET models **ownership as a
+whole** in the Rust spirit — and out of that fall classes of defect that leak-only tools
+don't have in their primary query:
 
-- **double-dispose (OWN003)** и **use-after-dispose (OWN002)** — отдельные коды,
-  не «leak». В leak-запросах Infer#/CodeQL их попросту нет.
-- **loans + permissions (OWN006–013)** — алиасинг и эксклюзивность borrow'ов
-  (mutable-while-shared и пр.). Ни один C#-инструмент не делает этого для
-  `IDisposable`; C#-ный `ref safety` / `scoped` / `Span` — это escape-safety для
-  ref/span-значений, не ownership ресурсов, и пересечения почти нет.
-- **region/lifetime escape (OWN014)** — промоушн объекта в более долгоживущий
-  регион (zombie-ViewModel). Это lifetime-анализ, а не dispose-чек.
+- **double-dispose (OWN003)** and **use-after-dispose (OWN002)** — separate codes, not a
+  "leak." The Infer#/CodeQL leak queries simply don't have them.
+- **loans + permissions (OWN006–013)** — borrow aliasing and exclusivity
+  (mutable-while-shared, etc.). No C# tool does this for `IDisposable`; C#'s `ref safety` /
+  `scoped` / `Span` is escape-safety for ref/span values, not ownership of resources, and the
+  overlap is almost nil.
+- **region/lifetime escape (OWN014)** — promotion of an object to a longer-lived region
+  (zombie ViewModel). This is lifetime analysis, not a dispose check.
 
-Ближайший «та же идея, другой язык» — не в C#, а в C++/Rust: **C++ Lifetime
-profile** (Sutter / MSVC, opt-in), экспериментальная **lifetime-safety в Clang**
-(2025, вдохновлённая Polonius) и сам **Polonius** — Datalog-формулировка
-borrow-чека Rust ([rust-lang/polonius](https://github.com/rust-lang/polonius)).
-Их факты (`loan_issued_at` / `cfg_edge` / `loan_killed_at` / `subset`) — ровно тот
-словарь, в котором написан наш OwnIR (`acquire`/`use`/`release`/`return` +
-back-edge); мы воспроизводим **region-based** модель, просто на другом движке
-(питоновский worklist-fixpoint вместо Datalog). Попытки «Rust-подобного C#»
-(вроде RLC#) — заброшены.
+The nearest "same idea, different language" is not in C# but in C++/Rust: the **C++
+Lifetime profile** (Sutter / MSVC, opt-in), the experimental **lifetime safety in Clang**
+(2025, inspired by Polonius), and **Polonius** itself — a Datalog formulation of Rust's
+borrow check ([rust-lang/polonius](https://github.com/rust-lang/polonius)). Their facts
+(`loan_issued_at` / `cfg_edge` / `loan_killed_at` / `subset`) are exactly the vocabulary
+our OwnIR is written in (`acquire`/`use`/`release`/`return` + back-edge); we reproduce a
+**region-based** model, just on a different engine (a Python worklist-fixpoint instead of
+Datalog). Attempts at a "Rust-like C#" (such as RLC#) have been abandoned.
 
-**А ещё зрелые детекторы для нас — оракул.** Раз они сильны в leak-detection, их
-можно гонять на том же коде и сверять находки: пересечение = high-confidence,
-*only-oracle* = наш recall-gap (что пропустили), *only-own* = кандидат в FP
-**или** уникальный улов (тот самый double-dispose). Это валидационный харнес
-поверх mining — `scripts/oracle_compare.py` + workflow **oracle (cross-tool)**,
-подробности в [`docs/notes/oracle.md`](docs/notes/oracle.md).
+**And the mature detectors are an oracle for us.** Since they are strong at leak
+detection, you can run them over the same code and cross-check the findings: an
+intersection = high-confidence, *only-oracle* = our recall gap (what we missed),
+*only-own* = a candidate FP **or** a unique catch (that very double-dispose). This is a
+validation harness on top of mining — `scripts/oracle_compare.py` + the **oracle
+(cross-tool)** workflow, details in [`docs/notes/oracle.md`](docs/notes/oracle.md).
 
-> **Требование (convention).** Каждый прогон оракула несёт обязательство по
-> учёту: разобрать `oracle-only`-находки, и любой кейс, оказавшийся ФП оракула
-> **или** нашим осознанным by-design скипом, — записать как паттерн в
+> **Requirement (convention).** Every oracle run carries an accounting obligation:
+> triage the `oracle-only` findings, and any case that turns out to be an oracle FP **or**
+> our deliberate by-design skip — record as a pattern in
 > [`docs/notes/field-notes-patterns.md`](docs/notes/field-notes-patterns.md)
-> (источник-файл + analyzer-angle: почему наивный детектор шумит, а наш
-> escape/transfer-aware чекер корректно молчит). Тетрадка — и учебник по
-> C#-идиомам владения/времени жизни, и живая карта precision-фронтира; она не
-> должна отставать от того, что мы реально увидели в чужом коде.
+> (the source file + the analyzer angle: why a naive detector is noisy while our
+> escape/transfer-aware checker is correctly silent). The notebook is both a textbook of
+> C# ownership/lifetime idioms and a living map of the precision frontier; it must not lag
+> behind what we actually saw in other people's code.
 
 ---
 
-## Структура
+## Layout
 
 ```
 ownlang/
   ownlang/
-    lexer.py        # токенизатор; for/loop/async лексятся как REJECTED (while — нет); строки для emit_*
-    ast_nodes.py    # dataclass-узлы AST (resource, extern, call, эффекты, buffer, policy)
-    parser.py       # recursive descent; грамматика в docstring
-    buffers.py      # storage policies: режимы, резолв policy+intent, валидация
+    lexer.py        # tokenizer; for/loop/async lex as REJECTED (while doesn't); strings for emit_*
+    ast_nodes.py    # AST dataclass nodes (resource, extern, call, effects, buffer, policy)
+    parser.py       # recursive descent; the grammar is in the docstring
+    buffers.py      # storage policies: modes, policy+intent resolution, validation
     cfg.py          # resolver (Symbol/Kind) + collect_signatures + lowering, Invoke
     analysis.py     # flow-sensitive dataflow: var-states + active loans + permissions
-    lifetimes.py    # lifetime-регионы: region-escape (OWN014) + валидация порядка
-    ownir.py        # C#-факты (OwnIR) -> ядро -> диагностика на месте C# (P-001)
-    diagnostics.py  # коды OWN0xx в одном месте
-    codegen.py      # C# codegen (emit_* шаблоны, try/finally hoist + inline, буферы)
+    lifetimes.py    # lifetime regions: region-escape (OWN014) + ordering validation
+    ownir.py        # C# facts (OwnIR) -> core -> diagnostic at the C# site (P-001)
+    diagnostics.py  # the OWN0xx codes in one place
+    codegen.py      # C# codegen (emit_* templates, try/finally hoist + inline, buffers)
     report.py       # compile-time buffer report -> stdout + .ownreport.json
     __main__.py     # CLI: check / emit / cfg / report
   examples/
-    ok_*.own                  # проходят
-    bad_*.own                 # падают с конкретным кодом
-    gallery/                  # «что оно ловит» — narrated примеры, пинятся тестом
-    golden_arraypool/         # buffer.own + Program.cs (host-код; .csproj не входит)
-  corpus/real-world/          # hand-reduced реальные ArrayPool-баги + expected-коды
-  corpus/wpf/                 # WPF lifetime-баги (zombie-VM, use-after-dispose)
-  spec/                       # НОРМАТИВНАЯ спека: OwnCore/Buffer/Lifetimes/Diag/Codegen
-  docs/proposals/             # forward-looking RFC: P-001 C#-extractor, P-002 verif, ...
-  docs/lifetimes.md           # дизайн модуля lifetimes (WPF, регионы, слайсы)
+    ok_*.own                  # pass
+    bad_*.own                 # fail with a specific code
+    gallery/                  # "what it catches" — narrated examples, pinned by a test
+    golden_arraypool/         # buffer.own + Program.cs (host code; .csproj not included)
+  corpus/real-world/          # hand-reduced real ArrayPool bugs + expected codes
+  corpus/wpf/                 # WPF lifetime bugs (zombie-VM, use-after-dispose)
+  spec/                       # the NORMATIVE spec: OwnCore/Buffer/Lifetimes/Diag/Codegen
+  docs/proposals/             # forward-looking RFCs: P-001 C# extractor, P-002 verif, ...
+  docs/lifetimes.md           # the lifetimes module design (WPF, regions, slices)
   tests/
-    run_tests.py              # кейсы анализа + codegen smoke + golden smoke
-    test_codegen.py           # content-assertions на сгенерённый C#
-    test_codegen_props.py     # property-фаззер с независимым AST-оракулом
-    test_gallery.py           # пинит каждый gallery-пример к его коду
-    test_corpus.py            # пинит каждый corpus-кейс к expected-диагностикам
-    test_wpf.py               # WPF-корпус: коды + [resource: kind] метадата
-    test_lifetimes.py         # region-escape (OWN014) + валидация lifetime-порядка
-    test_spec.py              # conformance: каждое правило spec/ срабатывает на примере
-    test_ownir.py             # OwnIR-мост: C#-факты -> ядро -> OWN001 на месте C#
-  frontend/roslyn/            # C#-экстрактор (Roslyn, CI-only) + сэмплы .cs (P-001)
-  pyproject.toml              # gate: ruff + mypy --strict (см. ниже)
+    run_tests.py              # analysis cases + codegen smoke + golden smoke
+    test_codegen.py           # content assertions on the generated C#
+    test_codegen_props.py     # a property fuzzer with an independent AST oracle
+    test_gallery.py           # pins each gallery example to its code
+    test_corpus.py            # pins each corpus case to its expected diagnostics
+    test_wpf.py               # the WPF corpus: codes + [resource: kind] metadata
+    test_lifetimes.py         # region-escape (OWN014) + lifetime-ordering validation
+    test_spec.py              # conformance: every spec/ rule fires on an example
+    test_ownir.py             # the OwnIR bridge: C# facts -> core -> OWN001 at the C# site
+  frontend/roslyn/            # the C# extractor (Roslyn, CI-only) + .cs samples (P-001)
+  pyproject.toml              # gate: ruff + mypy --strict (see below)
 ```
 
-### Гейт качества (ruff + mypy --strict)
+### Quality gate (ruff + mypy --strict)
 
-Python взяли ради скорости прототипа, но без типов он легко скрывает «забыл ветку»
-класс багов (ровно такие плодил старый кодоген). Поэтому прикручены гайки, и они
-блокируют CI (job `lint`):
+Python was chosen for prototyping speed, but without types it easily hides the "forgot a
+branch" class of bug (exactly what the old codegen kept producing). So the screws are
+tightened, and they block CI (the `lint` job):
 
-- **ruff** (`E,W,F,I,B,UP,C4,RUF`) — стиль + bugbear-ловушки на всём дереве;
-- **mypy `--strict`** на пакете `ownlang` (тесты — динамический фаззер-код, их
-  держит только ruff);
-- **`typing.assert_never`** в каждом разборе по видам узлов (`lower_stmt`, `step`,
-  `_stmt_inline`): новый невручённый вариант union'а — это **ошибка компиляции
-  типов**, дешёвая замена exhaustive-match. Включение это уже поймало реальную
-  дыру — buffer-`let`, незакрытый в inline-эмиттере.
+- **ruff** (`E,W,F,I,B,UP,C4,RUF`) — style + bugbear traps over the whole tree;
+- **mypy `--strict`** on the `ownlang` package (the tests are dynamic fuzzer code, held
+  only by ruff);
+- **`typing.assert_never`** in every dispatch over node kinds (`lower_stmt`, `step`,
+  `_stmt_inline`): a new unhandled union variant is a **type compile error**, a cheap
+  substitute for an exhaustive match. Turning it on already caught a real hole — a buffer
+  `let` left unclosed in the inline emitter.
 
-Локально: `ruff check . && mypy`. Это не заменяет regression-сеть (фаззер/оракул/
-корпус ловят логику, линтер — опечатки и типы), а дополняет её.
+Locally: `ruff check . && mypy`. This does not replace the regression net (the
+fuzzer/oracle/corpus catch logic, the linter catches typos and types) — it complements it.

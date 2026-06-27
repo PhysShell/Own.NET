@@ -2,7 +2,7 @@ name: CI
 
 # Least privilege: every job only reads the repo (no job pushes or needs write).
 # Action SHA-pinning / persist-credentials hardening is deliberately deferred to
-# a Dependabot/hardening pass — see README "где оно жульничает" item #7.
+# a Dependabot/hardening pass — see README "Where it cheats" item #7.
 permissions:
   contents: read
 
