@@ -1691,6 +1691,22 @@ def run() -> int:
     if _bcl([{"op": "call", "callee": "global::MyCompany.File.OpenRead", "args": ["p"],
               "result": "s", "line": 4}]):
         fails.append("Tier B precision: `global::`-qualified non-System.IO must NOT match")
+    # P1a (stdlib pack): more curated owned-returning factories. A dropped XmlReader/XmlWriter/
+    # JsonDocument result leaks at the factory call (OWN001), the same producer-side contract as
+    # File.Open* — both the bare `Type.Method` and the namespace-qualified identity resolve.
+    for fresh_callee, ln in (("XmlReader.Create", 5), ("XmlWriter.Create", 6),
+                             ("JsonDocument.Parse", 7),
+                             ("System.Text.Json.JsonDocument.Parse", 8)):
+        checks += 1
+        leak = [(x.code, x.line) for x in _bcl(
+            [{"op": "call", "callee": fresh_callee, "args": ["a"], "result": "s", "line": ln}])]
+        if leak != [("OWN001", ln)]:
+            fails.append(f"P1a: a leaked `{fresh_callee}` result must be OWN001@{ln}, got {leak}")
+    # disposing the P1a factory result is clean (no false leak), proving it is a real acquire.
+    checks += 1
+    if _bcl([{"op": "call", "callee": "XmlReader.Create", "args": ["a"], "result": "s", "line": 5},
+             {"op": "release", "var": "s", "line": 6}]):
+        fails.append("P1a: a disposed XmlReader.Create result must be clean (silent)")
     checks += 1
     # OVERRIDE (Codex): a first-party summary is authoritative — a first-party `File.OpenRead`
     # that returns its parameter is NOT fresh, so a caller dropping its result is clean; the

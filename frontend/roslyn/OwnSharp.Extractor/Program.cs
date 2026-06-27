@@ -2260,9 +2260,15 @@ static List<string> ReturnedViewOwners(ExpressionSyntax expr, HashSet<string> tr
 //     IncrementalHash.CreateHash(), ... (guarded by static + Create-prefixed + the RESULT
 //     implementing IDisposable + the crypto namespace, so an instance `CreateEncryptor()` or
 //     a non-IDisposable `CreateFromName()` is never mistaken for one).
+//   * P1a stdlib pack: System.Xml `XmlReader.Create`/`XmlWriter.Create` -> a fresh owned
+//     reader/writer; System.Text.Json `JsonDocument.Parse` -> a JsonDocument that pools memory
+//     and must be disposed. Gated on the RESULT implementing IDisposable, so a Task-returning
+//     `JsonDocument.ParseAsync` is excluded.
 // Curated + symbol-resolved, so a borrowed/cached disposable handed back by some other API is
 // never mistaken for an owned acquire (precision over recall — the set grows only as
-// ownership is certain).
+// ownership is certain). Kept in lockstep with the bridge table `_BCL_FRESH_BY_NS`
+// (ownlang/ownir.py): the extractor decides whether to EMIT the factory call fact, the bridge
+// recognises the callee name as `fresh`.
 static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
 {
     if (e is not InvocationExpressionSyntax i
@@ -2277,6 +2283,14 @@ static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
         && sym.Name.StartsWith("Create", StringComparison.Ordinal)
         && ImplementsIDisposable(sym.ReturnType)
         && IsInNamespace(sym.ContainingType, "System", "Security", "Cryptography"))
+        return true;
+    if (sym.IsStatic && ImplementsIDisposable(sym.ReturnType)
+        && ((sym.Name == "Create"
+             && sym.ContainingType is { Name: "XmlReader" or "XmlWriter" } xt
+             && IsInNamespace(xt, "System", "Xml"))
+            || (sym.Name == "Parse"
+                && sym.ContainingType is { Name: "JsonDocument" } jt
+                && IsInNamespace(jt, "System", "Text", "Json"))))
         return true;
     return false;
 }
