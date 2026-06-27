@@ -38,7 +38,17 @@ project or solution the way the borrowed roslyn-tools CLI shape advertises:
 dotnet run --project OwnSharp.Extractor -- App.csproj -o facts.json     # positional
 dotnet run --project OwnSharp.Extractor -- --project App.csproj -o facts.json
 dotnet run --project OwnSharp.Extractor -- --solution App.sln -o facts.json
+dotnet run --project OwnSharp.Extractor -- extract --project App.csproj --out facts.json  # explicit verb
 ```
+
+`extract` is an optional leading verb (the tool's one job; the bare form is the
+default), and `--out` is the long twin of `-o`. The sibling verbs live where the
+architecture puts them — `check` is `scripts/own-check.sh` (which chains this + the
+core and accepts a `.csproj`/`.sln`), and `explain` is in the core:
+`python -m ownlang explain OWN001` (or `--json findings.sarif` — the checker's
+findings/SARIF output — to explain every code a run produced; note `facts.json`
+holds extractor facts, not diagnostic codes). One checker: the C# tool only emits
+facts.
 
 A `.csproj` resolves to its source set by scanning the project's directory for
 `*.cs` (the SDK default-compile-items behaviour) plus any concrete linked

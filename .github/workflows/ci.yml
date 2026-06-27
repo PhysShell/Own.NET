@@ -996,7 +996,28 @@ jobs:
           diff <(jq -S . "$RUNNER_TEMP/proj-facts.json") \
                <(jq -S . "$RUNNER_TEMP/proj-facts-flag.json") \
             || { echo "FAIL: --project flag and positional .csproj emit different OwnIR facts"; exit 1; }
-          echo "OK: .csproj input resolves to its source set and feeds the core identically (positional == --project, fact-level parity)"
+          # the `extract` verb + `--out` long form must resolve to the same facts as the bare form.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            extract --project frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
+            --out "$RUNNER_TEMP/proj-facts-verb.json"
+          diff <(jq -S . "$RUNNER_TEMP/proj-facts.json") \
+               <(jq -S . "$RUNNER_TEMP/proj-facts-verb.json") \
+            || { echo "FAIL: 'extract --out' verb form disagrees with the bare form"; exit 1; }
+          echo "OK: .csproj input resolves to its source set and feeds the core identically (bare == --project == 'extract --out', fact-level parity)"
+      # explain: the diagnostic-catalogue CLI surface lives in the core (one checker). Smoke
+      # it end-to-end — explain a code, and harvest+explain every code in a real findings file.
+      - name: explain command (code + --json harvest)
+        run: |
+          python -m ownlang explain OWN001 | grep -q "Fix:" \
+            || { echo "FAIL: explain OWN001 missing a Fix line"; exit 1; }
+          # ownir exits 1 when findings exist (expected — the sample leaks); only 2+ is a real
+          # error (bad facts / emit regression). Tolerate 1, surface 2+, so a genuine SARIF
+          # generation failure is not masked by a blanket `|| true` (CodeRabbit).
+          rc=0; python -m ownlang ownir "$RUNNER_TEMP/proj-facts.json" --format sarif > "$RUNNER_TEMP/proj.sarif" || rc=$?
+          [ "$rc" -le 1 ] || { echo "FAIL: SARIF generation errored (rc=$rc)"; exit 1; }
+          python -m ownlang explain --json "$RUNNER_TEMP/proj.sarif" | grep -q "OWN001" \
+            || { echo "FAIL: explain --json did not harvest OWN001 from the SARIF log"; exit 1; }
+          echo "OK: explain answers a code and harvests codes from a real findings/SARIF file"
 
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
