@@ -1,0 +1,15 @@
+// OwnLang model of the Socket.Accept() accept-loop leak (owned-API tranche). The accepted Socket
+// is a fresh owned IDisposable, used and never released -> OWN001. See notes.md.
+module Corpus
+resource Conn {
+  acquire accept
+  release dispose
+  kind "disposable"
+  emit_type    "Socket"
+  emit_acquire "{args}.Accept()"
+  emit_release "{0}.Dispose()"
+}
+fn Serve(listener: int) {
+  let conn = acquire Conn(listener);   // var conn = listener.Accept()
+  // conn used (conn.Connected); no `release conn;` -> OWN001
+}
