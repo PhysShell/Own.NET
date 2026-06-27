@@ -1009,6 +1009,10 @@ jobs:
           grep -q "Usage:" "$RUNNER_TEMP/help.txt" && grep -q -- "--no-project-refs" "$RUNNER_TEMP/help.txt" \
             || { echo "FAIL: --help did not render the usage/options"; exit 1; }
           # --no-project-refs is accepted and (with no bin/ on the sample) yields identical facts.
+          # Guard the precondition: the parity below only holds while the sample is unbuilt, so a
+          # future step that builds it fails here with a clear message, not a confusing facts diff.
+          [ ! -d frontend/roslyn/project-input-sample/bin ] \
+            || { echo "FAIL: sample project must be unbuilt for the --no-project-refs parity check"; exit 1; }
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             --no-project-refs --project frontend/roslyn/project-input-sample/ProjectInputSample.csproj \
             --out "$RUNNER_TEMP/proj-facts-norefs.json"
