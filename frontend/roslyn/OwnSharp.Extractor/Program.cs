@@ -596,6 +596,183 @@ static string FlowFunctionName(BaseMethodDeclarationSyntax method, string fallba
         ? $"{ms.ContainingType.ToDisplayString()}.{ms.Name}"
         : $"{fallbackType}.{MethodName(method)}";
 
+// P-005 D5.4 (T4 wrap/adopt): the set of OWNING fields a first-party type disposes
+// UNCONDITIONALLY in its `Dispose()` — i.e. a `_f.Dispose()` / `_f?.Dispose()` /
+// `this._f.Dispose()` that is a TOP-LEVEL statement of the Dispose body (not nested in an
+// if/try/loop), where `_f` resolves to an instance field of `w`. Conditional or nested
+// disposes are excluded: if the field is only *sometimes* disposed, claiming the arg is
+// adopted could fabricate a false double-dispose, so precision-first declines it (§11
+// must-only). Used to verify a ctor-adopt before emitting an `alias_join`.
+static HashSet<ISymbol> DisposedOwningFields(INamedTypeSymbol w, SemanticModel model)
+{
+    var result = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+    var dispose = w.GetMembers("Dispose").OfType<IMethodSymbol>()
+        .FirstOrDefault(m => m.Parameters.Length == 0 && m.ReturnsVoid
+                             && m.DeclaringSyntaxReferences.Length > 0);
+    if (dispose is null)
+        return result;
+    if (dispose.DeclaringSyntaxReferences[0].GetSyntax() is not MethodDeclarationSyntax mds
+        || mds.Body is not { } body)
+        return result;
+    var dm = model.Compilation.GetSemanticModel(mds.SyntaxTree);
+    foreach (var st in body.Statements)            // TOP-LEVEL statements only
+    {
+        if (st is not ExpressionStatementSyntax es)
+            continue;
+        // unwrap the disposed receiver from `recv.Dispose()` or `recv?.Dispose()` — the
+        // latter parses as a ConditionalAccess at the statement level, not an Invocation.
+        ExpressionSyntax? recv = es.Expression switch
+        {
+            InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax ma }
+                when ma.Name.Identifier.Text is "Dispose" => ma.Expression,
+            ConditionalAccessExpressionSyntax
+                { WhenNotNull: InvocationExpressionSyntax
+                    { Expression: MemberBindingExpressionSyntax mb } } ca
+                when mb.Name.Identifier.Text is "Dispose" => ca.Expression,
+            _ => null,
+        };
+        if (recv is null)
+            continue;
+        if (dm.GetSymbolInfo(recv).Symbol is IFieldSymbol f
+            && !f.IsStatic                          // a static field is shared across instances,
+            && SymbolEqualityComparer.Default.Equals(f.ContainingType, w))  // not per-wrapper ownership
+            result.Add(f);
+    }
+    return result;
+}
+
+// P-005 D5.4: does `new W(args)` ADOPT one of its arguments into an owning field — i.e. is
+// the constructed object a wrapper that takes responsibility for disposing that arg? True
+// iff (a) the ctor is first-party, (b) its type disposes exactly ONE owning field
+// unconditionally (DisposedOwningFields), and (c) that field is assigned DIRECTLY from
+// exactly one constructor parameter (`_f = p;` as a top-level ctor statement). Returns that
+// parameter's positional index. Single-source by construction (§11): any ambiguity — no
+// visible Dispose, 0/2+ disposed fields, the field not assigned from a single param, a
+// non-positional call — yields no claim (false, idx -1). This is the only gate that lets the
+// extractor emit an `alias_join`, so it must never over-claim (a false adopt would fabricate
+// a double-dispose), only under-claim.
+static bool TryAdoptedArgIndex(BaseObjectCreationExpressionSyntax oce, SemanticModel model,
+                               out int idx)
+{
+    idx = -1;
+    if (model.GetSymbolInfo(oce).Symbol is not IMethodSymbol ctor
+        || ctor.MethodKind != MethodKind.Constructor
+        || ctor.DeclaringSyntaxReferences.Length == 0)
+        return false;
+    var w = ctor.ContainingType;
+    var disposed = DisposedOwningFields(w, model);
+    if (disposed.Count != 1)
+        return false;
+    var field = disposed.First();
+    if (ctor.DeclaringSyntaxReferences[0].GetSyntax() is not ConstructorDeclarationSyntax cds
+        || cds.Body is not { } cbody)
+        return false;
+    var cm = model.Compilation.GetSemanticModel(cds.SyntaxTree);
+    // v1 accepts only a PURE single-assignment adopter ctor `{ _f = p; }`. Any sibling
+    // statement could rebind the field or mutate the param (`_f = p; Rebind(other);`), which
+    // would over-claim adoption — so a multi-statement ctor is DECLINED (deferred to a later
+    // slice). Precision-first: under-claim, never fabricate a false double-dispose (CodeRabbit).
+    if (cbody.Statements.Count != 1
+        || cbody.Statements[0] is not ExpressionStatementSyntax es
+        || es.Expression is not AssignmentExpressionSyntax asg
+        || !asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
+        return false;
+    if (cm.GetSymbolInfo(asg.Left).Symbol is not IFieldSymbol lf
+        || lf.IsStatic                             // shared storage, not per-instance ownership
+        || !SymbolEqualityComparer.Default.Equals(lf, field))
+        return false;
+    if (cm.GetSymbolInfo(asg.Right).Symbol is not IParameterSymbol p
+        || !SymbolEqualityComparer.Default.Equals(p.ContainingSymbol, ctor))
+        return false;                              // field set from a non-parameter — bail
+    var matched = p.Ordinal;
+    // the call must be POSITIONAL up to the adopted slot, so the arg index == the param
+    // ordinal (a named/reordered call would mis-attribute). Require enough positional args.
+    if (oce.ArgumentList is not { } al || al.Arguments.Count <= matched
+        || al.Arguments.Take(matched + 1).Any(a => a.NameColon is not null))
+        return false;
+    idx = matched;
+    return true;
+}
+
+// P-005 D5.4: the adopted-argument expression of `new W(x)`, or null if W does not adopt an
+// argument (TryAdoptedArgIndex). Wraps the index lookup so callers work with the syntax.
+// Covers both `new W(x)` and target-typed `new(x)` (BaseObjectCreationExpressionSyntax) —
+// the adopt verification resolves the ctor from the symbol either way (Codex).
+static ExpressionSyntax? AdoptedArg(BaseObjectCreationExpressionSyntax oce, SemanticModel model) =>
+    TryAdoptedArgIndex(oce, model, out var i) ? oce.ArgumentList!.Arguments[i].Expression : null;
+
+// P-005 D5.4: does the local `name` ESCAPE this method (returned, stored as an assignment
+// RHS, passed on as an argument, or captured by a closure)? Deliberately OVER-approximates
+// — any arg-pass counts, even a borrow — because it only gates the *adopt* exception below:
+// over-escaping the wrapper makes us DECLINE the alias (under-claim), never fabricate one.
+// `w.Dispose()` (a member access where `w` is the receiver) is a use, not an escape, so a
+// disposed wrapper still qualifies. The escape test WALKS ANCESTORS through value-wrapping
+// expressions (casts, `??`, parens, conditionals) so `return (IDisposable)w;` / `x = w ?? f;`
+// / `Foo((object)w)` are all caught, not just a direct-parent return/arg/assignment-RHS
+// (CodeRabbit).
+static bool LocalEscapesSyntactically(string name, BlockSyntax mbody)
+{
+    foreach (var idn in mbody.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (idn.Identifier.Text != name)
+            continue;
+        // a bare receiver `name.Member(...)` / `name?.Member` is a use/release, not an escape.
+        if (idn.Parent is MemberAccessExpressionSyntax ma && ma.Expression == idn)
+            continue;
+        // captured by a closure (lambda / local function) — outlives the method.
+        var captured = false;
+        for (var p = idn.Parent; p is not null && p != mbody; p = p.Parent)
+            if (p is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
+            {
+                captured = true;
+                break;
+            }
+        if (captured)
+            return true;
+        // climb the value's wrapping expressions to where it lands: a return, an argument, or
+        // an assignment RHS is an escape; reaching the enclosing statement first is not.
+        SyntaxNode child = idn;
+        var escapes = false;
+        for (var p = idn.Parent; p is not null; child = p, p = p.Parent)
+        {
+            if (p is ReturnStatementSyntax or ArgumentSyntax
+                || (p is AssignmentExpressionSyntax asg && asg.Right == child))
+            {
+                escapes = true;
+                break;
+            }
+            if (p is StatementSyntax)               // reached the enclosing statement, no escape
+                break;
+        }
+        if (escapes)
+            return true;
+    }
+    return false;
+}
+
+// P-005 D5.4: is `idn` the adopted argument of `new W(idn)` whose wrapper is a method-bounded
+// owner — i.e. should this arg occurrence NOT count as an escape? Gated hard to preserve
+// own-only-0: the wrapper must be a NON-`using` local `var w = new W(idn)`, `w` must be a
+// tracked disposable candidate, and `w` must not itself escape (else keeping the arg tracked
+// with nothing to discharge it would fabricate an OWN001). When all hold, the arg's
+// obligation is adopted by `w` and modelled as an `alias_join`; the arg stays tracked.
+static bool IsAdoptedArgOfBoundedWrapper(IdentifierNameSyntax idn, SemanticModel model,
+                                         HashSet<string> candidates, BlockSyntax mbody)
+{
+    if (idn.Parent is not ArgumentSyntax { Parent: ArgumentListSyntax
+            { Parent: BaseObjectCreationExpressionSyntax oce } })
+        return false;
+    if (AdoptedArg(oce, model) != idn)              // idn must BE the adopted arg
+        return false;
+    if (oce.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax wv }
+        || wv.Parent is not VariableDeclarationSyntax
+        || wv.Parent.Parent is not LocalDeclarationStatementSyntax wld
+        || wld.UsingKeyword != default)
+        return false;
+    var w = wv.Identifier.Text;
+    return candidates.Contains(w) && !LocalEscapesSyntactically(w, mbody);
+}
+
 // A `Dispose()`/`Close()`/`DisposeAsync()` call — through member access (`x.Dispose()`)
 // or member binding (`x?.Dispose()`), and seen through a trailing `.ConfigureAwait(false)`
 // (the idiomatic `await x.DisposeAsync().ConfigureAwait(false)` is the release, not a
@@ -783,7 +960,18 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             if (ld.UsingKeyword == default)
                 foreach (var v in ld.Declaration.Variables)
                 {
+                    // P-005 D5.4 (T4 adopt): `var w = new W(x)` where W is a verified wrapper
+                    // that adopts the tracked local `x` into an owning field (TryAdoptedArgIndex)
+                    // — emit `alias_join` instead of an acquire, so `w` joins `x`'s obligation:
+                    // disposing either discharges the one resource, disposing both is OWN003. The
+                    // arg `x` is kept tracked by the matching escape exception above.
                     if (tracked.Contains(v.Identifier.Text)
+                        && v.Initializer?.Value is BaseObjectCreationExpressionSyntax adoptOce
+                        && AdoptedArg(adoptOce, model) is IdentifierNameSyntax adoptedId
+                        && tracked.Contains(adoptedId.Identifier.Text))
+                        nodes.Add(new { op = "alias_join", var = v.Identifier.Text,
+                                        src = adoptedId.Identifier.Text, line = LineOf(v) });
+                    else if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
@@ -3355,7 +3543,13 @@ foreach (var (file, tree) in parsed)
                     // escape (mined FP on Pipelines.Sockets.Unofficial: ArrayPoolBufferWriter.CreateNewSegment
                     // returns `new ArrayPoolRefCountedSegment(pool, array, prev)`).
                     else if ((idn.Parent is AssignmentExpressionSyntax asg && asg.Right == idn)
-                        || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg)
+                        || (idn.Parent is ArgumentSyntax && !poolBuffers.Contains(nm) && !consumedArg
+                            // P-005 D5.4: a disposable passed to an ADOPTING ctor arg of a
+                            // method-bounded wrapper is not an escape — its obligation is
+                            // adopted by the wrapper (modelled as an alias_join) and stays
+                            // tracked. Gated to a non-using, non-escaping local wrapper so we
+                            // never keep an arg tracked with nothing to discharge it (FP).
+                            && !IsAdoptedArgOfBoundedWrapper(idn, model, candidates, mbody))
                         // An IMemoryOwner's `.Memory` view handed off as an ARGUMENT escapes the
                         // OWNER: the Memory keeps the owner alive (it IS the backing), so a consumer
                         // that stores it — `MemoryGroup.Wrap(owner.Memory)` -> the returned Image —

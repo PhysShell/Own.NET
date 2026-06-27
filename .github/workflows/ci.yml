@@ -833,6 +833,30 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: P-005 D5.4 T4 wrap/adopt (--flow-locals)
+        run: |
+          # The extractor recognises a first-party wrapper that ADOPTS a disposable arg into an
+          # owning field (its Dispose disposes that field; its ctor stores the arg into it) and
+          # emits an `alias_join`, so the wrapper and the inner share ONE obligation: disposing
+          # either is clean, dropping both leaks the resource ONCE, disposing both is OWN003. A
+          # non-adopting holder makes NO alias claim (precision-first: no false double-dispose).
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/FactoryAdoptSample.cs --flow-locals -o "$RUNNER_TEMP/adopt.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/adopt.json" || true)
+          echo "$out"
+          # dropping both aliases leaks the ONE underlying resource once, on the inner local.
+          echo "$out" | grep -qE "FactoryAdoptSample\.cs:[0-9]+:.*\[OWN001\].*'adoptInnerLeak'" \
+            || { echo "FAIL: expected the per-RID OWN001 on the dropped adopted inner (adoptInnerLeak)"; exit 1; }
+          # disposing both aliases is a double-dispose through the shared obligation.
+          echo "$out" | grep -q "OWN003" \
+            || { echo "FAIL: expected OWN003 (double-dispose through the alias)"; exit 1; }
+          # clean / inner-only / non-adopt cases stay silent (no finding on their locals); the
+          # leaked WRAPPER alias must also be silent (one finding, attributed to the inner).
+          for ok in adoptInnerClean adoptWrapClean adoptInnerDirect adoptWrapDirect \
+                    adoptInnerTt adoptWrapTt holdInner holdWrap adoptWrapLeak; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.4 case '$ok' must be silent"; exit 1; fi
+          done
+          echo "OK: D5.4 T4 alias_join on real C# — adopt verified (Dispose-field + ctor-param), double-dispose caught, non-adopt makes no claim"
       - name: Opt-in body-throw-edges tier (--body-throw-edges, P-016 throw firehose)
         run: |
           # The opt-in tier: body-level "any call may throw" dispose-not-called-on-throw (CodeQL
