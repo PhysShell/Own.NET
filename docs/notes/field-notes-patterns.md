@@ -131,7 +131,8 @@ critical section — important on hot paths.
 **Analyzer angle:** the disposable is a **value type**, disposed by the `using`.
 Infer#'s Pulse engine reports each of these as `PULSE_RESOURCE_LEAK` "allocated
 indirectly via `TimedLock.Lock` … not closed" — a systematic **over-report on the
-struct-`using` pattern** (12 of them on Polly). Own.NET's silence is correct.
+struct-`using` pattern** (11 of them on Polly; the 12th Infer# resource-leak report is a
+strategy-ctor allocation, see entry 7). Own.NET's silence is correct.
 **A value-type `IDisposable` used in a `using` is disposed deterministically;
 don't treat the `.Lock()` factory call as an escaping allocation.**
 
@@ -195,7 +196,7 @@ own-only findings on real code — the precision floor held end-to-end.
 
 | # | site | tool | disposition → entry |
 |---|---|---|---|
-| 12 | `TimedLock.Lock(...)` across `CircuitBreaker/*` + `TimedLock.cs:32` | Infer# `PULSE_RESOURCE_LEAK` | struct-`using` over-report → **entry 4** |
+| 11 | `TimedLock.Lock(...)` across `CircuitBreaker/*` (AdvancedCircuitController ×3, CircuitStateController ×4, ConsecutiveCountCircuitController ×3) + `TimedLock.cs:32` | Infer# `PULSE_RESOURCE_LEAK` | struct-`using` over-report → **entry 4** |
 | 1 | `CircuitBreakerResiliencePipelineBuilderExtensions.cs:75` | Infer# `PULSE_RESOURCE_LEAK` | strategy ctor allocation, disposed by the pipeline → **entry 1/2** |
 | 2 | `BulkheadSemaphoreFactory.cs:8,11` | CodeQL `cs/local-not-disposed` | factory returns, adopted into owning fields → **entry 1** |
 | 1 | `ConfigureBuilderContextExtensions.cs:40` | CodeQL `cs/local-not-disposed` | CTS disposed in an `OnPipelineDisposed` callback (`#pragma CA2000`) → **entry 2** |
