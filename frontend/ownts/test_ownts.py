@@ -57,6 +57,12 @@ def main() -> int:
     hardening = codes("EffectHardening.tsx")
     assert hardening == ["OWN001", "EFF001"], f"EffectHardening -> {hardening}"
 
+    # an expression-bodied cleanup whose removeEventListener carries an options
+    # object must parse (the `{` belongs to the call, not the cleanup block) — the
+    # listener is released, so no false-positive leak.
+    expr_cleanup = codes("EffectExprCleanup.tsx")
+    assert expr_cleanup == [], f"EffectExprCleanup should be silent -> {expr_cleanup}"
+
     # addEventListener release must match the receiver and capture/options, not just
     # the handler (dropping `true` or changing the target still leaks).
     sub = next(a for a in ownts.ACQUIRES if a.resource == "subscription")

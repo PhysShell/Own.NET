@@ -1094,6 +1094,18 @@ jobs:
             || { echo "FAIL: expected one OWN001 (listener) + one EFF001 (object dep)"; exit 1; }
           echo "$hard" | grep -q "scroll" \
             || { echo "FAIL: the leak must be the options-dropped scroll listener"; exit 1; }
+      - name: Expression-bodied cleanup with an options object is silent
+        run: |
+          python frontend/ownts/ownts.py frontend/ownts/examples/EffectExprCleanup.tsx \
+            -o "$RUNNER_TEMP/expr.facts.json"
+          # no `|| true`: this case expects ZERO findings (rc 0), so a parser/core
+          # crash (rc 2) must FAIL the step, not be swallowed into an empty result.
+          expr=$(python -m ownlang ownir "$RUNNER_TEMP/expr.facts.json")
+          echo "$expr"
+          # the `{` of `{capture: true}` belongs to the call, not the cleanup block —
+          # the listener is released, so no false-positive leak
+          [ "$(echo "$expr" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
+            || { echo "FAIL: a properly-released listener must not be reported"; exit 1; }
       - name: The clean fixture (cleanups + useMemo'd dep) is silent
         run: |
           python frontend/ownts/ownts.py frontend/ownts/examples/DashboardClean.tsx \
