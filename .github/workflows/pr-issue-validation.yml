@@ -1,0 +1,60 @@
+name: pr-issue-validation
+
+# Enforce the contribution-format templates. Issue *forms* already block creation
+# on missing required fields (.github/ISSUE_TEMPLATE/*.yml); PRs have no native
+# gate, so this is it: on a PR open/edit we read the body and fail the check when
+# it does not follow .github/pull_request_template.md. Issues are validated too as
+# a backstop for anything opened out-of-band (API / blank). See
+# scripts/validate_contrib.py for the exact rules.
+#
+# The body is passed to the validator via env -> file (never interpolated into the
+# shell) to avoid script injection from an attacker-controlled PR/issue body.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  issues:
+    types: [opened, edited]
+  workflow_dispatch:
+
+# Least privilege: read-only, like the main CI. The PR check status is the gate;
+# no job needs write access.
+permissions:
+  contents: read
+
+# A flurry of edits should only validate the latest body.
+concurrency:
+  group: contrib-validation-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate contribution format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Guard the validator itself first — the format gate is only as trustworthy
+      # as its own selftests.
+      - name: validator selftest
+        run: python scripts/validate_contrib.py --selftest
+
+      - name: Stage the body
+        env:
+          BODY: ${{ github.event_name == 'pull_request' && github.event.pull_request.body || github.event.issue.body }}
+        run: |
+          python - <<'PY'
+          import os, pathlib
+          pathlib.Path("body.md").write_text(os.environ.get("BODY") or "", encoding="utf-8")
+          PY
+
+      - name: Validate body against the template
+        run: |
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
+            python scripts/validate_contrib.py --issue body.md | tee "$GITHUB_STEP_SUMMARY"
+          else
+            python scripts/validate_contrib.py --pr body.md | tee "$GITHUB_STEP_SUMMARY"
+          fi

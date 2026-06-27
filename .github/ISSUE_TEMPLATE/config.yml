@@ -1,0 +1,9 @@
+# Issue chooser config. Blank issues are disabled so every report goes through a
+# form — and GitHub forms block submission on missing required fields, i.e. the
+# format is validated *before* the issue is created. scripts/validate_contrib.py
+# is the backstop for anything opened out-of-band (API / direct).
+blank_issues_enabled: false
+contact_links:
+  - name: Вопрос или обсуждение
+    url: https://github.com/PhysShell/Own.NET/discussions
+    about: Не баг и не фича-реквест? Открой обсуждение, а не issue.
