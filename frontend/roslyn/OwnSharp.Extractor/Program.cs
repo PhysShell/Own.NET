@@ -1307,7 +1307,8 @@ static List<object>? LowerFlowBody(BlockSyntax block, HashSet<string> tracked, S
 // statement in turn, so non-pooled `using` locals and every existing shape are unaffected.
 static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
                                 HashSet<string> tracked, SemanticModel model, List<object> nodes,
-                                bool canEscape, List<object>? onThrow, List<object>? onReturn)
+                                bool canEscape, List<object>? onThrow, List<object>? onReturn,
+                                bool onThrowDefinite = false)
 {
     for (var i = start; i < stmts.Count; i++)
     {
@@ -1329,17 +1330,22 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
             var restOnReturn = new List<object> { release };
             restOnReturn.AddRange(onReturn ?? exit);
             List<object>? restOnThrow = null;
+            // The implicit using-dispose has no catch, so a throw running it then propagates;
+            // it reaches method exit uncaught iff the enclosing path does (true at body level
+            // where onThrow is null). See the `onThrowDefinite` contract on the throw case.
+            bool restDefinite = onThrow is null || onThrowDefinite;
             if (canEscape)
             {
                 restOnThrow = new List<object> { release };
                 restOnThrow.AddRange(onThrow ?? exit);
             }
-            if (!LowerFlowStatements(stmts, i + 1, tracked, model, nodes, canEscape, restOnThrow, restOnReturn))
+            if (!LowerFlowStatements(stmts, i + 1, tracked, model, nodes, canEscape, restOnThrow, restOnReturn,
+                                     onThrowDefinite: restDefinite))
                 return false;
             nodes.Add(release);   // normal completion (no return) disposes at scope exit too
             return true;
         }
-        if (!LowerFlowStmt(st, tracked, model, nodes, canEscape, onThrow, onReturn))
+        if (!LowerFlowStmt(st, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite))
             return false;
     }
     return true;
@@ -1351,15 +1357,20 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
 // (method level, or a region an enclosing catch-all swallows). `onReturn`: the continuation
 // a `return` here runs FIRST — the enclosing `finally`(s), then the exit — so a resource a
 // finally disposes is released on the return path; null = a bare return (outside any try).
+// `onThrowDefinite`: when `onThrow` is non-null, does a throw that runs it DEFINITELY leave
+// the method (no enclosing `catch` can intercept and resume normal flow)? True for a `using`
+// or a finally-only `try` (neither has a catch); false for a `try` with any `catch` (the
+// throw may be caught). An explicit `throw` routes through `onThrow` only when this holds —
+// otherwise it bails (the catch-match is not modelled). Irrelevant when `onThrow` is null.
 // Defaults are the method-body context: throws escape, nothing is injected, returns are bare.
 static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticModel model, List<object> nodes,
                           bool canEscape = true, List<object>? onThrow = null,
-                          List<object>? onReturn = null)
+                          List<object>? onReturn = null, bool onThrowDefinite = false)
 {
     switch (st)
     {
         case BlockSyntax b:
-            return LowerFlowStatements(b.Statements, 0, tracked, model, nodes, canEscape, onThrow, onReturn);
+            return LowerFlowStatements(b.Statements, 0, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite);
         case LocalDeclarationStatementSyntax ld:
             InjectThrowEdge(ld, nodes, onThrow, canEscape);
             if (ld.UsingKeyword == default)
@@ -1427,10 +1438,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
         case IfStatementSyntax ifs:
         {
             var thenNodes = new List<object>();
-            if (!LowerFlowStmt(ifs.Statement, tracked, model, thenNodes, canEscape, onThrow, onReturn))
+            if (!LowerFlowStmt(ifs.Statement, tracked, model, thenNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             var elseNodes = new List<object>();
-            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, model, elseNodes, canEscape, onThrow, onReturn))
+            if (ifs.Else is { } e && !LowerFlowStmt(e.Statement, tracked, model, elseNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             nodes.Add(new { op = "if", line = LineOf(ifs), then = thenNodes, @else = elseNodes });
             return true;
@@ -1454,13 +1465,17 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 var bodyOnReturn = new List<object> { release };
                 bodyOnReturn.AddRange(onReturn ?? exit);
                 List<object>? bodyOnThrow = null;
+                // A using has no catch: a throw runs the release then propagates, reaching
+                // method exit uncaught iff the enclosing path does (true at body level).
+                bool bodyDefinite = onThrow is null || onThrowDefinite;
                 if (canEscape)
                 {
                     bodyOnThrow = new List<object> { release };
                     bodyOnThrow.AddRange(onThrow ?? exit);
                 }
                 if (us.Statement is not null
-                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn))
+                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn,
+                                      onThrowDefinite: bodyDefinite))
                     return false;
                 nodes.Add(release);   // normal completion disposes at scope exit too
                 return true;
@@ -1475,21 +1490,14 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // (var x = ...)` declaration form needs nothing: `x` is auto-disposed and never
             // tracked as a leak candidate.
             //
-            // GATED on the body having no EXPLICIT escaping `throw`: threading a non-null
-            // bodyOnThrow makes the `ThrowStatementSyntax` case bail the whole method (it
-            // refuses a non-null onThrow — a throw inside a `try` might be caught, which a bare
-            // exit can't model). A `using` has no catch, so routing a throw through the release
-            // IS sound, but the lowering can't tell using-onThrow from try-onThrow without
-            // invasive threading. Rather than regress recall (bailing every method with an
-            // explicit throw in such a body, losing UNRELATED leaks too — Codex P2), fall
-            // through to the plain body lowering when the body throws explicitly; that keeps the
-            // method analysed (status quo for this rare expression form — `r` itself may still
-            // show as undisposed on the throw path, no worse than before this fix).
+            // An EXPLICIT throw in the body is handled soundly: the body is lowered with
+            // `onThrowDefinite` set (a using has no catch, so a throw runs the release then
+            // propagates — definite iff the enclosing path is), and the `ThrowStatementSyntax`
+            // case routes the throw through that release continuation instead of bailing the
+            // whole method. So `var leaked = new ...; using (r) { if (bad) throw; }` still
+            // reports `leaked` and releases `r` on every exit (Codex P2).
             if (us.Expression is IdentifierNameSyntax usingId
-                && tracked.Contains(usingId.Identifier.Text)
-                && !(us.Statement?.DescendantNodes(n =>
-                            n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
-                        .OfType<ThrowStatementSyntax>().Any() ?? false))
+                && tracked.Contains(usingId.Identifier.Text))
             {
                 var owner = usingId.Identifier.Text;
                 var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
@@ -1497,18 +1505,20 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 var bodyOnReturn = new List<object> { release };
                 bodyOnReturn.AddRange(onReturn ?? exit);
                 List<object>? bodyOnThrow = null;
+                bool bodyDefinite = onThrow is null || onThrowDefinite;
                 if (canEscape)
                 {
                     bodyOnThrow = new List<object> { release };
                     bodyOnThrow.AddRange(onThrow ?? exit);
                 }
                 if (us.Statement is not null
-                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn))
+                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn,
+                                      onThrowDefinite: bodyDefinite))
                     return false;
                 nodes.Add(release);   // normal completion disposes at scope exit
                 return true;
             }
-            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn);
+            return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite);
         }
         case ReturnStatementSyntax rs:
         {
@@ -1567,7 +1577,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // double-release). The condition is opaque (we model control flow, not
             // values). If the body has an unmodelled statement, bail the method.
             var bodyNodes = new List<object>();
-            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
+            if (ws.Statement is null || !LowerFlowStmt(ws.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(ws), body = bodyNodes });
             return true;
@@ -1580,7 +1590,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // body as a `while` is sound. (`for` and `do` are handled below; `do` runs 1+
             // times, so it is desugared rather than modelled as a bare 0+-trip `while`.)
             var bodyNodes = new List<object>();
-            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
+            if (fes.Statement is null || !LowerFlowStmt(fes.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fes), body = bodyNodes });
             return true;
@@ -1594,7 +1604,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // method-body local, so it is never a tracked candidate — no soundness
             // concern, just a separate (rare) recall gap.
             var bodyNodes = new List<object>();
-            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
+            if (fors.Statement is null || !LowerFlowStmt(fors.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(fors), body = bodyNodes });
             return true;
@@ -1644,6 +1654,12 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 bodyOnThrow.AddRange(onThrow ?? new List<object>
                     { new { op = "return", var = (string?)null, line = LineOf(trys) } });
             }
+            // Is a throw in the body DEFINITELY uncaught (so an explicit throw may route through
+            // `bodyOnThrow` instead of bailing)? Only a finally-only try (no catches): the throw
+            // runs the finally then propagates, reaching method exit iff the enclosing path does.
+            // ANY catch makes it false — the throw might be caught, which this lowering can't
+            // match against the thrown type, so an explicit throw there keeps bailing.
+            bool bodyOnThrowDefinite = trys.Catches.Count == 0 && (onThrow is null || onThrowDefinite);
             // A `return` inside the body runs THIS finally, then the enclosing return path
             // (its finallys), then exits — independent of catches (a `return` is never caught,
             // unlike a throw), so it is threaded even where the throw edges are suppressed. The
@@ -1652,7 +1668,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             var bodyOnReturn = new List<object>(finallyNodes);
             bodyOnReturn.AddRange(onReturn ?? new List<object>
                 { new { op = "return", var = (string?)null, line = LineOf(trys) } });
-            if (!LowerFlowStatements(trys.Block.Statements, 0, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn))
+            if (!LowerFlowStatements(trys.Block.Statements, 0, tracked, model, nodes, bodyCanEscape, bodyOnThrow, bodyOnReturn,
+                                     onThrowDefinite: bodyOnThrowDefinite))
                 return false;
             nodes.AddRange(finallyNodes);   // normal completion runs the finally
             return true;
@@ -1665,10 +1682,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // only in the body but acquired before the loop would falsely leak on the phantom
             // 0-trip path. Bail (like the loops) if the body has an unmodelled statement.
             if (dos.Statement is null
-                || !LowerFlowStmt(dos.Statement, tracked, model, nodes, canEscape, onThrow, onReturn))
+                || !LowerFlowStmt(dos.Statement, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             var bodyNodes = new List<object>();
-            if (!LowerFlowStmt(dos.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn))
+            if (!LowerFlowStmt(dos.Statement, tracked, model, bodyNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                 return false;
             nodes.Add(new { op = "while", line = LineOf(dos), body = bodyNodes });
             return true;
@@ -1686,7 +1703,7 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             foreach (var section in sw.Sections)
             {
                 var secNodes = new List<object>();
-                if (!LowerSwitchSection(section, tracked, model, secNodes, canEscape, onThrow, onReturn))
+                if (!LowerSwitchSection(section, tracked, model, secNodes, canEscape, onThrow, onReturn, onThrowDefinite))
                     return false;
                 if (section.Labels.Any(l => l is DefaultSwitchLabelSyntax))
                     defaultNodes = secNodes;
@@ -1732,10 +1749,24 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // analysed instead of skipped, lighting up every detector on the rest of its body.
             // ...and a throw lexically inside a `finally` likewise keeps bailing (IsInsideFinally):
             // its real continuation is the OUTER finally/try cleanup, which a bare exit would skip.
-            if (canEscape && onThrow is null && !IsInsideFinally(thr))
+            if (!IsInsideFinally(thr) && canEscape)
             {
-                nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
-                return true;
+                if (onThrow is null)
+                {
+                    nodes.Add(new { op = "return", var = (string?)null, line = LineOf(thr) });
+                    return true;
+                }
+                // A non-null onThrow that DEFINITELY reaches method exit uncaught (a `using` or a
+                // finally-only `try` — no catch can intercept) routes the throw through its
+                // cleanup continuation (release(s) then exit), so the resource the cleanup
+                // disposes is released on the throw path instead of the whole method bailing. A
+                // catchable onThrow (try-with-catch) leaves onThrowDefinite false and still bails:
+                // the catch-vs-thrown-type match is not modelled, so guessing would be unsound.
+                if (onThrowDefinite)
+                {
+                    nodes.AddRange(onThrow);
+                    return true;
+                }
             }
             return false;
         default:
@@ -1751,13 +1782,14 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
 // the unmodelled default and conservatively skips the whole method.
 static bool LowerSwitchSection(SwitchSectionSyntax section, HashSet<string> tracked,
                                SemanticModel model, List<object> nodes, bool canEscape,
-                               List<object>? onThrow, List<object>? onReturn)
+                               List<object>? onThrow, List<object>? onReturn,
+                               bool onThrowDefinite = false)
 {
     foreach (var stmt in section.Statements)
     {
         if (stmt is BreakStatementSyntax)
             break;
-        if (!LowerFlowStmt(stmt, tracked, model, nodes, canEscape, onThrow, onReturn))
+        if (!LowerFlowStmt(stmt, tracked, model, nodes, canEscape, onThrow, onReturn, onThrowDefinite))
             return false;
     }
     return true;

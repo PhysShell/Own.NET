@@ -1,0 +1,18 @@
+// OwnLang model: a method with an explicit throw inside a `using (guard)` body must still
+// report an UNRELATED undisposed local (`conn`). The extractor routes the using-body throw
+// through guard's release (onThrowDefinite) instead of bailing the whole method, so conn's
+// leak is not hidden. Modelled here as conn acquired with no release -> OWN001. (The throw
+// routing and guard's release are extractor-level; the benchmark before.cs/after.cs exercise
+// them end-to-end — see notes.md.)
+module Corpus
+resource Res {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Res"
+  emit_acquire "new Res()"
+  emit_release "{0}.Dispose()"
+}
+fn Run(bad: int) {
+  let conn = acquire Res();   // var conn = new Res(); never disposed -> OWN001
+}

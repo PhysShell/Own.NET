@@ -34,11 +34,10 @@ Scoped to a `using (identifier)` whose identifier is a **tracked local**. A
 identifier and is not threaded — that resource is the callee's to dispose and is not a
 tracked local here. The declaration forms are unchanged.
 
-Also gated on the body having **no explicit escaping `throw`**. Threading a release onto
-the throw path requires a non-null `bodyOnThrow`, which makes the lowering's
-`ThrowStatementSyntax` case bail the whole method (it refuses a non-null `onThrow` because
-a throw inside a `try` might be caught — a distinction a `using` doesn't need but the
-lowering can't tell apart without invasive threading). So when the body throws explicitly
-we fall through to the plain lowering rather than bail — the method stays analysed (no lost
-recall on unrelated locals), at the cost of leaving `r` itself possibly shown as undisposed
-on the throw path (no worse than before this fix). Caught by Codex P2 on the first cut.
+An explicit `throw` in the body is now handled soundly. The lowering threads an
+`onThrowDefinite` flag alongside `onThrow`: for a `using` (no catch) a throw runs the
+release then propagates, so the `ThrowStatementSyntax` case routes it through the release
+continuation instead of bailing the method. A `try` with a `catch` keeps `onThrowDefinite`
+false and still bails (the catch-vs-thrown-type match is not modelled). See the companion
+fixture [`using-statement-throw-releases`](../using-statement-throw-releases/notes.md) and
+the `onThrowDefinite` contract on `LowerFlowStmt`.
