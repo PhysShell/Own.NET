@@ -3279,12 +3279,6 @@ foreach (var (file, tree) in parsed)
         // Is this class the process-lived WPF application object? Used to drop the
         // static-source region escape (OWN014) — `App` cannot be over-promoted.
         var clsIsApp = IsProcessLivedApplication(cls);
-        // A `static class` has NO instance, so a subscription in it can never promote a
-        // *component instance* to a longer lifetime — OWN014's premise is vacuously false
-        // (the class's own state is already process-lived). Sound by the language
-        // guarantee, not a heuristic. Mined on CsvHelper's static `ConsoleHost`, whose
-        // `AppDomain.ProcessExit` / `Console.CancelKeyPress` shutdown hooks are FPs.
-        var clsIsStatic = cls.Modifiers.Any(mod => mod.IsKind(SyntaxKind.StaticKeyword));
 
         var subs = new List<object>();
         foreach (var a in assigns)
@@ -3326,12 +3320,12 @@ foreach (var (file, tree) in parsed)
                                      : SubscriptionSourceKind(a.Left, ev, model);
                 if (source == "local")
                     continue;
-                // Process-lived subscriber: the WPF `App` singleton, OR any `static class`
-                // (which has no instance to over-promote). A static-source subscription
-                // promotes nothing, so the region escape (OWN014) is a false positive.
-                // Scoped to NON-timers: a timer is forced to source "static" above, but a
+                // Process-lived subscriber (the WPF `App` singleton): a static-source
+                // subscription promotes nothing — `App` already lives for the whole
+                // process — so the region escape (OWN014) is a false positive. Scoped
+                // to NON-timers: a timer is forced to source "static" above, but a
                 // never-stopped timer in `App` is still a real leak (CodeRabbit).
-                if (!isTimer && source == "static" && (clsIsApp || clsIsStatic))
+                if (!isTimer && source == "static" && clsIsApp)
                     continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));

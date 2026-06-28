@@ -23,24 +23,16 @@ reason: we and the oracles occupy orthogonal niches.
 
 | disposition | count | what happens on re-run |
 |---|---:|---|
-| **Fixed in the extractor** | 8 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle + 2 CsvHelper static-class hooks — see below) |
-| **Baselined FP** | 4 | moved to "Known FP (baselined)", out of the triage queue |
+| **Fixed in the extractor** | 6 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle — see below) |
+| **Baselined FP** | 6 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
 | **True-but-benign — kept, baselined-as-sample** | 2 | (protobuf `assorted/` samples) baselined as non-product |
 
-The 4 baselined FPs + the 2 non-product-sample reals = 6 findings, covered by
-**5 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
+The 6 baselined FPs + the 2 non-product-sample reals = 8 findings, covered by
+**7 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
 share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
 drops; the 4 true positives are deliberately **not** suppressed.
-
-**Update (extractor fix landed — CsvHelper static-class hooks).** Both
-`ConsoleHost` findings (`AppDomain.ProcessExit` / `Console.CancelKeyPress` shutdown
-hooks) are now **fixed at the source** by the static-class subscriber exemption
-(`clsIsStatic`): `ConsoleHost` is a `static class`, which has no instance for the
-process-lived subscription to over-promote, so OWN014's premise is vacuously false
-(a language guarantee, not a heuristic). See root-cause #3. Corpus fixture:
-`subscription-static-class-host`.
 
 **Update (extractor fix landed — protobuf self-cycle).** `CommandLineOptions.XsltOptions.
 XsltMessageEncountered` — a `this`-capturing handler subscribed to an event on
@@ -175,16 +167,12 @@ entry and let the oracle re-confirm clean.
    get-only property over a member the class constructs, is the same collectable
    self-cycle as the owned field directly (get-only required: a settable property could
    be reassigned to an injected object). Cleared protobuf `XsltOptions` on a live re-run
-   (own-only 0); corpus fixture `subscription-self-owned-property`. **Second shipped
-   fix:** CsvHelper's process-lived host is now handled by the `clsIsStatic` exemption —
-   a `static class` subscriber has no instance to over-promote, so a process-lived
-   (static-source) subscription inside one is never an OWN014 escape (language guarantee).
-   Cleared both `ConsoleHost` hooks; corpus fixture `subscription-static-class-host`.
-   **Still open:** Newtonsoft `serializer.Error` — the source is a returned `Create()`
-   result (escapes) and the handler is a parameter's delegate; the source's lifetime
-   relative to the handler is genuinely unprovable syntactically, so the "may outlive"
-   warning is honest (baselined, not a clear FP). A process-lived *instance* host (a
-   non-static singleton) still needs a lifetime signal — open. See
+   (own-only 0); corpus fixture `subscription-self-owned-property`. **Still open:**
+   Newtonsoft `serializer.Error` — the source is a returned `Create()` result (escapes)
+   and the handler is a parameter's delegate; the source's lifetime relative to the
+   handler is genuinely unprovable syntactically, so the "may outlive" warning is honest
+   (baselined, not a clear FP). CsvHelper's process-lived host needs a "subscriber is
+   itself process-lived" signal — still open. See
    [`subscription-leaks-and-profiles.md`](subscription-leaks-and-profiles.md).
 
 4. **Non-product trees** *(protobuf `assorted/`, CsvHelper `docs-src/`, protobuf
