@@ -31,12 +31,11 @@ parameter. So an unknown or borrowing callee never credits a release.
 
 This clears the NLog variants where the sink is called on the field **directly** or
 through a simple `var t = _field;` alias (`AsyncTaskTarget`, `AsyncTargetWrapper`,
-`BufferingTargetWrapper`). It does **not** reach `TimeoutContinuation`, where the
-receiver is the result of `Interlocked.Exchange(ref _timer, null)` — an
-exchange-and-null-out idiom whose result is not a tracked field alias. That one
-stays in the oracle FP baseline
-([`corpus/oracle-fp-baseline.txt`](../../oracle-fp-baseline.txt),
-[`docs/notes/oracle-known-fps.md`](../../../docs/notes/oracle-known-fps.md)) until
-ref-exchange alias tracking lands. Scope is intentionally limited to **extension
-methods**: an instance method disposing its own `this` is not a real
-dispose-delegation shape and would drag in virtual-dispatch reasoning.
+`BufferingTargetWrapper`). The `TimeoutContinuation` variant — where the receiver is
+the result of `Interlocked.Exchange(ref _timer, null)`, the detach-and-dispose
+teardown — is covered separately by the sibling
+[`field-dispose-via-exchange`](../field-dispose-via-exchange/notes.md) fixture
+(`RefExchangeNulledField` binds the exchange result to the field, then this same sink
+recognition applies). Scope is intentionally limited to **extension methods**: an
+instance method disposing its own `this` is not a real dispose-delegation shape and
+would drag in virtual-dispatch reasoning.

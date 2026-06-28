@@ -261,10 +261,13 @@ def _load_baseline(path: str) -> list[BaselineRule]:
         if not s or s.startswith("#"):
             continue
         parts = [p.strip() for p in s.split("|")]
-        if len(parts) < 4:
+        # need all four key fields, and a NON-EMPTY message-substring: an empty substr
+        # would make `substr in message` always true — a wildcard that a typo could turn
+        # into a blanket suppressor for that file/rule (CodeRabbit). Reason keeps any `|`.
+        if len(parts) < 4 or not parts[3]:
             continue
         repo, basename, rule, substr = parts[:4]
-        reason = parts[4] if len(parts) > 4 else ""
+        reason = " | ".join(parts[4:]).strip() if len(parts) > 4 else ""
         rules.append(BaselineRule(repo, basename, rule, substr, reason))
     return rules
 
@@ -769,14 +772,18 @@ def _selftest() -> int:
     # the loader: comments/blank lines ignored, <4 fields skipped, reason optional.
     import tempfile
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as tf:
-        tf.write("# comment\n\no/r | B.cs | OWN001 | local 'b' | a reason\n"
-                 "too | few | fields\n")
+        tf.write("# comment\n\no/r | B.cs | OWN001 | local 'b' | a reason | with a pipe\n"
+                 "too | few | fields\n"
+                 "o/r | B.cs | OWN001 |  | empty substr is a wildcard — must be skipped\n")
         tf.flush()
         loaded = _load_baseline(tf.name)
-    if len(loaded) != 1 or loaded[0].reason != "a reason":
+    # the <4-field line and the empty-substring line are both skipped; reason keeps its `|`.
+    if len(loaded) != 1 or loaded[0].reason != "a reason | with a pipe":
         fails.append(f"baseline loader wrong: {loaded}")
+    if any(r.substr == "" for r in loaded):
+        fails.append("baseline loader must reject an empty message-substring (wildcard)")
 
-    total = 30
+    total = 31
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

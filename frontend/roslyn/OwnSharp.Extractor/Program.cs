@@ -479,7 +479,8 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 // text), and `owned` is AST-based — not a regex. NOTE: callers must exclude timers
 // — a *running* timer is rooted by the dispatcher regardless of who owns the field.
 static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
-                              SemanticModel model, HashSet<string> owned)
+                              SemanticModel model, HashSet<string> owned,
+                              ISymbol? cls)
 {
     if (left is not MemberAccessExpressionSyntax m)
         return !ev.IsStatic;   // bare event => an instance event on `this`
@@ -488,12 +489,15 @@ static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
     if ((recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name))
         return true;
-    // A `this`-instance get-only PROPERTY whose value the class owns (`this.Child.Event
-    // += h`, Child a `=> _owned` / `{ get; } = new()` property) is the SAME collectable
-    // self-cycle as the owned field directly — this, the owned child, and the handler
-    // are collected together. The property must resolve to a member the class constructs.
+    // A get-only PROPERTY over a member the class owns (`this.Child.Event += h`, Child a
+    // `=> _owned` / `{ get; } = new()` property) is the SAME collectable self-cycle as the
+    // owned field directly. GATED on a `this`/bare access (`Channel` / `this.Channel`):
+    // `other.Channel.Event += h` reaches ANOTHER instance's property, which may outlive
+    // this subscriber and retain the handler, so it stays flagged (Codex P2).
     return recv is IPropertySymbol { IsStatic: false } p
-           && PropertyReturnsOwnedMember(p, owned, model);
+           && m.Expression is (IdentifierNameSyntax
+                               or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax })
+           && PropertyReturnsOwnedMember(p, owned, model, cls);
 }
 
 // A GET-ONLY property whose value the class OWNS: an auto-property initialised to
@@ -506,7 +510,7 @@ static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
 // drop a real leak). Only the dominant owned-property shapes are recognised; anything
 // else (a computed getter, a getter returning a parameter/injected field) falls through.
 static bool PropertyReturnsOwnedMember(IPropertySymbol prop, HashSet<string> owned,
-                                       SemanticModel model)
+                                       SemanticModel model, ISymbol? cls)
 {
     if (prop.SetMethod is not null)
         return false;
@@ -528,7 +532,13 @@ static bool PropertyReturnsOwnedMember(IPropertySymbol prop, HashSet<string> own
             continue;
         var pm = model.Compilation.GetSemanticModel(pd.SyntaxTree);
         var rsym = pm.GetSymbolInfo(returned).Symbol;
-        if (rsym is IFieldSymbol or IPropertySymbol && owned.Contains(rsym.Name))
+        // The returned member must be one the ANALYZED class declares — compare the
+        // symbol's CONTAINING TYPE, not just its name, so a same-named field on another
+        // type cannot satisfy ownership (CodeRabbit). `owned` holds only this class's
+        // constructed-field names, so the name check + the containing-type check agree.
+        if (rsym is IFieldSymbol or IPropertySymbol
+            && owned.Contains(rsym.Name)
+            && (cls is null || SymbolEqualityComparer.Default.Equals(rsym.ContainingType, cls)))
             return true;
     }
     return false;
@@ -2582,7 +2592,8 @@ static string? RefExchangeNulledField(ExpressionSyntax init, SemanticModel model
     if (args.Count != 2
         || !args[0].RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
         || !(args[1].Expression.IsKind(SyntaxKind.NullLiteralExpression)
-             || args[1].Expression.IsKind(SyntaxKind.DefaultLiteralExpression)))
+             || args[1].Expression.IsKind(SyntaxKind.DefaultLiteralExpression)
+             || args[1].Expression is DefaultExpressionSyntax))   // default(T) for a ref type is null too
         return null;
     return ThisFieldName(args[0].Expression) is { } f
            && model.GetSymbolInfo(args[0].Expression).Symbol is IFieldSymbol
@@ -3296,7 +3307,7 @@ foreach (var (file, tree) in parsed)
                 //    intent, not a leak (mined: Npgsql PoolManager's `AppDomain.CurrentDomain.
                 //    ProcessExit += (_,_) => ClearAll()` shutdown hook). A handler that captures
                 //    instance state still pins it to the process, so it stays OWN014 (Codex).
-                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned)
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned, clsSymbol)
                                  || IsStaticHandler(a.Right, model)
                                  || (IsProcessLifetimeAppDomainEvent(ev)
                                      && HandlerRetainsNoInstance(a.Right, model))))
