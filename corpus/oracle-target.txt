@@ -13,5 +13,7 @@
 # differentiation, on real cross-tool output rather than the selftest's fixtures.
 # Expect: #1 Own.NET-only (now OWN014), #2/#3/#4 dispose leaks in "Agree", 0
 # oracle-only.
-local:corpus/fixtures/systemevents-console
-build=SystemEventsLeak.csproj
+# [temporary] pointed at CsvHelper to confirm the static-class subscriber exemption
+# clears the ConsoleHost ProcessExit/CancelKeyPress FPs; restored after the run.
+JoshClose/CsvHelper
+include_tests=false

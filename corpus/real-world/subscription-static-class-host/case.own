@@ -1,0 +1,19 @@
+// OwnLang model of the static-class shutdown-hook subscription. before.cs subscribes a
+// `this`-capturing handler to a process-lived static event (Console.CancelKeyPress) from
+// an INSTANCE host and never unsubscribes — a subscription leak. The real C# lands the
+// REGION form (OWN014 escape, static source outlives the instance); here it is modelled
+// in the equivalent TOKEN form as the generic OWN001 (a Subscription acquire with no
+// release), the shape test_corpus.py checks — exactly as the sibling
+// corpus/real-world/screentogif-systemevents-leak case does. The fix makes the host a
+// `static class` (no instance to promote), which the extractor's static-class subscriber
+// exemption drops; see notes.md for the recognition rule.
+module Corpus
+resource Subscription {
+  acquire Subscribe
+  release Unsubscribe
+  kind "subscription token"
+}
+fn AttachShutdownHook(source: int) {
+  let token = acquire Subscription(source);   // Console.CancelKeyPress += (s, e) => _count++
+  // no `release token;` — the instance host never `-=`'s the process-lived source (leak)
+}

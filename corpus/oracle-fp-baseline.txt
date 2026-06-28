@@ -44,5 +44,10 @@ JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | no-op disp
 JamesNK/Newtonsoft.Json | JsonSerializer.cs | OWN001 | serializer.Error | intra-call self-subscription: the serializer is freshly created from the same JsonSerializerSettings whose .Error handler it subscribes; source and handler are co-lifetimed
 
 # --- JoshClose/CsvHelper --------------------------------------------------------
-JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | AppDomain.CurrentDomain.ProcessExit | non-product (docs-src/ doc-generator) + process-lived subscriber: ConsoleHost itself lives for the whole process, so promoting it to a process-lived event source changes nothing
-JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | Console.CancelKeyPress | non-product (docs-src/ doc-generator) + process-lived subscriber: same — a process-lived host subscribing to a process-lived event source is not a lifetime leak
+# [fix-pending experiment] Both ConsoleHost entries are cleared by the static-class
+# subscriber exemption (clsIsStatic) — ConsoleHost is a `static class`, so the
+# process-lived subscription promotes no instance. Disabled here to confirm on a live
+# CsvHelper oracle run that they no longer fire; if confirmed they are deleted, if they
+# resurface they are restored.
+# JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | AppDomain.CurrentDomain.ProcessExit | non-product (docs-src/ doc-generator) + process-lived subscriber: ConsoleHost itself lives for the whole process, so promoting it to a process-lived event source changes nothing
+# JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | Console.CancelKeyPress | non-product (docs-src/ doc-generator) + process-lived subscriber: same — a process-lived host subscribing to a process-lived event source is not a lifetime leak
