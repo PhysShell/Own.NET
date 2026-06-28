@@ -260,6 +260,11 @@ jobs:
           # Compare on product code by default: tests/benchmarks pollute the diff
           # (and Infer# only built the product project). include_tests keeps them.
           [[ "${INCLUDE_TESTS,,}" == "true" ]] || args+=(--exclude-tests)
+          # Suppress verified false positives (triaged against real source) so the
+          # triage queue surfaces only NEW own-only findings. Matched by name, not
+          # line, so it survives the target drifting at HEAD. See the file header and
+          # docs/notes/oracle-known-fps.md.
+          [[ -f corpus/oracle-fp-baseline.txt ]] && args+=(--baseline corpus/oracle-fp-baseline.txt)
           [[ -f infer-out/report.sarif ]] && args+=(--infersharp infer-out/report.sarif)
           cq=$(find codeql-out -name '*.sarif' -type f 2>/dev/null | head -1 || true)
           [[ -n "$cq" ]] && args+=(--codeql "$cq")

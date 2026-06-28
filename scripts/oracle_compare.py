@@ -224,7 +224,70 @@ def compare(own: list[Finding], oracles: list[Finding], tol: int) -> dict[str, A
         "files_both": own_files & ora_files,
         "files_own_only": own_files - ora_files,
         "files_oracle_only": ora_files - own_files,
+        "baselined": [],
     }
+
+
+@dataclass
+class BaselineRule:
+    """One verified-false-positive allowlist entry. Matched against an own-only
+    Finding by (repo, file-basename, OWN code, message-substring) — deliberately
+    NOT by line number, because re-runs clone the target at its current HEAD and
+    the line numbers drift. `repo` may be `*` to apply to every target. See
+    corpus/oracle-fp-baseline.txt and docs/notes/oracle-known-fps.md."""
+    repo: str
+    basename: str
+    rule: str
+    substr: str
+    reason: str = ""
+
+    def matches(self, target: str, f: Finding) -> bool:
+        if self.repo not in ("*", "") and self.repo.lower() != (target or "").lower():
+            return False
+        return (self.basename.lower() == f.fkey
+                and self.rule == f.rule
+                and self.substr in f.message)
+
+
+def _load_baseline(path: str) -> list[BaselineRule]:
+    """Parse the FP baseline file. One rule per line:
+        <repo> | <file-basename> | <OWN code> | <message-substring> | <reason>
+    `#` starts a full-line comment; blank lines are ignored. The reason is free
+    text (surfaced in the report); the first four fields are the match key. A line
+    with fewer than four `|`-fields is skipped (malformed, not a silent match-all)."""
+    rules: list[BaselineRule] = []
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        s = raw.strip()
+        if not s or s.startswith("#"):
+            continue
+        parts = [p.strip() for p in s.split("|")]
+        # need all four key fields, and a NON-EMPTY message-substring: an empty substr
+        # would make `substr in message` always true — a wildcard that a typo could turn
+        # into a blanket suppressor for that file/rule (CodeRabbit). Reason keeps any `|`.
+        if len(parts) < 4 or not parts[3]:
+            continue
+        repo, basename, rule, substr = parts[:4]
+        reason = " | ".join(parts[4:]).strip() if len(parts) > 4 else ""
+        rules.append(BaselineRule(repo, basename, rule, substr, reason))
+    return rules
+
+
+def apply_baseline(result: dict[str, Any], target: str,
+                   rules: list[BaselineRule]) -> int:
+    """Move verified-FP findings out of `own_only` into `baselined` (each paired
+    with its reason), so the triage queue only ever shows genuinely-new own-only
+    findings. Returns the number moved."""
+    kept: list[tuple[Finding, list[Finding]]] = []
+    base: list[tuple[Finding, str]] = []
+    for f, hits in result["own_only"]:
+        hit = next((r for r in rules if r.matches(target, f)), None)
+        if hit is not None:
+            base.append((f, hit.reason))
+        else:
+            kept.append((f, hits))
+    result["own_only"] = kept
+    result["baselined"] = base
+    return len(base)
 
 
 def _fmt_files(s: set[str], cap: int = 12) -> str:
@@ -238,7 +301,7 @@ def _fmt_files(s: set[str], cap: int = 12) -> str:
 def render_md(result: dict[str, Any], target: str, commit: str,
               oracles: list[str], tol: int, own_unparsed: int = 0,
               excluded_tests: int = 0, exclude_tests_mode: bool = False,
-              max_list: int = 50) -> str:
+              baseline_path: str = "", max_list: int = 50) -> str:
     """The human-facing comparison report."""
     own_leak = result["own_leak"]
     ora_leak = result["oracle_leak"]
@@ -284,11 +347,28 @@ def render_md(result: dict[str, Any], target: str, commit: str,
         for f, hits in agree[:max_list]
     ]
 
+    baselined = result.get("baselined", [])
+    own_only_note = (f" — {len(baselined)} verified FP(s) baselined out, see below"
+                     if baselined else "")
     out += ["", f"## Own.NET only — {len(own_only)} "
-            "(candidate FP, or a catch the oracle misses)", ""]
+            f"(candidate FP, or a catch the oracle misses{own_only_note})", ""]
     out += ["_(none)_"] if not own_only else [
         f"- `{f.path}:{f.line}` **[{f.rule}]** {f.message}" for f, _ in own_only[:max_list]
     ]
+
+    if baselined:
+        src = baseline_path or "the FP baseline"
+        out += ["", f"## Known FP (baselined) — {len(baselined)} "
+                f"(verified false positives, suppressed via `{src}`)", "",
+                "These were triaged against the real source and confirmed not to be "
+                "leaks (the resource is disposed through an indirection we don't trace, "
+                "has a no-op `Dispose`, is a self-/co-lifetimed subscription, or lives "
+                "in non-product code). They are kept out of the triage queue so a "
+                "re-run surfaces only genuinely-new findings. See "
+                "docs/notes/oracle-known-fps.md for the full rationale per entry.", ""]
+        out += [f"- `{f.path}:{f.line}` **[{f.rule}]** {f.message}"
+                + (f" — _{reason}_" if reason else "")
+                for f, reason in baselined[:max_list]]
 
     out += ["", f"## Oracle only — {len(oracle_only)} (our recall gap, or an oracle FP)", ""]
     out += ["_(none)_"] if not oracle_only else [
@@ -326,6 +406,9 @@ def render_md(result: dict[str, Any], target: str, commit: str,
         "- **Own.NET only** is the triage queue — each is a candidate false positive to "
         "harden, *or* a real catch the oracle's leak query can't express (double-dispose, "
         "use-after-dispose, a non-allowlisted owning type).",
+        "- **Known FP (baselined)**, when present, are own-only findings already triaged "
+        "to ground truth and confirmed false — suppressed so re-runs surface only new "
+        "findings. Add or retire entries in the FP baseline file as the analyser improves.",
         "- **Oracle only** is our recall gap: reduce one to a minimal `.cs`, decide if it "
         "is in scope (interprocedural? a field? a loop/`try` shape we skip?), then model "
         "it or record it as a known limitation.",
@@ -354,10 +437,13 @@ def to_json(result: dict[str, Any], target: str, commit: str) -> dict[str, Any]:
             "oracle_only": len(result["oracle_only"]),
             "own_unique": len(result["own_unique"]),
             "oracle_other": len(result["oracle_other"]),
+            "baselined": len(result.get("baselined", [])),
         },
         "agree": [{"finding": _fd(f), "oracles": [_fd(h) for h in hits]}
                   for f, hits in result["agree"]],
         "own_only": [_fd(f) for f, _ in result["own_only"]],
+        "baselined": [{"finding": _fd(f), "reason": reason}
+                      for f, reason in result.get("baselined", [])],
         "oracle_only": [_fd(g) for g in result["oracle_only"]],
         "own_unique": [_fd(f) for f in result["own_unique"]],
         "oracle_other": [_fd(g) for g in result["oracle_other"]],
@@ -392,9 +478,15 @@ def _is_test_path(path: str) -> bool:
         # guards intact — exact match for short, collision-prone names (so a single
         # component `SnippetEngine`/`Documentation` is NOT dropped, only an exact
         # `snippet`/`doc`), prefix only for the long, unambiguous plural-able ones.
+        # `unittest` is matched as a *substring* (not exact / dot-component): camelCase
+        # test projects like `BuildToolsUnitTests` are one dot-less segment, so the
+        # exact guards miss them — but no product directory realistically embeds
+        # "unittest", so the substring is safe (unlike a bare "test", which "latest"
+        # would trip).
         for part in seg.split("."):
             if (part in ("test", "tests", "doc", "docs", "snippet", "snippets")
-                    or part.startswith(("benchmark", "sample", "example"))):
+                    or part.startswith(("benchmark", "sample", "example"))
+                    or "unittest" in part):
                 return True
     return False
 
@@ -417,6 +509,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--exclude-tests", action="store_true",
                     help="drop findings under test/benchmark/sample/example paths, "
                          "comparing the product code only across all tools")
+    ap.add_argument("--baseline", default="",
+                    help="verified-FP allowlist file; matching own-only findings are "
+                         "moved to a separate 'Known FP (baselined)' section so re-runs "
+                         "surface only new findings (see corpus/oracle-fp-baseline.txt)")
     ap.add_argument("--json", dest="json_out", default="",
                     help="also write the structured comparison as JSON")
     ap.add_argument("--selftest", action="store_true",
@@ -463,12 +559,21 @@ def main(argv: list[str] | None = None) -> int:
                   "test/benchmark/sample/example paths", file=sys.stderr)
 
     result = compare(own, oracles, args.line_tol)
+
+    baselined = 0
+    if args.baseline:
+        rules = _load_baseline(args.baseline)
+        baselined = apply_baseline(result, args.target, rules)
+        if baselined:
+            print(f"--baseline: moved {baselined} verified-FP finding(s) out of "
+                  f"own-only (from {args.baseline})", file=sys.stderr)
+
     if args.json_out:
         Path(args.json_out).write_text(
             json.dumps(to_json(result, args.target, args.commit), indent=2),
             encoding="utf-8")
     print(render_md(result, args.target, args.commit, present, args.line_tol,
-                    own_unparsed, excluded, args.exclude_tests))
+                    own_unparsed, excluded, args.exclude_tests, args.baseline))
     return 0
 
 
@@ -631,7 +736,54 @@ def _selftest() -> int:
         fails.append(f"non-SARIF JSON masked as clean: {len(not_sarif)} findings, "
                      f"{ns_drift} unparsed")
 
-    total = 25
+    # camelCase test projects (`BuildToolsUnitTests`) are one dot-less segment, so the
+    # exact dot-component guards miss them; the `unittest` substring catches them while
+    # leaving product code (and the `latest`-style "ends in test" trap) untouched.
+    if not _is_test_path("src/BuildToolsUnitTests/AnalyzerTestBase.cs"):
+        fails.append("_is_test_path should match camelCase *UnitTests* projects")
+    if any(_is_test_path(p) for p in ("src/Latest/Feed.cs", "src/UnitedThings/A.cs")):
+        fails.append("_is_test_path should not match 'latest'/'united' as unittest")
+
+    # --baseline: a verified-FP allowlist moves matching own-only findings into a
+    # separate `baselined` bucket. The match key is (repo, basename, OWN code,
+    # message-substring) — NEVER the line number (re-runs drift lines). own_only here
+    # is [b.cs OWN001 "...local 'b'..."].
+    bl_rule = BaselineRule("o/r", "B.cs", "OWN001", "local 'b'", "verified FP")
+    r_b = compare(own, oracles, tol=3)
+    moved = apply_baseline(r_b, "o/r", [bl_rule])
+    if moved != 1 or [f.fkey for f, _ in r_b["baselined"]] != ["b.cs"] or r_b["own_only"]:
+        fails.append(f"baseline: expected b.cs moved, own_only emptied; got "
+                     f"own_only={[f.fkey for f, _ in r_b['own_only']]} "
+                     f"baselined={[f.fkey for f, _ in r_b['baselined']]}")
+    # repo-scoped: the same rule under a different target must NOT match.
+    r_b2 = compare(own, oracles, tol=3)
+    if apply_baseline(r_b2, "different/repo", [bl_rule]) != 0:
+        fails.append("baseline must not cross repos")
+    # a `*` repo applies to any target.
+    r_b3 = compare(own, oracles, tol=3)
+    if apply_baseline(r_b3, "anything", [BaselineRule("*", "B.cs", "OWN001", "local 'b'")]) != 1:
+        fails.append("baseline '*' repo should match any target")
+    # the report renders the baselined section (and only when there are entries).
+    if "## Known FP (baselined)" not in render_md(r_b, "o/r", "x", ["infersharp"], 3,
+                                                  baseline_path="bl.txt"):
+        fails.append("baselined section not rendered when entries present")
+    if "## Known FP (baselined)" in render_md(r, "o/r", "x", ["infersharp"], 3):
+        fails.append("baselined section rendered with no entries")
+    # the loader: comments/blank lines ignored, <4 fields skipped, reason optional.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as tf:
+        tf.write("# comment\n\no/r | B.cs | OWN001 | local 'b' | a reason | with a pipe\n"
+                 "too | few | fields\n"
+                 "o/r | B.cs | OWN001 |  | empty substr is a wildcard — must be skipped\n")
+        tf.flush()
+        loaded = _load_baseline(tf.name)
+    # the <4-field line and the empty-substring line are both skipped; reason keeps its `|`.
+    if len(loaded) != 1 or loaded[0].reason != "a reason | with a pipe":
+        fails.append(f"baseline loader wrong: {loaded}")
+    if any(r.substr == "" for r in loaded):
+        fails.append("baseline loader must reject an empty message-substring (wildcard)")
+
+    total = 31
     for f in fails:
         print(f"ORACLE SELFTEST FAIL: {f}")
     print(f"oracle_compare selftest: {total - len(fails)}/{total} checks passed")

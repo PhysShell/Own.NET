@@ -1,0 +1,23 @@
+// OwnLang model of the "drain and dispose" field-release pattern mined on NLog
+// (src/NLog/Targets/AsyncTaskTarget.cs and siblings). A Timer field is owned by the
+// component; the real fix releases it not with a literal `_timer.Dispose()` but
+// through a custom extension method `WaitForDispose(this Timer, TimeSpan)` that
+// stops the timer and then disposes it (Common/AsyncHelpers.cs). The before.cs
+// leaks the timer (no release on any path) — the generic OWN001 owned-field leak
+// modelled here as an acquire with no `release`. The after.cs releases it via the
+// sink, which the extractor now recognises by inspecting the sink's body
+// (ConsumesParam on its receiver parameter); see notes.md for that recognition rule
+// and which NLog variants it does and does not reach.
+module Corpus
+resource Timer {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Timer"
+  emit_acquire "new Timer({args})"
+  emit_release "{0}.WaitForDispose()"
+}
+fn Worker(callback: int) {
+  let timer = acquire Timer(callback);   // _timer = new Timer(_ => { }, null, 0, 1000)
+  // no `release timer;` — the timer is never stopped or disposed (OWN001)
+}

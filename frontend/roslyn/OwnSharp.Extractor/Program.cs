@@ -479,14 +479,69 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 // text), and `owned` is AST-based — not a regex. NOTE: callers must exclude timers
 // — a *running* timer is rooted by the dispatcher regardless of who owns the field.
 static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
-                              SemanticModel model, HashSet<string> owned)
+                              SemanticModel model, HashSet<string> owned,
+                              ISymbol? cls)
 {
     if (left is not MemberAccessExpressionSyntax m)
         return !ev.IsStatic;   // bare event => an instance event on `this`
     if (m.Expression is ThisExpressionSyntax)
         return true;
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
-    return (recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name);
+    if ((recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name))
+        return true;
+    // A get-only PROPERTY over a member the class owns (`this.Child.Event += h`, Child a
+    // `=> _owned` / `{ get; } = new()` property) is the SAME collectable self-cycle as the
+    // owned field directly. GATED on a `this`/bare access (`Channel` / `this.Channel`):
+    // `other.Channel.Event += h` reaches ANOTHER instance's property, which may outlive
+    // this subscriber and retain the handler, so it stays flagged (Codex P2).
+    return recv is IPropertySymbol { IsStatic: false } p
+           && m.Expression is (IdentifierNameSyntax
+                               or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax })
+           && PropertyReturnsOwnedMember(p, owned, model, cls);
+}
+
+// A GET-ONLY property whose value the class OWNS: an auto-property initialised to
+// `new X()`, or one whose getter returns a field/property the class constructs
+// (`=> _owned`, `get => _owned`, `get { return _owned; }`). Such a property is part of
+// `this`'s own object graph, so a subscription on its event is the same collectable
+// self-cycle as subscribing on the owned field. GET-ONLY is required: a settable
+// property could be reassigned to an INJECTED, longer-lived object after construction,
+// which we cannot prove bounded — so we decline it (precision-first: never silently
+// drop a real leak). Only the dominant owned-property shapes are recognised; anything
+// else (a computed getter, a getter returning a parameter/injected field) falls through.
+static bool PropertyReturnsOwnedMember(IPropertySymbol prop, HashSet<string> owned,
+                                       SemanticModel model, ISymbol? cls)
+{
+    if (prop.SetMethod is not null)
+        return false;
+    foreach (var sref in prop.DeclaringSyntaxReferences)
+    {
+        if (sref.GetSyntax() is not PropertyDeclarationSyntax pd)
+            continue;
+        // auto-property `public T X { get; } = new T();` — the value is constructed here.
+        if (pd.Initializer?.Value is ObjectCreationExpressionSyntax
+                                  or ImplicitObjectCreationExpressionSyntax)
+            return true;
+        // `=> expr`, `get => expr`, or `get { return expr; }` returning an owned member.
+        var get = pd.AccessorList?.Accessors
+            .FirstOrDefault(ac => ac.IsKind(SyntaxKind.GetAccessorDeclaration));
+        var returned = pd.ExpressionBody?.Expression
+            ?? get?.ExpressionBody?.Expression
+            ?? get?.Body?.Statements.OfType<ReturnStatementSyntax>().FirstOrDefault()?.Expression;
+        if (returned is null)
+            continue;
+        var pm = model.Compilation.GetSemanticModel(pd.SyntaxTree);
+        var rsym = pm.GetSymbolInfo(returned).Symbol;
+        // The returned member must be one the ANALYZED class declares — compare the
+        // symbol's CONTAINING TYPE, not just its name, so a same-named field on another
+        // type cannot satisfy ownership (CodeRabbit). `owned` holds only this class's
+        // constructed-field names, so the name check + the containing-type check agree.
+        if (rsym is IFieldSymbol or IPropertySymbol
+            && owned.Contains(rsym.Name)
+            && (cls is null || SymbolEqualityComparer.Default.Equals(rsym.ContainingType, cls)))
+            return true;
+    }
+    return false;
 }
 
 // P-004 (ext): a control fetching one of its OWN template parts —
@@ -2494,6 +2549,57 @@ static bool DisposesLocal(SyntaxNode body, string name)
     return false;
 }
 
+// Does the call `recv.M(...)` RELEASE its receiver — i.e. is `M` a first-party
+// EXTENSION method whose body disposes the value it is invoked on? The dispose is
+// then laundered through a custom "drain and dispose" sink (e.g. NLog's
+// `timer.WaitForDispose(timeout)`, which calls `timer.Change(...)` then disposes
+// it) rather than a literal `recv.Dispose()`, so the disposal scan that only keys
+// on `Dispose`/`Close`/`DisposeAsync` misses it and reports a false leak. We reuse
+// `ConsumesParam` on the reduced extension method's RECEIVER parameter (the
+// `this T` at index 0): that inspects M's real body, follows first-party
+// forwarding, is cycle-guarded, and demands an IDisposable param — so we only ever
+// credit a release we can SEE happen, never an unknown/borrowing callee. Scope is
+// deliberately narrow (extension methods only): an instance method disposing its
+// own `this` is not a real dispose-delegation shape, and widening to it would also
+// have to reason about virtual dispatch — left out to keep the surface minimal.
+static bool CallReleasesReceiver(IMethodSymbol? sym, SemanticModel model)
+{
+    if (sym?.ReducedFrom is not { } def || def.Parameters.Length == 0)
+        return false;
+    return ConsumesParam(def, def.Parameters[0], model,
+                         new HashSet<ISymbol>(SymbolEqualityComparer.Default));
+}
+
+// `Interlocked.Exchange(ref _field, null)` — the atomic "detach and hand back"
+// teardown idiom — atomically nulls the field and RETURNS the object it used to
+// own, so a local bound to that result aliases the field's just-detached owned
+// object: disposing the local releases the field's resource (mined on NLog's
+// TimeoutContinuation.StopTimer, `Interlocked.Exchange(ref _timeoutTimer, null)
+// ?.WaitForDispose(...)`). Returns that field's name so the alias map can bind it
+// like a plain `var x = _field;` alias. Restricted to a `null`/`default` replacement
+// — the unambiguous teardown: an Exchange that installs a NEW non-null value re-arms
+// the field with a fresh object whose fate the syntactic scan cannot follow, so
+// crediting the field there could hide a real leak (precision-first: decline).
+static string? RefExchangeNulledField(ExpressionSyntax init, SemanticModel model)
+{
+    if (init is not InvocationExpressionSyntax inv
+        || model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m
+        || m.Name != "Exchange"
+        || m.ContainingType is not { Name: "Interlocked" } ct
+        || ct.ContainingNamespace?.ToString() != "System.Threading")
+        return null;
+    var args = inv.ArgumentList.Arguments;
+    if (args.Count != 2
+        || !args[0].RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
+        || !(args[1].Expression.IsKind(SyntaxKind.NullLiteralExpression)
+             || args[1].Expression.IsKind(SyntaxKind.DefaultLiteralExpression)
+             || args[1].Expression is DefaultExpressionSyntax))   // default(T) for a ref type is null too
+        return null;
+    return ThisFieldName(args[0].Expression) is { } f
+           && model.GetSymbolInfo(args[0].Expression).Symbol is IFieldSymbol
+        ? f : null;
+}
+
 // A field/local type treated as owned-disposable (syntax-only heuristic — no
 // semantic model): a curated set plus a few suffixes. Gated on the class `new`ing
 // the value, so injected/borrowed disposables are not flagged. Timer types are
@@ -3201,7 +3307,7 @@ foreach (var (file, tree) in parsed)
                 //    intent, not a leak (mined: Npgsql PoolManager's `AppDomain.CurrentDomain.
                 //    ProcessExit += (_,_) => ClearAll()` shutdown hook). A handler that captures
                 //    instance state still pins it to the process, so it stays OWN014 (Codex).
-                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned)
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned, clsSymbol)
                                  || IsStaticHandler(a.Right, model)
                                  || (IsProcessLifetimeAppDomainEvent(ev)
                                      && HandlerRetainsNoInstance(a.Right, model))))
@@ -3282,12 +3388,21 @@ foreach (var (file, tree) in parsed)
                 reassignedAliases.Add(als);
         var aliasToField = new Dictionary<ISymbol, string>(SymbolEqualityComparer.Default);
         foreach (var decl in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
-            if (decl.Initializer?.Value is { } init
-                && ThisFieldName(init) is { } af
-                && model.GetSymbolInfo(init).Symbol is IFieldSymbol
-                && model.GetDeclaredSymbol(decl) is ILocalSymbol aliasSym
-                && !reassignedAliases.Contains(aliasSym))
+        {
+            if (decl.Initializer?.Value is not { } init
+                || model.GetDeclaredSymbol(decl) is not ILocalSymbol aliasSym
+                || reassignedAliases.Contains(aliasSym))
+                continue;
+            // a plain `var x = _field;` / `var x = this._field;` alias, OR the
+            // `Interlocked.Exchange(ref _field, null)` teardown whose result IS the
+            // field's just-detached owned object — both make `x` an alias of the field.
+            string? af = ThisFieldName(init) is { } direct
+                         && model.GetSymbolInfo(init).Symbol is IFieldSymbol
+                ? direct
+                : RefExchangeNulledField(init, model);
+            if (af is not null)
                 aliasToField[aliasSym] = af;
+        }
         // a `.Dispose()`/`.DisposeAsync()`/`.Close()` on a field — directly (`_f.Dispose()` / `this._f.…`)
         // or through an alias local (translated by SYMBOL via aliasToField) — releases that field.
         // `Close()` counts as a release here exactly as it already does for LOCAL disposables (DisposesLocal
@@ -3300,8 +3415,13 @@ foreach (var (file, tree) in parsed)
         // `this`/bare receiver syntactically.
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
-                && m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
-                && ThisFieldName(m.Expression) is { } df)
+                && ThisFieldName(m.Expression) is { } df
+                // a literal `.Dispose()/.Close()/.DisposeAsync()`, OR a first-party
+                // extension method that disposes its receiver (`timer.WaitForDispose()`):
+                // both release the field. The name check is first (cheap) — the symbol
+                // resolution behind CallReleasesReceiver only runs for the rarer custom call.
+                && (m.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                    || CallReleasesReceiver(model.GetSymbolInfo(inv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(m.Expression).Symbol is ILocalSymbol ls
                              && aliasToField.TryGetValue(ls, out var fa) ? fa : df);
         // Also the NULL-CONDITIONAL form `field?.Dispose()` (a ConditionalAccess whose
@@ -3312,8 +3432,9 @@ foreach (var (file, tree) in parsed)
         // (The same alias-by-symbol translation applies — `cts?.Dispose()` on an aliasing local.)
         foreach (var cae in cls.DescendantNodes().OfType<ConditionalAccessExpressionSyntax>())
             if (ThisFieldName(cae.Expression) is { } cdf   // this-instance field / alias only (not `other._f?.Close()`)
-                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb }
-                && mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close")
+                && cae.WhenNotNull is InvocationExpressionSyntax { Expression: MemberBindingExpressionSyntax mb } cinv
+                && (mb.Name.Identifier.Text is "Dispose" or "DisposeAsync" or "Close"
+                    || CallReleasesReceiver(model.GetSymbolInfo(cinv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
                              && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
 
