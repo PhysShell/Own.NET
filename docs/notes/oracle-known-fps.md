@@ -182,6 +182,48 @@ entry and let the oracle re-confirm clean.
    `docs-src/`) are handled per-entry in the baseline rather than by polluting the
    generic `_is_test_path` with repo-specific directory names.
 
+## Rejected approaches
+
+### Static-class subscriber exemption (the CsvHelper `ConsoleHost` over-reach)
+
+**Attempted in PR #157, reverted in `488d505` before merge. Do not retry.**
+
+To clear the two CsvHelper `ConsoleHost` FPs (§3, root-cause 3 — a process-lived
+host subscribing to a process-lived `AppDomain`/`Console` event), the tempting move
+was to add `|| clsIsStatic` next to the existing `clsIsApp` exemption in the
+extractor (`Program.cs`, the `if (!isTimer && source == "static" && clsIsApp)`
+drop): "the subscriber's containing type is a `static class`, so there's no instance
+to leak — drop the OWN014 the same way we drop it for the WPF `App` singleton."
+
+**Why it is unsound.** A `static class` only rules out an instance `this` being
+pinned. It says **nothing** about a lambda handler that captures a **local**. When
+the source is a static/process-lived event, that captured local is pinned for the
+whole process — a genuine leak. The exemption would silently swallow it:
+
+```csharp
+static class Foo {
+    void Attach(VM vm) =>
+        SystemEvents.UserPreferenceChanged += (_, _) => vm.Refresh(); // pins vm forever
+}
+```
+
+`clsIsApp` is safe where `clsIsStatic` is not: the WPF `App` singleton *is* the
+process-lived object, so promoting its own subscriptions to process lifetime changes
+nothing; a static class is just a namespace for methods whose lambdas can still
+capture and pin arbitrary shorter-lived state.
+
+**Caught by:** Codex (P2) and CodeRabbit (Major) in review of #157, before merge.
+
+**Why a sound narrowing still wouldn't help here.** A capture-gated version
+("exempt only when the handler captures nothing") would be sound — but it would
+**not** clear the motivating case: CsvHelper's `ConsoleHost` handlers capture `cts`
+and `resetEvent`, so the capture-free guard would (correctly) keep firing. The clear
+verdict is "this specific host is process-lived" (the subscriber's own lifetime),
+which we have no reliable signal for. So those two findings stay in
+`corpus/oracle-fp-baseline.txt` as baselined FPs rather than being suppressed by an
+extractor rule. An in-code `ANTI-PATTERN` comment at the exemption site warns against
+re-adding `|| clsIsStatic`.
+
 ## How the baseline stays honest
 
 - **Matched by name, not line** — `(repo, file-basename, OWN code,

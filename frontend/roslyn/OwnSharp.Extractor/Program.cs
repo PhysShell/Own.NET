@@ -3325,6 +3325,22 @@ foreach (var (file, tree) in parsed)
                 // process — so the region escape (OWN014) is a false positive. Scoped
                 // to NON-timers: a timer is forced to source "static" above, but a
                 // never-stopped timer in `App` is still a real leak (CodeRabbit).
+                //
+                // ANTI-PATTERN — do NOT broaden this to `|| clsIsStatic` (subscriber is
+                // a static class). It looks symmetric with `clsIsApp` but is UNSOUND: a
+                // static class only rules out an instance `this` being pinned; it does
+                // NOTHING about a lambda handler that captures a *local*. A static-source
+                // (process-lived) event then pins that captured local for the whole
+                // process — a genuine leak this exemption would silently swallow, e.g.
+                //   static class Foo {
+                //     void Attach(VM vm) =>
+                //       SystemEvents.UserPreferenceChanged += (_,_) => vm.Refresh(); // pins vm forever
+                //   }
+                // This was tried in PR #157 and caught pre-merge by Codex (P2) + CodeRabbit
+                // (Major); reverted in 488d505. A capture-gated narrowing was considered but
+                // would NOT clear the motivating case (CsvHelper ConsoleHost captures cts/
+                // resetEvent), so it stays in corpus/oracle-fp-baseline.txt instead. Full
+                // write-up: docs/notes/oracle-known-fps.md → "Rejected approaches".
                 if (!isTimer && source == "static" && clsIsApp)
                     continue;
                 var released = unsub.Contains($"{a.Left}|{a.Right}")
