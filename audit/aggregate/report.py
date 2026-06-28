@@ -307,6 +307,11 @@ def main(argv: list[str] | None = None) -> int:
         resource=d.get("resource")) for d in payload.get("findings", [])]
     scored = score(findings, tax, args.line_tol)
     meta = {"target": args.target, "commit": args.commit, "line_tol": args.line_tol}
+    # Windows consoles default to the locale codepage (cp1251 on a Russian-locale box —
+    # the STS target environment); the rendered report carries '≥', '·', '—'. Force UTF-8
+    # so a raw markdown/HTML print() does not UnicodeEncodeError on a non-UTF-8 console.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     if args.format == "json":
         print(json.dumps(render_json(meta, cov, scored), indent=2))
     elif args.format == "sarif":
@@ -406,6 +411,29 @@ def _selftest() -> int:
         check(needle in h, f"html missing marker: {needle!r}")
     check("third-party: DevExpress." in h, "html coverage must report the suppressed finding")
     check("analysis-skipped" in h, "html coverage must surface analysis-skipped notes")
+
+    # cp1251-console regression: the renderers emit non-cp1251 glyphs ('≥','·','—'), so on
+    # a Russian-locale Windows console (the STS target env) a raw print() in main() would
+    # UnicodeEncodeError. main() forces utf-8 stdout — verify it renders markdown/html to a
+    # simulated cp1251 stdout without crashing (the bug fixed alongside this test).
+    import io
+    import tempfile
+    fdicts = [{"tool": f.tool, "path": f.path, "line": f.line, "rule": f.rule,
+               "message": f.message, "category": f.category,
+               "category_name": f.category_name, "resource": f.resource}
+              for f in findings if f.scored]
+    with tempfile.TemporaryDirectory() as td:
+        fpath = Path(td) / "findings.json"
+        fpath.write_text(json.dumps({"coverage": cov, "findings": fdicts}), encoding="utf-8")
+        for fmt in ("markdown", "html"):
+            saved, sys.stdout = sys.stdout, io.TextIOWrapper(io.BytesIO(), encoding="cp1251")
+            try:
+                rc = main(["--findings", str(fpath), "--format", fmt])
+            except UnicodeEncodeError:
+                rc = -1
+            finally:
+                sys.stdout = saved
+            check(rc == 0, f"main(--format {fmt}) must render to a cp1251 stdout without crashing")
 
     fails = [c for c in checks if c]
     for f in fails:
