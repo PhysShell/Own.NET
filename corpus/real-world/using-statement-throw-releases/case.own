@@ -1,10 +1,19 @@
 // OwnLang model: a method with an explicit throw inside a `using (guard)` body must still
-// report an UNRELATED undisposed local (`conn`). The extractor routes the using-body throw
-// through guard's release (onThrowDefinite) instead of bailing the whole method, so conn's
-// leak is not hidden. Modelled here as conn acquired with no release -> OWN001. (The throw
-// routing and guard's release are extractor-level; the benchmark before.cs/after.cs exercise
-// them end-to-end — see notes.md.)
+// report an UNRELATED undisposed local (`conn`). `guard` is acquired and released (the using's
+// scope-exit dispose); `conn` is acquired and never released -> OWN001. The throw-routing
+// itself — release on the throw path, no whole-method bail — is an EXTRACTOR-level concern
+// (the onThrowDefinite flag) exercised end-to-end by before.cs/after.cs in the dotnet
+// benchmark; this pure-OwnLang reduction pins the ownership OUTCOME the extractor must produce:
+// guard balanced, conn leaked. See notes.md.
 module Corpus
+resource Guard {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Guard"
+  emit_acquire "new Guard()"
+  emit_release "{0}.Dispose()"
+}
 resource Res {
   acquire create
   release dispose
@@ -14,5 +23,7 @@ resource Res {
   emit_release "{0}.Dispose()"
 }
 fn Run(bad: int) {
-  let conn = acquire Res();   // var conn = new Res(); never disposed -> OWN001
+  let guard = acquire Guard();   // var guard = new Guard();
+  let conn = acquire Res();      // var conn = new Res(); never disposed -> OWN001
+  release guard;                 // using (guard) { ... } disposes guard on every exit
 }
