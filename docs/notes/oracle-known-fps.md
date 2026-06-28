@@ -87,7 +87,7 @@ this.
 | `src/protobuf-net.Core/ProtoWriter.BufferWriter.cs` `_nullWriter` | **FP → baseline** | intentional null-object kept attached for pooled reuse; `Dispose()` comments *"don't cascade dispose to the null one"* |
 | `assorted/.../ProtoTranscoder.cs` `sync` (×2 copies) | **true-but-benign → baseline (non-product sample)** | `NetTranscoder` isn't `IDisposable`; one `ReaderWriterLockSlim` for app lifetime in a sample/extension tree |
 | `assorted/ProtoGen/CommandLineOptions.cs` `XsltMessageEncountered` | **FP → baseline** | self-subscription: publisher (`xsltOptions`) and the lambda are both owned by the same `CommandLineOptions`, co-lifetimed |
-| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **FP → baseline** | disposed by an enclosing `using (timer) { … }` the extractor missed (sample code) |
+| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **FP → baseline (re-triaged 2026-06-28)** | NOT a missed `using` — the `using (timer)` block is commented out and `timer` is a non-`IDisposable` `Stopwatch`/`DispatcherTimer`; flagging it is a separate precision question. Sample code. |
 | `src/BuildToolsUnitTests/AnalyzerTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 | `src/BuildToolsUnitTests/GeneratorTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 
@@ -142,14 +142,21 @@ entry and let the oracle re-confirm clean.
    its owned object), so the `current?.WaitForDispose(...)` is seen as a release —
    own-only 4 → 3, the NLog baseline now empty. Restricted to a `null`/`default`
    replacement: an exchange installing a new non-null value re-arms the field and is
-   declined (precision-first). **Also fixed — the protobuf `Page.xaml.cs` local.** The
-   `using (preExistingLocal)` form — `var timer = new ...; using (timer) { ... }`, where
-   the resource is an already-acquired tracked local — is now threaded as a scope-exit
-   release in the `--flow-locals` lowering (no `acquire`; only the missing release is
-   added, mirroring the `MemoryPool` owner branch). Its baseline entry is marked
-   fix-landed, pending a live-oracle re-run on protobuf to confirm-and-delete. Corpus
-   fixtures: `field-dispose-via-helper`, `field-dispose-via-exchange`,
-   `local-dispose-via-using-statement`.
+   declined (precision-first). **The `using (preExistingLocal)` form is now handled** —
+   `var r = new ...; using (r) { ... }`, an already-acquired tracked local, is threaded as
+   a scope-exit release in the `--flow-locals` lowering (no `acquire`; only the missing
+   release, mirroring the `MemoryPool` owner branch), with sound throw-routing
+   (`onThrowDefinite`). Corpus fixtures: `local-dispose-via-using-statement`,
+   `using-statement-throw-releases`. **It does NOT clear the protobuf `Page.xaml.cs`
+   baseline entry, though** — a live protobuf oracle run (2026-06-28) showed that finding
+   STILL emitted (still baselined), and re-triage of the real source found the prior
+   reason was a **misdiagnosis read from commented-out code**: the only `using (timer)`
+   block is commented out, and `timer` is a `Stopwatch` (`RunTest`) / a `DispatcherTimer`
+   local (`btnRunTest_Click`) — neither is `IDisposable`. So the entry stays baselined as a
+   non-product sample FP; the real open question is **why a non-`IDisposable` timer-shaped
+   local is flagged at all** (a precision follow-up needing a local extractor repro, not a
+   missed `using`). Other custom-sink fixtures: `field-dispose-via-helper`,
+   `field-dispose-via-exchange`.
 
 2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
    _textWriter`).* We flag any undisposed `IDisposable` structurally, without modelling
