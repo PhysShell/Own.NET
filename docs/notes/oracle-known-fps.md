@@ -142,21 +142,39 @@ entry and let the oracle re-confirm clean.
    its owned object), so the `current?.WaitForDispose(...)` is seen as a release —
    own-only 4 → 3, the NLog baseline now empty. Restricted to a `null`/`default`
    replacement: an exchange installing a new non-null value re-arms the field and is
-   declined (precision-first). **Still open:** the protobuf `Page.xaml.cs`
-   `using (preExistingLocal)` local form, which remains baselined until using-statement
-   alias tracking lands. Corpus fixtures: `field-dispose-via-helper`,
-   `field-dispose-via-exchange`.
+   declined (precision-first). **Also fixed — the protobuf `Page.xaml.cs` local.** The
+   `using (preExistingLocal)` form — `var timer = new ...; using (timer) { ... }`, where
+   the resource is an already-acquired tracked local — is now threaded as a scope-exit
+   release in the `--flow-locals` lowering (no `acquire`; only the missing release is
+   added, mirroring the `MemoryPool` owner branch). Its baseline entry is marked
+   fix-landed, pending a live-oracle re-run on protobuf to confirm-and-delete. Corpus
+   fixtures: `field-dispose-via-helper`, `field-dispose-via-exchange`,
+   `local-dispose-via-using-statement`.
 
-2. **No-op `Dispose` not modelled** *(Newtonsoft `TraceJsonReader._textWriter`).*
-   We flag any undisposed `IDisposable` structurally, without modelling that the
-   concrete `Dispose` releases nothing (`StringWriter`/`StringReader`/`MemoryStream`
-   over managed memory). *Fix:* a small "dispose-is-a-no-op" allowlist of BCL
-   in-memory types for the field case. (Related, already shipped for one case:
-   [`cts-field-dispose-optional.md`](cts-field-dispose-optional.md).) Note the NLog
-   `_xmlSource` / `_reusable*Stream` reals are the *same* benign shape but are
-   **kept visible** — they're genuinely undisposed; only Newtonsoft's is also
-   structurally a no-op AND not worth surfacing. Revisit whether benign-managed
-   field leaks should be downgraded as a class.
+2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
+   _textWriter`).* We flag any undisposed `IDisposable` structurally, without modelling
+   that the concrete `Dispose` releases nothing. **Shipped fix:** `IsNoOpDisposeWrapper`
+   extends the existing `StringWriter`/`StringReader` field exemption to BCL **read-only
+   pass-through readers** — a `StreamReader`/`BinaryReader` field whose *every* construction
+   wraps an in-memory backing (`MemoryStream`/`StringWriter`/`StringReader`) cascades
+   disposal only to managed memory, so it is dispose-optional. **Writers** (`StreamWriter`/
+   `BinaryWriter`) are excluded: their `Dispose` flushes buffered output, so a never-disposed
+   writer can drop data — a real bug the OWN001 keeps flagging (Codex P2). The allowlist is
+   closed to those two readers (not "any BCL stream": `GZipStream`/`CryptoStream` own a
+   native/extra resource), and a path that builds `new StreamReader(path)` (a real file
+   handle) keeps the field flagged. Corpus fixture
+   `field-noop-dispose-wrapper`; full rationale
+   [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Still open — the soundness
+   wall:** Newtonsoft's `_textWriter` is a `JsonTextWriter` over a `StringWriter` —
+   structurally the same no-op, but `JsonTextWriter` is a **third-party** wrapper whose
+   `Dispose` we cannot prove is pass-through without modelling its body. Suppressing it
+   would be the same unsound over-reach as the rejected static-class exemption, so it
+   **stays baselined**. Retiring it needs a general recursive "Dispose-is-a-no-op" body
+   analysis (a first-party type that disposes only dispose-optional members and holds no
+   unmanaged handle) — larger and higher-risk; deferred. Note the NLog `_xmlSource` /
+   `_reusable*Stream` reals are also third-party wrappers (`CharEnumerator`,
+   `ReusableStreamCreator`) of the same benign shape and stay **kept visible** for the
+   same reason — we can't prove their disposal is a no-op, so we don't silently drop them.
 
 3. **Lifetime-unaware subscription — PARTLY FIXED** *(was protobuf `XsltOptions`,
    Newtonsoft `serializer.Error`; CsvHelper process-lived host).* OWN014's premise —

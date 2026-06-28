@@ -1,0 +1,20 @@
+// OwnLang model of an owned BCL pass-through reader/writer field (StreamReader /
+// StreamWriter / BinaryReader / BinaryWriter) that is never disposed. Whether it leaks
+// depends on the BACKING it wraps: over a real file handle (before.cs) it is a genuine
+// OWN001 leak — modelled here as an acquire with no `release`. Over an in-memory
+// MemoryStream (after.cs) its Dispose is a no-op, which the extractor recognises
+// (IsNoOpDisposeWrapper) and stays silent on. See notes.md and
+// docs/notes/no-op-dispose-wrapper.md.
+module Corpus
+resource Reader {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "StreamReader"
+  emit_acquire "new StreamReader({args})"
+  emit_release "{0}.Dispose()"
+}
+fn FileLineReader(path: int) {
+  let reader = acquire Reader(path);   // _reader = new StreamReader(new FileStream(path))
+  // before.cs: a real OS handle, never disposed -> OWN001
+}

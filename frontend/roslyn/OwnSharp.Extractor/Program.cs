@@ -875,6 +875,44 @@ static bool IsDisposeOptional(ITypeSymbol t)
         || (ns == "System.IO" && t.Name is "StringWriter" or "StringReader");
 }
 
+// An in-memory, dispose-optional backing — a System.IO reader/writer/stream that holds
+// only managed memory (MemoryStream's buffer, StringWriter's StringBuilder, StringReader's
+// string), so its own Dispose() frees nothing real. Used to decide whether a pass-through
+// wrapper built over it is itself a no-op to dispose (see IsNoOpDisposeWrapper). MemoryStream
+// is included HERE (a leak-only judgement: an undisposed MemoryStream releases nothing) even
+// though IsDisposeOptional deliberately keeps a bare MemoryStream FIELD visible.
+static bool IsInMemoryDisposableBacking(ITypeSymbol? t) =>
+    t is not null
+    && t.ContainingNamespace?.ToString() == "System.IO"
+    && t.Name is "MemoryStream" or "StringWriter" or "StringReader";
+
+// A BCL READ-ONLY "pass-through" reader — StreamReader / BinaryReader — whose only
+// disposable state is the stream it wraps (plus a managed read-ahead buffer that is simply
+// discarded). Its Dispose() merely cascades to that backing, so when the backing is an
+// in-memory dispose-optional value the whole chain frees nothing and an undisposed field of
+// this shape is not a leak. WRITERS are deliberately EXCLUDED: StreamWriter / BinaryWriter
+// FLUSH buffered output to the underlying stream on Dispose (documented behaviour), so a
+// never-disposed writer field can leave the backing missing buffered characters / encoder
+// state — a real correctness bug, not a managed-memory-only no-op, which the OWN001 still
+// usefully flags (Codex P2). A CLOSED allowlist of those two readers, NOT "any BCL stream":
+// GZipStream / DeflateStream / CryptoStream wrap a stream too but own their OWN extra
+// resource (a native deflater, a crypto transform), so they must STAY flagged. A THIRD-PARTY
+// wrapper is also excluded — e.g. Newtonsoft's `JsonTextWriter` over a StringWriter is
+// structurally a no-op, but we cannot prove ITS Dispose is pass-through without modelling its
+// body, so it stays a (baselined) finding, never a silent drop. The backing is the FIRST ctor
+// argument: `new StreamReader(path)` (a string path opens a real FileStream) and
+// `new StreamReader(fileStream)` both fail the in-memory check and so correctly keep leaking.
+// See docs/notes/no-op-dispose-wrapper.md.
+static bool IsNoOpDisposeWrapper(BaseObjectCreationExpressionSyntax oce, SemanticModel model)
+{
+    if (model.GetTypeInfo(oce).Type is not { } wt
+        || wt.ContainingNamespace?.ToString() != "System.IO"
+        || wt.Name is not ("StreamReader" or "BinaryReader"))
+        return false;
+    var arg0 = oce.ArgumentList?.Arguments.FirstOrDefault()?.Expression;
+    return arg0 is not null && IsInMemoryDisposableBacking(model.GetTypeInfo(arg0).Type);
+}
+
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
 // base chain). A modeless `Form.Show()` transfers ownership to the framework, which
 // disposes the form on close — EmitFlowExpr models that show as a release.
@@ -1425,6 +1463,49 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn))
                     return false;
                 nodes.Add(release);   // normal completion disposes at scope exit too
+                return true;
+            }
+            // `using (existingLocal) { body }`: the STATEMENT form whose resource is an
+            // ALREADY-TRACKED local — `var r = new ...; using (r) { ... }`. The block disposes
+            // `r` at every scope exit, so thread a release onto the body's returns/throws and
+            // its normal completion; otherwise the tracked `r` looks live at method exit and is
+            // a spurious OWN001 (mined: protobuf-net assorted/ Silverlight Page.xaml.cs `timer`,
+            // acquired then wrapped in `using (timer) { ... }`). No `acquire` here — the local
+            // was already acquired at its `new`; we only add the missing release. The `using
+            // (var x = ...)` declaration form needs nothing: `x` is auto-disposed and never
+            // tracked as a leak candidate.
+            //
+            // GATED on the body having no EXPLICIT escaping `throw`: threading a non-null
+            // bodyOnThrow makes the `ThrowStatementSyntax` case bail the whole method (it
+            // refuses a non-null onThrow — a throw inside a `try` might be caught, which a bare
+            // exit can't model). A `using` has no catch, so routing a throw through the release
+            // IS sound, but the lowering can't tell using-onThrow from try-onThrow without
+            // invasive threading. Rather than regress recall (bailing every method with an
+            // explicit throw in such a body, losing UNRELATED leaks too — Codex P2), fall
+            // through to the plain body lowering when the body throws explicitly; that keeps the
+            // method analysed (status quo for this rare expression form — `r` itself may still
+            // show as undisposed on the throw path, no worse than before this fix).
+            if (us.Expression is IdentifierNameSyntax usingId
+                && tracked.Contains(usingId.Identifier.Text)
+                && !(us.Statement?.DescendantNodes(n =>
+                            n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+                        .OfType<ThrowStatementSyntax>().Any() ?? false))
+            {
+                var owner = usingId.Identifier.Text;
+                var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
+                var release = new { op = "release", var = owner, line = LineOf(us) };
+                var bodyOnReturn = new List<object> { release };
+                bodyOnReturn.AddRange(onReturn ?? exit);
+                List<object>? bodyOnThrow = null;
+                if (canEscape)
+                {
+                    bodyOnThrow = new List<object> { release };
+                    bodyOnThrow.AddRange(onThrow ?? exit);
+                }
+                if (us.Statement is not null
+                    && !LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, bodyOnThrow, bodyOnReturn))
+                    return false;
+                nodes.Add(release);   // normal completion disposes at scope exit
                 return true;
             }
             return us.Statement is null || LowerFlowStmt(us.Statement, tracked, model, nodes, canEscape, onThrow, onReturn);
@@ -3222,17 +3303,29 @@ foreach (var (file, tree) in parsed)
         // lifetime cannot exceed the class's. Used by the self-owned-subscription
         // exemption (P-004) just below and by the disposable detector (WPF003).
         var constructed = new HashSet<string>();
+        // field name -> every `new ...` it is constructed from (initializer + assignments),
+        // so the disposal scan can inspect the construction shape (e.g. a no-op-dispose
+        // pass-through wrapper over an in-memory backing). A field with NO construction here
+        // is not in `constructed` and never reaches that check.
+        var constructions = new Dictionary<string, List<BaseObjectCreationExpressionSyntax>>(StringComparer.Ordinal);
+        void NoteConstruction(string name, BaseObjectCreationExpressionSyntax oce)
+        {
+            constructed.Add(name);
+            if (!constructions.TryGetValue(name, out var list))
+                constructions[name] = list = new List<BaseObjectCreationExpressionSyntax>();
+            list.Add(oce);
+        }
         foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
             foreach (var v in fd.Declaration.Variables)
                 if (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                           or ImplicitObjectCreationExpressionSyntax)
-                    constructed.Add(v.Identifier.Text);
+                    NoteConstruction(v.Identifier.Text, (BaseObjectCreationExpressionSyntax)v.Initializer.Value);
         foreach (var a in assigns)
             if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
                 && a.Right is ObjectCreationExpressionSyntax
                            or ImplicitObjectCreationExpressionSyntax
                 && FieldName(a.Left) is { } fn)
-                constructed.Add(fn);
+                NoteConstruction(fn, (BaseObjectCreationExpressionSyntax)a.Right);
 
         // P-004 (extended) self-owned set for the SUBSCRIPTION exemption ONLY. A
         // field can be owned without a direct `_f = new ...`; fold in two more
@@ -3525,6 +3618,15 @@ foreach (var (file, tree) in parsed)
                 if (!waitHandleSemaphores.Contains(v.Identifier.Text)
                     && model.GetTypeInfo(fd.Declaration.Type).Type is { Name: "SemaphoreSlim" } st
                     && st.ContainingNamespace?.ToString() == "System.Threading")
+                    continue;
+                // no-op-dispose wrapper: a field whose EVERY construction is a BCL pass-through
+                // reader/writer (StreamReader/StreamWriter/BinaryReader/BinaryWriter) over an
+                // in-memory backing frees nothing on Dispose, so leaving it undisposed is not a
+                // leak. ALL constructions must qualify — a field also assigned `new StreamReader(
+                // path)` (a real file handle) on some path still leaks and must stay flagged.
+                if (constructions.TryGetValue(v.Identifier.Text, out var fieldCtors)
+                    && fieldCtors.Count > 0
+                    && fieldCtors.All(c => IsNoOpDisposeWrapper(c, model)))
                     continue;
                 subs.Add(new
                 {
