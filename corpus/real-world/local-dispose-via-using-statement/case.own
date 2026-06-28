@@ -1,0 +1,19 @@
+// OwnLang model of a disposable acquired into a local that, in the fix, is released
+// through the STATEMENT form `using (existingLocal) { ... }` (protobuf-net assorted/
+// Silverlight Page.xaml.cs `timer`). The before.cs never wraps the local in a `using`,
+// so it leaks (OWN001) — modelled here as an acquire with no `release`. The after.cs
+// adds `using (r) { ... }`; the extractor now threads that scope-exit dispose onto the
+// tracked local (see notes.md), so the fixed form is silent.
+module Corpus
+resource Res {
+  acquire create
+  release dispose
+  kind "disposable"
+  emit_type    "Res"
+  emit_acquire "new Res()"
+  emit_release "{0}.Dispose()"
+}
+fn Run() {
+  let r = acquire Res();   // var r = new Res();
+  // before.cs: never wrapped in `using (r)` -> OWN001
+}

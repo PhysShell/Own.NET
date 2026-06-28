@@ -37,9 +37,16 @@ protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (
 # a get-only property over a constructed XsltArgumentList field, handler captures `this`).
 # Now fixed at the source by PropertyReturnsOwnedMember — confirmed cleared on a live
 # protobuf oracle run (own-only 0, the finding absent from own-only and baselined) — deleted.
+# FIX LANDED (using-statement local release): `using (timer) { ... }` over an already-acquired
+# local is now threaded as a scope-exit release in --flow-locals. Kept here pending a live-oracle
+# re-run on protobuf to confirm-and-delete. Fixture: local-dispose-via-using-statement.
 protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight sample); the timer is disposed by an enclosing `using (timer) { ... }` the extractor missed
 
 # --- JamesNK/Newtonsoft.Json ----------------------------------------------------
+# STAYS BASELINED (soundness wall): JsonTextWriter is a THIRD-PARTY wrapper — the BCL pass-through
+# exemption (IsNoOpDisposeWrapper) covers only StreamReader/StreamWriter/BinaryReader/BinaryWriter,
+# whose disposal contract is known. Proving JsonTextWriter.Dispose is a no-op needs body analysis we
+# don't do. See docs/notes/no-op-dispose-wrapper.md.
 JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | no-op dispose: a JsonTextWriter over an in-memory StringWriter/StringBuilder holds no unmanaged resource, so leaving it undisposed releases nothing
 JamesNK/Newtonsoft.Json | JsonSerializer.cs | OWN001 | serializer.Error | intra-call self-subscription: the serializer is freshly created from the same JsonSerializerSettings whose .Error handler it subscribes; source and handler are co-lifetimed
 
