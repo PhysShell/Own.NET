@@ -43,7 +43,7 @@ protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (
 # btnRunTest_Click has a DispatcherTimer local) — neither is IDisposable. So the using-statement
 # fix does NOT apply here (confirmed: still emitted, still baselined). It stays a non-product FP;
 # the open question is WHY a non-IDisposable timer-shaped local is flagged at all (needs a local
-# extractor repro). See docs/notes/oracle-known-fps.md root-cause #1.
+# extractor repro; tracked in issue #161). See docs/notes/oracle-known-fps.md root-cause #1.
 protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight perf sample); `timer` is a non-IDisposable Stopwatch/DispatcherTimer and the only using(timer) block is commented out — not a missed-using; flagging it is a separate precision question, kept baselined
 
 # --- JamesNK/Newtonsoft.Json ----------------------------------------------------

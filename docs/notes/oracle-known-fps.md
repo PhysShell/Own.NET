@@ -155,7 +155,7 @@ entry and let the oracle re-confirm clean.
    local (`btnRunTest_Click`) — neither is `IDisposable`. So the entry stays baselined as a
    non-product sample FP; the real open question is **why a non-`IDisposable` timer-shaped
    local is flagged at all** (a precision follow-up needing a local extractor repro, not a
-   missed `using`). Other custom-sink fixtures: `field-dispose-via-helper`,
+   missed `using`; tracked in issue #161). Other custom-sink fixtures: `field-dispose-via-helper`,
    `field-dispose-via-exchange`.
 
 2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
