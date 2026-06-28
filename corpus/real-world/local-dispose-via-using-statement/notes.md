@@ -33,3 +33,12 @@ Scoped to a `using (identifier)` whose identifier is a **tracked local**. A
 `using (SomeExpr())` whose resource is a method call or member access is not an
 identifier and is not threaded — that resource is the callee's to dispose and is not a
 tracked local here. The declaration forms are unchanged.
+
+Also gated on the body having **no explicit escaping `throw`**. Threading a release onto
+the throw path requires a non-null `bodyOnThrow`, which makes the lowering's
+`ThrowStatementSyntax` case bail the whole method (it refuses a non-null `onThrow` because
+a throw inside a `try` might be caught — a distinction a `using` doesn't need but the
+lowering can't tell apart without invasive threading). So when the body throws explicitly
+we fall through to the plain lowering rather than bail — the method stays analysed (no lost
+recall on unrelated locals), at the cost of leaving `r` itself possibly shown as undisposed
+on the throw path (no worse than before this fix). Caught by Codex P2 on the first cut.

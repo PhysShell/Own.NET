@@ -22,20 +22,29 @@ so disposing the whole chain frees nothing and leaving `_reader` undisposed is n
 
 A field is exempt when **every** construction of it is a no-op wrapper:
 
-1. the constructed type is one of exactly four BCL pass-through adapters —
-   `StreamReader`, `StreamWriter`, `BinaryReader`, `BinaryWriter` (namespace `System.IO`);
-   **and**
+1. the constructed type is one of exactly two BCL **read-only** pass-through adapters —
+   `StreamReader` or `BinaryReader` (namespace `System.IO`); **and**
 2. its **first** constructor argument resolves to an in-memory dispose-optional backing —
    `MemoryStream`, `StringWriter`, or `StringReader` (`IsInMemoryDisposableBacking`).
 
 Requiring *all* constructions to qualify keeps it sound: a field also assigned
 `new StreamReader(path)` on some path opens a real `FileStream`, so it still leaks.
 
+### Why readers only — writers are NOT a no-op
+
+`StreamWriter` and `BinaryWriter` are deliberately **excluded**. A writer's `Dispose`
+**flushes** buffered output to the underlying stream (documented behaviour), so a
+never-disposed writer field can leave even an in-memory backing missing buffered
+characters / encoder state — a real **correctness** bug, not a managed-memory-only no-op.
+The `OWN001` on an undisposed writer is therefore worth keeping (Codex P2 on the first
+cut, which included writers). Only the read-only adapters — whose `Dispose` just discards
+a managed read-ahead buffer and closes the (in-memory) backing — are genuinely no-op.
+
 ### Why a closed allowlist, not "any BCL stream wrapper"
 
 `GZipStream`, `DeflateStream`, and `CryptoStream` also wrap a stream, but each owns its
 **own** extra resource (a native deflater, a crypto transform) whose `Dispose` is not a
-no-op. So the allowlist is deliberately the four pure adapters, never "any `Stream`
+no-op. So the allowlist is deliberately the two read-only adapters, never "any `Stream`
 subtype". The first-argument check is on the backing *type*, so a string path
 (`new StreamReader("file.txt")`, which opens a `FileStream`) and a real-stream backing
 (`new StreamReader(fileStream)`) both fail it and correctly keep leaking.

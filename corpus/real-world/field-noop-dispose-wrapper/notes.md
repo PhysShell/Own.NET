@@ -1,11 +1,12 @@
 # field-noop-dispose-wrapper
 
 An owned `IDisposable` field whose `Dispose()` releases **nothing real**, because it is a
-BCL pass-through reader/writer wrapping an **in-memory** backing. Generalises the existing
-`StringWriter` / `StringReader` no-op exemption (`IsDisposeOptional`) to the wrapper case:
-a `StreamReader` / `StreamWriter` / `BinaryReader` / `BinaryWriter` constructed over a
-`MemoryStream` / `StringWriter` / `StringReader` cascades its disposal only to that
-managed-memory backing.
+BCL **read-only** pass-through reader wrapping an **in-memory** backing. Generalises the
+existing `StringWriter` / `StringReader` no-op exemption (`IsDisposeOptional`) to the
+wrapper case: a `StreamReader` / `BinaryReader` constructed over a `MemoryStream` /
+`StringWriter` / `StringReader` cascades its disposal only to that managed-memory backing.
+**Writers** (`StreamWriter` / `BinaryWriter`) are excluded — their `Dispose` flushes
+buffered output, so skipping it can drop data (a correctness bug worth flagging).
 
 - **before.cs** — a `StreamReader` field over a real `FileStream` (an OS handle), never
   disposed → `OWN001` (the bug is caught; the backing is **not** in-memory, so the no-op
@@ -16,16 +17,17 @@ managed-memory backing.
 ## Recognition rule
 
 The field-disposal scan exempts a field when **every** construction of it is a no-op
-wrapper (`IsNoOpDisposeWrapper`): the constructed type is one of the four BCL pass-through
-adapters (`StreamReader` / `StreamWriter` / `BinaryReader` / `BinaryWriter`, namespace
-`System.IO`) **and** its first constructor argument resolves to an in-memory
-dispose-optional backing (`MemoryStream` / `StringWriter` / `StringReader`). Requiring
-*all* constructions to qualify keeps it sound: a field also assigned `new StreamReader(
-path)` (which opens a real `FileStream`) on some path still leaks.
+wrapper (`IsNoOpDisposeWrapper`): the constructed type is one of the two BCL read-only
+pass-through adapters (`StreamReader` / `BinaryReader`, namespace `System.IO`) **and** its
+first constructor argument resolves to an in-memory dispose-optional backing
+(`MemoryStream` / `StringWriter` / `StringReader`). Requiring *all* constructions to
+qualify keeps it sound: a field also assigned `new StreamReader(path)` (which opens a real
+`FileStream`) on some path still leaks.
 
-The allowlist is deliberately **closed** to those four types. Other BCL streams that also
-wrap a stream — `GZipStream`, `DeflateStream`, `CryptoStream` — own their *own* extra
-resource (a native deflater, a crypto transform), so they are **not** exempt.
+The allowlist is deliberately **closed**. Writers (`StreamWriter` / `BinaryWriter`) are
+out — their `Dispose` flushes buffered output, so skipping it can drop data. Other BCL
+streams that also wrap a stream — `GZipStream`, `DeflateStream`, `CryptoStream` — own their
+*own* extra resource (a native deflater, a crypto transform), so they are **not** exempt.
 
 ## Honesty caveat — what this does and does not reach
 

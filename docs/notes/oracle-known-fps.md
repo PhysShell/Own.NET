@@ -154,13 +154,15 @@ entry and let the oracle re-confirm clean.
 2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
    _textWriter`).* We flag any undisposed `IDisposable` structurally, without modelling
    that the concrete `Dispose` releases nothing. **Shipped fix:** `IsNoOpDisposeWrapper`
-   extends the existing `StringWriter`/`StringReader` field exemption to BCL **pass-through
-   wrappers** — a `StreamReader`/`StreamWriter`/`BinaryReader`/`BinaryWriter` field whose
-   *every* construction wraps an in-memory backing (`MemoryStream`/`StringWriter`/
-   `StringReader`) cascades disposal only to managed memory, so it is dispose-optional. The
-   allowlist is closed to those four adapters (not "any BCL stream": `GZipStream`/
-   `CryptoStream` own a native/extra resource), and a path that builds `new StreamReader(
-   path)` (a real file handle) keeps the field flagged. Corpus fixture
+   extends the existing `StringWriter`/`StringReader` field exemption to BCL **read-only
+   pass-through readers** — a `StreamReader`/`BinaryReader` field whose *every* construction
+   wraps an in-memory backing (`MemoryStream`/`StringWriter`/`StringReader`) cascades
+   disposal only to managed memory, so it is dispose-optional. **Writers** (`StreamWriter`/
+   `BinaryWriter`) are excluded: their `Dispose` flushes buffered output, so a never-disposed
+   writer can drop data — a real bug the OWN001 keeps flagging (Codex P2). The allowlist is
+   closed to those two readers (not "any BCL stream": `GZipStream`/`CryptoStream` own a
+   native/extra resource), and a path that builds `new StreamReader(path)` (a real file
+   handle) keeps the field flagged. Corpus fixture
    `field-noop-dispose-wrapper`; full rationale
    [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Still open — the soundness
    wall:** Newtonsoft's `_textWriter` is a `JsonTextWriter` over a `StringWriter` —

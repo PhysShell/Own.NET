@@ -886,24 +886,28 @@ static bool IsInMemoryDisposableBacking(ITypeSymbol? t) =>
     && t.ContainingNamespace?.ToString() == "System.IO"
     && t.Name is "MemoryStream" or "StringWriter" or "StringReader";
 
-// A BCL "pass-through" reader/writer — StreamReader / StreamWriter / BinaryReader /
-// BinaryWriter — whose only disposable state is the stream/writer it wraps (plus managed
-// char/byte buffers). Its Dispose() merely cascades to that backing, so when the backing is
-// an in-memory dispose-optional value the whole chain frees nothing and an undisposed field
-// of this shape is not a leak. Deliberately a CLOSED allowlist of these four, NOT "any BCL
-// stream": GZipStream / DeflateStream / CryptoStream wrap a stream too but own their OWN
-// extra resource (a native deflater, a crypto transform), so they must STAY flagged. A
-// THIRD-PARTY wrapper is also excluded — e.g. Newtonsoft's `JsonTextWriter` over a
-// StringWriter is structurally the same no-op, but we cannot prove ITS Dispose is
-// pass-through without modelling its body, so it stays a (baselined) finding, never a silent
-// drop. The backing is the FIRST ctor argument: `new StreamReader(path)` (a string path opens
-// a real FileStream) and `new StreamReader(fileStream)` both fail the in-memory check and so
-// correctly keep leaking. See docs/notes/no-op-dispose-wrapper.md.
+// A BCL READ-ONLY "pass-through" reader — StreamReader / BinaryReader — whose only
+// disposable state is the stream it wraps (plus a managed read-ahead buffer that is simply
+// discarded). Its Dispose() merely cascades to that backing, so when the backing is an
+// in-memory dispose-optional value the whole chain frees nothing and an undisposed field of
+// this shape is not a leak. WRITERS are deliberately EXCLUDED: StreamWriter / BinaryWriter
+// FLUSH buffered output to the underlying stream on Dispose (documented behaviour), so a
+// never-disposed writer field can leave the backing missing buffered characters / encoder
+// state — a real correctness bug, not a managed-memory-only no-op, which the OWN001 still
+// usefully flags (Codex P2). A CLOSED allowlist of those two readers, NOT "any BCL stream":
+// GZipStream / DeflateStream / CryptoStream wrap a stream too but own their OWN extra
+// resource (a native deflater, a crypto transform), so they must STAY flagged. A THIRD-PARTY
+// wrapper is also excluded — e.g. Newtonsoft's `JsonTextWriter` over a StringWriter is
+// structurally a no-op, but we cannot prove ITS Dispose is pass-through without modelling its
+// body, so it stays a (baselined) finding, never a silent drop. The backing is the FIRST ctor
+// argument: `new StreamReader(path)` (a string path opens a real FileStream) and
+// `new StreamReader(fileStream)` both fail the in-memory check and so correctly keep leaking.
+// See docs/notes/no-op-dispose-wrapper.md.
 static bool IsNoOpDisposeWrapper(BaseObjectCreationExpressionSyntax oce, SemanticModel model)
 {
     if (model.GetTypeInfo(oce).Type is not { } wt
         || wt.ContainingNamespace?.ToString() != "System.IO"
-        || wt.Name is not ("StreamReader" or "StreamWriter" or "BinaryReader" or "BinaryWriter"))
+        || wt.Name is not ("StreamReader" or "BinaryReader"))
         return false;
     var arg0 = oce.ArgumentList?.Arguments.FirstOrDefault()?.Expression;
     return arg0 is not null && IsInMemoryDisposableBacking(model.GetTypeInfo(arg0).Type);
@@ -1470,8 +1474,22 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
             // was already acquired at its `new`; we only add the missing release. The `using
             // (var x = ...)` declaration form needs nothing: `x` is auto-disposed and never
             // tracked as a leak candidate.
+            //
+            // GATED on the body having no EXPLICIT escaping `throw`: threading a non-null
+            // bodyOnThrow makes the `ThrowStatementSyntax` case bail the whole method (it
+            // refuses a non-null onThrow — a throw inside a `try` might be caught, which a bare
+            // exit can't model). A `using` has no catch, so routing a throw through the release
+            // IS sound, but the lowering can't tell using-onThrow from try-onThrow without
+            // invasive threading. Rather than regress recall (bailing every method with an
+            // explicit throw in such a body, losing UNRELATED leaks too — Codex P2), fall
+            // through to the plain body lowering when the body throws explicitly; that keeps the
+            // method analysed (status quo for this rare expression form — `r` itself may still
+            // show as undisposed on the throw path, no worse than before this fix).
             if (us.Expression is IdentifierNameSyntax usingId
-                && tracked.Contains(usingId.Identifier.Text))
+                && tracked.Contains(usingId.Identifier.Text)
+                && !(us.Statement?.DescendantNodes(n =>
+                            n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+                        .OfType<ThrowStatementSyntax>().Any() ?? false))
             {
                 var owner = usingId.Identifier.Text;
                 var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
