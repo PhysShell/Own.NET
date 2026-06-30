@@ -128,7 +128,7 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 |------|---------|----------|
 | **P0** | WPF/event/timer/subscription leaks; `IDisposable` ownership (leaks, fields, use-after-dispose); DI lifetime mismatch (captive dependency) | [P-004](proposals/P-004-wpf-lifetime-profile.md), [P-005](proposals/P-005-idisposable-ownership.md), [P-006](proposals/P-006-di-lifetimes.md) |
 | **P1** | ArrayPool/Span ownership-view bugs; hidden effects / architecture rules | [P-007](proposals/P-007-arraypool-span.md), [P-008](proposals/P-008-effects-and-resources.md) |
-| **P2** | async resource lifecycle; `ValueTask` affine usage; typestate/protocols | [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
+| **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
 
 > **Are we showable yet?** The concrete "delicious .NET alpha" gate — the A–G bar
@@ -312,3 +312,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-016](proposals/P-016-deep-fact-extraction.md) | Deep C# fact extraction (CFG + flow lowering) | P1 | in progress (B0a/B0b/B2/A1 via `--flow-locals`) |
 | [P-017](proposals/P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | horizon | draft |
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
+| [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
