@@ -37,14 +37,16 @@ protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (
 # a get-only property over a constructed XsltArgumentList field, handler captures `this`).
 # Now fixed at the source by PropertyReturnsOwnedMember — confirmed cleared on a live
 # protobuf oracle run (own-only 0, the finding absent from own-only and baselined) — deleted.
-# RE-TRIAGED 2026-06-28 (live protobuf oracle run): the prior reason — "disposed by an enclosing
-# using (timer) the extractor missed" — was a MISDIAGNOSIS read from COMMENTED-OUT code. In the
-# real source the only `using (timer)` block is commented out, and `timer` is a Stopwatch (RunTest;
-# btnRunTest_Click has a DispatcherTimer local) — neither is IDisposable. So the using-statement
-# fix does NOT apply here (confirmed: still emitted, still baselined). It stays a non-product FP;
-# the open question is WHY a non-IDisposable timer-shaped local is flagged at all (needs a local
-# extractor repro; tracked in issue #161). See docs/notes/oracle-known-fps.md root-cause #1.
-protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight perf sample); `timer` is a non-IDisposable Stopwatch/DispatcherTimer and the only using(timer) block is commented out — not a missed-using; flagging it is a separate precision question, kept baselined
+# RE-TRIAGED 2026-06-28 (live protobuf oracle run + raw source). This is a TRUE POSITIVE, not an
+# FP: `Stopwatch` here is `Nuxleus.Performance.Stopwatch` (the file has `using Nuxleus.Performance;`
+# and uses `Stopwatch.UnitPrecision`/`UnitPrecision.NANOSECONDS`/`timer.Scope = () => …` — NOT
+# System.Diagnostics.Stopwatch), a custom IDisposable scope-timer. `Stopwatch timer = new Stopwatch()`
+# is genuinely never disposed: the disposing `using (timer) { … }` block is COMMENTED OUT. The
+# extractor flags it via the flow-locals path, which requires ImplementsIDisposable — so it
+# correctly resolved the custom type as IDisposable. Kept baselined as NON-PRODUCT sample (assorted/
+# Silverlight perf demo), exactly like the assorted/ NetTranscoder `sync` entry. The earlier
+# "missed using" and "non-IDisposable Stopwatch FP" readings were both wrong; issue #161 is closed.
+protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight perf demo); TRUE POSITIVE — `timer` is a custom IDisposable Nuxleus.Performance.Stopwatch genuinely never disposed (the using(timer) block is commented out). Baselined as non-product, not as an FP
 
 # --- JamesNK/Newtonsoft.Json ----------------------------------------------------
 # STAYS BASELINED (soundness wall): JsonTextWriter is a THIRD-PARTY wrapper — the BCL pass-through

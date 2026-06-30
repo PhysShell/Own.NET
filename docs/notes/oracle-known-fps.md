@@ -24,12 +24,16 @@ reason: we and the oracles occupy orthogonal niches.
 | disposition | count | what happens on re-run |
 |---|---:|---|
 | **Fixed in the extractor** | 6 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle — see below) |
-| **Baselined FP** | 6 | moved to "Known FP (baselined)", out of the triage queue |
+| **Baselined FP** | 5 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
-| **True-but-benign — kept, baselined-as-sample** | 2 | (protobuf `assorted/` samples) baselined as non-product |
+| **True-but-benign — kept, baselined-as-sample** | 3 | (protobuf `assorted/` samples) baselined as non-product |
 
-The 6 baselined FPs + the 2 non-product-sample reals = 8 findings, covered by
+(Re-triage 2026-06-28: `Page.xaml.cs` `timer` moved from "Baselined FP" 6→5 to
+"True-but-benign sample" 2→3 — it is a real leak of a custom `IDisposable`
+`Nuxleus.Performance.Stopwatch`, not the BCL non-disposable type first assumed.)
+
+The 5 baselined FPs + the 3 non-product-sample reals = 8 findings, covered by
 **7 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
 share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
 drops; the 4 true positives are deliberately **not** suppressed.
@@ -87,7 +91,7 @@ this.
 | `src/protobuf-net.Core/ProtoWriter.BufferWriter.cs` `_nullWriter` | **FP → baseline** | intentional null-object kept attached for pooled reuse; `Dispose()` comments *"don't cascade dispose to the null one"* |
 | `assorted/.../ProtoTranscoder.cs` `sync` (×2 copies) | **true-but-benign → baseline (non-product sample)** | `NetTranscoder` isn't `IDisposable`; one `ReaderWriterLockSlim` for app lifetime in a sample/extension tree |
 | `assorted/ProtoGen/CommandLineOptions.cs` `XsltMessageEncountered` | **FP → baseline** | self-subscription: publisher (`xsltOptions`) and the lambda are both owned by the same `CommandLineOptions`, co-lifetimed |
-| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **FP → baseline (re-triaged 2026-06-28)** | NOT a missed `using` — the `using (timer)` block is commented out and `timer` is a non-`IDisposable` `Stopwatch`/`DispatcherTimer`; flagging it is a separate precision question. Sample code. |
+| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **true-but-non-product → baseline (re-triaged 2026-06-28)** | TRUE POSITIVE: `timer` is a custom `IDisposable` `Nuxleus.Performance.Stopwatch` (NOT `System.Diagnostics.Stopwatch`) never disposed — the disposing `using (timer)` is commented out. Correctly flagged; baselined as non-product sample. |
 | `src/BuildToolsUnitTests/AnalyzerTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 | `src/BuildToolsUnitTests/GeneratorTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 
@@ -148,15 +152,18 @@ entry and let the oracle re-confirm clean.
    release, mirroring the `MemoryPool` owner branch), with sound throw-routing
    (`onThrowDefinite`). Corpus fixtures: `local-dispose-via-using-statement`,
    `using-statement-throw-releases`. **It does NOT clear the protobuf `Page.xaml.cs`
-   baseline entry, though** — a live protobuf oracle run (2026-06-28) showed that finding
-   STILL emitted (still baselined), and re-triage of the real source found the prior
-   reason was a **misdiagnosis read from commented-out code**: the only `using (timer)`
-   block is commented out, and `timer` is a `Stopwatch` (`RunTest`) / a `DispatcherTimer`
-   local (`btnRunTest_Click`) — neither is `IDisposable`. So the entry stays baselined as a
-   non-product sample FP; the real open question is **why a non-`IDisposable` timer-shaped
-   local is flagged at all** (a precision follow-up needing a local extractor repro, not a
-   missed `using`; tracked in issue #161). Other custom-sink fixtures: `field-dispose-via-helper`,
-   `field-dispose-via-exchange`.
+   baseline entry — because that entry is a TRUE POSITIVE, not an FP.** A live protobuf
+   oracle run (2026-06-28) + the raw source settled it: `Stopwatch` there is
+   `Nuxleus.Performance.Stopwatch` (the file has `using Nuxleus.Performance;` and uses
+   `Stopwatch.UnitPrecision` / `timer.Scope = () => …`, NOT `System.Diagnostics.Stopwatch`),
+   a custom **`IDisposable`** scope-timer that is genuinely never disposed (the disposing
+   `using (timer)` block is commented out). The extractor flags it via the flow-locals path,
+   which gates on `ImplementsIDisposable` — so it correctly resolved the custom type and
+   reported a real leak. It stays baselined as **non-product sample** (assorted/ Silverlight
+   demo), like the `NetTranscoder` `sync` entry — not as an FP. (Two earlier readings —
+   "missed `using`" and "non-`IDisposable` `Stopwatch` FP" — were both wrong; issue #161 was
+   opened on the second and then closed as invalid.) Other custom-sink fixtures:
+   `field-dispose-via-helper`, `field-dispose-via-exchange`.
 
 2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
    _textWriter`).* We flag any undisposed `IDisposable` structurally, without modelling
