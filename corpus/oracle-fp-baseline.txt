@@ -49,11 +49,16 @@ protobuf-net/protobuf-net | ProtoTranscoder.cs | OWN001 | 'sync' | non-product (
 protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product (assorted/ Silverlight perf demo); TRUE POSITIVE — `timer` is a custom IDisposable Nuxleus.Performance.Stopwatch genuinely never disposed (the using(timer) block is commented out). Baselined as non-product, not as an FP
 
 # --- JamesNK/Newtonsoft.Json ----------------------------------------------------
-# STAYS BASELINED (soundness wall): JsonTextWriter is a THIRD-PARTY wrapper — the BCL pass-through
-# exemption (IsNoOpDisposeWrapper) covers only StreamReader/StreamWriter/BinaryReader/BinaryWriter,
-# whose disposal contract is known. Proving JsonTextWriter.Dispose is a no-op needs body analysis we
-# don't do. See docs/notes/no-op-dispose-wrapper.md.
-JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | no-op dispose: a JsonTextWriter over an in-memory StringWriter/StringBuilder holds no unmanaged resource, so leaving it undisposed releases nothing
+# STAYS BASELINED — and NOT soundly auto-fixable (investigated 2026-06-28, JsonTextWriter source).
+# JsonTextWriter is NOT a no-op type to dispose: Close() runs base.Close() (auto-completes open JSON
+# tokens — writes closing brackets to the underlying writer) and CloseBufferAndWriter(), which RETURNS
+# its rented `_writeBuffer` to `_arrayPool` when an ArrayPool is configured — a real pooled-buffer
+# release (the very POOL-leak class Own.NET tracks elsewhere) — and closes the underlying writer. So a
+# recursive "Dispose-is-a-no-op" recognizer would be UNSOUND (it can leak a pooled buffer) or would
+# correctly DECLINE — either way it does not clear this. The `_textWriter` instance is benign only by
+# INSTANCE facts (no ArrayPool set + the sink is a StringWriter), not a type-level no-op, so it stays
+# baselined — consistent with excluding writers from IsNoOpDisposeWrapper. See no-op-dispose-wrapper.md.
+JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | benign-by-instance, NOT a no-op type: JsonTextWriter.Close() returns a (possibly pooled) write buffer and auto-completes JSON tokens; harmless here only because no ArrayPool is set and the sink is a StringWriter — kept baselined (not soundly auto-fixable)
 JamesNK/Newtonsoft.Json | JsonSerializer.cs | OWN001 | serializer.Error | intra-call self-subscription: the serializer is freshly created from the same JsonSerializerSettings whose .Error handler it subscribes; source and handler are co-lifetimed
 
 # --- JoshClose/CsvHelper --------------------------------------------------------

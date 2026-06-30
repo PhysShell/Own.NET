@@ -178,14 +178,18 @@ entry and let the oracle re-confirm clean.
    native/extra resource), and a path that builds `new StreamReader(path)` (a real file
    handle) keeps the field flagged. Corpus fixture
    `field-noop-dispose-wrapper`; full rationale
-   [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Still open — the soundness
-   wall:** Newtonsoft's `_textWriter` is a `JsonTextWriter` over a `StringWriter` —
-   structurally the same no-op, but `JsonTextWriter` is a **third-party** wrapper whose
-   `Dispose` we cannot prove is pass-through without modelling its body. Suppressing it
-   would be the same unsound over-reach as the rejected static-class exemption, so it
-   **stays baselined**. Retiring it needs a general recursive "Dispose-is-a-no-op" body
-   analysis (a first-party type that disposes only dispose-optional members and holds no
-   unmanaged handle) — larger and higher-risk; deferred. Note the NLog `_xmlSource` /
+   [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Stays baselined — and NOT
+   soundly auto-fixable (investigated 2026-06-28):** Newtonsoft's `_textWriter` is a
+   `JsonTextWriter` over a `StringWriter`, but reading the real `JsonTextWriter` source shows
+   it is **not a no-op type** — `Close()` runs `base.Close()` (auto-completes open JSON
+   tokens, writing closing brackets) and `CloseBufferAndWriter()`, which **returns its rented
+   `_writeBuffer` to `_arrayPool`** when an `ArrayPool` is set (a real pooled-buffer release,
+   the POOL-leak class we track) and closes the writer. So a recursive "Dispose-is-a-no-op"
+   recognizer would be **unsound** (it can leak a pooled buffer) or correctly **decline** —
+   either way it would not clear this. The instance is benign only by **instance facts** (no
+   `ArrayPool` set + the sink is a `StringWriter`), not a type-level no-op — the same reason
+   we exclude writers from `IsNoOpDisposeWrapper`. The recursive-analysis idea is therefore
+   **shelved as not worth building**, not merely deferred. Note the NLog `_xmlSource` /
    `_reusable*Stream` reals are also third-party wrappers (`CharEnumerator`,
    `ReusableStreamCreator`) of the same benign shape and stay **kept visible** for the
    same reason — we can't prove their disposal is a no-op, so we don't silently drop them.
