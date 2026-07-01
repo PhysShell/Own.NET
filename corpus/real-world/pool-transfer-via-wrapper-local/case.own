@@ -1,0 +1,19 @@
+// OwnLang model of a rented ArrayPool buffer that (in the fix) is transferred to a wrapper which
+// leaves the method through a local — StackExchange.Redis Lease<T>.Create (`var lease = new
+// Lease(arr); return lease;`) and RedisServer scan (`var r = new ScanResult(keys); SetResult(m, r)`).
+// The before.cs wraps the buffer in a METHOD-SCOPED Holder that is dropped, so the buffer is never
+// returned -> a real leak, modelled here as an acquire with no `release` (OWN001). The after.cs
+// returns the wrapper, so the extractor follows the transfer through the escaping local and stays
+// silent (extractor-level; the before.cs/after.cs benchmark exercises it end to end). See notes.md.
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  emit_type    "int[]"
+  emit_acquire "ArrayPool<int>.Shared.Rent({args})"
+  emit_release "ArrayPool<int>.Shared.Return({0})"
+}
+fn Run(n: int) {
+  let buf = acquire Buffer(n);   // ArrayPool.Rent; wrapped in a method-scoped Holder, never returned
+  // no `release buf;` -> OWN001
+}

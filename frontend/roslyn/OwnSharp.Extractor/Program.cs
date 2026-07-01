@@ -2103,7 +2103,55 @@ static bool PassedToEscapingCtor(IdentifierNameSyntax idn, SemanticModel model) 
             { Parent: BaseObjectCreationExpressionSyntax oce } }
     && (oce.Parent is ReturnStatementSyntax
         || (oce.Parent is AssignmentExpressionSyntax a && a.Right == oce
-            && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol));
+            && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol)
+        // One extra hop: `var w = new Wrapper(…, buf, …); … return w / _field = w / Sink(…, w, …)`.
+        // The buffer transfers to the wrapper, which then ESCAPES through the local. Mined FP on
+        // StackExchange.Redis (Lease<T>.Create `return new Lease(arr)` via a local; RedisServer scan
+        // `new ScanResult(keys)` handed to SetResult). The Codex one-level rule is PRESERVED for the
+        // non-escaping case: a wrapper local that never leaves the method (and never Returns the
+        // buffer) still leaks — WrapperLocalEscapes returns false there, so it stays flagged.
+        || WrapperLocalEscapes(oce, model));
+
+// The object-creation `oce` (`new Wrapper(…, buf, …)`) is bound to a LOCAL that itself provably
+// leaves the enclosing method — `var w = new Wrapper(buf); … return w` / `this._f = w` / `Sink(…,
+// w, …)`. Only then is the buffer an ownership TRANSFER (the wrapper carries it out); a wrapper local
+// that stays method-scoped is a borrow and the buffer still leaks (Codex). Precision-first, mirroring
+// the direct `return new Wrapper(buf)` rule: we cannot prove the wrapper Returns the buffer, but a
+// pooled buffer handed to an escaping owner is a transfer, not a leak here.
+static bool WrapperLocalEscapes(BaseObjectCreationExpressionSyntax oce, SemanticModel model)
+{
+    // Bind the `new` to a local symbol: `var w = new …` (declarator) or `w = new …` (local assign).
+    ISymbol? w = oce.Parent switch
+    {
+        EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd } => model.GetDeclaredSymbol(vd),
+        AssignmentExpressionSyntax { Right: var r } asg when r == oce
+            && asg.Left is IdentifierNameSyntax lid
+            && model.GetSymbolInfo(lid).Symbol is ILocalSymbol ls => ls,
+        _ => null,
+    };
+    if (w is null)
+        return false;
+    var method = oce.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
+    SyntaxNode? body = method?.Body ?? (SyntaxNode?)method?.ExpressionBody;
+    if (body is null)
+        return false;
+    foreach (var id in body.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, w))
+            continue;
+        // return w;
+        if (id.Parent is ReturnStatementSyntax)
+            return true;
+        // <field> = w;  (w on the RHS, LHS a real field — not a look-alike local)
+        if (id.Parent is AssignmentExpressionSyntax fa && fa.Right == id
+            && model.GetSymbolInfo(fa.Left).Symbol is IFieldSymbol)
+            return true;
+        // Sink(…, w, …);  — w handed as a call argument (the wrapper, and thus the buffer, leaves)
+        if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax } })
+            return true;
+    }
+    return false;
+}
 
 // Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType
 // (checked on the resolved symbol, so an aliased/injected `MemoryPool<T>` receiver binds and a
