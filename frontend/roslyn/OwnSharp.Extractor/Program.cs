@@ -2134,7 +2134,13 @@ static bool WrapperLocalEscapes(BaseObjectCreationExpressionSyntax oce, Semantic
     if (body is null)
         return false;
     bool escapes = false;
-    foreach (var id in body.DescendantNodes().OfType<IdentifierNameSyntax>())
+    // Do NOT descend into nested lambdas / local functions: a use of `w` captured inside a
+    // callable that itself never leaves the method (`Action a = () => Sink(w);`) is not an escape
+    // of `w`, and counting it would untrack `buf` and hide a real leak (CodeRabbit). The `w`
+    // declaration and its top-level uses stay in scope; only nested-callable bodies are pruned.
+    foreach (var id in body.DescendantNodes(n =>
+                 n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+             .OfType<IdentifierNameSyntax>())
     {
         if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, w))
             continue;
