@@ -2120,37 +2120,40 @@ static bool PassedToEscapingCtor(IdentifierNameSyntax idn, SemanticModel model) 
 // pooled buffer handed to an escaping owner is a transfer, not a leak here.
 static bool WrapperLocalEscapes(BaseObjectCreationExpressionSyntax oce, SemanticModel model)
 {
-    // Bind the `new` to a local symbol: `var w = new …` (declarator) or `w = new …` (local assign).
-    ISymbol? w = oce.Parent switch
-    {
-        EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd } => model.GetDeclaredSymbol(vd),
-        AssignmentExpressionSyntax { Right: var r } asg when r == oce
-            && asg.Left is IdentifierNameSyntax lid
-            && model.GetSymbolInfo(lid).Symbol is ILocalSymbol ls => ls,
-        _ => null,
-    };
-    if (w is null)
+    // Only the DECLARATION form `var w = new Wrapper(buf)` — a fresh local bound exactly once. The
+    // assignment form (`w = new Wrapper(buf)`, w pre-declared and reused) is NOT handled: a reused
+    // local makes "does *this* wrapper escape" flow-dependent (`Sink(w); … w = new Wrapper(buf)` uses
+    // an earlier value; `w = new Wrapper(buf); w = other; return w` returns a different one), which
+    // this syntactic scan cannot answer soundly — untracking `buf` there would MISS a real leak
+    // (Codex P2). So we bind only a declarator and additionally bail if `w` is reassigned anywhere.
+    if (oce.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
+        || model.GetDeclaredSymbol(vd) is not ILocalSymbol w)
         return false;
     var method = oce.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
     SyntaxNode? body = method?.Body ?? (SyntaxNode?)method?.ExpressionBody;
     if (body is null)
         return false;
+    bool escapes = false;
     foreach (var id in body.DescendantNodes().OfType<IdentifierNameSyntax>())
     {
         if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, w))
             continue;
-        // return w;
+        // `w` REASSIGNED (`w = …` / `w op= …`, w on the LHS): it no longer provably refers to the
+        // wrapper that owns `buf`, so we cannot claim an escape. Bail — the buffer stays flagged
+        // (sound: a false negative here would be a missed pool leak, worse than keeping the report).
+        if (id.Parent is AssignmentExpressionSyntax reassign && reassign.Left == id)
+            return false;
+        // return w;  /  <field> = w;  /  Sink(…, w, …)  — the wrapper (and thus `buf`) leaves the
+        // method. Recorded, not returned early, so a later reassignment can still veto it.
         if (id.Parent is ReturnStatementSyntax)
-            return true;
-        // <field> = w;  (w on the RHS, LHS a real field — not a look-alike local)
-        if (id.Parent is AssignmentExpressionSyntax fa && fa.Right == id
-            && model.GetSymbolInfo(fa.Left).Symbol is IFieldSymbol)
-            return true;
-        // Sink(…, w, …);  — w handed as a call argument (the wrapper, and thus the buffer, leaves)
-        if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax } })
-            return true;
+            escapes = true;
+        else if (id.Parent is AssignmentExpressionSyntax fa && fa.Right == id
+                 && model.GetSymbolInfo(fa.Left).Symbol is IFieldSymbol)
+            escapes = true;
+        else if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax } })
+            escapes = true;
     }
-    return false;
+    return escapes;
 }
 
 // Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType

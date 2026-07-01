@@ -37,3 +37,9 @@ the buffer, so a wrapper that escapes but silently drops the buffer would be a (
 The `w`-as-call-argument signal is the loosest — a `Sink(w)` that merely reads `w` and drops it would
 be exempted — but handing a buffer-owning wrapper to a call is a transfer in idiomatic pooling code,
 and erring toward no-false-positive matches the existing transfer stance.
+
+To stay sound against a **reused local** (Codex P2), the exemption is bound to the **declaration
+form only** (`var w = new Wrapper(buf)`) and **bails if `w` is reassigned anywhere** — otherwise
+`var w = new Wrapper(buf); w = other; return w;` (or `Sink(w); … w = new Wrapper(buf);`) would let a
+`return`/call of a *different* value untrack `buf`, missing a real leak. A reused wrapper local keeps
+the buffer flagged.
