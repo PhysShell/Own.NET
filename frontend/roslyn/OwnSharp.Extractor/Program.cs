@@ -4024,9 +4024,22 @@ foreach (var (file, tree) in parsed)
                         // --flow-locals; skip it here so it is not double-reported.
                         EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
                             => (flowLocals ? null : vd.Identifier.Text, false),
-                        // a field/assignment rent (`_buf = pool.Rent(...)`) is NOT a
-                        // flow candidate, so this pass keeps it in both modes.
-                        AssignmentExpressionSyntax asg => (FieldName(asg.Left), true),
+                        // a FIELD-backed rent (`_buf = pool.Rent(...)`) is NOT a flow
+                        // candidate — rented in one member, Returned class-wide in another
+                        // (Dispose) — so this pass keeps it in both modes. GATED on the target
+                        // being a real field: `FieldName` is purely syntactic, so a bare LOCAL
+                        // assignment (`keys = pool.Rent(count)`, keys pre-declared) would otherwise
+                        // be mis-classified as a field rent and flagged with NO escape/transfer
+                        // analysis — a false positive when the local is handed to an escaping owner
+                        // (mined on StackExchange.Redis RedisServer scan: `keys = ArrayPool<RedisKey>.
+                        // Shared.Rent(count); … new ScanResult(cursor, keys, count, true)` — the
+                        // ScanResult owns the Return via Recycle()). A bare-local assignment rent
+                        // belongs to the flow pass (which does escape analysis); it does not track
+                        // the assignment form, so such a rent is honestly not tracked here rather
+                        // than flagged unsoundly.
+                        AssignmentExpressionSyntax asg
+                            when model.GetSymbolInfo(asg.Left).Symbol is IFieldSymbol
+                            => (FieldName(asg.Left), true),
                         _ => ((string?)null, false),
                     };
                     if (name != null)
