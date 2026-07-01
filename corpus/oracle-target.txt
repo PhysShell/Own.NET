@@ -4,7 +4,8 @@
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
 # TEMPORARY (revert before any PR): fresh-repo oracle sweep for new FP classes / recall gaps.
-# Target 1: DapperLib/Dapper — an ADO.NET micro-ORM that exercises our owned-API recognition
-# (DbConnection/DbCommand.CreateCommand/ExecuteReader → owned IDisposable), our target niche.
-# Triaged: product code only (include_tests default false). See docs/notes/oracle-known-fps.md.
-DapperLib/Dapper
+# Target 1 (done, clean): DapperLib/Dapper — 0 own-only; oracle-only = Infer# WrappedBasicReader
+#   ownership-transfer FPs + CodeQL dispose-on-throw honest-skips. No new FP class.
+# Target 2: StackExchange/StackExchange.Redis — heavy Subscribe tokens / ConnectionMultiplexer
+#   IDisposable / timers; likelier to exercise subscription + disposable-field detectors.
+StackExchange/StackExchange.Redis
