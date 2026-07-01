@@ -218,6 +218,45 @@ entry and let the oracle re-confirm clean.
    `docs-src/`) are handled per-entry in the baseline rather than by polluting the
    generic `_is_test_path` with repo-specific directory names.
 
+## 2026-07-01 fresh-repo sweep (Dapper, StackExchange.Redis)
+
+A second cross-tool sweep over two general-purpose libraries not in the original
+five, to hunt new FP classes / recall gaps.
+
+**DapperLib/Dapper — clean.** 0 own-only findings: the ADO.NET owned-API
+recognition added no noise on a heavy 3000-line ADO codebase. Oracle-only was
+Infer#'s `WrappedBasicReader` "not closed" (a wrapped reader **returned to the
+caller** — the ownership-transfer FP class `oracle.md` already dings Infer# for) and
+CodeQL `cs/dispose-not-called-on-throw` inside large `Read`/`NextResult` methods that
+`--flow-locals` honestly skips. No product bug, no FP class.
+
+**StackExchange/StackExchange.Redis — two pooled-buffer-transfer FP classes, both
+fixed.** A rented `ArrayPool` buffer handed to a wrapper that then escapes was flagged
+`OWN001` "rented but never returned", though the wrapper owns the `Return`:
+
+1. `Lease<T>.Create` — `var arr = Rent(length); var lease = new Lease<T>(arr, length);
+   return lease;`. The `new Wrapper(buf)` bound to a **local that then leaves the
+   method** was not recognised as a transfer (the direct `return new Wrapper(buf)` rule
+   is one-level). **Fix:** `WrapperLocalEscapes` — a wrapper local that provably leaves
+   (`return w` / `<field> = w` / `w` as a call arg) transfers the buffer; a method-scoped
+   wrapper still leaks (Codex's one-level rule preserved). Corpus fixture
+   `pool-transfer-via-wrapper-local`.
+2. `RedisServer` scan — `RedisKey[] keys; … keys = Rent(count); … new ScanResult(cursor,
+   keys, count, true)` (the `ScanResult` owns the `Return` via `Recycle()`, called by
+   `CursorEnumerable` — confirmed in source). The **bare-LOCAL assignment rent** was
+   mis-classified as a field rent by the syntactic POOL001 pass (`FieldName` is purely
+   syntactic) and flagged with no escape analysis. **Fix:** gate that pass's assignment
+   arm on `model.GetSymbolInfo(asg.Left).Symbol is IFieldSymbol` — a bare-local
+   assignment rent belongs to the flow pass (which does escape analysis but does not
+   track the assignment form), so it is honestly untracked rather than flagged unsoundly.
+
+Both verified end to end: live Redis oracle re-runs took own-only 10 → 9 → 6, all
+pooled-buffer findings cleared; CI golden + corpus-benchmark green. The remaining 6
+Redis own-only are real or honest warnings — the `sentinelPrimaryReconnectTimer` /
+`_inputCancel` / `_outputCancel` undisposed `Timer`/`CTS` fields (benign true positives,
+like serilog's `_shutdownSignal`), the two `connection.Connection*` injected-source
+subscriptions (warning tier — unknown lifetime), and the `toys/` sample host — none FPs.
+
 ## Rejected approaches
 
 ### Static-class subscriber exemption (the CsvHelper `ConsoleHost` over-reach)
