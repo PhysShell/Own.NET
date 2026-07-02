@@ -1,0 +1,20 @@
+// OwnLang model of a use-after-dispose reached through a still-live event subscription written
+// with an explicit delegate creation. `acquire` == the owned connection's construction,
+// `release` == its Dispose(), `use` == a late `Changed` event (the subscribed handler) reading the
+// connection AFTER Dispose(). Using a disposable after its release is the generic OWN002, tagged
+// with the resource kind. The C# before/after carry the `+= new EventHandler(H)` syntax the
+// extractor must normalize to register the handler as live; this .own reduction only carries the
+// acquire/release/use logic the core reasons about.
+module WpfHandlerAfterDisposeWrappedDelegate
+
+resource Connection {
+    acquire Open
+    release Dispose
+    kind "disposable"
+}
+
+fn OnSourceChanged(source: int) {
+    let conn = acquire Connection(source);
+    release conn;   // View.Dispose() disposes the owned connection
+    use conn;       // a late Changed event reaches it after Dispose -> OWN002
+}

@@ -3767,7 +3767,11 @@ foreach (var (file, tree) in parsed)
                 // disposing the token (the Rx idiom), not a `-=`, so those handlers are always live.
                 var liveEventKeys = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var a in assigns)
-                    if (IsHandler(a.Right) && FieldName(a.Right) is { } hn)
+                    // Normalize the handler RHS (unwrap `new H(m)` / target-typed `new(m)` -> `m`)
+                    // so a wrapped subscription registers its handler here too — consistent with the
+                    // release matching above, else a `+= new EventHandler(OnX)` never marks OnX a live
+                    // subscription target and its disposed-field read escapes OWN002 (Codex P2).
+                    if (NormalizeHandler(a.Right) is var rhs && IsHandler(rhs) && FieldName(rhs) is { } hn)
                     {
                         var key = $"{a.Left}|{hn}";
                         if (a.IsKind(SyntaxKind.AddAssignmentExpression)) liveEventKeys.Add(key);
