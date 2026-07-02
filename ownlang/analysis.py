@@ -65,7 +65,7 @@ from .cfg import (
     Symbol,
     Use,
 )
-from .diagnostics import Diagnostic
+from .diagnostics import Diagnostic, Evidence
 
 
 class VarState(Enum):
@@ -100,12 +100,20 @@ class State:
     var: dict[int, set[VarState]] = field(default_factory=dict)
     loans: dict[int, Loan] = field(default_factory=dict)
     handle_rid: dict[int, int] = field(default_factory=dict)
+    # Provenance for the move site of a RID: RID -> (line, exact). `exact` is True
+    # when every path that moved this resource moved it at the same source line
+    # (a single, precise move to point evidence at); False when it was moved at
+    # different lines on different paths and merged — an honest "one of several
+    # paths" marker, since a static merge cannot say which path was taken. Feeds
+    # OWN005 evidence only; it carries no lattice state and changes no verdict.
+    moved_at: dict[int, tuple[int, bool]] = field(default_factory=dict)
 
     def copy(self) -> State:
         return State(
             var={k: set(v) for k, v in self.var.items()},
             loans=dict(self.loans),
             handle_rid=dict(self.handle_rid),
+            moved_at=dict(self.moved_at),
         )
 
     def rid_of(self, sym: Symbol) -> int:
@@ -150,6 +158,28 @@ def _join_handle_rid(a: dict[int, int], b: dict[int, int]) -> dict[int, int]:
     return out
 
 
+def _join_moved_at(
+    a: dict[int, tuple[int, bool]], b: dict[int, tuple[int, bool]]
+) -> dict[int, tuple[int, bool]]:
+    """Merge the RID->move-site maps of two merging paths. Unlike the loan/handle
+    joins this carries NO invariant: a resource legitimately moves at different
+    lines on different paths. When the two agree on the line the site stays exact;
+    when they disagree we keep the earliest line deterministically and mark it
+    inexact, so downstream evidence says "one of several paths" instead of naming a
+    line that only one path took. Only ever used to *label* OWN005 evidence."""
+    out = dict(a)
+    for rid, (line_b, exact_b) in b.items():
+        if rid in out:
+            line_a, exact_a = out[rid]
+            if line_a == line_b:
+                out[rid] = (line_a, exact_a and exact_b)
+            else:
+                out[rid] = (min(line_a, line_b), False)
+        else:
+            out[rid] = (line_b, exact_b)
+    return out
+
+
 def join(a: State, b: State) -> State:
     out = State()
     for k in set(a.var) | set(b.var):
@@ -164,6 +194,7 @@ def join(a: State, b: State) -> State:
     )
     out.loans = dict(a.loans)
     out.handle_rid = _join_handle_rid(a.handle_rid, b.handle_rid)
+    out.moved_at = _join_moved_at(a.moved_at, b.moved_at)
     return out
 
 
@@ -187,11 +218,24 @@ class _Analyzer:
 
     def err(self, code: str, msg: str, line: int,
             subject: str | None = None,
-            resource_kind: str | None = None) -> None:
+            resource_kind: str | None = None,
+            evidence: tuple[Evidence, ...] = ()) -> None:
         if self.silent:
             return
         self.diags.append(Diagnostic(code, msg, line, subject=subject,
-                                     resource_kind=resource_kind))
+                                     resource_kind=resource_kind,
+                                     evidence=evidence))
+
+    def _moved_evidence(self, st: State, rid: int) -> tuple[Evidence, ...]:
+        """The move-site reachability step for an OWN005 finding, or empty when the
+        move site was not recorded. An inexact site (moved at different lines on
+        different merged paths) is labelled honestly rather than naming one path."""
+        site = st.moved_at.get(rid)
+        if site is None:
+            return ()
+        line, exact = site
+        label = "moved here" if exact else "moved here (on one of several paths)"
+        return (Evidence(line=line, label=label, role="moved"),)
 
     # -- loan / permission helpers -----------------------------------------
 
@@ -227,7 +271,8 @@ class _Analyzer:
         if VarState.OWNED not in S:
             if VarState.MOVED in S:
                 self.err("OWN005", f"{verb} '{sym.name}' after it was moved",
-                         line, subject=subj, resource_kind=kind)
+                         line, subject=subj, resource_kind=kind,
+                         evidence=self._moved_evidence(st, st.rid_of(sym)))
             elif VarState.ESCAPED in S and VarState.RELEASED not in S:
                 self.err("OWN002",
                          f"{verb} '{sym.name}' after it was consumed", line,
@@ -389,7 +434,11 @@ class _Analyzer:
 
         if isinstance(ins, MoveInto):
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
-            st.var[st.rid_of(ins.src)] = {VarState.MOVED}
+            src_rid = st.rid_of(ins.src)
+            st.var[src_rid] = {VarState.MOVED}
+            # remember where the move happened, so a later use/return-after-move
+            # (OWN005) can point evidence at the move site. A single move is exact.
+            st.moved_at[src_rid] = (ins.line, True)
             st.var[st.mint(ins.dst)] = {VarState.OWNED}
             return
 
@@ -489,7 +538,9 @@ class _Analyzer:
                     if VarState.MOVED in S:
                         self.err("OWN005",
                                  f"'{ins.sym.name}' returned after it was moved",
-                                 ins.line, subject=subj, resource_kind=rkind)
+                                 ins.line, subject=subj, resource_kind=rkind,
+                                 evidence=self._moved_evidence(
+                                     st, st.rid_of(ins.sym)))
                     else:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
@@ -507,7 +558,15 @@ class _Analyzer:
                         self.err("OWN015",
                                  f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
                                  f"buffer and may be stack-backed; it cannot escape "
-                                 f"the current function", ins.line, subject=subj)
+                                 f"the current function", ins.line, subject=subj,
+                                 evidence=(
+                                     Evidence(line=ins.sym.buffer.line,
+                                              label=f"'{ins.sym.name}' allocated here",
+                                              role="acquired"),
+                                     Evidence(line=ins.line,
+                                              label="escapes the function by return "
+                                              "here", role="escaped"),
+                                 ))
                     elif ins.sym.buffer is not None:
                         self.err("OWN017",
                                  f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
@@ -564,7 +623,15 @@ class _Analyzer:
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer "
                              f"and may be stack-backed; it cannot be moved to a "
                              f"longer-lived owner by consuming it in '{callee}'",
-                             line, subject=sym.origin)
+                             line, subject=sym.origin,
+                             evidence=(
+                                 Evidence(line=sym.buffer.line,
+                                          label=f"'{sym.name}' allocated here",
+                                          role="acquired"),
+                                 Evidence(line=line,
+                                          label=f"consumed by '{callee}' here",
+                                          role="consumed"),
+                             ))
                 elif sym.buffer is not None:
                     self.err("OWN017",
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer; "

@@ -1122,6 +1122,12 @@ def run() -> int:
     import test_explain
     explain_rc = test_explain.run()
 
+    # Evidence coverage (execution-surfaces ADR §3/§5): OWN015/OWN016/OWN005 carry
+    # a structured acquire->escape / move->use reachability slice, rendered as
+    # ordered `note:` lines, with the merge-point move site labelled honestly.
+    import test_evidence_coverage
+    evid_rc = test_evidence_coverage.run()
+
     # Reactive-effect stability (P-020): the EFF001 effect-storm analysis — the
     # identity lattice, reference propagation, cycle safety, and the OwnIR bridge
     # mapping the optional `effects` block to an EFF001 finding (a new core
@@ -1134,7 +1140,7 @@ def run() -> int:
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
                  or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc
-                 or explain_rc or effects_rc) else 0
+                 or explain_rc or effects_rc or evid_rc) else 0
 
 
 if __name__ == "__main__":
