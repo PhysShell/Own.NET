@@ -2103,7 +2103,64 @@ static bool PassedToEscapingCtor(IdentifierNameSyntax idn, SemanticModel model) 
             { Parent: BaseObjectCreationExpressionSyntax oce } }
     && (oce.Parent is ReturnStatementSyntax
         || (oce.Parent is AssignmentExpressionSyntax a && a.Right == oce
-            && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol));
+            && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol)
+        // One extra hop: `var w = new Wrapper(…, buf, …); … return w / _field = w / Sink(…, w, …)`.
+        // The buffer transfers to the wrapper, which then ESCAPES through the local. Mined FP on
+        // StackExchange.Redis (Lease<T>.Create `return new Lease(arr)` via a local; RedisServer scan
+        // `new ScanResult(keys)` handed to SetResult). The Codex one-level rule is PRESERVED for the
+        // non-escaping case: a wrapper local that never leaves the method (and never Returns the
+        // buffer) still leaks — WrapperLocalEscapes returns false there, so it stays flagged.
+        || WrapperLocalEscapes(oce, model));
+
+// The object-creation `oce` (`new Wrapper(…, buf, …)`) is bound to a LOCAL that itself provably
+// leaves the enclosing method — `var w = new Wrapper(buf); … return w` / `this._f = w` / `Sink(…,
+// w, …)`. Only then is the buffer an ownership TRANSFER (the wrapper carries it out); a wrapper local
+// that stays method-scoped is a borrow and the buffer still leaks (Codex). Precision-first, mirroring
+// the direct `return new Wrapper(buf)` rule: we cannot prove the wrapper Returns the buffer, but a
+// pooled buffer handed to an escaping owner is a transfer, not a leak here.
+static bool WrapperLocalEscapes(BaseObjectCreationExpressionSyntax oce, SemanticModel model)
+{
+    // Only the DECLARATION form `var w = new Wrapper(buf)` — a fresh local bound exactly once. The
+    // assignment form (`w = new Wrapper(buf)`, w pre-declared and reused) is NOT handled: a reused
+    // local makes "does *this* wrapper escape" flow-dependent (`Sink(w); … w = new Wrapper(buf)` uses
+    // an earlier value; `w = new Wrapper(buf); w = other; return w` returns a different one), which
+    // this syntactic scan cannot answer soundly — untracking `buf` there would MISS a real leak
+    // (Codex P2). So we bind only a declarator and additionally bail if `w` is reassigned anywhere.
+    if (oce.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
+        || model.GetDeclaredSymbol(vd) is not ILocalSymbol w)
+        return false;
+    var method = oce.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
+    SyntaxNode? body = method?.Body ?? (SyntaxNode?)method?.ExpressionBody;
+    if (body is null)
+        return false;
+    bool escapes = false;
+    // Do NOT descend into nested lambdas / local functions: a use of `w` captured inside a
+    // callable that itself never leaves the method (`Action a = () => Sink(w);`) is not an escape
+    // of `w`, and counting it would untrack `buf` and hide a real leak (CodeRabbit). The `w`
+    // declaration and its top-level uses stay in scope; only nested-callable bodies are pruned.
+    foreach (var id in body.DescendantNodes(n =>
+                 n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+             .OfType<IdentifierNameSyntax>())
+    {
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(id).Symbol, w))
+            continue;
+        // `w` REASSIGNED (`w = …` / `w op= …`, w on the LHS): it no longer provably refers to the
+        // wrapper that owns `buf`, so we cannot claim an escape. Bail — the buffer stays flagged
+        // (sound: a false negative here would be a missed pool leak, worse than keeping the report).
+        if (id.Parent is AssignmentExpressionSyntax reassign && reassign.Left == id)
+            return false;
+        // return w;  /  <field> = w;  /  Sink(…, w, …)  — the wrapper (and thus `buf`) leaves the
+        // method. Recorded, not returned early, so a later reassignment can still veto it.
+        if (id.Parent is ReturnStatementSyntax)
+            escapes = true;
+        else if (id.Parent is AssignmentExpressionSyntax fa && fa.Right == id
+                 && model.GetSymbolInfo(fa.Left).Symbol is IFieldSymbol)
+            escapes = true;
+        else if (id.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax } })
+            escapes = true;
+    }
+    return escapes;
+}
 
 // Is `t` the System.Buffers.MemoryPool<T> type — the Dispose-based pool. Mirrors IsArrayPoolType
 // (checked on the resolved symbol, so an aliased/injected `MemoryPool<T>` receiver binds and a
@@ -3976,9 +4033,22 @@ foreach (var (file, tree) in parsed)
                         // --flow-locals; skip it here so it is not double-reported.
                         EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax vd }
                             => (flowLocals ? null : vd.Identifier.Text, false),
-                        // a field/assignment rent (`_buf = pool.Rent(...)`) is NOT a
-                        // flow candidate, so this pass keeps it in both modes.
-                        AssignmentExpressionSyntax asg => (FieldName(asg.Left), true),
+                        // a FIELD-backed rent (`_buf = pool.Rent(...)`) is NOT a flow
+                        // candidate — rented in one member, Returned class-wide in another
+                        // (Dispose) — so this pass keeps it in both modes. GATED on the target
+                        // being a real field: `FieldName` is purely syntactic, so a bare LOCAL
+                        // assignment (`keys = pool.Rent(count)`, keys pre-declared) would otherwise
+                        // be mis-classified as a field rent and flagged with NO escape/transfer
+                        // analysis — a false positive when the local is handed to an escaping owner
+                        // (mined on StackExchange.Redis RedisServer scan: `keys = ArrayPool<RedisKey>.
+                        // Shared.Rent(count); … new ScanResult(cursor, keys, count, true)` — the
+                        // ScanResult owns the Return via Recycle()). A bare-local assignment rent
+                        // belongs to the flow pass (which does escape analysis); it does not track
+                        // the assignment form, so such a rent is honestly not tracked here rather
+                        // than flagged unsoundly.
+                        AssignmentExpressionSyntax asg
+                            when model.GetSymbolInfo(asg.Left).Symbol is IFieldSymbol
+                            => (FieldName(asg.Left), true),
                         _ => ((string?)null, false),
                     };
                     if (name != null)

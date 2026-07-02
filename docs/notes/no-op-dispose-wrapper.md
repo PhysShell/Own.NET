@@ -55,22 +55,31 @@ The motivating oracle finding was Newtonsoft.Json's `TraceJsonReader._textWriter
 
 ```csharp
 _sw = new StringWriter(CultureInfo.InvariantCulture);
-_textWriter = new JsonTextWriter(_sw); // a no-op in truth — but JsonTextWriter is third-party
+_textWriter = new JsonTextWriter(_sw); // looks like a no-op — but JsonTextWriter is NOT a no-op type
 ```
 
-Structurally identical, but `JsonTextWriter` is a **third-party** wrapper (`JsonWriter`,
-not a BCL `TextWriter`). We cannot prove *its* `Dispose` is pass-through without modelling
-its body — and asserting a no-op we cannot prove is exactly the unsound over-reach that
-sank the static-class subscriber exemption (see
-[`oracle-known-fps.md` → Rejected approaches](oracle-known-fps.md)). So Newtonsoft's
-`_textWriter` stays a **baselined** finding in
-[`oracle-fp-baseline.txt`](../../corpus/oracle-fp-baseline.txt), not a silent drop.
+It looks structurally identical to the BCL reader case, but a 2026-06-28 read of the real
+`JsonTextWriter` source shows it is **not a no-op type to dispose**:
 
-Retiring that baseline entry would need a general, recursive "Dispose is a no-op"
-analysis over a first-party type's body (it disposes only dispose-optional members and
-holds no unmanaged handle). That is a larger, higher-risk capability; until it lands, only
-the BCL pass-through adapters — whose disposal contract is documented and fixed — are
-exempted.
+- `Close()` runs `base.Close()` — which **auto-completes open JSON tokens** (writes closing
+  brackets to the underlying writer) — then `CloseBufferAndWriter()`;
+- `CloseBufferAndWriter()` **returns its rented `_writeBuffer` to `_arrayPool`** when an
+  `ArrayPool` is configured — a real **pooled-buffer release** (the very POOL-leak class
+  Own.NET tracks elsewhere) — and closes the underlying writer.
+
+So disposal has genuine side effects (a conditional pooled-buffer return, token-completion
+writes). This is the same reason we **exclude writers** (`StreamWriter`/`BinaryWriter`) from
+`IsNoOpDisposeWrapper` — a writer's `Dispose` does real work. A recursive "Dispose is a
+no-op" recognizer over the body would therefore either be **unsound** (it can leak a pooled
+buffer) or correctly **decline** — so it would not clear this finding regardless. Asserting a
+no-op we cannot prove is exactly the unsound over-reach that sank the static-class subscriber
+exemption (see [`oracle-known-fps.md` → Rejected approaches](oracle-known-fps.md)).
+
+The `_textWriter` *instance* is benign only by **instance facts** — no `ArrayPool` is set on
+it, and its sink is a `StringWriter` — not by any type-level no-op property. So it stays a
+**baselined** finding in [`oracle-fp-baseline.txt`](../../corpus/oracle-fp-baseline.txt), not
+a silent drop, and the "recursive Dispose-no-op analysis" idea is **shelved as not worth
+building** (it wouldn't soundly clear the one case that motivated it).
 
 ## Corpus
 

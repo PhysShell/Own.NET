@@ -186,9 +186,21 @@ architectural strictness, and the borrow-checker showcase):
    the subscriber stays silent (no false positive) where the token tier only warns,
    and a released `-=` mitigates the capture. Proven by the `capture` fixture, the
    `StaticEventEscapeViewModel` sample (CI `wpf-extractor` → OWN014), and the
-   `corpus/wpf/systemevents-region-escape` reduction (P-004 WPF005 ✅). Remaining:
-   migrating the *injected*-source subscription tier (today an honest OWN001
-   warning) once lifetime modelling can prove or refute those sources.
+   `corpus/wpf/systemevents-region-escape` reduction (P-004 WPF005 ✅). The
+   **injected-source tier migration is now shipped** via the DI graph (P-006 + P-004,
+   `di_source_life`): an injected `+=` whose `source_type` resolves in the registration
+   graph reroutes through the region engine — a source proven to strictly **outlive** the
+   subscriber escalates the OWN001 *warning* to **OWN014** (a proven captive/region escape,
+   error-tier), a source **co-lifetimed or shorter** is *refuted* and dropped silently, and
+   an **unresolved** source (not in the DI graph) correctly stays the honest OWN001 warning
+   ("may outlive"). Covered by `test_ownir.py` (208/208 bridge checks, incl. the DI-sourced
+   escape + the "no DI info → stays a warning" regression). Residual is by design, not a gap:
+   a non-DI injected source has no provable lifetime, so warning is the honest verdict.
+   Escalating *those* by a curated "known app-lived source type" allowlist (e.g. MVVM
+   `IMessenger`/`IEventAggregator`) is **deliberately deferred as FP-prone** — modern
+   CommunityToolkit `WeakReferenceMessenger` holds recipients *weakly* (no leak), so a
+   type-name allowlist would mis-flag the safe case; it needs weak-vs-strong reference
+   evidence we don't model.
 3. **DI lifetimes** — registration + constructor graph; captive dependency (P-006).
    ◑ *In progress* — DI001 lands end to end: the C# extractor builds the
    registration + constructor graph from `Add{Singleton,Scoped,Transient}` (generic

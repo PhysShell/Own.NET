@@ -24,12 +24,16 @@ reason: we and the oracles occupy orthogonal niches.
 | disposition | count | what happens on re-run |
 |---|---:|---|
 | **Fixed in the extractor** | 6 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle — see below) |
-| **Baselined FP** | 6 | moved to "Known FP (baselined)", out of the triage queue |
+| **Baselined FP** | 5 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
-| **True-but-benign — kept, baselined-as-sample** | 2 | (protobuf `assorted/` samples) baselined as non-product |
+| **True-but-benign — kept, baselined-as-sample** | 3 | (protobuf `assorted/` samples) baselined as non-product |
 
-The 6 baselined FPs + the 2 non-product-sample reals = 8 findings, covered by
+(Re-triage 2026-06-28: `Page.xaml.cs` `timer` moved from "Baselined FP" 6→5 to
+"True-but-benign sample" 2→3 — it is a real leak of a custom `IDisposable`
+`Nuxleus.Performance.Stopwatch`, not the BCL non-disposable type first assumed.)
+
+The 5 baselined FPs + the 3 non-product-sample reals = 8 findings, covered by
 **7 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
 share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
 drops; the 4 true positives are deliberately **not** suppressed.
@@ -87,7 +91,7 @@ this.
 | `src/protobuf-net.Core/ProtoWriter.BufferWriter.cs` `_nullWriter` | **FP → baseline** | intentional null-object kept attached for pooled reuse; `Dispose()` comments *"don't cascade dispose to the null one"* |
 | `assorted/.../ProtoTranscoder.cs` `sync` (×2 copies) | **true-but-benign → baseline (non-product sample)** | `NetTranscoder` isn't `IDisposable`; one `ReaderWriterLockSlim` for app lifetime in a sample/extension tree |
 | `assorted/ProtoGen/CommandLineOptions.cs` `XsltMessageEncountered` | **FP → baseline** | self-subscription: publisher (`xsltOptions`) and the lambda are both owned by the same `CommandLineOptions`, co-lifetimed |
-| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **FP → baseline** | disposed by an enclosing `using (timer) { … }` the extractor missed (sample code) |
+| `assorted/SilverlightExtended/Page.xaml.cs` `timer` | **true-but-non-product → baseline (re-triaged 2026-06-28)** | TRUE POSITIVE: `timer` is a custom `IDisposable` `Nuxleus.Performance.Stopwatch` (NOT `System.Diagnostics.Stopwatch`) never disposed — the disposing `using (timer)` is commented out. Correctly flagged; baselined as non-product sample. |
 | `src/BuildToolsUnitTests/AnalyzerTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 | `src/BuildToolsUnitTests/GeneratorTestBase.cs` `logging.Log` | **test noise → path filter** | xUnit fixture; per-test lifetime |
 
@@ -142,14 +146,24 @@ entry and let the oracle re-confirm clean.
    its owned object), so the `current?.WaitForDispose(...)` is seen as a release —
    own-only 4 → 3, the NLog baseline now empty. Restricted to a `null`/`default`
    replacement: an exchange installing a new non-null value re-arms the field and is
-   declined (precision-first). **Also fixed — the protobuf `Page.xaml.cs` local.** The
-   `using (preExistingLocal)` form — `var timer = new ...; using (timer) { ... }`, where
-   the resource is an already-acquired tracked local — is now threaded as a scope-exit
-   release in the `--flow-locals` lowering (no `acquire`; only the missing release is
-   added, mirroring the `MemoryPool` owner branch). Its baseline entry is marked
-   fix-landed, pending a live-oracle re-run on protobuf to confirm-and-delete. Corpus
-   fixtures: `field-dispose-via-helper`, `field-dispose-via-exchange`,
-   `local-dispose-via-using-statement`.
+   declined (precision-first). **The `using (preExistingLocal)` form is now handled** —
+   `var r = new ...; using (r) { ... }`, an already-acquired tracked local, is threaded as
+   a scope-exit release in the `--flow-locals` lowering (no `acquire`; only the missing
+   release, mirroring the `MemoryPool` owner branch), with sound throw-routing
+   (`onThrowDefinite`). Corpus fixtures: `local-dispose-via-using-statement`,
+   `using-statement-throw-releases`. **It does NOT clear the protobuf `Page.xaml.cs`
+   baseline entry — because that entry is a TRUE POSITIVE, not an FP.** A live protobuf
+   oracle run (2026-06-28) + the raw source settled it: `Stopwatch` there is
+   `Nuxleus.Performance.Stopwatch` (the file has `using Nuxleus.Performance;` and uses
+   `Stopwatch.UnitPrecision` / `timer.Scope = () => …`, NOT `System.Diagnostics.Stopwatch`),
+   a custom **`IDisposable`** scope-timer that is genuinely never disposed (the disposing
+   `using (timer)` block is commented out). The extractor flags it via the flow-locals path,
+   which gates on `ImplementsIDisposable` — so it correctly resolved the custom type and
+   reported a real leak. It stays baselined as **non-product sample** (assorted/ Silverlight
+   demo), like the `NetTranscoder` `sync` entry — not as an FP. (Two earlier readings —
+   "missed `using`" and "non-`IDisposable` `Stopwatch` FP" — were both wrong; issue #161 was
+   opened on the second and then closed as invalid.) Other custom-sink fixtures:
+   `field-dispose-via-helper`, `field-dispose-via-exchange`.
 
 2. **No-op `Dispose` not modelled — PARTLY FIXED** *(Newtonsoft `TraceJsonReader.
    _textWriter`).* We flag any undisposed `IDisposable` structurally, without modelling
@@ -164,14 +178,18 @@ entry and let the oracle re-confirm clean.
    native/extra resource), and a path that builds `new StreamReader(path)` (a real file
    handle) keeps the field flagged. Corpus fixture
    `field-noop-dispose-wrapper`; full rationale
-   [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Still open — the soundness
-   wall:** Newtonsoft's `_textWriter` is a `JsonTextWriter` over a `StringWriter` —
-   structurally the same no-op, but `JsonTextWriter` is a **third-party** wrapper whose
-   `Dispose` we cannot prove is pass-through without modelling its body. Suppressing it
-   would be the same unsound over-reach as the rejected static-class exemption, so it
-   **stays baselined**. Retiring it needs a general recursive "Dispose-is-a-no-op" body
-   analysis (a first-party type that disposes only dispose-optional members and holds no
-   unmanaged handle) — larger and higher-risk; deferred. Note the NLog `_xmlSource` /
+   [`no-op-dispose-wrapper.md`](no-op-dispose-wrapper.md). **Stays baselined — and NOT
+   soundly auto-fixable (investigated 2026-06-28):** Newtonsoft's `_textWriter` is a
+   `JsonTextWriter` over a `StringWriter`, but reading the real `JsonTextWriter` source shows
+   it is **not a no-op type** — `Close()` runs `base.Close()` (auto-completes open JSON
+   tokens, writing closing brackets) and `CloseBufferAndWriter()`, which **returns its rented
+   `_writeBuffer` to `_arrayPool`** when an `ArrayPool` is set (a real pooled-buffer release,
+   the POOL-leak class we track) and closes the writer. So a recursive "Dispose-is-a-no-op"
+   recognizer would be **unsound** (it can leak a pooled buffer) or correctly **decline** —
+   either way it would not clear this. The instance is benign only by **instance facts** (no
+   `ArrayPool` set + the sink is a `StringWriter`), not a type-level no-op — the same reason
+   we exclude writers from `IsNoOpDisposeWrapper`. The recursive-analysis idea is therefore
+   **shelved as not worth building**, not merely deferred. Note the NLog `_xmlSource` /
    `_reusable*Stream` reals are also third-party wrappers (`CharEnumerator`,
    `ReusableStreamCreator`) of the same benign shape and stay **kept visible** for the
    same reason — we can't prove their disposal is a no-op, so we don't silently drop them.
@@ -199,6 +217,45 @@ entry and let the oracle re-confirm clean.
    test projects; the remaining repo-specific sample trees (`assorted/`,
    `docs-src/`) are handled per-entry in the baseline rather than by polluting the
    generic `_is_test_path` with repo-specific directory names.
+
+## 2026-07-01 fresh-repo sweep (Dapper, StackExchange.Redis)
+
+A second cross-tool sweep over two general-purpose libraries not in the original
+five, to hunt new FP classes / recall gaps.
+
+**DapperLib/Dapper — clean.** 0 own-only findings: the ADO.NET owned-API
+recognition added no noise on a heavy 3000-line ADO codebase. Oracle-only was
+Infer#'s `WrappedBasicReader` "not closed" (a wrapped reader **returned to the
+caller** — the ownership-transfer FP class `oracle.md` already dings Infer# for) and
+CodeQL `cs/dispose-not-called-on-throw` inside large `Read`/`NextResult` methods that
+`--flow-locals` honestly skips. No product bug, no FP class.
+
+**StackExchange/StackExchange.Redis — two pooled-buffer-transfer FP classes, both
+fixed.** A rented `ArrayPool` buffer handed to a wrapper that then escapes was flagged
+`OWN001` "rented but never returned", though the wrapper owns the `Return`:
+
+1. `Lease<T>.Create` — `var arr = Rent(length); var lease = new Lease<T>(arr, length);
+   return lease;`. The `new Wrapper(buf)` bound to a **local that then leaves the
+   method** was not recognised as a transfer (the direct `return new Wrapper(buf)` rule
+   is one-level). **Fix:** `WrapperLocalEscapes` — a wrapper local that provably leaves
+   (`return w` / `<field> = w` / `w` as a call arg) transfers the buffer; a method-scoped
+   wrapper still leaks (Codex's one-level rule preserved). Corpus fixture
+   `pool-transfer-via-wrapper-local`.
+2. `RedisServer` scan — `RedisKey[] keys; … keys = Rent(count); … new ScanResult(cursor,
+   keys, count, true)` (the `ScanResult` owns the `Return` via `Recycle()`, called by
+   `CursorEnumerable` — confirmed in source). The **bare-LOCAL assignment rent** was
+   mis-classified as a field rent by the syntactic POOL001 pass (`FieldName` is purely
+   syntactic) and flagged with no escape analysis. **Fix:** gate that pass's assignment
+   arm on `model.GetSymbolInfo(asg.Left).Symbol is IFieldSymbol` — a bare-local
+   assignment rent belongs to the flow pass (which does escape analysis but does not
+   track the assignment form), so it is honestly untracked rather than flagged unsoundly.
+
+Both verified end to end: live Redis oracle re-runs took own-only 10 → 9 → 6, all
+pooled-buffer findings cleared; CI golden + corpus-benchmark green. The remaining 6
+Redis own-only are real or honest warnings — the `sentinelPrimaryReconnectTimer` /
+`_inputCancel` / `_outputCancel` undisposed `Timer`/`CTS` fields (benign true positives,
+like serilog's `_shutdownSignal`), the two `connection.Connection*` injected-source
+subscriptions (warning tier — unknown lifetime), and the `toys/` sample host — none FPs.
 
 ## Rejected approaches
 
