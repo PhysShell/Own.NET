@@ -85,18 +85,25 @@ Emitted from `_state_problem` and the return branch. This one needs the **move
 site**, which `State` does not currently record. Minimal addition (the only new
 state):
 
-- In `State`: `moved_at: dict[int, int] = field(default_factory=dict)` — RID →
-  line where `MOVED` was set.
-- Record it wherever `{VarState.MOVED}` is set (`MoveInto` and the consume-like
-  transitions): `st.moved_at[st.rid_of(ins.src)] = ins.line`.
+- In `State`: `moved_at: dict[int, tuple[int, bool]] = field(default_factory=dict)`
+  — RID → `(line, exact)`. `exact` is True when every path that moved this RID
+  moved it at the same line (a single precise site); False once merged paths
+  disagree, so the label cannot name a line only one branch took.
+- Record it on a **real ownership transfer** in `MoveInto` — only when the source
+  is still `OWNED` before the move: `st.moved_at[src_rid] = (ins.line, True)`. A
+  second move of an already-moved handle is itself an OWN005; overwriting there
+  would later blame that failed move instead of the move that actually consumed
+  the resource, so keep the first site.
 - Thread it through `State.copy()`.
-- In `join()`: union the map. When a RID is moved on both paths with **different**
-  lines, do not fabricate a precise line — keep one and mark the label as
-  approximate (see §5). Do **not** add an invariant `assert` like the `loans`
-  one: multiple move paths are legitimate here.
-- On the OWN005 emit:
-  `evidence=(Evidence(line=st.moved_at.get(rid), label="moved here", role="step"),)`
-  when present.
+- In `join()`: union the map via a `_join_moved_at` helper. When a RID is moved on
+  both paths at the **same** line, keep it exact; at **different** lines, keep a
+  deterministic representative (the earliest) and set `exact=False`. Do **not**
+  add an invariant `assert` like the `loans` one: multiple move paths are
+  legitimate here.
+- On the OWN005 emit, build the step from `(line, exact)`:
+  `label = "moved here" if exact else "moved here (on one of several paths)"`;
+  `evidence=(Evidence(line=line, label=label, role="moved"),)` when a site is
+  present.
 
 > OWN001 (leak, acquire site) is a **stretch**, not part of the mandatory
 > minimum: it needs a symmetric `acquired_at` map built the same way as
@@ -111,10 +118,10 @@ automatically. Do **not** introduce a `--show-evidence` flag here.
 ## 5. Merge-point honesty (README)
 
 In README «Where it cheats» (and near the merge-union discussion): add 2–4
-sentences — evidence for move/escape is exact on straight-line paths; at a
-control-flow merge (state union) the move site may be one of several paths, so
-such evidence is marked one-of-N, not exact. «Do not depict precision that isn't
-there» (ADR §3.2).
+sentences — evidence for move/escape is exact on straight-line paths and on
+merges where all incoming paths agree on the same move line; only when branches
+disagree does the merge keep a representative site and mark it one-of-N. «Do not
+depict precision that isn't there» (ADR §3.2).
 
 ## 6. Tests
 

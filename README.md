@@ -627,13 +627,14 @@ Unsafe contracts (`UNS0xx`) are not yet implemented: `native` lowers into
 roadmap.
 Diagnostic **evidence** (the structured `note:` reachability steps some findings
 carry — acquire→escape for a stack buffer that returns/consumes at OWN015/OWN016,
-move→use for OWN005) is exact only on a straight-line path. At a control-flow
-merge the analysis keeps the **union** of per-path state, so when a resource was
-moved at *different* lines on different branches the move-site step is honestly
-labelled "moved here (on one of several paths)" rather than naming the line only
-one branch took — a static merge cannot say which path ran. Evidence coverage is
-also partial by design: most findings still carry no slice yet (they render
-exactly as before), and only the three producers above are wired so far.
+move→use for OWN005) is exact on a straight-line path, and on a control-flow
+merge when all incoming paths agree on the same move line. The analysis keeps the
+**union** of per-path state, so only when branches *disagree* on where a resource
+was moved does the merge keep a representative site and label the step "moved here
+(on one of several paths)" rather than naming a line only one branch took — a
+static merge cannot say which path ran. Evidence coverage is also partial by
+design: most findings still carry no slice yet (they render exactly as before),
+and only the three producers above are wired so far.
 
 ---
 
