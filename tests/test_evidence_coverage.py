@@ -90,6 +90,22 @@ _OWN005 = (
     "}\n"                                     # 8
 )
 
+# a second move of an already-moved handle is itself an OWN005; the *later*
+# use-after-move must still be explained by the FIRST (real) move site, not by
+# the failed second move (Codex P2 regression).
+_OWN005_DOUBLE = (
+    "module M\n"                              # 1
+    "resource Conn { acquire open release close }\n"  # 2
+    "fn f() {\n"                              # 3
+    "    let a = acquire Conn(1);\n"          # 4
+    "    let b = move a;\n"                   # 5  <- the real move
+    "    let c = move a;\n"                   # 6  <- failed second move (OWN005)
+    "    use a;\n"                            # 7  <- use after move (OWN005)
+    "    release b;\n"                        # 8
+    "    release c;\n"                        # 9
+    "}\n"                                     # 10
+)
+
 # moved on both arms at *different* lines, then used after the merge: the move
 # site is genuinely one-of-N, so the evidence must not name a single path's line
 # as if it were certain.
@@ -147,6 +163,16 @@ def run() -> int:
     rendered = d.render("<input>")
     expect(rendered.splitlines()[-1] == "  note: moved here at <input>:5",
            f"OWN005 render note wrong:\n{rendered}")
+
+    # -- OWN005 double move: later use is explained by the FIRST move site ---
+    own005 = [d for d in _diags(_OWN005_DOUBLE) if d.code == "OWN005"]
+    use_after = [d for d in own005 if d.line == 7]
+    expect(len(use_after) == 1
+           and [(e.line, e.label) for e in use_after[0].evidence]
+           == [(5, "moved here")],
+           "use-after-move must point at the first (real) move site, not the "
+           f"failed second move: "
+           f"{[(d.line, [(e.line, e.label) for e in d.evidence]) for d in own005]}")
 
     # -- OWN005 at a merge: the move site is one-of-N, labelled honestly ----
     d = _pick(_OWN005_MERGE, "OWN005")

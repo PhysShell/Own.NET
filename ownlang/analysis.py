@@ -435,10 +435,16 @@ class _Analyzer:
         if isinstance(ins, MoveInto):
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
             src_rid = st.rid_of(ins.src)
-            st.var[src_rid] = {VarState.MOVED}
             # remember where the move happened, so a later use/return-after-move
-            # (OWN005) can point evidence at the move site. A single move is exact.
-            st.moved_at[src_rid] = (ins.line, True)
+            # (OWN005) can point evidence at the move site. Record ONLY a real
+            # ownership transfer — a move of a handle that is already gone is
+            # itself an OWN005 error, and overwriting here would later blame that
+            # failed move instead of the move that actually consumed the resource
+            # (Codex P2). `_consume_like` only reports; it does not change state,
+            # so `var` still holds the pre-move state here. A single move is exact.
+            if VarState.OWNED in st.var.get(src_rid, {VarState.OWNED}):
+                st.moved_at[src_rid] = (ins.line, True)
+            st.var[src_rid] = {VarState.MOVED}
             st.var[st.mint(ins.dst)] = {VarState.OWNED}
             return
 
