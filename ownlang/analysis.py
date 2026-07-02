@@ -107,6 +107,13 @@ class State:
     # paths" marker, since a static merge cannot say which path was taken. Feeds
     # OWN005 evidence only; it carries no lattice state and changes no verdict.
     moved_at: dict[int, tuple[int, bool]] = field(default_factory=dict)
+    # Provenance for the acquire site of a RID: RID -> (line, exact), same shape and
+    # merge rule as `moved_at`. Recorded when a resource is minted (acquire / buffer
+    # alloc / move destination). Feeds OWN001 evidence — the actionable "you opened
+    # it here" site the leak diagnostic itself (reported at function exit / a return)
+    # cannot name. An owned *parameter* is minted with no in-body site, so a leaked
+    # param carries no acquire step. Carries no lattice state and changes no verdict.
+    acquired_at: dict[int, tuple[int, bool]] = field(default_factory=dict)
 
     def copy(self) -> State:
         return State(
@@ -114,6 +121,7 @@ class State:
             loans=dict(self.loans),
             handle_rid=dict(self.handle_rid),
             moved_at=dict(self.moved_at),
+            acquired_at=dict(self.acquired_at),
         )
 
     def rid_of(self, sym: Symbol) -> int:
@@ -158,15 +166,16 @@ def _join_handle_rid(a: dict[int, int], b: dict[int, int]) -> dict[int, int]:
     return out
 
 
-def _join_moved_at(
+def _join_sites(
     a: dict[int, tuple[int, bool]], b: dict[int, tuple[int, bool]]
 ) -> dict[int, tuple[int, bool]]:
-    """Merge the RID->move-site maps of two merging paths. Unlike the loan/handle
-    joins this carries NO invariant: a resource legitimately moves at different
-    lines on different paths. When the two agree on the line the site stays exact;
-    when they disagree we keep the earliest line deterministically and mark it
-    inexact, so downstream evidence says "one of several paths" instead of naming a
-    line that only one path took. Only ever used to *label* OWN005 evidence."""
+    """Merge two RID->(line, exact) provenance maps (acquire / move sites) of two
+    merging paths. Unlike the loan/handle joins this carries NO invariant: a
+    resource legitimately acquires or moves at different lines on different paths.
+    When the two agree on the line the site stays exact; when they disagree we keep
+    the earliest line deterministically and mark it inexact, so downstream evidence
+    says "one of several paths" instead of naming a line that only one path took.
+    Only ever used to *label* evidence (OWN001 acquire site / OWN005 move site)."""
     out = dict(a)
     for rid, (line_b, exact_b) in b.items():
         if rid in out:
@@ -194,7 +203,8 @@ def join(a: State, b: State) -> State:
     )
     out.loans = dict(a.loans)
     out.handle_rid = _join_handle_rid(a.handle_rid, b.handle_rid)
-    out.moved_at = _join_moved_at(a.moved_at, b.moved_at)
+    out.moved_at = _join_sites(a.moved_at, b.moved_at)
+    out.acquired_at = _join_sites(a.acquired_at, b.acquired_at)
     return out
 
 
@@ -236,6 +246,21 @@ class _Analyzer:
         line, exact = site
         label = "moved here" if exact else "moved here (on one of several paths)"
         return (Evidence(line=line, label=label, role="moved"),)
+
+    def _acquired_evidence(self, st: State, rid: int) -> tuple[Evidence, ...]:
+        """The acquire-site reachability step for an OWN001 leak, or empty when no
+        site was recorded (e.g. a leaked owned parameter, minted with no in-body
+        site). An inexact site (acquired at different lines on different merged
+        paths) is labelled honestly rather than naming one path."""
+        site = st.acquired_at.get(rid)
+        if site is None:
+            return ()
+        line, exact = site
+        sym = self._sym_by_id(rid)
+        who = f"'{sym.name}' " if sym else ""
+        suffix = "" if exact else " (on one of several paths)"
+        return (Evidence(line=line, label=f"{who}acquired here{suffix}",
+                         role="acquired"),)
 
     # -- loan / permission helpers -----------------------------------------
 
@@ -395,7 +420,8 @@ class _Analyzer:
                          f"'{name}' is owned but not released {context} "
                          f"(leaks on at least one path)", at_line,
                          subject=(sym.origin if sym else None),
-                         resource_kind=(sym.resource_kind if sym else None))
+                         resource_kind=(sym.resource_kind if sym else None),
+                         evidence=self._acquired_evidence(st, rid))
 
     def _sym_by_id(self, symid: int) -> Symbol | None:
         if not hasattr(self, "_symindex"):
@@ -425,11 +451,17 @@ class _Analyzer:
 
     def step(self, ins: Instr, st: State) -> None:
         if isinstance(ins, Acquire):
-            st.var[st.mint(ins.sym)] = {VarState.OWNED}
+            rid = st.mint(ins.sym)
+            st.var[rid] = {VarState.OWNED}
+            # remember where the resource was acquired, so a later leak (OWN001)
+            # can point evidence at the acquire site instead of the function exit.
+            st.acquired_at[rid] = (ins.line, True)
             return
 
         if isinstance(ins, AcquireBuffer):
-            st.var[st.mint(ins.sym)] = {VarState.OWNED}
+            rid = st.mint(ins.sym)
+            st.var[rid] = {VarState.OWNED}
+            st.acquired_at[rid] = (ins.line, True)
             return
 
         if isinstance(ins, MoveInto):
@@ -445,7 +477,11 @@ class _Analyzer:
             if VarState.OWNED in st.var.get(src_rid, {VarState.OWNED}):
                 st.moved_at[src_rid] = (ins.line, True)
             st.var[src_rid] = {VarState.MOVED}
-            st.var[st.mint(ins.dst)] = {VarState.OWNED}
+            dst_rid = st.mint(ins.dst)
+            st.var[dst_rid] = {VarState.OWNED}
+            # the move destination is a freshly-owned obligation: if it later leaks,
+            # its acquire site is the move that produced it.
+            st.acquired_at[dst_rid] = (ins.line, True)
             return
 
         if isinstance(ins, AliasJoin):

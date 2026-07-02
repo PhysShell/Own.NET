@@ -4,12 +4,13 @@ Evidence coverage for flow diagnostics (execution-surfaces ADR §3/§5).
 
 The `diagnostics.Evidence` machinery (structured secondary locations rendered as
 `note:` lines / SARIF codeFlows) existed but no flow diagnostic populated it —
-every finding shipped `evidence == ()`. This pins the first three producers wired
-into `ownlang/analysis.py`, one per acceptance class:
+every finding shipped `evidence == ()`. This pins the producers wired into
+`ownlang/analysis.py`, one per acceptance class:
 
   * OWN015 — a stack-backed buffer escapes by return  (escape / lifetime)
   * OWN016 — a stack-backed buffer consumed into a longer-lived owner  (escape)
   * OWN005 — use / return after move                  (use-after-move)
+  * OWN001 — resource leak                            (acquire site of the leak)
 
 Two contracts per code:
   1. the structured slice: `Diagnostic.evidence` carries the exact
@@ -124,6 +125,28 @@ _OWN005_MERGE = (
 )
 
 
+# OWN001 leak: the acquire site is the actionable "you opened it here" step the
+# leak diagnostic (reported at the function exit) cannot name on its own.
+_OWN001_LEAK = (
+    "module M\n"                              # 1
+    "resource Conn { acquire open release close }\n"  # 2
+    "fn f() {\n"                              # 3
+    "    let c = acquire Conn(1);\n"          # 4  <- acquired here
+    "    use c;\n"                            # 5
+    "}\n"                                     # 6  <- leak reported at exit
+)
+
+# a leaked owned *parameter* is minted with no in-body acquire site, so it must
+# carry no acquire step (honest — there is no source line to point at).
+_OWN001_PARAM = (
+    "module M\n"                              # 1
+    "resource Conn { acquire open release close }\n"  # 2
+    "fn f(c: Conn) {\n"                       # 3
+    "    use c;\n"                            # 4
+    "}\n"                                     # 5
+)
+
+
 def run() -> int:
     fails: list[str] = []
     checks = 0
@@ -181,9 +204,22 @@ def run() -> int:
            f"OWN005 merge evidence should be marked inexact: "
            f"{[(e.line, e.label) for e in d.evidence]}")
 
-    # -- empty-evidence invariant: a leak (OWN001) carries no slice ---------
-    d = _pick("module M\nfn f(n: int){ let b = Buffer.scratch(n); }\n", "OWN001")
-    expect(d.evidence == (), "OWN001 leak must not carry evidence (unchanged)")
+    # -- OWN001 leak: acquire site is the actionable step -------------------
+    d = _pick(_OWN001_LEAK, "OWN001")
+    steps = [(e.line, e.role, e.label) for e in d.evidence]
+    expect(steps == [(4, "acquired", "'c' acquired here")],
+           f"OWN001 leak must point at the acquire site: {steps}")
+    expect(d.line != 4, "sanity: the leak is reported away from the acquire line")
+
+    # a leaked owned parameter has no in-body acquire site -> no step
+    d = _pick(_OWN001_PARAM, "OWN001")
+    expect(d.evidence == (),
+           "a leaked owned parameter must carry no acquire step (no source site)")
+
+    # -- empty-evidence invariant: OWN003 (double release) carries no slice --
+    d = _pick("module M\nresource Conn { acquire open release close }\n"
+              "fn f(){ let c = acquire Conn(1); release c; release c; }\n", "OWN003")
+    expect(d.evidence == (), "OWN003 must not carry evidence (unchanged)")
     expect("\n  note:" not in d.render("<input>"),
            "a diagnostic with no evidence must render without note: lines")
 

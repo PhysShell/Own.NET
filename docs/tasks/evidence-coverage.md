@@ -54,10 +54,11 @@ def err(self, code: str, msg: str, line: int,
 `analysis.py`. The evidence branch must not do work before the `self.silent`
 early-return.
 
-## 3. The three target diagnostics
+## 3. The target diagnostics
 
 Class coverage required by acceptance: two from escape/lifetime, one from
-use-after-move.
+use-after-move. OWN001 (§3.4) adds the leak acquire site on top of the mandatory
+minimum.
 
 ### 3.1 OWN015 — stack-backed buffer escapes function *(escape / lifetime)*
 
@@ -105,9 +106,17 @@ state):
   `evidence=(Evidence(line=line, label=label, role="moved"),)` when a site is
   present.
 
-> OWN001 (leak, acquire site) is a **stretch**, not part of the mandatory
-> minimum: it needs a symmetric `acquired_at` map built the same way as
-> `moved_at`. Do it only if in scope.
+### 3.4 OWN001 — resource leak *(acquire site)* — done
+
+Built as the symmetric counterpart to `moved_at`: an `acquired_at:
+dict[int, tuple[int, bool]]` recorded when a resource is minted (`Acquire`,
+`AcquireBuffer`, and a `MoveInto` destination), threaded through `copy()` and the
+same `_join_sites` merge helper. `leak_check` attaches an "acquired here" step so
+the leak — reported at the function exit / a return — points at the actionable
+open site. A leaked owned *parameter* is minted with no in-body site, so it
+carries no step. In practice the acquire site is always exact: a RID is minted at
+a single `acquire`, so unlike a move it cannot disagree across paths (the inexact
+branch stays defensively available but is unreachable in normal code).
 
 ## 4. Presentation
 
@@ -128,7 +137,7 @@ depict precision that isn't there» (ADR §3.2).
 New standalone `tests/test_evidence_coverage.py` (repo convention — not pytest),
 folded into `tests/run_tests.py` (like `test_gallery` / `test_corpus`):
 
-1. `.own` fixtures triggering OWN015, OWN016, OWN005; run `analyze`; assert each
+1. `.own` fixtures triggering OWN015, OWN016, OWN005, OWN001; run `analyze`; assert each
    `Diagnostic.evidence` is non-empty and that roles/lines match the
    acquire/escape/move sites.
 2. Golden human-render snapshot: `Diagnostic.render_pretty()` contains the
@@ -148,7 +157,7 @@ folded into `tests/run_tests.py` (like `test_gallery` / `test_corpus`):
 
 | ADR criterion | How it is met |
 | --- | --- |
-| ≥3 flow diagnostics with non-empty evidence | OWN015, OWN016, OWN005 |
+| ≥3 flow diagnostics with non-empty evidence | OWN015, OWN016, OWN005, OWN001 |
 | ≥1 escape / lifetime / leak | OWN015 (§5.1: lifetime/region escape) + OWN016 |
 | ≥1 use-after-move / use-after-release | OWN005 |
 | Codes named in the PR body, not «escape» | listed explicitly |
