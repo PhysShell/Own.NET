@@ -1,28 +1,21 @@
 // BUGGY (representative WPF/WinForms data-class pattern; hand-reduced into case.own).
 //
-// A view/data class exposes a settable `Source` (an injected INotifyPropertyChanged
-// whose lifetime the class does not own). The setter subscribes to the new source's
-// PropertyChanged but NEVER unsubscribes the old one. Each reassignment strands the
-// previous source's handler, and the last subscription is never torn down — the
-// injected source keeps this instance reachable. A real subscription leak (OWN001).
-//
-// This is the exact shape mined from SectorTS (e.g. BrokerDataClasses/BranchDescription.cs
-// `Address` setter), minus the fix on `after.cs`.
+// A view holds an injected INotifyPropertyChanged whose lifetime it does NOT own,
+// subscribes to it in the ctor via an explicit delegate-creation handler, and never
+// unsubscribes — no Dispose, no teardown. The injected source keeps this instance
+// reachable => a real subscription leak (OWN001). This is the codebase's idiom
+// (`+= new PropertyChangedEventHandler(H)`), minus the fix on `after.cs`.
 using System.ComponentModel;
 
 public sealed class SourceView
 {
-    private INotifyPropertyChanged _source;
+    private readonly INotifyPropertyChanged _source;   // injected, unknown lifetime
 
-    public INotifyPropertyChanged Source
+    public SourceView(INotifyPropertyChanged source)
     {
-        get => _source;
-        set
-        {
-            _source = value;
-            // Explicit delegate-creation handler (the codebase's idiom), never released.
-            _source.PropertyChanged += new PropertyChangedEventHandler(OnSourcePropertyChanged);
-        }
+        _source = source;
+        // Explicit delegate-creation handler, never released -> leak.
+        _source.PropertyChanged += new PropertyChangedEventHandler(OnSourcePropertyChanged);
     }
 
     private void OnSourcePropertyChanged(object sender, PropertyChangedEventArgs e) { /* ... */ }
