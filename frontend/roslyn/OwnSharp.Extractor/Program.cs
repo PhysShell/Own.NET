@@ -454,6 +454,21 @@ var inputs = Expand(rawInputs).Distinct().ToList();
 static bool IsHandler(ExpressionSyntax rhs) =>
     rhs is IdentifierNameSyntax || rhs is MemberAccessExpressionSyntax;
 
+// A handler written `new SomeEventHandler(H)` (explicit delegate-creation) denotes
+// the SAME subscription as the bare `H`. Unwrap a single-argument delegate creation
+// to its inner handler expression so `+= new H(m)` and `-= m` — the dominant SectorTS
+// idiom (BrokerDataClasses/*.cs setters: `+=` wraps, `-=` is bare) — match on the
+// release key, and the P-004 static-handler exemption sees the wrapped method. Only
+// event-assignment RHS is passed here, where a `new T(arg)` is always a delegate
+// creation; a non-method-group inner (a lambda / opaque value) is left for IsHandler
+// to reject. Loops to peel a (rare) doubly-wrapped delegate.
+static ExpressionSyntax NormalizeHandler(ExpressionSyntax e)
+{
+    while (e is ObjectCreationExpressionSyntax { ArgumentList.Arguments: { Count: 1 } args })
+        e = args[0].Expression;
+    return e;
+}
+
 static int LineOf(SyntaxNode node) =>
     node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
@@ -579,6 +594,7 @@ static bool IsTemplatePartFetch(ExpressionSyntax? expr)
 // mixes a static and an instance method is not wrongly exempted.
 static bool IsStaticHandler(ExpressionSyntax right, SemanticModel model)
 {
+    right = NormalizeHandler(right);   // `new H(StaticM)` -> `StaticM`, so the exemption sees it
     if (!IsHandler(right))
         return false;
     var info = model.GetSymbolInfo(right);
@@ -3320,8 +3336,9 @@ foreach (var (file, tree) in parsed)
         // every `target -= handler` in this class, keyed by "left|right".
         var unsub = new HashSet<string>();
         foreach (var a in assigns)
-            if (a.IsKind(SyntaxKind.SubtractAssignmentExpression) && IsHandler(a.Right))
-                unsub.Add($"{a.Left}|{a.Right}");
+            if (a.IsKind(SyntaxKind.SubtractAssignmentExpression)
+                && IsHandler(NormalizeHandler(a.Right)))
+                unsub.Add($"{a.Left}|{NormalizeHandler(a.Right)}");
 
         // every receiver with a `.Stop()` call: a timer detached this way counts
         // as released even without an explicit `Tick -=` (e.g. Stop() in Dispose).
@@ -3468,7 +3485,7 @@ foreach (var (file, tree) in parsed)
                 // write-up: docs/notes/oracle-known-fps.md → "Rejected approaches".
                 if (!isTimer && source == "static" && clsIsApp)
                     continue;
-                var released = unsub.Contains($"{a.Left}|{a.Right}")
+                var released = unsub.Contains($"{a.Left}|{NormalizeHandler(a.Right)}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
                 subs.Add(new
                 {

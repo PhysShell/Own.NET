@@ -1,0 +1,23 @@
+module WpfSubscriptionExplicitDelegateRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Dispose
+    kind "subscription token"
+}
+
+// The data class modelled as one scope: the `Source` setter subscribes to the
+// injected source and (in before.cs) never unsubscribes. Acquiring the token
+// without releasing it = the injected source keeps the listener alive => OWN001.
+//
+// The C# after.cs releases it — but writes the `-=` as a bare method group while
+// the `+=` wraps the handler in `new PropertyChangedEventHandler(...)`. That
+// syntactic asymmetry is what the extractor must normalize; this .own reduction
+// only carries the acquire/release logic the core reasons about.
+fn SourceView(source: int) {
+    let sub = acquire Subscription(source);
+    // no `release sub;` -> unreleased subscription (before.cs)
+}
