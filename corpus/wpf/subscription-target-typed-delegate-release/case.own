@@ -1,0 +1,22 @@
+module WpfSubscriptionTargetTypedDelegateRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the finding
+// carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Dispose
+    kind "subscription token"
+}
+
+// The view modelled as one scope: the ctor subscribes to the injected source and
+// (in before.cs) never unsubscribes — no Dispose => OWN001.
+//
+// The C# after.cs releases it in Dispose, but the ctor `+=` uses C# 9 target-typed
+// delegate creation `new(H)` while the `-=` is a bare method group. That syntactic
+// asymmetry is what the extractor must normalize; this .own reduction only carries
+// the acquire/release logic the core reasons about.
+fn SourceView(source: int) {
+    let sub = acquire Subscription(source);
+    // no `release sub;` -> unreleased subscription (before.cs)
+}

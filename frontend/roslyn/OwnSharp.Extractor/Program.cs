@@ -460,11 +460,13 @@ static bool IsHandler(ExpressionSyntax rhs) =>
 // idiom (BrokerDataClasses/*.cs setters: `+=` wraps, `-=` is bare) — match on the
 // release key, and the P-004 static-handler exemption sees the wrapped method. Only
 // event-assignment RHS is passed here, where a `new T(arg)` is always a delegate
-// creation; a non-method-group inner (a lambda / opaque value) is left for IsHandler
-// to reject. Loops to peel a (rare) doubly-wrapped delegate.
+// creation — including the C# 9 target-typed form `new(H)`; a non-method-group inner
+// (a lambda / opaque value) is left for IsHandler to reject. BaseObjectCreationExpression
+// covers both explicit `new T(H)` (ObjectCreation) and target-typed `new(H)`
+// (ImplicitObjectCreation). Loops to peel a (rare) doubly-wrapped delegate.
 static ExpressionSyntax NormalizeHandler(ExpressionSyntax e)
 {
-    while (e is ObjectCreationExpressionSyntax { ArgumentList.Arguments: { Count: 1 } args })
+    while (e is BaseObjectCreationExpressionSyntax { ArgumentList.Arguments: { Count: 1 } args })
         e = args[0].Expression;
     return e;
 }
