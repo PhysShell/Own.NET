@@ -1,17 +1,39 @@
 # P-022 — Rust core migration: bird's-eye architecture
 
 Status: **draft / exploratory** (design only — no Rust code committed yet; the
-Python core stays the reference implementation and the oracle until parity holds)
+Python core stays the reference implementation and the oracle until parity holds).
+Revised per the post-merge review in
+[`docs/notes/p022-review-notes.md`](../notes/p022-review-notes.md).
 
 ## Why
 
-The Python core (`ownlang/`) is a working PoC, but its density is a maintenance
-tax: a mutable-dict dataflow state keyed by `id(sym)`, an `assert_never` dispatch
-that must be hand-updated across three files, and analyses (ownership / lifetime /
-effect / DI) interleaved in one `_Analyzer`. The intended end state is a **Rust
-core**. This document is the bird's-eye plan: crate topology, patterns, libraries,
-prior art, architecture-fitness tooling, and — the load-bearing piece — a
-**differential oracle** that pins the Rust core to the Python one output-for-output.
+The primary trigger is the **IDE extension** — Gate B of
+[`incremental-computation.md`](../notes/incremental-computation.md), a *recorded*
+trigger under the house discipline (`AGENTS.execution-surfaces.md` §7–8: profiler
+numbers or real pain, not "would be nice"). An IDE analyzes broken code on every
+keystroke and cares about **latency and incrementality**, not batch throughput —
+which is exactly where Rust + `salsa` beats "fast Python" *by construction*, and
+where the familiar 10–100× figures (ruff's) don't even apply: those are batch-CLI
+numbers, and if today's CLI isn't CPU-bound on the corpus, the visible batch win may
+be modest. Set public expectations on the IDE latency budget, not the batch
+multiplier. A Rust core also removes the Python runtime from the distribution
+(alpha-readiness gap A).
+
+The **realistic extension shape is hybrid**: for the flagship path (real C# in the
+editor) the latency chain is keystroke → Roslyn semantic model (in-process in the
+IDE, already incremental) → fact extraction → core verdicts. The Rust core is the
+*cheap* half of that chain; extraction stays in-process on the .NET side regardless.
+So the VS/VS Code extension hosts the existing C# extractor and talks to the Rust
+core over the **OwnIR seam** (stdio or FFI) — the very seam this proposal freezes.
+For `.own` files a pure-Rust LSP is trivial and a good first slice.
+
+Secondary motivation: the Python core (`ownlang/`) is a working PoC, but its density
+is a maintenance tax — a mutable-dict dataflow state keyed by `id(sym)`, an
+`assert_never` dispatch hand-updated across three files, analyses (ownership /
+lifetime / effect / DI) interleaved in one `_Analyzer`. This document is the
+bird's-eye plan: crate topology, patterns, libraries, prior art,
+architecture-fitness tooling, and — the load-bearing piece — a **differential
+oracle** that pins the Rust core to the Python one output-for-output.
 
 The recent evidence + SARIF work (P-015, execution-surfaces ADR) is not incidental
 here: it turned the core's verdicts into **normalized, diffable contracts**
@@ -59,7 +81,8 @@ surface and the frontend boundary:
 Arrow = "is depended on by" (dependency → dependent, i.e. build order):
 
 ```text
-  own-ir      (OwnIR fact/verdict contract; serde — leaf, everyone may depend on it)
+  own-ir      (OwnIR *fact* contract + span/location primitives; serde — leaf,
+               everyone may depend on it; verdicts live in own-diagnostics)
   own-syntax  (lexer / parser / AST)
      └─▶ own-cfg  (AST → CFG lowering)
             ├─▶ own-analysis  (lattice + worklist; ownership / lifetime / effect / DI)
@@ -67,9 +90,14 @@ Arrow = "is depended on by" (dependency → dependent, i.e. build order):
 
   own-diagnostics  (Diagnostic/Evidence model, text + SARIF)  ─▶ own-analysis
      # own-analysis *constructs* Diagnostic/Evidence, so it depends on own-diagnostics;
-     # own-diagnostics depends only on own-ir/own-syntax spans — never on the solver.
+     # own-diagnostics depends only on the span/location leaf — never on the solver.
 
-  {all of the above} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
+  own-ir + own-syntax + own-cfg + own-analysis + own-diagnostics ─▶ own-bridge
+     # facts → core lowering + interprocedural MOS inference + verdict mapping
+     # (today's ownir.py beyond the schema; the flagship C#→facts→verdicts path;
+     #  own-syntax is required — the lowering *constructs* core AST nodes)
+
+  {all of the above, incl. own-bridge} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
                         own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
 ```
 
@@ -77,9 +105,9 @@ The non-obvious edge is **`own-analysis → own-diagnostics`**: the solver *cons
 `Diagnostic`/`Evidence` values (in Python, `analysis.py` imports and builds them from
 `diagnostics.py` using solver-internal state), and those types are *owned by*
 `own-diagnostics` — so analysis depends on diagnostics, **not the reverse**.
-`own-diagnostics` therefore stays upstream, depending only on span/location primitives
-(`own-ir`/`own-syntax`), never on the solver — which is exactly the fitness function
-below. `own-codegen` is the true **sibling**: it hangs off `own-cfg`/AST *only* and is
+`own-diagnostics` therefore stays upstream, depending only on the span/location leaf
+in `own-ir` (**not** `own-syntax` — the presentation crate must not drag in the
+parser), never on the solver — which is exactly the fitness function below. `own-codegen` is the true **sibling**: it hangs off `own-cfg`/AST *only* and is
 **verdict-independent** (Python `codegen.generate(mod)` takes just the AST — its policy
 comes from `_laminar_scopes`/`_buffer_modes`, not analysis conclusions). Codegen must
 not chain through diagnostics or reach into the solver; if Rust codegen ever *does* want
@@ -89,9 +117,13 @@ to flag on its own.
 
 - **`own-syntax`** — lexer + parser + AST. Zero analysis knowledge. (Prior art:
   ruff / rust-analyzer parsers.)
-- **`own-ir`** — OwnIR fact types, `serde` (de)serialization, schema version. Shared
+- **`own-ir`** — OwnIR **fact** types, `serde` (de)serialization, schema version —
+  plus the **span/location primitives** (`Span`, file/offset types), so the
+  presentation layer never has to pull the parser to name a source position. Shared
   by the (future) frontends-in-Rust and the core; kept dependency-light so both
-  sides can depend on it without pulling the analysis.
+  sides can depend on it without pulling the analysis. (If span types ever feel out
+  of place here, split a tiny `own-span` leaf — the invariant is only that they live
+  in a *leaf*, not in `own-syntax`.)
 - **`own-cfg`** — AST → CFG lowering; CFG/Instr types. The `assert_never` sites
   become exhaustive `match` here.
 - **`own-analysis`** — the heart: a generic worklist solver over `Lattice` +
@@ -100,12 +132,24 @@ to flag on its own.
   today's `_Analyzer`).
 - **`own-diagnostics`** — *owns* the Diagnostic/Evidence types + their presentation
   (human render, SARIF projection). It knows nothing about the solver; the solver
-  depends on **it** to construct verdicts. Depends only on span/location primitives
-  (`own-ir`/`own-syntax`). Mirrors today's clean split (`evidence.py` is a pure
-  projection).
+  depends on **it** to construct verdicts. Depends only on the span/location leaf
+  (`own-ir`) — **not** on `own-syntax`, or the presentation crate drags in the
+  parser. Mirrors today's clean split (`evidence.py` is a pure projection).
 - **`own-codegen`** — C# emission, **driven by AST/CFG shape, not analysis verdicts**
   (verdict-independent, matching Python `codegen.generate(mod)`). Depends on `own-cfg`
   only — a sibling of `own-analysis`/`own-diagnostics`, downstream of neither.
+- **`own-bridge`** — the OwnIR **bridge**: everything in today's `ownir.py` *beyond*
+  the schema (~2 000 lines of verdict-determining logic that previously had no named
+  home in this DAG): facts → core-AST lowering (`to_module`/`_lower_flow`, handle
+  minting, localmap kill-on-rebind), the interprocedural **MOS** inference
+  (`_build_skeletons`, `_infer_return_skeleton`, `_infer_param_effect`, the BCL
+  fresh-factory table), branch-local hoisting, and `check_facts`' fact→verdict
+  mapping. Consumes `own-ir` facts, **constructs `own-syntax` AST nodes** (the
+  lowering's output), drives the `own-cfg`/`own-analysis` pipeline, constructs
+  `own-diagnostics` findings. This is the flagship path (real C# → facts
+  → verdicts); **porting it is a named migration step**, and its inference semantics
+  get a normative write-up *before* the port (today they are pinned only by
+  `test_ownir.py` examples — see the tech-debt register, "OwnIR: formalize").
 - **`own-cli`** — the binary; wires the pipeline and owns the CLI surface.
 - **`own-oracle`** — dev-only differential harness (see below).
 
@@ -118,7 +162,8 @@ build graph.
 | Python pain today | Rust idiom | Payoff |
 | --- | --- | --- |
 | `assert_never` dispatch updated by hand in cfg/analysis/codegen | `enum` + exhaustive `match` | a missed variant is a **compile error**, not a runtime assert |
-| RID = `id(sym)`; handles keyed by object identity | newtype indices `Rid(u32)`, `BlockId(u32)`, `LoanId(u32)` + arena | deterministic, serializable, no identity hacks |
+| RID = `id(sym)`; handles keyed by object identity | newtype indices `Rid(NonZeroU32)`, `BlockId(NonZeroU32)`, … + arena | deterministic, serializable, no identity hacks; `NonZeroU32` makes `Option<Id>` the same size as `Id` (niche optimization) — a day-1 decision, painful to retrofit |
+| line/col threaded through everything | **byte offsets** internally + one line-index per file; line/col computed only at the output seam (ruff / rust-analyzer convention) | positions stay `u32`-cheap and edit-stable; rendering pays the conversion once |
 | AST/CFG as object graphs | **arena + indices** (`la-arena`/`id-arena`) | borrow-checker-friendly graphs, cheap clone, cache-friendly |
 | `State.copy()` deep-copies dicts every merge | dense bitset `Vec` + arena/scratch copy-on-write *(leaning default)*; persistent maps (`imbl`/`rpds`) a *benchmark candidate* | avoid the deep copy at merges — but don't pre-commit to tree-node alloc + O(log n); see the persistent-vs-arena open question |
 | ownership/lifetime/effect/DI interleaved in `_Analyzer` | `Lattice` + `DataflowAnalysis` traits; one generic solver, N impls | analyses decoupled + independently testable |
@@ -134,7 +179,7 @@ shape.
 | Concern | Candidate(s) | Notes |
 | --- | --- | --- |
 | Lexer | `logos` | derive-based, fast; or hand-roll to match Python tokens exactly |
-| Parser | hand-written recursive descent (recommended) | matches Python error recovery / golden parity; `chumsky`/`winnow` if we want combinators |
+| Parser | hand-written recursive descent (recommended) | golden parity of error messages **and** error-tolerant parsing — a *requirement* under the IDE trigger (broken code on every keystroke; rust-analyzer precedent), not a nice-to-have |
 | Arena / IDs | `la-arena` (rust-analyzer), `id-arena`, `slotmap` | index-based AST/CFG |
 | Interning | `lasso`, `string-interner` | symbol/string interning |
 | Graph (CFG) | `petgraph` or hand-rolled arena | petgraph gives traversals/dominators for free |
@@ -178,10 +223,12 @@ workload:
    across the heap (a cache miss per row). Back per-block instruction lists, the loan
    table, etc. with one flat `Vec` + offsets/slices. This is the same cache argument as
    the dense-`Vec`-by-RID state above.
-5. **`SmallVec` for the many-small collections.** Evidence steps (usually 1–2), loans
-   per owner (usually 0–1), diagnostics per block — all tiny by the law of small
-   numbers. `SmallVec<[Evidence; 2]>` keeps them inline (no allocation, same cache
-   locality as a plain `T`) and only spills to the heap in the rare large case.
+5. **`SmallVec` for the many-small collections — measured, not sprinkled.** Evidence
+   steps (usually 1–2) and loans per owner (usually 0–1) match the small-N profile;
+   `SmallVec<[Evidence; 2]>` keeps them inline (no allocation, same cache locality as
+   a plain `T`) and only spills in the rare large case. Per-block *instruction lists*
+   may **not** match the profile — measure before converting; an oversized inline
+   capacity bloats every instance.
 6. **`FxHashMap` everywhere** (`rustc-hash`) — our keys are small ints; SipHash is pure
    overhead here.
 7. **Prefer enums / `impl Trait` / `&dyn` over `Box<dyn>`.** The `Lattice`/`Analysis`
@@ -214,8 +261,15 @@ that I/O can dominate wall-time and allocations. So bench it explicitly too:
 representative large-OwnIR `from_slice` / buffered `to_writer`, with borrowed/interned
 diagnostic strings — not only transfer-function microbenches. Algorithms before
 micro-opt. `#[inline]` only on tiny cross-crate hot functions (`next`/`deref`
-shape), **never `#[inline(always)]` by reflex**; LTO for cross-crate inlining;
-`panic = "abort"` in release. Bounds-check elision the **safe** way — consolidate the
+shape), **never `#[inline(always)]` by reflex**; `#[cold]` on the
+diagnostic-construction paths is a good, *stable*-Rust hint (`likely`/`unlikely` are
+not stable); LTO for cross-crate inlining. **`panic = "abort"` is a per-binary
+choice, not doctrine:** fine for `own-cli`; **fatal for a long-lived LSP server**,
+where one panic in one file's analysis kills the whole session — and `salsa`
+implements *cancellation via unwinding*, so an LSP binary needs `panic = "unwind"` +
+a catch at the request boundary (rust-analyzer's model). Record it per profile now so
+"abort in release" doesn't get baked into the workspace. Bounds-check elision the
+**safe** way — consolidate the
 checks into one early `assert!` and let LLVM prove the rest unreachable (Rust's safe
 iterators already match the C start/end-pointer idiom) — plus SIMD are the *last*
 resort, behind a flamegraph. Note this stays inside `unsafe_code = "forbid"`: we do
@@ -274,6 +328,10 @@ strong, CI-enforceable decoupling:
 - **`cargo-mutants`** — mutation testing: does the test suite (and the oracle) *catch*
   a deliberately broken transfer/lattice, or is it green-but-blind? The sharpest tool
   here, and a natural fit with a correctness-first, oracle-gated port.
+- **Enum-size ritual** — `clippy::large_enum_variant` already warns by default; the
+  missing piece is the habit: a test asserting `size_of::<Expr>()` / `size_of::<Instr>()`
+  so any IR-type change that balloons the hot enums fails loudly instead of silently
+  doubling every arena.
 
 Honest limit: there is **no full NDepend/ArchUnit-for-Rust** (no LCOM /
 instability-metric / "zone of pain" tooling). The language compensates partly (orphan
@@ -304,11 +362,32 @@ dbg_macro = "deny"
 print_stdout = "deny"           # libraries speak via `tracing`, not stdout
 ```
 
+And the release profile, as TOML rather than prose:
+
+```toml
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+# panic is per-binary, NOT set here: "abort" for own-cli,
+# "unwind" for any LSP binary (salsa cancels via unwinding) — see Performance.
+```
+
 Do **not** take `pedantic`/`nursery` wholesale to `deny` — they carry noisy lints;
 keep them `warn` with surgical `#[allow(...)]`, and **every `#[allow]` carries a
 justification comment** (an unexplained allow is debt). `unsafe_code = "forbid"` per
 crate is stronger than `deny` (it cannot be locally overridden) — set it everywhere a
 crate has no legitimate `unsafe`.
+
+**Pre-resolved collision — `indexing_slicing = "deny"` vs the dense-`Vec` state.**
+The perf doctrine's centerpiece is `Vec<VarStates>` indexed by RID (and flat backing
+arrays everywhere); denying `v[i]` there, with `unwrap_used` also denied and
+`.get().expect(...)` too noisy for the hot path, would train exactly the
+suppress-without-looking reflex the ratchet warns against. Resolution, decided here
+rather than in the first PR's review thread: **arena/newtype-index access is
+panic-free by construction** (`la-arena`-style `arena[idx]` where the ID was minted
+by that arena), so the state container carries a *justified, module-scoped*
+`#[allow(clippy::indexing_slicing)]`; the deny stays in force everywhere else.
 
 ### The ratchet (do not boil the ocean)
 
@@ -331,6 +410,13 @@ allowed edge set:
   for now — not on `own-analysis` either (codegen is verdict-independent). A future
   `own-codegen → own-analysis` edge is allowed only as a deliberate, reviewed change
   to the allowed set, never implicitly.
+- **`own-bridge` is the one deliberately wide consumer** (ir + syntax + cfg +
+  analysis + diagnostics) — that width is its job. The constraint runs the other way:
+  **only *entry-point* crates may depend on `own-bridge`** — `own-cli` today, plus a
+  future `own-lsp` server and/or `own-capi` (`cdylib`) when the IDE's FFI shape lands
+  (the Why explicitly allows stdio *or* FFI, so the edge test must not forbid the
+  stated extension shape). Never a core crate — bridge inference can never leak into
+  the solver or the verdict layer.
 
 ## The differential oracle (Python repo = golden test)
 
@@ -372,8 +458,19 @@ SARIF/JSON shapes. So:
   drop only genuinely volatile fields (timestamps, absolute temp dirs) — nothing
   semantic. "SARIF-clean" must not be allowed to imply "full parity": `.ownreport.json`
   fields not modeled in SARIF are compared on their own seam.
-- **CI ratchet:** a job runs the diff over the corpus and fails on any divergence in
-  the covered subset. Coverage starts small and grows; the ratchet only tightens.
+- **CI ratchet — against snapshots, not a live Python run.** Don't execute the Python
+  core on every CI pass: commit its outputs as **golden snapshots keyed by
+  (corpus hash, Python-core commit)** and diff Rust against the snapshots; regenerate
+  when **either key changes** — a Python-core change *or* a corpus/fixture
+  addition/edit (a new input under an unchanged Python commit still needs fresh
+  expected outputs, or CI diffs Rust against stale ones / silently skips the new
+  input). Both are the exception, not the rule; the steady state runs zero Python.
+  Otherwise CI time grows with corpus × Python and the ratchet gets disabled
+  "temporarily" — the death of every ratchet. Coverage starts small and grows; the
+  gate only tightens.
+- **Error-text parity is fixture-backed.** Parser/diagnostic message texts live in
+  shared fixtures asserted from *both* implementations; otherwise "identical error
+  messages" rests on copy-paste and drifts silently.
 - **Generative differential + metamorphic:** reuse the codegen fuzzer's spirit —
   generate random `.own`/OwnIR, run both, diff. Metamorphic relations (e.g. renaming
   a symbol must not change the diagnostic set) catch classes of bugs a fixed corpus
@@ -402,9 +499,14 @@ hardening is what makes the verdict seam cheap — the CFG seam still needs buil
 4. **`own-analysis`**: port the worklist + ownership first, then lifetime/effect/DI;
    diff diagnostics (no evidence) → then evidence → then SARIF, layer by layer.
 5. **`own-diagnostics` + `own-codegen`**: SARIF/report/text and C# `emit`; diff each.
-6. **`own-cli`**: cut over once corpus parity is ~100%. Keep Python frozen as the
+6. **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
+   interprocedural inference, verdict mapping. **Prerequisite:** the normative
+   write-up of the inference semantics (consume/borrow/fresh/alias/overwrite rules)
+   from the tech-debt register, so the port has a spec and not just
+   `test_ownir.py` examples. Diff on the OwnIR fixtures + `ownir --format sarif`.
+7. **`own-cli`**: cut over once corpus parity is ~100%. Keep Python frozen as the
    oracle/spec.
-7. **Only then** revisit the rule layer as Datalog/Ascent (ADR §8: "core moves to
+8. **Only then** revisit the rule layer as Datalog/Ascent (ADR §8: "core moves to
    Rust" trigger now satisfied) — natively, not as a Python detour.
 
 Throughout, Python stays authoritative; the Rust crates light up behind the ratchet.
@@ -425,8 +527,11 @@ Throughout, Python stays authoritative; the Rust crates light up behind the ratc
   when they win on clone time).
 - **`serde-sarif` vs hand-rolled SARIF structs**: evaluate the crate's maintenance and
   whether it matches our exact shape.
-- **Incrementality (`salsa`)**: out of scope for parity, but the crate split should not
-  preclude it (keep queries pure).
+- **Incrementality (`salsa`)**: out of scope for the *parity phase*, but no longer a
+  maybe — it is the substance of the IDE trigger (Gate B), so the crate split must
+  not preclude it: keep queries pure, keep `panic = "unwind"` viable for the LSP
+  binary (salsa cancellation unwinds), and prefer data models salsa can key
+  (interned IDs, byte offsets).
 - **Repo layout**: a `rust/` subtree in this repo (monorepo, easiest for the oracle to
   run both) vs a sibling repo. Monorepo recommended *for this phase* so the oracle and
   corpus are one `git` away and there is no submodule/pinned-SHA ceremony. Revisit the
