@@ -161,20 +161,50 @@ workload:
    (rustc's dataflow uses `BitSet`/`ChunkedBitSet`.) This is also the thumb on the
    scale for the persistent-map-vs-arena question: with a bitset + dense `Vec`, the
    arena+CoW representation almost certainly wins.
-3. **Arenas + `u32` indices** for AST/CFG — bump allocation, no per-node `Box`, no
-   pointer chasing, half the size of 64-bit pointers.
-4. **`FxHashMap` everywhere** (`rustc-hash`) — our keys are small ints; SipHash is pure
+3. **Arena-allocate the immutable trees.** An AST/CFG is built once then read many
+   times — the textbook case for a **bump/typed arena** (`bumpalo`, `typed-arena`, or
+   rustc's own `TypedArena`): nodes land contiguously, there is no per-node `Box`, and
+   the whole tree frees at once. Combine with `u32` indices for cross-references (half
+   the size of a 64-bit pointer, no pointer chasing, and serializable) — `la-arena` /
+   `id-arena` give exactly that.
+4. **Flat backing arrays, never `Vec<Vec<_>>`.** Nested vecs scatter each inner vec
+   across the heap (a cache miss per row). Back per-block instruction lists, the loan
+   table, etc. with one flat `Vec` + offsets/slices. This is the same cache argument as
+   the dense-`Vec`-by-RID state above.
+5. **`SmallVec` for the many-small collections.** Evidence steps (usually 1–2), loans
+   per owner (usually 0–1), diagnostics per block — all tiny by the law of small
+   numbers. `SmallVec<[Evidence; 2]>` keeps them inline (no allocation, same cache
+   locality as a plain `T`) and only spills to the heap in the rare large case.
+6. **`FxHashMap` everywhere** (`rustc-hash`) — our keys are small ints; SipHash is pure
    overhead here.
-5. **`rayon` across functions** — each function's worklist is independent, so per-
+7. **Prefer enums / `impl Trait` / `&dyn` over `Box<dyn>`.** The `Lattice`/`Analysis`
+   layer is better as enums or generics (monomorphized, inlinable) than boxed trait
+   objects; where dynamic dispatch is genuinely needed, `&dyn` beats an owning `Box`.
+8. **`rayon` across functions** — each function's worklist is independent, so per-
    function (and per-file over OwnIR dumps) analysis parallelizes trivially.
-6. **`mimalloc`/`jemalloc`** as the global allocator — a common free win for an
+9. **`mimalloc`/`jemalloc`** as the global allocator — a common free win for an
    allocation-heavy frontend.
 
-Micro-optimization (SIMD, `unsafe get_unchecked`, manual bounds-check elision) is the
-*last* resort and only behind a flamegraph. **Correctness first:** the differential
-oracle proves parity with Python before any of this; perf is then locked by an
-**`iai-callgrind` instruction-count ratchet** in CI (deterministic, unlike wall-clock),
-so a regression fails the build the same way a divergence does.
+**Discipline (the article's framing, which we already run as doctrine):** don't
+optimize blindly or first — readability first, then optimize by **cumulative cost**
+under `perf`/a flamegraph, not by what "looks slow"; one-time costs (CLI/OwnIR parsing)
+don't matter, the hot path (the transfer function in the worklist) does — so **keep
+the transfer pure** (local writes, no writes through shared pointers) both to help the
+optimizer keep values in registers and to make it trivially benchmarkable. Algorithms
+before micro-opt. `#[inline]` only on tiny cross-crate hot functions (`next`/`deref`
+shape), **never `#[inline(always)]` by reflex**; LTO for cross-crate inlining;
+`panic = "abort"` in release. SIMD / `unsafe get_unchecked` / manual bounds-check
+elision (consolidate checks into one early `assert!` and let LLVM elide the rest) are
+the *last* resort, behind a flamegraph.
+
+**Correctness first:** the differential oracle proves parity with Python before any of
+this; perf is then locked by an **`iai-callgrind` instruction-count ratchet** in CI
+(deterministic, unlike wall-clock), so a regression fails the build the same way a
+divergence does.
+
+*Further reading:* troubles.md "Writing words and reading dwords: Achieving warp speed
+with Rust" (the source of the arena/`SmallVec`/cache points above), BurntSushi's ripgrep
+post-mortem, and Alexandrescu's "Fastware" talk.
 ## Prior art to study (architecture references)
 
 | Project | What to steal |
