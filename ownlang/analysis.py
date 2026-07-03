@@ -65,7 +65,7 @@ from .cfg import (
     Symbol,
     Use,
 )
-from .diagnostics import Diagnostic
+from .diagnostics import Diagnostic, Evidence
 
 
 class VarState(Enum):
@@ -100,12 +100,28 @@ class State:
     var: dict[int, set[VarState]] = field(default_factory=dict)
     loans: dict[int, Loan] = field(default_factory=dict)
     handle_rid: dict[int, int] = field(default_factory=dict)
+    # Provenance for the move site of a RID: RID -> (line, exact). `exact` is True
+    # when every path that moved this resource moved it at the same source line
+    # (a single, precise move to point evidence at); False when it was moved at
+    # different lines on different paths and merged — an honest "one of several
+    # paths" marker, since a static merge cannot say which path was taken. Feeds
+    # OWN005 evidence only; it carries no lattice state and changes no verdict.
+    moved_at: dict[int, tuple[int, bool]] = field(default_factory=dict)
+    # Provenance for the acquire site of a RID: RID -> (line, exact), same shape and
+    # merge rule as `moved_at`. Recorded when a resource is minted (acquire / buffer
+    # alloc / move destination). Feeds OWN001 evidence — the actionable "you opened
+    # it here" site the leak diagnostic itself (reported at function exit / a return)
+    # cannot name. An owned *parameter* is minted with no in-body site, so a leaked
+    # param carries no acquire step. Carries no lattice state and changes no verdict.
+    acquired_at: dict[int, tuple[int, bool]] = field(default_factory=dict)
 
     def copy(self) -> State:
         return State(
             var={k: set(v) for k, v in self.var.items()},
             loans=dict(self.loans),
             handle_rid=dict(self.handle_rid),
+            moved_at=dict(self.moved_at),
+            acquired_at=dict(self.acquired_at),
         )
 
     def rid_of(self, sym: Symbol) -> int:
@@ -150,6 +166,29 @@ def _join_handle_rid(a: dict[int, int], b: dict[int, int]) -> dict[int, int]:
     return out
 
 
+def _join_sites(
+    a: dict[int, tuple[int, bool]], b: dict[int, tuple[int, bool]]
+) -> dict[int, tuple[int, bool]]:
+    """Merge two RID->(line, exact) provenance maps (acquire / move sites) of two
+    merging paths. Unlike the loan/handle joins this carries NO invariant: a
+    resource legitimately acquires or moves at different lines on different paths.
+    When the two agree on the line the site stays exact; when they disagree we keep
+    the earliest line deterministically and mark it inexact, so downstream evidence
+    says "one of several paths" instead of naming a line that only one path took.
+    Only ever used to *label* evidence (OWN001 acquire site / OWN005 move site)."""
+    out = dict(a)
+    for rid, (line_b, exact_b) in b.items():
+        if rid in out:
+            line_a, exact_a = out[rid]
+            if line_a == line_b:
+                out[rid] = (line_a, exact_a and exact_b)
+            else:
+                out[rid] = (min(line_a, line_b), False)
+        else:
+            out[rid] = (line_b, exact_b)
+    return out
+
+
 def join(a: State, b: State) -> State:
     out = State()
     for k in set(a.var) | set(b.var):
@@ -164,6 +203,8 @@ def join(a: State, b: State) -> State:
     )
     out.loans = dict(a.loans)
     out.handle_rid = _join_handle_rid(a.handle_rid, b.handle_rid)
+    out.moved_at = _join_sites(a.moved_at, b.moved_at)
+    out.acquired_at = _join_sites(a.acquired_at, b.acquired_at)
     return out
 
 
@@ -187,11 +228,39 @@ class _Analyzer:
 
     def err(self, code: str, msg: str, line: int,
             subject: str | None = None,
-            resource_kind: str | None = None) -> None:
+            resource_kind: str | None = None,
+            evidence: tuple[Evidence, ...] = ()) -> None:
         if self.silent:
             return
         self.diags.append(Diagnostic(code, msg, line, subject=subject,
-                                     resource_kind=resource_kind))
+                                     resource_kind=resource_kind,
+                                     evidence=evidence))
+
+    def _moved_evidence(self, st: State, rid: int) -> tuple[Evidence, ...]:
+        """The move-site reachability step for an OWN005 finding, or empty when the
+        move site was not recorded. An inexact site (moved at different lines on
+        different merged paths) is labelled honestly rather than naming one path."""
+        site = st.moved_at.get(rid)
+        if site is None:
+            return ()
+        line, exact = site
+        label = "moved here" if exact else "moved here (on one of several paths)"
+        return (Evidence(line=line, label=label, role="moved"),)
+
+    def _acquired_evidence(self, st: State, rid: int) -> tuple[Evidence, ...]:
+        """The acquire-site reachability step for an OWN001 leak, or empty when no
+        site was recorded (e.g. a leaked owned parameter, minted with no in-body
+        site). An inexact site (acquired at different lines on different merged
+        paths) is labelled honestly rather than naming one path."""
+        site = st.acquired_at.get(rid)
+        if site is None:
+            return ()
+        line, exact = site
+        sym = self._sym_by_id(rid)
+        who = f"'{sym.name}' " if sym else ""
+        suffix = "" if exact else " (on one of several paths)"
+        return (Evidence(line=line, label=f"{who}acquired here{suffix}",
+                         role="acquired"),)
 
     # -- loan / permission helpers -----------------------------------------
 
@@ -227,7 +296,8 @@ class _Analyzer:
         if VarState.OWNED not in S:
             if VarState.MOVED in S:
                 self.err("OWN005", f"{verb} '{sym.name}' after it was moved",
-                         line, subject=subj, resource_kind=kind)
+                         line, subject=subj, resource_kind=kind,
+                         evidence=self._moved_evidence(st, st.rid_of(sym)))
             elif VarState.ESCAPED in S and VarState.RELEASED not in S:
                 self.err("OWN002",
                          f"{verb} '{sym.name}' after it was consumed", line,
@@ -350,7 +420,8 @@ class _Analyzer:
                          f"'{name}' is owned but not released {context} "
                          f"(leaks on at least one path)", at_line,
                          subject=(sym.origin if sym else None),
-                         resource_kind=(sym.resource_kind if sym else None))
+                         resource_kind=(sym.resource_kind if sym else None),
+                         evidence=self._acquired_evidence(st, rid))
 
     def _sym_by_id(self, symid: int) -> Symbol | None:
         if not hasattr(self, "_symindex"):
@@ -380,17 +451,37 @@ class _Analyzer:
 
     def step(self, ins: Instr, st: State) -> None:
         if isinstance(ins, Acquire):
-            st.var[st.mint(ins.sym)] = {VarState.OWNED}
+            rid = st.mint(ins.sym)
+            st.var[rid] = {VarState.OWNED}
+            # remember where the resource was acquired, so a later leak (OWN001)
+            # can point evidence at the acquire site instead of the function exit.
+            st.acquired_at[rid] = (ins.line, True)
             return
 
         if isinstance(ins, AcquireBuffer):
-            st.var[st.mint(ins.sym)] = {VarState.OWNED}
+            rid = st.mint(ins.sym)
+            st.var[rid] = {VarState.OWNED}
+            st.acquired_at[rid] = (ins.line, True)
             return
 
         if isinstance(ins, MoveInto):
             self._consume_like(st, ins.src, "move", ins.line, code_borrowed="OWN007")
-            st.var[st.rid_of(ins.src)] = {VarState.MOVED}
-            st.var[st.mint(ins.dst)] = {VarState.OWNED}
+            src_rid = st.rid_of(ins.src)
+            # remember where the move happened, so a later use/return-after-move
+            # (OWN005) can point evidence at the move site. Record ONLY a real
+            # ownership transfer — a move of a handle that is already gone is
+            # itself an OWN005 error, and overwriting here would later blame that
+            # failed move instead of the move that actually consumed the resource
+            # (Codex P2). `_consume_like` only reports; it does not change state,
+            # so `var` still holds the pre-move state here. A single move is exact.
+            if VarState.OWNED in st.var.get(src_rid, {VarState.OWNED}):
+                st.moved_at[src_rid] = (ins.line, True)
+            st.var[src_rid] = {VarState.MOVED}
+            dst_rid = st.mint(ins.dst)
+            st.var[dst_rid] = {VarState.OWNED}
+            # the move destination is a freshly-owned obligation: if it later leaks,
+            # its acquire site is the move that produced it.
+            st.acquired_at[dst_rid] = (ins.line, True)
             return
 
         if isinstance(ins, AliasJoin):
@@ -489,7 +580,9 @@ class _Analyzer:
                     if VarState.MOVED in S:
                         self.err("OWN005",
                                  f"'{ins.sym.name}' returned after it was moved",
-                                 ins.line, subject=subj, resource_kind=rkind)
+                                 ins.line, subject=subj, resource_kind=rkind,
+                                 evidence=self._moved_evidence(
+                                     st, st.rid_of(ins.sym)))
                     else:
                         self.err("OWN002",
                                  f"'{ins.sym.name}' returned after it was released",
@@ -507,7 +600,15 @@ class _Analyzer:
                         self.err("OWN015",
                                  f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
                                  f"buffer and may be stack-backed; it cannot escape "
-                                 f"the current function", ins.line, subject=subj)
+                                 f"the current function", ins.line, subject=subj,
+                                 evidence=(
+                                     Evidence(line=ins.sym.buffer.line,
+                                              label=f"'{ins.sym.name}' allocated here",
+                                              role="acquired"),
+                                     Evidence(line=ins.line,
+                                              label="escapes the function by return "
+                                              "here", role="escaped"),
+                                 ))
                     elif ins.sym.buffer is not None:
                         self.err("OWN017",
                                  f"'{ins.sym.name}' is a {ins.sym.buffer.mode.value} "
@@ -564,7 +665,15 @@ class _Analyzer:
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer "
                              f"and may be stack-backed; it cannot be moved to a "
                              f"longer-lived owner by consuming it in '{callee}'",
-                             line, subject=sym.origin)
+                             line, subject=sym.origin,
+                             evidence=(
+                                 Evidence(line=sym.buffer.line,
+                                          label=f"'{sym.name}' allocated here",
+                                          role="acquired"),
+                                 Evidence(line=line,
+                                          label=f"consumed by '{callee}' here",
+                                          role="consumed"),
+                             ))
                 elif sym.buffer is not None:
                     self.err("OWN017",
                              f"'{sym.name}' is a {sym.buffer.mode.value} buffer; "

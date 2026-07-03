@@ -1,0 +1,186 @@
+# Task — evidence coverage for flow diagnostics
+
+Status: **spec, ready to implement**
+
+Derived from the ADR `AGENTS.execution-surfaces.md` (§3 «Structured evidence»
+and §5 «Acceptance criteria»). This is the executable task spec for the first
+rung of that document's ladder: wire the already-built-but-idle evidence
+machinery so flow diagnostics carry a structured reachability slice. It extends,
+and does not replace, `docs/proposals/P-015-reachability-evidence.md`.
+
+## 0. Goal
+
+Make at least 3 flow diagnostics carry a non-empty `Diagnostic.evidence`
+(a structured acquire→escape / move→use reachability slice), with a golden test
+on the human render. Do **not** change analyzer semantics.
+
+## 1. Scope
+
+**In scope**
+- Thread `evidence=` through `_Analyzer.err()`.
+- Evidence for 3 concrete codes (see §3).
+- A minimal per-RID provenance addition to `State`, solely for the move site
+  (§3.3).
+- A golden/snapshot test on the human render of evidence.
+- README «Where it cheats»: an honest note on merge-point evidence being partial.
+
+**Out of scope (explicitly do not do)**
+- A SARIF bridge for `Diagnostic`. Today `build_sarif` exists only for
+  `ownir.Finding`; building `Diagnostic → SARIF` is a separate PR. The golden
+  test rides the human render — the ADR allows «SARIF **or** human-render».
+- `check --show-evidence` / `trace` / query shell / registry — later per the ADR.
+- New domain types (`Location`, `OwnershipState`), a second provenance type, or
+  string facts — forbidden by the ADR.
+- Any refactor of `analysis.py` branching for aesthetics.
+
+## 2. The emit-site change (mandatory foundation)
+
+`analysis.py` — `_Analyzer.err()` gains an optional parameter:
+
+```python
+def err(self, code: str, msg: str, line: int,
+        subject: str | None = None,
+        resource_kind: str | None = None,
+        evidence: tuple[Evidence, ...] = ()) -> None:
+    if self.silent:
+        return
+    self.diags.append(Diagnostic(code, msg, line, subject=subject,
+                                 resource_kind=resource_kind, evidence=evidence))
+```
+
+`evidence` is declared last, so the positional constructor contract
+`Diagnostic(code, msg, line, severity, subject, resource_kind)` is preserved
+(`evidence` is already the last field of the dataclass). Import `Evidence` into
+`analysis.py`. The evidence branch must not do work before the `self.silent`
+early-return.
+
+## 3. The target diagnostics
+
+Class coverage required by acceptance: two from escape/lifetime, one from
+use-after-move. OWN001 (§3.4) adds the leak acquire site on top of the mandatory
+minimum.
+
+### 3.1 OWN015 — stack-backed buffer escapes function *(escape / lifetime)*
+
+Data is already available; no new bookkeeping. Acquire site is the buffer's
+allocation line (`sym.buffer.line`); escape site is the return line.
+
+```python
+self.err("OWN015", <msg>, ins.line, subject=subj, evidence=(
+    Evidence(line=ins.sym.buffer.line,
+             label=f"'{ins.sym.name}' allocated here", role="acquired"),
+    Evidence(line=ins.line,
+             label="escapes the function by return here", role="escaped"),
+))
+```
+
+### 3.2 OWN016 — stack-backed buffer moved to longer-lived owner *(escape / lifetime)*
+
+Emitted in `_apply_effect` (`eff == CONSUME`). Same shape: acquire
+`sym.buffer.line`, escape `line`, label «consumed by `'{callee}'` here»,
+`role="consumed"`.
+
+### 3.3 OWN005 — use / return after move *(use-after-move)*
+
+Emitted from `_state_problem` and the return branch. This one needs the **move
+site**, which `State` does not currently record. Minimal addition (the only new
+state):
+
+- In `State`: `moved_at: dict[int, tuple[int, bool]] = field(default_factory=dict)`
+  — RID → `(line, exact)`. `exact` is True when every path that moved this RID
+  moved it at the same line (a single precise site); False once merged paths
+  disagree, so the label cannot name a line only one branch took.
+- Record it on a **real ownership transfer** in `MoveInto` — only when the source
+  is still `OWNED` before the move: `st.moved_at[src_rid] = (ins.line, True)`. A
+  second move of an already-moved handle is itself an OWN005; overwriting there
+  would later blame that failed move instead of the move that actually consumed
+  the resource, so keep the first site.
+- Thread it through `State.copy()`.
+- In `join()`: union the map via a `_join_moved_at` helper. When a RID is moved on
+  both paths at the **same** line, keep it exact; at **different** lines, keep a
+  deterministic representative (the earliest) and set `exact=False`. Do **not**
+  add an invariant `assert` like the `loans` one: multiple move paths are
+  legitimate here.
+- On the OWN005 emit, build the step from `(line, exact)`:
+  `label = "moved here" if exact else "moved here (on one of several paths)"`;
+  `evidence=(Evidence(line=line, label=label, role="moved"),)` when a site is
+  present.
+
+### 3.4 OWN001 — resource leak *(acquire site)* — done
+
+Built as the symmetric counterpart to `moved_at`: an `acquired_at:
+dict[int, tuple[int, bool]]` recorded when a resource is minted (`Acquire`,
+`AcquireBuffer`, and a `MoveInto` destination), threaded through `copy()` and the
+same `_join_sites` merge helper. `leak_check` attaches an "acquired here" step so
+the leak — reported at the function exit / a return — points at the actionable
+open site. A leaked owned *parameter* is minted with no in-body site, so it
+carries no step. In practice the acquire site is always exact: a RID is minted at
+a single `acquire`, so unlike a move it cannot disagree across paths (the inexact
+branch stays defensively available but is unreachable in normal code).
+
+## 4. Presentation
+
+Nothing to change: `Diagnostic.human()` / `render_pretty()` already print one
+`note:` line per step. The default CLI text output surfaces evidence
+automatically. Do **not** introduce a `--show-evidence` flag here.
+
+## 5. Merge-point honesty (README)
+
+In README «Where it cheats» (and near the merge-union discussion): add 2–4
+sentences — evidence for move/escape is exact on straight-line paths and on
+merges where all incoming paths agree on the same move line; only when branches
+disagree does the merge keep a representative site and mark it one-of-N. «Do not
+depict precision that isn't there» (ADR §3.2).
+
+## 6. Tests
+
+New standalone `tests/test_evidence_coverage.py` (repo convention — not pytest),
+folded into `tests/run_tests.py` (like `test_gallery` / `test_corpus`):
+
+1. `.own` fixtures triggering OWN015, OWN016, OWN005, OWN001; run `analyze`; assert each
+   `Diagnostic.evidence` is non-empty and that roles/lines match the
+   acquire/escape/move sites.
+2. Golden human-render snapshot: `Diagnostic.render_pretty()` contains the
+   expected `note:` lines in order. The pattern already exists in
+   `tests/test_diagnostics.py`.
+3. Do not break the «empty-evidence invariant» in `test_diagnostics.py`
+   (diagnostics with no evidence still render byte-for-byte as before).
+
+## 7. Gate (hard)
+
+- `python tests/run_tests.py` green; `ruff check .` + `mypy ownlang` clean.
+- **No new `# type: ignore`**; do not touch the repo mypy config.
+- Do not «simplify» `analysis.py` branches.
+- Do not add a second provenance type / string facts / new domain types.
+
+## 8. Acceptance mapping (from ADR §5)
+
+| ADR criterion | How it is met |
+| --- | --- |
+| ≥3 flow diagnostics with non-empty evidence | OWN015, OWN016, OWN005, OWN001 |
+| ≥1 escape / lifetime / leak | OWN015 (§5.1: lifetime/region escape) + OWN016 |
+| ≥1 use-after-move / use-after-release | OWN005 |
+| Codes named in the PR body, not «escape» | listed explicitly |
+| Golden test on evidence | `test_evidence_coverage.py` human-render snapshot |
+| `.ownreport.json` not overloaded | `build_report` untouched |
+| gate green, no new ignores | §7 |
+| README «Where it cheats» on merge | §5 |
+
+## 9. PR shape
+
+- Type: `feat` (new structured information on diagnostics), or `docs+feat`; name
+  the codes **OWN015 / OWN016 / OWN005** explicitly in the PR body.
+- Branch: the same feature branch, or a fresh follow-up branch off `main` if the
+  ADR PR is already merged (per repo rules a merged PR is not reused).
+
+## 10. Risks / pitfalls
+
+- **`join()` invariant.** The `moved_at` union must not trip the existing
+  `loans` / `handle_rid` asserts — it is a separate map added alongside, not
+  inside that check.
+- **`_sym_by_id` / RID resolution.** Evidence labels take the name via the
+  existing `_sym_by_id` index — do not stand up a parallel index.
+- **Positional `Diagnostic` constructor.** Only `evidence` goes last; do not
+  reorder anything.
+- **`silent` mode.** `err()` accumulates nothing when `self.silent` — the
+  evidence branch must not do work before that check.

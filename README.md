@@ -625,6 +625,19 @@ justification" sets the discipline, but running the benchmarks is outside the sa
 Unsafe contracts (`UNS0xx`) are not yet implemented: `native` lowers into
 `NativeMemory.Alloc/Free` in an `unsafe` block, but pointer-escape checks are on the
 roadmap.
+Diagnostic **evidence** (the structured `note:` reachability steps some findings
+carry — acquire→escape for a stack buffer that returns/consumes at OWN015/OWN016,
+move→use for OWN005, and the acquire site of a leaked resource at OWN001) is exact
+on a straight-line path, and on a control-flow merge when all incoming paths agree
+on the same move line. The analysis keeps the **union** of per-path state, so only
+when branches *disagree* on where a resource was moved does the merge keep a
+representative site and label the step "moved here (on one of several paths)"
+rather than naming a line only one branch took — a static merge cannot say which
+path ran. (An acquire site is almost always exact: a resource is minted at one
+`acquire`, so its RID has a single source line; a leaked owned *parameter* is
+minted with no in-body site and so carries no acquire step.) Evidence coverage is
+also partial by design: most findings still carry no slice yet (they render
+exactly as before), and only the four producers above are wired so far.
 
 ---
 
