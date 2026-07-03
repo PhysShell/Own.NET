@@ -41,6 +41,7 @@ proposal is marked `done` with a pointer.
 | [P-017](P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | draft |
 | [P-020](P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — the effect-storm angle | draft |
 | [P-021](P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) | draft |
+| [P-022](P-022-rust-core-migration.md) | Rust core migration: crate DAG, patterns, prior art, differential oracle (Python = golden) | draft / exploratory |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
