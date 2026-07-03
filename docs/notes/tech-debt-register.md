@@ -193,7 +193,7 @@ Python walkers (§2.1).
 | # | Item | Where | Why now |
 |---|------|-------|---------|
 | N1 ✅ | `else: raise` on unknown flow ops | `ownlang/ownir.py` `_lower_flow` | Silent fact-swallowing → fabricated/missed verdicts (§2.1). *Done: raises `OwnIRError`; pinned by test_ownir. The five read-only walkers legitimately ignore ops they don't consume, so the guard is scoped to `_lower_flow` (the only pass that must handle every op or lose facts).* |
-| N2 | Auto-discovery in the test runner | `tests/run_tests.py:1144-1149` | 25-term hand-rolled `or`; a forgotten `rc` silently stops gating |
+| N2 ✅ | Auto-discovery in the test runner | `tests/run_tests.py` | 25-term hand-rolled `or`; a forgotten `rc` silently stopped gating. *Done: the runner now globs `test_*.py`, calls each module's `run()`, and gates on `any(rc)` — a new test file is auto-included, a module without `run()` fails the suite, and a discovery of zero modules fails loud. `test_codegen_props` keeps its lighter in-suite iteration count via a small special-case map.* |
 | N3 | Golden facts snapshots in CI + feed to `test_ownir.py` | `ci.yml` wpf-extractor job | The seam is never diffed at the facts level (§2.2) |
 | N4 ◑ | `spec/OwnIR.md` ✅ + JSON Schema (pending) + evolution policy ✅ | `spec/OwnIR.md` | §2.3–2.4. *Done: normative spec incl. the version evolution policy (IR1–IR6), registered in `spec/README.md`. Still to do: `spec/ownir.schema.json` + CI fixture validation.* |
 | N5 | DI001–005 + EFF001 into `spec/` + `Diagnostics.md` + `test_spec.py` | `ownlang/di.py`, `effects.py` | Second-largest analyzer has zero normative governance |

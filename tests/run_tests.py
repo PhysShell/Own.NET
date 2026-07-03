@@ -1058,102 +1058,37 @@ def run() -> int:
     print(f"ordering: {'PASS' if not order_fails else 'FAIL'}")
     print(f"helper:   {'PASS' if not helper_fails else 'FAIL'}")
 
-    # Content-level codegen assertions + property fuzzer: these inspect the
-    # generated C# itself (release placement/count, declaration order), catching
-    # lowerings that are silently wrong rather than ones that merely throw.
-    import test_codegen
-    cc_rc = test_codegen.run()
-    import test_codegen_props
-    pf_rc = test_codegen_props.run(iterations=3000, seed=1234)
+    # Every sibling `test_*.py` module contributes a `run() -> int`. AUTO-DISCOVER
+    # them instead of importing each by hand and threading its rc through a
+    # hand-maintained `or` chain: a forgotten term there would silently drop a whole
+    # module from the gate (the exact failure this replaces). Adding a test file now
+    # needs no edit here. Each `run()` prints its own PASS/FAIL summary, so
+    # per-module output is preserved (the order is now sorted by filename).
+    # `test_codegen_props` takes an explicit lighter iteration count for the in-suite
+    # pass; every other module runs argless.
+    import importlib
 
-    # The "what it catches" gallery: every examples/gallery/ file must still
-    # produce exactly the diagnostic it advertises, so the demo can't drift.
-    import test_gallery
-    gl_rc = test_gallery.run()
-
-    # Real-world corpus: each case.own (a reduction of a real ArrayPool/Dispose
-    # bug) must still produce the diagnostics it documents.
-    import test_corpus
-    co_rc = test_corpus.run()
-
-    # WPF lifetime corpus (lifetimes slice #1): subscription/timer leaks caught
-    # by the generic ownership checker, carrying the [resource: <kind>] tag.
-    import test_wpf
-    wpf_rc = test_wpf.run()
-
-    # Lifetime-region analysis (lifetimes slice #2): the region-escape theorem
-    # (a short-lived object captured by a longer-lived source -> OWN014).
-    import test_lifetimes
-    lt_rc = test_lifetimes.run()
-
-    # Loop support (P-016 A1): `while` is analysed via a worklist fixpoint over the
-    # back-edge — cross-iteration leak/use-after-release/double-release, not OWN020.
-    import test_loops
-    loops_rc = test_loops.run()
-
-    # Spec conformance pilot: every normative spec/ rule fires on its example.
-    import test_spec
-    spec_rc = test_spec.run()
-
-    # OwnIR fact bridge (P-001): C#-extracted facts route through the core and
-    # surface a subscription leak at its C# location.
-    import test_ownir
-    ownir_rc = test_ownir.run()
-
-    # Interprocedural ownership summaries (P-005 D5.0): the MOS solver — transfer
-    # lattice, depth-capped forward resolution, recursion convergence. Infra only;
-    # no findings wired yet (D5.1+).
-    import test_ownership
-    own5_rc = test_ownership.run()
-
-    # RID indirection (P-005 D5.4 step 0): the no-op handle->RID layer the alias
-    # model (step 1) builds on — 1:1 identity, the join invariant, behaviour
-    # unchanged.
-    import test_rid
-    rid_rc = test_rid.run()
-
-    # Diagnostic rendering (P-015): the empty-evidence invariant (render()/render_pretty()
-    # byte-for-byte unchanged) plus the ordered `note:` slice and the SARIF evidence builders.
-    import test_diagnostics
-    diag_rc = test_diagnostics.run()
-
-    # `explain` command: the diagnostic-catalogue CLI surface (text + exit codes +
-    # --json code harvest + DI catalogue coverage + dispatch).
-    import test_explain
-    explain_rc = test_explain.run()
-
-    # Evidence coverage (execution-surfaces ADR §3/§5): OWN015/OWN016/OWN005 carry
-    # a structured acquire->escape / move->use reachability slice, rendered as
-    # ordered `note:` lines, with the merge-point move site labelled honestly.
-    import test_evidence_coverage
-    evid_rc = test_evidence_coverage.run()
-
-    # Flow-diagnostic SARIF (execution-surfaces ADR §3.1): `check --format sarif`
-    # projects each Diagnostic's evidence slice into SARIF relatedLocations /
-    # codeFlows via the shared ownlang.evidence builders, for GitHub code scanning.
-    import test_diag_sarif
-    dsarif_rc = test_diag_sarif.run()
-
-    # Canonical CFG JSON seam (P-022 step 0): the frozen CFG-layer contract the
-    # Rust-port differential oracle diffs — envelope, symbol-table identity,
-    # instruction vocabulary, determinism.
-    import test_cfg_json
-    cfgjson_rc = test_cfg_json.run()
-
-    # Reactive-effect stability (P-020): the EFF001 effect-storm analysis — the
-    # identity lattice, reference propagation, cycle safety, and the OwnIR bridge
-    # mapping the optional `effects` block to an EFF001 finding (a new core
-    # analysis dimension, like DI001, not the acquire/release leak model).
-    import test_effects
-    effects_rc = test_effects.run()
+    special = {"test_codegen_props": lambda m: m.run(iterations=3000, seed=1234)}
+    here = os.path.dirname(os.path.abspath(__file__))
+    module_rcs: list[int] = []
+    for fname in sorted(os.listdir(here)):
+        if not (fname.startswith("test_") and fname.endswith(".py")):
+            continue
+        name = fname[:-3]
+        mod = importlib.import_module(name)
+        runner = special.get(name)
+        if runner is None and not hasattr(mod, "run"):
+            print(f"run_tests: FAIL — {name} has no run(); every test_*.py must expose one")
+            module_rcs.append(1)
+            continue
+        module_rcs.append(runner(mod) if runner is not None else mod.run())
+    if not module_rcs:
+        print("run_tests: FAIL — no test_*.py modules discovered")
+        return 1
 
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
-                 or order_fails or helper_fails or cc_rc or pf_rc
-                 or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
-                 or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc
-                 or explain_rc or effects_rc or evid_rc or dsarif_rc
-                 or cfgjson_rc) else 0
+                 or order_fails or helper_fails or any(module_rcs)) else 0
 
 
 if __name__ == "__main__":
