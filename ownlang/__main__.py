@@ -4,7 +4,8 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang check  file.own      # report ownership diagnostics
     python -m ownlang check  file.own --format sarif   # SARIF 2.1.0 log (code scanning)
     python -m ownlang emit   file.own      # check, then print generated C#
-    python -m ownlang cfg    file.own      # dump the control-flow graph
+    python -m ownlang cfg    file.own      # dump the control-flow graph (human debug view)
+    python -m ownlang cfg    file.own --format json   # canonical CFG JSON (oracle seam)
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
     python -m ownlang ownir  facts.json --format github|msbuild|human|sarif
@@ -117,7 +118,7 @@ def cmd_emit(path: str) -> int:
     return 0
 
 
-def cmd_cfg(path: str) -> int:
+def cmd_cfg(path: str, fmt: str = "human") -> int:
     src = _read(path)
     try:
         mod = parse(src)
@@ -127,8 +128,17 @@ def cmd_cfg(path: str) -> int:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
-    for fn in mod.functions:
-        cfg, _ = build_cfg(fn, rnames, sigs, pols)
+    cfgs = [build_cfg(fn, rnames, sigs, pols)[0] for fn in mod.functions]
+    if fmt == "json":
+        # The canonical CFG-layer oracle seam (P-022 step 0): a frozen,
+        # deterministic JSON contract the Rust port is diffed against. The
+        # human dump below stays a debug view, not a contract.
+        import json
+
+        from .cfg_json import module_cfg_json
+        print(json.dumps(module_cfg_json(cfgs), indent=2, sort_keys=True))
+        return 0
+    for cfg in cfgs:
         _print_cfg(cfg)
     return 0
 
@@ -353,7 +363,7 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     return 1 if leaks else 0
 
 
-_FORMATS = {"human", "github", "msbuild", "sarif"}
+_FORMATS = {"human", "github", "msbuild", "sarif", "json"}
 _SEVERITIES = {"error", "warning"}
 _VERBOSITY = {"quiet", "normal", "verbose"}
 
@@ -435,15 +445,17 @@ def main(argv: list[str]) -> int:
     # Value-flag scope, rejected by *presence* (so a redundant `--format human` is a
     # clear error, not a silent no-op): `ownir` takes all three; `check` takes only
     # `--format`, and only human|sarif (github/msbuild are per-finding renderers that
-    # need an OwnIR Finding, not a Diagnostic); every other command takes none.
-    if cmd == "check":
+    # need an OwnIR Finding, not a Diagnostic); `cfg` takes only `--format`, and only
+    # human|json (the canonical CFG-layer oracle seam); every other command takes none.
+    if cmd in {"check", "cfg"}:
         extra = seen - {"--format"}
         if extra:
             print(f"{'/'.join(sorted(extra))} only apply to `ownir`", file=sys.stderr)
             return 2
-        if fmt not in {"human", "sarif"}:
-            print(f"check --format must be 'human' or 'sarif' (got {fmt!r})",
-                  file=sys.stderr)
+        allowed = {"human", "sarif"} if cmd == "check" else {"human", "json"}
+        if fmt not in allowed:
+            print(f"{cmd} --format must be one of {'/'.join(sorted(allowed))} "
+                  f"(got {fmt!r})", file=sys.stderr)
             return 2
     elif cmd != "ownir" and seen:
         print("--format/--severity/--verbosity only apply to `ownir`",
@@ -451,10 +463,16 @@ def main(argv: list[str]) -> int:
         return 2
     path = positional[0]
     if cmd == "ownir":
+        if fmt == "json":  # json is the cfg seam's format, not an ownir surface
+            print("ownir --format must be one of github/human/msbuild/sarif "
+                  "(got 'json')", file=sys.stderr)
+            return 2
         return cmd_ownir(path, fmt, severity, verbosity)
     if cmd == "check":
         return cmd_check(path, fmt, severity)
-    return {"emit": cmd_emit, "cfg": cmd_cfg, "report": cmd_report}[cmd](path)
+    if cmd == "cfg":
+        return cmd_cfg(path, fmt)
+    return {"emit": cmd_emit, "report": cmd_report}[cmd](path)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,48 @@
+# The Rust core workspace (P-022). The crate graph IS the architecture: the
+# allowed dependency edges are documented in docs/proposals/P-022-rust-core-migration.md
+# and will be locked by a `cargo metadata` fitness test as crates are added.
+#
+# Population order follows the migration plan (strangler-fig, oracle-gated):
+# own-ir (here) -> own-syntax -> own-cfg -> own-analysis -> own-diagnostics ->
+# own-codegen -> own-bridge -> own-cli. Python stays authoritative until parity.
+
+[workspace]
+resolver = "2"
+members = ["crates/own-ir"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.74"          # floor for declarative [workspace.lints]
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Strictness per P-022 §"Compiler strictness" — inherited by every crate via
+# `[lints] workspace = true`. pedantic/nursery stay WARN (surgical, justified
+# allows only); the restriction lints are denied surgically.
+[workspace.lints.rust]
+unsafe_code = "forbid"          # forbid where unsafe isn't needed — cannot be overridden
+unreachable_pub = "deny"        # a pub nobody sees is a lie in the API
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"
+indexing_slicing = "deny"
+arithmetic_side_effects = "deny"
+panic = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+
+# Release profile per P-022 — panic is per-binary, NOT set here: "abort" for
+# own-cli, "unwind" for any LSP binary (salsa cancels via unwinding).
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
