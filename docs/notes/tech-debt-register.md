@@ -122,21 +122,23 @@ The formalization stack, in order of actual protection delivered:
    normalized facts for the pinned samples, and feed the same goldens to
    `test_ownir.py` so the Python suite also consumes *extractor-produced*
    facts, not only hand-written ones.
-3. **`spec/OwnIR.md` + `spec/ownir.schema.json`** (JSON Schema draft 2020-12,
-   `ownir_version` as a `const`) *(now/short)*. Validate all
-   `tests/fixtures/ownir/*.json` and the extractor's CI output against it.
-   Note: the schema must encode the *deliberate* open points — unknown
-   resource kinds coerce to `subscription` by documented design
-   (`ownir.py:66-70`), so the resource-kind enum is open, and the schema's job
-   is shape/type/enum guarantees, not vocabulary closure.
-4. **A written evolution policy** *(now, one paragraph in the spec)*: additive
-   optional fields do not bump `OWNIR_VERSION`; a **new op or changed op
-   semantics does**. Today's policy only covers the first half, which is
-   exactly the gap item 1 exploits.
-5. Version single-sourcing across the three producers (`ownir.py:159`,
-   `Program.cs:4360`, `ownts.py:580`) *(with next touch)* — worth doing, but
-   understand what it does not protect: the dangerous case is *nobody* bumping,
-   which only items 1–4 catch.
+3. **`spec/OwnIR.md`** ✅ (shipped) **+ `spec/ownir.schema.json`** (JSON Schema
+   draft 2020-12, `ownir_version` as a `const`) — **the schema's trigger has now
+   fired** (see the box below). Validate all `tests/fixtures/ownir/*.json` and
+   each frontend's output against it. The schema must encode the *deliberate*
+   open points — unknown resource kinds coerce to `subscription` by documented
+   design (`ownir.py:66-70`), so the resource-kind enum is open; its job is
+   shape/type/enum guarantees, not vocabulary closure.
+4. **A written evolution policy** ✅ *(now shipped in `spec/OwnIR.md` §2, rules
+   IR1–IR6)*: additive optional fields / new resource kinds do not bump
+   `OWNIR_VERSION`; a **new op or changed op semantics does**.
+5. Version single-sourcing ✅ *(enforced)* — a `test_ownir.py` check now greps
+   each frontend producer (`Program.cs`, `ownts.py`) and asserts its
+   `ownir_version` literal equals the core's `OWNIR_VERSION`, so "bumped the
+   core, forgot a frontend" (or the reverse) fails loudly. Understand what it
+   does **not** protect: the dangerous case is *nobody* bumping, which only
+   items 1/4 catch. When the P-022 `own-ir` crate lands (a **fourth** producer),
+   add it to this check — or, better, generate all four from the schema (§below).
 6. Reconcile or explicitly document the BCL fresh-factory asymmetry *(now,
    small)*: the extractor's `IsOwningFactory` knows the ADO.NET family
    (`ExecuteReader`/`CreateCommand`/`BeginTransaction`,
@@ -146,9 +148,28 @@ The formalization stack, in order of actual protection delivered:
    only consulted for first-party `call` ops), but the lockstep is
    comment-enforced and has already quietly diverged.
 
-Later, if a Rust/C# core materializes: generate types from the same schema
-(serde via typify / System.Text.Json source-gen). Protobuf/FlatBuffers only if
-fact volume ever makes JSON parse time measurable — no evidence today.
+> **Why the schema is now worth building (the argument that was strong all
+> along, recovered).** OwnIR is not a nice-to-have file — it is *the one language
+> every frontend and the core speak* ("frontends only produce/consume OwnIR",
+> ROADMAP design philosophy). **A language without a formal grammar is a language
+> that lies about itself.** Until now the schema looked redundant: `ownlang`'s
+> hand-written `load()` was the sole validator, so a JSON Schema only *duplicated*
+> its shape checks — a second source of truth to drift against, needing a
+> `jsonschema` dependency the zero-dep core avoids. **That calculus flips the
+> moment there is a second language-native type set** — which has now arrived:
+> P-022 #170 ships `crates/own-ir`, hand-writing Rust `serde` structs under the
+> rule "accept exactly what Python `load()` accepts," kept in sync only by a
+> fixture round-trip. That is two hand-maintained validators of one contract, in
+> two languages — the exact drift the OwnIR formalization exists to kill. The
+> schema stops being a *shadow* of `load()` and becomes the *source both are
+> generated from* (Rust `serde` via `typify`/`schemars`; C#/TS types via
+> source-gen), collapsing the hand-synced fact shapes **and** the now-four
+> `ownir_version` literals into one authority. So: `spec/OwnIR.md` (done) is the
+> prose grammar; `spec/ownir.schema.json` is the machine grammar, and it should be
+> **co-designed with the `own-ir` crate** (generate the Rust types from it, don't
+> hand-write them twice) rather than bolted on after. JSON stays the wire format;
+> Protobuf/FlatBuffers only if measured parse cost ever demands it — no evidence
+> today.
 
 ## 3. The extractor↔bridge "mirror" (LowerFlowStmt / _lower_flow)
 
@@ -195,7 +216,7 @@ Python walkers (§2.1).
 | N1 ✅ | `else: raise` on unknown flow ops | `ownlang/ownir.py` `_lower_flow` | Silent fact-swallowing → fabricated/missed verdicts (§2.1). *Done: raises `OwnIRError`; pinned by test_ownir. The five read-only walkers legitimately ignore ops they don't consume, so the guard is scoped to `_lower_flow` (the only pass that must handle every op or lose facts).* |
 | N2 ✅ | Auto-discovery in the test runner | `tests/run_tests.py` | 25-term hand-rolled `or`; a forgotten `rc` silently stopped gating. *Done: the runner now globs `test_*.py`, calls each module's `run()`, and gates on `any(rc)` — a new test file is auto-included, a module without `run()` fails the suite, and a discovery of zero modules fails loud. `test_codegen_props` keeps its lighter in-suite iteration count via a small special-case map.* |
 | N3 | Golden facts snapshots in CI + feed to `test_ownir.py` | `ci.yml` wpf-extractor job | The seam is never diffed at the facts level (§2.2) |
-| N4 ◑ | `spec/OwnIR.md` ✅ + JSON Schema (pending) + evolution policy ✅ | `spec/OwnIR.md` | §2.3–2.4. *Done: normative spec incl. the version evolution policy (IR1–IR6), registered in `spec/README.md`. Still to do: `spec/ownir.schema.json` + CI fixture validation.* |
+| N4 ◑ | `spec/OwnIR.md` ✅ + evolution policy ✅ + version single-sourcing ✅ + JSON Schema (trigger now fired) | `spec/OwnIR.md`, `tests/test_ownir.py` | §2. *Done: normative spec with the version evolution policy (IR1–IR6), registered in `spec/README.md`; and a producer-version-consistency check (each frontend's `ownir_version` must equal the core's). Remaining: `spec/ownir.schema.json` — its trigger has now fired (P-022 #170's `own-ir` crate = a second hand-written type set), so **co-design it with that crate and generate the Rust types from it**, per the §2 box; do NOT bolt a `jsonschema` CI validator onto the zero-dep core first.* |
 | N5 | DI001–005 + EFF001 into `spec/` + `Diagnostics.md` + `test_spec.py` | `ownlang/di.py`, `effects.py` | Second-largest analyzer has zero normative governance |
 | N6 ✅ | Fail-loud on unknown diagnostic code | `ownlang/diagnostics.py` `Diagnostic.__post_init__` | New codes land weekly; a typo'd code silently rendered `""`. *Done: `Diagnostic` now rejects any code absent from `TITLES` at construction (full suite confirms every emitted code is registered), and `title` indexes instead of `.get(...,"")`. A full `StrEnum` is the heavier follow-up; this closes the silent-`""` hole cheaply.* |
 | N7 | Split `ownir.py` → `ownir/{render,load,lower,inference,check}` | `ownlang/ownir.py` (2430 lines) | Fastest-accreting file in the repo; `check_facts` grows a branch per resource kind; deferring = paying the god-file tax on every feature |

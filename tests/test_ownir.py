@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -243,6 +244,34 @@ def run() -> int:
         fails.append("unknown flow op was silently accepted (should raise OwnIRError)")
     except OwnIRError:
         pass
+
+    # Version single-sourcing (IR2): every producer must stamp the SAME
+    # ownir_version as the core. The literal is hand-kept in each frontend today —
+    # once P-022's `own-ir` crate lands there are FOUR producers, so a schema will
+    # make this a generated constant (spec/OwnIR.md §2). Until then, assert the
+    # frontends match the core here, so "bumped the core, forgot a frontend" (or the
+    # reverse) fails loudly instead of silently mis-reading facts at runtime.
+    _ver = re.compile(r'ownir_version["\s]*[=:]\s*(\d+)')
+    _repo = os.path.join(os.path.dirname(__file__), "..")
+    _producers = {
+        "Roslyn extractor (Program.cs)":
+            os.path.join(_repo, "frontend", "roslyn", "OwnSharp.Extractor", "Program.cs"),
+        "OwnTS frontend (ownts.py)":
+            os.path.join(_repo, "frontend", "ownts", "ownts.py"),
+    }
+    for _label, _path in _producers.items():
+        checks += 1
+        try:
+            with open(_path, encoding="utf-8") as _f:
+                _m = _ver.search(_f.read())
+        except OSError as _e:
+            fails.append(f"{_label}: cannot read producer ({_e})")
+            continue
+        if _m is None:
+            fails.append(f"{_label}: no `ownir_version` literal found (moved? update this check)")
+        elif int(_m.group(1)) != OWNIR_VERSION:
+            fails.append(f"{_label}: ownir_version {_m.group(1)} != core OWNIR_VERSION "
+                         f"{OWNIR_VERSION} — bump every producer together")
 
     # --- WPF002 timer profile: a started timer never stopped/detached leaks,
     #     a stopped one stays silent, and the finding is tagged [resource: timer].
