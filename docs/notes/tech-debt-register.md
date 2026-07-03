@@ -186,17 +186,21 @@ Python walkers (§2.1).
 
 ### Now (standalone value; days-scale; ordered by protection-per-effort)
 
+> **Progress (branch `claude/ownir-contract-hardening`):** N1 ✅, N4 ✅ (spec
+> shipped; JSON Schema still pending), N6 ✅ (validation, not a full enum — see
+> below), N9 ✅. N8 re-scoped (not surgical — see note). The rest stand.
+
 | # | Item | Where | Why now |
 |---|------|-------|---------|
-| N1 | `else: raise` on unknown flow ops (+ the five walkers) | `ownlang/ownir.py:1692-1836` | Silent fact-swallowing → fabricated/missed verdicts (§2.1) |
+| N1 ✅ | `else: raise` on unknown flow ops | `ownlang/ownir.py` `_lower_flow` | Silent fact-swallowing → fabricated/missed verdicts (§2.1). *Done: raises `OwnIRError`; pinned by test_ownir. The five read-only walkers legitimately ignore ops they don't consume, so the guard is scoped to `_lower_flow` (the only pass that must handle every op or lose facts).* |
 | N2 | Auto-discovery in the test runner | `tests/run_tests.py:1144-1149` | 25-term hand-rolled `or`; a forgotten `rc` silently stops gating |
 | N3 | Golden facts snapshots in CI + feed to `test_ownir.py` | `ci.yml` wpf-extractor job | The seam is never diffed at the facts level (§2.2) |
-| N4 | `spec/OwnIR.md` + JSON Schema + evolution policy | new; `ownir.py:1-97` is the source | §2.3–2.4 |
+| N4 ◑ | `spec/OwnIR.md` ✅ + JSON Schema (pending) + evolution policy ✅ | `spec/OwnIR.md` | §2.3–2.4. *Done: normative spec incl. the version evolution policy (IR1–IR6), registered in `spec/README.md`. Still to do: `spec/ownir.schema.json` + CI fixture validation.* |
 | N5 | DI001–005 + EFF001 into `spec/` + `Diagnostics.md` + `test_spec.py` | `ownlang/di.py`, `effects.py` | Second-largest analyzer has zero normative governance |
-| N6 | Diagnostic `Code` enum (replace bare string literals) | `ownlang/diagnostics.py:243` + emit sites | New codes land weekly; a typo'd code silently renders `""` |
+| N6 ✅ | Fail-loud on unknown diagnostic code | `ownlang/diagnostics.py` `Diagnostic.__post_init__` | New codes land weekly; a typo'd code silently rendered `""`. *Done: `Diagnostic` now rejects any code absent from `TITLES` at construction (full suite confirms every emitted code is registered), and `title` indexes instead of `.get(...,"")`. A full `StrEnum` is the heavier follow-up; this closes the silent-`""` hole cheaply.* |
 | N7 | Split `ownir.py` → `ownir/{render,load,lower,inference,check}` | `ownlang/ownir.py` (2430 lines) | Fastest-accreting file in the repo; `check_facts` grows a branch per resource kind; deferring = paying the god-file tax on every feature |
-| N8 | Dedicated syntax-error code (stop filing `ParseError` as OWN020) | `ownlang/__main__.py:80` | Miscategorized as "unsupported construct" |
-| N9 | Bare `assert` on the loan invariant → raise | `ownlang/analysis.py:200-203` | Stripped under `python -O`; silent wrong answer if block-scoping is ever relaxed |
+| N8 ⚠️ | Dedicated syntax-error code (stop filing `ParseError` as OWN020) | `ownlang/__main__.py:80` | **Re-scoped: not surgical.** OWN020 is the suite-wide code for *any* parse/lex rejection — `for`/`loop`/`async` are lexer-*rejected keywords* (LexError → OWN020 by design), and the corpus/gallery/wpf/rid/loops test helpers all treat OWN020 as "parse rejected". Splitting a genuine syntax error from an unsupported-construct rejection means distinguishing the two at the lexer/parser and updating ~6 test files + `Grammar.md`/`CLI.md`/`OwnCore.md`. A real UX win, but a small refactor, not a one-liner. |
+| N9 ✅ | Bare `assert` on the loan invariant → raise | `ownlang/analysis.py` `join()` | Stripped under `python -O`. *Done: mirrors the explicit-raise pattern already used at `_join_handle_rid`, so the invariant holds in every build.* |
 | N10 | Reconcile/document BCL table asymmetry | `Program.cs:2545-2568` vs `ownir.py:1179-1199` | Lockstep already quietly diverged (§2.6) |
 
 ### With next touch

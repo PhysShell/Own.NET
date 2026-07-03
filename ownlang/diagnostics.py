@@ -239,9 +239,20 @@ class Diagnostic:
     # contract (code, message, line, severity, subject, resource_kind) is preserved.
     evidence: tuple[Evidence, ...] = ()
 
+    def __post_init__(self) -> None:
+        # A code with no TITLES entry is a bug, not a blank finding: `title` used to
+        # silently return "" for a typo'd or forgotten code. Fail loudly at
+        # construction so a mis-typed code can never ship a titleless diagnostic —
+        # the one stringly-typed contract in a --strict codebase.
+        if self.code not in TITLES:
+            raise ValueError(
+                f"unknown diagnostic code {self.code!r} (not in diagnostics.TITLES); "
+                f"a code and its title must be added together"
+            )
+
     @property
     def title(self) -> str:
-        return TITLES.get(self.code, "")
+        return TITLES[self.code]
 
     def _kind_suffix(self) -> str:
         return f" [resource: {self.resource_kind}]" if self.resource_kind else ""
