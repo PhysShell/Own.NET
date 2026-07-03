@@ -35,7 +35,15 @@ need is §1.
 
 ## 1. The rewrite question (recorded, not scheduled)
 
-**Current position: no rewrite until a trigger fires.** Candidate triggers, in
+> **Update (2026-07-03):** the rewrite is now on the record as
+> [P-022](../proposals/P-022-rust-core-migration.md) (draft, design-only,
+> oracle-gated). The IDE-extension goal supplies the legitimate trigger
+> (Gate B of incremental-computation.md); review notes and remaining gaps are
+> in [p022-review-notes.md](p022-review-notes.md). The prerequisite below —
+> spec or relocate the bridge inference before porting — still stands and is
+> P-022's largest gap (no crate owns today's `ownir.py` bridge).
+
+**Prior position: no rewrite until a trigger fires.** Candidate triggers, in
 the spirit of the existing trigger table:
 
 - measured performance pain at mining scale (profiler numbers on 50+-repo runs,
