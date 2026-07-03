@@ -151,7 +151,9 @@ Sound doctrine (ratchet, baseline, justified allows). Two notes: (a)
 `import-linter` for `ownlang` is the cheapest immediate win — the Python
 import DAG is already clean (verified in the July review), so the contract
 would pass on day one and prevent regressions while Python remains the
-oracle; (b) ruff `select = ["ALL"]` contradicts the current deliberate
-selection in `pyproject.toml` (SIM intentionally omitted because it fights
-the commented branch structure) — keep the curated select, or carry the SIM
-exclusion into the ALL-based config explicitly.
+oracle; (b) the note *proposes* moving ruff to `select = ["ALL"]` with a
+deliberate, commented ignore list, whereas the current `pyproject.toml` uses
+a curated select (SIM intentionally omitted because it fights the commented
+branch structure) — if the ALL-based variant is adopted, carry the SIM
+exclusion into its ignore list explicitly with the same justification
+comment; otherwise keep the curated select.

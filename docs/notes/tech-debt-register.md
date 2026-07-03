@@ -26,12 +26,15 @@
   condition (not aesthetics) pulls it off the shelf.
 - **Rejected** — considered and refused, with the reason on record.
 
-A deliberate framing decision: **no item below is justified by "prepares the
-rewrite."** A core rewrite is not on the record anywhere (the only mentions are
-the hypothetical trigger rows in `AGENTS.execution-surfaces.md:317,327`), and
-the repo's own rule says work needs profiler numbers or real pain, not a
-speculative future. Every item here pays rent standalone. What a rewrite *would*
-need is §1.
+A deliberate framing decision: **every item below justifies itself standalone**
+— none needs "prepares the rewrite" as its reason. When this register was first
+written, no rewrite was on the record (only the hypothetical trigger rows in
+`AGENTS.execution-surfaces.md:317,327`); P-022 has since landed as a draft (see
+the §1 update note), but the framing survives: the repo's own rule says work
+needs profiler numbers or real pain, not a speculative future, so each item
+pays rent today either way. What a rewrite specifically *would* need — and its
+hard prerequisites, such as the bridge-inference spec (§3) — is called out
+separately in §1, not smuggled into the standalone items.
 
 ## 1. The rewrite question (recorded, not scheduled)
 
