@@ -56,30 +56,36 @@ surface and the frontend boundary:
 
 ## Crate topology (decoupled = the DAG; Cargo enforces acyclicity at compile time)
 
+Arrow = "is depended on by" (dependency → dependent, i.e. build order):
+
 ```
-  own-ir      (OwnIR fact/verdict contract; serde — leaf-ish, everyone may depend on it)
+  own-ir      (OwnIR fact/verdict contract; serde — leaf, everyone may depend on it)
   own-syntax  (lexer / parser / AST)
      └─▶ own-cfg  (AST → CFG lowering)
-            └─▶ own-analysis  (lattice + worklist; ownership / lifetime / effect / DI)
+            ├─▶ own-analysis  (lattice + worklist; ownership / lifetime / effect / DI)
+            └─▶ own-codegen   (C# emit — AST/CFG only; NOT own-analysis, NOT own-diagnostics)
 
-  own-cfg + own-analysis ─┬─▶ own-diagnostics  (Diagnostic/Evidence model, text + SARIF)
-                          └─▶ own-codegen      (C# emit — AST/CFG-driven, verdict-independent)
+  own-diagnostics  (Diagnostic/Evidence model, text + SARIF)  ─▶ own-analysis
+     # own-analysis *constructs* Diagnostic/Evidence, so it depends on own-diagnostics;
+     # own-diagnostics depends only on own-ir/own-syntax spans — never on the solver.
 
   {all of the above} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
                         own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
 ```
 
-`own-diagnostics` and `own-codegen` are **sibling consumers** of `own-cfg` /
-`own-analysis` — neither depends on the other. This matters: codegen must not chain
-*through* the verdict renderer (see the fitness function below and Codex's review),
-or it would need diagnostics to re-export solver internals — breaking the "diagnostics
-knows nothing about the solver" invariant. Today's Python `codegen.generate(mod)`
-takes only the AST and never imports `diagnostics`, so codegen is **verdict-independent**
-(its policy comes from AST/CFG shape — `_laminar_scopes`, `_buffer_modes`, …), not from
-analysis conclusions. Keep it that way; if Rust codegen ever *does* want a solver
-verdict (e.g. inserting a `Dispose()` from the ownership conclusion rather than
-re-deriving it from shape), that is a **deliberate new `own-codegen → own-analysis`
-edge** to flag on its own, not something that sneaks in via the diagnostics arrow.
+The non-obvious edge is **`own-analysis → own-diagnostics`**: the solver *constructs*
+`Diagnostic`/`Evidence` values (in Python, `analysis.py` imports and builds them from
+`diagnostics.py` using solver-internal state), and those types are *owned by*
+`own-diagnostics` — so analysis depends on diagnostics, **not the reverse**.
+`own-diagnostics` therefore stays upstream, depending only on span/location primitives
+(`own-ir`/`own-syntax`), never on the solver — which is exactly the fitness function
+below. `own-codegen` is the true **sibling**: it hangs off `own-cfg`/AST *only* and is
+**verdict-independent** (Python `codegen.generate(mod)` takes just the AST — its policy
+comes from `_laminar_scopes`/`_buffer_modes`, not analysis conclusions). Codegen must
+not chain through diagnostics or reach into the solver; if Rust codegen ever *does* want
+a verdict (e.g. a `Dispose()` inserted from the ownership conclusion rather than
+re-derived from shape), that is a **deliberate new `own-codegen → own-analysis` edge**
+to flag on its own.
 
 - **`own-syntax`** — lexer + parser + AST. Zero analysis knowledge. (Prior art:
   ruff / rust-analyzer parsers.)
@@ -92,13 +98,14 @@ edge** to flag on its own, not something that sneaks in via the diagnostics arro
   `Analysis` traits, and the ownership/loan/lifetime/effect/DI impls. Each analysis
   is an independent trait impl, not interleaved (this is the direct de-noodling of
   today's `_Analyzer`).
-- **`own-diagnostics`** — Diagnostic/Evidence model + presentation (human render,
-  SARIF projection). A pure consumer of verdict data; knows nothing about the
-  solver internals. Mirrors today's already-clean split (`evidence.py` is a pure
+- **`own-diagnostics`** — *owns* the Diagnostic/Evidence types + their presentation
+  (human render, SARIF projection). It knows nothing about the solver; the solver
+  depends on **it** to construct verdicts. Depends only on span/location primitives
+  (`own-ir`/`own-syntax`). Mirrors today's clean split (`evidence.py` is a pure
   projection).
 - **`own-codegen`** — C# emission, **driven by AST/CFG shape, not analysis verdicts**
-  (verdict-independent, matching Python `codegen.generate(mod)`). A sibling of
-  `own-diagnostics`, not downstream of it.
+  (verdict-independent, matching Python `codegen.generate(mod)`). Depends on `own-cfg`
+  only — a sibling of `own-analysis`/`own-diagnostics`, downstream of neither.
 - **`own-cli`** — the binary; wires the pipeline and owns the CLI surface.
 - **`own-oracle`** — dev-only differential harness (see below).
 
@@ -208,9 +215,14 @@ representative large-OwnIR `from_slice` / buffered `to_writer`, with borrowed/in
 diagnostic strings — not only transfer-function microbenches. Algorithms before
 micro-opt. `#[inline]` only on tiny cross-crate hot functions (`next`/`deref`
 shape), **never `#[inline(always)]` by reflex**; LTO for cross-crate inlining;
-`panic = "abort"` in release. SIMD / `unsafe get_unchecked` / manual bounds-check
-elision (consolidate checks into one early `assert!` and let LLVM elide the rest) are
-the *last* resort, behind a flamegraph.
+`panic = "abort"` in release. Bounds-check elision the **safe** way — consolidate the
+checks into one early `assert!` and let LLVM prove the rest unreachable (Rust's safe
+iterators already match the C start/end-pointer idiom) — plus SIMD are the *last*
+resort, behind a flamegraph. Note this stays inside `unsafe_code = "forbid"`: we do
+**not** reach for `unsafe get_unchecked`. If a *profiled* hot path ever proves it needs
+raw unchecked indexing beyond what assert-elision buys, that single crate — not the
+workspace — drops `forbid` → `deny` with a documented, reviewed `#[allow(unsafe_code)]`;
+never a blanket relaxation.
 
 **Correctness first:** the differential oracle proves parity with Python before any of
 this; perf is then locked by an **`iai-callgrind` instruction-count ratchet** in CI
