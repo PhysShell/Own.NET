@@ -96,7 +96,7 @@ Arrow = "is depended on by" (dependency → dependent, i.e. build order):
      # facts → core lowering + interprocedural MOS inference + verdict mapping
      # (today's ownir.py beyond the schema; the flagship C#→facts→verdicts path)
 
-  {all of the above} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
+  {all of the above, incl. own-bridge} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
                         own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
 ```
 
