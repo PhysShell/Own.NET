@@ -58,7 +58,7 @@ surface and the frontend boundary:
 
 Arrow = "is depended on by" (dependency → dependent, i.e. build order):
 
-```
+```text
   own-ir      (OwnIR fact/verdict contract; serde — leaf, everyone may depend on it)
   own-syntax  (lexer / parser / AST)
      └─▶ own-cfg  (AST → CFG lowering)
