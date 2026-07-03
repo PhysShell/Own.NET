@@ -292,7 +292,9 @@ is the same **ratchet** we already run for correctness (the oracle) and perf
 and let old code only get better, never worse.** Tighten half a turn per iteration, do
 not strip the thread in one evening. This also honours the project's prime directive —
 *a false positive is worse than a miss* — at the tooling layer, not just in the
-analyzer's own verdicts.
+analyzer's own verdicts. The same doctrine across all three stacks (Rust / .NET /
+Python) and the cross-stack tools (CodeQL, Semgrep) lives in
+[`docs/notes/strictness-and-fitness.md`](../notes/strictness-and-fitness.md).
 
 Fitness functions to encode early, each locked by one `cargo metadata` test over the
 allowed edge set:
