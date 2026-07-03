@@ -63,7 +63,7 @@ charter-compliant fix is to add security tools to the fleet, not to write one.
 | Safe passive web scan (spider + passive rules, no attacks) | OWASP ZAP baseline | raw → adapter |
 | TLS/SSL protocols, ciphers, crypto flaws | testssl.sh (JSON output) | raw → adapter |
 | Dependencies, container images, IaC misconfig, secrets | Trivy (`--format sarif`) | SARIF native |
-| .NET package vulnerabilities | `dotnet list package --vulnerable` | raw → adapter |
+| .NET package vulnerabilities (incl. transitive) | `dotnet list package --vulnerable --include-transitive` | raw → adapter |
 
 Deliverables:
 
@@ -164,7 +164,7 @@ The contrast that keeps the design honest:
 
 Layout (inside the audit subtree, liftable with it):
 
-```
+```text
 audit/security/
   profiles/          # run manifests: baseline-web, tls, supply-chain, dotnet-config
   nuclei-templates/  # own *templates* for the external engine, if any
