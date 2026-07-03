@@ -42,6 +42,7 @@ proposal is marked `done` with a pointer.
 | [P-020](P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — the effect-storm angle | draft |
 | [P-021](P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) | draft |
 | [P-022](P-022-rust-core-migration.md) | Rust core migration: crate DAG, patterns, prior art, differential oracle (Python = golden) | draft / exploratory |
+| [P-023](P-023-security-audit-profile.md) | Security audit profile (external tools + SARIF adapters; rejects own scanner engine) | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
