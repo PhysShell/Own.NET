@@ -131,7 +131,7 @@ shape.
 | Arena / IDs | `la-arena` (rust-analyzer), `id-arena`, `slotmap` | index-based AST/CFG |
 | Interning | `lasso`, `string-interner` | symbol/string interning |
 | Graph (CFG) | `petgraph` or hand-rolled arena | petgraph gives traversals/dominators for free |
-| Persistent state | `imbl` (im fork) or `rpds` | copy-on-write dataflow state |
+| Dataflow state | dense bitset `Vec` + arena/scratch CoW *(leaning default)*; `imbl`/`rpds` *(benchmark candidate)* | persistent maps are one option to bench, **not** the default idiom — see the persistent-vs-arena open question |
 | Serialization | `serde` + `serde_json` | OwnIR, SARIF, `.ownreport.json` |
 | SARIF types | `serde-sarif` (evaluate) or hand-rolled structs | we already emit the shape; typed structs prevent drift |
 | CLI | `clap` (derive) | mirror the current subcommand surface |
@@ -185,13 +185,28 @@ workload:
 9. **`mimalloc`/`jemalloc`** as the global allocator — a common free win for an
    allocation-heavy frontend.
 
+**Solver scheduling (a big lever the compact lattice alone won't buy).** For a monotone
+forward analysis with loops, *block visitation order* decides how many times joins and
+transfers re-run. Schedule the worklist in **reverse-postorder (RPO)** so a block is
+(re)visited after its predecessors are stable — this minimizes fixpoint iterations. Back
+the queue with a cheap **`in_queue` bitset** (or, for small CFGs, a dense bitset-of-
+blocks) so a block is never enqueued twice, and reuse **scratch state buffers** across
+per-block transfers instead of re-allocating a fresh `State` each visit. Without this,
+an implementation can burn most of its time revisiting blocks and churning allocations
+*even with* the bitset lattice above.
+
 **Discipline (the article's framing, which we already run as doctrine):** don't
 optimize blindly or first — readability first, then optimize by **cumulative cost**
-under `perf`/a flamegraph, not by what "looks slow"; one-time costs (CLI/OwnIR parsing)
-don't matter, the hot path (the transfer function in the worklist) does — so **keep
-the transfer pure** (local writes, no writes through shared pointers) both to help the
-optimizer keep values in registers and to make it trivially benchmarkable. Algorithms
-before micro-opt. `#[inline]` only on tiny cross-crate hot functions (`next`/`deref`
+under `perf`/a flamegraph, not by what "looks slow"; truly one-time costs don't matter,
+the hot path (the transfer function in the worklist) does — so **keep the transfer
+pure** (local writes, no writes through shared pointers) both to help the optimizer keep
+values in registers and to make it trivially benchmarkable. **Caveat for the batch
+scanner:** over large OwnIR dumps, `serde_json` parse and SARIF/report rendering are
+`O(input + findings)` and run on *every* invocation — once the transfer loop is tight,
+that I/O can dominate wall-time and allocations. So bench it explicitly too:
+representative large-OwnIR `from_slice` / buffered `to_writer`, with borrowed/interned
+diagnostic strings — not only transfer-function microbenches. Algorithms before
+micro-opt. `#[inline]` only on tiny cross-crate hot functions (`next`/`deref`
 shape), **never `#[inline(always)]` by reflex**; LTO for cross-crate inlining;
 `panic = "abort"` in release. SIMD / `unsafe get_unchecked` / manual bounds-check
 elision (consolidate checks into one early `assert!` and let LLVM elide the rest) are
@@ -321,8 +336,12 @@ SARIF/JSON shapes. So:
 - **Exit/crash gate first.** Before diffing *any* output, assert both binaries
   produced the same exit status and neither panicked — a Rust panic has no SARIF
   representation, so an output-only diff would score a crash-on-valid-input as
-  "no findings = parity". Diff `stderr` too (e.g. the P-014 OWN050 advisory notes
-  live there, not in SARIF).
+  "no findings = parity". Diff `stderr` too — but note it carries only the
+  machine-format *summary/chatter* (verbosity lines). The advisory **OWN050** is a
+  genuine **SARIF result** (`level: "note"`; pinned in `tests/test_ownir.py`), so it is
+  compared on the SARIF seam like any other finding — do **not** treat it as
+  stderr-only, or the oracle will diff the wrong stream / double-count the human
+  summary text.
 - **Exact, not fuzzy.** This is a **golden** same-input comparison, so it demands
   strict set-equality on `(path, line, code, subject)` plus the full evidence slice
   **including each step's label text** (a step on the right line with the wrong
