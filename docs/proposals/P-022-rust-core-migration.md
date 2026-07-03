@@ -92,9 +92,10 @@ Arrow = "is depended on by" (dependency → dependent, i.e. build order):
      # own-analysis *constructs* Diagnostic/Evidence, so it depends on own-diagnostics;
      # own-diagnostics depends only on the span/location leaf — never on the solver.
 
-  own-ir + own-cfg + own-analysis + own-diagnostics ─▶ own-bridge
+  own-ir + own-syntax + own-cfg + own-analysis + own-diagnostics ─▶ own-bridge
      # facts → core lowering + interprocedural MOS inference + verdict mapping
-     # (today's ownir.py beyond the schema; the flagship C#→facts→verdicts path)
+     # (today's ownir.py beyond the schema; the flagship C#→facts→verdicts path;
+     #  own-syntax is required — the lowering *constructs* core AST nodes)
 
   {all of the above, incl. own-bridge} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
                         own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
@@ -104,9 +105,9 @@ The non-obvious edge is **`own-analysis → own-diagnostics`**: the solver *cons
 `Diagnostic`/`Evidence` values (in Python, `analysis.py` imports and builds them from
 `diagnostics.py` using solver-internal state), and those types are *owned by*
 `own-diagnostics` — so analysis depends on diagnostics, **not the reverse**.
-`own-diagnostics` therefore stays upstream, depending only on span/location primitives
-(`own-ir`/`own-syntax`), never on the solver — which is exactly the fitness function
-below. `own-codegen` is the true **sibling**: it hangs off `own-cfg`/AST *only* and is
+`own-diagnostics` therefore stays upstream, depending only on the span/location leaf
+in `own-ir` (**not** `own-syntax` — the presentation crate must not drag in the
+parser), never on the solver — which is exactly the fitness function below. `own-codegen` is the true **sibling**: it hangs off `own-cfg`/AST *only* and is
 **verdict-independent** (Python `codegen.generate(mod)` takes just the AST — its policy
 comes from `_laminar_scopes`/`_buffer_modes`, not analysis conclusions). Codegen must
 not chain through diagnostics or reach into the solver; if Rust codegen ever *does* want
@@ -143,8 +144,9 @@ to flag on its own.
   minting, localmap kill-on-rebind), the interprocedural **MOS** inference
   (`_build_skeletons`, `_infer_return_skeleton`, `_infer_param_effect`, the BCL
   fresh-factory table), branch-local hoisting, and `check_facts`' fact→verdict
-  mapping. Consumes `own-ir` facts, drives the `own-cfg`/`own-analysis` pipeline,
-  constructs `own-diagnostics` findings. This is the flagship path (real C# → facts
+  mapping. Consumes `own-ir` facts, **constructs `own-syntax` AST nodes** (the
+  lowering's output), drives the `own-cfg`/`own-analysis` pipeline, constructs
+  `own-diagnostics` findings. This is the flagship path (real C# → facts
   → verdicts); **porting it is a named migration step**, and its inference semantics
   get a normative write-up *before* the port (today they are pinned only by
   `test_ownir.py` examples — see the tech-debt register, "OwnIR: formalize").
@@ -408,10 +410,13 @@ allowed edge set:
   for now — not on `own-analysis` either (codegen is verdict-independent). A future
   `own-codegen → own-analysis` edge is allowed only as a deliberate, reviewed change
   to the allowed set, never implicitly.
-- **`own-bridge` is the one deliberately wide consumer** (ir + cfg + analysis +
-  diagnostics) — that width is its job. The constraint runs the other way: **nothing
-  depends on `own-bridge` except `own-cli`**, so bridge inference can never leak into
-  the core solver or the verdict layer.
+- **`own-bridge` is the one deliberately wide consumer** (ir + syntax + cfg +
+  analysis + diagnostics) — that width is its job. The constraint runs the other way:
+  **only *entry-point* crates may depend on `own-bridge`** — `own-cli` today, plus a
+  future `own-lsp` server and/or `own-capi` (`cdylib`) when the IDE's FFI shape lands
+  (the Why explicitly allows stdio *or* FFI, so the edge test must not forbid the
+  stated extension shape). Never a core crate — bridge inference can never leak into
+  the solver or the verdict layer.
 
 ## The differential oracle (Python repo = golden test)
 
@@ -456,9 +461,13 @@ SARIF/JSON shapes. So:
 - **CI ratchet — against snapshots, not a live Python run.** Don't execute the Python
   core on every CI pass: commit its outputs as **golden snapshots keyed by
   (corpus hash, Python-core commit)** and diff Rust against the snapshots; regenerate
-  only when Python itself changes (already the exception, not the rule). Otherwise CI
-  time grows with corpus × Python and the ratchet gets disabled "temporarily" — the
-  death of every ratchet. Coverage starts small and grows; the gate only tightens.
+  when **either key changes** — a Python-core change *or* a corpus/fixture
+  addition/edit (a new input under an unchanged Python commit still needs fresh
+  expected outputs, or CI diffs Rust against stale ones / silently skips the new
+  input). Both are the exception, not the rule; the steady state runs zero Python.
+  Otherwise CI time grows with corpus × Python and the ratchet gets disabled
+  "temporarily" — the death of every ratchet. Coverage starts small and grows; the
+  gate only tightens.
 - **Error-text parity is fixture-backed.** Parser/diagnostic message texts live in
   shared fixtures asserted from *both* implementations; otherwise "identical error
   messages" rests on copy-paste and drifts silently.
