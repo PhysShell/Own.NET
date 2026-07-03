@@ -57,22 +57,29 @@ surface and the frontend boundary:
 ## Crate topology (decoupled = the DAG; Cargo enforces acyclicity at compile time)
 
 ```
-              own-ir  (OwnIR types + serde; the fact/verdict contract — leaf-ish)
-                ▲  ▲
-                │  └────────────────────────┐
-  own-syntax ───┤                            │
-  (lexer/AST)   ▼                            │
-            own-cfg ──▶ own-analysis ──▶ own-diagnostics ──▶ own-codegen
-            (lower)     (lattice +        (Diagnostic/         (C# emit)
-                         worklist +        Evidence model,
-                         ownership/        text + SARIF
-                         lifetime/         projection)
-                         effect/DI)             │
-                                                ▼
-                                             own-cli  (check/emit/cfg/report/ownir/explain)
-                                                ▲
-                              own-oracle  ──────┘   (dev/test: differential harness vs Python)
+  own-ir      (OwnIR fact/verdict contract; serde — leaf-ish, everyone may depend on it)
+  own-syntax  (lexer / parser / AST)
+     └─▶ own-cfg  (AST → CFG lowering)
+            └─▶ own-analysis  (lattice + worklist; ownership / lifetime / effect / DI)
+
+  own-cfg + own-analysis ─┬─▶ own-diagnostics  (Diagnostic/Evidence model, text + SARIF)
+                          └─▶ own-codegen      (C# emit — AST/CFG-driven, verdict-independent)
+
+  {all of the above} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
+                        own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
 ```
+
+`own-diagnostics` and `own-codegen` are **sibling consumers** of `own-cfg` /
+`own-analysis` — neither depends on the other. This matters: codegen must not chain
+*through* the verdict renderer (see the fitness function below and Codex's review),
+or it would need diagnostics to re-export solver internals — breaking the "diagnostics
+knows nothing about the solver" invariant. Today's Python `codegen.generate(mod)`
+takes only the AST and never imports `diagnostics`, so codegen is **verdict-independent**
+(its policy comes from AST/CFG shape — `_laminar_scopes`, `_buffer_modes`, …), not from
+analysis conclusions. Keep it that way; if Rust codegen ever *does* want a solver
+verdict (e.g. inserting a `Dispose()` from the ownership conclusion rather than
+re-deriving it from shape), that is a **deliberate new `own-codegen → own-analysis`
+edge** to flag on its own, not something that sneaks in via the diagnostics arrow.
 
 - **`own-syntax`** — lexer + parser + AST. Zero analysis knowledge. (Prior art:
   ruff / rust-analyzer parsers.)
@@ -89,7 +96,9 @@ surface and the frontend boundary:
   SARIF projection). A pure consumer of verdict data; knows nothing about the
   solver internals. Mirrors today's already-clean split (`evidence.py` is a pure
   projection).
-- **`own-codegen`** — C# emission from CFG + analysis results.
+- **`own-codegen`** — C# emission, **driven by AST/CFG shape, not analysis verdicts**
+  (verdict-independent, matching Python `codegen.generate(mod)`). A sibling of
+  `own-diagnostics`, not downstream of it.
 - **`own-cli`** — the binary; wires the pipeline and owns the CLI surface.
 - **`own-oracle`** — dev-only differential harness (see below).
 
@@ -138,14 +147,16 @@ shape.
 | **rust-analyzer** | arena + interning, hand-written error-recovering parser, `salsa` incremental, crate split |
 | **ruff** (Astral) | Python-linter-in-Rust: AST visitor, **rule registry**, diagnostics + fixes, `insta` snapshots, workspace layout — the closest analogue to what we're building |
 | **rustc `rustc_mir_dataflow`** | the `Analysis`/lattice/worklist framework — our ownership dataflow is the same shape |
+| **clippy lint-pass registry** | a *second-party* lint layer bolted onto a compiler's MIR — arguably a closer analogue to our OWN-code registry (analyses atop external-frontend OwnIR facts) than ruff's own |
 | **Polonius** | borrow-check-as-Datalog (uses `datafrog`) — the reference if we later take facts/relations → Datalog |
-| **Prusti / Flux / Creusot / MIRAI** | pass architecture for Rust static verification |
+| **Prusti / Flux / Creusot / MIRAI** | pass architecture for Rust static verification; **prusti-viper**'s MIR→Viper *encoding boundary* is a model for seaming a future verification backend (P-002) onto `own-ir` without touching `own-analysis` |
 | **oxc / biome** | JS/TS toolchains in Rust: crate splitting, diagnostics, codegen, perf |
 | **salsa** | incremental recomputation, if we want editor/on-save later |
 
-The **ruff rule registry** is worth calling out: it is the execution-surfaces ADR §2
-"typed primitive/detector registry" done idiomatically in Rust — so that ADR idea is
-better realized *after* the port, natively, than bolted onto Python now.
+The **ruff / clippy rule registries** are worth calling out: they are the
+execution-surfaces ADR §2 "typed primitive/detector registry" done idiomatically in
+Rust — so that ADR idea is better realized *after* the port, natively, than bolted
+onto Python now.
 
 ## Architecture-fitness tooling for Rust (the "architectural analyzers")
 
@@ -166,9 +177,14 @@ strong, CI-enforceable decoupling:
 - **Clippy** (pedantic/nursery selectively) + `#![warn(missing_docs)]` + strict
   module privacy (`pub(crate)` by default).
 
-Fitness function to encode early: **`own-diagnostics` and `own-ir` must not depend on
-`own-analysis`** (the verdict/contract layer stays independent of the solver). One
-`cargo metadata` test locks that.
+Fitness functions to encode early, each locked by one `cargo metadata` test over the
+allowed edge set:
+- **`own-diagnostics` and `own-ir` must not depend on `own-analysis`** — the
+  verdict/contract layer stays independent of the solver.
+- **`own-codegen` must not depend on `own-diagnostics`** (they are siblings), and —
+  for now — not on `own-analysis` either (codegen is verdict-independent). A future
+  `own-codegen → own-analysis` edge is allowed only as a deliberate, reviewed change
+  to the allowed set, never implicitly.
 
 ## The differential oracle (Python repo = golden test)
 
@@ -182,13 +198,30 @@ SARIF/JSON shapes. So:
   files, and OwnIR fact files. Plus generated inputs (see below).
 - **Run both:** `python -m ownlang check --format sarif <f>` vs
   `own-rs check --format sarif <f>` (identical CLI surface + SARIF ⇒ clean diff).
-  Likewise `cfg` (dump CFG as JSON), `report` (`.ownreport.json`), `emit` (C#).
+  Likewise `report` (`.ownreport.json`) and `emit` (C#).
+- **Exit/crash gate first.** Before diffing *any* output, assert both binaries
+  produced the same exit status and neither panicked — a Rust panic has no SARIF
+  representation, so an output-only diff would score a crash-on-valid-input as
+  "no findings = parity". Diff `stderr` too (e.g. the P-014 OWN050 advisory notes
+  live there, not in SARIF).
+- **Exact, not fuzzy.** This is a **golden** same-input comparison, so it demands
+  strict set-equality on `(path, line, code, subject)` plus the full evidence slice
+  **including each step's label text** (a step on the right line with the wrong
+  `role`/label is a real semantic bug SARIF-location-diffing alone misses). Also pin
+  intra-tie ordering when two findings share `(line, code)`.
+  > **Do not reuse `scripts/oracle_compare.py` as the parity oracle.** It was built
+  > for a *different* job — cross-tool fuzzy matching against external tools (Infer#/
+  > CodeQL): it keeps only leak-class findings, matches by basename within a ±N-line
+  > tolerance (`near()`), and buckets severities coarsely. Reused as-is it would let
+  > an off-by-one in Rust CFG lowering, a changed evidence label, a wrong
+  > subject/resource-kind, a non-leak diagnostic, or a differing exit status all pass
+  > as "parity". Build a **new exact diff harness** (or add a strict `--exact` mode to
+  > the script) over canonicalized `status + stdout + stderr + SARIF/JSON`. Reuse
+  > `oracle_compare.py` only as a reference for the SARIF-reading plumbing.
 - **Normalize then diff:** canonicalize JSON (sorted keys), normalize file paths,
-  drop volatile fields; compare the diagnostic set (code, line, subject, evidence
-  steps) and the SARIF log. A per-file, per-diagnostic divergence report — the same
-  shape `scripts/oracle_compare.py` already produces for the cross-tool (Infer#/
-  CodeQL) diff. **The Rust core is just another SARIF producer that the existing
-  oracle diffs against Python.**
+  drop only genuinely volatile fields (timestamps, absolute temp dirs) — nothing
+  semantic. "SARIF-clean" must not be allowed to imply "full parity": `.ownreport.json`
+  fields not modeled in SARIF are compared on their own seam.
 - **CI ratchet:** a job runs the diff over the corpus and fails on any divergence in
   the covered subset. Coverage starts small and grows; the ratchet only tightens.
 - **Generative differential + metamorphic:** reuse the codegen fuzzer's spirit —
@@ -196,17 +229,26 @@ SARIF/JSON shapes. So:
   a symbol must not change the diagnostic set) catch classes of bugs a fixed corpus
   misses.
 
-Because the oracle compares *contracts we already froze and tested*, the recent
-evidence/SARIF hardening is what makes it cheap. Each layer also gets its own diff
-seam (`cfg` JSON at the CFG layer, SARIF at the verdict layer), so we can bisect a
-divergence to the crate that introduced it.
+**Per-layer seams.** SARIF is the verdict-layer seam and already exists. A **CFG-layer
+seam does not** — today `python -m ownlang cfg` prints a *human* dump (`_print_cfg`),
+not a contract. So a prerequisite of diffing CFGs is to first **add and freeze a
+canonical `cfg --format json` export on the Python side**; mirroring the debug text
+dump would bake a non-contract format into the ratchet. Treat "CFG JSON seam" as work
+to build, not an existing contract. With SARIF (verdict) present and CFG-JSON added,
+a divergence can be bisected to the crate that introduced it.
+
+Because the oracle compares *contracts we froze and tested*, the recent evidence/SARIF
+hardening is what makes the verdict seam cheap — the CFG seam still needs building.
 
 ## Migration strategy (strangler-fig, bottom-up, oracle-gated)
 
+0. **Add the missing Python seams first**: a canonical `cfg --format json` export
+   (and the exact diff harness). Without these the ratchet has nothing to compare the
+   CFG layer against.
 1. **Stand up the workspace + `own-ir`** (serde round-trips the existing OwnIR
    fixtures — first parity check, at the seam).
 2. **`own-syntax`**: port the parser; diff the AST/`cfg` dump against Python.
-3. **`own-cfg`**: port lowering; diff CFG JSON.
+3. **`own-cfg`**: port lowering; diff the frozen CFG JSON (from step 0).
 4. **`own-analysis`**: port the worklist + ownership first, then lifetime/effect/DI;
    diff diagnostics (no evidence) → then evidence → then SARIF, layer by layer.
 5. **`own-diagnostics` + `own-codegen`**: SARIF/report/text and C# `emit`; diff each.
@@ -220,16 +262,27 @@ Throughout, Python stays authoritative; the Rust crates light up behind the ratc
 ## Open questions (to resolve as we go)
 
 - **Parser**: hand-roll vs `chumsky`/`winnow`. Leaning hand-roll for golden-parity of
-  error messages.
-- **Persistent vs arena-CoW state**: `imbl` maps vs an arena with copy-on-write. Bench
-  on the corpus before committing.
+  error messages — matching Python's exact wording/positions through a combinator's
+  error model is friction in an oracle context. Re-evaluate a combinator rewrite only
+  *after* error-parity is frozen, gated by the same oracle.
+- **Persistent vs arena-CoW state**: `imbl`/`rpds` maps vs a dense arena + dirty-bitset
+  copy-on-write. Persistent maps win with frequent merges / high sharing (wide CFGs);
+  arena+CoW likely wins on *this* workload (procedural functions, modest branching,
+  small per-RID state) where flat-`Vec` access beats persistent-map lookup constants —
+  and `imbl` only pulls ahead if we graduate to interprocedural/whole-program dataflow.
+  Bench on the corpus's **largest real function** (not synthetic), measuring both
+  wall-clock **and** peak RSS (persistent maps often lose on RSS via node overhead even
+  when they win on clone time).
 - **`serde-sarif` vs hand-rolled SARIF structs**: evaluate the crate's maintenance and
   whether it matches our exact shape.
 - **Incrementality (`salsa`)**: out of scope for parity, but the crate split should not
   preclude it (keep queries pure).
 - **Repo layout**: a `rust/` subtree in this repo (monorepo, easiest for the oracle to
-  run both) vs a sibling repo. Monorepo recommended so the oracle and corpus are one
-  `git` away.
+  run both) vs a sibling repo. Monorepo recommended *for this phase* so the oracle and
+  corpus are one `git` away and there is no submodule/pinned-SHA ceremony. Revisit the
+  split once Rust is authoritative and Python is legacy/reference-only — at that point
+  the coupling inverts and the monorepo's blast radius (Rust CI on every Python-only
+  doc change) becomes the annoyance rather than the benefit.
 
 ## Placement
 
