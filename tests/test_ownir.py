@@ -229,6 +229,21 @@ def run() -> int:
     except OwnIRError as e:
         fails.append(f"versionless facts wrongly rejected: {e}")
 
+    # an unknown flow op (a newer extractor emitting a vocabulary the core can't
+    # lower) must RAISE, not be silently dropped — else the acquire/release facts
+    # nested inside it vanish and verdicts flip with every fixture still green.
+    checks += 1
+    unknown_op = {"ownir_version": OWNIR_VERSION, "module": "X", "components": [],
+                  "functions": [{"name": "F", "file": "F.cs", "body": [
+                      {"op": "acquire", "var": "c", "line": 1},
+                      {"op": "try", "line": 2, "body": [
+                          {"op": "release", "var": "c", "line": 3}]}]}]}
+    try:
+        check_facts(unknown_op)
+        fails.append("unknown flow op was silently accepted (should raise OwnIRError)")
+    except OwnIRError:
+        pass
+
     # --- WPF002 timer profile: a started timer never stopped/detached leaks,
     #     a stopped one stays silent, and the finding is tagged [resource: timer].
     with open(_TIMER_FIXTURE, encoding="utf-8") as f:

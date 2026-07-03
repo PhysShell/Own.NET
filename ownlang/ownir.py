@@ -1834,6 +1834,17 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                                    "ever_released": result in released_vars,
                                    "pool": False}
                 body.append(Let(handle, Acquire("Disposable", [], line), line))
+        else:
+            # Fail loud on an op this core cannot lower. Silently skipping it would
+            # drop the acquire/release facts nested inside it — fabricating a leak (a
+            # lost release) or hiding one (a lost acquire) while every existing fixture
+            # still passes. A NEW op is a vocabulary change, not an additive optional
+            # field, so it must bump OWNIR_VERSION on both the extractor and the core
+            # (see spec/OwnIR.md); until then, refuse rather than mis-analyze.
+            raise OwnIRError(
+                f"unknown OwnIR flow op {op!r} ({ffile}:{line}) — extractor/core "
+                f"vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+            )
     return body
 
 
