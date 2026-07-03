@@ -113,7 +113,7 @@ build graph.
 | `assert_never` dispatch updated by hand in cfg/analysis/codegen | `enum` + exhaustive `match` | a missed variant is a **compile error**, not a runtime assert |
 | RID = `id(sym)`; handles keyed by object identity | newtype indices `Rid(u32)`, `BlockId(u32)`, `LoanId(u32)` + arena | deterministic, serializable, no identity hacks |
 | AST/CFG as object graphs | **arena + indices** (`la-arena`/`id-arena`) | borrow-checker-friendly graphs, cheap clone, cache-friendly |
-| `State.copy()` deep-copies dicts every merge | **persistent maps** (`imbl`/`rpds`) — structural sharing | join/clone at merges is O(log n) sharing, not a deep copy |
+| `State.copy()` deep-copies dicts every merge | dense bitset `Vec` + arena/scratch copy-on-write *(leaning default)*; persistent maps (`imbl`/`rpds`) a *benchmark candidate* | avoid the deep copy at merges — but don't pre-commit to tree-node alloc + O(log n); see the persistent-vs-arena open question |
 | ownership/lifetime/effect/DI interleaved in `_Analyzer` | `Lattice` + `DataflowAnalysis` traits; one generic solver, N impls | analyses decoupled + independently testable |
 | strings compared everywhere | interning (`lasso`/`string-interner`) | cheap symbol equality; smaller state |
 | Diagnostics-as-data (good, keep it) | keep: `Diagnostic` is data, **not** an `Err` | verdicts stay first-class; `thiserror`/`anyhow` only for real I/O errors |
