@@ -21,9 +21,13 @@ on the same input?" — so it is exact by construction:
 Modes:
   compare   run reference and candidate on one input, diff every surface
   snapshot  run the reference over a corpus, write golden snapshots + manifest
-            keyed by (corpus hash, reference commit)
+            keyed by (corpus hash, reference-source hash)
   verify    run the candidate against existing snapshots; fails on divergence
-            AND on a stale manifest (either key changed -> regenerate first)
+            AND on a stale manifest (EITHER key changed -> regenerate first).
+            The reference key is a content hash of the reference
+            implementation's source tree (--ref-src, default ownlang/) — not
+            the git commit, which changes on every commit including ones that
+            cannot affect the reference's behaviour.
 
 Usage:
   oracle_exact.py compare  FILE --ref "python -m ownlang" --cand "<binary>"
@@ -83,7 +87,9 @@ def _run(cmd: str, surface: str, input_path: str) -> dict[str, str | int]:
     record: exit status + canonicalized stdout/stderr + a crash flag."""
     argv = shlex.split(cmd) + shlex.split(surface) + [input_path]
     proc = subprocess.run(argv, capture_output=True, text=True, check=False)
-    crashed = any(m in proc.stderr for m in _CRASH_MARKS)
+    # A signal death (segfault/OOM-kill) prints no traceback/panic text; the
+    # negative POSIX returncode is the only trace, so it counts as a crash.
+    crashed = any(m in proc.stderr for m in _CRASH_MARKS) or proc.returncode < 0
     return {
         "status": proc.returncode,
         "stdout": _canon_stream(proc.stdout, input_path),
@@ -134,6 +140,19 @@ def _corpus_hash(files: list[Path], root: Path) -> str:
     return h.hexdigest()
 
 
+def _tree_hash(root: Path) -> str:
+    """Content hash of the reference implementation's source tree — the
+    reference half of the manifest key. A behaviour-affecting change cannot
+    happen without a source change, and (unlike the git commit) it is stable
+    across commits that don't touch the reference."""
+    h = hashlib.sha256()
+    for p in sorted(x for x in root.rglob("*") if x.is_file()
+                    and "__pycache__" not in x.parts):
+        h.update(str(p.relative_to(root)).encode())
+        h.update(hashlib.sha256(p.read_bytes()).hexdigest().encode())
+    return h.hexdigest()
+
+
 def _slug(rel: str, surface: str) -> str:
     safe = rel.replace("/", "__").replace("\\", "__")
     surf = surface.split()[0]
@@ -176,7 +195,9 @@ def cmd_snapshot(args: argparse.Namespace) -> int:
         "corpus_root": str(root),
         "corpus_ext": args.ext,
         "corpus_hash": _corpus_hash(files, root),
-        "reference_commit": _git_commit(),
+        "reference_src": args.ref_src,
+        "reference_hash": _tree_hash(Path(args.ref_src)),
+        "reference_commit": _git_commit(),  # informational only
         "surfaces": surfaces,
         "files": [str(f.relative_to(root)) for f in files],
     }
@@ -192,13 +213,19 @@ def cmd_verify(args: argparse.Namespace) -> int:
     manifest = json.loads((snap / "manifest.json").read_text(encoding="utf-8"))
     root = Path(manifest["corpus_root"])
     files = _corpus_files(root, manifest["corpus_ext"])
-    # Staleness gate: EITHER key changing (corpus hash / reference commit)
-    # means the snapshots must be regenerated, not silently diffed against.
-    now_hash = _corpus_hash(files, root)
-    if now_hash != manifest["corpus_hash"]:
+    # Staleness gate: EITHER key changing (corpus hash / reference-source
+    # hash) means the snapshots must be regenerated, not silently diffed
+    # against. The reference key is re-derived from the manifest's own
+    # reference_src, so a Python-core edit with an unchanged corpus trips it.
+    if _corpus_hash(files, root) != manifest["corpus_hash"]:
         print("STALE SNAPSHOTS: the corpus changed since `snapshot` ran "
               "(corpus_hash mismatch). Regenerate before verifying.",
               file=sys.stderr)
+        return 2
+    if _tree_hash(Path(manifest["reference_src"])) != manifest["reference_hash"]:
+        print("STALE SNAPSHOTS: the reference implementation changed since "
+              "`snapshot` ran (reference_hash mismatch). Regenerate before "
+              "verifying.", file=sys.stderr)
         return 2
     problems: list[str] = []
     for rel in manifest["files"]:
@@ -260,15 +287,27 @@ def _selftest() -> int:
         if a != b:
             fails.append("JSON canonicalization must ignore formatting/order")
 
-        # (e) snapshot -> verify round-trip is parity; corpus edit -> stale.
+        # (e) snapshot -> verify round-trip is parity; then EITHER key of the
+        # manifest going stale (reference source edit, corpus edit) must be
+        # refused with rc 2, in that order of checks.
+        refsrc = tdp / "refsrc"
+        refsrc.mkdir()
+        (refsrc / "core.py").write_text("VERSION = 1\n", encoding="utf-8")
         snapdir = tdp / "snaps"
         ns = argparse.Namespace(corpus=str(tdp), out=str(snapdir), ref=py,
-                                surface=["check --format sarif"], ext=".own")
+                                surface=["check --format sarif"], ext=".own",
+                                ref_src=str(refsrc))
         if cmd_snapshot(ns) != 0:
             fails.append("snapshot must succeed")
         nv = argparse.Namespace(snapshots=str(snapdir), cand=py)
         if cmd_verify(nv) != 0:
             fails.append("verify vs the same implementation must be parity")
+        (refsrc / "core.py").write_text("VERSION = 2\n", encoding="utf-8")
+        if cmd_verify(nv) != 2:
+            fails.append("a reference-source edit must make snapshots STALE")
+        (refsrc / "core.py").write_text("VERSION = 1\n", encoding="utf-8")
+        if cmd_verify(nv) != 0:
+            fails.append("restoring the reference source must restore parity")
         clean.write_text("module M\nfn g() {\n}\n", encoding="utf-8")
         if cmd_verify(nv) != 2:
             fails.append("a corpus edit must make snapshots STALE (rc 2)")
@@ -298,6 +337,9 @@ def main(argv: list[str]) -> int:
     s.add_argument("--ref", required=True)
     s.add_argument("--surface", action="append")
     s.add_argument("--ext", default=".own")
+    s.add_argument("--ref-src", default="ownlang", dest="ref_src",
+                   help="reference implementation source tree (hash = the "
+                        "reference half of the staleness key)")
 
     v = sub.add_parser("verify", help="diff the candidate against snapshots")
     v.add_argument("snapshots", help="snapshot directory (with manifest.json)")

@@ -91,6 +91,46 @@ fn param_effect_vocabulary_is_closed() {
 }
 
 #[test]
+fn explicit_null_is_rejected_where_python_rejects_it() {
+    // Python: `result.get("components", [])` -> a present null fails the
+    // isinstance list check. Option<T> alone would collapse null into
+    // "absent" and silently drop the field on round-trip.
+    for doc in [
+        r#"{"components": null}"#,
+        r#"{"ownir_version": null}"#,
+        r#"{"services": [{"lifetime": "scoped", "name": "A", "deps": null}]}"#,
+        r#"{"components": [{"subscriptions": [{"resource": null}]}]}"#,
+        r#"{"functions": [{"params": [{"name": "s", "line": null}]}]}"#,
+    ] {
+        assert!(
+            OwnIr::from_json(doc).is_err(),
+            "a present null must be rejected (Python parity): {doc}"
+        );
+    }
+}
+
+#[test]
+fn explicit_null_is_accepted_and_preserved_where_python_accepts_it() {
+    // Python checks these with `if x is not None and not isinstance(...)` —
+    // a present null passes AND stays in the document, so the round-trip
+    // must re-emit it rather than dropping the key.
+    for doc in [
+        r#"{"components": [{"subscriptions": [{"type": null}]}]}"#,
+        r#"{"components": [{"subscriptions": [{"source_type": null}]}]}"#,
+        r#"{"functions": [{"params": [{"name": "s", "effect": null}]}]}"#,
+    ] {
+        let original: Value = serde_json::from_str(doc).expect("valid JSON");
+        let parsed = OwnIr::from_json(doc)
+            .unwrap_or_else(|e| panic!("null must be accepted here: {doc}: {e}"));
+        assert_eq!(
+            parsed.to_value().expect("serialize"),
+            original,
+            "explicit null must survive the round-trip: {doc}"
+        );
+    }
+}
+
+#[test]
 fn additive_unknown_fields_are_preserved() {
     let text = r#"{
         "module": "M",

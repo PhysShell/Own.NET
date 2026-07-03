@@ -27,13 +27,13 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.cfg import build_cfg, collect_policies, collect_signatures
+from ownlang.cfg import build_cfg, collect_kinds, collect_policies, collect_signatures
 from ownlang.cfg_json import CFG_JSON_VERSION, module_cfg_json
 from ownlang.parser import parse
 
 _SRC = (
     "module M\n"                                        # 1
-    "resource Conn { acquire open release close }\n"    # 2
+    "resource Conn { kind \"connection token\" acquire open release close }\n"  # 2
     "extern fn Store(consume Conn);\n"                  # 3
     "fn f(n: int) {\n"                                  # 4
     "    let c = acquire Conn(1);\n"                    # 5
@@ -56,7 +56,8 @@ def _doc() -> dict:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
-    cfgs = [build_cfg(fn, rnames, sigs, pols)[0] for fn in mod.functions]
+    kinds = collect_kinds(mod)
+    cfgs = [build_cfg(fn, rnames, sigs, pols, kinds)[0] for fn in mod.functions]
     return module_cfg_json(cfgs)
 
 
@@ -94,6 +95,10 @@ def run() -> int:
     expect(syms[by_name["r"]]["kind"] == "borrow"
            and syms[by_name["c"]]["kind"] == "owned",
            "borrow binding must be a distinct row with kind=borrow")
+    # resource kinds must ride the seam (the CLI path passes collect_kinds;
+    # dropping it would null the field for every kind-tagged resource).
+    expect(syms[by_name["c"]]["resource_kind"] == "connection token",
+           f"resource_kind must survive projection: {syms[by_name['c']]}")
 
     # -- op vocabulary + same-symbol references share an index ---------------
     ops = [i for b in f["blocks"] for i in b["instrs"]]

@@ -42,6 +42,33 @@ impl std::fmt::Display for OwnIrError {
 
 impl std::error::Error for OwnIrError {}
 
+/// Deserializer for load()-validated optional fields: **absent** means default
+/// (Python's `d.get("f", default)`), but a **present `null` is rejected** —
+/// exactly like Python's `isinstance` check failing on `None`. `serde(default)`
+/// handles absence before this runs; here a null hits `T::deserialize` and
+/// errors.
+fn reject_null<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    T::deserialize(de).map(Some)
+}
+
+/// Deserializer for the three fields Python checks with `if x is not None and
+/// not isinstance(...)` — a present `null` is **accepted** there, and the value
+/// stays `null` in the document, so round-trip must preserve it. Outer `None` =
+/// absent (skipped on serialize); `Some(None)` = explicit null (serialized as
+/// `null`); `Some(Some(v))` = a value.
+#[allow(clippy::option_option)] // the 3 states ARE the contract: absent / explicit null / value
+fn nullable<'de, D, T>(de: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(de).map(Some)
+}
+
 /// DI registration lifetime — the only closed vocabulary inside the facts
 /// (`ownlang/di.py::LIFETIMES`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,11 +93,24 @@ pub enum ParamEffect {
 /// One `{type, file, line}` call-site record (DI004 / DI005 metadata).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Site {
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "type",
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub type_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub line: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -79,12 +119,25 @@ pub struct Site {
 /// One event subscription inside a component.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Subscription {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub resource: Option<String>,
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub type_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_type: Option<String>,
+    #[serde(
+        rename = "type",
+        default,
+        deserialize_with = "nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub type_name: Option<Option<String>>,
+    #[serde(
+        default,
+        deserialize_with = "nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub source_type: Option<Option<String>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -92,7 +145,11 @@ pub struct Subscription {
 /// One component (a view model / window / control the extractor saw).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Component {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub subscriptions: Option<Vec<Subscription>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -103,27 +160,71 @@ pub struct Component {
 pub struct Service {
     pub lifetime: Lifetime,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub deps: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub weak_deps: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub root_resolves: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub line: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub ctor_file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub ctor_line: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub ctor_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub root_resolve_sites: Option<Vec<Site>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub scope_cached: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub scope_cache_sites: Option<Vec<Site>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -132,13 +233,29 @@ pub struct Service {
 /// One reactive-effect binding row (P-020).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Binding {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub init: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub refs: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub line: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -147,13 +264,29 @@ pub struct Binding {
 /// One reactive effect (P-020, EFF001).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Effect {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub deps: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub io: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub line: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub bindings: Option<Vec<Binding>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -163,10 +296,18 @@ pub struct Effect {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Param {
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub line: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub effect: Option<ParamEffect>,
+    #[serde(
+        default,
+        deserialize_with = "nullable",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub effect: Option<Option<ParamEffect>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -175,7 +316,11 @@ pub struct Param {
 /// untyped here — their vocabulary is the bridge's concern, not the schema's.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Function {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub params: Option<Vec<Param>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -184,15 +329,35 @@ pub struct Function {
 /// The `OwnIR` document root.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct OwnIr {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub ownir_version: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub components: Option<Vec<Component>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub services: Option<Vec<Service>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub effects: Option<Vec<Effect>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "reject_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub functions: Option<Vec<Function>>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,

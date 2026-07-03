@@ -128,15 +128,15 @@ def cmd_cfg(path: str, fmt: str = "human") -> int:
     rnames = {r.name for r in mod.resources}
     sigs = collect_signatures(mod)
     pols = collect_policies(mod)
-    cfgs = [build_cfg(fn, rnames, sigs, pols)[0] for fn in mod.functions]
+    kinds = collect_kinds(mod)
+    cfgs = [build_cfg(fn, rnames, sigs, pols, kinds)[0] for fn in mod.functions]
     if fmt == "json":
         # The canonical CFG-layer oracle seam (P-022 step 0): a frozen,
         # deterministic JSON contract the Rust port is diffed against. The
-        # human dump below stays a debug view, not a contract.
-        import json
-
-        from .cfg_json import module_cfg_json
-        print(json.dumps(module_cfg_json(cfgs), indent=2, sort_keys=True))
+        # human dump below stays a debug view, not a contract. Canonical text
+        # (sorted keys) is the contract's own dump, not an ad-hoc json.dumps.
+        from .cfg_json import canonical_json
+        print(canonical_json(cfgs))
         return 0
     for cfg in cfgs:
         _print_cfg(cfg)

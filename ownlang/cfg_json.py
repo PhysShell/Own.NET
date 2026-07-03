@@ -165,8 +165,22 @@ def cfg_json(cfg: CFG) -> dict[str, Any]:
 
 def module_cfg_json(cfgs: list[CFG]) -> dict[str, Any]:
     """The whole module's CFGs as one versioned document — the unit the oracle
-    diffs at the CFG layer."""
+    diffs at the CFG layer.
+
+    NOTE: the returned dict is deterministic in *content*, but canonical **text**
+    requires ``sort_keys=True`` at dump time — use :func:`canonical_json` rather
+    than calling ``json.dumps`` yourself, or the seam's byte-identity property
+    silently degrades to value-identity."""
     return {
         "ownlang_cfg_version": CFG_JSON_VERSION,
         "functions": [cfg_json(c) for c in cfgs],
     }
+
+
+def canonical_json(cfgs: list[CFG]) -> str:
+    """The canonical textual form of the seam — what `cfg --format json` prints
+    and what the oracle byte-compares. Canonicalization (sorted keys, fixed
+    indent) lives HERE, with the contract, not at call sites."""
+    import json
+
+    return json.dumps(module_cfg_json(cfgs), indent=2, sort_keys=True)
