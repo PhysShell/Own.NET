@@ -1188,8 +1188,20 @@ _BCL_FRESH_BY_NS = {
     # P1a (stdlib contract pack): more well-known static factories whose result the caller
     # OWNS and must dispose. `XmlReader`/`XmlWriter.Create` return a fresh reader/writer; a
     # `JsonDocument` from `Parse` pools memory and must be disposed (a `var doc =
-    # JsonDocument.Parse(json)` that drops `doc` is a common real leak). Kept in lockstep with
-    # the extractor's `IsOwningFactory` (frontend/roslyn/.../Program.cs).
+    # JsonDocument.Parse(json)` that drops `doc` is a common real leak).
+    #
+    # Relationship to the extractor's `IsOwningFactory` (frontend/roslyn/.../Program.cs) — NOT a
+    # mirror, despite the old "kept in lockstep" wording. The two play different roles. The
+    # extractor is the emission AUTHORITY: seeing `var x = Factory()` it emits `x` as an `acquire`
+    # fact directly, so its list is the SUPERSET — File, crypto by `Create*`-prefix, Xml/Json, PLUS
+    # ADO.NET (`ExecuteReader`/`CreateCommand`/`BeginTransaction`) and network `Accept*`. THIS table
+    # is consulted only on the other path: a `call` op whose result the bridge must decide is
+    # `fresh` (`_callee_returns_fresh`). Owning BCL factories are emitted as `acquire`, not `call`,
+    # so this table is a deliberate SUBSET — the C#-only entries never arrive here as `call`s, so
+    # adding them would be dead weight. Safety invariant: an owning BCL factory is emitted as
+    # `acquire`. If the extractor ever emits a `call` op for one, add it here too (better: generate
+    # both sides from `spec/ownir.schema.json` — see the tech-debt register). Keep the shared
+    # File/crypto/Xml/Json entries aligned on that seam.
     "System.Xml": (
         "XmlReader.Create", "XmlWriter.Create",
     ),

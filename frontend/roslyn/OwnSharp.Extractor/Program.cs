@@ -2509,9 +2509,15 @@ static List<string> ReturnedViewOwners(ExpressionSyntax expr, HashSet<string> tr
 //     `JsonDocument.ParseAsync` is excluded.
 // Curated + symbol-resolved, so a borrowed/cached disposable handed back by some other API is
 // never mistaken for an owned acquire (precision over recall — the set grows only as
-// ownership is certain). Kept in lockstep with the bridge table `_BCL_FRESH_BY_NS`
-// (ownlang/ownir.py): the extractor decides whether to EMIT the factory call fact, the bridge
-// recognises the callee name as `fresh`.
+// ownership is certain).
+//
+// Relationship to the bridge table `_BCL_FRESH_BY_NS` (ownlang/ownir.py) — NOT a mirror. This
+// function is the emission AUTHORITY: a match makes the extractor emit the local as an `acquire`
+// fact. So this list is the SUPERSET — it also covers ADO.NET and network `Accept*`, which the
+// bridge table omits. The bridge table is consulted only on the OTHER path — a `call` op whose
+// result the bridge decides is `fresh` — and since owning factories are emitted as `acquire` (not
+// `call`), it need only cover the shared File/crypto/Xml/Json seam, never the ADO.NET/network
+// entries. If a factory here is ever emitted as a `call` instead, add it to the bridge table too.
 static bool IsOwningFactory(ExpressionSyntax? e, SemanticModel model)
 {
     if (e is not InvocationExpressionSyntax i
