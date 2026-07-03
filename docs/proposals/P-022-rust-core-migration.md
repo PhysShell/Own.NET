@@ -139,7 +139,42 @@ shape.
 | Snapshot tests | `insta` | the Rust equivalent of the golden tests |
 | Property tests | `proptest` | replaces the Python codegen fuzzer |
 | Datalog (later) | `ascent`, `datafrog`, `crepe` | only if/when the rule layer goes declarative |
+| Fast hashing | `rustc-hash` (`FxHashMap`) / `ahash` | keys are small ints (RID/BlockId); SipHash default is a tax |
+| Parallelism | `rayon` | per-function analysis is embarrassingly parallel |
+| Allocator | `mimalloc` / `jemalloc` (`#[global_allocator]`) | allocation-heavy frontend; often a free 10–20 % |
+| Perf regression gate | `iai-callgrind` (CI) + `criterion` (local) + `dhat` (heap) | instruction-count benches are deterministic → CI-safe |
 
+## Performance principles ("blazingly fast" is earned, not free)
+
+"Written in Rust" makes speed *possible*, not automatic — needless `.clone()`, the
+SipHash default, `Box<dyn>` in loops, and per-node allocation write slow Rust just
+fine. This is a compiler frontend: the cost is **allocation, hashing, and tree/graph
+traversal**, not FLOPs, so the levers are specific. In rough order of payoff for our
+workload:
+
+1. **Intern everything** (symbols/strings → `u32`). `lasso`/`string-interner`;
+   equality becomes an int compare, memory drops sharply. rustc/rust-analyzer intern
+   universally — the #1 lever for this kind of code.
+2. **Bitset lattice, not `HashSet`.** Today's `set[VarState]` over
+   `{OWNED,MOVED,RELEASED,ESCAPED}` becomes a **`u8` via `bitflags`**, and `State.var`
+   a *dense* `Vec<VarStates>` indexed by RID — tiny, cache-friendly, trivially cloned.
+   (rustc's dataflow uses `BitSet`/`ChunkedBitSet`.) This is also the thumb on the
+   scale for the persistent-map-vs-arena question: with a bitset + dense `Vec`, the
+   arena+CoW representation almost certainly wins.
+3. **Arenas + `u32` indices** for AST/CFG — bump allocation, no per-node `Box`, no
+   pointer chasing, half the size of 64-bit pointers.
+4. **`FxHashMap` everywhere** (`rustc-hash`) — our keys are small ints; SipHash is pure
+   overhead here.
+5. **`rayon` across functions** — each function's worklist is independent, so per-
+   function (and per-file over OwnIR dumps) analysis parallelizes trivially.
+6. **`mimalloc`/`jemalloc`** as the global allocator — a common free win for an
+   allocation-heavy frontend.
+
+Micro-optimization (SIMD, `unsafe get_unchecked`, manual bounds-check elision) is the
+*last* resort and only behind a flamegraph. **Correctness first:** the differential
+oracle proves parity with Python before any of this; perf is then locked by an
+**`iai-callgrind` instruction-count ratchet** in CI (deterministic, unlike wall-clock),
+so a regression fails the build the same way a divergence does.
 ## Prior art to study (architecture references)
 
 | Project | What to steal |
@@ -171,11 +206,63 @@ strong, CI-enforceable decoupling:
   catches orphans and unexpected edges.
 - **`cargo-deny`** — dependency policy (licenses, bans, duplicate versions,
   advisories) — supply-chain + hygiene gate.
-- **`cargo-machete`** — unused dependency detector.
+- **`cargo-machete`** (stable) / **`cargo-udeps`** (nightly) — unused dependency
+  detector; machete is CI-cheap, udeps catches a few more.
+- **`cargo-semver-checks`** — public-API break detection, for the library-shaped
+  crates (`own-ir`, and anything consumed externally).
+- **`cargo-hack --feature-powerset`** — build/test every feature combination, so a
+  combo nobody compiled doesn't rot.
 - **`cargo-public-api`** — track each crate's public surface so coupling can't leak
   in through accidentally-`pub` internals; diff it in CI.
-- **Clippy** (pedantic/nursery selectively) + `#![warn(missing_docs)]` + strict
-  module privacy (`pub(crate)` by default).
+- **`cargo-mutants`** — mutation testing: does the test suite (and the oracle) *catch*
+  a deliberately broken transfer/lattice, or is it green-but-blind? The sharpest tool
+  here, and a natural fit with a correctness-first, oracle-gated port.
+
+Honest limit: there is **no full NDepend/ArchUnit-for-Rust** (no LCOM /
+instability-metric / "zone of pain" tooling). The language compensates partly (orphan
+rules, default privacy, `unreachable_pub`), and the crate DAG + `cargo-modules` +
+`cargo metadata` edge tests cover the structural invariants — but true cohesion/SRP
+judgement stays a review concern (human or the CodeRabbit/Codex layer we already run).
+
+### Compiler strictness — declarative `[workspace.lints]` (Rust ≥ 1.74)
+
+Lint config lives once in the workspace `Cargo.toml` and every crate inherits it:
+
+```toml
+[workspace.lints.rust]
+unsafe_code = "forbid"          # forbid where unsafe isn't needed — cannot be overridden
+unreachable_pub = "deny"        # a pub nobody sees is a lie in the API
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery  = { level = "warn", priority = -1 }
+unwrap_used = "deny"            # restriction group, applied surgically:
+expect_used = "warn"
+indexing_slicing = "deny"       # a panicking `[i]` is a prod incident
+arithmetic_side_effects = "deny" # silent release-mode overflow
+panic = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"           # libraries speak via `tracing`, not stdout
+```
+
+Do **not** take `pedantic`/`nursery` wholesale to `deny` — they carry noisy lints;
+keep them `warn` with surgical `#[allow(...)]`, and **every `#[allow]` carries a
+justification comment** (an unexplained allow is debt). `unsafe_code = "forbid"` per
+crate is stronger than `deny` (it cannot be locally overridden) — set it everywhere a
+crate has no legitimate `unsafe`.
+
+### The ratchet (do not boil the ocean)
+
+Max strictness switched on all at once, even on a *new* codebase, trains the
+suppress-without-looking reflex — and a linter you reflexively silence is dead. This
+is the same **ratchet** we already run for correctness (the oracle) and perf
+(`iai-callgrind`): **baseline the current violations, hold new code to the full bar,
+and let old code only get better, never worse.** Tighten half a turn per iteration, do
+not strip the thread in one evening. This also honours the project's prime directive —
+*a false positive is worse than a miss* — at the tooling layer, not just in the
+analyzer's own verdicts.
 
 Fitness functions to encode early, each locked by one `cargo metadata` test over the
 allowed edge set:
