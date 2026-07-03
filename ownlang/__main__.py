@@ -2,6 +2,7 @@
 Command-line driver for the OwnLang PoC.
 
     python -m ownlang check  file.own      # report ownership diagnostics
+    python -m ownlang check  file.own --format sarif   # SARIF 2.1.0 log (code scanning)
     python -m ownlang emit   file.own      # check, then print generated C#
     python -m ownlang cfg    file.own      # dump the control-flow graph
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
@@ -15,9 +16,12 @@ roslyn-tools-shaped surface advertises): it prints what a code means, why it fir
 and how to fix it. It lives in the core, next to the catalogue, because there is one
 checker — the C# extractor emits facts, it does not own the diagnostics.
 
-`--format` (ownir only) selects the finding surface: `human` (default CLI line),
+`--format` selects the finding surface. On `ownir`: `human` (default CLI line),
 `github` (CI annotations on the PR diff), `msbuild` (VS Error List), or `sarif`
 (a SARIF 2.1.0 log — GitHub code scanning, and the cross-tool oracle reads it too).
+On `check` it is `human` (default) or `sarif` — the `.own` flow diagnostics as a
+SARIF log carrying each finding's evidence slice (relatedLocations / codeFlows);
+`github`/`msbuild` are ownir-only (they render a Finding, not a Diagnostic).
 `--severity` (ownir only) picks how the host shows a finding — `error` (default,
 fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
@@ -77,10 +81,20 @@ def _collect(src: str) -> tuple[list[Diagnostic], object | None]:
     return check_module(mod), mod
 
 
-def cmd_check(path: str) -> int:
+def cmd_check(path: str, fmt: str = "human", severity: str = "error") -> int:
     src = _read(path)
     diags, _ = _collect(src)
     errors = [d for d in diags if d.severity == Severity.ERROR]
+    if fmt == "sarif":
+        # SARIF 2.1.0 log for GitHub code scanning — carries each diagnostic's
+        # structured evidence slice as relatedLocations / codeFlows. The exit code
+        # still reflects the verdict, so `check --format sarif` gates CI the same
+        # way the human surface does.
+        import json
+
+        from .diag_sarif import build_sarif
+        print(json.dumps(build_sarif(diags, path, severity), indent=2))
+        return 1 if errors else 0
     for d in diags:
         print(d.render_pretty(path, src))
     if not diags:
@@ -374,7 +388,7 @@ def main(argv: list[str]) -> int:
     # only) out of the arguments in either `--flag V` or `--flag=V` form; everything
     # else is positional. Keeps the other commands' single positional-path contract.
     opts = {"--format": "human", "--severity": "error", "--verbosity": "normal"}
-    seen_value_flags = False
+    seen: set[str] = set()
     positional: list[str] = []
     rest = argv[1:]
     i = 0
@@ -387,11 +401,13 @@ def main(argv: list[str]) -> int:
                     print(f"{flag} requires a value", file=sys.stderr)
                     return 2
                 opts[flag], i = rest[i + 1], i + 2
-                seen_value_flags = matched = True
+                seen.add(flag)
+                matched = True
                 break
             if a.startswith(flag + "="):
                 opts[flag], i = a.split("=", 1)[1], i + 1
-                seen_value_flags = matched = True
+                seen.add(flag)
+                matched = True
                 break
         if matched:
             continue
@@ -416,18 +432,29 @@ def main(argv: list[str]) -> int:
         print(f"unknown --verbosity {verbosity!r} (choose: "
               f"{', '.join(sorted(_VERBOSITY))})", file=sys.stderr)
         return 2
-    # `--format`/`--severity`/`--verbosity` are ownir-only — reject them on other
-    # commands by *presence*, not just non-default value (so `check x --format
-    # human` is a clear error, not a silent no-op).
-    if cmd != "ownir" and seen_value_flags:
+    # Value-flag scope, rejected by *presence* (so a redundant `--format human` is a
+    # clear error, not a silent no-op): `ownir` takes all three; `check` takes only
+    # `--format`, and only human|sarif (github/msbuild are per-finding renderers that
+    # need an OwnIR Finding, not a Diagnostic); every other command takes none.
+    if cmd == "check":
+        extra = seen - {"--format"}
+        if extra:
+            print(f"{'/'.join(sorted(extra))} only apply to `ownir`", file=sys.stderr)
+            return 2
+        if fmt not in {"human", "sarif"}:
+            print(f"check --format must be 'human' or 'sarif' (got {fmt!r})",
+                  file=sys.stderr)
+            return 2
+    elif cmd != "ownir" and seen:
         print("--format/--severity/--verbosity only apply to `ownir`",
               file=sys.stderr)
         return 2
     path = positional[0]
     if cmd == "ownir":
         return cmd_ownir(path, fmt, severity, verbosity)
-    return {"check": cmd_check, "emit": cmd_emit, "cfg": cmd_cfg,
-            "report": cmd_report}[cmd](path)
+    if cmd == "check":
+        return cmd_check(path, fmt, severity)
+    return {"emit": cmd_emit, "cfg": cmd_cfg, "report": cmd_report}[cmd](path)
 
 
 if __name__ == "__main__":

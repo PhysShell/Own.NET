@@ -121,3 +121,22 @@ Still open:
 
 - **Per-rule `helpUri`.** Once a stable per-code docs anchor exists, point each
   `rules[]` entry at it (intentionally omitted now rather than link a 404).
+
+## The `.own` flow-diagnostic SARIF surface
+
+Everything above is the **C# / OwnIR** path (`ownir --format sarif` over
+`ownir.Finding`). The direct `.own` checker (`python -m ownlang check`) grew its
+own SARIF surface once the flow diagnostics started carrying structured evidence
+(the execution-surfaces ADR, §3.1): `check file.own --format sarif` emits the same
+SARIF 2.1.0 shape — one `Own.NET` `run`, a `rules[]` catalogue of the OWN codes
+present, one `result` per diagnostic — via `ownlang/diag_sarif.py`.
+
+The point of the surface is the **evidence slice**: each diagnostic's
+`Diagnostic.evidence` is projected through the *shared* `ownlang.evidence`
+builders (`related_locations` / `code_flow`), so an OWN015 buffer escape rides a
+`codeFlows` trace `allocated here -> escapes by return here`, an OWN001 leak points
+at `acquired here`, and so on — the same `relatedLocations` + `codeFlows`
+vocabulary the OwnIR path already speaks. A diagnostic with no evidence carries
+neither key; a step with no resolvable line or file is dropped, so the log never
+carries an empty `artifactLocation.uri`. `github`/`msbuild` stay OwnIR-only —
+those are per-finding line renderers that need a `Finding`, not a `Diagnostic`.
