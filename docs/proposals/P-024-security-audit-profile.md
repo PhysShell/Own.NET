@@ -1,10 +1,14 @@
 # P-024 — Security audit profile (external tools + SARIF adapters)
 
 - **Status:** in progress — v0.1 built (`audit/security/`: baseline profile, the
-  three raw→SARIF adapters, and the plan/coverage-map runner, all with CI-gated
-  selftests). Supersedes and **rejects** the earlier "Own.SecurityChecks"
-  scanner-engine idea (recorded below so it is not re-proposed). v0.2
-  (`OwnAudit.DotNetConfig`) and v0.3 (cross-tool correlation) not started.
+  three raw→SARIF adapters, the plan/coverage-map runner) and v0.2 built (typed
+  `.NET` config auditor `tools/dotnet_config_audit.py`), all with CI-gated
+  selftests. Supersedes and **rejects** the earlier "Own.SecurityChecks"
+  scanner-engine idea (recorded below so it is not re-proposed). v0.3 (cross-tool
+  correlation + security taxonomy) not started.
+  - **Open question resolved:** v0.2 lives as a stdlib-Python analyzer in the audit
+    subtree (XML/JSON parsers), not a separate .NET/MSBuild project — it keeps the
+    subtree dependency-light and gating on the same Linux CI as the rest.
 - **Depends on:** the audit orchestrator design ([`Plan.md`](../../Plan.md)) — SARIF
   normalization, cross-tool confidence scoring, coverage map. Relates to
   [P-015](P-015-configuration-surface.md) (check selection / severity) for how the

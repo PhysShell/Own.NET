@@ -28,6 +28,7 @@ audit/security/
     zap_to_sarif.py         # OWASP ZAP baseline JSON -> SARIF
   tools/
     run_security_profile.py # runner: plan -> coverage map (-> execute on operator machine)
+    dotnet_config_audit.py  # v0.2: typed .NET config auditor (own code) -> SARIF
   README.md
 ```
 
@@ -67,6 +68,40 @@ see [`../README.md`](../README.md)). CI gates the *plumbing*: that the profile
 parses, the adapters import and convert fixtures correctly, and the runner plans
 every branch.
 
+## v0.2 — typed .NET configuration audit (own code)
+
+`tools/dotnet_config_audit.py` is the one analyzer P-024 sanctions us to write:
+the niche no mature tool covers — reading `.NET` config files and flagging
+insecure settings. It reads `web.config`/`app.config` with an **XML parser** and
+`appsettings*.json` with a **JSON parser** (stdlib only, no new dependency), and
+is bound by a strict discipline so it does not become the regex FP-factory the
+charter forbids:
+
+- **No regex-first detection** — findings come from parsed elements/typed keys;
+  text search is used only to anchor a finding's line, never to detect it.
+- **Needs-review without proven production context** — a prod-only finding
+  (`debug="true"`, `AllowedHosts:"*"`) is downgraded and marked `needs-review`
+  unless the file name proves prod (`appsettings.Production.json`,
+  `web.Release.config`); a proven *dev* file suppresses it (counted, not hidden).
+- **Honest skip** — checks that truly need C# analysis (DataProtection key
+  persistence, IdentityServer dev signing credential, `UseHsts`, forwarded
+  headers) are reported as a coverage note pointing at Roslyn, never faked.
+
+Checks today: `SC-CFG-DEBUG`, `-CUSTOMERRORS`, `-COOKIES-SSL`, `-COOKIES-HTTPONLY`,
+`-MACHINEKEY`, `-TRACE` (web.config); `-ALLOWEDHOSTS`, `-CONNSTR-SECRET`,
+`-LOGLEVEL` (appsettings). It is the `OWNSEC-CFG-001` manifest (`internal: true`),
+so the runner marks it `CHECKED` in the coverage map — it ships in-repo, it is
+never a PATH NO-TOOL.
+
+```bash
+python audit/security/tools/dotnet_config_audit.py --target /path/to/app --out dc.sarif
+```
+
+> **Design question resolved (P-024 open q.):** the analyzer is Python (stdlib
+> XML/JSON), not a separate .NET/MSBuild project — it keeps the audit subtree
+> dependency-light and gating on the same Linux CI as everything else. The
+> MSBuild-API route is reconsidered only if a check needs the resolved build graph.
+
 ## Tests
 
 Each module has an embedded-fixture `--selftest` (no external tools, no network),
@@ -77,20 +112,19 @@ python audit/security/adapters/sariflib.py --selftest
 python audit/security/adapters/testssl_to_sarif.py --selftest
 python audit/security/adapters/dotnet_vuln_to_sarif.py --selftest
 python audit/security/adapters/zap_to_sarif.py --selftest
+python audit/security/tools/dotnet_config_audit.py --selftest
 python audit/security/tools/run_security_profile.py --selftest
 ```
 
 ## Not done yet (see P-024)
 
-- **v0.2 — `OwnAudit.DotNetConfig`**: a *typed* .NET config auditor (web.config /
-  appsettings / hosting) — the one place own code is justified, under a strict
-  no-regex-first, SARIF-only, `needs-review`-without-prod-context policy. It is the
-  `DEFERRED` `OWNSEC-CFG-001` manifest today.
 - **v0.3 — cross-tool correlation**: reuse the aggregate oracle scorer so two tools
   agreeing on a finding raises confidence (ZAP + Nuclei on a header; Trivy + dotnet
   on a package).
 - **Security taxonomy**: `../static/taxonomy/categories.yml` is leak-focused; security
   ruleIds land `uncategorized` in the aggregate report until a security taxonomy is
   added. The SARIF is emitted and consumable now; category mapping is the next step.
+- **More `.NET` config checks** as fixtures justify them; code-level checks stay the
+  honest `needs_code_analysis` coverage note until a Roslyn pass exists.
 - Open questions (Nuclei template curation, the scan-target allowlist format) are
   tracked in P-024 §"Open questions".

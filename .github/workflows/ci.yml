@@ -71,6 +71,7 @@ jobs:
           python audit/security/adapters/testssl_to_sarif.py --selftest
           python audit/security/adapters/dotnet_vuln_to_sarif.py --selftest
           python audit/security/adapters/zap_to_sarif.py --selftest
+          python audit/security/tools/dotnet_config_audit.py --selftest
           python audit/security/tools/run_security_profile.py --selftest
 
   tests:

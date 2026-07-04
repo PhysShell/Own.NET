@@ -116,10 +116,12 @@ manifests:
 
   - id: OWNSEC-CFG-001
     title: .NET configuration audit (typed, low-FP)
-    tool: none                                  # DEFERRED to v0.2: OwnAudit.DotNetConfig
+    tool: dotnet-config
+    internal: true                              # own analyzer, ships in-repo (v0.2)
+    module: dotnet_config_audit                 # audit/security/tools/dotnet_config_audit.py
     category: dotnet-config
-    requires: []
-    sarif: native
+    requires: []                                # reads config files on disk; no live target
+    sarif: native                               # the analyzer writes SARIF directly
     confidence:
       source: own-typed-parser
       fpPolicy: needs-review-without-prod-context

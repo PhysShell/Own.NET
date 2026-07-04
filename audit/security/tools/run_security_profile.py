@@ -75,6 +75,8 @@ class Manifest:
     sarif: Any = "native"          # "native" | {"adapter": "<module>"}
     args: list[str] = field(default_factory=list)
     fp_policy: str = "external-tool"
+    internal: bool = False         # own analyzer shipping in-repo (no PATH executable)
+    module: str = ""               # module name for an internal analyzer
 
     @property
     def adapter(self) -> str | None:
@@ -122,6 +124,8 @@ def parse_manifests(profile: dict[str, Any]) -> list[Manifest]:
             args=list(m.get("args") or []),
             fp_policy=str((m.get("confidence") or {}).get("fpPolicy")
                           if isinstance(m.get("confidence"), dict) else "external-tool"),
+            internal=bool(m.get("internal")),
+            module=str(m.get("module") or ""),
         ))
     return out
 
@@ -139,7 +143,9 @@ def plan(manifests: list[Manifest], available: set[str], *, has_target: bool,
             decisions.append(Decision(m, DEFERRED,
                              "no reliable tool yet — planned check, not faked"))
             continue
-        if m.executable and m.executable not in available:
+        # Internal analyzers (our own code) ship in-repo, so they are never a PATH
+        # NO-TOOL; only their `requires` gate them.
+        if not m.internal and m.executable and m.executable not in available:
             decisions.append(Decision(m, SKIPPED,
                              f"executable {m.executable!r} not on PATH (NO-TOOL)"))
             continue
@@ -232,15 +238,19 @@ def _selftest() -> int:
                  "tls", ["runtime"], {"adapter": "testssl_to_sarif"}),
         Manifest("OWNSEC-DEP-001", "Deps (Trivy)", "trivy", "trivy",
                  "supply-chain", [], "native"),
-        Manifest("OWNSEC-CFG-001", ".NET config", "none", "", "dotnet-config", [], "native"),
+        Manifest("OWNSEC-CFG-001", ".NET config", "dotnet-config", "", "dotnet-config",
+                 [], "native", internal=True, module="dotnet_config_audit"),
+        Manifest("OWNSEC-DEFER", "future check", "none", "", "other", [], "native"),
     ]
 
-    # 1) plan: nothing available, no target -> tools SKIPPED, runtime ones by tool gap first,
-    #    the tool:none one DEFERRED.
+    # 1) plan: nothing on PATH, no target -> external tools SKIPPED (NO-TOOL); the
+    #    internal analyzer is CHECKED (ships in-repo); the tool:none one DEFERRED.
     d0 = {d.manifest.id: d for d in plan(manifests, set(), has_target=False, has_auth=False)}
     check(d0["OWNSEC-WEB-001"].status == SKIPPED, "missing nuclei -> SKIPPED")
     check(d0["OWNSEC-DEP-001"].status == SKIPPED, "missing trivy -> SKIPPED")
-    check(d0["OWNSEC-CFG-001"].status == DEFERRED, "tool:none -> DEFERRED")
+    check(d0["OWNSEC-CFG-001"].status == CHECKED,
+          "internal analyzer must be CHECKED without a PATH executable")
+    check(d0["OWNSEC-DEFER"].status == DEFERRED, "tool:none -> DEFERRED")
 
     # 2) plan: all executables available, but no target -> runtime tools NEEDS-RUNTIME,
     #    the filesystem tool (trivy, no runtime req) CHECKED.
@@ -263,12 +273,14 @@ def _selftest() -> int:
     da2 = plan(authman, {"owncfg"}, has_target=True, has_auth=True)[0]
     check(da2.status == CHECKED, "auth-gated tool with --auth -> CHECKED")
 
-    # 5) coverage map tallies and separates checked from the rest.
+    # 5) coverage map tallies and separates checked from the rest. In d1 (all exes
+    #    present, no target): WEB/TLS NEEDS-RUNTIME, DEP + internal CFG CHECKED,
+    #    DEFER DEFERRED.
     cov = coverage_map(list(d1.values()))
-    check(cov["total"] == 4, "coverage total wrong")
+    check(cov["total"] == 5, f"coverage total wrong: {cov['total']}")
     check(cov["by_status"].get(NEEDS_RUNTIME) == 2, "two NEEDS-RUNTIME expected")
-    check(cov["by_status"].get(CHECKED) == 1, "one CHECKED expected")
-    check(len(cov["checked"]) == 1 and len(cov["skipped"]) == 3,
+    check(cov["by_status"].get(CHECKED) == 2, "two CHECKED expected (trivy + internal)")
+    check(len(cov["checked"]) == 2 and len(cov["skipped"]) == 3,
           "checked/skipped split wrong")
 
     # 6) convert_raw dispatches to an adapter by module name and writes SARIF that
@@ -286,21 +298,30 @@ def _selftest() -> int:
               "convert_raw must write adapter SARIF")
 
     # 7) the shipped baseline profile must parse and be internally consistent:
-    #    adapter modules import, executables named, ids unique.
+    #    adapter/analyzer modules import, external tools name an executable, ids unique.
     import importlib
     prof = load_profile("baseline")
     mans = parse_manifests(prof)
     check(len(mans) >= 4, f"baseline profile should ship several manifests, got {len(mans)}")
     ids = [m.id for m in mans]
     check(len(ids) == len(set(ids)), f"manifest ids must be unique: {ids}")
+    internal_seen = False
     for m in mans:
         if m.adapter:
             try:
                 importlib.import_module(m.adapter)
             except ImportError as exc:  # pragma: no cover
                 check(False, f"{m.id}: adapter {m.adapter} does not import: {exc}")
-        if m.tool != "none":
-            check(bool(m.executable), f"{m.id}: a real tool must name an executable")
+        if m.internal:
+            internal_seen = True
+            check(bool(m.module), f"{m.id}: an internal analyzer must name a module")
+            try:
+                importlib.import_module(m.module)
+            except ImportError as exc:  # pragma: no cover
+                check(False, f"{m.id}: internal module {m.module} does not import: {exc}")
+        elif m.tool != "none":
+            check(bool(m.executable), f"{m.id}: an external tool must name an executable")
+    check(internal_seen, "baseline must ship the internal dotnet-config analyzer (v0.2)")
 
     fails = [c for c in checks if c]
     for f in fails:
