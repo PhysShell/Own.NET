@@ -780,14 +780,17 @@ def _prelude_resources() -> list[ResourceDecl]:
     ]
 
 
-def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]:
+def to_module(facts: dict[str, Any],
+              notes: list[str] | None = None) -> tuple[Module, dict[str, dict[str, Any]]]:
     """Build the core `Module` AST **directly** from OwnIR facts — no `.own` source
     text and no re-parse (P-016 B0a; the round-trip `to_own` + `parse` has existed
     since P-001). Mirrors `to_own`'s lowering exactly: each owned-resource fact
     becomes `let <handle> = acquire <Resource>();`, with a `release` iff the
     extractor found a matching teardown. Returns the Module plus the handle->fact
     map; a diagnostic names a handle via its symbol `origin` (`<name>#<line>`,
-    cfg.py), which maps straight back to the C# location."""
+    cfg.py), which maps straight back to the C# location. `notes`, when given,
+    collects coverage-degradation reasons (a failed MOS solve — TZ D5) the caller
+    should surface as advisory findings rather than lose."""
     handles: dict[str, dict[str, Any]] = {}
     functions: list[FnDecl] = []
     gid = 0
@@ -902,11 +905,16 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
         # D5.1: resolve interprocedural ownership transfer once, up front, so a
         # forwarded `consume`/`borrow` param is checked compositionally (the give-up
         # case `_infer_param_effect` used to leave plain). Never let summary
-        # computation crash the bridge — degrade to no-MOS (the old behaviour).
+        # computation crash the bridge — degrade to no-MOS (the old behaviour) —
+        # but the whole interprocedural layer going dark must be OBSERVABLE, not
+        # silent (honest-skip; TZ D5): record the reason for the caller to surface
+        # as an advisory OWN052.
         try:
             mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
-        except Exception:
+        except Exception as exc:
             mos = {}
+            if notes is not None:
+                notes.append(f"{type(exc).__name__}: {exc}")
         # every first-party method name: the Tier B BCL table must never fire for a callee we
         # compiled from source — Tier A is authoritative even with no usable summary
         # (CodeRabbit). Threaded into the freshness checks so direct calls agree with the
@@ -2035,7 +2043,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # a module-level cycle (ownir is a leaf consumer).
     from .__main__ import check_module
 
-    mod, handles = to_module(facts)
+    mos_notes: list[str] = []
+    mod, handles = to_module(facts, mos_notes)
     diags = check_module(mod)
 
     # registration site of each DI service, to anchor a subscription-escape slice's
@@ -2275,6 +2284,20 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # an advisory "leakage analysis skipped" note, never a leak. Routed through
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
+
+    # OWN052 (TZ D5): the MOS solve failed and the bridge degraded to no-MOS, so
+    # EVERY cross-method ownership contract was skipped this run. Same honest-skip
+    # posture as OWN050 — a coverage note, never a verdict, never the exit code.
+    # Anchorless by nature (no single C# site failed): file-level, module-scoped.
+    module_name = str(facts.get("module", "?"))
+    for reason in mos_notes:
+        findings.append(Finding(
+            file="?", line=0, code="OWN052", component=module_name,
+            event="", handler="",
+            message=(f"interprocedural summary inference failed ({reason}); "
+                     f"method summaries skipped — cross-method ownership "
+                     f"transfer was not checked this run"),
+            kind="method summaries", advisory=True))
 
     # A resource that leaks on more than one exit yields one core OWN001 per exit:
     # e.g. the try-lowering injects an exceptional exit before each may-throw

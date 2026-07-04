@@ -224,6 +224,15 @@ advisory «interprocedural summaries unavailable: <exc>» + счётчик в `-
 Требование к Rust-порту: то же поведение через `Result`, не через панику
 (clippy `panic="deny"` это уже гарантирует).
 
+> **Статус: исправлено.** Новый advisory **OWN052** («interprocedural summary
+> inference failed — method summaries skipped»): `to_module` принимает
+> опциональный `notes`-аут-лист, `check_facts` поднимает каждую причину как
+> file-level advisory (никогда не rc), сводка `__main__` называет реальные коды
+> advisory-нот вместо жёсткого «(OWN050)» (байт-в-байт совместимо, когда есть
+> только OWN050). `explain OWN052` отвечает; SARIF — `level: note` без region.
+> Тесты: сломанный решатель → ровно один OWN052 и ноль сфабрикованных
+> вердиктов; здоровый — ноль OWN052, прежний OWN002 на месте.
+
 ## 4. Инварианты слоя (нарушение любого — блокер ревью)
 
 - **INV1 Пол точности.** Никакое правило не смеет фабриковать `must`/`fresh`/

@@ -80,6 +80,7 @@ TITLES = {
     "OWN041": "call argument mismatch",
     # ---- C# front-end resolution coverage (P-014; advisory) ----
     "OWN050": "declaring type unresolved -- leakage analysis skipped",
+    "OWN052": "interprocedural summary inference failed -- method summaries skipped",
     # ---- DI container lifetimes (P-006; emitted by the OwnIR bridge) ----
     "DI001": "captive dependency: a shorter-lived service is captured by a longer-lived one",
     "DI002": "singleton captures a scoped service (captive dependency)",
@@ -150,6 +151,14 @@ EXPLANATIONS = {
         "rather than guessed (P-014 Tier A). It never fails a build.\n"
         "Fix (to check it): give the extractor the type's assembly via `--ref-dir <bin>` so the "
         "SemanticModel can bind the event."
+    ),
+    "OWN052": (
+        "Advisory, not a leak verdict: computing the method ownership summaries (the "
+        "interprocedural pass that resolves cross-method ownership transfer) failed, so the "
+        "bridge degraded to intraprocedural checking only for this run — every cross-method "
+        "consume/borrow/fresh contract was skipped, not guessed. It never fails a build.\n"
+        "Fix: this indicates malformed `functions[]` facts or a bridge bug — re-extract the "
+        "facts, and report the message's inner error if it persists."
     ),
     "DI002": (
         "A singleton captures a scoped service: the scoped instance is pinned to the singleton "

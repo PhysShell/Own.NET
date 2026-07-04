@@ -351,8 +351,11 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     n = len(leaks)
     summary = f"\n{n} finding{'s' if n != 1 else ''}"
     if notes:
+        # name the advisory codes actually present (OWN050, OWN052, ...): with only
+        # OWN050 notes this renders byte-identically to the historical fixed label.
+        note_codes = ", ".join(sorted({f.code for f in notes}))
         summary += (f" ({len(notes)} unchecked hidden)" if verbosity == "quiet"
-                    else f", {len(notes)} unchecked (OWN050)")
+                    else f", {len(notes)} unchecked ({note_codes})")
     print(summary + ".", file=summary_to)
     if verbosity == "verbose" and findings:
         by_code: dict[str, int] = {}

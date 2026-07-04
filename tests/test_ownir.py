@@ -1593,6 +1593,43 @@ def run() -> int:
     if d1f:
         fails.append("TZ D1: forwarding to a partial releaser must stay plain "
                      f"(caller silent), got {[(x.component, x.code) for x in d1f]}")
+    # (TZ D5) a failed MOS solve must degrade OBSERVABLY: the bridge drops to
+    # no-MOS (checker stays alive, forwards stay plain — no fabricated verdicts)
+    # and surfaces ONE advisory OWN052 naming the inner error. Before the fix the
+    # whole interprocedural layer went dark silently. Patch the solver to raise —
+    # no real facts input can make it throw today, which is exactly why the silent
+    # `except` was never noticed.
+    checks += 1
+    import ownlang.ownir as _oi
+    _mos_facts = {"module": "Dark", "functions": [
+        {"name": "sink3", "file": "S.cs",
+         "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]},
+        {"name": "hand", "file": "S.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "sink3", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]}
+    _real_solve = _oi.solve
+    def _boom(_sk):  # type: ignore[no-untyped-def]
+        raise RuntimeError("synthetic solver failure")
+    _oi.solve = _boom  # type: ignore[assignment]
+    try:
+        dark = check_facts(_mos_facts)
+    finally:
+        _oi.solve = _real_solve
+    gotdark = [(x.code, x.component, x.advisory) for x in dark]
+    if gotdark != [("OWN052", "Dark", True)] or \
+            "synthetic solver failure" not in dark[0].message:
+        fails.append("TZ D5: a failed solve must yield exactly one advisory OWN052 "
+                     f"(and no fabricated verdicts), got {gotdark}")
+    # ... and the SAME facts with a healthy solver carry no OWN052 — the consume
+    # resolves interprocedurally again and the careless caller's OWN002 is back.
+    checks += 1
+    lit = check_facts(_mos_facts)
+    gotlit = [(x.component, x.line, x.code) for x in lit]
+    if gotlit != [("hand", 10, "OWN002")]:
+        fails.append("TZ D5: healthy solve must carry no OWN052 and keep the true "
+                     f"OWN002, got {gotlit}")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was
