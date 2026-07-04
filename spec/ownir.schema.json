@@ -93,16 +93,16 @@
         },
         "resource": { "$ref": "#/$defs/resourceKind" },
         "type": {
-          "description": "The concrete resource type (optional, additive — an older core reads the record without it).",
-          "type": "string"
+          "description": "The concrete resource type (optional, additive — an older core reads the record without it). Explicit null is accepted and preserved (ownlang/ownir.py::load only rejects a non-null non-string), so it maps to Option<String> in the Rust `own-ir` types.",
+          "type": ["string", "null"]
         },
         "source": {
           "description": "Lifetime tier of a subscription/subscribe/capture source: self (silent cycle), injected (OWN001 warning, may escalate via §6), or static/external/unknown (leak).",
-          "type": "string"
+          "type": ["string", "null"]
         },
         "source_type": {
-          "description": "The declared type of an injected event source, cross-referenced against `services` to derive its DI lifetime/region (P-006 + P-004). Additive/optional.",
-          "type": "string"
+          "description": "The declared type of an injected event source, cross-referenced against `services` to derive its DI lifetime/region (P-006 + P-004). Additive/optional. Explicit null is accepted and preserved (Option<String>).",
+          "type": ["string", "null"]
         }
       }
     },
