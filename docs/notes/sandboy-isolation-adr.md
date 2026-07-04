@@ -174,33 +174,67 @@ allowlist'ы инспектируют **только HTTP Host-header и TLS-SNI
 |---|---|---|
 | Слой 1 (VM-граница) в MVP | В скоуп попал **недоверенный target-репо** | Firecracker (KVM) / gVisor (без KVM) |
 | WASM/WIT rule-плагины (для Own.NET-правил) | Появились **внешние авторы правил**, упёршиеся в один язык | Wasmtime + WIT, in-process, capability-scoped |
+| Side-channel mitigations | Проект стал **мульти-tenant** (чужой код на общем хосте) | CPU microcode + `mds`/SMT-off + core-scheduling |
+| Managed-сервис вместо self-host | TCO self-host стека превысил посекундную оплату | E2B (Apache-2.0, self-host на KVM) / Daytona |
 
 > **Апдейт:** WIT-plugin-идея нашла реальный дом — **не** как «правила на любом
 > языке», а как **контейнмент парсеров недоверенного ввода**: raw→SARIF адаптеры
 > аудита как capability-free WASM-компоненты (`ownaudit:adapter`). Спайк:
 > `audit/adapters/` (`world.wit` + Rust host-runner с fuel/epoch/mem-лимитами +
-> портированный Infer#-адаптер). Граница обоснована недоверенным *входом*, а не
-> внешними авторами — поэтому работает при N=1. Это тот случай, где технология —
-> правильный инструмент, а не пристроенная.
-| Side-channel mitigations | Проект стал **мульти-tenant** (чужой код на общем хосте) | CPU microcode + `mds`/SMT-off + core-scheduling |
-| Managed-сервис вместо self-host | TCO self-host стека превысил посекундную оплату | E2B (Apache-2.0, self-host на KVM) / Daytona |
+> портированный Infer#-адаптер + passthrough). Граница обоснована недоверенным
+> *входом*, а не внешними авторами — поэтому работает при N=1. Это тот случай, где
+> технология — правильный инструмент, а не пристроенная.
 
 Правило (из `execution-surfaces.md`): `trigger = реальная боль / цифры`, не
 «красиво звучит в ADR».
 
 ---
 
-## 7. Open questions (решить до полного дизайна)
+## 7. Open questions — статус после добивающего ресёрча (2026-07-04)
 
-1. **gVisor × наш toolchain** — ломаются ли `git` / компиляторы / `claude`/`codex`
-   CLI под Sentry (пробелы совместимости сисколлов)? Если да — «широкая свобода»
-   под угрозой, и Слой 1 = Firecracker, не gVisor.
-2. **Kata Containers 2026** — ресёрч не дал ни одного выжившего Kata-specific факта;
-   пробел против Firecracker/gVisor по boot/CVE/egress для VM-backed-container опции.
-3. **QUIC/HTTP3 egress** — нужен ли агентам QUIC? Если нет — blanket-UDP-block
-   достаточно; если да — нужен MITM-CA / L7-proxy (Sandlock opt-in HTTPS-inspection).
-4. **TCO self-host vs managed** — инженерное время на rootfs/snapshot/teardown/egress
-   против посекундной оплаты E2B (~$0.000028/с при 2 vCPU по умолчанию; Pro $150/мес).
+Три из четырёх закрыты ресёрчем; у #1 и #3 остаётся **эмпирический остаток** —
+5-минутный прогон на твоём Linux, а не блокер дизайна.
+
+1. **gVisor × наш toolchain — LIKELY OK, проверить прогоном.** gVisor реализует
+   **277/351 сисколлов**; language runtimes (Python/Java/Node/PHP/Go) регресс-тестятся
+   и работают, рантаймы сами пробуют варианты сисколлов. Классические Unix-тулы
+   (`git`/`gcc`/`make`) в доке явно не перечислены — «единственный способ узнать —
+   запустить». Известные пробелы, релевантные тулчейну: **io_uring off by default**,
+   iptables частично, `/proc`·`/sys` урезаны, ext4/block-fs нет, **KVM изнутри нельзя**
+   (⇒ вложенный Firecracker в gVisor невозможен). Вывод: обычный агентский тулчейн
+   почти наверняка пойдёт; риск — редкий тул на io_uring/необычных ioctl.
+   **Эмпирический остаток:** прогнать реальный `.007/gate.toml` под `runsc` с debug-логом,
+   ловить `Bad system call` (SIGSYS). Если что-то падает — Слой 1 = Firecracker, не gVisor.
+2. **Kata Containers 2026 — ЗАКРЫТ: не вытесняет Firecracker для нашего кейса.**
+   Boot ~100–300 мс, overhead ~130–200 МБ/pod (тяжелее Firecracker ~125 мс/<5 МБ,
+   т.к. по умолчанию QEMU; hypervisor-pluggable — QEMU/Cloud-Hypervisor/Firecracker).
+   Требует **KVM** (Kata 3.3+, Ubuntu 22.04/RHEL9) — тот же гейт, что microVM. Egress
+   нативно нет (host netns + per-VM TAP + bridge-фильтр). Guest-kernel patch-currency
+   обязателен (как и escape-CVE microVM). Главная ценность Kata — **drop-in
+   containerd/K8s-рантайм с VM-границей**; у тебя K8s нет ⇒ Kata даёт overhead без
+   выгоды против **прямого Firecracker (Слой 1)** или **Sandlock (Слой 2)**. Пробел
+   ADR закрыт: выбор Слоя-1 (Firecracker/gVisor) остаётся.
+3. **QUIC/HTTP3 egress — ЗАКРЫТ (default): blanket-UDP-block достаточно.** Блок
+   UDP/QUIC ⇒ HTTPS-клиенты (curl, Go `net/http`, HTTP/3-capable) падают обратно на
+   TCP/TLS. Агентские тулы — CLI-HTTP-клиенты (git, пакетные менеджеры, `claude`/`codex`),
+   они TCP-first; QUIC — браузерная оптимизация. ⇒ blanket-UDP-block + CIDR/domain
+   allowlist по TCP — правильный дефолт Sandboy; MITM-CA/L7-proxy **не строить**, пока
+   не появится тул с жёсткой QUIC-зависимостью. **Эмпирический остаток:** прогон агента
+   с заблокированным UDP — убедиться, что ничего не висит (silent-drop иногда даёт
+   таймаут вместо чистого fallback).
+4. **TCO self-host vs managed — ЗАКРЫТ: для для-души/self-use строим сами.** В $ обе
+   дешёвы при N=1 (E2B: задача 10 мин @2 vCPU ≈ $0.02; даже 100 задач/день ≈ $60/мес,
+   или Pro $150/мес flat). Развилка не в деньгах, а в: (a) **цель — сам процесс**
+   (managed убивает смысл для-души-проекта); (b) **доверие** — managed = твой
+   недоверенный код + секреты на чужом Firecracker; self-host = на своей машине;
+   (c) **офлайн/air-gap** без завязки на аптайм E2B. Плюс MVP = Слой 2 (Sandlock
+   wrap-the-child) — это **дни, не недели**, так что eng-цена self-host скромная.
+   ⇒ строим self-host Слой 2; E2B — бенчмарк/fallback, не цель.
+
+Источники (2026): gVisor compatibility docs (277/351, io_uring/iptables/proc gaps);
+Kata docs + систем-хардненинг обзоры (boot/overhead/KVM/guest-kernel); QUIC-fallback
+(PAN/Chromium proto-quic, «happy eyeballs»); E2B pricing (верифицировано в deep-research
+`wbr2iag1x`).
 
 ---
 
