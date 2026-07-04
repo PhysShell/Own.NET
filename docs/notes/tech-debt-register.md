@@ -122,14 +122,25 @@ The formalization stack, in order of actual protection delivered:
    normalized facts for the pinned samples, and feed the same goldens to
    `test_ownir.py` so the Python suite also consumes *extractor-produced*
    facts, not only hand-written ones.
-3. **`spec/OwnIR.md`** ✅ (shipped) **+ `spec/ownir.schema.json`** (JSON Schema
-   draft 2020-12, `ownir_version` as a `const`) — **the schema's trigger has now
-   fired** (see the box below). Validate all `tests/fixtures/ownir/*.json` and
-   each frontend's output against it. The resource-kind enum is **closed** for
-   *present* values — a present-but-unknown kind is rejected at load (it changes
-   routing; a new kind bumps `OWNIR_VERSION`), while an *absent* `resource` field
-   still defaults to `subscription`; the schema should mirror that (enum of known
-   kinds, field optional). Its job is shape/type/enum guarantees.
+3. **`spec/OwnIR.md`** ✅ (shipped) **+ `spec/ownir.schema.json`** ✅ *(shipped —
+   JSON Schema draft 2020-12, `ownir_version` as a `const:0`)* — **the schema's
+   trigger fired and the machine grammar now exists** (see the box below). It
+   mirrors the prose spec: the resource-kind enum is **closed** for *present*
+   values (a present-but-unknown kind is rejected at load — it changes routing;
+   a new kind bumps `OWNIR_VERSION`), while an *absent* `resource` field still
+   defaults to `subscription` (the field is optional in the schema); the flow-op
+   `oneOf` is discriminated on `op` (typify-friendly for the Rust `own-ir`
+   generation); DI lifetimes and param effects are enums. **The core cannot
+   import `jsonschema`** (zero-dep constraint), so rather than validate documents
+   against the schema, `test_ownir.py` pins the schema's *vocabulary* to the
+   code's authoritative sets — `resourceKind` enum ≡ `_KNOWN_RESOURCE_KINDS`,
+   `diLifetime` enum ≡ `di.LIFETIMES`, `ownir_version` const ≡ `OWNIR_VERSION`,
+   and every `flowOp` const lowers through `_lower_flow` without the fail-loud
+   "unknown op" raise. Schema and validator therefore cannot drift without a red
+   build, no dependency added. *Still open:* validate the fixtures + each
+   frontend's actual output against the schema (needs a dependency, so it belongs
+   in CI/`audit/`, not the core suite — see item 1/N3), and generate the Rust
+   `serde` types from it in the `own-ir` crate (#170) instead of hand-writing.
 4. **A written evolution policy** ✅ *(now shipped in `spec/OwnIR.md` §2, rules
    IR1–IR6)*: additive optional fields / new resource kinds do not bump
    `OWNIR_VERSION`; a **new op or changed op semantics does**.

@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import tempfile
 
 from ownlang.diagnostics import TITLES
+from ownlang.di import LIFETIMES as DI_LIFETIMES
 from ownlang.ownir import (
     OWNIR_VERSION,
     Finding,
@@ -37,6 +38,7 @@ from ownlang.ownir import (
     render_finding,
     to_own,
 )
+from ownlang.ownir import _KNOWN_RESOURCE_KINDS
 from ownlang.parser import parse
 
 _FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
@@ -288,6 +290,85 @@ def run() -> int:
         elif int(_m.group(1)) != OWNIR_VERSION:
             fails.append(f"{_label}: ownir_version {_m.group(1)} != core OWNIR_VERSION "
                          f"{OWNIR_VERSION} — bump every producer together")
+
+    # --- Schema <-> code binding (spec/ownir.schema.json). The JSON Schema is the
+    #     single source the Python core and the Rust `own-ir` crate (P-022) are both
+    #     checked against, but the core cannot import a jsonschema validator (the
+    #     zero-dependency constraint). So instead of validating documents against the
+    #     schema, we pin the schema's *vocabulary* to the code's authoritative sets:
+    #     the enums and the version const cannot drift out from under the validator
+    #     (ownlang/ownir.py::load) without reddening this build. When the schema grows
+    #     a new enum value the code doesn't know — or vice-versa — this fires.
+    _schema_path = os.path.join(_repo, "spec", "ownir.schema.json")
+    checks += 1
+    try:
+        with open(_schema_path, encoding="utf-8") as _f:
+            _schema = json.load(_f)
+    except (OSError, json.JSONDecodeError) as _e:
+        fails.append(f"spec/ownir.schema.json unreadable/invalid: {_e}")
+        _schema = None
+    if _schema is not None:
+        _defs = _schema.get("$defs", {})
+        # 1) ownir_version const == core OWNIR_VERSION
+        checks += 1
+        _sv = _schema.get("properties", {}).get("ownir_version", {}).get("const")
+        if _sv != OWNIR_VERSION:
+            fails.append(f"schema ownir_version const {_sv!r} != core OWNIR_VERSION "
+                         f"{OWNIR_VERSION}")
+        # 2) resourceKind enum == _KNOWN_RESOURCE_KINDS (the load() routing authority)
+        checks += 1
+        _sk = set(_defs.get("resourceKind", {}).get("enum", []))
+        if _sk != set(_KNOWN_RESOURCE_KINDS):
+            fails.append(f"schema resourceKind enum {sorted(_sk)} != code "
+                         f"_KNOWN_RESOURCE_KINDS {sorted(_KNOWN_RESOURCE_KINDS)}")
+        # 3) diLifetime enum == di.LIFETIMES (the service-lifetime authority)
+        checks += 1
+        _sl = set(_defs.get("diLifetime", {}).get("enum", []))
+        if _sl != set(DI_LIFETIMES):
+            fails.append(f"schema diLifetime enum {sorted(_sl)} != code "
+                         f"di.LIFETIMES {sorted(DI_LIFETIMES)}")
+        # 4) flowOp discriminator consts. There is no exported frozenset for the op
+        #    vocabulary (it lives in the _lower_flow if/elif chain), so pin the schema
+        #    two ways: every op it lists must LOWER without the fail-loud "unknown op"
+        #    raise (schema ops subset of handled ops), and a bogus op the schema omits
+        #    must still raise (the guard is live). Together these keep the schema's
+        #    op list honest against the lowerer.
+        _ops = [b.get("properties", {}).get("op", {}).get("const")
+                for b in _defs.get("flowOp", {}).get("oneOf", [])]
+        checks += 1
+        if None in _ops or len(_ops) != len(set(_ops)):
+            fails.append(f"schema flowOp oneOf has missing/duplicate op consts: {_ops}")
+        for _op in _ops:
+            checks += 1
+            # a minimal, self-consistent body for each op (compound ops carry empty
+            # sub-bodies; value ops carry a var/callee). If the lowerer rejects the op
+            # as unknown vocabulary, the schema lists an op the core cannot handle.
+            _node = {"op": _op, "line": 1}
+            if _op in ("acquire", "release", "use", "overspan", "alias_join"):
+                _node["var"] = "x"
+            if _op == "alias_join":
+                _node["src"] = "x"
+            if _op == "call":
+                _node["callee"] = "f"
+            _facts = {"ownir_version": OWNIR_VERSION, "module": "S",
+                      "functions": [{"name": "m", "file": "m.cs", "body": [_node]}]}
+            try:
+                check_facts(_facts)
+            except OwnIRError as _e:
+                if "unknown OwnIR flow op" in str(_e):
+                    fails.append(f"schema flowOp {_op!r} is not handled by _lower_flow "
+                                 f"(schema/code op-vocabulary drift)")
+        # the guard is live: an op the schema does NOT list is rejected as unknown
+        #    (the raise fires during lowering, so drive it through check_facts).
+        checks += 1
+        _bogus = {"ownir_version": OWNIR_VERSION, "module": "S",
+                  "functions": [{"name": "m", "file": "m.cs",
+                                 "body": [{"op": "try", "line": 1}]}]}
+        try:
+            check_facts(_bogus)
+            fails.append("an unknown flow op ('try') was not rejected — fail-loud guard dead")
+        except OwnIRError:
+            pass
 
     # --- WPF002 timer profile: a started timer never stopped/detached leaks,
     #     a stopped one stays silent, and the finding is tagged [resource: timer].
