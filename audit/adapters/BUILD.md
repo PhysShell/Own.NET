@@ -16,13 +16,16 @@ cargo install cargo-component            # builds WIT components
 cargo install wasm-tools                 # inspect/validate components (optional)
 ```
 
-## 2. Build the adapter component
+## 2. Build the adapter components
 
 ```bash
-cd components/infersharp
-cargo component build --release
-# -> target/wasm32-wasip2/release/adapter_infersharp.wasm
-cp target/wasm32-wasip2/release/adapter_infersharp.wasm ../infersharp.wasm
+# real transform (Infer#)
+(cd components/infersharp && cargo component build --release \
+  && cp target/wasm32-wasip2/release/adapter_infersharp.wasm ../infersharp.wasm)
+
+# passthrough (Roslyn, CodeQL — validate + normalize already-SARIF output)
+(cd components/passthrough && cargo component build --release \
+  && cp target/wasm32-wasip2/release/adapter_passthrough.wasm ../passthrough.wasm)
 ```
 
 ## 3. Build the host
@@ -65,7 +68,23 @@ distinct rules (`NULL_DEREFERENCE`, `RESOURCE_LEAK`), three results with
 # exit:   1  (nothing ingested, host intact)
 ```
 
-Then try the resource-limit paths (this is the spike's real claim):
+## 6. Run the passthrough (native-SARIF tools take the same path)
+
+```bash
+./host/target/release/own-adapter-host \
+  --component components/passthrough.wasm \
+  --tool roslyn \
+  --artifact roslyn.sarif=tests/passthrough/roslyn.sarif \
+  --base-uri 'file:///repo/sts' \
+  | python -m json.tool
+```
+
+Expect the same SARIF back, but normalized (`version` canonicalized from
+`2.1.0-rtm.6` to `2.1.0`, `$schema` filled in) and carrying the same
+`adapterComponentSha256` provenance stamp — proof that Roslyn/CodeQL flow
+through the identical validated, sandboxed path as Infer#. See `UNIFIED.md`.
+
+## 7. Resource-limit paths (the spike's real claim)
 
 - **Fuel:** `--fuel 100000` on a large report → `component trapped (fuel/epoch/memory?)`.
 - **Memory:** feed a multi-hundred-MB `report.json` → the guest hits the 256 MiB

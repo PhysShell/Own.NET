@@ -49,11 +49,18 @@ it. The WASM boundary contains the parse crash; the host validates the meaning.
 adapters/
   wit/world.wit                     canonical ownaudit:adapter@0.1.0 world
   host/                             own-adapter-host (Rust, wasmtime component model)
-  components/infersharp/            first ported adapter: Infer# report.json -> SARIF
-  adapters.toml                     tool id -> component + caps
-  tests/infersharp/                 sample report.json + adversarial input
+  components/infersharp/            real transform: Infer# report.json -> SARIF
+  components/passthrough/           validate+normalize already-SARIF tools (Roslyn, CodeQL)
+  adapters.toml                     control surface: per-tool run recipes + phases + caps
+  tests/                            sample + adversarial inputs per component
+  UNIFIED.md                        the single-interface path across all three tools
   BUILD.md                          how to build & run (authored, not built in-repo)
 ```
+
+For "can I run Roslyn + CodeQL + Infer# through one interface?" — see
+[`UNIFIED.md`](UNIFIED.md). Short version: the single interface is the SARIF
+contract; native-SARIF tools use the passthrough component so **all** tools take
+the same sandboxed, validated, provenance-stamped path.
 
 ## Where it plugs into the pipeline
 

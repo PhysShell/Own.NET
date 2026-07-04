@@ -1,11 +1,49 @@
-# Registry: tool id -> compiled adapter component + passthrough options.
-# The host resolves `--tool <id>` against this; `aggregate` reads it to decide
-# which .wasm to run for each analyzer whose native output isn't SARIF.
+# Control surface for the audit run.
+#
+# `aggregate` reads this. For each enabled tool it runs the phases in order
+# (respecting `platform`), collects the declared output artifact, then normalizes
+# it to SARIF via the tool's adapter component — passthrough for native-SARIF
+# tools, a real transform for the rest. Everything converges on *validated* SARIF
+# before scoring, so scoring/dedup/report stay tool-agnostic.
+#
+# The unified path (see UNIFIED.md):
+#   run phases -> read output artifact -> own-adapter-host --component <adapter>
+#     -> validated + provenance-stamped SARIF -> parse_sarif -> normalize -> score
+#
+# Placeholders in cmd/artifact ({out}, {sln}, {assemblies}, {build}, {suite}) are
+# expanded by the orchestrator from the run config; they are not the host's job.
 
-[infersharp]
-component = "components/infersharp.wasm"   # built by `cargo component build --release`
-options    = ""                            # opaque bytes handed to the adapter (none yet)
-# Per-tool caps override the host defaults when a tool is known to be small/fast:
-fuel       = 2_000_000_000
-epoch_ms   = 5_000
+[defaults]
+fuel        = 2_000_000_000
+epoch_ms    = 5_000
 max_results = 200_000
+max_bytes   = 67_108_864   # 64 MiB
+
+# --- Roslyn analyzers: emit SARIF natively via /errorlog -> passthrough --------
+[tools.roslyn]
+platform = "any"
+phases = [
+  { name = "analyze", cmd = "dotnet build {sln} -warnaserror /errorlog:{out}/roslyn.sarif" },
+]
+output  = { kind = "native-sarif", artifact = "{out}/roslyn.sarif" }
+adapter = "components/passthrough.wasm"
+
+# --- CodeQL: two-phase (db build, then analyze). Native SARIF -> passthrough ---
+[tools.codeql]
+platform = "linux"
+phases = [
+  { name = "db-build", cmd = "codeql database create {out}/db --language=csharp --command='{build}'" },
+  { name = "analyze",  cmd = "codeql database analyze {out}/db {suite} --format=sarif-latest --output={out}/codeql.sarif" },
+]
+output  = { kind = "native-sarif", artifact = "{out}/codeql.sarif" }
+adapter = "components/passthrough.wasm"
+
+# --- Infer#: own report.json, build-free -> real transform adapter ------------
+[tools.infersharp]
+platform   = "any"
+build_free = true
+phases = [
+  { name = "analyze", cmd = "infersharp {assemblies} -o {out}/infer" },
+]
+output  = { kind = "raw", artifact = "{out}/infer/report.json" }
+adapter = "components/infersharp.wasm"
