@@ -87,6 +87,18 @@
       "type": "object",
       "properties": {
         "line": { "type": "integer" },
+        "event": {
+          "description": "The event/handle identifier for this owned resource (e.g. `bus.CustomerChanged`, `_timer.Tick`); carried into the finding message and rendered output.",
+          "type": "string"
+        },
+        "handler": {
+          "description": "The subscribing handler's name (e.g. `OnCustomerChanged`); may be empty for a tokenless subscribe/capture.",
+          "type": "string"
+        },
+        "lambda": {
+          "description": "Whether the handler is an inline lambda — no `-=` handle exists to detach it, so the subscription can never be released.",
+          "type": "boolean"
+        },
         "released": {
           "description": "Whether a matching release (`-=`, Dispose, Stop, Return) was found.",
           "type": "boolean"
