@@ -1498,6 +1498,101 @@ def run() -> int:
     if cond:
         gotc = [(x.component, x.code) for x in cond]
         fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
+    # (TZ D1) a CONDITIONAL release joins to `may`, not a flattened `consume`:
+    # `cond_rel(x){ if(c) release x; }` keeps x on the other path, so a caller that
+    # disposes defensively after the call stays SILENT. Before the fix the inferred
+    # consume charged that caller a false OWN002 and the helper a false OWN001 —
+    # the null-guard-dispose-helper idiom read as two findings.
+    checks += 1
+    d1c = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "careful", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "cond_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    if d1c:
+        fails.append("TZ D1: a partial release must join to `may` (caller silent), "
+                     f"got {[(x.component, x.code) for x in d1c]}")
+    # (TZ D1) release in BOTH branches IS all-paths: consume survives, and the
+    # careless caller keeps its true OWN002 — the refinement costs no recall here.
+    checks += 1
+    d1b = check_facts({"module": "M", "functions": [
+        {"name": "both_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}],
+                   "else": [{"op": "release", "var": "x", "line": 4}]}]},
+        {"name": "reuse_b", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "both_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1b = [(x.component, x.line, x.code) for x in d1b]
+    if gotd1b != [("reuse_b", 10, "OWN002")]:
+        fails.append("TZ D1: an all-paths (both-branch) release is still consume, "
+                     f"got {gotd1b}")
+    # (TZ D1) a release inside a `while` body is never definite (zero-trip): plain.
+    checks += 1
+    d1w = check_facts({"module": "M", "functions": [
+        {"name": "loop_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "while", "line": 2,
+                   "body": [{"op": "release", "var": "x", "line": 3}]}]},
+        {"name": "loop_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "loop_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    if d1w:
+        fails.append("TZ D1: a while-body release is zero-trip-partial (caller "
+                     f"silent), got {[(x.component, x.code) for x in d1w]}")
+    # (TZ D1) an early `return` on an unreleased path blocks the definite claim:
+    # `guard(x){ if(c) return; release x; }` does not release on the guard path.
+    checks += 1
+    d1g = check_facts({"module": "M", "functions": [
+        {"name": "guard_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2, "then": [{"op": "return", "line": 3}],
+                   "else": []},
+                  {"op": "release", "var": "x", "line": 4}]},
+        {"name": "guard_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "guard_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    if d1g:
+        fails.append("TZ D1: an early-return-unreleased path blocks consume (caller "
+                     f"silent), got {[(x.component, x.code) for x in d1g]}")
+    # (TZ D1) release-then-return in a branch plus a fall-through release IS
+    # all-paths — the walk credits a released early exit, so consume survives.
+    checks += 1
+    d1rr = check_facts({"module": "M", "functions": [
+        {"name": "rel_ret", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3},
+                            {"op": "return", "line": 4}],
+                   "else": []},
+                  {"op": "release", "var": "x", "line": 5}]},
+        {"name": "rel_ret_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "rel_ret", "args": ["r"], "line": 11},
+                  {"op": "use", "var": "r", "line": 12}]}]})
+    gotrr = [(x.component, x.line, x.code) for x in d1rr]
+    if gotrr != [("rel_ret_user", 10, "OWN002")]:
+        fails.append("TZ D1: release-then-return + fall-through release is all-paths "
+                     f"consume, got {gotrr}")
+    # (TZ D1) a wrapper forwarding to a partial releaser inherits `may` through the
+    # solver — the transitive claim degrades to plain (silence) too.
+    checks += 1
+    d1f = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel2", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "via", "file": "D.cs", "params": [{"name": "s", "line": 6}],
+         "body": [{"op": "call", "callee": "cond_rel2", "args": ["s"], "line": 7}]},
+        {"name": "via_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "via", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    if d1f:
+        fails.append("TZ D1: forwarding to a partial releaser must stay plain "
+                     f"(caller silent), got {[(x.component, x.code) for x in d1f]}")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was

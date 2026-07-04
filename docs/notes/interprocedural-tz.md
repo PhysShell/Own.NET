@@ -143,6 +143,14 @@ SCC — текущая итерация (возможно ⊥); недостиж
 
 ### D1 (подтверждено исполнением): release на любом пути ⇒ `consume` — фабрикует OWN002/OWN001
 
+> **Статус: исправлено (вариант A).** Деривация release теперь ветко-чувствительна:
+> `_definite_release`/`_walk_release` в `ownir.py` считают release-путём только
+> освобождение на **всех** normal-return путях (early-return без release блокирует
+> заявку; release-then-return засчитывается; `while`-тело — никогда не definite);
+> частичный release кладёт `(dispose, borrow)` → join `may` → plain. То же правило
+> — в прямой инференции `_infer_param_effect`. Матрица ниже — 6 регрессионных
+> тестов в `test_ownir.py` (TZ D1). Код и нота d5 §1 теперь совпадают.
+
 Дизайн-нота (d5 §1) определяет `must` как «released on **all** normal-return
 paths», но S2 коллапсирует сигнал в булев: `_param_signals` рекурсивно засчитывает
 release **на любом пути**, и деривация кладёт единственный путь `[dispose]` без

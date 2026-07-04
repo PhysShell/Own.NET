@@ -1330,6 +1330,62 @@ def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     return rel, passed, used
 
 
+def _walk_release(pname: str, nodes: Any, rel_in: int) -> tuple[int, bool, bool]:
+    """Definite-release walk over one op sequence, for `_definite_release`.
+
+    Returns `(rel_out, falls_through, exits_ok)`: `rel_out` is the release state
+    of the paths leaving the sequence bottom (0 = released on none, 1 = on some,
+    2 = on all), `falls_through` is whether any path reaches the bottom at all,
+    and `exits_ok` is whether every `return` op seen so far was reached with the
+    param already released. Ops that cannot affect or bypass a release are
+    neutral by design: a compound op that COULD hide one (a future `try`/`using`)
+    fails loud in `_lower_flow` first (the IR4 gate), so this walk never sees it."""
+    rel = rel_in
+    exits_ok = True
+    if not isinstance(nodes, list):
+        return rel, True, exits_ok
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "release" and str(n.get("var")) == pname:
+            rel = 2
+        elif op == "return":
+            # a normal-return path ends here carrying the current state; the rest
+            # of THIS sequence is unreachable.
+            return rel, False, exits_ok and rel == 2
+        elif op == "if":
+            rt, lt, okt = _walk_release(pname, n.get("then"), rel)
+            re_, le, oke = _walk_release(pname, n.get("else"), rel)
+            exits_ok = exits_ok and okt and oke
+            if lt and le:
+                rel = rt if rt == re_ else 1
+            elif lt or le:
+                rel = rt if lt else re_
+            else:
+                return rel, False, exits_ok  # both branches returned
+        elif op == "while":
+            rb, lb, okb = _walk_release(pname, n.get("body"), rel)
+            exits_ok = exits_ok and okb
+            # zero-trip entry joins with a completed iteration's exit state: a
+            # release inside a loop is never definite for the fall-through. A
+            # body that never completes (always returns) leaves only the
+            # zero-trip path, so the entry state stands.
+            if lb and rb != rel:
+                rel = 1
+    return rel, True, exits_ok
+
+
+def _definite_release(pname: str, nodes: Any) -> bool:
+    """True only when EVERY normal-return path through the body releases `pname`
+    — the d5 note's `must` ("released on all normal-return paths"). A partial
+    (one-branch / in-loop / guarded-by-early-return) release must join to `may`
+    instead: flattening it to `consume` charges a caller's defensive dispose a
+    false OWN002 and the helper itself a false OWN001 (TZ D1, reproduced)."""
+    rel, falls_through, exits_ok = _walk_release(pname, nodes, 0)
+    return exits_ok and (not falls_through or rel == 2)
+
+
 def _forward_targets(pname: str, nodes: Any,
                      recurse: bool = True) -> list[tuple[str, int]]:
     """Every `(callee, arg_index)` a `call` op hands `pname` to. The argument
@@ -1421,11 +1477,17 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     bridge's local inference on the non-forward cases and only *resolves* the
     forwarded one.
 
-    Two precision rules keep `solve()` from ever inferring a false `must` (which
+    Three precision rules keep `solve()` from ever inferring a false `must` (which
     would upgrade a caller to `consume` and fabricate OWN002/OWN001):
       - an **explicit** `effect` seeds the skeleton (it is a documented override —
         `consume`→`dispose`, `borrow`/`borrow_mut`→`borrow`, anything else owns
         nothing), so a contract-only callee resolves correctly even with no body;
+      - a release counts as a `dispose` path alone only when it is **definite** —
+        on every normal-return path (`_definite_release`). A partial release
+        (one branch / in a loop / behind an early return) also emits a kept
+        (`borrow`) path, so the join is `may` and the caller stays plain — a
+        flattened `must` would charge a defensive caller-side dispose a false
+        OWN002/OWN003 (TZ D1);
       - a forward is resolved only when it is a **single, unconditional,
         straight-line** handoff. A conditional / looped / multi-target forward also
         emits a non-transfer (`borrow`) path, so the lattice yields `may`/`no`
@@ -1474,7 +1536,15 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             else:
                 rel, passed, used = _param_signals(cname, body)
                 if rel:
-                    paths = (PathAction("dispose"),)
+                    if _definite_release(cname, body):
+                        paths = (PathAction("dispose"),)
+                    else:
+                        # released on SOME paths only (TZ D1): a kept path exists,
+                        # so record it beside the dispose and let the lattice join
+                        # yield `may` — the caller stays plain, never a flattened
+                        # `must` that would charge its defensive dispose a false
+                        # OWN002/OWN003.
+                        paths = (PathAction("dispose"), PathAction("borrow"))
                 elif passed:
                     allt = _forward_targets(cname, body)
                     top = _forward_targets(cname, body, recurse=False)
@@ -1501,8 +1571,11 @@ def _infer_param_effect(pname: str, nodes: Any,
                         forward_transfer: Transfer | None = None) -> str | None:
     """Infer a parameter's ownership CONTRACT from the callee's OWN body — the
     bounded inter-procedural step that lets first-party C# be checked without
-    annotating every method. A param the body discharges (release) is CONSUME
-    (ownership taken and discharged); one only read and retained is a BORROW (the
+    annotating every method. A param the body discharges (release) on EVERY
+    normal-return path is CONSUME (ownership taken and discharged); a partial
+    release (one branch / in a loop / behind an early return) is `may` and stays
+    plain — flattening it to consume would charge a caller's defensive dispose a
+    false OWN002 (TZ D1). One only read and retained is a BORROW (the
     caller keeps ownership, must still release). A param handed to another call
     used to be ambiguous and stay plain; **P-005 D5.1** resolves it through the
     call graph: `forward_transfer` is the solved transfer of that param (must →
@@ -1514,7 +1587,9 @@ def _infer_param_effect(pname: str, nodes: Any,
     fact always wins over inference."""
     rel, passed, used = _param_signals(pname, nodes)
     if rel:
-        return "consume"
+        if _definite_release(pname, nodes):
+            return "consume"
+        return None  # released on SOME paths only -> `may` -> plain (TZ D1)
     if passed:
         if forward_transfer == Transfer.MUST:
             return "consume"
