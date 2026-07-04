@@ -8,7 +8,7 @@
 
 [workspace]
 resolver = "2"
-members = ["crates/own-ir"]
+members = ["crates/own-ir", "crates/own-syntax"]
 
 [workspace.package]
 edition = "2021"
@@ -19,6 +19,9 @@ publish = false
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Unicode general categories — the data behind CPython's str.isprintable(),
+# which py_repr (error-text parity) must reproduce. unicode-rs org, zero deps.
+unicode-properties = { version = "0.1", default-features = false, features = ["general-category"] }
 
 # Strictness per P-022 §"Compiler strictness" — inherited by every crate via
 # `[lints] workspace = true`. pedantic/nursery stay WARN (surgical, justified

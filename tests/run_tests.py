@@ -1086,6 +1086,10 @@ def run() -> int:
         print("run_tests: FAIL — no test_*.py modules discovered")
         return 1
 
+    # NOTE: the syntax parity fixtures (P-022 step 2, `test_syntax_fixtures.py`)
+    # are picked up by the auto-discovery loop above like every other test_*.py,
+    # so no explicit wiring is needed here — that was the point of the refactor.
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or any(module_rcs)) else 0
