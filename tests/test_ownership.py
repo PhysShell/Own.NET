@@ -237,6 +237,12 @@ def run() -> int:
     expect(d["params"][1]["transfer"] == "no", "to_dict serializes the second param")
     expect(d["returns"] == {"owned": "none"}, "to_dict serializes the return")
     expect(d["source"] == "inferred", "to_dict defaults source to inferred")
+    # (TZ D2) the reserved `escapes` axis has no producer yet, so it must NOT be
+    # serialized — emitting an always-False field would freeze a lie into the
+    # parity artifact the summary dump becomes. Pin the omission until a producer
+    # lands (then flip this expectation together with the producer).
+    expect(all("escapes" not in p for p in d["params"]),
+           "to_dict omits the unproduced `escapes` axis (TZ D2)")
 
     # duplicate method keys must fail fast: key collision-freedom is an open design
     # question, and silently keeping the last would make summaries input-order

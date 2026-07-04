@@ -93,7 +93,11 @@ class ParamSkeleton:
     name: str = ""
     disposable: bool = True
     paths: tuple[PathAction, ...] = ()
-    escapes: bool = False  # the reference outlives the call (field/collection/return)
+    # RESERVED axis (TZ D2): "the reference outlives the call" (field / collection
+    # / return). The d5 model keeps escape orthogonal to transfer, but NO producer
+    # sets it yet (`_build_skeletons` always leaves False) — it is carried,
+    # unserialized, and must not be read as evidence until a producer lands.
+    escapes: bool = False
 
 
 @dataclass(frozen=True)
@@ -147,9 +151,13 @@ class MethodSummary:
             "file": self.file,
             "line": self.line,
             "source": self.source,
+            # `escapes` is deliberately NOT serialized (TZ D2): no producer sets
+            # the axis yet, so emitting it would freeze an always-False lie into
+            # the parity artifact this dump becomes (the roadmap's stage-1
+            # Python↔Rust diff surface). Serialize it the day a producer lands.
             "params": [
                 {"index": p.index, "name": p.name, "disposable": p.disposable,
-                 "transfer": p.transfer.value, "escapes": p.escapes}
+                 "transfer": p.transfer.value}
                 for p in self.params
             ],
             "returns": {"owned": self.returns},
