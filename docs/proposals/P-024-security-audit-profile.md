@@ -1,4 +1,4 @@
-# P-023 — Security audit profile (external tools + SARIF adapters)
+# P-024 — Security audit profile (external tools + SARIF adapters)
 
 - **Status:** draft — direction accepted in design discussion; implementation not
   started. Supersedes and **rejects** the earlier "Own.SecurityChecks" scanner-engine
