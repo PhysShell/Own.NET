@@ -137,6 +137,12 @@ worktree — это cleanup-convenience, а не sandbox. «Слот под пе
 законченный самостоятельный проект. Слой 1 (VM-граница) добавляется, когда в скоуп
 попадёт недоверенный target-репо (триггер из `security-layers.md`).
 
+> **Спайк построен:** `sandboy/` — `sandboy run --policy step.toml -- <cmd>`:
+> wrap-the-child через Landlock (FS-scope + TCP-port-scope) + seccomp-denylist,
+> unprivileged (без root/namespaces). Per-step TOML-политика, интеграция в gate =
+> обернуть каждый шаг. Egress по адресам (CIDR/domain) — по-прежнему Слой 3
+> (Landlock скоупит только порты). Authored, собирать локально.
+
 ### 4.1 Egress — единственная универсально слабая ось
 
 Ни один механизм не даёт default-deny egress «бесплатно». Даже лучшие доменные
