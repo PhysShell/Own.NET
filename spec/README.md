@@ -14,6 +14,7 @@ stop aspirational docs from lying about the code.
 | [Lifetimes.md](Lifetimes.md) | lifetime regions and the region-escape theorem, rules L1–L4 |
 | [Diagnostics.md](Diagnostics.md) | every OWN code, grouped, linked to the rule that raises it |
 | [CodegenContract.md](CodegenContract.md) | the checker↔codegen contract C1–C4, lowering modes |
+| [OwnIR.md](OwnIR.md) | the frontend↔core fact seam (JSON): envelope, versioning + evolution policy, resource-kind + flow-op vocabulary, DI graph, rules IR1–IR6 |
 | [CLI.md](CLI.md) | the `check` / `emit` / `cfg` / `report` commands |
 
 ## Spec ↔ tests (conformance)

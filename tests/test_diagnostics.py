@@ -29,7 +29,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import evidence
-from ownlang.diagnostics import Diagnostic, Evidence
+from ownlang.diagnostics import TITLES, Diagnostic, Evidence
 
 # a source whose line 3 names `b`, so render_pretty can place a caret under it.
 _SOURCE = "module M\nfn f() {\n    use b;\n}\n"
@@ -146,12 +146,28 @@ def _evidence_builders() -> list[str]:
     return fails
 
 
+def _code_validation() -> list[str]:
+    """A Diagnostic must reject a code with no TITLES entry, so a typo can never
+    ship a titleless finding (the stringly-typed-code contract)."""
+    fails: list[str] = []
+    try:
+        Diagnostic(code="OWN999", message="typo", line=1)
+        fails.append("an unknown diagnostic code was accepted (should raise ValueError)")
+    except ValueError:
+        pass
+    # a known code still constructs and titles correctly.
+    if Diagnostic(code="OWN001", message="m", line=1).title != TITLES["OWN001"]:
+        fails.append("a known code lost its title")
+    return fails
+
+
 def run() -> int:
     """Run every diagnostics-rendering case; return 0/1."""
     fails: list[str] = []
     fails += _empty_evidence_invariant()
     fails += _evidence_slice()
     fails += _evidence_builders()
+    fails += _code_validation()
     for f in fails:
         print(f"DIAGNOSTICS FAIL: {f}")
     print(f"diagnostics: {'PASS' if not fails else 'FAIL'} "

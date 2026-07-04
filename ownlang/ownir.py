@@ -66,8 +66,11 @@ owned-resource records) is an owned resource, discriminated by an optional
     advisory OWN050 "leakage analysis skipped" note, never a leak (P-014 Tier A).
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
-`line`. The `resource`/`type` fields are additive and optional, so they do NOT
-bump `ownir_version`: an older core just reads every entry as a subscription.
+`line`. The `resource`/`type` FIELDS are additive and optional — an older core
+that predates them reads an entry with no `resource` as a subscription. But a new
+resource-kind VALUE is a vocabulary change, not additive metadata: the kind
+selects the analysis path, so a PRESENT-but-unknown kind is rejected at load
+(fail-loud), and introducing one MUST bump `ownir_version` (spec/OwnIR.md §2).
 A `capture` entry instead routes through the lifetime/region engine and surfaces
 as OWN014 (region escape) when its source provably outlives — see docs/proposals/
 P-004 and docs/lifetimes.md (the C# facts now reach the region core, not only the
@@ -213,6 +216,16 @@ _RESOURCES = {
     "local-disposable": ("Disposable", "disposable"),
     "pool": ("PooledBuffer", "pooled buffer"),
 }
+
+# Every resource-kind discriminator the core routes on (the `_RESOURCES` owned
+# kinds, plus `capture` — routed to the lifetime/region engine — and
+# `unresolved-subscription` — skipped to an advisory OWN050). The kind CHANGES the
+# analysis path (§4 of spec/OwnIR.md), so it is NOT metadata: a PRESENT-but-unknown
+# kind is rejected at load (fail-loud, like an unknown flow op), never silently
+# routed as a `subscription`. An ABSENT `resource` field still defaults to
+# `subscription` (an old extractor that predates the field). Consequence: adding a
+# new kind is a vocabulary change that MUST bump OWNIR_VERSION (spec/OwnIR.md §2).
+_KNOWN_RESOURCE_KINDS = frozenset(_RESOURCES) | {"capture", "unresolved-subscription"}
 
 # --- P-004 region escape (the `capture` resource kind) ----------------------
 # A `capture` is a tokenless strong subscription routed NOT through the
@@ -472,6 +485,15 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(r, str):
                 raise OwnIRError(
                     f"subscription 'resource' must be a string, got {r!r}")
+            # A present-but-unknown kind changes routing (§4), so reject it rather
+            # than let it fall through to the owned/subscription path and mis-route
+            # — the same fail-loud rule as an unknown flow op. A new kind must bump
+            # OWNIR_VERSION (spec/OwnIR.md §2). An absent field defaulted to
+            # "subscription" above, which is known.
+            if r not in _KNOWN_RESOURCE_KINDS:
+                raise OwnIRError(
+                    f"unknown resource kind {r!r} — a new kind is a vocabulary "
+                    f"change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)")
             t = s.get("type")
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(
@@ -1188,8 +1210,20 @@ _BCL_FRESH_BY_NS = {
     # P1a (stdlib contract pack): more well-known static factories whose result the caller
     # OWNS and must dispose. `XmlReader`/`XmlWriter.Create` return a fresh reader/writer; a
     # `JsonDocument` from `Parse` pools memory and must be disposed (a `var doc =
-    # JsonDocument.Parse(json)` that drops `doc` is a common real leak). Kept in lockstep with
-    # the extractor's `IsOwningFactory` (frontend/roslyn/.../Program.cs).
+    # JsonDocument.Parse(json)` that drops `doc` is a common real leak).
+    #
+    # Relationship to the extractor's `IsOwningFactory` (frontend/roslyn/.../Program.cs) — NOT a
+    # mirror, despite the old "kept in lockstep" wording. The two play different roles. The
+    # extractor is the emission AUTHORITY: seeing `var x = Factory()` it emits `x` as an `acquire`
+    # fact directly, so its list is the SUPERSET — File, crypto by `Create*`-prefix, Xml/Json, PLUS
+    # ADO.NET (`ExecuteReader`/`CreateCommand`/`BeginTransaction`) and network `Accept*`. THIS table
+    # is consulted only on the other path: a `call` op whose result the bridge must decide is
+    # `fresh` (`_callee_returns_fresh`). Owning BCL factories are emitted as `acquire`, not `call`,
+    # so this table is a deliberate SUBSET — the C#-only entries never arrive here as `call`s, so
+    # adding them would be dead weight. Safety invariant: an owning BCL factory is emitted as
+    # `acquire`. If the extractor ever emits a `call` op for one, add it here too (better: generate
+    # both sides from `spec/ownir.schema.json` — see the tech-debt register). Keep the shared
+    # File/crypto/Xml/Json entries aligned on that seam.
     "System.Xml": (
         "XmlReader.Create", "XmlWriter.Create",
     ),
@@ -1834,6 +1868,17 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                                    "ever_released": result in released_vars,
                                    "pool": False}
                 body.append(Let(handle, Acquire("Disposable", [], line), line))
+        else:
+            # Fail loud on an op this core cannot lower. Silently skipping it would
+            # drop the acquire/release facts nested inside it — fabricating a leak (a
+            # lost release) or hiding one (a lost acquire) while every existing fixture
+            # still passes. A NEW op is a vocabulary change, not an additive optional
+            # field, so it must bump OWNIR_VERSION on both the extractor and the core
+            # (see spec/OwnIR.md); until then, refuse rather than mis-analyze.
+            raise OwnIRError(
+                f"unknown OwnIR flow op {op!r} ({ffile}:{line}) — extractor/core "
+                f"vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+            )
     return body
 
 

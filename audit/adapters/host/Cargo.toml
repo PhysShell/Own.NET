@@ -1,0 +1,22 @@
+[package]
+name = "own-adapter-host"
+version = "0.1.0"
+edition = "2021"
+description = "Runs ownaudit:adapter WASM components under fuel/epoch/memory limits, validates their SARIF, and stamps provenance."
+
+[[bin]]
+name = "own-adapter-host"
+path = "src/main.rs"
+
+[dependencies]
+# Native host deps — fetched from crates.io when you build locally.
+# SECURITY: `"28"` is a PLACEHOLDER floor, not a considered pin. Wasmtime ships a
+# major monthly and backports security fixes only to the LTS and the two most
+# recent trains — v28 is outside that window. This crate's whole job is safely
+# sandboxing untrusted output, so before building for real, bump to the current
+# supported LTS (or a recent train) and confirm the component-model API still
+# matches (see BUILD.md — authored, not compiled, in a network-restricted sandbox).
+wasmtime = { version = "28", features = ["component-model"] }
+anyhow = "1"
+serde_json = "1"
+sha2 = "0.10"

@@ -1,0 +1,19 @@
+[package]
+name = "sandboy"
+version = "0.1.0"
+edition = "2021"
+description = "wrap-the-child confinement for untrusted gate steps: Landlock (FS + TCP-port scope) + seccomp denylist, unprivileged. Sandboy MVP, Layer 2 of docs/notes/sandboy-isolation-adr.md."
+
+[[bin]]
+name = "sandboy"
+path = "src/main.rs"
+
+[dependencies]
+# "Берём готовое" (ADR §2 non-goal: не свой LSM). All the unsafe lives in these
+# crates, not in ours — see README on the one audited prctl exception.
+landlock    = "0.4"     # FS access-scope + (ABI v4) TCP bind/connect port scope
+seccompiler = "0.5"     # BPF syscall filter (firecracker's crate)
+libc        = "0.2"     # syscall numbers for the denylist + the NNP prctl
+anyhow      = "1"
+serde       = { version = "1", features = ["derive"] }
+toml        = "0.8"

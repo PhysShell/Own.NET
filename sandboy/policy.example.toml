@@ -1,0 +1,30 @@
+# Example confinement policy for one .007/gate.toml step.
+# Tune per step: a `cargo test` step needs the toolchain + worktree + 443
+# (crates.io); a formatting step may need no network at all.
+
+# Read+execute: toolchain, shared libs, read-only system config.
+fs_ro = [
+  "/usr",
+  "/bin",
+  "/lib",
+  "/lib64",
+  "/etc",
+]
+
+# Read+write+execute: the worktree the agent/gate operates in, scratch, output.
+fs_rw = [
+  "/home/user/work/worktree",
+  "/tmp",
+]
+
+# TCP egress by PORT (Landlock scopes ports, not hosts — host/CIDR/domain
+# egress is Layer 3, netns + proxy). 443 = https (git, package registries),
+# 22 = ssh (git over ssh). Empty list = no outbound TCP.
+tcp_connect = [443, 22]
+
+# No listening sockets by default.
+tcp_bind = []
+
+# seccomp: omit `seccomp_deny` to use the curated default denylist
+# (ptrace, mount, bpf, kexec, …). Override here only to widen/narrow it, e.g.:
+# seccomp_deny = ["ptrace", "mount", "bpf", "kexec_load", "kexec_file_load"]

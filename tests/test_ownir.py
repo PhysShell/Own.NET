@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -228,6 +229,65 @@ def run() -> int:
         load(_write_facts({"module": "Legacy", "components": []}))
     except OwnIRError as e:
         fails.append(f"versionless facts wrongly rejected: {e}")
+
+    # an unknown flow op (a newer extractor emitting a vocabulary the core can't
+    # lower) must RAISE, not be silently dropped — else the acquire/release facts
+    # nested inside it vanish and verdicts flip with every fixture still green.
+    checks += 1
+    unknown_op = {"ownir_version": OWNIR_VERSION, "module": "X", "components": [],
+                  "functions": [{"name": "F", "file": "F.cs", "body": [
+                      {"op": "acquire", "var": "c", "line": 1},
+                      {"op": "try", "line": 2, "body": [
+                          {"op": "release", "var": "c", "line": 3}]}]}]}
+    try:
+        check_facts(unknown_op)
+        fails.append("unknown flow op was silently accepted (should raise OwnIRError)")
+    except OwnIRError:
+        pass
+
+    # A present-but-unknown resource kind changes routing (§4), so load must reject
+    # it (fail-loud) rather than fall through to the subscription path and
+    # mis-classify. An ABSENT `resource` field still defaults to subscription.
+    checks += 1
+    bad_kind = {"ownir_version": OWNIR_VERSION, "module": "X",
+                "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                    {"event": "e", "line": 1, "resource": "mutex"}]}]}
+    if not _load_raises(bad_kind):
+        fails.append("present-but-unknown resource kind was accepted (should raise OwnIRError)")
+    checks += 1
+    ok_absent = {"ownir_version": OWNIR_VERSION, "module": "X",
+                 "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                     {"event": "e", "line": 1}]}]}  # no `resource` -> defaults to subscription
+    if _load_raises(ok_absent):
+        fails.append("an absent resource field was wrongly rejected (must default to subscription)")
+
+    # Version single-sourcing (IR2): every producer must stamp the SAME
+    # ownir_version as the core. The literal is hand-kept in each frontend today —
+    # once P-022's `own-ir` crate lands there are FOUR producers, so a schema will
+    # make this a generated constant (spec/OwnIR.md §2). Until then, assert the
+    # frontends match the core here, so "bumped the core, forgot a frontend" (or the
+    # reverse) fails loudly instead of silently mis-reading facts at runtime.
+    _ver = re.compile(r'ownir_version["\s]*[=:]\s*(\d+)')
+    _repo = os.path.join(os.path.dirname(__file__), "..")
+    _producers = {
+        "Roslyn extractor (Program.cs)":
+            os.path.join(_repo, "frontend", "roslyn", "OwnSharp.Extractor", "Program.cs"),
+        "OwnTS frontend (ownts.py)":
+            os.path.join(_repo, "frontend", "ownts", "ownts.py"),
+    }
+    for _label, _path in _producers.items():
+        checks += 1
+        try:
+            with open(_path, encoding="utf-8") as _f:
+                _m = _ver.search(_f.read())
+        except OSError as _e:
+            fails.append(f"{_label}: cannot read producer ({_e})")
+            continue
+        if _m is None:
+            fails.append(f"{_label}: no `ownir_version` literal found (moved? update this check)")
+        elif int(_m.group(1)) != OWNIR_VERSION:
+            fails.append(f"{_label}: ownir_version {_m.group(1)} != core OWNIR_VERSION "
+                         f"{OWNIR_VERSION} — bump every producer together")
 
     # --- WPF002 timer profile: a started timer never stopped/detached leaks,
     #     a stopped one stays silent, and the finding is tagged [resource: timer].

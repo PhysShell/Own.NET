@@ -1,0 +1,8 @@
+{
+  "note": "Not the array Infer# emits — a hostile/garbage shape. The adapter must",
+  "note2": "reject this with Err (serde parse failure), and the host must surface",
+  "note3": "NO-TOOL: adapter-fault WITHOUT crashing or ingesting anything.",
+  "also": "Try replacing this with a 100MB file or deeply-nested JSON to exercise",
+  "also2": "the memory cap / fuel budget: the component should trap, not the host.",
+  "bug_type": 12345
+}

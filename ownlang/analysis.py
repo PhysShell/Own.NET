@@ -197,10 +197,14 @@ def join(a: State, b: State) -> State:
     # holds across loop back-edges too: a borrow opened inside a loop body closes
     # within the same iteration, so the loan set at the body exit equals the one on
     # the entry edge. Assert the invariant rather than paper over a builder bug.
-    assert set(a.loans) == set(b.loans), (
-        "active loans differ at a control-flow merge; this should be impossible "
-        "for block-scoped borrows (they close within the scope that opened them)"
-    )
+    # An explicit raise, not `assert`: `python -O` strips asserts, and a silently
+    # mismatched loan set at a merge would defeat the invariant this locks (same as
+    # `_join_handle_rid` above). Keep it loud in every build.
+    if set(a.loans) != set(b.loans):
+        raise AssertionError(
+            "active loans differ at a control-flow merge; this should be impossible "
+            "for block-scoped borrows (they close within the scope that opened them)"
+        )
     out.loans = dict(a.loans)
     out.handle_rid = _join_handle_rid(a.handle_rid, b.handle_rid)
     out.moved_at = _join_sites(a.moved_at, b.moved_at)
