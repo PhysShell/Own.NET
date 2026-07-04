@@ -38,10 +38,34 @@ jobs:
         run: |
           python scripts/mine_report.py --selftest
           python scripts/oracle_compare.py --selftest
+          python scripts/oracle_exact.py --selftest
           python scripts/metamorphic.py --selftest
           python scripts/metamorphic_facts.py --selftest
           python scripts/benchmark.py --selftest
           python scripts/validate_contrib.py --selftest
+
+  # The Rust core workspace (P-022): fmt + clippy under the workspace's own
+  # strict [workspace.lints] + the test suite (incl. the own-ir round-trip of
+  # every OwnIR fixture). This is the Rust half of the migration gate; the
+  # Python half (the reference) is gated by `tests` / `lint` above, and the
+  # differential oracle ties the two together as crates land.
+  rust-core:
+    name: rust (fmt + clippy + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: cargo fmt --check
+        run: cargo fmt --check
+      - name: cargo clippy (workspace lints are the gate)
+        run: cargo clippy --all-targets
+      - name: cargo test
+        run: cargo test
 
   # Own.NET Audit (audit/) — the aggregation layer's selftests, the only thing the
   # Linux CI gates for the audit (the target itself is analyzed on a local Windows
