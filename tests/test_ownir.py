@@ -245,6 +245,22 @@ def run() -> int:
     except OwnIRError:
         pass
 
+    # A present-but-unknown resource kind changes routing (§4), so load must reject
+    # it (fail-loud) rather than fall through to the subscription path and
+    # mis-classify. An ABSENT `resource` field still defaults to subscription.
+    checks += 1
+    bad_kind = {"ownir_version": OWNIR_VERSION, "module": "X",
+                "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                    {"event": "e", "line": 1, "resource": "mutex"}]}]}
+    if not _load_raises(bad_kind):
+        fails.append("present-but-unknown resource kind was accepted (should raise OwnIRError)")
+    checks += 1
+    ok_absent = {"ownir_version": OWNIR_VERSION, "module": "X",
+                 "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                     {"event": "e", "line": 1}]}]}  # no `resource` -> defaults to subscription
+    if _load_raises(ok_absent):
+        fails.append("an absent resource field was wrongly rejected (must default to subscription)")
+
     # Version single-sourcing (IR2): every producer must stamp the SAME
     # ownir_version as the core. The literal is hand-kept in each frontend today —
     # once P-022's `own-ir` crate lands there are FOUR producers, so a schema will

@@ -66,8 +66,11 @@ owned-resource records) is an owned resource, discriminated by an optional
     advisory OWN050 "leakage analysis skipped" note, never a leak (P-014 Tier A).
 
 An unreleased entry is the core's OWN001 (owned-but-not-released) at the C#
-`line`. The `resource`/`type` fields are additive and optional, so they do NOT
-bump `ownir_version`: an older core just reads every entry as a subscription.
+`line`. The `resource`/`type` FIELDS are additive and optional — an older core
+that predates them reads an entry with no `resource` as a subscription. But a new
+resource-kind VALUE is a vocabulary change, not additive metadata: the kind
+selects the analysis path, so a PRESENT-but-unknown kind is rejected at load
+(fail-loud), and introducing one MUST bump `ownir_version` (spec/OwnIR.md §2).
 A `capture` entry instead routes through the lifetime/region engine and surfaces
 as OWN014 (region escape) when its source provably outlives — see docs/proposals/
 P-004 and docs/lifetimes.md (the C# facts now reach the region core, not only the
@@ -213,6 +216,16 @@ _RESOURCES = {
     "local-disposable": ("Disposable", "disposable"),
     "pool": ("PooledBuffer", "pooled buffer"),
 }
+
+# Every resource-kind discriminator the core routes on (the `_RESOURCES` owned
+# kinds, plus `capture` — routed to the lifetime/region engine — and
+# `unresolved-subscription` — skipped to an advisory OWN050). The kind CHANGES the
+# analysis path (§4 of spec/OwnIR.md), so it is NOT metadata: a PRESENT-but-unknown
+# kind is rejected at load (fail-loud, like an unknown flow op), never silently
+# routed as a `subscription`. An ABSENT `resource` field still defaults to
+# `subscription` (an old extractor that predates the field). Consequence: adding a
+# new kind is a vocabulary change that MUST bump OWNIR_VERSION (spec/OwnIR.md §2).
+_KNOWN_RESOURCE_KINDS = frozenset(_RESOURCES) | {"capture", "unresolved-subscription"}
 
 # --- P-004 region escape (the `capture` resource kind) ----------------------
 # A `capture` is a tokenless strong subscription routed NOT through the
@@ -472,6 +485,15 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(r, str):
                 raise OwnIRError(
                     f"subscription 'resource' must be a string, got {r!r}")
+            # A present-but-unknown kind changes routing (§4), so reject it rather
+            # than let it fall through to the owned/subscription path and mis-route
+            # — the same fail-loud rule as an unknown flow op. A new kind must bump
+            # OWNIR_VERSION (spec/OwnIR.md §2). An absent field defaulted to
+            # "subscription" above, which is known.
+            if r not in _KNOWN_RESOURCE_KINDS:
+                raise OwnIRError(
+                    f"unknown resource kind {r!r} — a new kind is a vocabulary "
+                    f"change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)")
             t = s.get("type")
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(

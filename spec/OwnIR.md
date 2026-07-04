@@ -2,7 +2,7 @@
 
 > **Status: normative, descriptive.** This document specifies the OwnIR fact
 > contract *as it is today*, derived from the working bridge
-> (`ownlang/ownir.py`) and pinned by tests (see [§8 Conformance](#8-conformance)).
+> (`ownlang/ownir.py`) and pinned by tests (see [§9 Conformance](#9-conformance)).
 > Forward-looking ideas live in [`docs/proposals/`](../docs/proposals/), never
 > here.
 
@@ -23,16 +23,17 @@ A facts document is a single JSON object:
   "module": "WpfApp",
   "components": [ /* §4 owned-resource records, grouped by type */ ],
   "functions":  [ /* §5 flow bodies (intra-procedural CFG facts) */ ],
-  "services":   [ /* §6 DI registration graph */ ]
+  "services":   [ /* §6 DI registration graph */ ],
+  "effects":    [ /* §7 reactive-effect graph (EFF001) */ ]
 }
 ```
 
 `ownir_version` (int) and `module` (string) are required; `components`,
-`functions`, and `services` are each optional and default to empty. `load()`
-([`ownir.py`](../ownlang/ownir.py)) validates the shape and raises `OwnIRError`
-(a `ValueError`) with an actionable message on any violation — types, the
-`bool`-is-`int` trap, empty identity strings, and unknown DI lifetime enums are
-all rejected at load, before any analysis.
+`functions`, `services`, and `effects` are each optional and default to empty.
+`load()` ([`ownir.py`](../ownlang/ownir.py)) validates the shape and raises
+`OwnIRError` (a `ValueError`) with an actionable message on any violation — types,
+the `bool`-is-`int` trap, empty identity strings, unknown DI lifetime enums, and
+a present-but-unknown resource kind are all rejected at load, before any analysis.
 
 ## 2. Versioning and the evolution policy (normative)
 
@@ -48,20 +49,29 @@ What bumps the version — the rule that keeps the three producers honest:
 
 | Change | Bumps `OWNIR_VERSION`? |
 |---|---|
-| Add an **optional** field with a safe default (e.g. `resource`, `type`, `source_type`) | **No** — an older core reads the record without it (see §4). |
-| Add a new **resource kind** discriminator value (§4) | **No** — unknown kinds coerce to `subscription` by design; additive. |
+| Add an **optional** field with a safe default (e.g. `type`, `source_type`) | **No** — an older core reads the record without it (see §4). |
+| Add a new **resource kind** discriminator value (§4) | **Yes** — the kind selects the analysis path (§4 routing), so it is a vocabulary change, not additive metadata; a present-but-unknown kind is rejected at load. |
 | Add, rename, remove, or change the meaning of a **flow op** (§5) | **Yes** — vocabulary change (see the guard below). |
 | Remove or rename a required field, or change a field's semantics | **Yes** — not backward-readable. |
 
-**Fail-loud guarantee (unknown flow op).** The flow lowerer (`_lower_flow`)
-handles exactly the ops in [§5](#5-flow-bodies-functions). Encountering any other
-op raises `OwnIRError` — it is **never** silently skipped, because skipping a
-compound op would drop the acquire/release facts nested inside it and flip
-verdicts (a fabricated leak from a lost release, or a hidden leak from a lost
-acquire) while every existing fixture still passes. A newer extractor that emits
-a new op against an un-bumped core therefore fails the run instead of
-mis-analyzing it. This is why a new op **must** bump `OWNIR_VERSION` per the
-table above.
+**Fail-loud guarantee (unknown vocabulary).** Two discriminators select an
+analysis path and so must never be silently mis-read:
+
+- **Flow op (§5).** The flow lowerer (`_lower_flow`) handles exactly the ops in
+  [§5](#5-flow-bodies-functions); any other op raises `OwnIRError` — never a
+  silent skip, because skipping a compound op would drop the acquire/release facts
+  nested inside it and flip verdicts (a fabricated leak from a lost release, or a
+  hidden leak from a lost acquire) while every existing fixture still passes.
+- **Resource kind (§4).** A `resource` value the core does not know changes
+  routing (`capture` → the region engine, `pool` → a pooled buffer, …), so a
+  present-but-unknown kind raises at load rather than falling through to the
+  `subscription` path and mis-classifying the fact. An **absent** `resource`
+  field still defaults to `subscription` — that is the old-extractor-predates-the-
+  field case, and adding the field is genuinely additive.
+
+A newer extractor that introduces either against an un-bumped core therefore fails
+the run instead of mis-analyzing it — which is why both **must** bump
+`OWNIR_VERSION` per the table above.
 
 ## 3. What OwnIR is not
 
@@ -144,32 +154,57 @@ source proven to outlive the subscriber escalates its OWN001 warning to **OWN014
 (a proven captive/region escape); a co-lifetimed-or-shorter source is refuted and
 silent; an unresolved `source_type` stays the honest OWN001 warning.
 
-## 7. Rules
+## 7. Reactive effects (`effects[]`)
+
+An optional top-level array feeding the **EFF001** effect-storm check (P-020, the
+OwnTS `Own.React` profile) — a separate core analysis
+([`ownlang/effects.py`](../ownlang/effects.py)) over an effect's dependency array
+and the stability of the render-scope values it closes over:
+
+```json
+"effects": [
+  {"io": true, "line": 20, "deps": ["query"],
+   "bindings": [{"name": "query", "init": "useState", "refs": [], "line": 8}]}
+]
+```
+
+Each effect carries `io` (bool — whether it performs I/O; default `false`),
+`line` (int), `deps` (array of dependency names), and `bindings` (the render-scope
+binding table: each a `{name, init, refs, line}` — an unstable dependency, e.g. an
+object/array rebuilt every render, re-triggers the effect). An I/O effect whose
+dep is unstable is EFF001 (the effect storm — "not all lifecycle bugs leak memory;
+some leak requests"). Like `services`, this block is additive/optional; the core
+decides identity stability, not the frontend.
+
+## 8. Rules
 
 - **IR1.** `ownir_version` must equal the core's `OWNIR_VERSION` (or be absent);
   otherwise `load()` raises `OwnIRError`.
 - **IR2.** Every producer stamps the same `OWNIR_VERSION`.
-- **IR3.** Additive optional fields and new resource-kind values do **not** bump
-  the version; a new/changed/removed flow op or required field does.
-- **IR4.** An unknown flow op raises `OwnIRError` — never a silent skip.
+- **IR3.** Additive optional *fields* do **not** bump the version; a new/changed/
+  removed **flow op** or **resource-kind value**, or a changed/removed required
+  field, **does** (both are analysis-path vocabulary — see IR4).
+- **IR4.** A present-but-unknown **flow op** or **resource kind** raises
+  `OwnIRError` — never a silent skip or a fall-through to the wrong path.
 - **IR5.** A core diagnostic the bridge cannot map to a fact handle raises —
   never a silently dropped verdict.
 - **IR6.** A frontend emits facts only; all verdicts come from the core.
 
-## 8. Conformance
+## 9. Conformance
 
 Pinned by [`tests/test_ownir.py`](../tests/test_ownir.py) (the bridge suite,
 `python tests/test_ownir.py`), not `test_spec.py` (OwnIR is a bridge contract,
 not a surface-language rule):
 
 - **IR1/IR2** — a mismatched `ownir_version` raises; a versionless document is
-  accepted as current.
-- **IR4** — a `functions[].body` containing an unknown op (`{"op": "try", …}`)
-  raises `OwnIRError`.
+  accepted as current; each frontend producer's `ownir_version` literal is
+  asserted equal to the core's `OWNIR_VERSION`.
+- **IR4** — a `functions[].body` with an unknown op (`{"op": "try", …}`) raises
+  `OwnIRError`; likewise a present-but-unknown `resource` kind.
 - **IR5** — the unmappable-diagnostic tripwire is an internal invariant
   exercised by the flow/escape fixtures (a broken handle mapping would raise
   "cannot map back" instead of reporting the leak), not a dedicated raise-test.
-- **§4/§5/§6** — the resource-kind, flow-op, and DI fixtures
+- **§4/§5/§6/§7** — the resource-kind, flow-op, DI, and effect fixtures
   (`tests/fixtures/ownir/*.facts.json`) each assert their expected code.
 
 A change to this spec without a matching change under `tests/test_ownir.py` (or

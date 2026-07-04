@@ -125,10 +125,11 @@ The formalization stack, in order of actual protection delivered:
 3. **`spec/OwnIR.md`** ✅ (shipped) **+ `spec/ownir.schema.json`** (JSON Schema
    draft 2020-12, `ownir_version` as a `const`) — **the schema's trigger has now
    fired** (see the box below). Validate all `tests/fixtures/ownir/*.json` and
-   each frontend's output against it. The schema must encode the *deliberate*
-   open points — unknown resource kinds coerce to `subscription` by documented
-   design (`ownir.py:66-70`), so the resource-kind enum is open; its job is
-   shape/type/enum guarantees, not vocabulary closure.
+   each frontend's output against it. The resource-kind enum is **closed** for
+   *present* values — a present-but-unknown kind is rejected at load (it changes
+   routing; a new kind bumps `OWNIR_VERSION`), while an *absent* `resource` field
+   still defaults to `subscription`; the schema should mirror that (enum of known
+   kinds, field optional). Its job is shape/type/enum guarantees.
 4. **A written evolution policy** ✅ *(now shipped in `spec/OwnIR.md` §2, rules
    IR1–IR6)*: additive optional fields / new resource kinds do not bump
    `OWNIR_VERSION`; a **new op or changed op semantics does**.
