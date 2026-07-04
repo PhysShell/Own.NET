@@ -1728,6 +1728,13 @@ def run() -> int:
     if (darkdoc["summaries"] != [] or darkdoc["unresolved"] != []
             or "synthetic dump failure" not in (darkdoc["degraded"] or "")):
         fails.append(f"degraded summaries dump wrong: {darkdoc}")
+    # spec/Inference.md conformance: the advisory codes the spec names (OWN051,
+    # OWN052) must be registered in the catalogue — a spec that references an
+    # unregistered code, or a dropped code, is drift the build must catch.
+    checks += 1
+    missing = [c for c in ("OWN051", "OWN052") if c not in TITLES]
+    if missing:
+        fails.append(f"Inference.md names unregistered code(s): {missing}")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was
