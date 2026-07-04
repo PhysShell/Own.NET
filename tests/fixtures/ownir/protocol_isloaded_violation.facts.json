@@ -1,0 +1,39 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "protocols": [
+    {
+      "name": "DocumentLoading",
+      "description": "The document tree is inconsistent while IsLoaded == false; publishing Document/Rows/Totals in that window hands bindings a broken object.",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [
+        {"kind": "call", "callee": "OnPropertyChanged",
+         "args": ["Document", "Rows", "Totals", "SelectedItem"]}
+      ],
+      "allow": [
+        {"kind": "call", "callee": "OnPropertyChanged",
+         "args": ["IsLoaded", "IsBusy", "Progress", "StatusText"]}
+      ],
+      "exit_barriers": true,
+      "scope": {"methods": ["BigDocumentViewModel.LoadBigDocument"]}
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.BigDocumentViewModel.LoadBigDocument",
+      "file": "BigDocumentViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 184},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "IsBusy", "line": 185},
+        {"ev": "call", "callee": "RebuildIndexes", "line": 190},
+        {"ev": "if", "line": 220, "then": [
+          {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 241}
+        ], "else": []},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 260},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 261}
+      ]
+    }
+  ]
+}
