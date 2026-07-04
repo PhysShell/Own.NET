@@ -80,7 +80,14 @@ class PathAction:
     kind: `dispose` (releases it) | `adopt` (stores it into an owning field) |
     `return` (returns it — escapes to the caller of *this* method) | `borrow`
     (only reads/uses) | `forward` (passes it to `callee` at position `arg`).
-    The first three are ownership *leaving the caller* on that path (`must`)."""
+    The first three are ownership *leaving the caller* on that path (`must`).
+
+    RESERVED kinds (TZ D3): `adopt` and `return` are understood by the solver but
+    have NO production producer yet — `_build_skeletons` (ownir.py) emits only
+    `dispose`/`borrow`/`forward`. `adopt` awaits interprocedural T4b (a ctor-adopt
+    summary), `return` awaits owned-return-value modelling (a returned param is
+    deliberately NOT a consume signal today, see `_infer_param_effect`). A port
+    must carry their semantics but must not expect to see them from real facts."""
 
     kind: str
     callee: str = ""
