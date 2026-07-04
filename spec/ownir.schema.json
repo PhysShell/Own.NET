@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://physshell.dev/spec/ownir.schema.json",
+  "title": "OwnIR",
+  "description": "The OwnIR fact contract: the JSON seam between a language frontend (Roslyn C# extractor, OwnTS, hand-written fixtures) and the OwnLang core. Normative prose lives in spec/OwnIR.md; the Python validator is ownlang/ownir.py::load(). This schema is the single source both the Python core and the Rust `own-ir` crate are checked against — the enums here are pinned to the code's authoritative sets by tests/test_ownir.py (no jsonschema dependency), so schema and code cannot drift.",
+  "type": "object",
+  "required": ["ownir_version", "module"],
+  "properties": {
+    "ownir_version": {
+      "description": "OwnIR fact-vocabulary version. Every producer stamps the same integer (OWNIR_VERSION in ownlang/ownir.py); a document whose version differs from the core's is rejected at load (spec/OwnIR.md IR1/IR2). An absent field is read as the current version by the core, but this schema requires it.",
+      "const": 0
+    },
+    "module": {
+      "description": "The extracted module/assembly name.",
+      "type": "string"
+    },
+    "components": {
+      "description": "Owned-resource records grouped by the component (class) that owns them (spec/OwnIR.md §4).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "functions": {
+      "description": "Per-method intra-procedural flow bodies — the CFG facts the core lowers to acquire/use/release (spec/OwnIR.md §5).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/function" }
+    },
+    "services": {
+      "description": "The DI registration graph feeding the DI001 captive-dependency check (spec/OwnIR.md §6).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/service" }
+    },
+    "effects": {
+      "description": "The reactive-effect graph feeding the EFF001 effect-storm check (spec/OwnIR.md §7).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/effect" }
+    }
+  },
+  "$defs": {
+    "resourceKind": {
+      "description": "The resource-kind discriminator (spec/OwnIR.md §4). It selects the analysis path, so a present-but-unknown value is rejected at load (fail-loud) and a new kind must bump OWNIR_VERSION. Pinned to ownlang/ownir.py::_KNOWN_RESOURCE_KINDS.",
+      "type": "string",
+      "enum": [
+        "subscription",
+        "subscribe",
+        "timer",
+        "disposable",
+        "local-disposable",
+        "pool",
+        "capture",
+        "unresolved-subscription"
+      ]
+    },
+    "diLifetime": {
+      "description": "A DI registration lifetime (spec/OwnIR.md §6). Pinned to ownlang/di.py::LIFETIMES.",
+      "type": "string",
+      "enum": ["singleton", "scoped", "transient"]
+    },
+    "paramEffect": {
+      "description": "A parameter's ownership effect in a method contract (P-006/2b). Pinned to the enum in ownlang/ownir.py::load().",
+      "type": "string",
+      "enum": ["consume", "borrow", "borrow_mut", "plain"]
+    },
+    "site": {
+      "description": "A {type, file, line} call-site record (DI004/DI005 metadata).",
+      "type": "object",
+      "required": ["type", "file", "line"],
+      "properties": {
+        "type": { "type": "string" },
+        "file": { "type": "string" },
+        "line": { "type": "integer" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "file": { "type": "string" },
+        "subscriptions": {
+          "description": "The component's owned-resource records (historically keyed `subscriptions`).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/resourceRecord" }
+        }
+      }
+    },
+    "resourceRecord": {
+      "description": "One owned-resource record (spec/OwnIR.md §4). An unreleased record is OWN001 at `line`; a released one nets balanced and stays silent.",
+      "type": "object",
+      "properties": {
+        "line": { "type": "integer" },
+        "event": {
+          "description": "The event/handle identifier for this owned resource (e.g. `bus.CustomerChanged`, `_timer.Tick`); carried into the finding message and rendered output.",
+          "type": "string"
+        },
+        "handler": {
+          "description": "The subscribing handler's name (e.g. `OnCustomerChanged`); may be empty for a tokenless subscribe/capture.",
+          "type": "string"
+        },
+        "lambda": {
+          "description": "Whether the handler is an inline lambda — no `-=` handle exists to detach it, so the subscription can never be released.",
+          "type": "boolean"
+        },
+        "released": {
+          "description": "Whether a matching release (`-=`, Dispose, Stop, Return) was found.",
+          "type": "boolean"
+        },
+        "resource": { "$ref": "#/$defs/resourceKind" },
+        "type": {
+          "description": "The concrete resource type (optional, additive — an older core reads the record without it). Explicit null is accepted and preserved (ownlang/ownir.py::load only rejects a non-null non-string), so it maps to Option<String> in the Rust `own-ir` types.",
+          "type": ["string", "null"]
+        },
+        "source": {
+          "description": "Lifetime tier of a subscription/subscribe/capture source: self (silent cycle), injected (OWN001 warning, may escalate via §6), or static/external/unknown (leak).",
+          "type": ["string", "null"]
+        },
+        "source_type": {
+          "description": "The declared type of an injected event source, cross-referenced against `services` to derive its DI lifetime/region (P-006 + P-004). Additive/optional. Explicit null is accepted and preserved (Option<String>).",
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "function": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "file": { "type": "string" },
+        "params": {
+          "description": "The method's ownership contract: its parameters and their effects (P-006/2b). Optional — an omitted contract is inferred from the body.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/param" }
+        },
+        "body": {
+          "description": "An ordered list of flow ops modelling the method's intra-procedural CFG.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/flowOp" }
+        }
+      }
+    },
+    "param": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "line": { "type": "integer" },
+        "effect": { "$ref": "#/$defs/paramEffect" }
+      }
+    },
+    "flowOp": {
+      "description": "One flow op (spec/OwnIR.md §5). The `op` discriminator is the complete vocabulary the lowerer (_lower_flow) handles; any other value is rejected at load (fail-loud). Pinned to the branch set in ownlang/ownir.py::_lower_flow.",
+      "type": "object",
+      "required": ["op"],
+      "oneOf": [
+        {
+          "title": "acquire",
+          "description": "A new owned local (Let+Acquire); kind:\"pool\" tags it a pooled buffer.",
+          "properties": {
+            "op": { "const": "acquire" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" },
+            "kind": { "type": "string", "enum": ["pool"] }
+          },
+          "required": ["op", "var"]
+        },
+        {
+          "title": "release",
+          "description": "Release of the local's handle.",
+          "properties": {
+            "op": { "const": "release" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" }
+          },
+          "required": ["op", "var"]
+        },
+        {
+          "title": "use",
+          "description": "Use of the handle.",
+          "properties": {
+            "op": { "const": "use" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" }
+          },
+          "required": ["op", "var"]
+        },
+        {
+          "title": "overspan",
+          "description": "Overspan (POOL005: a full-length view of a pooled buffer).",
+          "properties": {
+            "op": { "const": "overspan" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" }
+          },
+          "required": ["op", "var"]
+        },
+        {
+          "title": "return",
+          "description": "Ownership transfer out; `var` optional (a bare return).",
+          "properties": {
+            "op": { "const": "return" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" }
+          },
+          "required": ["op"]
+        },
+        {
+          "title": "alias_join",
+          "description": "A new owning handle joined to `src`'s alias set (wrap/adopt, D5.4).",
+          "properties": {
+            "op": { "const": "alias_join" },
+            "line": { "type": "integer" },
+            "var": { "type": "string" },
+            "src": { "type": "string" }
+          },
+          "required": ["op", "var", "src"]
+        },
+        {
+          "title": "call",
+          "description": "A Call checked against the callee's contract; a fresh-returning callee mints an acquire for `result` (D5.2).",
+          "properties": {
+            "op": { "const": "call" },
+            "line": { "type": "integer" },
+            "callee": { "type": "string" },
+            "args": { "type": "array", "items": { "type": "string" } },
+            "result": { "type": "string" }
+          },
+          "required": ["op", "callee"]
+        },
+        {
+          "title": "if",
+          "description": "An If with both branches lowered.",
+          "properties": {
+            "op": { "const": "if" },
+            "line": { "type": "integer" },
+            "then": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } },
+            "else": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
+          },
+          "required": ["op"]
+        },
+        {
+          "title": "while",
+          "description": "A While — a back-edge the core's worklist fixpoint converges over (A1).",
+          "properties": {
+            "op": { "const": "while" },
+            "line": { "type": "integer" },
+            "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
+          },
+          "required": ["op"]
+        }
+      ]
+    },
+    "service": {
+      "type": "object",
+      "required": ["name", "lifetime"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "lifetime": { "$ref": "#/$defs/diLifetime" },
+        "deps": { "type": "array", "items": { "type": "string" } },
+        "weak_deps": { "type": "array", "items": { "type": "string" } },
+        "root_resolves": { "type": "array", "items": { "type": "string" } },
+        "file": { "type": "string" },
+        "line": { "type": "integer" },
+        "ctor_file": { "type": "string" },
+        "ctor_line": { "type": "integer" },
+        "ctor_type": { "type": "string" },
+        "root_resolve_sites": { "type": "array", "items": { "$ref": "#/$defs/site" } },
+        "scope_cached": { "type": "array", "items": { "type": "string" } },
+        "scope_cache_sites": { "type": "array", "items": { "$ref": "#/$defs/site" } }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "properties": {
+        "io": {
+          "description": "Whether the effect performs I/O (default false).",
+          "type": "boolean"
+        },
+        "line": { "type": "integer" },
+        "deps": {
+          "description": "The effect's dependency-array names.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "bindings": {
+          "description": "The render-scope binding table; the core decides identity stability, not the frontend.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/binding" }
+        }
+      }
+    },
+    "binding": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "init": {
+          "description": "How the binding is initialised (e.g. useState, useMemo); default \"unknown\".",
+          "type": "string"
+        },
+        "refs": { "type": "array", "items": { "type": "string" } },
+        "line": { "type": "integer" }
+      }
+    }
+  }
+}

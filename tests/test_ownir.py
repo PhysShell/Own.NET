@@ -26,8 +26,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import tempfile
 
+from ownlang.di import LIFETIMES as DI_LIFETIMES
 from ownlang.diagnostics import TITLES
 from ownlang.ownir import (
+    _FLOW_OPS,
+    _KNOWN_RESOURCE_KINDS,
+    _PARAM_EFFECTS,
     OWNIR_VERSION,
     Finding,
     OwnIRError,
@@ -288,6 +292,99 @@ def run() -> int:
         elif int(_m.group(1)) != OWNIR_VERSION:
             fails.append(f"{_label}: ownir_version {_m.group(1)} != core OWNIR_VERSION "
                          f"{OWNIR_VERSION} — bump every producer together")
+
+    # --- Schema <-> code binding (spec/ownir.schema.json). The JSON Schema is the
+    #     single source the Python core and the Rust `own-ir` crate (P-022) are both
+    #     checked against, but the core cannot import a jsonschema validator (the
+    #     zero-dependency constraint). So instead of validating documents against the
+    #     schema, we pin the schema's *vocabulary* to the code's authoritative sets:
+    #     the enums and the version const cannot drift out from under the validator
+    #     (ownlang/ownir.py::load) without reddening this build. When the schema grows
+    #     a new enum value the code doesn't know — or vice-versa — this fires.
+    _schema_path = os.path.join(_repo, "spec", "ownir.schema.json")
+    checks += 1
+    try:
+        with open(_schema_path, encoding="utf-8") as _f:
+            _schema = json.load(_f)
+    except (OSError, json.JSONDecodeError) as _e:
+        fails.append(f"spec/ownir.schema.json unreadable/invalid: {_e}")
+        _schema = None
+    if _schema is not None:
+        _defs = _schema.get("$defs", {})
+        # 1) ownir_version const == core OWNIR_VERSION
+        checks += 1
+        _sv = _schema.get("properties", {}).get("ownir_version", {}).get("const")
+        if _sv != OWNIR_VERSION:
+            fails.append(f"schema ownir_version const {_sv!r} != core OWNIR_VERSION "
+                         f"{OWNIR_VERSION}")
+        # 2) resourceKind enum == _KNOWN_RESOURCE_KINDS (the load() routing authority)
+        checks += 1
+        _sk = set(_defs.get("resourceKind", {}).get("enum", []))
+        if _sk != set(_KNOWN_RESOURCE_KINDS):
+            fails.append(f"schema resourceKind enum {sorted(_sk)} != code "
+                         f"_KNOWN_RESOURCE_KINDS {sorted(_KNOWN_RESOURCE_KINDS)}")
+        # 3) diLifetime enum == di.LIFETIMES (the service-lifetime authority)
+        checks += 1
+        _sl = set(_defs.get("diLifetime", {}).get("enum", []))
+        if _sl != set(DI_LIFETIMES):
+            fails.append(f"schema diLifetime enum {sorted(_sl)} != code "
+                         f"di.LIFETIMES {sorted(DI_LIFETIMES)}")
+        # 3b) paramEffect enum == _PARAM_EFFECTS (the load() contract-effect authority)
+        checks += 1
+        _se = set(_defs.get("paramEffect", {}).get("enum", []))
+        if _se != set(_PARAM_EFFECTS):
+            fails.append(f"schema paramEffect enum {sorted(_se)} != code "
+                         f"_PARAM_EFFECTS {sorted(_PARAM_EFFECTS)}")
+        # 4) flowOp discriminator consts. `_FLOW_OPS` is the lowerer's authoritative
+        #    op set (the _lower_flow `else` rejects anything outside it as vocabulary
+        #    skew). Bind the schema to it BOTH ways: (a) the schema's oneOf consts must
+        #    EQUAL _FLOW_OPS — so a handled op the schema forgot, or a schema op the
+        #    lowerer never gained, both redden this; and (b) drive every op through the
+        #    lowerer so a phantom set entry (declared but unlowered) still fails. The
+        #    two together close the direction Codex flagged: the schema cannot lag the
+        #    lowerer's op vocabulary.
+        _ops = [b.get("properties", {}).get("op", {}).get("const")
+                for b in _defs.get("flowOp", {}).get("oneOf", [])]
+        checks += 1
+        if None in _ops or len(_ops) != len(set(_ops)):
+            fails.append(f"schema flowOp oneOf has missing/duplicate op consts: {_ops}")
+        checks += 1
+        if set(_ops) != set(_FLOW_OPS):
+            fails.append(f"schema flowOp consts {sorted(x for x in _ops if x)} != code "
+                         f"_FLOW_OPS {sorted(_FLOW_OPS)} — op-vocabulary drift")
+        for _op in sorted(_FLOW_OPS):
+            checks += 1
+            # a minimal, self-consistent body for each op (compound ops carry empty
+            # sub-bodies; value ops carry a var/callee). A declared op that fails to
+            # lower (unknown-op OR the declared-but-unhandled internal raise) is a
+            # phantom authority entry — the set claims an op the lowerer cannot handle.
+            _node = {"op": _op, "line": 1}
+            if _op in ("acquire", "release", "use", "overspan", "alias_join"):
+                _node["var"] = "x"
+            if _op == "alias_join":
+                _node["src"] = "x"
+            if _op == "call":
+                _node["callee"] = "f"
+            _facts = {"ownir_version": OWNIR_VERSION, "module": "S",
+                      "functions": [{"name": "m", "file": "m.cs", "body": [_node]}]}
+            try:
+                check_facts(_facts)
+            except OwnIRError as _e:
+                if ("unknown OwnIR flow op" in str(_e)
+                        or "no lowering in _lower_flow" in str(_e)):
+                    fails.append(f"_FLOW_OPS lists {_op!r} but _lower_flow does not "
+                                 f"handle it ({_e})")
+        # the guard is live: an op NOT in _FLOW_OPS is rejected as unknown vocabulary
+        #    (the raise fires during lowering, so drive it through check_facts).
+        checks += 1
+        _bogus = {"ownir_version": OWNIR_VERSION, "module": "S",
+                  "functions": [{"name": "m", "file": "m.cs",
+                                 "body": [{"op": "try", "line": 1}]}]}
+        try:
+            check_facts(_bogus)
+            fails.append("an unknown flow op ('try') was not rejected — fail-loud guard dead")
+        except OwnIRError:
+            pass
 
     # --- WPF002 timer profile: a started timer never stopped/detached leaks,
     #     a stopped one stays silent, and the finding is tagged [resource: timer].

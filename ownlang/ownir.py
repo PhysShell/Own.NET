@@ -227,6 +227,22 @@ _RESOURCES = {
 # new kind is a vocabulary change that MUST bump OWNIR_VERSION (spec/OwnIR.md §2).
 _KNOWN_RESOURCE_KINDS = frozenset(_RESOURCES) | {"capture", "unresolved-subscription"}
 
+# The complete flow-op vocabulary the lowerer (`_lower_flow`) handles — the single
+# authority the `_lower_flow` dispatch, `spec/ownir.schema.json`, and the Rust
+# `own-ir` crate must all agree on. Every op here has a branch in `_lower_flow`
+# (the `else` there rejects anything NOT in this set as vocabulary skew, and treats
+# an op that IS here but reaches `else` as an internal-consistency bug). Adding an
+# op is a vocabulary change that MUST bump OWNIR_VERSION (spec/OwnIR.md §2/§5).
+_FLOW_OPS = frozenset({
+    "acquire", "release", "use", "overspan", "return",
+    "alias_join", "call", "if", "while",
+})
+
+# The parameter ownership-effect vocabulary (P-006/2b): a method contract's
+# per-parameter effect. Like `_FLOW_OPS`, a closed enum the schema and the Rust
+# `ParamEffect` are bound to; an absent effect is inferred from the body.
+_PARAM_EFFECTS = frozenset({"consume", "borrow", "borrow_mut", "plain"})
+
 # --- P-004 region escape (the `capture` resource kind) ----------------------
 # A `capture` is a tokenless strong subscription routed NOT through the
 # acquire/release ownership model but through the lifetime/region engine
@@ -622,10 +638,9 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"parameter 'line' must be an integer, got {pl!r}")
             peff = p.get("effect")
-            if peff is not None and peff not in ("consume", "borrow", "borrow_mut",
-                                                 "plain"):
+            if peff is not None and peff not in _PARAM_EFFECTS:
                 raise OwnIRError(
-                    f"parameter 'effect' must be consume/borrow/borrow_mut/plain, "
+                    f"parameter 'effect' must be one of {sorted(_PARAM_EFFECTS)}, "
                     f"got {peff!r}")
     return result
 
@@ -1868,6 +1883,14 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                                    "ever_released": result in released_vars,
                                    "pool": False}
                 body.append(Let(handle, Acquire("Disposable", [], line), line))
+        elif op in _FLOW_OPS:
+            # In `_FLOW_OPS` (the declared vocabulary) but no branch above handled
+            # it — an internal-consistency bug: the op was added to the authority set
+            # and the schema without a matching lowering here. Fail loudly so the
+            # gap surfaces in dev, not as a silently dropped obligation.
+            raise OwnIRError(
+                f"OwnIR flow op {op!r} is declared in _FLOW_OPS but has no lowering "
+                f"in _lower_flow ({ffile}:{line}) — internal core inconsistency")
         else:
             # Fail loud on an op this core cannot lower. Silently skipping it would
             # drop the acquire/release facts nested inside it — fabricating a leak (a
