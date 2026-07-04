@@ -1,0 +1,50 @@
+package ownaudit:adapter@0.1.0;
+
+interface types {
+  /// A file the tool wrote to disk, read by the HOST and handed in as bytes.
+  /// The component itself never touches the filesystem — this is how a
+  /// file-writing analyzer (Infer#, most profilers) reaches a capability-free
+  /// adapter.
+  record named-blob {
+    name: string,
+    bytes: list<u8>,
+  }
+
+  /// Everything an adapter needs to turn one tool invocation into SARIF,
+  /// provided as pure data. No handles, no descriptors, no capabilities.
+  record raw-input {
+    /// Tool identifier, e.g. "infersharp", "roslyn".
+    tool: string,
+    /// How the tool was invoked — flags change output shape, so the adapter
+    /// may need them.
+    argv: list<string>,
+    exit-code: s32,
+    stdout: list<u8>,
+    stderr: list<u8>,
+    /// Output files the tool wrote, pre-read by the host.
+    artifacts: list<named-blob>,
+    /// Repo root (a URI). The adapter rewrites SARIF artifactLocation URIs
+    /// against this — as strings, since it has no filesystem.
+    base-uri: string,
+    /// Opaque per-adapter config, passed through by the host verbatim.
+    /// The ABI escape-hatch: most future tuning rides here instead of
+    /// churning this record (see BUILD.md §versioning).
+    options: list<u8>,
+  }
+}
+
+/// The adapter world: exactly one export, and — deliberately — ZERO imports.
+///
+/// Zero imports == zero ambient authority: the component cannot open a file,
+/// a socket, read a clock, or draw randomness. It is a pure, deterministic
+/// `bytes -> SARIF` function that the host runs under a fuel budget, an epoch
+/// deadline, and a hard memory cap. A parser bug on hostile tool output can at
+/// worst trap — it cannot compromise the orchestrator.
+world sarif-adapter {
+  use types.{raw-input};
+
+  /// Transform one raw tool invocation into a SARIF run (JSON, UTF-8 bytes).
+  /// Err carries a human message; the host surfaces it as
+  /// `NO-TOOL: adapter-fault: <msg>` in the spirit of the honest-skip rule.
+  export to-sarif: func(input: raw-input) -> result<list<u8>, string>;
+}

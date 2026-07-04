@@ -1,0 +1,27 @@
+[package]
+name = "adapter-infersharp"
+version = "0.1.0"
+edition = "2021"
+description = "ownaudit:adapter component — Infer# report.json -> SARIF 2.1.0. Pure, capability-free."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# serde/serde_json compile to wasm cleanly; the component stays pure (no I/O).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Provided by cargo-component; version tracks whatever cargo-component pulls.
+wit-bindgen-rt = { version = "0.35", features = ["bitflags"] }
+
+[package.metadata.component]
+package = "ownaudit:adapter"
+
+[package.metadata.component.target]
+# Single source of truth: the canonical world, shared with the host. No copy.
+path = "../../wit"
+world = "sarif-adapter"
+
+[profile.release]
+opt-level = "s"
+lto = true

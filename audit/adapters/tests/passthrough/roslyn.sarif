@@ -1,0 +1,28 @@
+{
+  "version": "2.1.0-rtm.6",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Microsoft.CodeAnalysis.NetAnalyzers",
+          "rules": [{ "id": "CA2000" }]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CA2000",
+          "level": "warning",
+          "message": { "text": "Call System.IDisposable.Dispose on object `stream` before all references to it are out of scope." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/IO/Exporter.cs" },
+                "region": { "startLine": 88, "startColumn": 9 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
