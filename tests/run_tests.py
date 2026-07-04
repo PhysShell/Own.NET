@@ -1147,13 +1147,19 @@ def run() -> int:
     import test_effects
     effects_rc = test_effects.run()
 
+    # Syntax parity fixtures (P-022 step 2): the shared accept/reject +
+    # error-text corpus. Python is authoritative (this fails when the committed
+    # JSON is stale); the Rust own-syntax crate replays it byte-for-byte.
+    import test_syntax_fixtures
+    syntaxfx_rc = test_syntax_fixtures.run()
+
     return 1 if (failed or cg_fail or golden_fails or buffer_fails
                  or escape_fails or branchy_fails or nest_fails
                  or order_fails or helper_fails or cc_rc or pf_rc
                  or gl_rc or co_rc or wpf_rc or lt_rc or loops_rc
                  or spec_rc or ownir_rc or own5_rc or rid_rc or diag_rc
                  or explain_rc or effects_rc or evid_rc or dsarif_rc
-                 or cfgjson_rc) else 0
+                 or cfgjson_rc or syntaxfx_rc) else 0
 
 
 if __name__ == "__main__":
