@@ -147,8 +147,10 @@ d5-заметка ставит advisory в хвост (D5.x); эта карта 
 и главный ответ на «непонятки». Вся фактура уже считается (§5 d5: «we compute
 the full must/may/escape evidence regardless of mode»), не хватает поверхности:
 
-- **OWN051** (OWN05x-band, как OWN050): `transfer:may` и honest-`unknown`
-  показываются с `--verbosity normal`+, никогда не валят CI.
+- **OWN051** ✅ *(shipped)*: владелец, переданный на `may`/`unknown`-позицию,
+  оптимистично перестаёт отслеживаться (ТЗ D6 — настоящее «молчание», а не
+  plain), и это честно фиксируется advisory OWN051 на месте вызова — warning в
+  выводе, `note` в SARIF, никогда не rc; `--verbosity quiet` скрывает.
 - **Дамп сводок** ✅ *(shipped)*: глагол `python -m ownlang summaries facts.json`
   — один детерминированный JSON-документ (сводки по ключу метода + extern-лог +
   `degraded`), байт-стабильный под перестановкой входа; это и отладочная

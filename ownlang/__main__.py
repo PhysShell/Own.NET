@@ -28,9 +28,10 @@ SARIF log carrying each finding's evidence slice (relatedLocations / codeFlows);
 `--severity` (ownir only) picks how the host shows a finding — `error` (default,
 fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
-`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory OWN050
-"leakage analysis skipped" notes, P-014 Tier A), `normal` (default), or `verbose`
-(also print a per-code breakdown).
+`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory notes:
+OWN050 "leakage analysis skipped", OWN051 "ownership transfer unverified",
+OWN052 "summaries skipped"), `normal` (default), or `verbose` (also print a
+per-code breakdown).
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -330,7 +331,7 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     selects the surface: human (CLI), github (CI annotations), msbuild (VS),
     sarif (SARIF 2.1.0 log);
     `severity` picks how the host shows them (error/warning); `verbosity` is
-    `quiet` (errors only — hide the advisory OWN050 notes), `normal` (default), or
+    `quiet` (errors only — hide the advisory OWN05x notes), `normal` (default), or
     `verbose` (also print a per-code breakdown)."""
     from .ownir import OwnIRError, build_sarif, check_facts, load, render_finding
     try:
