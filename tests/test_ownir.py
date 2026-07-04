@@ -1630,6 +1630,56 @@ def run() -> int:
     if gotlit != [("hand", 10, "OWN002")]:
         fails.append("TZ D5: healthy solve must carry no OWN052 and keep the true "
                      f"OWN002, got {gotlit}")
+    # --- roadmap stage 1: the `summaries` dump (dump_summaries / `python -m
+    #     ownlang summaries`). One deterministic document: solved MOS per method
+    #     (sorted by key), the extern-boundary log (sorted), a `degraded` reason.
+    #     This is the parity surface the Rust port of the inference layer will be
+    #     diffed against, so its byte-stability IS the contract.
+    from ownlang.ownir import dump_summaries
+    _dump_facts = {"module": "M", "functions": [
+        {"name": "B.Fwd", "file": "b.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "Extern.Gone", "args": ["s"], "line": 2}]},
+        {"name": "A.Make", "file": "a.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},
+        {"name": "C.Sink", "file": "c.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]}]}
+    checks += 1
+    doc = dump_summaries(_dump_facts)
+    keys = [s["method"] for s in doc["summaries"]]
+    kinds = {s["method"]: s["returns"]["owned"] for s in doc["summaries"]}
+    transfers = {s["method"]: [p["transfer"] for p in s["params"]]
+                 for s in doc["summaries"]}
+    files = {s["method"]: s["file"] for s in doc["summaries"]}
+    if (keys != ["A.Make", "B.Fwd", "C.Sink"]  # sorted by method key
+            or kinds["A.Make"] != "fresh" or transfers["C.Sink"] != ["must"]
+            or transfers["B.Fwd"] != ["unknown"]
+            or doc["unresolved"] != ["Extern.Gone#0 (extern, no summary)"]
+            or files["A.Make"] != "a.cs" or doc["degraded"] is not None):
+        fails.append(f"summaries dump content wrong: {doc}")
+    # byte-determinism: permuting `functions[]` input order must not change one byte
+    # of the canonical dump — this is what makes it a parity artifact, not a debug log.
+    checks += 1
+    blob1 = json.dumps(doc, indent=2, sort_keys=True)
+    _dump_facts["functions"].reverse()
+    blob2 = json.dumps(dump_summaries(_dump_facts), indent=2, sort_keys=True)
+    if blob1 != blob2:
+        fails.append("summaries dump must be byte-identical under functions[] "
+                     "input permutation")
+    # a failed solve degrades the dump exactly like the checking path: empty
+    # summaries + the reason in `degraded` — never a crash, never a half-document.
+    checks += 1
+    _real_swl = _oi.solve_with_log
+    def _boom2(_sk):  # type: ignore[no-untyped-def]
+        raise RuntimeError("synthetic dump failure")
+    _oi.solve_with_log = _boom2  # type: ignore[assignment]
+    try:
+        darkdoc = dump_summaries(_dump_facts)
+    finally:
+        _oi.solve_with_log = _real_swl
+    if (darkdoc["summaries"] != [] or darkdoc["unresolved"] != []
+            or "synthetic dump failure" not in (darkdoc["degraded"] or "")):
+        fails.append(f"degraded summaries dump wrong: {darkdoc}")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was

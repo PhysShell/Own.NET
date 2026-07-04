@@ -153,6 +153,7 @@ from .ownership import (
     ReturnSkeleton,
     Transfer,
     solve,
+    solve_with_log,
 )
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
@@ -1473,7 +1474,11 @@ def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
     params = tuple(
         ParamSkeleton(i, names[i], True, tuple(by_index[i])) for i in sorted(by_index)
     )
-    return MethodSkeleton(group[0].key, params, _merge_returns([sk.ret for sk in group]))
+    # the merged location must not depend on `functions[]` input order (the summary
+    # dump is a deterministic parity surface): take the smallest (file, line) pair.
+    floc = min((sk.file, sk.line) for sk in group)
+    return MethodSkeleton(group[0].key, params,
+                          _merge_returns([sk.ret for sk in group]), floc[0], floc[1])
 
 
 def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
@@ -1569,7 +1574,10 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
         ret = _infer_return_skeleton(body, pnames, first_party)
-        by_key.setdefault(key, []).append(MethodSkeleton(key, tuple(params), ret))
+        # carry the declaration file so the summary dump is navigable (functions[]
+        # entries carry no line of their own — params do; line stays 0).
+        by_key.setdefault(key, []).append(
+            MethodSkeleton(key, tuple(params), ret, str(fn.get("file", "?"))))
     # one skeleton per name: solve() keys by name (a forward names its callee with no
     # signature), so same-name overloads are joined into a single conservative summary.
     return [_merge_skeletons(group) for group in by_key.values()]
@@ -2025,6 +2033,44 @@ def _flow_local_steps(sub: dict[str, Any], code: str, dline: int,
     name = sub.get("event", "?")
     origin = f"rented '{name}' here" if pool else f"acquired '{name}' here"
     return ((f, acq, origin), (f, dline, viol))
+
+
+def dump_summaries(facts: dict[str, Any]) -> dict[str, Any]:
+    """The MOS observability / parity surface (roadmap stage 1, TZ §5.4): derive
+    the skeletons, run the solver, and return the solved summaries plus the
+    extern-boundary log as ONE deterministic document.
+
+    Two consumers, one contract:
+    - a human asking "why did this call stay plain?" reads the method's summary
+      (transfer per param, return kind) and the `unresolved` extern boundaries
+      without reading bridge code;
+    - the Rust port of the inference layer is diffed against this document
+      (`oracle_exact`-style), which checks the port at the summary level — finer
+      than diffing final diagnostics, where an inference bug can hide behind an
+      unrelated silence.
+
+    Determinism is the contract: summaries are sorted by method key, the
+    unresolved log arrives sorted from `solve_with_log`, and `to_dict` field
+    order is fixed — the same facts yield byte-identical JSON regardless of
+    `functions[]` input order. A failed solve degrades exactly like
+    `check_facts` (empty summaries), with the reason in `degraded` — the same
+    honesty OWN052 gives the checking path."""
+    raw_fns = facts.get("functions", [])
+    raw_fns = raw_fns if isinstance(raw_fns, list) else []
+    degraded: str | None = None
+    summaries: dict[str, Any] = {}
+    unresolved: list[str] = []
+    try:
+        summaries, unresolved = solve_with_log(_build_skeletons(raw_fns))
+    except Exception as exc:
+        degraded = f"{type(exc).__name__}: {exc}"
+    return {
+        "module": str(facts.get("module", "?")),
+        "ownir_version": OWNIR_VERSION,
+        "summaries": [summaries[k].to_dict() for k in sorted(summaries)],
+        "unresolved": unresolved,
+        "degraded": degraded,
+    }
 
 
 def check_facts(facts: dict[str, Any]) -> list[Finding]:
