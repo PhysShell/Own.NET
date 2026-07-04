@@ -57,7 +57,14 @@ fn run() -> Result<()> {
     // 3. seccomp denylist: strip dangerous syscalls, allow the rest.
     apply_seccomp(&policy)?;
 
-    // 4. Hand off. execve replaces us; the two confinements persist into it.
+    // 4. Close inherited descriptors. Landlock/seccomp do NOT revoke
+    //    already-open fds, so any descriptor the launcher leaked (an open file,
+    //    a live socket) would pass straight into the untrusted command and
+    //    bypass the FS/port allowlists. Mark every fd > 2 close-on-exec so it
+    //    vanishes at execve; stdio (0,1,2) is kept.
+    close_inherited_fds()?;
+
+    // 5. Hand off. execve replaces us; the confinements persist into it.
     //    `exec()` only returns on failure.
     let err = Command::new(prog).args(prog_args).exec();
     Err(err).with_context(|| format!("exec {prog}"))
@@ -170,10 +177,10 @@ fn apply_seccomp(policy: &Policy) -> Result<()> {
     Ok(())
 }
 
-/// The one audited `unsafe`: a single prctl to set no_new_privs, without which
-/// an unprivileged seccomp install is rejected. Sandboy is the syscall-boundary
+/// Audited `unsafe` #1: a single prctl to set no_new_privs, without which an
+/// unprivileged seccomp install is rejected. Sandboy is the syscall-boundary
 /// crate, so — unlike the analyzer core (`unsafe_code = forbid`) — it permits
-/// narrowly-scoped, audited unsafe at exactly this seam. Nothing user-derived
+/// narrowly-scoped, audited unsafe at exactly these seams. Nothing user-derived
 /// touches this call.
 fn set_no_new_privs() -> Result<()> {
     // SAFETY: PR_SET_NO_NEW_PRIVS takes fixed constant args, has no memory
@@ -181,6 +188,22 @@ fn set_no_new_privs() -> Result<()> {
     let rc = unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) };
     if rc != 0 {
         bail!("prctl(PR_SET_NO_NEW_PRIVS) failed: {}", std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+/// Audited `unsafe` #2: mark every descriptor above stdio close-on-exec, in one
+/// `close_range` syscall (Linux 5.11+, below our Landlock floor of 5.13). This
+/// closes the inherited-fd hole around Landlock (which scopes new opens by path,
+/// not descriptors already handed to us).
+fn close_inherited_fds() -> Result<()> {
+    // SAFETY: close_range with CLOSE_RANGE_CLOEXEC only sets FD_CLOEXEC on the
+    // [3, u32::MAX] descriptor range; fixed flag, no memory effects. rc checked.
+    let rc = unsafe {
+        libc::close_range(3, libc::c_uint::MAX, libc::CLOSE_RANGE_CLOEXEC as libc::c_int)
+    };
+    if rc != 0 {
+        bail!("close_range(CLOEXEC) failed: {}", std::io::Error::last_os_error());
     }
     Ok(())
 }

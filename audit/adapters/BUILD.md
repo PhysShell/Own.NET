@@ -31,15 +31,17 @@ cargo install wasm-tools                 # inspect/validate components (optional
 ## 3. Build the host
 
 ```bash
-cd ../../host
+# from audit/adapters (step 2 used subshells, so cwd is still here)
+cd host
 cargo build --release
 # -> target/release/own-adapter-host
+cd ..
 ```
 
 ## 4. Run it — happy path
 
 ```bash
-cd ..
+# from audit/adapters
 ./host/target/release/own-adapter-host \
   --component components/infersharp.wasm \
   --tool infersharp \

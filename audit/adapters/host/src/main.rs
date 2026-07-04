@@ -49,6 +49,7 @@ struct Args {
     fuel: u64,
     epoch_ms: u64,
     max_bytes: usize,
+    max_input_bytes: u64,
     max_results: usize,
 }
 
@@ -59,6 +60,7 @@ fn parse_args() -> Result<Args> {
         fuel: 2_000_000_000,
         epoch_ms: 5_000,
         max_bytes: 64 * 1024 * 1024,
+        max_input_bytes: 64 * 1024 * 1024,
         max_results: 200_000,
         ..Default::default()
     };
@@ -84,6 +86,7 @@ fn parse_args() -> Result<Args> {
             "--fuel" => a.fuel = next()?.parse().context("bad --fuel")?,
             "--epoch-ms" => a.epoch_ms = next()?.parse().context("bad --epoch-ms")?,
             "--max-bytes" => a.max_bytes = next()?.parse().context("bad --max-bytes")?,
+            "--max-input-bytes" => a.max_input_bytes = next()?.parse().context("bad --max-input-bytes")?,
             "--max-results" => a.max_results = next()?.parse().context("bad --max-results")?,
             other => bail!("unknown flag: {other}"),
         }
@@ -91,9 +94,23 @@ fn parse_args() -> Result<Args> {
     Ok(a)
 }
 
-fn read_opt(p: &Option<PathBuf>) -> Result<Vec<u8>> {
+/// Read a file, but refuse before allocating if it exceeds `cap`. Untrusted
+/// tool output can be arbitrarily large; an unbounded `fs::read` here would OOM
+/// the host regardless of the guest's memory cap (which only bounds the
+/// component, not this pre-read). Size-check via metadata, then read.
+fn read_capped(path: &std::path::Path, cap: u64) -> Result<Vec<u8>> {
+    let len = std::fs::metadata(path)
+        .with_context(|| format!("stat {}", path.display()))?
+        .len();
+    if len > cap {
+        bail!("input {} is {len} bytes, exceeds --max-input-bytes {cap}", path.display());
+    }
+    std::fs::read(path).with_context(|| format!("reading {}", path.display()))
+}
+
+fn read_opt(p: &Option<PathBuf>, cap: u64) -> Result<Vec<u8>> {
     match p {
-        Some(path) => std::fs::read(path).with_context(|| format!("reading {}", path.display())),
+        Some(path) => read_capped(path, cap),
         None => Ok(Vec::new()),
     }
 }
@@ -150,15 +167,15 @@ fn run() -> Result<()> {
     for (name, path) in &args.artifacts {
         artifacts.push(NamedBlob {
             name: name.clone(),
-            bytes: std::fs::read(path).with_context(|| format!("reading {}", path.display()))?,
+            bytes: read_capped(path, args.max_input_bytes)?,
         });
     }
     let input = RawInput {
         tool: tool.clone(),
         argv: args.argv.clone(),
         exit_code: args.exit_code,
-        stdout: read_opt(&args.stdout_file)?,
-        stderr: read_opt(&args.stderr_file)?,
+        stdout: read_opt(&args.stdout_file, args.max_input_bytes)?,
+        stderr: read_opt(&args.stderr_file, args.max_input_bytes)?,
         artifacts,
         base_uri: args.base_uri.clone(),
         options: read_opt(&args.options_file)?,

@@ -66,13 +66,23 @@ cargo build --release        # needs Linux; the crates are Linux-only
 `demo.sh` shows a write inside the worktree succeeding, and a write to `$HOME`,
 a `ptrace`, and a connect to a non-allowlisted port all being denied.
 
-### The one `unsafe`
+### The audited `unsafe`
 
 Sandboy is the syscall-boundary crate, so — unlike the analyzer core
-(`unsafe_code = forbid`) — it permits **one** narrowly-scoped, audited `unsafe`:
-the `prctl(PR_SET_NO_NEW_PRIVS)` needed before an unprivileged seccomp install.
-All other unsafe lives inside the `landlock`/`seccompiler` crates ("берём
-готовое", ADR §2). Nothing user-derived reaches the prctl.
+(`unsafe_code = forbid`) — it permits **two** narrowly-scoped, audited `unsafe`
+calls at the syscall seam: `prctl(PR_SET_NO_NEW_PRIVS)` (required before an
+unprivileged seccomp install) and `close_range(.., CLOSE_RANGE_CLOEXEC)` (closes
+the inherited-fd hole, below). All other unsafe lives inside the
+`landlock`/`seccompiler` crates ("берём готовое", ADR §2). Nothing user-derived
+reaches either call.
+
+### Inherited descriptors
+
+Landlock scopes *new* opens by path and seccomp filters *syscalls* — **neither
+revokes a descriptor that is already open**. If the launcher (gate/orchestrator)
+leaks an fd — an open file or a live socket without `FD_CLOEXEC` — it would pass
+into the wrapped command and bypass the FS/port allowlists entirely. So before
+`execve`, sandboy marks every fd > 2 close-on-exec; stdio (0,1,2) is kept.
 
 ## Wiring into 007 (the actual use)
 
