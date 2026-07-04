@@ -130,6 +130,9 @@ CASES: list[tuple[str, str]] = [
     ("unexpected_char", "@"),
     ("unexpected_char_backslash", "module m \\"),
     ("unexpected_char_control", "module m \x01"),
+    # Cf format char (a pasted zero-width space): repr() renders it via the
+    # \uNNNN path of the isprintable()-parity quoting.
+    ("unexpected_char_zero_width_space", "module m \u200b"),
     ("unexpected_char_after_unicode", "module m\nfn f() { let ф = @; }"),
     ("unterminated_string", 'module m resource R { emit_type "oops'),
     ("rejected_keyword_top_level", "module m for"),

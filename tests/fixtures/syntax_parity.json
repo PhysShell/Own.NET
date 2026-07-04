@@ -52,6 +52,11 @@
       "error": "1:10: unexpected character '\\x01'"
     },
     {
+      "name": "unexpected_char_zero_width_space",
+      "source": "module m ​",
+      "error": "1:10: unexpected character '\\u200b'"
+    },
+    {
       "name": "unexpected_char_after_unicode",
       "source": "module m\nfn f() { let ф = @; }",
       "error": "2:18: unexpected character '@'"
