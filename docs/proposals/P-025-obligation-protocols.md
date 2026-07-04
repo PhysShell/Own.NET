@@ -47,7 +47,7 @@ subscription-leak epicenter).
 
 The same three verbs cover the whole family:
 
-```
+```text
 IsLoaded=false            must become true      before PropertyChanged(Document)
 _suppressNotifications    must be restored      before return/throw
 BeginUpdate               must meet EndUpdate   before Refresh / method exit

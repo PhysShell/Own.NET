@@ -197,6 +197,14 @@ EXPLANATIONS = {
         "the notification), or — if that notification is genuinely safe while open — add it to "
         "the protocol's `allow` list."
     ),
+    "OBL002": (
+        "Like OBL001, but the obligation is open on only *some* paths that reach the barrier — "
+        "whether the notification publishes a broken object depends on the branch taken (the "
+        "same definite/maybe split as OWN002 vs OWN009).\n"
+        "Fix: close the obligation on every path before the barrier (or on none — make the "
+        "state unambiguous), or add the call to the protocol's `allow` list if it is genuinely "
+        "safe while open."
+    ),
     "OBL003": (
         "A project-declared obligation is opened but not closed before the method exits "
         "(return / throw / falling off the end) on every path — the object is left in its "
@@ -204,6 +212,13 @@ EXPLANATIONS = {
         "the classic culprit: `IsLoaded = false; Load(); IsLoaded = true;` leaves the flag down "
         "forever when `Load()` throws.\n"
         "Fix: close in a `finally`, or on every early-return path."
+    ),
+    "OBL004": (
+        "Like OBL003, but the obligation is left open on only *some* exit paths — whether the "
+        "object stays broken depends on the branch taken (typically an early return or a "
+        "may-throw call before the close).\n"
+        "Fix: close on every exit path — a `finally` covers the throw paths; move the close "
+        "above the early returns."
     ),
     "OBL005": (
         "Advisory, not a verdict: a protocol's `scope.methods` matched none of the methods the "
