@@ -1,8 +1,10 @@
 # P-024 — Security audit profile (external tools + SARIF adapters)
 
-- **Status:** draft — direction accepted in design discussion; implementation not
-  started. Supersedes and **rejects** the earlier "Own.SecurityChecks" scanner-engine
-  idea (recorded below so it is not re-proposed).
+- **Status:** in progress — v0.1 built (`audit/security/`: baseline profile, the
+  three raw→SARIF adapters, and the plan/coverage-map runner, all with CI-gated
+  selftests). Supersedes and **rejects** the earlier "Own.SecurityChecks"
+  scanner-engine idea (recorded below so it is not re-proposed). v0.2
+  (`OwnAudit.DotNetConfig`) and v0.3 (cross-tool correlation) not started.
 - **Depends on:** the audit orchestrator design ([`Plan.md`](../../Plan.md)) — SARIF
   normalization, cross-tool confidence scoring, coverage map. Relates to
   [P-015](P-015-configuration-surface.md) (check selection / severity) for how the

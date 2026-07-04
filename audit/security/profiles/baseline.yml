@@ -1,0 +1,125 @@
+# Own.NET Audit — Security profile: baseline (P-024 §v0.1).
+#
+# A security profile is a set of TOOL-RUN MANIFESTS, not detection rules. Each
+# entry names a mature external security tool, how to invoke it, and how its
+# output becomes SARIF for the shared aggregate pipeline. There is no own
+# detection logic here — that is the whole point of P-024 (orchestrator, not a
+# scanner). Adding a check means adding a tool + adapter, never a regex.
+#
+# `requires` gates a manifest on run context:
+#   runtime — needs a reachable/live target (web endpoint, TLS host)
+#   auth    — needs credentials (authenticated scan)
+# Unmet prerequisites downgrade the coverage status honestly (NEEDS-RUNTIME /
+# NEEDS-AUTH), they do not silently pass.
+#
+# `sarif`:
+#   native            — the tool writes SARIF itself (Nuclei -sarif-export, Trivy --format sarif)
+#   {adapter: <mod>}  — an adapter under audit/security/adapters/ converts raw output
+#
+# Actually invoking these needs network + a live target and runs on an operator
+# machine (audit/README.md: the target is never scanned in Own.NET's Linux CI).
+# CI validates that this profile parses, adapters import, and the runner plans
+# every branch (run_security_profile.py --selftest).
+
+name: security-baseline
+description: >
+  Baseline security fleet: web (Nuclei + ZAP passive baseline), TLS (testssl.sh),
+  and supply-chain (Trivy + dotnet vulnerable packages). Non-destructive, read-only;
+  no active/attacking scans (P-024 non-goals). .NET-specific config audit is
+  DEFERRED to v0.2 (OwnAudit.DotNetConfig).
+
+manifests:
+  - id: OWNSEC-WEB-001
+    title: Web security baseline (Nuclei)
+    tool: nuclei
+    executable: nuclei
+    category: web
+    requires: [runtime]
+    sarif: native
+    args:
+      - "-l"
+      - "targets/web.txt"
+      - "-t"
+      - "audit/security/nuclei-templates/"     # curated non-intrusive templates (open question)
+      - "-sarif-export"
+      - "artifacts/security/nuclei-web.sarif"
+    confidence:
+      source: tool-native
+      fpPolicy: external-tool
+
+  - id: OWNSEC-WEB-002
+    title: Passive web scan (OWASP ZAP baseline)
+    tool: zap-baseline
+    executable: zap-baseline.py
+    category: web
+    requires: [runtime]
+    sarif: {adapter: zap_to_sarif}
+    args:
+      - "-t"
+      - "${TARGET}"
+      - "-J"
+      - "artifacts/security/zap.json"          # raw JSON -> zap_to_sarif adapter
+    confidence:
+      source: tool-native
+      fpPolicy: external-tool
+
+  - id: OWNSEC-TLS-001
+    title: TLS/SSL protocols & ciphers (testssl.sh)
+    tool: testssl
+    executable: testssl.sh
+    category: tls
+    requires: [runtime]
+    sarif: {adapter: testssl_to_sarif}
+    args:
+      - "--jsonfile-pretty"
+      - "artifacts/security/testssl.json"       # raw JSON -> testssl_to_sarif adapter
+      - "${TARGET}"
+    confidence:
+      source: tool-native
+      fpPolicy: external-tool
+
+  - id: OWNSEC-DEP-001
+    title: Dependencies / images / IaC / secrets (Trivy)
+    tool: trivy
+    executable: trivy
+    category: supply-chain
+    requires: []                                # filesystem scan; no live target needed
+    sarif: native
+    args:
+      - "fs"
+      - "--format"
+      - "sarif"
+      - "--output"
+      - "artifacts/security/trivy.sarif"
+      - "${TARGET_DIR}"
+    confidence:
+      source: tool-native
+      fpPolicy: external-tool
+
+  - id: OWNSEC-DEP-002
+    title: NuGet vulnerable packages incl. transitive (dotnet)
+    tool: dotnet-vuln
+    executable: dotnet
+    category: supply-chain
+    requires: []
+    sarif: {adapter: dotnet_vuln_to_sarif}
+    args:
+      - "list"
+      - "package"
+      - "--vulnerable"
+      - "--include-transitive"                  # mandatory (Codex review on #169)
+      - "--format"
+      - "json"
+    confidence:
+      source: tool-native
+      fpPolicy: external-tool
+
+  - id: OWNSEC-CFG-001
+    title: .NET configuration audit (typed, low-FP)
+    tool: none                                  # DEFERRED to v0.2: OwnAudit.DotNetConfig
+    category: dotnet-config
+    requires: []
+    sarif: native
+    confidence:
+      source: own-typed-parser
+      fpPolicy: needs-review-without-prod-context

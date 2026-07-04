@@ -67,6 +67,11 @@ jobs:
           python audit/static/tools/xaml_join.py --selftest
           python audit/static/run_static.py --selftest
           python audit/runtime/ingest.py --selftest
+          python audit/security/adapters/sariflib.py --selftest
+          python audit/security/adapters/testssl_to_sarif.py --selftest
+          python audit/security/adapters/dotnet_vuln_to_sarif.py --selftest
+          python audit/security/adapters/zap_to_sarif.py --selftest
+          python audit/security/tools/run_security_profile.py --selftest
 
   tests:
     name: tests (py${{ matrix.python-version }})
