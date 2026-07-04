@@ -43,6 +43,7 @@ proposal is marked `done` with a pointer.
 | [P-021](P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) | draft |
 | [P-022](P-022-rust-core-migration.md) | Rust core migration: crate DAG, patterns, prior art, differential oracle (Python = golden) | draft / exploratory |
 | [P-023](P-023-architecture-guard.md) | Architecture guard (`Own.Arch`): rules.yaml intent model + dependency-graph gate + baseline ratchet | draft |
+| [P-024](P-024-security-audit-profile.md) | Security audit profile (external tools + SARIF adapters; rejects own scanner engine) | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
