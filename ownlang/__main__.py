@@ -351,8 +351,11 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     n = len(leaks)
     summary = f"\n{n} finding{'s' if n != 1 else ''}"
     if notes:
-        summary += (f" ({len(notes)} unchecked hidden)" if verbosity == "quiet"
-                    else f", {len(notes)} unchecked (OWN050)")
+        # the advisory band is no longer only OWN050 (OBL005 rides it too) —
+        # name the codes actually present instead of hardcoding one.
+        note_codes = "/".join(sorted({x.code for x in notes}))
+        summary += (f" ({len(notes)} advisory hidden)" if verbosity == "quiet"
+                    else f", {len(notes)} advisory ({note_codes})")
     print(summary + ".", file=summary_to)
     if verbosity == "verbose" and findings:
         by_code: dict[str, int] = {}

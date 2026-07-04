@@ -1,0 +1,39 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [],
+  "protocols": [
+    {
+      "name": "DocumentLoading",
+      "description": "The fixed twin of protocol_isloaded_violation: the flag is restored before any unsafe notification on every path.",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [
+        {"kind": "call", "callee": "OnPropertyChanged",
+         "args": ["Document", "Rows", "Totals", "SelectedItem"]}
+      ],
+      "allow": [
+        {"kind": "call", "callee": "OnPropertyChanged",
+         "args": ["IsLoaded", "IsBusy", "Progress", "StatusText"]}
+      ],
+      "exit_barriers": true,
+      "scope": {"methods": ["BigDocumentViewModel.LoadBigDocument"]}
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.BigDocumentViewModel.LoadBigDocument",
+      "file": "BigDocumentViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 184},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "IsBusy", "line": 185},
+        {"ev": "call", "callee": "RebuildIndexes", "line": 190},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 238},
+        {"ev": "if", "line": 240, "then": [
+          {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 241}
+        ], "else": []},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 261}
+      ]
+    }
+  ]
+}
