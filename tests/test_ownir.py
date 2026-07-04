@@ -26,9 +26,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import tempfile
 
-from ownlang.diagnostics import TITLES
 from ownlang.di import LIFETIMES as DI_LIFETIMES
+from ownlang.diagnostics import TITLES
 from ownlang.ownir import (
+    _KNOWN_RESOURCE_KINDS,
     OWNIR_VERSION,
     Finding,
     OwnIRError,
@@ -38,7 +39,6 @@ from ownlang.ownir import (
     render_finding,
     to_own,
 )
-from ownlang.ownir import _KNOWN_RESOURCE_KINDS
 from ownlang.parser import parse
 
 _FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir",
