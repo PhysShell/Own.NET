@@ -1,0 +1,11 @@
+# Registry: tool id -> compiled adapter component + passthrough options.
+# The host resolves `--tool <id>` against this; `aggregate` reads it to decide
+# which .wasm to run for each analyzer whose native output isn't SARIF.
+
+[infersharp]
+component = "components/infersharp.wasm"   # built by `cargo component build --release`
+options    = ""                            # opaque bytes handed to the adapter (none yet)
+# Per-tool caps override the host defaults when a tool is known to be small/fast:
+fuel       = 2_000_000_000
+epoch_ms   = 5_000
+max_results = 200_000

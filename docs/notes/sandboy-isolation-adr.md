@@ -173,7 +173,15 @@ allowlist'ы инспектируют **только HTTP Host-header и TLS-SNI
 | Отклонено / отложено | Пересмотреть, если | Кандидат |
 |---|---|---|
 | Слой 1 (VM-граница) в MVP | В скоуп попал **недоверенный target-репо** | Firecracker (KVM) / gVisor (без KVM) |
-| WASM/WIT rule-плагины | Появились **внешние авторы правил**, упёршиеся в один язык; ИЛИ строю ради удовольствия от component-model (для-души — валидный триггер, назвать честно) | Wasmtime + WIT, in-process, capability-scoped |
+| WASM/WIT rule-плагины (для Own.NET-правил) | Появились **внешние авторы правил**, упёршиеся в один язык | Wasmtime + WIT, in-process, capability-scoped |
+
+> **Апдейт:** WIT-plugin-идея нашла реальный дом — **не** как «правила на любом
+> языке», а как **контейнмент парсеров недоверенного ввода**: raw→SARIF адаптеры
+> аудита как capability-free WASM-компоненты (`ownaudit:adapter`). Спайк:
+> `audit/adapters/` (`world.wit` + Rust host-runner с fuel/epoch/mem-лимитами +
+> портированный Infer#-адаптер). Граница обоснована недоверенным *входом*, а не
+> внешними авторами — поэтому работает при N=1. Это тот случай, где технология —
+> правильный инструмент, а не пристроенная.
 | Side-channel mitigations | Проект стал **мульти-tenant** (чужой код на общем хосте) | CPU microcode + `mds`/SMT-off + core-scheduling |
 | Managed-сервис вместо self-host | TCO self-host стека превысил посекундную оплату | E2B (Apache-2.0, self-host на KVM) / Daytona |
 
