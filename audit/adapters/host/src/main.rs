@@ -94,18 +94,23 @@ fn parse_args() -> Result<Args> {
     Ok(a)
 }
 
-/// Read a file, but refuse before allocating if it exceeds `cap`. Untrusted
-/// tool output can be arbitrarily large; an unbounded `fs::read` here would OOM
-/// the host regardless of the guest's memory cap (which only bounds the
-/// component, not this pre-read). Size-check via metadata, then read.
+/// Read a file, bounded to `cap` bytes. Untrusted tool output can be
+/// arbitrarily large; an unbounded `fs::read` here would OOM the host
+/// regardless of the guest's memory cap (which only bounds the component, not
+/// this pre-read). A single bounded read (`take(cap + 1)`) enforces the limit
+/// *while* reading — no stat/read TOCTOU gap.
 fn read_capped(path: &std::path::Path, cap: u64) -> Result<Vec<u8>> {
-    let len = std::fs::metadata(path)
-        .with_context(|| format!("stat {}", path.display()))?
-        .len();
-    if len > cap {
-        bail!("input {} is {len} bytes, exceeds --max-input-bytes {cap}", path.display());
+    use std::io::Read;
+    let file = std::fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
+    let mut buf = Vec::new();
+    let n = file
+        .take(cap.saturating_add(1))
+        .read_to_end(&mut buf)
+        .with_context(|| format!("reading {}", path.display()))?;
+    if n as u64 > cap {
+        bail!("input {} exceeds --max-input-bytes {cap}", path.display());
     }
-    std::fs::read(path).with_context(|| format!("reading {}", path.display()))
+    Ok(buf)
 }
 
 fn read_opt(p: &Option<PathBuf>, cap: u64) -> Result<Vec<u8>> {
@@ -178,7 +183,7 @@ fn run() -> Result<()> {
         stderr: read_opt(&args.stderr_file, args.max_input_bytes)?,
         artifacts,
         base_uri: args.base_uri.clone(),
-        options: read_opt(&args.options_file)?,
+        options: read_opt(&args.options_file, args.max_input_bytes)?,
     };
 
     // --- Instantiate and call ---------------------------------------------

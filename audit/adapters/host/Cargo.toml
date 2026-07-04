@@ -10,9 +10,12 @@ path = "src/main.rs"
 
 [dependencies]
 # Native host deps — fetched from crates.io when you build locally.
-# Component model has been stable in wasmtime since v13; pin to whatever is
-# current when you build (see BUILD.md — this crate was authored, not compiled,
-# in a network-restricted sandbox, so a minor API nudge may be needed).
+# SECURITY: `"28"` is a PLACEHOLDER floor, not a considered pin. Wasmtime ships a
+# major monthly and backports security fixes only to the LTS and the two most
+# recent trains — v28 is outside that window. This crate's whole job is safely
+# sandboxing untrusted output, so before building for real, bump to the current
+# supported LTS (or a recent train) and confirm the component-model API still
+# matches (see BUILD.md — authored, not compiled, in a network-restricted sandbox).
 wasmtime = { version = "28", features = ["component-model"] }
 anyhow = "1"
 serde_json = "1"

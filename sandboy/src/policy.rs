@@ -35,23 +35,33 @@ impl Policy {
     }
 
     /// Resolve the effective denylist to raw syscall numbers for this arch.
-    /// Unknown names are skipped with a warning (a name may not exist on every
-    /// arch), so a typo weakens the filter loudly rather than failing the run.
-    pub fn seccomp_deny_numbers(&self) -> Vec<i64> {
-        let names: Vec<&str> = match &self.seccomp_deny {
-            Some(v) => v.iter().map(String::as_str).collect(),
-            None => DEFAULT_DENY.to_vec(),
-        };
-        names
-            .iter()
-            .filter_map(|n| match syscall_number(n) {
-                Some(nr) => Some(nr),
-                None => {
-                    eprintln!("sandboy: warning: unknown syscall in denylist: {n} (skipped)");
-                    None
-                }
-            })
-            .collect()
+    ///
+    /// An **explicit** `seccomp_deny` from the policy author is authoritative:
+    /// an unresolved name (typo, or unsupported on this arch) is a **hard
+    /// error** — silently dropping it would weaken the filter the author asked
+    /// for, and a wrapped step's stderr is easy to lose in a gate/CI context.
+    /// The curated `DEFAULT_DENY` keeps best-effort skip-with-warn, since
+    /// cross-arch portability is its stated reason.
+    pub fn seccomp_deny_numbers(&self) -> anyhow::Result<Vec<i64>> {
+        match &self.seccomp_deny {
+            Some(names) => names
+                .iter()
+                .map(|n| {
+                    syscall_number(n)
+                        .ok_or_else(|| anyhow::anyhow!("unknown syscall in seccomp_deny: {n}"))
+                })
+                .collect(),
+            None => Ok(DEFAULT_DENY
+                .iter()
+                .filter_map(|n| match syscall_number(n) {
+                    Some(nr) => Some(nr),
+                    None => {
+                        eprintln!("sandboy: warning: default-deny syscall unknown on this arch: {n} (skipped)");
+                        None
+                    }
+                })
+                .collect()),
+        }
     }
 }
 

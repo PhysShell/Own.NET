@@ -45,7 +45,7 @@ it. The WASM boundary contains the parse crash; the host validates the meaning.
 
 ## Layout
 
-```
+```text
 adapters/
   wit/world.wit                     canonical ownaudit:adapter@0.1.0 world
   host/                             own-adapter-host (Rust, wasmtime component model)
@@ -64,7 +64,7 @@ the same sandboxed, validated, provenance-stamped path.
 
 ## Where it plugs into the pipeline
 
-```
+```text
 tool runs ──▶ host reads stdout/files ──▶ own-adapter-host ──▶ .wasm adapter
                                                 │
                                        SARIF bytes back

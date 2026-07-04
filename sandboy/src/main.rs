@@ -33,29 +33,41 @@ use landlock::{
 use policy::Policy;
 
 fn main() {
-    if let Err(e) = run() {
+    // Exit codes, distinguished by error *origin* rather than message text:
+    //   2 = config/usage error (bad args, unreadable/invalid policy);
+    //   1 = runtime/confinement error (Landlock/seccomp/fd/exec).
+    let (policy_path, argv) = parse_args().unwrap_or_else(|e| {
         eprintln!("sandboy: {e:#}");
-        std::process::exit(if e.to_string().contains("policy") { 2 } else { 1 });
+        std::process::exit(2);
+    });
+    let policy = Policy::load(&policy_path)
+        .with_context(|| format!("loading policy {policy_path}"))
+        .unwrap_or_else(|e| {
+            eprintln!("sandboy: {e:#}");
+            std::process::exit(2);
+        });
+    if argv.is_empty() {
+        eprintln!("sandboy: no command after `--`");
+        std::process::exit(2);
+    }
+    if let Err(e) = confine_and_exec(&policy, &argv) {
+        eprintln!("sandboy: {e:#}");
+        std::process::exit(1);
     }
 }
 
-fn run() -> Result<()> {
-    let (policy_path, argv) = parse_args()?;
-    let policy = Policy::load(&policy_path)
-        .with_context(|| format!("loading policy {policy_path}"))?;
-    let (prog, prog_args) = argv
-        .split_first()
-        .ok_or_else(|| anyhow!("no command after `--`"))?;
+fn confine_and_exec(policy: &Policy, argv: &[String]) -> Result<()> {
+    let (prog, prog_args) = argv.split_first().expect("argv non-empty (checked in main)");
 
     // 1. no_new_privs — required to install a seccomp filter unprivileged.
     set_no_new_privs()?;
 
     // 2. Landlock: filesystem + TCP-port scope. Best-effort so an older kernel
     //    degrades (and reports) instead of hard-failing.
-    apply_landlock(&policy)?;
+    apply_landlock(policy)?;
 
     // 3. seccomp denylist: strip dangerous syscalls, allow the rest.
-    apply_seccomp(&policy)?;
+    apply_seccomp(policy)?;
 
     // 4. Close inherited descriptors. Landlock/seccomp do NOT revoke
     //    already-open fds, so any descriptor the launcher leaked (an open file,
@@ -158,7 +170,7 @@ fn apply_seccomp(policy: &Policy) -> Result<()> {
     // Denylist model: default = Allow (broad freedom), listed syscalls = EPERM.
     // An empty rule vec means "match unconditionally".
     let mut rules: BTreeMap<i64, Vec<seccompiler::SeccompRule>> = BTreeMap::new();
-    for &nr in &policy.seccomp_deny_numbers() {
+    for nr in policy.seccomp_deny_numbers()? {
         rules.insert(nr, vec![]);
     }
 

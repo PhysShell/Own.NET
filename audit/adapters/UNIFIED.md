@@ -26,7 +26,7 @@ shouldn't tell:
 Every tool converges on **validated SARIF**, then scoring/dedup/report are
 tool-agnostic. The adapter is the on-ramp:
 
-```
+```text
 Roslyn   ─analyze──▶ roslyn.sarif   ─▶ passthrough.wasm ─┐
 CodeQL   ─db,analyze▶ codeql.sarif  ─▶ passthrough.wasm ─┼─▶ own-adapter-host
 Infer#   ─analyze──▶ report.json    ─▶ infersharp.wasm  ─┘   (validate + cap +

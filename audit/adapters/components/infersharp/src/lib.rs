@@ -62,12 +62,11 @@ impl Guest for Component {
         let bugs: Vec<InferBug> = serde_json::from_slice(raw)
             .map_err(|e| format!("parsing Infer# report.json: {e}"))?;
 
-        // Distinct rules, in first-seen order.
+        // Distinct rules, in first-seen order (HashSet for O(1) dedup).
         let mut rules: Vec<serde_json::Value> = Vec::new();
-        let mut seen: Vec<String> = Vec::new();
+        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
         for b in &bugs {
-            if !seen.iter().any(|r| r == &b.bug_type) {
-                seen.push(b.bug_type.clone());
+            if seen.insert(b.bug_type.as_str()) {
                 let name = if b.bug_type_hum.is_empty() {
                     b.bug_type.clone()
                 } else {
