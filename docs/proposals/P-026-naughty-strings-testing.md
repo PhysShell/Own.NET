@@ -78,7 +78,17 @@ crash, hang, or corrupt output on any string in the corpus.**
 4. **Layer 3 — CLI & future config.** `ownlang/__main__.py` argument/path
    handling, and (when [P-015](P-015-configuration-surface.md) lands) `own.toml`
    discovery, given BLNS-flavored file names, directory names, and glob
-   patterns.
+   patterns. Same contract as Layer 1, spelled out for I/O: the *only*
+   acceptable rejections are `FileNotFoundError` / `IsADirectoryError` /
+   `PermissionError` / `UnicodeDecodeError` / `OSError` surfaced as a clean CLI
+   error — the shape `cmd_explain`'s `--json` path already uses
+   (`except (OSError, json.JSONDecodeError)`) — and, once P-015 lands, a
+   documented config-parse error; never a raw traceback, never a hang past a
+   fixed timeout. This pack is expected to *find*, not assume, that contract:
+   today `_read()` — the path opener behind `check`/`emit`/`cfg`/`report` —
+   catches nothing, so a BLNS-flavored path (a null byte, an unpaired
+   surrogate, a name that turns out to be a directory) is a live candidate for
+   turning this layer red on day one, not a hypothetical.
 
 5. **Land as one hermetic, parametrized module** —
    `tests/test_naughty_strings.py` — wired into `tests/run_tests.py` and CI the
