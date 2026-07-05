@@ -1,1 +1,154 @@
-IyBQLTAyNiDigJQgUnVudGltZSBsaWZldGltZSBndWFyZCAmIGRpc3Bvc2FsIHF1YXJhbnRpbmUKCi0gKipTdGF0dXM6KiogZHJhZnQuCi0gKipEZXBlbmRzIG9uOioqIGBzcGVjL093bkNvcmUubWRgIChPV04wMDHigJMwMDMpLCBbUC0wMDVdKFAtMDA1LWlkaXNwb3NhYmxlLW93bmVyc2hpcC5tZCkgKGDikkQxLURgNSBgSURpc3Bvc2FibGVgIG93bmVyc2hpcCksIFtQLTAwNF0oUC0wMDQtd3BmLWxpZmV0aW1lLXByb2ZpbGUubWQpIChXUEYgcHJvZmlsZSk7IGNvbXBsZW1lbnRzIE93bkF1ZGl0J3MgcnVudGltZSBjb3JyZWxhdGlvbiAoYE93bkF1ZGl0L2RvY3MvcnVudGltZS1jb250cmFjdC5tZGAsIHBoYXNlIDUpLgoKIyMgTW90aXZhdGlvbgoKVHJpZ2dlcjogYSBkZXNpZ24gZGlzY3Vzc2lvbiBhc2tlZCB3aGV0aGVyIHRoZSAiaGFyZGVuIG1hbGxvYy9mcmVlIHdpdGggcGFyYW5vaWQKZW50ZXJwcmlzZSBjaGVja3MiIGlkZWEgKGNvbW1vbiBpbiBDL0MrKyBzaG9wcyDigJQgd3JhcCB0aGUgYWxsb2NhdG9yIHRvIGNhdGNoCnVzZS1hZnRlci1mcmVlIC8gT09CIC8gZG91YmxlLWZyZWUpIGhhcyBhIC5ORVQgYW5hbG9nLiBDb25jbHVzaW9uLCB3b3J0aCBwaW5uaW5nCmRvd24gYmVmb3JlIGFueW9uZSByZS1kZXJpdmVzIGl0OgoKLSBBcyBhICoqbWFsbG9jIHNoaW0qKiwgdGhlIGlkZWEgaXMgbmVhcmx5IHZvaWQgdW5kZXIgdGhlIENMUjogYm91bmRzLWNoZWNrZWQKICBhcnJheXMsIGEgdHJhY2luZyBHQywgYW5kIHRoZSBhYnNlbmNlIG9mIG1hbnVhbCBgZnJlZSgpYCBhbHJlYWR5IHJlbW92ZSB0aGUKICBDLXN0eWxlIGZhaWx1cmUgbW9kZXMgKHVzZS1hZnRlci1mcmVlLCBPT0Igd3JpdGUsIGRvdWJsZS1mcmVlKSB0aGUKICBlbnRlcnByaXNlLW1hbGxvYyBwYXR0ZXJuIGV4aXN0cyB0byBjYXRjaC4KLSBUaGUgKmlkZWEgaXRzZWxmKiDigJQgbWFrZSBsaWZldGltZSBtaXN1c2UgbG91ZCBpbnN0ZWFkIG9mIHNpbGVudCDigJQgaGFzIGEgcmVhbAogIC5ORVQgdGFyZ2V0LCBhbmQgT3duLk5FVCBhbHJlYWR5IGJ1aWx0IG1vc3Qgb2YgaXQgYXMgYSAqKnN0YXRpYyoqIGRpc2NpcGxpbmU6CiAgYE9XTjAwMWAgKGxlYWspLCBgT1dOMDAyYCAodXNlLWFmdGVyLWRpc3Bvc2UpLCBgT1dOMDAzYCAoZG91YmxlLWRpc3Bvc2UpLAogIGBPV04wMTRgIChyZWdpb24tZXNjYXBlIC8gZXZlbnQgcmV0ZW50aW9uKSBhcmUgZXhhY3RseSAibWFuYWdlZAogIHVzZS1hZnRlci1mcmVlIiBhbmQgIm1hbmFnZWQgZG91YmxlLWZyZWUiIGZvciBgSURpc3Bvc2FibGVgIGFuZCBldmVudAogIHN1YnNjcmlwdGlvbnMsIHByb3ZlbiBlbmQtdG8tZW5kIGJ5IFAtMDA1IChEMeKAk0Q0IGJ1aWx0KSBhbmQKICBQLTAwNC9XUEYtcmVnaW9uLWVzY2FwZS4gT3duQXVkaXQncyBwaGFzZSA1IChgcnVudGltZS1jb250cmFjdC5tZGApIHRoZW4KICBjb25maXJtcyB0aGUgV1BGLXNwZWNpZmljIGNhc2UgKGV2ZW50IHJldGVudGlvbikgYWdhaW5zdCBhIHJlYWwgaGVhcC4KClNvIHRoZSBzdGF0aWMgaGFsZiBvZiAiZW50ZXJwcmlzZSBsaWZldGltZSBjaGVja2luZyIgaXMgbm90IGEgZ2FwIOKAlCBpdCdzIHNoaXBwZWQuCldoYXQncyBhY3R1YWxseSBtaXNzaW5nIGlzIHRoZSAqKmR5bmFtaWMvcnVudGltZSBoYWxmKio6IGEgbGlnaHR3ZWlnaHQgZ3VhcmQKdGhhdCBmYWlscyBsb3VkbHkgKmF0IHJ1biB0aW1lKiBmb3IgZXhhY3RseSB0aGUgdHdvIGNhc2VzIHN0YXRpYyBhbmFseXNpcwpzdHJ1Y3R1cmFsbHkgY2Fubm90IGNsb3NlIOKAlCBENSAob3duZXJzaGlwIHRyYW5zZmVycmVkIHRocm91Z2ggYW4gdW5tb2RlbGVkCmNhbGxlZSkgYW5kIGNyb3NzLXRocmVhZCBkaXNwb3NhbCByYWNlcyAoYm90aCBleHBsaWNpdCBub24tZ29hbHMgb2YgUC0wMDUpIOKAlApwbHVzIGEgY2hlYXAsIGNyb3NzLXBsYXRmb3JtIHN1YnN0aXR1dGUgZm9yIE93bkF1ZGl0J3MgQ2xyTUQgaGVhcCB3YWxrIHRoYXQKcnVucyBpbiBhbiBvcmRpbmFyeSB1bml0IHRlc3QsIG5vIFdpbmRvd3Mgc3RhbmQgcmVxdWlyZWQuCgojIyBXaGF0IGFscmVhZHkgZXhpc3RzIChkbyBub3QgcmUtZGVyaXZlKQoKfCBJZGVhIGZyb20gdGhlIGRpc2N1c3Npb24gfCBBbHJlYWR5IGNvdmVyZWQgYnkgfAp8LS0tfC0tLXwKfCB1c2UtYWZ0ZXItYERpc3Bvc2VgIGFzIG1hbmFnZWQgdXNlLWFmdGVyLWZyZWUgfCBgT1dOMDAyYCwgYnVpbHQgKFAtMDA1IEQ0LCBmbG93LXNlbnNpdGl2ZSBpbnRyYXByb2NlZHVyYWwpIHwKfCBkb3VibGUgYERpc3Bvc2VgIGFzIG1hbmFnZWQgZG91YmxlLWZyZWUgfCBgT1dOMDAzYCwgYnVpbHQgKFAtMDA1IEQzKSB8CnwgYElEaXNwb3NhYmxlYCBmaWVsZC9sb2NhbCBuZXZlciByZWxlYXNlZCB8IGBPV04wMDFgLCBidWlsdCAoUC0wMDUgRDEvRDIpIHwKfCBldmVudCBgKz1gIHdpdGhvdXQgYC09YCAobGVhaykgfCBgT1dOMDAxYCBzdWJzY3JpcHRpb24tbGVhayBjYXRlZ29yeSAoUC0wMDQgV1BGMDAx4oCTMDA1KSB8Cnwgc3RhdGljLWV2ZW50IC8gbG9uZy1saXZlZCBzb3VyY2UgcmV0YWluaW5nIGEgc2hvcnQtbGl2ZWQgc3Vic2NyaWJlciB8IGBPV04wMTRgIHJlZ2lvbi1lc2NhcGUgKGBkb2NzL2xpZmV0aW1lcy5tZGAgwqc0LCBzbGljZSAjMi8jMykgfAp8IGBEaXNwYXRjaGVyVGltZXJgL2BUaW1lcmAgbm90IHN0b3BwZWQgfCBgV1BGMDAyYCB8Cnwgc2luZ2xldG9uIGNhcHR1cmVzIHNjb3BlZCBkZXBlbmRlbmN5IChjYXB0aXZlIGRlcGVuZGVuY3kpIHwgYERJMDAxYOKAk2BESTAwNWAgKFAtMDA2KSB8CnwgYEFycmF5UG9vbDxUPi5SZW50YCB3aXRob3V0IGBSZXR1cm5gLCB1c2UtYWZ0ZXItYFJldHVybmAgfCBgUE9PTDAwMWDigJMwMDNgIChQLTAwNykgfAp8IHJ1bnRpbWUgY29uZmlybWF0aW9uIG9mIGEgc3RhdGljIGxlYWsgYWdhaW5zdCBhIHJlYWwgaGVhcCAoV1BGIHNwZWNpZmljYWxseSkgfCBPd25BdWRpdCBwaGFzZSA1IOKAlCBgcnVudGltZS5qc29uYCAvIENsck1EIGhlYXAgd2FsaywgY29uZmlybWVkIC8gc3RhdGljLW9ubHkgLyBydW50aW1lLW9ubHkgYnVja2V0cyAoYE93bkF1ZGl0L2RvY3MvcnVudGltZS1jb250cmFjdC5tZGApIHwKCklmIGEgZnV0dXJlIHRhc2sgcHJvcG9zZXMgYW55IG9mIHRoZSBhYm92ZSBhcyBuZXcgd29yaywgcG9pbnQgYmFjayBoZXJlIGZpcnN0LgoKIyMgRGVsaWJlcmF0ZWx5IG91dCBvZiBzY29wZSBhbHJlYWR5IOKAlCBkb24ndCByZS1vcGVuIHdpdGhvdXQgbmV3IGV2aWRlbmNlCgotICoqUmF3IGBJbnRQdHJgIC8gYE1hcnNoYWwuQWxsb2MqYC9gRnJlZSpgIGJhbGFuY2UgcHJvb2YuKiogVGFnZ2VkICppbXBvc3NpYmxlCiAgc3RhdGljYWxseSogaW4gdGhlIGNvcnB1cy1taW5pbmcgZGV0ZWN0YWJpbGl0eSBtYXRyaXggKFAtMDEyIMKnTm9uLWdvYWxzOgogICJ1bm1hbmFnZWQgY3ljbGljIHJlZnMgLyBgTWFyc2hhbC5BbGxvY0hHbG9iYWxgIGZyZWVkIG9uIGFsbCBwYXRocyIpLiBBCiAgZmxvdy1zZW5zaXRpdmUgcHJvb2Ygb3ZlciBhcmJpdHJhcnkgUC9JbnZva2UgY29kZSBpcyBleGFjdGx5IHRoZSBzd2FtcAogIE93bkxhbmcncyBgbmF0aXZlYCBidWZmZXIgcG9saWN5IGF2b2lkcyBieSBvbmx5IGNvdmVyaW5nICpjb2RlIGNvbXBpbGVkCiAgdGhyb3VnaCBPd25TaGFycCogKHdoZXJlIGBGcmVlYC9gTmF0aXZlTWVtb3J5LkZyZWVgIGlzIGVuZm9yY2VkIGJ5CiAgY29uc3RydWN0aW9uLCBgc3BlYy9CdWZmZXJQb2xpY2llcy5tZGApLCBub3QgYXJiaXRyYXJ5IGxlZ2FjeSBDIy4KLSAqKmBTYWZlSGFuZGxlYCBpbnRlcm5hbHMgLyBmaW5hbGl6ZXIgY2VyZW1vbnkuKiogRXhwbGljaXQgbm9uLWdvYWwgaW4gUC0wMDU6CiAgIndlIGNhcmUgYWJvdXQgdGhlIGxlYWssIG5vdCB0aGUgY2VyZW1vbnkuIiBSZXF1aXJpbmcgYFNhZmVIYW5kbGVgIG92ZXIgYSByYXcKICBgSW50UHRyYCBpcyBhIG9uZS1saW5lIHN5bnRhY3RpYyBsaW50IGlmIGFueW9uZSB3YW50cyBpdCAobm8gZGF0YWZsb3cgbmVlZGVkCiAg4oCUIGZsYWcgYSBmaWVsZC9wYXJhbSB0eXBlZCBgSW50UHRyYCB0aGF0IGNyb3NzZXMgYSBQL0ludm9rZSBib3VuZGFyeSBhbmQgaXMKICBuZXZlciB3cmFwcGVkKSBidXQgbm9ib2R5IGhhcyBhc2tlZCBmb3IgaXQgeWV0OyBub3RlZCBoZXJlIGFzIGEgY2hlYXAgZnV0dXJlCiAgRC1ydWxlIHVuZGVyIFAtMDA1IGlmIGEgY29ycHVzIGNhc2UgZXZlciBuZWVkcyBpdCwgbm90IGEgY29tbWl0bWVudC4KCiMjIFNjb3BlIOKAlCB0aGUgbmV3IHBpZWNlOiBhIHJ1bnRpbWUgbGlmZXRpbWUgZ3VhcmQgKyBkaXNwb3NhbCBxdWFyYW50aW5lCgpUd28gc21hbGwsIGluZGVwZW5kZW50LCBvcHQtaW4gcnVudGltZSBoZWxwZXJzIChhICJkaWFnbm9zdGljIG1vZGUiLCBub3QgYQpzaGlwcGVkIGFsbG9jYXRvcik6CgoqKjEuIGBMaWZldGltZUd1YXJkYCBiYXNlIC8gd3JhcHBlciDigJQgbG91ZCBpbnN0ZWFkIG9mIHNpbGVudC4qKgpBIGBERUJVR2AvYFRFU1RgLW9ubHkgYElEaXNwb3NhYmxlYCBiYXNlIHRoYXQgdHVybnMgdGhlIHR3byBzaWxlbnQgZmFpbHVyZQptb2RlcyBzdGF0aWMgYW5hbHlzaXMgY2Fubm90IGNsb3NlIChENSB1bmtub3duIHRyYW5zZmVyLCBjcm9zcy10aHJlYWQgcmFjZSkKaW50byBhbiBpbW1lZGlhdGUgYE9iamVjdERpc3Bvc2VkRXhjZXB0aW9uYC9gSW52YWxpZE9wZXJhdGlvbkV4Y2VwdGlvbmAgaW5zdGVhZApvZiBjb3JydXB0aW5nIHN0YXRlIHF1aWV0bHk6CgpgYGBjc2hhcnAKcHVibGljIGFic3RyYWN0IGNsYXNzIExpZmV0aW1lR3VhcmQgOiBJRGlzcG9zYWJsZQp7CiAgICBwcml2YXRlIGludCBfZGlzcG9zZWQ7IC8vIEludGVybG9ja2VkIOKAlCBjYXRjaGVzIHRoZSBjcm9zcy10aHJlYWQgZG91YmxlLWRpc3Bvc2UgcmFjZSBieSBjb25zdHJ1Y3Rpb24KICAgIHB1YmxpYyB2b2lkIERpc3Bvc2UoKQogICAgewogICAgICAgIGlmIChJbnRlcmxvY2tlZC5FeGNoYW5nZShyZWYgX2Rpc3Bvc2VkLCAxKSAhPSAwKQogICAgICAgICAgICB0aHJvdyBuZXcgT2JqZWN0RGlzcG9zZWRFeGNlcHRpb24oR2V0VHlwZSgpLk5hbWUsICJkb3VibGUgRGlzcG9zZSIpOwogICAgICAgIERpc3Bvc2VDb3JlKCk7CiAgICAgICAgR0MuU3VwcHJlc3NGaW5hbGl6ZSh0aGlzKTsKICAgIH0KICAgIHByb3RlY3RlZCB2b2lkIFRocm93SWZEaXNwb3NlZCgpIHsgaWYgKFZvbGF0aWxlLlJlYWQocmVmIF9kaXNwb3NlZCkgIT0gMCkgdGhyb3cgbmV3IE9iamVjdERpc3Bvc2VkRXhjZXB0aW9uKEdldFR5cGUoKS5OYW1lKTsgfQogICAgcHJvdGVjdGVkIGFic3RyYWN0IHZvaWQgRGlzcG9zZUNvcmUoKTsKfQpgYGAKClRoaXMgZG9lcyBub3QgcmVwbGFjZSBgT1dOMDAyYC9gT1dOMDAzYCDigJQgdGhvc2UgY2F0Y2ggdGhlIG1pc3Rha2UgYXQgY29tcGlsZQp0aW1lLCBmb3IgZnJlZSwgd2hlbiB0aGUgcGF0dGVybiBpcyBpbnRyYXByb2NlZHVyYWwuIGBMaWZldGltZUd1YXJkYCBjYXRjaGVzCndoYXQncyBsZWZ0OiBvd25lcnNoaXAgaGFuZGVkIHRocm91Z2ggYSBjYWxsZWUgb3duLWNoZWNrIGRvZXNuJ3QgbW9kZWwKKFAtMDA1IEQ1KSwgYW5kIHRoZSBjcm9zcy10aHJlYWQgcmFjZSBQLTAwNSBleHBsaWNpdGx5IGRlY2xpbmVzIHRvIHRvdWNoLgoKKioyLiBEaXNwb3NhbCBxdWFyYW50aW5lIGZvciB0ZXN0cyDigJQgYSBDbHJNRC1mcmVlIGNvbXBsZW1lbnQgdG8gcGhhc2UgNS4qKgpBbiBvcHQtaW4gYElUcmFja2VkRGlzcG9zYWJsZWAgKyBhbiBhbWJpZW50IHJlZ2lzdHJ5IHRoYXQgcmVjb3JkcyB0aGUKYWxsb2NhdGlvbi1zaXRlIHN0YWNrIHRyYWNlIG9uIGNvbnN0cnVjdGlvbiBhbmQgYXNzZXJ0cywgYXQgdGVzdCB0ZWFyZG93bix0aGF0Cm5vdGhpbmcgdHJhY2tlZCBpcyBzdGlsbCB1bmRpc3Bvc2VkOgoKYGBgY3NoYXJwCnB1YmxpYyBpbnRlcmZhY2UgSVRyYWNrZWREaXNwb3NhYmxlIDogSURpc3Bvc2FibGUKewogICAgYm9vbCBJc0Rpc3Bvc2VkIHsgZ2V0OyB9Cn0KLy8gdGVzdCBiYXNlOiBEaXNwb3NhbFF1YXJhbnRpbmUuQXNzZXJ0Q2xlYW4oKSBhdCBbVGVhckRvd25dIOKAlCB0aHJvd3Mgd2l0aCB0aGUKLy8gcmVjb3JkZWQgYWxsb2NhdGlvbi1zaXRlIHN0YWNrIHRyYWNlIGZvciBhbnl0aGluZyBzdGlsbCBsaXZlLgpgYGAKClRoaXMgaXMgKm5vdCogYSBzdWJzdGl0dXRlIGZvciBPd25BdWRpdCdzIHBoYXNlIDUgKGBydW50aW1lLWNvbnRyYWN0Lm1kYCkg4oCUCnRoYXQgd2Fsa3MgdGhlIHJlYWwgQ0xSIGhlYXAgb2YgdGhlIHJlYWwgYXBwIGFuZCBpcyB0aGUgb25seSB0aGluZyB0aGF0IHByb3ZlcwphbiBvYmplY3QgaXMgKmFjdHVhbGx5IHJvb3RlZCogKHZpYSBgcm9vdHNbXWAsIGUuZy4gYSBgc3RhdGljLWV2ZW50YCBkZWxlZ2F0ZSkKYWZ0ZXIgcmVhbGlzdGljIFVJIHNjZW5hcmlvcywgb24gV2luZG93cywgYWdhaW5zdCBTVFMuIFRoZSBxdWFyYW50aW5lIG9ubHkKcHJvdmVzICJ0aGlzIG9iamVjdCdzIG93biBgRGlzcG9zZSgpYCB3YXMvd2Fzbid0IGNhbGxlZCBkdXJpbmcgdGhpcyB0ZXN0IiDigJQKcmVjYWxsIGJvdW5kZWQgYnkgdGVzdCBjb3ZlcmFnZSwgZXhhY3RseSBsaWtlIGFueSBvdGhlciBkeW5hbWljIGNoZWNrLCBhbmQKYmxpbmQgdG8gKndoeSogc29tZXRoaW5nIGlzIHN0aWxsIHJlYWNoYWJsZS4gSXRzIHZhbHVlIGlzIHRoYXQgaXQgbmVlZHMgbm8gQ0xSCmhlYXAgd2Fsaywgbm8gV2luZG93cyBzdGFuZCwgYW5kIG5vIGNvbXBpbGVkIFNUUzogaXQgcnVucyBpbiBhbiBvcmRpbmFyeQpgZG90bmV0IHRlc3RgLCBpbiBDSSwgZm9yIGFueSBjbGFzcyB0aGUgdGVhbSBjaG9vc2VzIHRvIG9wdCBpbiDigJQgY2xvc2VyIHRvIGEKZGVidWcgYXNzZXJ0aW9uIHRoYW4gYW4gYXVkaXRvci4KCiMjIE5vbi1nb2FscwoKLSBOb3QgYSBnZW5lcmFsLXB1cnBvc2UgYWxsb2NhdG9yIHNoaW07IG5vdGhpbmcgaGVyZSB3cmFwcyBgbWFsbG9jYC9HQwogIGFsbG9jYXRpb24uCi0gTm90IGEgcHJvZHVjdGlvbi1zYWZlIHBhdHRlcm4gYXMtaXM6IHRocm93aW5nIGZyb20gYERpc3Bvc2UoKWAgaXMgYSByZWFsCiAgYmVoYXZpb3IgY2hhbmdlIChhbHJlYWR5LXN1cHByZXNzZWQgYERpc3Bvc2VgIGV4Y2VwdGlvbnMgaW4gYGZpbmFsbHlgL2B1c2luZ2AKICBjaGFpbnMgY2FuIG1hc2sgdGhlIG9yaWdpbmFsIGV4Y2VwdGlvbikg4oCUIGBMaWZldGltZUd1YXJkYCBtdXN0IHNoaXAKICBgREVCVUdgL2BURVNUYC1nYXRlZCAoZS5nLiBgW0NvbmRpdGlvbmFsXWAgb24gdGhlIHRocm93LCBvciBhIGNvbmZpZyBmbGFnKSwKICBuZXZlciBzaWxlbnRseSBvcHQgcHJvZHVjdGlvbiBjb2RlIGludG8gbmV3IGV4Y2VwdGlvbnMuCi0gTm90IGEgcmVwbGFjZW1lbnQgZm9yIGBPV04wMDJgL2BPV04wMDNgIChjb21waWxlLXRpbWUsIHplcm8gcnVudGltZSBjb3N0LAogIHdvcmtzIGJlZm9yZSB0aGUgY29kZSBldmVyIHNoaXBzKSBvciBmb3IgT3duQXVkaXQgcGhhc2UgNSAoZ3JvdW5kLXRydXRoIGhlYXAKICByZXRlbnRpb24pIOKAlCBpdCBmaWxscyB0aGUgZ2FwIGJldHdlZW4gdGhlbTogY2FzZXMgbmVpdGhlciBjYW4gc2VlLCBhdCB0aGUKICBjb3N0IG9mIG9ubHkgZmlyaW5nIHdoZW4gYSB0ZXN0IGFjdHVhbGx5IGV4ZXJjaXNlcyB0aGUgcGF0aC4KLSBOb3QgcHJvcG9zaW5nIHRvIHJlbGl0aWdhdGUgdGhlIGBNYXJzaGFsLkFsbG9jKmAvYFNhZmVIYW5kbGVgIG5vbi1nb2FscwogIGFib3ZlLgoKIyMgT3BlbiBxdWVzdGlvbnMKCjEuIEhvbWUgZm9yIHRoaXM6IGEgbmV3IHRpbnkgcGFja2FnZSAoYE93bi5EaWFnbm9zdGljc2A/KSB2ZXJzdXMgbGl2aW5nIGluc2lkZQogICBPd25BdWRpdCdzIGBydW50aW1lL2AgYXMgYSB0ZXN0LXRpbWUgY29sbGVjdG9yIGFsb25nc2lkZSB0aGUgQ2xyTUQgb25lPwogICBMZWFucyBPd25BdWRpdCwgc2luY2UgaXQncyBhdWRpdCB0b29saW5nIGZvciAqY29uc3VtZXJzJyogY29kZSwgbm90IHBhcnQgb2YKICAgdGhlIE93bkxhbmcgY29yZSBjaGVja2VyLgoyLiBEb2VzIHRoZSBxdWFyYW50aW5lIHJlZ2lzdHJ5IG5lZWQgdG8gYmUgdGhyZWFkLXNhZmUgLyBhc3luYy1sb2NhbCBzY29wZWQKICAgcGVyIHRlc3QsIG9yIGlzIGEgc2luZ2xlIGFtYmllbnQgc3RhdGljIGFjY2VwdGFibGUgZ2l2ZW4gdGVzdHMgYWxyZWFkeSBydW4KICAgaXNvbGF0ZWQgcGVyIGZpeHR1cmU/CjMuIFNob3VsZCBgTGlmZXRpbWVHdWFyZGAncyBkb3VibGUtZGlzcG9zZSBjaGVjayBiZSBgSW50ZXJsb2NrZWRgLWJhc2VkIGJ5CiAgIGRlZmF1bHQgKGNyb3NzLXRocmVhZC1zYWZlKSBvciBvcHQtaW4sIGdpdmVuIG1vc3QgYElEaXNwb3NhYmxlYCB1c2FnZSBpbiB0aGUKICAgU1RTIGNvcnB1cyBpcyBzaW5nbGUtdGhyZWFkZWQgYW5kIHRoZSBleHRyYSBgSW50ZXJsb2NrZWQuRXhjaGFuZ2VgIGhhcyBhCiAgICh0aW55KSBjb3N0Pwo0LiBXb3J0aCBhIGNvcnB1cyBlbnRyeSAoUC0wMTIpIG9uY2UgYSByZWFsIGNyb3NzLXRocmVhZAogICBgT2JqZWN0RGlzcG9zZWRFeGNlcHRpb25gIG9yIEQ1LXRyYW5zZmVyIGJ1ZyBpcyBtaW5lZCwgdG8gdmFsaWRhdGUKICAgYExpZmV0aW1lR3VhcmRgIGFjdHVhbGx5IHdvdWxkIGhhdmUgY2F1Z2h0IGl0Pwo=
+# P-026 — Runtime lifetime guard & disposal quarantine
+
+- **Status:** draft.
+- **Depends on:** `spec/OwnCore.md` (OWN001–003), [P-005](P-005-idisposable-ownership.md) (`D1`–`D5` `IDisposable` ownership), [P-004](P-004-wpf-lifetime-profile.md) (WPF profile); complements OwnAudit's runtime correlation (`OwnAudit/docs/runtime-contract.md`, phase 5).
+
+## Motivation
+
+Trigger: a design discussion asked whether the "harden malloc/free with paranoid
+enterprise checks" idea (common in C/C++ shops — wrap the allocator to catch
+use-after-free / OOB / double-free) has a .NET analog. Conclusion, worth pinning
+down before anyone re-derives it:
+
+- As a **malloc shim**, the idea is nearly void under the CLR: bounds-checked
+  arrays, a tracing GC, and the absence of manual `free()` already remove the
+  C-style failure modes (use-after-free, OOB write, double-free) the
+  enterprise-malloc pattern exists to catch.
+- The *idea itself* — make lifetime misuse loud instead of silent — has a real
+  .NET target, and Own.NET already built most of it as a **static** discipline:
+  `OWN001` (leak), `OWN002` (use-after-dispose), `OWN003` (double-dispose),
+  `OWN014` (region-escape / event retention) are exactly "managed
+  use-after-free" and "managed double-free" for `IDisposable` and event
+  subscriptions, proven end-to-end by P-005 (D1–D4 built) and
+  P-004/WPF-region-escape. OwnAudit's phase 5 (`runtime-contract.md`) then
+  confirms the WPF-specific case (event retention) against a real heap.
+
+So the static half of "enterprise lifetime checking" is not a gap — it's shipped.
+What's actually missing is the **dynamic/runtime half**: a lightweight guard
+that fails loudly *at run time* for exactly the two cases static analysis
+structurally cannot close — D5 (ownership transferred through an unmodeled
+callee) and cross-thread disposal races (both explicit non-goals of P-005) —
+plus a cheap, cross-platform substitute for OwnAudit's ClrMD heap walk that
+runs in an ordinary unit test, no Windows stand required.
+
+## What already exists (do not re-derive)
+
+| Idea from the discussion | Already covered by |
+|---|---|
+| use-after-`Dispose` as managed use-after-free | `OWN002`, built (P-005 D4, flow-sensitive intraprocedural) |
+| double `Dispose` as managed double-free | `OWN003`, built (P-005 D3) |
+| `IDisposable` field/local never released | `OWN001`, built (P-005 D1/D2) |
+| event `+=` without `-=` (leak) | `OWN001` subscription-leak category (P-004 WPF001–005) |
+| static-event / long-lived source retaining a short-lived subscriber | `OWN014` region-escape (`docs/lifetimes.md` §4, slice #2/#3) |
+| `DispatcherTimer`/`Timer` not stopped | `WPF002` |
+| singleton captures scoped dependency (captive dependency) | `DI001`–`DI005` (P-006) |
+| `ArrayPool<T>.Rent` without `Return`, use-after-`Return` | `POOL001`–`003` (P-007) |
+| runtime confirmation of a static leak against a real heap (WPF specifically) | OwnAudit phase 5 — `runtime.json` / ClrMD heap walk, confirmed / static-only / runtime-only buckets (`OwnAudit/docs/runtime-contract.md`) |
+
+If a future task proposes any of the above as new work, point back here first.
+
+## Deliberately out of scope already — don't re-open without new evidence
+
+- **Raw `IntPtr` / `Marshal.Alloc*`/`Free*` balance proof.** Tagged *impossible
+  statically* in the corpus-mining detectability matrix (P-012 §Non-goals:
+  "unmanaged cyclic refs / `Marshal.AllocHGlobal` freed on all paths"). A
+  flow-sensitive proof over arbitrary P/Invoke code is exactly the swamp
+  OwnLang's `native` buffer policy avoids by only covering *code compiled
+  through OwnSharp* (where `Free`/`NativeMemory.Free` is enforced by
+  construction, `spec/BufferPolicies.md`), not arbitrary legacy C#.
+- **`SafeHandle` internals / finalizer ceremony.** Explicit non-goal in P-005:
+  "we care about the leak, not the ceremony." Requiring `SafeHandle` over a raw
+  `IntPtr` is a one-line syntactic lint if anyone wants it (no dataflow needed
+  — flag a field/param typed `IntPtr` that crosses a P/Invoke boundary and is
+  never wrapped) but nobody has asked for it yet; noted here as a cheap future
+  D-rule under P-005 if a corpus case ever needs it, not a commitment.
+
+## Scope — the new piece: a runtime lifetime guard + disposal quarantine
+
+Two small, independent, opt-in runtime helpers (a "diagnostic mode", not a
+shipped allocator):
+
+**1. `LifetimeGuard` base / wrapper — loud instead of silent.**
+A `DEBUG`/`TEST`-only `IDisposable` base that turns the two silent failure
+modes static analysis cannot close (D5 unknown transfer, cross-thread race)
+into an immediate `ObjectDisposedException`/`InvalidOperationException` instead
+of corrupting state quietly:
+
+```csharp
+public abstract class LifetimeGuard : IDisposable
+{
+    private int _disposed; // Interlocked — catches the cross-thread double-dispose race by construction
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            throw new ObjectDisposedException(GetType().Name, "double Dispose");
+        DisposeCore();
+        GC.SuppressFinalize(this);
+    }
+    protected void ThrowIfDisposed() { if (Volatile.Read(ref _disposed) != 0) throw new ObjectDisposedException(GetType().Name); }
+    protected abstract void DisposeCore();
+}
+```
+
+This does not replace `OWN002`/`OWN003` — those catch the mistake at compile
+time, for free, when the pattern is intraprocedural. `LifetimeGuard` catches
+what's left: ownership handed through a callee own-check doesn't model
+(P-005 D5), and the cross-thread race P-005 explicitly declines to touch.
+
+**2. Disposal quarantine for tests — a ClrMD-free complement to phase 5.**
+An opt-in `ITrackedDisposable` + an ambient registry that records the
+allocation-site stack trace on construction and asserts, at test teardown,
+that nothing tracked is still undisposed:
+
+```csharp
+public interface ITrackedDisposable : IDisposable
+{
+    bool IsDisposed { get; }
+}
+// test base: DisposalQuarantine.AssertClean() at [TearDown] — throws with the
+// recorded allocation-site stack trace for anything still live.
+```
+
+This is *not* a substitute for OwnAudit's phase 5 (`runtime-contract.md`) —
+that walks the real CLR heap of the real app and is the only thing that proves
+an object is *actually rooted* (via `roots[]`, e.g. a `static-event` delegate)
+after realistic UI scenarios, on Windows, against STS. The quarantine only
+proves "this object's own `Dispose()` was/wasn't called during this test" —
+recall bounded by test coverage, exactly like any other dynamic check, and
+blind to *why* something is still reachable. Its value is that it needs no CLR
+heap walk, no Windows stand, and no compiled STS: it runs in an ordinary
+`dotnet test`, in CI, for any class the team chooses to opt in — closer to a
+debug assertion than an auditor.
+
+## Non-goals
+
+- Not a general-purpose allocator shim; nothing here wraps `malloc`/GC
+  allocation.
+- Not a production-safe pattern as-is: throwing from `Dispose()` is a real
+  behavior change (already-suppressed `Dispose` exceptions in `finally`/`using`
+  chains can mask the original exception) — `LifetimeGuard` must ship
+  `DEBUG`/`TEST`-gated (e.g. `[Conditional]` on the throw, or a config flag),
+  never silently opt production code into new exceptions.
+- Not a replacement for `OWN002`/`OWN003` (compile-time, zero runtime cost,
+  works before the code ever ships) or for OwnAudit phase 5 (ground-truth heap
+  retention) — it fills the gap between them: cases neither can see, at the
+  cost of only firing when a test actually exercises the path.
+- Not proposing to relitigate the `Marshal.Alloc*`/`SafeHandle` non-goals
+  above.
+
+## Open questions
+
+1. Home for this: a new tiny package (`Own.Diagnostics`?) versus living inside
+   OwnAudit's `runtime/` as a test-time collector alongside the ClrMD one?
+   Leans OwnAudit, since it's audit tooling for *consumers'* code, not part of
+   the OwnLang core checker.
+2. Does the quarantine registry need to be thread-safe / async-local scoped
+   per test, or is a single ambient static acceptable given tests already run
+   isolated per fixture?
+3. Should `LifetimeGuard`'s double-dispose check be `Interlocked`-based by
+   default (cross-thread-safe) or opt-in, given most `IDisposable` usage in the
+   STS corpus is single-threaded and the extra `Interlocked.Exchange` has a
+   (tiny) cost?
+4. Worth a corpus entry (P-012) once a real cross-thread
+   `ObjectDisposedException` or D5-transfer bug is mined, to validate
+   `LifetimeGuard` actually would have caught it?
