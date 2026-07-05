@@ -126,7 +126,7 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 
 | Tier | Targets | Proposal |
 |------|---------|----------|
-| **P0** | WPF/event/timer/subscription leaks; `IDisposable` ownership (leaks, fields, use-after-dispose); DI lifetime mismatch (captive dependency) | [P-004](proposals/P-004-wpf-lifetime-profile.md), [P-005](proposals/P-005-idisposable-ownership.md), [P-006](proposals/P-006-di-lifetimes.md) |
+| **P0** | WPF/event/timer/subscription leaks; closures escaping to Dispatcher/TPL infrastructure; `IDisposable` ownership (leaks, fields, use-after-dispose); DI lifetime mismatch (captive dependency) | [P-004](proposals/P-004-wpf-lifetime-profile.md), [P-026](proposals/P-026-dispatcher-task-continuation-leaks.md), [P-005](proposals/P-005-idisposable-ownership.md), [P-006](proposals/P-006-di-lifetimes.md) |
 | **P1** | ArrayPool/Span ownership-view bugs; hidden effects / architecture rules | [P-007](proposals/P-007-arraypool-span.md), [P-008](proposals/P-008-effects-and-resources.md) |
 | **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
@@ -259,6 +259,7 @@ bucket it falls in, so we never promise a runtime-only bug to a static checker.
 | `ArrayPool.Rent` without `Return` (one method) | ✅ deterministic | both calls in one CFG |
 | Simple use-after-dispose (one method) | ✅ deterministic | `x.Dispose(); x.Use();` is visible |
 | `event +=` without `-=` | ⚠️ heuristic | depends on object lifetime → warn only in long-lived owners; false positives |
+| Closure captured by `Dispatcher.BeginInvoke`/`Task.ContinueWith` escaping to process-lived infrastructure | ⚠️ heuristic | one-hop closure-capture analysis; cancellation/guard evidence is heuristic, not proof (P-026) |
 | Ownership transfer through a callee | ⚠️ heuristic | `ProcessStream(s)` may dispose internally |
 | Cross-thread `ObjectDisposedException` | ❌ impossible | a happens-before race, not a structure |
 | LOH fragmentation | ❌ impossible | depends on runtime data volume / GC timing |
@@ -326,3 +327,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
 | [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
 | [P-025](proposals/P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`) — barrier-sensitive project invariants (OBL001–005) | P1 | first slice built (core + bridge + fixtures; extractor pending) |
+| [P-026](proposals/P-026-dispatcher-task-continuation-leaks.md) | Dispatcher/Task continuation capture leak (`WPF006`) — closures escaping to Dispatcher/TPL infrastructure | P0 | draft |
