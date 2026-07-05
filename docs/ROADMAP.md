@@ -326,3 +326,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
 | [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
 | [P-025](proposals/P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`) — barrier-sensitive project invariants (OBL001–005) | P1 | first slice built (core + bridge + fixtures; extractor pending) |
+| [P-026](proposals/P-026-unneeded-dependency-profile.md) | Unneeded-dependency profile (`Own.Lean`) — evidence-only "you don't need this abstraction" findings (YDN001–002) | P2 | draft |
