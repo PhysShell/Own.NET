@@ -201,12 +201,20 @@ Python core emits verdicts:
 *.cs --[Roslyn extractor]--> facts.ownir.json --[Python core]--> ASYNC050..052
 ```
 
-This most likely lands as three more hazard kinds in P-021's existing
-`async_methods` fact family (`ownlang/async_rules.py`), rather than a new fact
-block:
+`ASYNC051`/`ASYNC052` are per-method and most likely land as two more hazard
+kinds in P-021's existing `async_methods` fact family
+(`ownlang/async_rules.py`). `ASYNC050` is type-scoped — a cluster of fields
+assigned together across the whole class, not one method — so it needs its own
+type-level fact rather than living inside a method entry:
 
 ```json
 {
+  "types": [
+    {
+      "id": "CustomerViewModel",
+      "status_field_clusters": [["_isLoading", "_isLoaded", "_loadError"]]
+    }
+  ],
   "async_methods": [
     {
       "id": "CustomerViewModel.LoadCustomerAsync",
@@ -216,7 +224,6 @@ block:
       "has_cancellation_token": false,
       "has_version_check": false,
       "guarded_fields": [],
-      "sibling_status_fields": ["_isLoading", "_isLoaded", "_loadError"],
       "hazards": [
         { "kind": "no_inflight_guard", "line": 40 },
         { "kind": "stale_write_no_guard", "line": 41, "read": "_customerId", "written": "CurrentCustomer" }
@@ -226,9 +233,9 @@ block:
 }
 ```
 
-`sibling_status_fields` feeds `ASYNC050` (state-soup) independently of the
-per-method hazards, since the flag cluster is a type-level observation (fields
-assigned together across the type), not a single-method one.
+`types[].status_field_clusters` feeds `ASYNC050` independently of the
+per-method `hazards`, keeping the type-level and method-level extractor
+contracts separate.
 
 ## Open questions
 
