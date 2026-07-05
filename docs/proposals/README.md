@@ -45,6 +45,7 @@ proposal is marked `done` with a pointer.
 | [P-023](P-023-architecture-guard.md) | Architecture guard (`Own.Arch`): rules.yaml intent model + dependency-graph gate + baseline ratchet | draft |
 | [P-024](P-024-security-audit-profile.md) | Security audit profile (external tools + SARIF adapters; rejects own scanner engine) | draft |
 | [P-025](P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`): barrier-sensitive project invariants (OBL001–005) | first slice built (core + bridge + fixtures; extractor pending) |
+| [P-026](P-026-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
