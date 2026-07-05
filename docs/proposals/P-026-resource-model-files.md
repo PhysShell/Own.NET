@@ -13,6 +13,14 @@
     but **compiled-in**, form of exactly this idea. This proposal externalizes the
     *extractor-side* half of that table (which real C# call sites feed a kind),
     not the core lowering, which is untouched.
+  - `ownlang/ownir.py` `_KNOWN_RESOURCE_KINDS` / `_RESOURCES` and
+    `spec/ownir.schema.json`'s `resourceKind` — the **closed** discriminator
+    vocabulary (`subscription` / `subscribe` / `timer` / `disposable` /
+    `local-disposable` / `pool`, plus `capture` / `unresolved-subscription`) with
+    a **fixed** `resource → [resource: tag]` mapping (spec/OwnIR.md §4);
+    `load()` rejects an unknown discriminator (fail-loud). v0 of this proposal
+    binds to that vocabulary rather than extending it — see *Scope* and the
+    *Non-goal* on minting new kinds/tags.
   - [P-015](P-015-configuration-surface.md) — the sibling config surface
     (check on/off, severity). Deliberately **not the same file**: see
     *Relationship to P-015* below.
@@ -52,41 +60,53 @@ this surface existed.
 
 A discovered, versioned, project-local file — working name `own.models.yaml`
 (location/format TBD, see *Open questions*) — that declares **additional**
-acquire/release/capture sites for the existing OwnIR resource vocabulary, in
-terms of real bound symbols, not source-text patterns:
+acquire/release/capture *call sites* for the **existing, closed** OwnIR
+`resource` discriminators, in terms of real bound symbols, not source-text
+patterns. v0 does **not** mint new discriminators or new `[resource: …]` tags
+(both are closed vocabulary — see *Non-goals*); a model entry picks which
+already-known analysis path (and its already-fixed tag) a project-specific call
+pair feeds:
 
 ```yaml
 resources:
-  DbConnection:
-    kind: "db connection"                     # the [resource: ...] tag on a finding
+  - name: DbConnection            # documentation label only — never emitted
+    resource: disposable          # existing discriminator -> fixed tag "disposable field"
     acquire:
       - method: "MyApp.Data.ConnectionFactory.Open"
     release:
       - method: "MyApp.Data.Connection.Close"
       - method: "System.IDisposable.Dispose"  # already-known BCL release still allowed
 
-  LegacyBusToken:
-    kind: "subscription token"
+  - name: LegacyBusToken
+    resource: subscribe           # existing discriminator -> fixed tag "subscription token"
     acquire:
       - method: "MyApp.Messaging.EventBus.Subscribe"
     release:
       - method: "MyApp.Messaging.SubscriptionToken.Unregister"
 ```
 
-Two shapes only, each mapping onto a fact the core already understands (no new
-`ownlang` code path — this is purely a new fact *producer* at the extractor
-edge, exactly like adding one more entry to `_prelude_resources()`, but sourced
-from a project file instead of compiled in):
+A finding on `DbConnection` above reads `[resource: disposable field]`, not
+`[resource: db connection]` — the same tag an ordinary hardcoded `disposable`
+hit would carry. That precision loss (the message names the *bucket*, not the
+project's own vocabulary) is the price of zero core/schema change in v0; see
+Open Question 6 for the natural, separately-scoped follow-up.
+
+Two call shapes only, each binding onto a fact the core already understands (no
+new `ownlang` code path — this is purely a new fact *producer* at the extractor
+edge, choosing an existing `resource:` value, exactly like routing one more
+call site into an existing entry of `_prelude_resources()`'s table instead of
+compiling it in):
 
 1. **Paired method acquire/release** — `method:` names a call by its canonical
    Roslyn symbol display string. The extractor resolves it through the same
    project-local `CSharpCompilation`/`SemanticModel` P-014 already builds (plus
    `--ref-dir` for third-party assemblies); a call site binding to that exact
-   symbol emits an `acquire`/`release` OwnIR record tagged with the declared
-   `kind`, indistinguishable from a hardcoded one downstream.
+   symbol emits an `acquire`/`release` OwnIR record under the declared
+   `resource:` discriminator, indistinguishable downstream from a hardcoded hit
+   on that same discriminator.
 2. **Event-shaped add/remove pair** — for project APIs that mimic `+=`/`-=`
    semantically (a custom `Subscribe`/`Unsubscribe` pair) without being a real
-   C# `event`, reusing the existing subscription-fact shape.
+   C# `event`, reusing the existing `subscribe`/`subscription` fact shape.
 
 ## Non-goals
 
@@ -112,6 +132,15 @@ from a project file instead of compiled in):
   custom region ladder (that stays the built-in `OWN014` ordering); the only
   expressiveness added is *which symbols count as acquire/release/subscribe* for
   a kind, not new semantics for what "leak" or "escape" means.
+- **Not a way to mint new `resource` discriminators or new `[resource: …]`
+  display tags in v0.** Both are closed vocabulary today —
+  `ownlang/ownir.py::_KNOWN_RESOURCE_KINDS`/`_RESOURCES`, pinned by
+  `spec/ownir.schema.json`'s `resourceKind` — and `load()` fails loud on an
+  unknown value; adding a genuinely new one is a core vocabulary change that
+  must bump `OWNIR_VERSION` (spec/OwnIR.md §2), which this proposal does not
+  attempt. A model entry **binds** a project's call sites to one of the
+  existing discriminators (and inherits its existing fixed tag); it does not
+  extend the enum. See Open Question 6 for the scoped-out follow-up that would.
 
 ## Relationship to P-015
 
@@ -156,22 +185,23 @@ own.models.yaml (project root)
 ModelLoader: for each declared `method:` / event pair,
   resolve via the SAME project-local SemanticModel P-014 builds
   (framework refs + --ref-dir) — unresolved entry -> OWN050-style warning, skip
-     │ resolved entries behave exactly like a built-in classifier hit
+     │ resolved entries route into the declared EXISTING `resource:` bucket
      ▼
 existing acquire/release/capture OwnIR fact emission (unchanged)
      │
      ▼
 ownlang core (unchanged): OWN001/002/003/014 over the widened fact set,
-  `[resource: <declared kind>]` tag on the finding
+  the bucket's already-fixed `[resource: …]` tag on the finding
 ```
 
-No change to `ownlang/`, `spec/OwnIR.md`, or the JSON schema — a project kind is
-indistinguishable, downstream of fact emission, from a built-in one. The only
-new component is a small loader in the Roslyn extractor that turns YAML entries
-into the same internal classifier shape `Program.cs`'s hardcoded ones already
-use (a natural companion to the extractor split noted as deferred in
-`consolidation-and-positioning.md` — this is one more reason that split earns
-its keep once this lands).
+No change to `ownlang/`, `spec/OwnIR.md`, or the JSON schema in v0 — a
+project-bound call site is indistinguishable, downstream of fact emission, from
+a hardcoded hit on the *same* discriminator (it is not a new discriminator; see
+the Non-goal above). The only new component is a small loader in the Roslyn
+extractor that turns YAML entries into the same internal classifier shape
+`Program.cs`'s hardcoded ones already use (a natural companion to the extractor
+split noted as deferred in `consolidation-and-positioning.md` — this is one
+more reason that split earns its keep once this lands).
 
 ## Open questions
 
@@ -201,3 +231,12 @@ its keep once this lands).
    "always unresolved." Should the extractor emit one summary warning per run
    listing every model entry it could not bind (so CI catches drift), the same
    way an unresolved `--ref-dir` DLL is reported today?
+6. **A free-text display tag, later.** v0 accepts the precision loss of
+   reusing an existing discriminator's fixed tag (`DbConnection` reads
+   `[resource: disposable field]`). A follow-up **could** add a small,
+   optional, additive `resourceRecord` field (e.g. `display_kind: string`) that
+   overrides only the rendered tag, without touching the closed `resource`
+   discriminator or its analysis-path routing — that is a genuinely additive
+   OwnIR schema change (§2), unlike minting a new discriminator, and would be
+   its own small PR against `spec/ownir.schema.json` + `ownlang/ownir.py`, not
+   a prerequisite for this proposal's v0.
