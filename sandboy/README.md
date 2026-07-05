@@ -104,8 +104,13 @@ step), is in `007/docs/loop-canvas.md`. Two hooks make that real, and **neither
 exists yet** — both are Floor-1 work, not current behaviour:
 
 - **007 side — `sandbox_policy` on `GateStep`.** A per-step policy path so the
-  gate runner knows to wrap the step. Forward-compatible with the current
-  manifest parser (unknown fields are tolerated), but **not yet added**.
+  gate runner knows to wrap the step. **Not yet added.** The manifest parser
+  tolerates unknown fields, but this is a **security control**, so it must
+  **fail closed** when it lands: a manifest `schema` bump (or explicit presence
+  check) so an older `o7` that can't enforce a `sandbox_policy` **refuses the
+  step** rather than silently running it bare under `bypassPermissions`. Relying
+  on unknown-field tolerance here would fail *open*. See
+  `007/docs/loop-canvas.md`.
 - **sandboy side — `--report <json>`.** A flag emitting enforcement status /
   exit code / duration, the machine-readable evidence the Observability field
   asks for. **Not implemented today:** `parse_args` (`src/main.rs`) accepts only
