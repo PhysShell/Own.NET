@@ -98,6 +98,14 @@ Per-step policies let a `fmt` step run with no network and RO toolchain, while a
 which is exactly what `007/docs/security-layers.md` marks as the missing layer
 in the `run`/gate slot.
 
+The same slot, framed as a loop-engineering design surface (the canvas
+**Actions** boundary + **Limits** timeout + **Observability** evidence per gate
+step), is in `007/docs/loop-canvas.md`. The wiring hook on the 007 side is a
+per-step `sandbox_policy` field on `GateStep` — forward-compatible, not yet
+added. An optional `--report <json>` from sandboy (enforcement status, exit
+code, duration) is what turns confinement into the machine-readable evidence
+that doc's Observability field asks for.
+
 ## Kernel requirements
 
 - Landlock FS scoping: kernel ≥ 5.13.
