@@ -100,11 +100,20 @@ in the `run`/gate slot.
 
 The same slot, framed as a loop-engineering design surface (the canvas
 **Actions** boundary + **Limits** timeout + **Observability** evidence per gate
-step), is in `007/docs/loop-canvas.md`. The wiring hook on the 007 side is a
-per-step `sandbox_policy` field on `GateStep` — forward-compatible, not yet
-added. An optional `--report <json>` from sandboy (enforcement status, exit
-code, duration) is what turns confinement into the machine-readable evidence
-that doc's Observability field asks for.
+step), is in `007/docs/loop-canvas.md`. Two hooks make that real, and **neither
+exists yet** — both are Floor-1 work, not current behaviour:
+
+- **007 side — `sandbox_policy` on `GateStep`.** A per-step policy path so the
+  gate runner knows to wrap the step. Forward-compatible with the current
+  manifest parser (unknown fields are tolerated), but **not yet added**.
+- **sandboy side — `--report <json>`.** A flag emitting enforcement status /
+  exit code / duration, the machine-readable evidence the Observability field
+  asks for. **Not implemented today:** `parse_args` (`src/main.rs`) accepts only
+  `run`, `--policy <file>`, and `--`, so passing `--report` now is a usage error
+  (exit 2). Enforcement status *is* already surfaced, but only to **stderr**
+  (`FullyEnforced` silently / `PARTIALLY enforced` warning / `NOT enforced`
+  refusal); `--report` would make it structured so 007 can persist it into
+  `gate/<step>.sandbox.json`.
 
 ## Kernel requirements
 
