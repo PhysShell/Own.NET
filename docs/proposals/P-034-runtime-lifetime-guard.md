@@ -26,11 +26,13 @@ down before anyone re-derives it:
 
 So the static half of "enterprise lifetime checking" is not a gap — it's shipped.
 What's actually missing is the **dynamic/runtime half**: a lightweight guard
-that fails loudly *at run time* for exactly the two cases static analysis
-structurally cannot close — D5 (ownership transferred through an unmodeled
-callee) and cross-thread disposal races (both explicit non-goals of P-005) —
-plus a cheap, cross-platform substitute for OwnAudit's ClrMD heap walk that
-runs in an ordinary unit test, no Windows stand required.
+that fails loudly *at run time* when misuse actually happens — a double-dispose
+or a post-dispose access, whether it originates from an ownership hand-off
+own-check doesn't model (P-005 D5) or from a cross-thread race (both explicit
+non-goals of P-005) — plus a cheap, ClrMD-independent test-time check that runs
+in an ordinary unit test, no Windows stand required. Neither piece models *why*
+an object ended up misused, the way OwnAudit's phase 5 or a static prover would;
+they only make the misuse itself loud the moment it happens.
 
 ## What already exists (do not re-derive)
 
@@ -71,10 +73,11 @@ Two small, independent, opt-in runtime helpers (a "diagnostic mode", not a
 shipped allocator):
 
 **1. `LifetimeGuard` base / wrapper — loud instead of silent.**
-A `DEBUG`/`TEST`-only `IDisposable` base that turns the two silent failure
-modes static analysis cannot close (D5 unknown transfer, cross-thread race)
-into an immediate `ObjectDisposedException`/`InvalidOperationException` instead
-of corrupting state quietly:
+A `DEBUG`/`TEST`-only `IDisposable` base that turns silent misuse — a
+double-dispose, or an access after `Dispose()` — into an immediate
+`ObjectDisposedException`/`InvalidOperationException` instead of corrupting
+state quietly, regardless of whether the root cause was an unmodeled
+ownership hand-off (P-005 D5) or a cross-thread race:
 
 ```csharp
 public abstract class LifetimeGuard : IDisposable
@@ -94,8 +97,11 @@ public abstract class LifetimeGuard : IDisposable
 
 This does not replace `OWN002`/`OWN003` — those catch the mistake at compile
 time, for free, when the pattern is intraprocedural. `LifetimeGuard` catches
-what's left: ownership handed through a callee own-check doesn't model
-(P-005 D5), and the cross-thread race P-005 explicitly declines to touch.
+what's left: it surfaces misuse *at the point it happens*, even when the
+underlying cause was ownership handed through a callee own-check doesn't model
+(P-005 D5) or the cross-thread race P-005 explicitly declines to touch — it
+does not itself model or detect the hand-off/race, only the resulting
+double-dispose or post-dispose access.
 
 **2. Disposal quarantine for tests — a ClrMD-free complement to phase 5.**
 An opt-in `ITrackedDisposable` + an ambient registry that records the
@@ -129,8 +135,11 @@ debug assertion than an auditor.
 - Not a production-safe pattern as-is: throwing from `Dispose()` is a real
   behavior change (already-suppressed `Dispose` exceptions in `finally`/`using`
   chains can mask the original exception) — `LifetimeGuard` must ship
-  `DEBUG`/`TEST`-gated (e.g. `[Conditional]` on the throw, or a config flag),
-  never silently opt production code into new exceptions.
+  `DEBUG`/`TEST`-gated: wrap the throw in `#if DEBUG` / `#if TEST`, or route it
+  through a small helper method decorated `[Conditional("DEBUG")]` (the
+  attribute only applies to methods, not to a bare `throw` statement), or gate
+  it behind a config flag — never silently opt production code into new
+  exceptions.
 - Not a replacement for `OWN002`/`OWN003` (compile-time, zero runtime cost,
   works before the code ever ships) or for OwnAudit phase 5 (ground-truth heap
   retention) — it fills the gap between them: cases neither can see, at the
