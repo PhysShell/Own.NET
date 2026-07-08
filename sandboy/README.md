@@ -51,6 +51,15 @@ tcp_bind    = []
 # omit seccomp_deny to use the curated default denylist
 ```
 
+This TOML is the file Sandboy actually reads, and it should stay exactly this
+plain. Once there's more than one profile (`no-net`, `worktree-only`, a Windows
+exec allowlist) to compose without copy-pasting, author the source in CUE and
+render it down to this shape (`cue export step.cue --out toml > step.toml`) —
+Sandboy's runtime never needs to know CUE exists. Full rationale and the
+`#Policy`/`#Base`/`#NoNet` schema this maps onto:
+[`007/docs/zero-trust-framework.md`](https://github.com/PhysShell/007/blob/main/docs/zero-trust-framework.md)
+§12.
+
 ## Build & run
 
 > **Authored, not compiled here.** Written in a network-restricted sandbox
