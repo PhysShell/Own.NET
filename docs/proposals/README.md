@@ -45,7 +45,15 @@ proposal is marked `done` with a pointer.
 | [P-023](P-023-architecture-guard.md) | Architecture guard (`Own.Arch`): rules.yaml intent model + dependency-graph gate + baseline ratchet | draft |
 | [P-024](P-024-security-audit-profile.md) | Security audit profile (external tools + SARIF adapters; rejects own scanner engine) | draft |
 | [P-025](P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`): barrier-sensitive project invariants (OBL001–005) | first slice built (core + bridge + fixtures; extractor pending) |
-| [P-026](P-026-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
+| [P-026](P-026-csharp-strictness-retrofit.md) | C# strictness retrofit profile (`own audit strictness`): a witness/score over existing findings, not a new engine | draft (framing) |
+| [P-027](P-027-resource-state-machine.md) | Resource state machines & stale-async-write detection (extends `Own.Async`) | draft |
+| [P-028](P-028-unneeded-dependency-profile.md) | Unneeded-dependency profile (`Own.Lean`): evidence-only "you don't need this abstraction" findings (YDN001–002) | draft |
+| [P-029](P-029-agent-memory-layer.md) | Agent memory & policy layer (`.agents/`): reviewed destination for AGENTS.md, gates, and learned-rule promotions | draft |
+| [P-030](P-030-naughty-strings-testing.md) | Naughty-strings robustness pack (BLNS-driven crash testing of lexer/parser/extractor/serializers/CLI/config) | draft |
+| [P-031](P-031-resource-model-files.md) | Project resource model files (declarative acquire/release/capture, symbol-resolved) | draft |
+| [P-032](P-032-own-arch-facts.md) | Own.Arch facts & intent model: deterministic architecture-fact extractor/evaluator core (deepens P-023) | draft |
+| [P-033](P-033-probabilistic-data-structures.md) | In-process sketches & bitmap indexes for legacy .NET diagnostics (Top-K, CMS, t-digest, Bloom) | draft |
+| [P-034](P-034-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
