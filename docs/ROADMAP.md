@@ -128,7 +128,7 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 |------|---------|----------|
 | **P0** | WPF/event/timer/subscription leaks; `IDisposable` ownership (leaks, fields, use-after-dispose); DI lifetime mismatch (captive dependency) | [P-004](proposals/P-004-wpf-lifetime-profile.md), [P-005](proposals/P-005-idisposable-ownership.md), [P-006](proposals/P-006-di-lifetimes.md) |
 | **P1** | ArrayPool/Span ownership-view bugs; hidden effects / architecture rules | [P-007](proposals/P-007-arraypool-span.md), [P-008](proposals/P-008-effects-and-resources.md) |
-| **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
+| **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols; resource state-machine soup + stale async writes | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md), [P-026](proposals/P-026-resource-state-machine.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
 
 > **Are we showable yet?** The concrete "delicious .NET alpha" gate — the A–G bar
@@ -326,3 +326,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
 | [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
 | [P-025](proposals/P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`) — barrier-sensitive project invariants (OBL001–005) | P1 | first slice built (core + bridge + fixtures; extractor pending) |
+| [P-026](proposals/P-026-resource-state-machine.md) | Resource state machines & stale-async-write detection (extends `Own.Async`) | P2 | draft |
