@@ -228,7 +228,8 @@ payoff of doing this pillar at all is *unification*: one mental model
 
 17. **Generated docs.** Render the `.own` declarations (brand / refinement /
     union / protocol) into human-readable reference pages, the same way
-    `spec/Diagnostics.md` is the single source of truth for `OWN` codes today —
+    `ownlang/diagnostics.py` (`TITLES`) is the single source of truth for `OWN`
+    codes today, with `spec/Diagnostics.md` as its human-readable grouping —
     one declaration, read by the compiler *and* the wiki, so the contract and
     its documentation cannot drift apart.
 

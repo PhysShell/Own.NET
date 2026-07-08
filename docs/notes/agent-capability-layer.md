@@ -112,7 +112,7 @@ syscall/reachable-binary level. Two different enforcement models — don't confl
 | Phase | What | Verdict |
 |---|---|---|
 | **1. Policy engine** | `owen-policy`: parse `owen.policy.toml`, `policy check/explain`, `gen-ignore` | **Do.** Daily use, zero risk, not built. 80% of daily value. |
-| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Built** (`sandboy/`). Wire to a real gate step. |
+| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Spiked** (`sandboy/` — authored, not yet compiled; acceptance gate: `cargo build` + `tests/demo.sh`, see `sandboy/README.md`). Wire to a real gate step. |
 | **3. WIT tool components** | move tools to capability-scoped components | **Selective.** WIT only where input/author is untrusted: `secret-scanner`, `patch-analyzer`, `verifier-adapter` (parse untrusted output) — yes. `memory-search` over **your own** data — plain code, WIT buys nothing. |
 | **4. MCP/WIT bridge** | `owen-mcp` tools backed by policy + components | Thin, later. |
 
@@ -139,7 +139,7 @@ syscall/reachable-binary level. Two different enforcement models — don't confl
 canonical policy      owen.policy.toml                     (Phase 1 — build)
 context hygiene       generated ignore + filtered packs    (hygiene, NOT security)
 tool isolation        WIT + Wasmtime (own-adapter-host+)   (Phase 3 — selective)
-native isolation      worktree + Sandboy                   (built: sandboy/)
+native isolation      worktree + Sandboy                   (spiked: sandboy/)
 agent integration     mode (B): agent-with-shell in the    (Sandboy is the cage,
                       Sandboy cage, Owen tools on top       WIT tools are contracts)
 memory / verifier     only through policy-mediated ifaces
@@ -196,8 +196,10 @@ gates/
                          # denylist that silently forgot it
 ```
 
-Compiled down to flat JSON for whatever actually enforces it at runtime (the
-Sandboy policy, `owen policy check`'s consumer) — the authoring layer is for
+Compiled down to flat artifacts for whatever actually enforces it at runtime —
+rendered TOML for the per-step Sandboy policy (`cue export --out toml`, see
+`sandboy/README.md`), flat JSON for the gate manifest / `owen policy check`
+consumer — the authoring layer is for
 humans; the enforcement point should stay a boring, strict parser with no CUE
 evaluation at run time.
 

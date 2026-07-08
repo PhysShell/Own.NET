@@ -2,10 +2,16 @@
 
 - **Status:** draft. Imported from a design discussion and normalized into the
   proposal series (the pasted original suggested the then-taken number P-028).
+  Note on scope: the subject is **not** the OwnLang analyzer itself but the
+  legacy .NET Framework / WPF desktop application the audit targets (see
+  [`audit/README.md`](../../audit/README.md)). The proposed module would ship
+  as instrumentation guidance for audited legacy apps — e.g. alongside the
+  runtime harnesses in [`audit/runtime/`](../../audit/runtime/README.md) — not
+  as part of the analyzer.
 
 ## Summary
 
-Own.NET should add a small, dependency-light module for compact runtime diagnostics and fast set operations using classic probabilistic and compressed data structures:
+The legacy .NET application under audit (the WPF/.NET Framework desktop app targeted by `audit/README.md`) should gain a small, dependency-light module for compact runtime diagnostics and fast set operations using classic probabilistic and compressed data structures:
 
 - bitsets / roaring-style bitmap indexes;
 - Top-K / heavy-hitter counters;
@@ -16,9 +22,9 @@ Own.NET should add a small, dependency-light module for compact runtime diagnost
 
 The goal is not to turn a legacy desktop .NET application into a fake distributed analytics platform. That would be architecture cosplay, and nobody needs that circus. The goal is narrower: improve local diagnostics, filtering, dirty tracking, and performance visibility without requiring Redis, Valkey, Kafka, or some other infrastructure animal.
 
-Problem
+## Problem
 
-Own.NET has several known pain points:
+The legacy .NET application under audit has several known pain points:
 
 - large legacy WPF/.NET Framework surface;
 - heavy dictionaries and reference data;
@@ -39,16 +45,16 @@ Current code can observe some issues, but it likely lacks compact, queryable run
 
 Without compact summaries, developers either over-log, under-measure, or guess. Guessing is not engineering. It is astrology with stack traces.
 
-Proposed solution
+## Proposed solution
 
-Add an internal module tentatively named:
-
-"Own.Diagnostics.Sketches"
+Add an internal module to the audited application, tentatively named
+`Own.Diagnostics.Sketches`.
 
 The module should expose simple interfaces, not leak implementation details into business logic.
 
 Example conceptual interfaces:
 
+```csharp
 public interface ILatencySketch
 {
     void Record(long elapsedMilliseconds);
@@ -76,20 +82,21 @@ public interface IBitmapIndex
     IBitmapIndex Or(IBitmapIndex other);
     IBitmapIndex Except(IBitmapIndex other);
 }
+```
 
 The first implementation may be deliberately boring:
 
-- "BitArray" / custom packed bitset for dense ids;
-- "HashSet<int>" fallback for sparse ids;
+- `BitArray` / custom packed bitset for dense ids;
+- `HashSet<int>` fallback for sparse ids;
 - simple Space-Saving Top-K;
 - simple Count-Min Sketch;
 - latency sketch adapter with an initially simple histogram implementation.
 
 The point is to introduce the model safely before chasing cleverness. Cleverness without containment is how a “small optimization” becomes a haunted subsystem.
 
-Candidate use cases
+## Candidate use cases
 
-1. Dirty tracking and affected-row calculation
+### 1. Dirty tracking and affected-row calculation
 
 Use bitmap indexes to represent sets such as:
 
@@ -102,14 +109,16 @@ Use bitmap indexes to represent sets such as:
 
 Instead of scanning large collections repeatedly, compute set operations:
 
+```text
 RowsToRecalculate =
     AffectedByRateChange
     AND CurrentDeclarationRows
     AND NOT AlreadyRecalculated
+```
 
 This is especially suitable when ids are stable integer indexes within a document/import/session.
 
-2. Validation and import diagnostics
+### 2. Validation and import diagnostics
 
 Use Top-K and Count-Min Sketch to track:
 
@@ -125,7 +134,7 @@ Which 20 validation problems actually hurt users most?
 
 Not “which validation problems look important in a meeting”, because apparently humans needed a database to learn humility.
 
-3. Performance telemetry
+### 3. Performance telemetry
 
 Use latency sketches to record p50/p90/p95/p99 for operations such as:
 
@@ -139,16 +148,18 @@ Use latency sketches to record p50/p90/p95/p99 for operations such as:
 
 The output should be local and cheap:
 
+```text
 Operation: LoadTnvedTree
 Count: 143
 p50: 120 ms
 p95: 2.4 s
 p99: 8.1 s
 Max: 9.6 s
+```
 
 Average latency alone should be treated as suspicious. Averages hide pain like a rug hides broken glass.
 
-4. Error grouping
+### 4. Error grouping
 
 Use SimHash-like fingerprints to group similar:
 
@@ -159,15 +170,15 @@ Use SimHash-like fingerprints to group similar:
 
 This can later connect to the existing idea of error ids, hidden stack traces, and build-aware deobfuscation.
 
-Scope
+## Scope
 
-MVP
+### MVP
 
 The MVP should include:
 
-1. "ILatencySketch"
-2. "IHeavyHitters<T>"
-3. "IBitmapIndex"
+1. `ILatencySketch`
+2. `IHeavyHitters<T>`
+3. `IBitmapIndex`
 4. one local diagnostic sink:
    - JSON file;
    - text report;
@@ -180,7 +191,7 @@ Suggested first targets:
 - graph 47 recalculation;
 - validation/import flow.
 
-Phase 2
+### Phase 2
 
 Add:
 
@@ -190,13 +201,17 @@ Add:
 - optional compact binary export;
 - analyzer/test coverage for misuse.
 
-Phase 3
+### Phase 3
 
-Integrate with OwnAudit or 007 by exporting normalized evidence:
+Integrate with OwnAudit or 007 by exporting normalized evidence
+(OwnAudit's `docs/sketch-based-evidence.md` already anticipates ingesting
+these runtime diagnostic exports; the 007-side run evidence is specified in
+007's `docs/sketch-aware-evidence.md`):
 
+```json
 {
   "schema": "own.sketches.v1",
-  "source": "Own.NET",
+  "source": "own.diagnostics.sketches",
   "operation": "LoadTnvedTree",
   "latency": {
     "p50_ms": 120,
@@ -206,8 +221,9 @@ Integrate with OwnAudit or 007 by exporting normalized evidence:
   "top_errors": [],
   "affected_sets": []
 }
+```
 
-Non-goals
+## Non-goals
 
 This proposal explicitly does not include:
 
@@ -220,7 +236,7 @@ This proposal explicitly does not include:
 
 Approximate structures may support diagnostics and optimization. They must not become the source of truth for business decisions. Works fine?! A cart with three wheels “works fine” too.
 
-Safety rules
+## Safety rules
 
 1. Every approximate structure must expose its error model in docs.
 2. Approximate values must be named as estimates.
@@ -229,7 +245,7 @@ Safety rules
 5. No global mutable singleton dumping random metrics from everywhere.
 6. No business logic may depend on false-positive behavior.
 
-Acceptance criteria
+## Acceptance criteria
 
 The proposal is successful when:
 
@@ -241,9 +257,9 @@ The proposal is successful when:
 - no new infrastructure is required;
 - no correctness-sensitive path relies only on probabilistic results.
 
-Expected benefit
+## Expected benefit
 
-Own.NET gets a practical local observability and set-processing layer:
+The audited legacy application gets a practical local observability and set-processing layer:
 
 - fewer full scans;
 - better dirty tracking;

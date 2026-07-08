@@ -46,7 +46,7 @@ way instead of by test.
 line-ending oddities, format-breakers for JSON/XML/CSV/SQL/shell), shipped as a
 plain `blns.json` array plus a `.NET` port (`NaughtyStrings` NuGet package) for
 the C#-side pieces (`audit/`'s eventual C# on lift-out, per
-[`OwnAudit/README.md`](https://github.com/PhysShell/OwnAudit)). BLNS itself is
+[`OwnAudit/README.md`](https://github.com/PhysShell/OwnAudit/blob/main/README.md)). BLNS itself is
 explicit that it is not a substitute for real security testing (see
 Non-goals) — its contract here is narrower and cheaper: **the tool must not
 crash, hang, or corrupt output on any string in the corpus.**
@@ -132,7 +132,7 @@ tests/test_naughty_strings.py     # parametrized over every entry, 3 layers abov
 ```
 
 ```python
-import json, os, pytest
+import json, os
 from ownlang.lexer import LexError
 from ownlang.parser import ParseError, parse
 
@@ -140,13 +140,28 @@ with open(os.path.join(os.path.dirname(__file__), "fixtures", "blns.json"),
           encoding="utf-8") as f:
     BLNS = json.load(f)
 
-@pytest.mark.parametrize("naughty", BLNS)
-def test_parser_does_not_crash(naughty):
-    src = f'resource R;\nfn f() {{ let s = "{naughty}"; }}\n'
-    try:
-        parse(src)
-    except (ParseError, LexError):
-        pass  # an honest rejection is fine; anything else is a bug
+
+def run() -> int:
+    """One case per BLNS entry, in the suite's zero-dependency style: no
+    pytest — tests/run_tests.py auto-discovers every test_*.py that exposes
+    a run() -> int, same as tests/test_corpus.py."""
+    fails: list[str] = []
+    for naughty in BLNS:
+        # Embed the entry in a grammatically legal STRING position: per
+        # ownlang/parser.py's grammar, string literals appear only in
+        # resource emit_*/kind members (a `let` rhs never takes a string),
+        # so a benign entry parses cleanly and only the naughty content is
+        # under test — the wrapper follows the run_tests.py PRELUDE shape.
+        src = f'module M\nresource R {{ acquire a release r emit_type "{naughty}" }}\n'
+        try:
+            parse(src)
+        except (ParseError, LexError):
+            pass  # an honest rejection is fine; anything else is a bug
+        except Exception as e:
+            fails.append(f"{naughty!r}: {type(e).__name__}: {e}")
+    for f in fails:
+        print(f"NAUGHTY FAIL: {f}")
+    return 1 if fails else 0
 ```
 
 Serialization side follows the same shape against `diag_sarif.py` /

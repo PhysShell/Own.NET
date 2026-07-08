@@ -57,8 +57,7 @@ exec allowlist) to compose without copy-pasting, author the source in CUE and
 render it down to this shape (`cue export step.cue --out toml > step.toml`) —
 Sandboy's runtime never needs to know CUE exists. Full rationale and the
 `#Policy`/`#Base`/`#NoNet` schema this maps onto:
-[`007/docs/zero-trust-framework.md`](https://github.com/PhysShell/007/blob/main/docs/zero-trust-framework.md)
-§12.
+`007/docs/zero-trust-framework.md` §12.
 
 ## Build & run
 
@@ -98,7 +97,7 @@ into the wrapped command and bypass the FS/port allowlists entirely. So before
 The gate runner wraps each step instead of running it bare:
 
 ```
-# before:  bash -lc "<step.cmd>"                      (under bypassPermissions)
+# before:  bash -lc "<step.cmd>"                      (bare, no confinement)
 # after:   sandboy run --policy <step-policy> -- bash -lc "<step.cmd>"
 ```
 
@@ -117,7 +116,8 @@ exists yet** — both are Floor-1 work, not current behaviour:
   tolerates unknown fields, but this is a **security control**, so it must
   **fail closed** when it lands: a manifest `schema` bump (or explicit presence
   check) so an older `o7` that can't enforce a `sandbox_policy` **refuses the
-  step** rather than silently running it bare under `bypassPermissions`. Relying
+  step** rather than silently running it bare and unconfined (the
+  `bypassPermissions` mode applies to the agent phase, not gate steps). Relying
   on unknown-field tolerance here would fail *open*. See
   `007/docs/loop-canvas.md`.
 - **sandboy side — `--report <json>`.** A flag emitting enforcement status /

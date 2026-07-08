@@ -4,8 +4,8 @@
   proposal.
 - **Depends on:** nothing structurally; it formalizes conventions already used
   elsewhere in this repo (see Sketch). Consumed by, but does not depend on, the
-  reflect/learning-engine design in the sibling private repo `PhysShell/007`
-  (`docs/reflect.md` there) — that engine is one possible *source* of
+  agent-memory-layer design in the sibling private repo `PhysShell/007`
+  (`docs/agent-memory-layer.md` there) — that memory layer is one possible *source* of
   promotions into the layer this proposal defines; a human editing `AGENTS.md`
   by hand is another, equally valid, source.
 
@@ -15,7 +15,7 @@
 gate, the pipeline shape, and a handful of hard rules (unknown-call handling,
 `assert_never` dispatch sites, codegen modes, OwnIR versioning). That is
 exactly the right size for what it covers today. The risk is what happens as
-it grows: this repo already carries 25 proposals and 30+ design notes under
+it grows: this repo already carries 30+ proposals and 30+ design notes under
 `docs/`, plus a second, much longer file
 (`AGENTS.execution-surfaces.md`, 14KB) for a single ADR. Two failure modes are
 already visible in miniature:
@@ -36,10 +36,10 @@ from the outside — see `007`'s own `README.md`) both converge on the same
 idea: corrections and repeat-failure patterns from real agent runs should
 become reviewed, persistent project memory rather than being re-learned every
 session. `007` is explicitly the place that *mines* run records for candidate
-learnings (`docs/reflect.md` in that repo) — it is private, and its own
-`README.md` is explicit that harness-internal reasoning must never land in a
-public tree. What this repo needs, independent of whether 007 ever ships that
-engine, is: **a defined, reviewed, structured place those promotions — or a
+learnings (`docs/agent-memory-layer.md` in that repo) — it is private, and its own
+`README.md` is explicit that the harness must stay private (its auth/agent-
+routing internals must not land in a public tree). What this repo needs,
+independent of whether 007 ever ships that engine, is: **a defined, reviewed, structured place those promotions — or a
 human's own manual corrections — land in.** That is this proposal's entire
 scope: the destination shape, not a detector.
 
@@ -68,7 +68,7 @@ already relies on to agent guidance specifically, instead of one growing file.
 Each `.agents/*.md` file gets a soft line budget (~150 lines, the same
 heuristic `claude-reflect` uses to warn on oversized memory files). Once a
 file would cross that budget, it splits — same discipline that already
-produced 25 separate proposals instead of one `PROPOSALS.md`.
+produced 30+ separate proposals instead of one `PROPOSALS.md`.
 
 ### `.007/gate.toml`
 
@@ -104,8 +104,8 @@ open question on generation below.
 ### The promotion contract
 
 Whatever proposes a change to `.agents/*.md` — a human noticing a repeat
-correction, or an accepted candidate out of `007`'s (separate, private)
-reflect queue — must arrive as an ordinary reviewed PR carrying:
+correction, or a human-confirmed memory entry promoted out of `007`'s (separate,
+private) memory layer — must arrive as an ordinary reviewed PR carrying:
 
 - **the rule itself**, scoped to one `.agents/*.md` file and section;
 - **provenance**: what motivated it (a run, a PR comment, a postmortem) —
@@ -185,7 +185,7 @@ Guidance for agents working in this repo. Start here, then follow a link:
    checked in CI so drift fails loudly rather than rotting silently.
 2. **Does the promotion contract need its own proposal**, or does it stay a
    section of this one? Leaning: stays here until there's a second consumer
-   besides `007`'s reflect design — one contract, one place, until proven
+   besides `007`'s memory-layer design — one contract, one place, until proven
    otherwise.
 3. **Should `.cursor/rules/` and `.roo/rules-*/` eventually generate from
    `.agents/`** instead of maintaining separate tool-specific prose? Not in
@@ -198,7 +198,7 @@ Guidance for agents working in this repo. Start here, then follow a link:
    lines" heuristic)? Leaning: start as a soft PR-review convention; only add
    a mechanical gate if bloat actually recurs — no gate for a problem that
    hasn't happened yet.
-5. **Timing relative to `007`'s reflect engine:** this proposal's directory
+5. **Timing relative to `007`'s memory layer:** this proposal's directory
    layout is useful on its own (splitting an already-growing `AGENTS.md`)
    regardless of whether `007`'s mining engine ever ships. It should not block
    on that design landing first.

@@ -9,7 +9,9 @@
 ## Что из этого уже реализовано/задокументировано
 
 - **007** (`README.md`, `TODO.md`) — цикл `isolate → run → gate → harvest` уже
-  работает: `o7 run` делает git worktree, гоняет `claude` full-auto, прогоняет
+  реализован (`o7 run` — scaffolded, ещё не прогнан на реальной coding-задаче;
+  `o7 judge` — verified working): `o7 run` делает git worktree, гоняет `claude`
+  full-auto, прогоняет
   `.007/gate.toml`, собирает `task.md / meta.json / agent.stdout / diff.patch /
   gate/*.log` (`src/agent.rs`, `gate.rs`, `worktree.rs`, `record.rs`,
   `verdict.rs`).
@@ -487,6 +489,8 @@ task contract → isolated run → gates → harvest → judge/review → verdic
 
 ---
 
+## Часть 2 — применение к 007
+
 ### 1. Для 007 нужен не "prompt template", а Task Contract
 
 В Own.NET можно было держать `.ai/task-template.md`.
@@ -760,7 +764,7 @@ judge возвращает machine-readable verdict
 без замка.
 ```
 
-Практический вывод
+#### Практический вывод
 
 В 007 надо добавить `trust_level`:
 
@@ -1020,7 +1024,7 @@ examples/policy.safe-defaults.toml
 
 Это даст 007 реальную ценность как harness, а не просто runner.
 
-MVP формата
+#### MVP формата
 
 ```toml
 version = 1

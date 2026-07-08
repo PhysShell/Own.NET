@@ -176,7 +176,7 @@ correctly.
   an `await`, writes after it, with no visible guard" — a syntactic pattern, not
   a soundness proof.
 - **No shipped runtime type.** Own.NET does not ship a `ResourceState<T>`
-  NuGet package as the mandated fix, matching P-008/P-010's existing rule that
+  NuGet package as the mandated fix, matching P-010's existing rule that
   brands/refinements/protocols lower to plain structs the *team* owns. The
   diagnostic explains the pattern; teams write their own status type (or adopt
   whichever shape fits their codebase).
@@ -202,8 +202,8 @@ Python core emits verdicts:
 ```
 
 `ASYNC051`/`ASYNC052` are per-method and most likely land as two more hazard
-kinds in P-021's existing `async_methods` fact family
-(`ownlang/async_rules.py`). `ASYNC050` is type-scoped — a cluster of fields
+kinds in the `async_methods` fact family P-021 plans (its proposed
+`ownlang/async_rules.py` module). `ASYNC050` is type-scoped — a cluster of fields
 assigned together across the whole class, not one method — so it needs its own
 type-level fact rather than living inside a method entry:
 
@@ -247,8 +247,8 @@ contracts separate.
 2. **Threshold for state soup.** Two co-varying fields (`HasValue`/`Value`) are
    completely ordinary and shouldn't fire. Where's the real line — 3 fields? A
    specific combination like `bool + bool + nullable`? This needs corpus
-   evidence (P-012) rather than a guessed constant, same as P-021's own open
-   question 2 about severity thresholds.
+   evidence (P-012) rather than a guessed constant, in the same evidence-first
+   spirit as P-021.
 3. **Staleness-check feasibility.** Proving "the gating field was re-read or a
    version was compared between the pre-await read and the post-await write"
    needs more than single-method syntax — it's adjacent to P-016's deep fact
