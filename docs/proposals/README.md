@@ -47,6 +47,7 @@ proposal is marked `done` with a pointer.
 | [P-025](P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`): barrier-sensitive project invariants (OBL001–005) | first slice built (core + bridge + fixtures; extractor pending) |
 | [P-026](P-026-csharp-strictness-retrofit.md) | C# strictness retrofit profile (`own audit strictness`): a witness/score over existing findings, not a new engine | draft (framing) |
 | [P-026](P-026-resource-state-machine.md) | Resource state machines & stale-async-write detection (extends `Own.Async`) | draft |
+| [P-026](P-026-unneeded-dependency-profile.md) | Unneeded-dependency profile (`Own.Lean`): evidence-only "you don't need this abstraction" findings (YDN001–002) | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
