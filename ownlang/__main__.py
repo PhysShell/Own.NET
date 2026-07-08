@@ -314,6 +314,7 @@ def cmd_summaries(path: str) -> int:
     this surface reports state, it does not judge); 2 only for unreadable
     facts, like `ownir`."""
     import json
+
     from .ownir import OwnIRError, dump_summaries, load
     try:
         doc = dump_summaries(load(path))

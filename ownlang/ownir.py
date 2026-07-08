@@ -824,7 +824,7 @@ def _prelude_resources() -> list[ResourceDecl]:
 
 def to_module(facts: dict[str, Any],
               notes: list[str] | None = None,
-              advisories: list["Finding"] | None = None,
+              advisories: list[Finding] | None = None,
               ) -> tuple[Module, dict[str, dict[str, Any]]]:
     """Build the core `Module` AST **directly** from OwnIR facts — no `.own` source
     text and no re-parse (P-016 B0a; the round-trip `to_own` + `parse` has existed
