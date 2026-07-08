@@ -112,7 +112,7 @@ syscall/reachable-binary level. Two different enforcement models — don't confl
 | Phase | What | Verdict |
 |---|---|---|
 | **1. Policy engine** | `owen-policy`: parse `owen.policy.toml`, `policy check/explain`, `gen-ignore` | **Do.** Daily use, zero risk, not built. 80% of daily value. |
-| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Built** (`sandboy/`). Wire to a real gate step. |
+| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Spiked** (`sandboy/` — authored, not yet compiled; acceptance gate: `cargo build --release` + `tests/demo.sh`, see `sandboy/README.md`). Wire to a real gate step. |
 | **3. WIT tool components** | move tools to capability-scoped components | **Selective.** WIT only where input/author is untrusted: `secret-scanner`, `patch-analyzer`, `verifier-adapter` (parse untrusted output) — yes. `memory-search` over **your own** data — plain code, WIT buys nothing. |
 | **4. MCP/WIT bridge** | `owen-mcp` tools backed by policy + components | Thin, later. |
 
@@ -139,7 +139,7 @@ syscall/reachable-binary level. Two different enforcement models — don't confl
 canonical policy      owen.policy.toml                     (Phase 1 — build)
 context hygiene       generated ignore + filtered packs    (hygiene, NOT security)
 tool isolation        WIT + Wasmtime (own-adapter-host+)   (Phase 3 — selective)
-native isolation      worktree + Sandboy                   (built: sandboy/)
+native isolation      worktree + Sandboy                   (spiked: sandboy/)
 agent integration     mode (B): agent-with-shell in the    (Sandboy is the cage,
                       Sandboy cage, Owen tools on top       WIT tools are contracts)
 memory / verifier     only through policy-mediated ifaces
@@ -161,3 +161,65 @@ generated output of one policy engine, not your architecture.
 3. **Policy ⇄ Sandboy overlap** — how much of `[exec]`/`[network]` should be
    *compiled down* into a Sandboy policy (real enforcement) vs stay advisory
    context? Ideally `owen policy` emits a `sandboy` policy for mode (B).
+
+---
+
+## 8. Addendum (2026-07-05): authoring language for `owen.policy` — CUE, not TOML
+
+§3 sketched `owen.policy.toml` as a single flat file. That's fine while there is
+one profile. It stops being fine the moment there is more than one — `no-net`,
+`worktree-only`, a `windows`-tagged exec profile, a `trusted-repo` vs
+`untrusted-repo` split — because those need to **compose** ("inherit the base,
+add these steps"), and TOML has no merge semantics of its own. Composing TOML by
+hand means copy-pasting the base into every profile, and a copy that forgets
+`network.default = "deny"` is precisely the failure mode this whole layer exists
+to prevent — a config bug that reads as a permission grant.
+
+**Decision: author `owen.policy` in [CUE](https://cuelang.org).** The reason to
+prefer it over "TOML + a templating layer" is CUE's *unification* model: a
+parent and a child don't override each other, they unify, and unification is a
+**compile error** if they disagree. A leaf profile that tries
+`network: "allow"` against a base that says `network: "deny"` doesn't silently
+win — it fails to build. That is a materially different guarantee than
+inheritance-with-override (Terragrunt-style merge, Jsonnet `+`), where the leaf
+always wins and a mistaken override ships silently.
+
+```text
+policies/
+  no-net.cue             # network: "deny" — the floor, never overridden
+  worktree-only.cue      # repo.read/write confined to the worktree
+  default-processes.cue  # exec allowlist
+gates/
+  own-net.cue            # unifies the policies above + step list
+  own-net.windows.cue    # must *explicitly* switch to a different process
+                         # profile to add e.g. `powershell` — can't inherit a
+                         # denylist that silently forgot it
+```
+
+Compiled down to flat artifacts for whatever actually enforces it at runtime —
+rendered TOML for the per-step Sandboy policy (`cue export --out toml`, see
+`sandboy/README.md`), flat JSON for the gate manifest / `owen policy check`
+consumer — the authoring layer is for
+humans; the enforcement point should stay a boring, strict parser with no CUE
+evaluation at run time.
+
+Runner-up: **Nickel** (`import` + record merge via `&`, typed contracts) — a
+reasonable second choice if the policy ever wants functions or generated
+defaults; picked CUE first specifically because a security floor benefits more
+from "conflicts are hard errors" than from programmability.
+
+**Rejected for this use** (fine tools, wrong fit for a security source of
+truth): **Jsonnet** (`+`/`super` composition is generative — right for stamping
+out many manifests, wrong posture for policy, and a silent-override bug is just
+as easy as in TOML with fancier syntax); **Dhall** (safe and total, but more
+ergonomic weight than this scale needs — CUE gets the same "disagreement is an
+error" property more cheaply); **HCL/Terragrunt** (`include` + `merge_strategy`
+gives structural inheritance, but drags in Terraform's whole tooling/mental
+model for a project that has nothing to do with infrastructure deployment).
+
+**This does not change §0/§1.** WIT/Wasmtime stays the *execution* boundary for
+tool components that parse untrusted input (already spiked as `audit/adapters`,
+per `sandboy-isolation-adr.md` §6's update) — it is not a candidate for policy
+*authoring*. The two axes stay separate: CUE composes the data, WIT/Sandboy
+enforce it. See `007/docs/zero-trust-framework.md` for how 007 concretely
+consumes a CUE-authored policy as `.007/gate.lock.json`.

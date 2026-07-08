@@ -128,7 +128,7 @@ ownership/lifetime/effects, (4) an MVP needs no PhD in Roslyn.
 |------|---------|----------|
 | **P0** | WPF/event/timer/subscription leaks; `IDisposable` ownership (leaks, fields, use-after-dispose); DI lifetime mismatch (captive dependency) | [P-004](proposals/P-004-wpf-lifetime-profile.md), [P-005](proposals/P-005-idisposable-ownership.md), [P-006](proposals/P-006-di-lifetimes.md) |
 | **P1** | ArrayPool/Span ownership-view bugs; hidden effects / architecture rules | [P-007](proposals/P-007-arraypool-span.md), [P-008](proposals/P-008-effects-and-resources.md) |
-| **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md) |
+| **P2** | async resource lifecycle / WPF async audit; `ValueTask` affine usage; typestate/protocols; resource state-machine soup + stale async writes | [P-021](proposals/P-021-async-audit-pack.md), [P-008](proposals/P-008-effects-and-resources.md), [P-010](proposals/P-010-type-disciplines.md), [P-027](proposals/P-027-resource-state-machine.md) |
 | **P3** | LOH fragmentation; static-collection memory bloat; cross-thread `ObjectDisposedException` | — (runtime-bound; see detectability matrix) |
 
 > **Are we showable yet?** The concrete "delicious .NET alpha" gate — the A–G bar
@@ -326,3 +326,11 @@ own scan. Label them as estimates wherever they appear.
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
 | [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
 | [P-025](proposals/P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`) — barrier-sensitive project invariants (OBL001–005) | P1 | first slice built (core + bridge + fixtures; extractor pending) |
+| [P-026](proposals/P-026-csharp-strictness-retrofit.md) | C# strictness retrofit profile (`own audit strictness`) — witness/score over existing findings | P2 | draft (framing) |
+| [P-027](proposals/P-027-resource-state-machine.md) | Resource state machines & stale-async-write detection (extends `Own.Async`) | P2 | draft |
+| [P-028](proposals/P-028-unneeded-dependency-profile.md) | Unneeded-dependency profile (`Own.Lean`) — evidence-only "you don't need this abstraction" findings (YDN001–002) | P2 | draft |
+| [P-029](proposals/P-029-agent-memory-layer.md) | Agent memory & policy layer (`.agents/`) — reviewed destination for AGENTS.md and learned-rule promotions | enabling | draft |
+| [P-030](proposals/P-030-naughty-strings-testing.md) | Naughty-strings robustness pack (BLNS crash-testing of lexer/parser/serializers/CLI) | enabling | draft |
+| [P-031](proposals/P-031-resource-model-files.md) | Project resource model files (`own.models.yaml`) — declarative acquire/release/capture | P2 | draft |
+| [P-032](proposals/P-032-own-arch-facts.md) | Own.Arch facts & intent model — deterministic architecture-fact core (deepens P-023) | P2 | draft |
+| [P-033](proposals/P-033-probabilistic-data-structures.md) | In-process sketches & bitmap indexes for audited legacy apps | horizon | draft |
