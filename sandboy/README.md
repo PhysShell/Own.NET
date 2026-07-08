@@ -107,6 +107,28 @@ Per-step policies let a `fmt` step run with no network and RO toolchain, while a
 which is exactly what `007/docs/security-layers.md` marks as the missing layer
 in the `run`/gate slot.
 
+The same slot, framed as a loop-engineering design surface (the canvas
+**Actions** boundary + **Limits** timeout + **Observability** evidence per gate
+step), is in `007/docs/loop-canvas.md`. Two hooks make that real, and **neither
+exists yet** — both are Floor-1 work, not current behaviour:
+
+- **007 side — `sandbox_policy` on `GateStep`.** A per-step policy path so the
+  gate runner knows to wrap the step. **Not yet added.** The manifest parser
+  tolerates unknown fields, but this is a **security control**, so it must
+  **fail closed** when it lands: a manifest `schema` bump (or explicit presence
+  check) so an older `o7` that can't enforce a `sandbox_policy` **refuses the
+  step** rather than silently running it bare under `bypassPermissions`. Relying
+  on unknown-field tolerance here would fail *open*. See
+  `007/docs/loop-canvas.md`.
+- **sandboy side — `--report <json>`.** A flag emitting enforcement status /
+  exit code / duration, the machine-readable evidence the Observability field
+  asks for. **Not implemented today:** `parse_args` (`src/main.rs`) accepts only
+  `run`, `--policy <file>`, and `--`, so passing `--report` now is a usage error
+  (exit 2). Enforcement status *is* already surfaced, but only to **stderr**
+  (`FullyEnforced` silently / `PARTIALLY enforced` warning / `NOT enforced`
+  refusal); `--report` would make it structured so 007 can persist it into
+  `gate/<step>.sandbox.json`.
+
 ## Kernel requirements
 
 - Landlock FS scoping: kernel ≥ 5.13.
