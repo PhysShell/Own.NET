@@ -73,11 +73,11 @@ Two small, independent, opt-in runtime helpers (a "diagnostic mode", not a
 shipped allocator):
 
 **1. `LifetimeGuard` base / wrapper — loud instead of silent.**
-A `DEBUG`/`TEST`-only `IDisposable` base that turns silent misuse — a
-double-dispose, or an access after `Dispose()` — into an immediate
-`ObjectDisposedException`/`InvalidOperationException` instead of corrupting
-state quietly, regardless of whether the root cause was an unmodeled
-ownership hand-off (P-005 D5) or a cross-thread race:
+A `DEBUG`/`TEST`-only *diagnostic throw* layered over an **always-idempotent**
+double-dispose guard: the second `Dispose()` call must short-circuit
+unconditionally (matching the standard, production-safe C# Dispose pattern),
+and only the loud signal — an `ObjectDisposedException` naming the offending
+type — is compiled out in release builds:
 
 ```csharp
 public abstract class LifetimeGuard : IDisposable
@@ -86,14 +86,29 @@ public abstract class LifetimeGuard : IDisposable
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
-            throw new ObjectDisposedException(GetType().Name, "double Dispose");
+        {
+            ThrowIfDoubleDispose(); // DEBUG-only; a no-op in release, but the branch always returns either way
+            return;                // unconditional — DisposeCore() must never run twice, throw or no throw
+        }
         DisposeCore();
         GC.SuppressFinalize(this);
     }
+    [Conditional("DEBUG")]
+    private void ThrowIfDoubleDispose() =>
+        throw new ObjectDisposedException(GetType().Name, "double Dispose");
     protected void ThrowIfDisposed() { if (Volatile.Read(ref _disposed) != 0) throw new ObjectDisposedException(GetType().Name); }
     protected abstract void DisposeCore();
 }
 ```
+
+Gating only the `throw` (e.g. wrapping just that line in `#if DEBUG`) and
+leaving the surrounding `if` block to fall through is a trap: in release
+builds `DisposeCore()` would then run a second time on a second `Dispose()`
+call — a real double-release, in exactly the build where this guard is
+supposed to be safe-by-default. The `return` above is unconditional for
+that reason; `[ConditionalAttribute]` only strips the call to
+`ThrowIfDoubleDispose()` itself (valid here — it decorates a `void` method,
+per the attribute's own constraint), never the guard's control flow.
 
 This does not replace `OWN002`/`OWN003` — those catch the mistake at compile
 time, for free, when the pattern is intraprocedural. `LifetimeGuard` catches
@@ -132,14 +147,13 @@ debug assertion than an auditor.
 
 - Not a general-purpose allocator shim; nothing here wraps `malloc`/GC
   allocation.
-- Not a production-safe pattern as-is: throwing from `Dispose()` is a real
-  behavior change (already-suppressed `Dispose` exceptions in `finally`/`using`
-  chains can mask the original exception) — `LifetimeGuard` must ship
-  `DEBUG`/`TEST`-gated: wrap the throw in `#if DEBUG` / `#if TEST`, or route it
-  through a small helper method decorated `[Conditional("DEBUG")]` (the
-  attribute only applies to methods, not to a bare `throw` statement), or gate
-  it behind a config flag — never silently opt production code into new
-  exceptions.
+- Not a production-safe pattern if only the throw is gated and the
+  already-disposed branch is left to fall through — see the worked example
+  above; the short-circuit (`return`) must be unconditional, only the
+  diagnostic `throw` is `DEBUG`-gated (via `[Conditional("DEBUG")]`, since the
+  attribute only applies to methods, never to a bare `throw` statement).
+  `LifetimeGuard` must never silently opt production code into new exceptions,
+  but it also must never silently double-run `DisposeCore()` in production.
 - Not a replacement for `OWN002`/`OWN003` (compile-time, zero runtime cost,
   works before the code ever ships) or for OwnAudit phase 5 (ground-truth heap
   retention) — it fills the gap between them: cases neither can see, at the
