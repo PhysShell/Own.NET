@@ -1,4 +1,4 @@
-# P-026 — Agent memory & policy layer (`.agents/`)
+# P-029 — Agent memory & policy layer (`.agents/`)
 
 - **Status:** draft — design only, no code/directory changes shipped by this
   proposal.

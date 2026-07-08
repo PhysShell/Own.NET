@@ -1,4 +1,4 @@
-# P-026 — Unneeded-dependency profile (`Own.Lean`)
+# P-028 — Unneeded-dependency profile (`Own.Lean`)
 
 - **Status:** draft — not started.
 - **Depends on:** [P-001](P-001-csharp-extractor.md) (the Roslyn extractor

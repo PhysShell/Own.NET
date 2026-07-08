@@ -1,4 +1,4 @@
-# P-026 — Resource state machines & stale-async-write detection (extends `Own.Async`)
+# P-027 — Resource state machines & stale-async-write detection (extends `Own.Async`)
 
 - **Status:** draft — proposal for discussion, not a committed design. Recorded on
   the record so the idea isn't lost, not "we are building this next."

@@ -1,14 +1,9 @@
-Proposal: In-Process Sketches and Bitmap Indexes for Legacy .NET Diagnostics
+# P-033 — In-process sketches and bitmap indexes for legacy .NET diagnostics
 
-Target repository
+- **Status:** draft. Imported from a design discussion and normalized into the
+  proposal series (the pasted original suggested the then-taken number P-028).
 
-"PhysShell/Own.NET"
-
-Suggested file:
-
-"docs/proposals/P-028-in-process-sketches-and-bitmaps.md"
-
-Summary
+## Summary
 
 Own.NET should add a small, dependency-light module for compact runtime diagnostics and fast set operations using classic probabilistic and compressed data structures:
 

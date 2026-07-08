@@ -1,18 +1,11 @@
-Proposal: Own.Arch Facts & Intent Model for Own.NET
+# P-032 — Own.Arch facts & intent model
 
-Status
+- **Status:** draft. Imported from a design discussion and normalized into the
+  proposal series (the pasted original self-titled itself P-027; renumbered here).
+- **Extends:** [P-023 — Architecture guard](P-023-architecture-guard.md) — this
+  proposal deepens P-023's intent-model/drift design into a fact-extraction core.
 
-Draft.
-
-Target repository
-
-"PhysShell/Own.NET"
-
-Suggested file:
-
-"docs/proposals/P-027-own-arch-facts-and-intent-model.md"
-
-Summary
+## Summary
 
 Introduce "Own.Arch" as the Own.NET-side architecture analysis core: a deterministic extractor and evaluator for architecture facts, intent models, and rule packs.
 
@@ -40,15 +33,13 @@ P-023 already scopes the MVP to project-level dependency checks over ".sln", ".c
 
 P-023 also already sketches Phase 2 as type-level facts using IL/Roslyn to catch type dependencies, forbidden APIs, and namespace-level cycles.
 
-Related open PRs:
+Related proposals:
 
-- Own.NET PR #184: "docs: add agentic coding discipline proposal"
-  https://github.com/PhysShell/Own.NET/pull/184
-  This PR introduces disciplined agentic coding ideas for Own.NET/OwnAudit/007, including task contracts, diff policy gates, agent-readable invariants, and analyzer rule catalogs.
+- [Agentic coding discipline proposal](../agentic-coding-discipline-proposal.md)
+  introduces disciplined agentic coding ideas for Own.NET/OwnAudit/007, including task contracts, diff policy gates, agent-readable invariants, and analyzer rule catalogs.
 
-- Own.NET PR #186: "docs(proposals): P-026 project resource model files"
-  https://github.com/PhysShell/Own.NET/pull/186
-  This PR proposes declarative per-project resource model files, "own.models.yaml", for acquire/release/capture conventions. It is not an architecture model, but it is useful prior art for project-local declarative models resolved through the semantic layer.
+- [P-031 — Project resource model files](P-031-resource-model-files.md)
+  proposes declarative per-project resource model files, "own.models.yaml", for acquire/release/capture conventions. It is not an architecture model, but it is useful prior art for project-local declarative models resolved through the semantic layer.
 
 Problem
 

@@ -1,4 +1,4 @@
-# P-026 — Project resource model files (declarative acquire/release/capture)
+# P-031 — Project resource model files (declarative acquire/release/capture)
 
 - **Status:** draft
 - **Depends on:**
