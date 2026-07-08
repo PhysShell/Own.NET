@@ -90,6 +90,7 @@ with one score to argue about.
 | Non-exhaustive handling hiding future cases | [P-010](P-010-type-disciplines.md) |
 | Source-of-truth drift (config vs DI, XAML vs VM, EF vs migrations) | [P-015](P-015-configuration-surface.md), [P-023](P-023-architecture-guard.md) |
 | Null-safety not enforced (`!`, opt-in NRT) | external analyzers via SARIF adapter; `NO-TOOL` until wired |
+| Local immutability not expressed (mutable setters on domain state) | `NO-TOOL` until wired (candidate: setter census via the P-001/P-014 extractor) |
 
 ## Non-goals (the most important section)
 

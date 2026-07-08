@@ -186,14 +186,14 @@ always wins and a mistaken override ships silently.
 
 ```text
 policies/
-  no-net.cue            # network: "deny" — the floor, never overridden
+  no-net.cue             # network: "deny" — the floor, never overridden
   worktree-only.cue      # repo.read/write confined to the worktree
   default-processes.cue  # exec allowlist
 gates/
   own-net.cue            # unifies the policies above + step list
-  own-net.windows.cue     # must *explicitly* switch to a different process
-                          # profile to add e.g. `powershell` — can't inherit a
-                          # denylist that silently forgot it
+  own-net.windows.cue    # must *explicitly* switch to a different process
+                         # profile to add e.g. `powershell` — can't inherit a
+                         # denylist that silently forgot it
 ```
 
 Compiled down to flat JSON for whatever actually enforces it at runtime (the
