@@ -80,7 +80,14 @@ class PathAction:
     kind: `dispose` (releases it) | `adopt` (stores it into an owning field) |
     `return` (returns it — escapes to the caller of *this* method) | `borrow`
     (only reads/uses) | `forward` (passes it to `callee` at position `arg`).
-    The first three are ownership *leaving the caller* on that path (`must`)."""
+    The first three are ownership *leaving the caller* on that path (`must`).
+
+    RESERVED kinds (TZ D3): `adopt` and `return` are understood by the solver but
+    have NO production producer yet — `_build_skeletons` (ownir.py) emits only
+    `dispose`/`borrow`/`forward`. `adopt` awaits interprocedural T4b (a ctor-adopt
+    summary), `return` awaits owned-return-value modelling (a returned param is
+    deliberately NOT a consume signal today, see `_infer_param_effect`). A port
+    must carry their semantics but must not expect to see them from real facts."""
 
     kind: str
     callee: str = ""
@@ -93,7 +100,11 @@ class ParamSkeleton:
     name: str = ""
     disposable: bool = True
     paths: tuple[PathAction, ...] = ()
-    escapes: bool = False  # the reference outlives the call (field/collection/return)
+    # RESERVED axis (TZ D2): "the reference outlives the call" (field / collection
+    # / return). The d5 model keeps escape orthogonal to transfer, but NO producer
+    # sets it yet (`_build_skeletons` always leaves False) — it is carried,
+    # unserialized, and must not be read as evidence until a producer lands.
+    escapes: bool = False
 
 
 @dataclass(frozen=True)
@@ -147,9 +158,13 @@ class MethodSummary:
             "file": self.file,
             "line": self.line,
             "source": self.source,
+            # `escapes` is deliberately NOT serialized (TZ D2): no producer sets
+            # the axis yet, so emitting it would freeze an always-False lie into
+            # the parity artifact this dump becomes (the roadmap's stage-1
+            # Python↔Rust diff surface). Serialize it the day a producer lands.
             "params": [
                 {"index": p.index, "name": p.name, "disposable": p.disposable,
-                 "transfer": p.transfer.value, "escapes": p.escapes}
+                 "transfer": p.transfer.value}
                 for p in self.params
             ],
             "returns": {"owned": self.returns},

@@ -9,6 +9,8 @@ Command-line driver for the OwnLang PoC.
     python -m ownlang report file.own      # buffer storage report + .ownreport.json
     python -m ownlang ownir  facts.json    # check OwnIR facts extracted from C# (P-001)
     python -m ownlang ownir  facts.json --format github|msbuild|human|sarif
+    python -m ownlang summaries facts.json # dump solved method-ownership summaries
+                                           # (MOS) + extern log — deterministic JSON
     python -m ownlang explain OWN001 [DI002 ...]     # explain diagnostic code(s): what/why/fix
     python -m ownlang explain --json findings.json   # explain every code in a findings/SARIF file
 
@@ -26,9 +28,10 @@ SARIF log carrying each finding's evidence slice (relatedLocations / codeFlows);
 `--severity` (ownir only) picks how the host shows a finding — `error` (default,
 fails a build / red check) or `warning` (advisory). It is a presentation choice;
 the finding is still the core's verdict.
-`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory OWN050
-"leakage analysis skipped" notes, P-014 Tier A), `normal` (default), or `verbose`
-(also print a per-code breakdown).
+`--verbosity` (ownir only) is `quiet` (errors only — hide the advisory notes:
+OWN050 "leakage analysis skipped", OWN051 "ownership transfer unverified",
+OWN052 "summaries skipped"), `normal` (default), or `verbose` (also print a
+per-code breakdown).
 
 Exit code is non-zero if any error-level diagnostic was produced.
 """
@@ -300,6 +303,28 @@ def cmd_explain(codes: list[str], json_path: str | None) -> int:
     return 0
 
 
+def cmd_summaries(path: str) -> int:
+    """Dump the solved Method Ownership Summaries (MOS) + the extern-boundary
+    log for an OwnIR facts file as one deterministic JSON document on stdout
+    (roadmap stage 1). The debugging answer to "why did this call stay plain /
+    consume / fresh?" — and the frozen parity surface the Rust port of the
+    inference layer is diffed against, so its output contract is byte-stable:
+    sorted method keys, sorted extern log, fixed field order. Exit code is 0
+    even when the solve degraded (the `degraded` field carries the reason —
+    this surface reports state, it does not judge); 2 only for unreadable
+    facts, like `ownir`."""
+    import json
+
+    from .ownir import OwnIRError, dump_summaries, load
+    try:
+        doc = dump_summaries(load(path))
+    except OwnIRError as e:
+        print(f"{path}: error: {e}", file=sys.stderr)
+        return 2
+    print(json.dumps(doc, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
               verbosity: str = "normal") -> int:
     """Check OwnIR facts (extracted from real C# by the Roslyn frontend) through
@@ -351,8 +376,9 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     n = len(leaks)
     summary = f"\n{n} finding{'s' if n != 1 else ''}"
     if notes:
-        # the advisory band is no longer only OWN050 (OBL005 rides it too) —
-        # name the codes actually present instead of hardcoding one.
+        # the advisory band is no longer only OWN050 (OBL005 and the OWN051/OWN052
+        # interprocedural notes ride it too) — name the codes actually present
+        # instead of hardcoding one.
         note_codes = "/".join(sorted({x.code for x in notes}))
         summary += (f" ({len(notes)} advisory hidden)" if verbosity == "quiet"
                     else f", {len(notes)} advisory ({note_codes})")
@@ -372,7 +398,8 @@ _VERBOSITY = {"quiet", "normal", "verbose"}
 
 
 def main(argv: list[str]) -> int:
-    if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir", "explain"}:
+    if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir",
+                                   "summaries", "explain"}:
         print(__doc__)
         return 2
     cmd = argv[0]
@@ -475,7 +502,8 @@ def main(argv: list[str]) -> int:
         return cmd_check(path, fmt, severity)
     if cmd == "cfg":
         return cmd_cfg(path, fmt)
-    return {"emit": cmd_emit, "report": cmd_report}[cmd](path)
+    return {"emit": cmd_emit, "report": cmd_report,
+            "summaries": cmd_summaries}[cmd](path)
 
 
 if __name__ == "__main__":

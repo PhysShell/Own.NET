@@ -470,6 +470,9 @@ escape-without-transfer and all `unknown`/`may` lower to **silence** in the defa
 
 ## 10. Open questions remaining
 
+> Sequencing for closing these — together with the deferred §7 slices, #122 and
+> #146 — lives in [interprocedural-roadmap.md](interprocedural-roadmap.md).
+
 1. ~~`aliasOf` in the core: shared resource id vs a synthetic discharge edge.~~
    **Resolved → §11 (the obligation-identity model): Variant B, a shared RID / alias-set.**
 2. ~~Signature-key canonicalisation across overloads / generics / partial classes (the

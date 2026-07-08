@@ -83,6 +83,24 @@ guess a leak; we report, honestly, that it was not checked. Rendered as a
 |------|-------|
 | OWN050 | declaring type unresolved — leakage analysis skipped |
 
+## Interprocedural ownership coverage (P-005 D5)
+
+Advisory only — coverage notes from the interprocedural inference layer
+([Inference.md](Inference.md)), never verdicts. Rendered as `warning` regardless
+of `--severity`, excluded from the exit code, hidden at `--verbosity quiet`.
+
+| Code | Title |
+|------|-------|
+| OWN051 | ownership transfer unverified — local not checked past this call |
+| OWN052 | interprocedural summary inference failed — method summaries skipped |
+
+- **OWN051** anchors at a call site where an owned local is handed to a parameter
+  position whose resolved transfer is `may` or `unknown` ([Inference §A5, §7](Inference.md)):
+  the caller's obligation is optimistically dropped there (own-only 0), so the
+  gap is recorded rather than guessed.
+- **OWN052** is module-level (no single site): the summary solve failed and the
+  bridge degraded to intraprocedural-only checking ([Inference §F6](Inference.md)).
+
 ## Rendering
 
 The CLI renders rustc-style: `file:line:col`, the source line, and a caret under

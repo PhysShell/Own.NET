@@ -83,6 +83,8 @@ TITLES = {
     "OWN041": "call argument mismatch",
     # ---- C# front-end resolution coverage (P-014; advisory) ----
     "OWN050": "declaring type unresolved -- leakage analysis skipped",
+    "OWN051": "ownership transfer unverified -- local not checked past this call",
+    "OWN052": "interprocedural summary inference failed -- method summaries skipped",
     # ---- DI container lifetimes (P-006; emitted by the OwnIR bridge) ----
     "DI001": "captive dependency: a shorter-lived service is captured by a longer-lived one",
     "DI002": "singleton captures a scoped service (captive dependency)",
@@ -159,6 +161,26 @@ EXPLANATIONS = {
         "rather than guessed (P-014 Tier A). It never fails a build.\n"
         "Fix (to check it): give the extractor the type's assembly via `--ref-dir <bin>` so the "
         "SemanticModel can bind the event."
+    ),
+    "OWN051": (
+        "Advisory, not a leak verdict: an owned local was passed to a method whose ownership "
+        "contract for that argument could not be verified — the inferred transfer is `may` "
+        "(the callee disposes it on some paths only) or `unknown` (the evidence crosses an "
+        "unanalyzable boundary). Per the optimistic default (own-only 0) the checker assumes "
+        "ownership left the caller and stops tracking the local at that call: a missing "
+        "dispose after it is NOT reported, and neither is a defensive one. This note is the "
+        "honest record of that gap. It never fails a build.\n"
+        "Fix (to make it checkable): make the callee's contract definite — dispose the "
+        "parameter on every path (or none), or annotate the intended contract when "
+        "annotations land (P-005 Tier C)."
+    ),
+    "OWN052": (
+        "Advisory, not a leak verdict: computing the method ownership summaries (the "
+        "interprocedural pass that resolves cross-method ownership transfer) failed, so the "
+        "bridge degraded to intraprocedural checking only for this run — every cross-method "
+        "consume/borrow/fresh contract was skipped, not guessed. It never fails a build.\n"
+        "Fix: this indicates malformed `functions[]` facts or a bridge bug — re-extract the "
+        "facts, and report the message's inner error if it persists."
     ),
     "DI002": (
         "A singleton captures a scoped service: the scoped instance is pinned to the singleton "

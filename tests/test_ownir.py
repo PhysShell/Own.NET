@@ -1495,9 +1495,302 @@ def run() -> int:
          "body": [{"op": "acquire", "var": "s", "line": 10},
                   {"op": "call", "callee": "maybe", "args": ["s"], "line": 11},
                   {"op": "release", "var": "s", "line": 12}]}]})
-    if cond:
-        gotc = [(x.component, x.code) for x in cond]
-        fails.append(f"D5.1 conditional forward must be `may`: caller stays silent, got {gotc}")
+    gotc = [(x.component, x.code, x.advisory) for x in cond]
+    if gotc != [("user_c", "OWN051", True)]:
+        fails.append("D5.1 conditional forward must be `may`: no verdicts, one "
+                     f"honest OWN051 advisory (d5 §5), got {gotc}")
+    # (TZ D1) a CONDITIONAL release joins to `may`, not a flattened `consume`:
+    # `cond_rel(x){ if(c) release x; }` keeps x on the other path, so a caller that
+    # disposes defensively after the call stays SILENT. Before the fix the inferred
+    # consume charged that caller a false OWN002 and the helper a false OWN001 —
+    # the null-guard-dispose-helper idiom read as two findings.
+    checks += 1
+    d1c = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "careful", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "cond_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1c = [(x.component, x.code, x.advisory) for x in d1c]
+    if gotd1c != [("careful", "OWN051", True)]:
+        fails.append("TZ D1: a partial release must join to `may` — no verdicts, "
+                     f"one OWN051 advisory, got {gotd1c}")
+    # (TZ D1) release in BOTH branches IS all-paths: consume survives, and the
+    # careless caller keeps its true OWN002 — the refinement costs no recall here.
+    checks += 1
+    d1b = check_facts({"module": "M", "functions": [
+        {"name": "both_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}],
+                   "else": [{"op": "release", "var": "x", "line": 4}]}]},
+        {"name": "reuse_b", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "both_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1b = [(x.component, x.line, x.code) for x in d1b]
+    if gotd1b != [("reuse_b", 10, "OWN002")]:
+        fails.append("TZ D1: an all-paths (both-branch) release is still consume, "
+                     f"got {gotd1b}")
+    # (TZ D1) a release inside a `while` body is never definite (zero-trip): plain.
+    checks += 1
+    d1w = check_facts({"module": "M", "functions": [
+        {"name": "loop_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "while", "line": 2,
+                   "body": [{"op": "release", "var": "x", "line": 3}]}]},
+        {"name": "loop_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "loop_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1w = [(x.component, x.code, x.advisory) for x in d1w]
+    if gotd1w != [("loop_user", "OWN051", True)]:
+        fails.append("TZ D1: a while-body release is zero-trip-partial — no "
+                     f"verdicts, one OWN051 advisory, got {gotd1w}")
+    # (TZ D1) an early `return` on an unreleased path blocks the definite claim:
+    # `guard(x){ if(c) return; release x; }` does not release on the guard path.
+    checks += 1
+    d1g = check_facts({"module": "M", "functions": [
+        {"name": "guard_rel", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2, "then": [{"op": "return", "line": 3}],
+                   "else": []},
+                  {"op": "release", "var": "x", "line": 4}]},
+        {"name": "guard_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "guard_rel", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1g = [(x.component, x.code, x.advisory) for x in d1g]
+    if gotd1g != [("guard_user", "OWN051", True)]:
+        fails.append("TZ D1: an early-return-unreleased path blocks consume — no "
+                     f"verdicts, one OWN051 advisory, got {gotd1g}")
+    # (TZ D1) release-then-return in a branch plus a fall-through release IS
+    # all-paths — the walk credits a released early exit, so consume survives.
+    checks += 1
+    d1rr = check_facts({"module": "M", "functions": [
+        {"name": "rel_ret", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3},
+                            {"op": "return", "line": 4}],
+                   "else": []},
+                  {"op": "release", "var": "x", "line": 5}]},
+        {"name": "rel_ret_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "rel_ret", "args": ["r"], "line": 11},
+                  {"op": "use", "var": "r", "line": 12}]}]})
+    gotrr = [(x.component, x.line, x.code) for x in d1rr]
+    if gotrr != [("rel_ret_user", 10, "OWN002")]:
+        fails.append("TZ D1: release-then-return + fall-through release is all-paths "
+                     f"consume, got {gotrr}")
+    # (TZ D1) a wrapper forwarding to a partial releaser inherits `may` through the
+    # solver — the transitive claim degrades to plain (silence) too.
+    checks += 1
+    d1f = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel2", "file": "D.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "via", "file": "D.cs", "params": [{"name": "s", "line": 6}],
+         "body": [{"op": "call", "callee": "cond_rel2", "args": ["s"], "line": 7}]},
+        {"name": "via_user", "file": "D.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "via", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotd1f = [(x.component, x.code, x.advisory) for x in d1f]
+    if gotd1f != [("via_user", "OWN051", True)]:
+        fails.append("TZ D1: forwarding to a partial releaser degrades to `may` "
+                     f"transitively — no verdicts, one OWN051 advisory, got {gotd1f}")
+    # (итерация 6) the optimistic default made REAL: an owned local DROPPED after
+    # a may-call must be silent (untracked), not an OWN001 — before this fix a
+    # plain arg left the obligation with the caller, so the ubiquitous null-guard
+    # helper usage `var r = new X(); Cleanup(r);` (no dispose after — Cleanup IS
+    # the disposer) fabricated a leak. The gap is the OWN051 advisory instead.
+    checks += 1
+    d6drop = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel3", "file": "U.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "drop_user", "file": "U.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "cond_rel3", "args": ["r"], "line": 11}]}]})
+    gotd6 = [(x.component, x.line, x.code, x.advisory) for x in d6drop]
+    if gotd6 != [("drop_user", 11, "OWN051", True)]:
+        fails.append("untrack: dropping a local after a may-call must be silent "
+                     f"(one OWN051 advisory, no OWN001), got {gotd6}")
+    # ... while a VERIFIED borrow keeps the obligation with the caller: dropping
+    # after a borrow-only callee is the T3 recall win (a real OWN001, no OWN051) —
+    # the untrack must never widen to verified contracts.
+    checks += 1
+    d6borrow = check_facts({"module": "M", "functions": [
+        {"name": "peek3", "file": "U.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "use", "var": "x", "line": 2}]},
+        {"name": "drop_b", "file": "U.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "peek3", "args": ["r"], "line": 11}]}]})
+    gotd6b = [(x.component, x.line, x.code, x.advisory) for x in d6borrow]
+    if gotd6b != [("drop_b", 10, "OWN001", False)]:
+        fails.append("untrack: a verified borrow must keep the caller's obligation "
+                     f"(true OWN001 on drop, no advisory), got {gotd6b}")
+    # a plain (never-acquired) value at a may-position is not a gap worth a note:
+    # the OWN051 owned-local gate keeps the advisory channel quiet.
+    checks += 1
+    d6plain = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel4", "file": "U.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "plain_user", "file": "U.cs",
+         "body": [{"op": "call", "callee": "cond_rel4", "args": ["v"], "line": 11}]}]})
+    if d6plain:
+        fails.append("untrack: a non-owned value at a may-position must stay quiet, "
+                     f"got {[(x.component, x.code) for x in d6plain]}")
+    # (Codex P1) the untrack must not swallow PRE-call verdicts: a local is
+    # tracked normally up to its top-level may-call, so a use-after-release
+    # BEFORE the handoff still surfaces (before the fix the whole-body untrack
+    # skipped the acquire and the real OWN002 vanished, leaving only OWN051).
+    checks += 1
+    p1pre = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel5", "file": "K.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "pre_bug", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "release", "var": "r", "line": 11},
+                  {"op": "use", "var": "r", "line": 12},
+                  {"op": "call", "callee": "cond_rel5", "args": ["r"], "line": 13}]}]})
+    gotp1 = sorted((x.component, x.code, x.advisory) for x in p1pre)
+    if gotp1 != [("pre_bug", "OWN002", False), ("pre_bug", "OWN051", True)]:
+        fails.append("kill-site untrack: a pre-call use-after-release must keep its "
+                     f"OWN002 beside the OWN051 advisory, got {gotp1}")
+    # (Codex P1) ... while the POST-call region keeps the optimistic silence: the
+    # kill-site `$consume` discharges the obligation on every path through the
+    # top-level call, so a defensive dispose after it is still uncharged.
+    checks += 1
+    p1post = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel6", "file": "K.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "post_guard", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "cond_rel6", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12},
+                  {"op": "use", "var": "r", "line": 13}]}]})
+    gotp1p = [(x.component, x.code, x.advisory) for x in p1post]
+    if gotp1p != [("post_guard", "OWN051", True)]:
+        fails.append("kill-site untrack: post-call defensive dispose/use must stay "
+                     f"silent (one OWN051 advisory), got {gotp1p}")
+    # (Codex P2) an early return SKIPPING the single top-level forward makes the
+    # handoff conditional: `guarded(x){ if(c) return; sink(x); }` must join to
+    # `may`, so the guarded helper does not leak its own param and a caller's
+    # defensive dispose is not charged a false OWN002 (the forward twin of D1).
+    checks += 1
+    p2er = check_facts({"module": "M", "functions": [
+        {"name": "sink_er", "file": "K.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]},
+        {"name": "guarded", "file": "K.cs", "params": [{"name": "s", "line": 5}],
+         "body": [{"op": "if", "line": 6, "then": [{"op": "return", "line": 7}],
+                   "else": []},
+                  {"op": "call", "callee": "sink_er", "args": ["s"], "line": 8}]},
+        {"name": "guarded_user", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "guarded", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotp2 = [(x.component, x.code, x.advisory) for x in p2er]
+    if gotp2 != [("guarded_user", "OWN051", True)]:
+        fails.append("S2 early return: a return-skipped forward must join to `may` "
+                     f"— no verdicts, one OWN051 advisory, got {gotp2}")
+    # (TZ D5) a failed MOS solve must degrade OBSERVABLY: the bridge drops to
+    # no-MOS (checker stays alive, forwards stay plain — no fabricated verdicts)
+    # and surfaces ONE advisory OWN052 naming the inner error. Before the fix the
+    # whole interprocedural layer went dark silently. Patch the solver to raise —
+    # no real facts input can make it throw today, which is exactly why the silent
+    # `except` was never noticed.
+    checks += 1
+    import ownlang.ownir as _oi
+    _mos_facts = {"module": "Dark", "functions": [
+        {"name": "sink3", "file": "S.cs",
+         "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]},
+        {"name": "hand", "file": "S.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "sink3", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]}
+    _real_solve = _oi.solve
+    def _boom(_sk):  # type: ignore[no-untyped-def]
+        raise RuntimeError("synthetic solver failure")
+    _oi.solve = _boom  # type: ignore[assignment]
+    try:
+        dark = check_facts(_mos_facts)
+    finally:
+        _oi.solve = _real_solve
+    gotdark = [(x.code, x.component, x.advisory) for x in dark]
+    if gotdark != [("OWN052", "Dark", True)] or \
+            "synthetic solver failure" not in dark[0].message:
+        fails.append("TZ D5: a failed solve must yield exactly one advisory OWN052 "
+                     f"(and no fabricated verdicts), got {gotdark}")
+    # ... and the SAME facts with a healthy solver carry no OWN052 — the consume
+    # resolves interprocedurally again and the careless caller's OWN002 is back.
+    checks += 1
+    lit = check_facts(_mos_facts)
+    gotlit = [(x.component, x.line, x.code) for x in lit]
+    if gotlit != [("hand", 10, "OWN002")]:
+        fails.append("TZ D5: healthy solve must carry no OWN052 and keep the true "
+                     f"OWN002, got {gotlit}")
+    # --- roadmap stage 1: the `summaries` dump (dump_summaries / `python -m
+    #     ownlang summaries`). One deterministic document: solved MOS per method
+    #     (sorted by key), the extern-boundary log (sorted), a `degraded` reason.
+    #     This is the parity surface the Rust port of the inference layer will be
+    #     diffed against, so its byte-stability IS the contract.
+    from ownlang.ownir import dump_summaries
+    _dump_facts = {"module": "M", "functions": [
+        {"name": "B.Fwd", "file": "b.cs", "params": [{"name": "s", "line": 1}],
+         "body": [{"op": "call", "callee": "Extern.Gone", "args": ["s"], "line": 2}]},
+        {"name": "A.Make", "file": "a.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},
+        {"name": "C.Sink", "file": "c.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]}]}
+    checks += 1
+    doc = dump_summaries(_dump_facts)
+    keys = [s["method"] for s in doc["summaries"]]
+    kinds = {s["method"]: s["returns"]["owned"] for s in doc["summaries"]}
+    transfers = {s["method"]: [p["transfer"] for p in s["params"]]
+                 for s in doc["summaries"]}
+    files = {s["method"]: s["file"] for s in doc["summaries"]}
+    if (keys != ["A.Make", "B.Fwd", "C.Sink"]  # sorted by method key
+            or kinds["A.Make"] != "fresh" or transfers["C.Sink"] != ["must"]
+            or transfers["B.Fwd"] != ["unknown"]
+            or doc["unresolved"] != ["Extern.Gone#0 (extern, no summary)"]
+            or files["A.Make"] != "a.cs" or doc["degraded"] is not None):
+        fails.append(f"summaries dump content wrong: {doc}")
+    # byte-determinism: permuting `functions[]` input order must not change one byte
+    # of the canonical dump — this is what makes it a parity artifact, not a debug log.
+    checks += 1
+    blob1 = json.dumps(doc, indent=2, sort_keys=True)
+    _dump_facts["functions"].reverse()
+    blob2 = json.dumps(dump_summaries(_dump_facts), indent=2, sort_keys=True)
+    if blob1 != blob2:
+        fails.append("summaries dump must be byte-identical under functions[] "
+                     "input permutation")
+    # a failed solve degrades the dump exactly like the checking path: empty
+    # summaries + the reason in `degraded` — never a crash, never a half-document.
+    checks += 1
+    _real_swl = _oi.solve_with_log
+    def _boom2(_sk):  # type: ignore[no-untyped-def]
+        raise RuntimeError("synthetic dump failure")
+    _oi.solve_with_log = _boom2  # type: ignore[assignment]
+    try:
+        darkdoc = dump_summaries(_dump_facts)
+    finally:
+        _oi.solve_with_log = _real_swl
+    if (darkdoc["summaries"] != [] or darkdoc["unresolved"] != []
+            or "synthetic dump failure" not in (darkdoc["degraded"] or "")):
+        fails.append(f"degraded summaries dump wrong: {darkdoc}")
+    # spec/Inference.md conformance: the advisory codes the spec names (OWN051,
+    # OWN052) must be registered in the catalogue — a spec that references an
+    # unregistered code, or a dropped code, is drift the build must catch.
+    checks += 1
+    missing = [c for c in ("OWN051", "OWN052") if c not in TITLES]
+    if missing:
+        fails.append(f"Inference.md names unregistered code(s): {missing}")
     # (§10 q2) same-name OVERLOADS are merged, not dropped: when EVERY overload of a
     # name consumes the forwarded arg, a forward to that name resolves to `must`, so a
     # caller using the local after the handoff is OWN002. Before the merge the name was
@@ -1533,10 +1826,10 @@ def run() -> int:
          "body": [{"op": "acquire", "var": "s", "line": 20},
                   {"op": "call", "callee": "ovn_fwd", "args": ["s"], "line": 21},
                   {"op": "release", "var": "s", "line": 22}]}]})
-    if ovd:
-        gotn = [(x.component, x.code) for x in ovd]
-        fails.append("§10 q2 disagreeing overloads must join to `may` (caller stays "
-                     f"silent), got {gotn}")
+    gotn = [(x.component, x.code, x.advisory) for x in ovd]
+    if gotn != [("ovn_use", "OWN051", True)]:
+        fails.append("§10 q2 disagreeing overloads must join to `may` — no "
+                     f"verdicts, one OWN051 advisory, got {gotn}")
     # (Codex P2) a DIRECT call to disagreeing overloads must NOT mis-apply the last same-name
     # signature: the merged contract is `may`, so `acquire s; C.N(s); release s` stays silent.
     # (Before the fix the core's last-wins signature consumed s → a false OWN002.)
@@ -1550,9 +1843,10 @@ def run() -> int:
          "body": [{"op": "acquire", "var": "s", "line": 10},
                   {"op": "call", "callee": "C.N", "args": ["s"], "line": 11},
                   {"op": "release", "var": "s", "line": 12}]}]})
-    if ovdir:
-        fails.append("§10 q2 direct call to disagreeing overloads must stay silent (merged "
-                     f"may), got {[(x.component, x.code) for x in ovdir]}")
+    gotdir = [(x.component, x.code, x.advisory) for x in ovdir]
+    if gotdir != [("dN", "OWN051", True)]:
+        fails.append("§10 q2 direct call to disagreeing overloads carries no "
+                     f"verdicts, one OWN051 advisory (merged may), got {gotdir}")
     # the same DIRECT path DOES apply consume when every overload agrees: both consume, so
     # `acquire s; C.M(s); use s` is use-after-consume OWN002 (the channel carries the merged
     # `must`, not a dropped effect).

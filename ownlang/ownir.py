@@ -163,6 +163,7 @@ from .ownership import (
     ReturnSkeleton,
     Transfer,
     solve,
+    solve_with_log,
 )
 
 # The OwnIR schema version this core understands. Bump it whenever the fact
@@ -821,14 +822,21 @@ def _prelude_resources() -> list[ResourceDecl]:
     ]
 
 
-def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]:
+def to_module(facts: dict[str, Any],
+              notes: list[str] | None = None,
+              advisories: list[Finding] | None = None,
+              ) -> tuple[Module, dict[str, dict[str, Any]]]:
     """Build the core `Module` AST **directly** from OwnIR facts — no `.own` source
     text and no re-parse (P-016 B0a; the round-trip `to_own` + `parse` has existed
     since P-001). Mirrors `to_own`'s lowering exactly: each owned-resource fact
     becomes `let <handle> = acquire <Resource>();`, with a `release` iff the
     extractor found a matching teardown. Returns the Module plus the handle->fact
     map; a diagnostic names a handle via its symbol `origin` (`<name>#<line>`,
-    cfg.py), which maps straight back to the C# location."""
+    cfg.py), which maps straight back to the C# location. `notes`, when given,
+    collects coverage-degradation reasons (a failed MOS solve — TZ D5) the caller
+    should surface as advisory findings rather than lose; `advisories` collects
+    ready-made advisory Findings minted during lowering (OWN051 unverified-transfer
+    notes) for the caller to append."""
     handles: dict[str, dict[str, Any]] = {}
     functions: list[FnDecl] = []
     gid = 0
@@ -943,11 +951,16 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
         # D5.1: resolve interprocedural ownership transfer once, up front, so a
         # forwarded `consume`/`borrow` param is checked compositionally (the give-up
         # case `_infer_param_effect` used to leave plain). Never let summary
-        # computation crash the bridge — degrade to no-MOS (the old behaviour).
+        # computation crash the bridge — degrade to no-MOS (the old behaviour) —
+        # but the whole interprocedural layer going dark must be OBSERVABLE, not
+        # silent (honest-skip; TZ D5): record the reason for the caller to surface
+        # as an advisory OWN052.
         try:
             mos: dict[str, Any] = solve(_build_skeletons(raw_fns))
-        except Exception:
+        except Exception as exc:
             mos = {}
+            if notes is not None:
+                notes.append(f"{type(exc).__name__}: {exc}")
         # every first-party method name: the Tier B BCL table must never fire for a callee we
         # compiled from source — Tier A is authoritative even with no usable summary
         # (CodeRabbit). Threaded into the freshness checks so direct calls agree with the
@@ -979,11 +992,51 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
             localmap: dict[str, str] = {}
             fparams = _lower_fn_params(fn, ffile, fname, handles, loc, localmap,
                                        released, mos)
+            # The optimistic default (d5 §5), made real: an argument at a call
+            # position whose contract resolved `may`/`unknown` means "we cannot
+            # verify whether ownership left the caller" — so the caller's local
+            # stops being checked AT that call, and neither a missing nor a
+            # defensive dispose after it can be charged. Anything less is not
+            # silence: a plain arg leaves the obligation with the caller, so
+            # dropping it fabricates OWN001 on the ubiquitous null-guard-helper
+            # idiom (TZ итерация 6). Two mechanisms, by call position (Codex P1):
+            #  - a TOP-LEVEL unverified call dominates the function exit, so the
+            #    local is tracked NORMALLY up to it (a pre-call use-after-release
+            #    still surfaces) and discharged at the call site (`kill_sites` —
+            #    a `$consume` on the handle), with later references unmapped;
+            #  - an IN-BRANCH unverified call has no all-paths discharge point the
+            #    core could accept without a maybe-moved state, so those locals
+            #    keep the conservative whole-body untrack (acquire never minted).
+            unverified = _unverified_transfer_calls(nodes, mos)
+            kill_sites = _kill_sites_for_unverified(nodes, mos)
+            untracked = frozenset(a for a, _c, _t, _l in unverified) - kill_sites.keys()
+            if advisories is not None and unverified:
+                # OWN051, gated on args that actually carry an obligation here (an
+                # acquired local or a fresh factory result) — a plain value passed
+                # to a may-position is not a gap worth a note.
+                owned_here = _collect_vars(nodes, "acquire", "var") | {
+                    v for v, c in _call_result_callees(nodes).items()
+                    if c and _callee_returns_fresh(c, mos, first_party)}
+                for arg, callee, transfer, cline in unverified:
+                    if arg not in owned_here:
+                        continue
+                    advisories.append(Finding(
+                        file=ffile, line=cline, code="OWN051",
+                        component=fname, event=arg, handler=callee,
+                        message=(f"cannot verify whether '{callee}' takes "
+                                 f"ownership of '{arg}' (inferred contract: "
+                                 f"{transfer}); optimistically assuming it does — "
+                                 f"'{arg}' is not checked past this call"),
+                        kind="ownership transfer", advisory=True))
             # Cross-branch locals (acquired inside an `if`/`while` branch but referenced
             # after the merge) must be declared once at the function's outer scope, or
             # the core rejects the post-merge reference as OWN030 (the bridge branch-
             # scope fix). Pre-declare them here, then skip their in-branch acquire.
-            hoist = _hoisted_branch_locals(nodes, mos, first_party)
+            # An untracked local must not be hoisted either — the hoisted `Let`
+            # would re-mint the very obligation the untrack removed.
+            hoist = {k: v for k, v in
+                     _hoisted_branch_locals(nodes, mos, first_party).items()
+                     if k not in untracked}
             hoisted_lets: list[Stmt] = []
             for hname in sorted(hoist):
                 hh = f"loc_{loc[0]}"
@@ -996,7 +1049,8 @@ def to_module(facts: dict[str, Any]) -> tuple[Module, dict[str, dict[str, Any]]]
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
             fbody = [*hoisted_lets,
                      *_lower_flow(nodes, ffile, fname, handles, loc, localmap,
-                                  released, mos, set(hoist), first_party, overloaded)]
+                                  released, mos, set(hoist), first_party, overloaded,
+                                  untracked, kill_sites)]
             # A body that returns a value gets an owned return type, so the core
             # models `return s` as a valid ESCAPE (the value is discharged to the
             # caller) instead of a void-return mismatch that would leave `s` looking
@@ -1038,6 +1092,126 @@ def _released_vars(nodes: list[Any]) -> set[str]:
             if isinstance(b, list):
                 out |= _released_vars(b)
     return out
+
+
+def _unverified_transfer_calls(
+        nodes: Any, mos: dict[str, Any] | None) -> list[tuple[str, str, str, int]]:
+    """Every `(arg_name, callee, transfer, line)` where a call op hands an argument
+    to a summarized callee position whose resolved transfer is `may` or `unknown` —
+    the ownership contract the solver could NOT verify (d5 §5's advisory channel).
+
+    Two consumers in `to_module`: the arg names become the per-function UNTRACK set
+    (the optimistic default made real — "caller no longer owns" means the local's
+    obligation stops being tracked at that call, so neither a missing NOR a
+    defensive dispose after it can be charged), and each hit on an owned local
+    surfaces as an advisory OWN051 (the honest record of the gap; TZ итерация 6).
+    Callees with no summary at all are NOT collected: the extractor already
+    escape-drops locals it hands to unanalyzable callees, and the `$`-sink externs
+    are verified contracts, not gaps."""
+    out: list[tuple[str, str, str, int]] = []
+    if mos is None:
+        return out
+
+    def walk(ns: Any) -> None:
+        if not isinstance(ns, list):
+            return
+        for n in ns:
+            if not isinstance(n, dict):
+                continue
+            op = n.get("op")
+            if op == "call":
+                callee = str(n.get("callee", ""))
+                summ = mos.get(callee) if callee else None
+                if summ is None and callee:
+                    identity = _canonical_callee_name(callee)
+                    if identity != callee:
+                        summ = mos.get(identity)
+                args = n.get("args", [])
+                if summ is not None and isinstance(args, list):
+                    for j, a in enumerate(args):
+                        ps = next((q for q in summ.params if q.index == j), None)
+                        if ps is not None and ps.transfer in (Transfer.MAY,
+                                                              Transfer.UNKNOWN):
+                            out.append((str(a), callee, ps.transfer.value,
+                                        _as_int(n.get("line", 0))))
+            elif op == "if":
+                walk(n.get("then"))
+                walk(n.get("else"))
+            elif op == "while":
+                walk(n.get("body"))
+
+    walk(nodes)
+    return out
+
+
+def _kill_sites_for_unverified(
+        nodes: Any, mos: dict[str, Any] | None) -> dict[str, int]:
+    """`local name -> id()` of the TOP-LEVEL call op where its tracking stops —
+    the flow-aware half of the optimistic default (Codex P1). A local handed to
+    a `may`/`unknown`-contract position used to be untracked across the WHOLE
+    body, which also swallowed real pre-call verdicts (`acquire s; release s;
+    use s; maybe(s)` lost its use-after-release). A top-level unverified call
+    lies on every path from the ops before it to the function exit, so the
+    bridge can do better with no maybe-moved core state: keep the local fully
+    tracked up to the call, discharge it there (`$consume` on the handle — the
+    optimistic "ownership left"), and unmap it after (later uses/releases stay
+    silent, exactly what OWN051 advertises).
+
+    Only a name already MINTED in this body before the call (an `acquire`, an
+    `alias_join`, or a call `result`) gets a kill site — anything else (a param,
+    a plain value, a mint that oddly follows the call) keeps the conservative
+    whole-body untrack. Calls inside `if`/`while` never produce a kill site: a
+    branch-local `$consume` discharges only that path and would fabricate an
+    OWN001/OWN009 on the other one, so those stay whole-body untracked too."""
+    sites: dict[str, int] = {}
+    if mos is None or not isinstance(nodes, list):
+        return sites
+    minted: set[str] = set()
+
+    def collect_mints(n: Any) -> None:
+        if not isinstance(n, dict):
+            return
+        op = n.get("op")
+        if op in ("acquire", "alias_join"):
+            v = n.get("var")
+            if isinstance(v, str):
+                minted.add(v)
+        elif op == "call":
+            r = n.get("result")
+            if isinstance(r, str) and r:
+                minted.add(r)
+        elif op == "if":
+            for key in ("then", "else"):
+                sub = n.get(key)
+                if isinstance(sub, list):
+                    for x in sub:
+                        collect_mints(x)
+        elif op == "while":
+            sub = n.get("body")
+            if isinstance(sub, list):
+                for x in sub:
+                    collect_mints(x)
+
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        if n.get("op") == "call":
+            callee = str(n.get("callee", ""))
+            summ = mos.get(callee) if callee else None
+            if summ is None and callee:
+                identity = _canonical_callee_name(callee)
+                if identity != callee:
+                    summ = mos.get(identity)
+            args = n.get("args", [])
+            if summ is not None and isinstance(args, list):
+                for j, a in enumerate(args):
+                    ps = next((q for q in summ.params if q.index == j), None)
+                    if (ps is not None
+                            and ps.transfer in (Transfer.MAY, Transfer.UNKNOWN)
+                            and str(a) in minted and str(a) not in sites):
+                        sites[str(a)] = id(n)
+        collect_mints(n)
+    return sites
 
 
 def _returns_value(nodes: Any) -> bool:
@@ -1371,6 +1545,62 @@ def _param_signals(pname: str, nodes: Any) -> tuple[bool, bool, bool]:
     return rel, passed, used
 
 
+def _walk_release(pname: str, nodes: Any, rel_in: int) -> tuple[int, bool, bool]:
+    """Definite-release walk over one op sequence, for `_definite_release`.
+
+    Returns `(rel_out, falls_through, exits_ok)`: `rel_out` is the release state
+    of the paths leaving the sequence bottom (0 = released on none, 1 = on some,
+    2 = on all), `falls_through` is whether any path reaches the bottom at all,
+    and `exits_ok` is whether every `return` op seen so far was reached with the
+    param already released. Ops that cannot affect or bypass a release are
+    neutral by design: a compound op that COULD hide one (a future `try`/`using`)
+    fails loud in `_lower_flow` first (the IR4 gate), so this walk never sees it."""
+    rel = rel_in
+    exits_ok = True
+    if not isinstance(nodes, list):
+        return rel, True, exits_ok
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        op = n.get("op")
+        if op == "release" and str(n.get("var")) == pname:
+            rel = 2
+        elif op == "return":
+            # a normal-return path ends here carrying the current state; the rest
+            # of THIS sequence is unreachable.
+            return rel, False, exits_ok and rel == 2
+        elif op == "if":
+            rt, lt, okt = _walk_release(pname, n.get("then"), rel)
+            re_, le, oke = _walk_release(pname, n.get("else"), rel)
+            exits_ok = exits_ok and okt and oke
+            if lt and le:
+                rel = rt if rt == re_ else 1
+            elif lt or le:
+                rel = rt if lt else re_
+            else:
+                return rel, False, exits_ok  # both branches returned
+        elif op == "while":
+            rb, lb, okb = _walk_release(pname, n.get("body"), rel)
+            exits_ok = exits_ok and okb
+            # zero-trip entry joins with a completed iteration's exit state: a
+            # release inside a loop is never definite for the fall-through. A
+            # body that never completes (always returns) leaves only the
+            # zero-trip path, so the entry state stands.
+            if lb and rb != rel:
+                rel = 1
+    return rel, True, exits_ok
+
+
+def _definite_release(pname: str, nodes: Any) -> bool:
+    """True only when EVERY normal-return path through the body releases `pname`
+    — the d5 note's `must` ("released on all normal-return paths"). A partial
+    (one-branch / in-loop / guarded-by-early-return) release must join to `may`
+    instead: flattening it to `consume` charges a caller's defensive dispose a
+    false OWN002 and the helper itself a false OWN001 (TZ D1, reproduced)."""
+    rel, falls_through, exits_ok = _walk_release(pname, nodes, 0)
+    return exits_ok and (not falls_through or rel == 2)
+
+
 def _forward_targets(pname: str, nodes: Any,
                      recurse: bool = True) -> list[tuple[str, int]]:
     """Every `(callee, arg_index)` a `call` op hands `pname` to. The argument
@@ -1397,6 +1627,47 @@ def _forward_targets(pname: str, nodes: Any,
             for sub in subs:
                 out.extend(_forward_targets(pname, sub))
     return out
+
+
+def _contains_return(node: Any) -> bool:
+    """True if `node` (one op dict) is a `return` or can reach one inside its
+    `if` branches / `while` body. Used to spot an exit that BYPASSES a later
+    forward."""
+    if not isinstance(node, dict):
+        return False
+    op = node.get("op")
+    if op == "return":
+        return True
+    if op == "if":
+        subs = [node.get("then"), node.get("else")]
+    elif op == "while":
+        subs = [node.get("body")]
+    else:
+        return False
+    return any(isinstance(s, list) and any(_contains_return(x) for x in s)
+               for s in subs)
+
+
+def _early_return_before_forward(pname: str, nodes: Any) -> bool:
+    """True when a `return` op can exit the body BEFORE its single top-level
+    forward of `pname` runs. `if (c) return; Sink(x)` leaves the forward
+    top-level and unique, but the early-return path never transfers ownership —
+    calling that shape "unconditional" flattens the join to `must`, leaks the
+    callee's own parameter on the guarded path and charges the caller's
+    defensive dispose a false OWN002 (Codex P2; the forward twin of TZ D1's
+    partial release). Ops at or after the forward cannot bypass it, so the walk
+    stops at the first top-level op that hands `pname` on."""
+    if not isinstance(nodes, list):
+        return False
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        if n.get("op") == "call" and any(
+                str(a) == pname for a in (n.get("args") or [])):
+            return False  # reached the forward first — nothing bypassed it
+        if _contains_return(n):
+            return True
+    return False
 
 
 def _forward_path_action(callee: str, arg: int) -> PathAction:
@@ -1450,7 +1721,11 @@ def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
     params = tuple(
         ParamSkeleton(i, names[i], True, tuple(by_index[i])) for i in sorted(by_index)
     )
-    return MethodSkeleton(group[0].key, params, _merge_returns([sk.ret for sk in group]))
+    # the merged location must not depend on `functions[]` input order (the summary
+    # dump is a deterministic parity surface): take the smallest (file, line) pair.
+    floc = min((sk.file, sk.line) for sk in group)
+    return MethodSkeleton(group[0].key, params,
+                          _merge_returns([sk.ret for sk in group]), floc[0], floc[1])
 
 
 def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
@@ -1462,11 +1737,17 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     bridge's local inference on the non-forward cases and only *resolves* the
     forwarded one.
 
-    Two precision rules keep `solve()` from ever inferring a false `must` (which
+    Three precision rules keep `solve()` from ever inferring a false `must` (which
     would upgrade a caller to `consume` and fabricate OWN002/OWN001):
       - an **explicit** `effect` seeds the skeleton (it is a documented override —
         `consume`→`dispose`, `borrow`/`borrow_mut`→`borrow`, anything else owns
         nothing), so a contract-only callee resolves correctly even with no body;
+      - a release counts as a `dispose` path alone only when it is **definite** —
+        on every normal-return path (`_definite_release`). A partial release
+        (one branch / in a loop / behind an early return) also emits a kept
+        (`borrow`) path, so the join is `may` and the caller stays plain — a
+        flattened `must` would charge a defensive caller-side dispose a false
+        OWN002/OWN003 (TZ D1);
       - a forward is resolved only when it is a **single, unconditional,
         straight-line** handoff. A conditional / looped / multi-target forward also
         emits a non-transfer (`borrow`) path, so the lattice yields `may`/`no`
@@ -1515,14 +1796,24 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             else:
                 rel, passed, used = _param_signals(cname, body)
                 if rel:
-                    paths = (PathAction("dispose"),)
+                    if _definite_release(cname, body):
+                        paths = (PathAction("dispose"),)
+                    else:
+                        # released on SOME paths only (TZ D1): a kept path exists,
+                        # so record it beside the dispose and let the lattice join
+                        # yield `may` — the caller stays plain, never a flattened
+                        # `must` that would charge its defensive dispose a false
+                        # OWN002/OWN003.
+                        paths = (PathAction("dispose"), PathAction("borrow"))
                 elif passed:
                     allt = _forward_targets(cname, body)
                     top = _forward_targets(cname, body, recurse=False)
                     paths = tuple(_forward_path_action(c, j) for c, j in allt)
-                    if not (len(allt) == 1 and len(top) == 1):
+                    if not (len(allt) == 1 and len(top) == 1
+                            and not _early_return_before_forward(cname, body)):
                         # not a single unconditional handoff: a no-transfer path
-                        # exists (other branch / zero-trip loop / sibling call), so
+                        # exists (other branch / zero-trip loop / sibling call /
+                        # early return skipping the forward — Codex P2), so
                         # the join is `may`/`no`, never a false `must`.
                         paths = (*paths, PathAction("borrow"))
                 elif used:
@@ -1532,7 +1823,10 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
         ret = _infer_return_skeleton(body, pnames, first_party)
-        by_key.setdefault(key, []).append(MethodSkeleton(key, tuple(params), ret))
+        # carry the declaration file so the summary dump is navigable (functions[]
+        # entries carry no line of their own — params do; line stays 0).
+        by_key.setdefault(key, []).append(
+            MethodSkeleton(key, tuple(params), ret, str(fn.get("file", "?"))))
     # one skeleton per name: solve() keys by name (a forward names its callee with no
     # signature), so same-name overloads are joined into a single conservative summary.
     return [_merge_skeletons(group) for group in by_key.values()]
@@ -1542,8 +1836,11 @@ def _infer_param_effect(pname: str, nodes: Any,
                         forward_transfer: Transfer | None = None) -> str | None:
     """Infer a parameter's ownership CONTRACT from the callee's OWN body — the
     bounded inter-procedural step that lets first-party C# be checked without
-    annotating every method. A param the body discharges (release) is CONSUME
-    (ownership taken and discharged); one only read and retained is a BORROW (the
+    annotating every method. A param the body discharges (release) on EVERY
+    normal-return path is CONSUME (ownership taken and discharged); a partial
+    release (one branch / in a loop / behind an early return) is `may` and stays
+    plain — flattening it to consume would charge a caller's defensive dispose a
+    false OWN002 (TZ D1). One only read and retained is a BORROW (the
     caller keeps ownership, must still release). A param handed to another call
     used to be ambiguous and stay plain; **P-005 D5.1** resolves it through the
     call graph: `forward_transfer` is the solved transfer of that param (must →
@@ -1555,7 +1852,9 @@ def _infer_param_effect(pname: str, nodes: Any,
     fact always wins over inference."""
     rel, passed, used = _param_signals(pname, nodes)
     if rel:
-        return "consume"
+        if _definite_release(pname, nodes):
+            return "consume"
+        return None  # released on SOME paths only -> `may` -> plain (TZ D1)
     if passed:
         if forward_transfer == Transfer.MUST:
             return "consume"
@@ -1754,7 +2053,9 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 mos: dict[str, Any] | None = None,
                 hoisted: set[str] | None = None,
                 first_party: frozenset[str] = frozenset(),
-                overloaded: frozenset[str] = frozenset()) -> list[Stmt]:
+                overloaded: frozenset[str] = frozenset(),
+                untracked: frozenset[str] = frozenset(),
+                kill_sites: dict[str, int] | None = None) -> list[Stmt]:
     """Lower one OwnIR flow body (B0b/B2) into core statements. acquire/use/release/
     return reference a C# local by name (`var`); `if` carries `then`/`else`
     sub-bodies; `while` carries a `body` (a back-edge — the core's worklist fixpoint
@@ -1771,7 +2072,21 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
     outer scope by the caller, so an in-branch acquire of such a name is SKIPPED here
     (the hoisted `Let` already declared+acquired it) — this keeps a cross-branch local
     in scope after the merge instead of emitting a branch-scoped `Let` the core would
-    reject as OWN030."""
+    reject as OWN030.
+
+    `untracked` names (see `_unverified_transfer_calls`) are locals handed to a
+    `may`/`unknown`-contract position INSIDE a branch or loop: the optimistic
+    default assumes ownership left the caller, so their acquires / fresh mints /
+    alias mints are NOT emitted — later releases/uses of them resolve to nothing
+    and stay silent, and the gap is surfaced as an advisory OWN051 instead of a
+    fabricated verdict.
+
+    `kill_sites` (see `_kill_sites_for_unverified`) carries the flow-aware case
+    (Codex P1): a local whose unverified handoff is a TOP-LEVEL call is tracked
+    normally up to that call (pre-call bugs still surface), discharged there with
+    a `$consume` on its handle, and unmapped after it — the post-call silence is
+    the same, but the checked region now honestly matches OWN051's "not checked
+    past this call"."""
     hoisted = hoisted or set()
     body: list[Stmt] = []
     for n in nodes:
@@ -1784,6 +2099,11 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             if name in hoisted:
                 # declared+acquired once at the outer scope (cross-branch local) — the
                 # hoisted `Let` stands in for this in-branch acquire; emit nothing.
+                continue
+            if name in untracked:
+                # handed to a may/unknown-contract position later: optimistically
+                # not ours to check (OWN051 carries the honest note). No obligation
+                # is minted, so neither dropping nor disposing it can be charged.
                 continue
             handle = f"loc_{loc[0]}"
             loc[0] += 1
@@ -1813,7 +2133,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # A hoisted local keeps its single outer-scope handle (declared once).
             if name not in hoisted:
                 localmap.pop(name, None)
-            if src_h is not None and name not in hoisted:
+            if src_h is not None and name not in hoisted and name not in untracked:
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[name] = handle
@@ -1846,16 +2166,16 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             en = n.get("else", [])
             then_b = _lower_flow(tn if isinstance(tn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded)
+                                 first_party, overloaded, untracked, kill_sites)
             else_b = _lower_flow(en if isinstance(en, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded)
+                                 first_party, overloaded, untracked, kill_sites)
             body.append(If("?", then_b, else_b, line))
         elif op == "while":
             bn = n.get("body", [])
             body_b = _lower_flow(bn if isinstance(bn, list) else [], ffile, fname,
                                  handles, loc, localmap, released_vars, mos, hoisted,
-                                 first_party, overloaded)
+                                 first_party, overloaded, untracked, kill_sites)
             body.append(While("?", body_b, line))
         elif op == "call":
             # A call to a CONTRACTED callee (a function/extern whose signature the
@@ -1876,18 +2196,28 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             # signature table (which would raise OWN040).
             merged = summ if summ is not None else (
                 mos.get(identity) if (mos is not None and identity != callee) else None)
-            if identity in overloaded and merged is not None and isinstance(raw_args, list):
-                # OVERLOADED name: do NOT emit a `Call` resolved against the core's last-wins
-                # signature table (it stores one same-name FnDecl, so it would mis-apply one
-                # overload's effect — a false OWN002 when overloads disagree). Apply the MERGED
-                # MOS contract per argument through the `$consume`/`$borrow` channel instead,
-                # exactly as a FORWARD to this name resolves (`must`→consume, `no`→borrow,
-                # `may`/`unknown`→plain). The channel emits sink externs (never the callee name),
-                # so a qualified callee is safe here. (Codex P2 / CodeRabbit.)
+            if merged is not None and isinstance(raw_args, list) and (
+                    identity in overloaded
+                    or any(q.transfer in (Transfer.MAY, Transfer.UNKNOWN)
+                           for q in merged.params)):
+                # Per-argument channel routing, for two shapes that must NOT emit a
+                # direct `Call`:
+                #  - an OVERLOADED name: the core's last-wins signature table stores
+                #    one same-name FnDecl, so a direct Call would mis-apply one
+                #    overload's effect — a false OWN002 when overloads disagree;
+                #  - a callee with a MAY/UNKNOWN param: its arg is UNTRACKED (the
+                #    optimistic default + advisory OWN051), so a direct Call would
+                #    reference an undeclared name — a loud OWN030 (map-or-raise).
+                # Apply the MOS contract per argument through the `$consume`/
+                # `$borrow` channel instead, exactly as a FORWARD to this name
+                # resolves (`must`→consume, `no`→borrow, `may`/`unknown`→nothing:
+                # the untracked arg is never referenced). The channel emits sink
+                # externs (never the callee name), so a qualified callee is safe
+                # here. (Codex P2 / CodeRabbit.)
                 for j, a in enumerate(raw_args):
                     ps = next((q for q in merged.params if q.index == j), None)
                     channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
-                    if channel is not None:
+                    if channel is not None and str(a) not in untracked:
                         body.append(Call(channel,
                                          [VarRef(localmap.get(str(a), str(a)), line)], line))
             # Only emit the `Call` when the callee is RESOLVABLE — a first-party function
@@ -1900,6 +2230,20 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 arg_refs: list[Expr] = [VarRef(localmap.get(str(a), str(a)), line)
                                         for a in raw_args]
                 body.append(Call(callee, arg_refs, line))
+            # The kill site of a tracked local (Codex P1): THIS top-level call hands
+            # it to a may/unknown position, so discharge the obligation here — the
+            # optimistic "ownership left the caller" as a real `$consume` on the
+            # handle — and unmap the name, silencing every later reference. Pre-call
+            # verdicts (a use-after-release before this line) already surfaced from
+            # the normally-emitted statements above.
+            if kill_sites and isinstance(raw_args, list):
+                for a in raw_args:
+                    aname = str(a)
+                    if kill_sites.get(aname) == id(n):
+                        killed = localmap.pop(aname, None)
+                        if killed is not None:
+                            body.append(Call("$consume",
+                                             [VarRef(killed, line)], line))
             # P-005 D5.2 (T1): if the call binds a result and the callee is a known
             # `fresh`-returning factory, the result is a newly-owned local — mint an
             # acquire for it (the args' effects, if any, were applied by the Call
@@ -1915,6 +2259,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             if isinstance(result, str) and result and result not in hoisted:
                 localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
+                    and result not in untracked
                     and _callee_returns_fresh(callee, mos, first_party)):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
@@ -1985,6 +2330,44 @@ def _flow_local_steps(sub: dict[str, Any], code: str, dline: int,
     return ((f, acq, origin), (f, dline, viol))
 
 
+def dump_summaries(facts: dict[str, Any]) -> dict[str, Any]:
+    """The MOS observability / parity surface (roadmap stage 1, TZ §5.4): derive
+    the skeletons, run the solver, and return the solved summaries plus the
+    extern-boundary log as ONE deterministic document.
+
+    Two consumers, one contract:
+    - a human asking "why did this call stay plain?" reads the method's summary
+      (transfer per param, return kind) and the `unresolved` extern boundaries
+      without reading bridge code;
+    - the Rust port of the inference layer is diffed against this document
+      (`oracle_exact`-style), which checks the port at the summary level — finer
+      than diffing final diagnostics, where an inference bug can hide behind an
+      unrelated silence.
+
+    Determinism is the contract: summaries are sorted by method key, the
+    unresolved log arrives sorted from `solve_with_log`, and `to_dict` field
+    order is fixed — the same facts yield byte-identical JSON regardless of
+    `functions[]` input order. A failed solve degrades exactly like
+    `check_facts` (empty summaries), with the reason in `degraded` — the same
+    honesty OWN052 gives the checking path."""
+    raw_fns = facts.get("functions", [])
+    raw_fns = raw_fns if isinstance(raw_fns, list) else []
+    degraded: str | None = None
+    summaries: dict[str, Any] = {}
+    unresolved: list[str] = []
+    try:
+        summaries, unresolved = solve_with_log(_build_skeletons(raw_fns))
+    except Exception as exc:
+        degraded = f"{type(exc).__name__}: {exc}"
+    return {
+        "module": str(facts.get("module", "?")),
+        "ownir_version": OWNIR_VERSION,
+        "summaries": [summaries[k].to_dict() for k in sorted(summaries)],
+        "unresolved": unresolved,
+        "degraded": degraded,
+    }
+
+
 def check_facts(facts: dict[str, Any]) -> list[Finding]:
     """Run the core checker over the lowered facts and return findings mapped
     back to their original C# locations (v0: the `event += without -=` leak).
@@ -2001,7 +2384,9 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # a module-level cycle (ownir is a leaf consumer).
     from .__main__ import check_module
 
-    mod, handles = to_module(facts)
+    mos_notes: list[str] = []
+    transfer_notes: list[Finding] = []
+    mod, handles = to_module(facts, mos_notes, transfer_notes)
     diags = check_module(mod)
 
     # registration site of each DI service, to anchor a subscription-escape slice's
@@ -2248,6 +2633,25 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # an advisory "leakage analysis skipped" note, never a leak. Routed through
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
     findings.extend(_unresolved_findings(facts))
+
+    # OWN051 (d5 §5's advisory channel): each owned local handed to a
+    # may/unknown-contract position was optimistically untracked at that call —
+    # surface the honest "not checked past here" note minted during lowering.
+    findings.extend(transfer_notes)
+
+    # OWN052 (TZ D5): the MOS solve failed and the bridge degraded to no-MOS, so
+    # EVERY cross-method ownership contract was skipped this run. Same honest-skip
+    # posture as OWN050 — a coverage note, never a verdict, never the exit code.
+    # Anchorless by nature (no single C# site failed): file-level, module-scoped.
+    module_name = str(facts.get("module", "?"))
+    for reason in mos_notes:
+        findings.append(Finding(
+            file="?", line=0, code="OWN052", component=module_name,
+            event="", handler="",
+            message=(f"interprocedural summary inference failed ({reason}); "
+                     f"method summaries skipped — cross-method ownership "
+                     f"transfer was not checked this run"),
+            kind="method summaries", advisory=True))
 
     # A resource that leaks on more than one exit yields one core OWN001 per exit:
     # e.g. the try-lowering injects an exceptional exit before each may-throw

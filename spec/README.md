@@ -15,6 +15,7 @@ stop aspirational docs from lying about the code.
 | [Diagnostics.md](Diagnostics.md) | every OWN code, grouped, linked to the rule that raises it |
 | [CodegenContract.md](CodegenContract.md) | the checker↔codegen contract C1–C4, lowering modes |
 | [OwnIR.md](OwnIR.md) | the frontend↔core fact seam (JSON): envelope, versioning + evolution policy, resource-kind + flow-op vocabulary, DI graph, rules IR1–IR6 |
+| [Inference.md](Inference.md) | the interprocedural ownership-inference layer: the MOS artifact, transfer lattice, derivation (S/R/M-rules), the solver (F-rules), call-site application (A-rules), optimistic default + advisories (OWN051/052), rules INF-* |
 | [ownir.schema.json](ownir.schema.json) | the machine-readable OwnIR schema (JSON Schema 2020-12) — the single source the Python core and the Rust `own-ir` crate are checked against; its enums are pinned to the code's authoritative sets by `tests/test_ownir.py` |
 | [CLI.md](CLI.md) | the `check` / `emit` / `cfg` / `report` commands |
 
@@ -29,6 +30,9 @@ checker cannot silently drift:
   buffer specifics) are covered by the suites below.
 - `tests/test_gallery.py`, `tests/test_lifetimes.py`, `tests/test_wpf.py`,
   `tests/test_corpus.py` — broader pinned examples.
+- `tests/test_ownir.py`, `tests/test_ownership.py` — the bridge/solver contracts
+  ([OwnIR.md](OwnIR.md) rules IR*, [Inference.md](Inference.md) rules INF*),
+  pinned at the facts/summary level rather than via `.own` source.
 
 A spec change without a matching test change (or vice-versa) is a red build. To
 add a rule: write it here with an ID, add its example to `test_spec.py`, and add
