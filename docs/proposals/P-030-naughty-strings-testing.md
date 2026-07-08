@@ -152,7 +152,13 @@ def run() -> int:
         # resource emit_*/kind members (a `let` rhs never takes a string),
         # so a benign entry parses cleanly and only the naughty content is
         # under test — the wrapper follows the run_tests.py PRELUDE shape.
-        src = f'module M\nresource R {{ acquire a release r emit_type "{naughty}" }}\n'
+        # Escape for Own string syntax first (the lexer decodes \\ and \")
+        # so entries containing quotes/backslashes reach the parser as
+        # themselves instead of terminating the literal early or being
+        # decoded into different text — otherwise those exact corpus rows
+        # would be silently skipped as "honest rejections".
+        payload = naughty.replace("\\", "\\\\").replace('"', '\\"')
+        src = f'module M\nresource R {{ acquire a release r emit_type "{payload}" }}\n'
         try:
             parse(src)
         except (ParseError, LexError):
@@ -163,6 +169,12 @@ def run() -> int:
         print(f"NAUGHTY FAIL: {f}")
     return 1 if fails else 0
 ```
+
+Two complementary paths per entry: the *escaped* embedding above proves the
+parser/analyzer path survives the payload as data; Layer 1 additionally feeds
+the **raw, unescaped** entry straight to `ownlang.lexer` (no wrapper), where
+`LexError` is a legal outcome — that path exercises exactly the quote/escape/
+control-character entries the escaped wrapper neutralizes.
 
 Serialization side follows the same shape against `diag_sarif.py` /
 `cfg_json.py`, asserting `json.loads(...)` / a SARIF-shape check succeeds.
