@@ -74,10 +74,12 @@ Own.Types
    └─ multi-language frontends
 ```
 
-The first four pillars share one restraint: brands, refinements, units, unions,
-and protocols all lower to plain structs/records plus smart constructors — the
-*discipline* is enforced by analyzer, not by a second type checker that could
-drift from the affine core (the project's standing meta-irony).
+The first four pillars share one restraint: brands, refinements, and units
+lower to plain structs/records plus smart constructors; unions lower to a
+sealed hierarchy / closed struct union; protocols are enforced as
+consume-on-transition typestate rules — in every case the *discipline* is
+enforced by analyzer, not by a second type checker that could drift from the
+affine core (the project's standing meta-irony).
 
 ## Scope
 

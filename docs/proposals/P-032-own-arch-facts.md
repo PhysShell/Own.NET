@@ -103,7 +103,15 @@ type-level arch-facts.json
 
 ## Architecture intent model
 
-Use JSON for the MVP, because OwnAudit already uses stdlib-only Python and existing "arch/rules.json" is JSON. YAML can be added later as an authoring format if needed.
+Use JSON for the MVP, because OwnAudit already uses stdlib-only Python and existing `arch/rules.json` is JSON.
+
+Contract note (reconciling with P-023): P-023 names hand-written
+`architecture.rules.yaml` as the intent-model source of truth. This proposal
+keeps a single canonical *machine* contract — `architecture.intent.json`, the
+form the evaluator reads — and treats P-023's YAML as the human authoring
+layer that renders to it (`yaml → json`, in CI or locally). Until that
+authoring layer exists, the JSON file is hand-written and reviewed directly;
+at no point are there two independently edited sources of truth.
 
 Example:
 

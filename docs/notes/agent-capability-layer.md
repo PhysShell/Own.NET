@@ -112,7 +112,7 @@ syscall/reachable-binary level. Two different enforcement models — don't confl
 | Phase | What | Verdict |
 |---|---|---|
 | **1. Policy engine** | `owen-policy`: parse `owen.policy.toml`, `policy check/explain`, `gen-ignore` | **Do.** Daily use, zero risk, not built. 80% of daily value. |
-| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Spiked** (`sandboy/` — authored, not yet compiled; acceptance gate: `cargo build` + `tests/demo.sh`, see `sandboy/README.md`). Wire to a real gate step. |
+| **2. Runner enforcement** | wrap agent in worktree + Sandboy | **Spiked** (`sandboy/` — authored, not yet compiled; acceptance gate: `cargo build --release` + `tests/demo.sh`, see `sandboy/README.md`). Wire to a real gate step. |
 | **3. WIT tool components** | move tools to capability-scoped components | **Selective.** WIT only where input/author is untrusted: `secret-scanner`, `patch-analyzer`, `verifier-adapter` (parse untrusted output) — yes. `memory-search` over **your own** data — plain code, WIT buys nothing. |
 | **4. MCP/WIT bridge** | `owen-mcp` tools backed by policy + components | Thin, later. |
 

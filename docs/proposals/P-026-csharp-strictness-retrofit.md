@@ -92,6 +92,14 @@ with one score to argue about.
 | Null-safety not enforced (`!`, opt-in NRT) | external analyzers via SARIF adapter; `NO-TOOL` until wired |
 | Local immutability not expressed (mutable setters on domain state) | `NO-TOOL` until wired (candidate: setter census via the P-001/P-014 extractor) |
 
+**One bucket per finding.** Every finding counts against exactly one *primary*
+dimension, chosen by the table order above (first matching row wins — e.g. an
+ambiguous `IDisposable` transfer on a field that is also an implicit-state flag
+scores under ownership/lifetime, not typestate). Reclassifying a finding moves
+it between buckets without changing its total contribution, so the headline
+score never double-counts one defect across dimensions and stays stable under
+re-bucketing.
+
 ## Non-goals (the most important section)
 
 - **No new heuristic detector.** No regex over `return null` / `throw`. If a

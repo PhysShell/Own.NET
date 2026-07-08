@@ -78,6 +78,8 @@ public interface IBitmapIndex
     void Add(int id);
     void Remove(int id);
     bool Contains(int id);
+    // Non-mutating: each set operation returns a new index; the receiver
+    // and `other` are never modified (no aliasing surprises for callers).
     IBitmapIndex And(IBitmapIndex other);
     IBitmapIndex Or(IBitmapIndex other);
     IBitmapIndex Except(IBitmapIndex other);

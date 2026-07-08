@@ -56,7 +56,7 @@
 
 Плохой стиль:
 
-```
+```text
 Сделай модуль анализа async-проблем в Own.NET.
 ```
 
@@ -64,7 +64,7 @@
 
 Правильный стиль:
 
-```
+```text
 Сделай только analyzer rule OWN0001:
 - найти async void методы, кроме event handlers
 - проект: .NET 8 analyzer
@@ -83,7 +83,7 @@
 
 Шаблон:
 
-```
+```text
 Сначала НЕ пиши код.
 
 Дай план изменения:
@@ -105,7 +105,7 @@ AI очень любит "помочь" через скрытые побочны
 
 Для твоих проектов я бы держал постоянный блок:
 
-```
+```text
 Запрещено:
 - менять public API без явного указания;
 - добавлять NuGet-пакеты без отдельного разрешения;
@@ -127,7 +127,7 @@ AI очень любит "помочь" через скрытые побочны
 
 Я бы сделал в репозитории папку:
 
-```
+```text
 .ai/
   project-context.md
   architecture-rules.md
@@ -142,7 +142,7 @@ AI очень любит "помочь" через скрытые побочны
 
 **`.ai/project-context.md`**
 
-```
+```text
 Проект Own.NET — набор инструментов для анализа .NET-кода:
 - Roslyn analyzers;
 - архитектурные проверки;
@@ -156,7 +156,7 @@ AI очень любит "помочь" через скрытые побочны
 
 **`.ai/architecture-rules.md`**
 
-```
+```text
 Правила:
 - analyzer rules должны быть маленькими и независимыми;
 - каждая rule имеет ID, описание, severity, examples, tests;
@@ -168,7 +168,7 @@ AI очень любит "помочь" через скрытые побочны
 
 **`.ai/forbidden-changes.md`**
 
-```
+```text
 Нельзя:
 - делать глобальные refactorings;
 - добавлять зависимости без обоснования;
@@ -186,7 +186,7 @@ AI очень любит "помочь" через скрытые побочны
 
 Шаблон review:
 
-```
+```text
 Проверь этот diff как злой maintainer.
 
 Ищи:
@@ -211,7 +211,7 @@ AI очень любит "помочь" через скрытые побочны
 
 Например:
 
-```
+```text
 Review rule OWN0003: EventSubscriptionLeakAnalyzer.
 Проверь, не даёт ли analyzer false positive на weak event pattern, IDisposable cleanup, composite disposable, и WPF Binding events.
 ```
@@ -224,7 +224,7 @@ AI плохо понимает невидимые правила старого 
 
 Например:
 
-```
+```text
 WPF invariants:
 - ViewModel не должен напрямую знать о View;
 - подписки на events должны освобождаться;
@@ -237,7 +237,7 @@ WPF invariants:
 
 Или для твоих справочников/TNVED/ставок:
 
-```
+```text
 Data invariants:
 - не материализовать весь справочник без необходимости;
 - большие деревья загружать лениво;
@@ -253,13 +253,13 @@ Data invariants:
 
 Не так:
 
-```
+```text
 Сделай модуль AsyncAnalyzer.
 ```
 
 А так:
 
-```
+```text
 Task 1: OWN0001 async void detector
 Task 2: OWN0002 .Result/.Wait() detector in UI context
 Task 3: OWN0003 fire-and-forget Task without observation
@@ -272,7 +272,7 @@ Task 8: documentation examples
 
 Каждая задача должна иметь:
 
-```
+```text
 - вход;
 - ожидаемый diagnostic;
 - false positive cases;
@@ -288,7 +288,7 @@ Task 8: documentation examples
 
 В конце каждого промпта:
 
-```
+```text
 Definition of Done:
 - код компилируется;
 - добавлены тесты;
@@ -309,7 +309,7 @@ Definition of Done:
 
 Самый жирный кандидат.
 
-```
+```text
 OWNASYNC001: async void outside event handlers
 OWNASYNC002: blocking wait on Task: .Wait(), .Result, GetAwaiter().GetResult()
 OWNASYNC003: fire-and-forget Task without observation/logging
@@ -322,7 +322,7 @@ OWNASYNC006: ConfigureAwait policy violation
 
 **IDisposable / lifetime module**
 
-```
+```text
 OWNLIFE001: IDisposable field not disposed
 OWNLIFE002: event subscription not unsubscribed
 OWNLIFE003: IDisposable created but not owned
@@ -334,7 +334,7 @@ OWNLIFE005: Stream/SqlConnection/DbCommand lifetime leak
 
 **SQL/data-access module**
 
-```
+```text
 OWNDATA001: string interpolation in SQL
 OWNDATA002: concatenated SQL with user/domain input
 OWNDATA003: SELECT * in repository/query object
@@ -347,7 +347,7 @@ OWNDATA006: temp table incompatibility SQL Server/SQLite
 
 **WPF module**
 
-```
+```text
 OWNWPF001: ObservableCollection modified outside UI thread
 OWNWPF002: event subscription leak in View/ViewModel/Presenter
 OWNWPF003: long-running operation in command handler
@@ -362,7 +362,7 @@ OWNWPF006: Bitmap/Image resource not released
 
 Вот шаблон, который можно реально использовать:
 
-```
+```text
 Ты работаешь как senior .NET/Roslyn developer.
 
 Контекст:
@@ -399,7 +399,7 @@ OWNWPF006: Bitmap/Image resource not released
 
 А после утверждения плана:
 
-```
+```text
 Реализуй только согласованный план.
 После кода дай:
 1. список изменённых файлов;
@@ -414,7 +414,7 @@ OWNWPF006: Bitmap/Image resource not released
 
 Например:
 
-```
+```text
 Review this PR for Own.NET.
 
 Be strict. Assume the code is wrong until proven otherwise.
@@ -481,7 +481,7 @@ AI полезен не как "разработчик вместо тебя", а
 
 То есть NoBootCamp-идею надо не "применить к 007", а закодировать в 007 как режимы работы:
 
-```
+```text
 task contract → isolated run → gates → harvest → judge/review → verdict
 ```
 
@@ -541,7 +541,7 @@ commands = [
 
 Что добавить в 007:
 
-```
+```bash
 o7 validate-task --task task.o7.toml
 o7 run --task task.o7.toml
 o7 inspect-run runs/<id>
@@ -550,7 +550,7 @@ o7 judge-run runs/<id>
 
 Минимальный MVP:
 
-```
+```text
 task.md          # человеческое описание
 task.o7.toml     # машинный контракт
 gate.toml        # команды проверки
@@ -563,7 +563,7 @@ policy.toml      # запреты / scope / allowlist
 
 Но для coding-agent задач я бы разделил:
 
-```
+```bash
 o7 plan
 o7 run
 o7 judge
@@ -571,7 +571,7 @@ o7 judge
 
 То есть агент сначала не имеет права менять код. Он должен сгенерировать план:
 
-```
+```text
 runs/<target>/<run-id>/
   plan.md
   plan.meta.json
@@ -580,7 +580,7 @@ runs/<target>/<run-id>/
 
 Потом отдельный gate проверяет план:
 
-```
+```text
 - план не трогает запрещённые файлы;
 - план не добавляет зависимости;
 - план перечисляет тесты;
@@ -590,7 +590,7 @@ runs/<target>/<run-id>/
 
 И только потом:
 
-```
+```bash
 o7 run --from-plan runs/.../plan.md
 ```
 
@@ -600,7 +600,7 @@ o7 run --from-plan runs/.../plan.md
 
 В Own.NET мы могли писать:
 
-```
+```text
 Не меняй public API.
 Не добавляй зависимости.
 Не трогай build scripts.
@@ -631,13 +631,13 @@ require_public_api_report = true
 
 И gate после diff должен проверять:
 
-```
+```text
 diff.patch против policy.toml
 ```
 
 Если агент полез куда не просили:
 
-```
+```yaml
 FAIL: touched forbidden file Directory.Build.props
 FAIL: added dependency Microsoft.Extensions.DependencyInjection
 FAIL: changed public API without approval
@@ -651,7 +651,7 @@ README уже говорит, что 007 harvest'ит `meta.json`, `agent.stdout
 
 Я бы расширил canonical record:
 
-```
+```text
 runs/<target>/<run-id>/
   task.md
   task.o7.toml
@@ -687,7 +687,7 @@ runs/<target>/<run-id>/
 
 Зачем: 007 должен быть не просто "запустил агента", а черный ящик самолёта после падения. Агент внёс diff? Докажи:
 
-```
+```text
 что он запускался в правильном repo;
 от какого base commit;
 какие файлы поменял;
@@ -707,19 +707,19 @@ runs/<target>/<run-id>/
 
 Это очень важная часть. В терминах NoBootCamp:
 
-```
+```text
 self-correction / review prompt
 ```
 
 В терминах 007:
 
-```
+```text
 judge command + rubric + schema + verdict contract
 ```
 
 То есть не "Claude сам себя проверил, ну значит норм". Нет. Отдельный режим:
 
-```
+```text
 agent делает diff
 judge смотрит diff + task + gate logs
 judge возвращает machine-readable verdict
@@ -754,7 +754,7 @@ judge возвращает machine-readable verdict
 
 Что это значит для применения NoBootCamp-идей:
 
-```
+```text
 Для доверенных своих реп:
 Можно начинать с policy/gates/worktree/evidence.
 
@@ -776,7 +776,7 @@ trust = "trusted-local"
 
 И правила:
 
-```
+```yaml
 trusted-local:
   worktree + gates ok
 
@@ -799,7 +799,7 @@ untrusted:
 
 Это отлично подходит к 007, потому что 007 — glue/orchestration, а самые опасные поверхности там:
 
-```
+```text
 - model output parsing;
 - gate.toml parsing;
 - findings.json parsing;
@@ -857,14 +857,14 @@ profile = "security"
 
 Что делать:
 
-```
+```bash
 o7 judge --jobs 4
 o7 judge --jobs 8
 ```
 
 Но обязательно:
 
-```
+```text
 - bounded concurrency;
 - retry/backoff;
 - per-file error isolation;
@@ -878,13 +878,13 @@ o7 judge --jobs 8
 
 Новый режим:
 
-```
+```bash
 o7 plan --repo ../Own.NET --base main --task ./task.md --out ./runs/...
 ```
 
 Выход:
 
-```
+```text
 plan.md
 plan.json
 plan-verdict.json
@@ -892,7 +892,7 @@ plan-verdict.json
 
 Проверяет:
 
-```
+```text
 - scope;
 - forbidden files;
 - required tests;
@@ -904,13 +904,13 @@ plan-verdict.json
 
 Текущий MVP, но с policy:
 
-```
+```bash
 o7 run --task task.o7.toml --gate ../Own.NET/.007/gate.toml
 ```
 
 Обязательно собирает:
 
-```
+```text
 - diff.patch;
 - changed files;
 - touched forbidden paths;
@@ -922,13 +922,13 @@ o7 run --task task.o7.toml --gate ../Own.NET/.007/gate.toml
 
 Отдельная проверка результата:
 
-```
+```bash
 o7 judge-run runs/Own.NET/<run-id>
 ```
 
 Judge получает:
 
-```
+```text
 - original task;
 - plan;
 - diff;
@@ -940,7 +940,7 @@ Judge получает:
 
 Возвращает:
 
-```
+```text
 PASS | FAIL | NEEDS_HUMAN
 ```
 
@@ -948,7 +948,7 @@ PASS | FAIL | NEEDS_HUMAN
 
 Суперважно:
 
-```
+```bash
 o7 replay runs/Own.NET/<run-id>
 ```
 
@@ -958,7 +958,7 @@ o7 replay runs/Own.NET/<run-id>
 
 Вот как я бы сформулировал роль 007:
 
-```
+```text
 007 is not an AI coding assistant.
 007 is a reproducible, gated, auditable execution harness for AI coding assistants.
 ```
@@ -969,7 +969,7 @@ o7 replay runs/Own.NET/<run-id>
 
 Claude/Codex могут генерировать код. 007 должен отвечать за:
 
-```
+```text
 - изоляцию;
 - scope;
 - запреты;
@@ -984,7 +984,7 @@ Claude/Codex могут генерировать код. 007 должен отв
 
 И вот это уже реально применимо ко всем твоим штукам:
 
-```
+```text
 Own.NET       → агент пишет analyzer/rule/docs/tests
 OwnAudit      → агент triage'ит findings / FP / отчёты
 legacy WPF    → агент делает маленькие refactor tasks
@@ -998,13 +998,13 @@ sandboy       → будущая sandbox/plugin boundary
 
 Ближайший полезный шаг:
 
-```
+```text
 Task Contract + Diff Policy Gate
 ```
 
 Минимально:
 
-```
+```text
 src/task_contract.rs
 src/diff_policy.rs
 schemas/task.o7.schema.json
@@ -1014,7 +1014,7 @@ examples/policy.safe-defaults.toml
 
 Первый gate:
 
-```
+```text
 - changed files are inside allowed_paths;
 - forbidden_paths untouched;
 - max files/lines not exceeded;
@@ -1058,7 +1058,7 @@ require_tests = true
 
 И после run:
 
-```
+```bash
 o7 policy-check runs/<id>/diff.patch --policy task.o7.toml
 ```
 
@@ -1086,13 +1086,13 @@ o7 policy-check runs/<id>/diff.patch --policy task.o7.toml
 
 Для 007 правильная версия такая:
 
-```
+```text
 NoBootCamp principles → executable agent harness protocol
 ```
 
 Грубо:
 
-```
+```text
 prompt discipline       → task contract
 negative prompts        → diff policy
 plan-then-build         → o7 plan + o7 run
