@@ -94,10 +94,13 @@ the `adopt`/`return` kinds are **reserved**, see `INF-S5`) that the solver joins
   the caller stays plain. Flattening a partial release to `must` would charge a
   caller's defensive dispose a false OWN002/OWN003 — the precision floor forbids it.
 - **INF-S3 (single straight-line forward ⇒ resolved).** A parameter handed to
-  exactly one callee at exactly one top-level (straight-line) call site emits a
-  single `forward(callee, arg)` path (the solver resolves it, §5). Any
-  conditional / looped / multi-target forward **also** emits a `borrow` path, so
-  the join is `may`/`no`, never a fabricated `must`.
+  exactly one callee at exactly one top-level (straight-line) call site, with
+  **no `return` op reachable before that call** (an early return would exit the
+  body without transferring — the forward twin of the partial release in
+  `INF-S2`), emits a single `forward(callee, arg)` path (the solver resolves
+  it, §5). Any conditional / looped / multi-target / return-skippable forward
+  **also** emits a `borrow` path, so the join is `may`/`no`, never a fabricated
+  `must`.
 - **INF-S4 (used ⇒ borrow; else nothing).** A parameter only read/used emits
   `[borrow]`; a parameter the body does nothing with emits `[]` (→ `no`).
 - **INF-S5 (reserved kinds).** The path kinds `adopt` (store into an owning field,
@@ -233,14 +236,26 @@ Lowering rules:
   name**, including a name dropped from the summary set (an overload): a first-party
   method never receives a fabricated BCL `fresh`.
 - **INF-A5 (optimistic untrack).** A local handed to a summarized callee parameter
-  whose transfer is `may` or `unknown` is **untracked at that call** — its
-  obligation is not minted (its `acquire`/fresh-result/`alias_join` is skipped, and
-  it is excluded from branch-hoisting). Under the optimistic default this means
-  "the caller no longer owns it": neither a missing **nor** a defensive dispose
-  after the call is charged. The gap is recorded as advisory **OWN051** (§7). A
-  call carrying such positions is emitted through the per-argument `$`-channel (as
-  overloads are, `INF-M`), so an untracked name is never referenced in emitted core
-  code (which would raise OWN030, map-or-raise).
+  whose transfer is `may` or `unknown` stops being checked **at that call**. Under
+  the optimistic default this means "the caller no longer owns it": neither a
+  missing **nor** a defensive dispose after the call is charged. The gap is
+  recorded as advisory **OWN051** (§7). A call carrying such positions is emitted
+  through the per-argument `$`-channel (as overloads are, `INF-M`), so an
+  untracked name is never referenced in emitted core code (which would raise
+  OWN030, map-or-raise). Two mechanisms, by call position:
+  - **INF-A5a (top-level call ⇒ kill site).** A local already minted in the body
+    whose unverified handoff is a **top-level** call is tracked normally **up to**
+    that call (a pre-call use-after-release still surfaces), discharged **at** it
+    (a `$consume` on its handle — the optimistic "ownership left" made real, sound
+    because a top-level call lies on every path from the preceding ops to the
+    exit), and unmapped after it (later references stay silent).
+  - **INF-A5b (in-branch call ⇒ whole-body untrack).** A local whose unverified
+    handoffs are all inside `if`/`while` has **no** all-paths discharge point: a
+    branch-local `$consume` would discharge only that path and fabricate an
+    OWN001/OWN009 on the other. Its obligation is therefore not minted at all
+    (its `acquire`/fresh-result/`alias_join` is skipped, and it is excluded from
+    branch-hoisting) — the conservative residual, checked by nothing but the
+    OWN051 note, until the core grows a maybe-moved state.
 - **INF-A6 (kill on rebind).** Overwriting a tracked local (a re-bound `call`
   result or `alias_join` target) kills its previous ownership binding first, so a
   lost prior obligation leaks rather than reading as clean ([OwnIR §5](OwnIR.md)).
@@ -325,14 +340,17 @@ bridge/solver contract, not a surface-language rule):
   / early-return-guarded releases degrade to `may` (one OWN051, no verdict);
   both-branch and release-then-return stay `consume`.
 - **INF-S3 / INF-A1** — transitive consume/borrow through single vs conditional
-  forwards; two-hop chains.
+  forwards; two-hop chains; an early-return-skipped forward joins to `may` (one
+  OWN051, no leaked callee param, no charged defensive dispose).
 - **INF-M1–M3** — agreeing overloads resolve `must`; disagreeing join to `may`
   (OWN051); direct call to overloads routes through the channel.
 - **INF-A2 / INF-A4** — first-party fresh result mints an acquire; Tier A overrides
   the BCL table; BCL fresh factories and wrappers over them.
 - **INF-A5 / INF-P2** — an owned local dropped/disposed after a `may`/`unknown`
   call is silent with one OWN051; a verified borrow keeps the caller's obligation
-  (true OWN001); a plain value at a `may` position stays quiet.
+  (true OWN001); a plain value at a `may` position stays quiet; a use-after-release
+  **before** a top-level `may` call keeps its OWN002 beside the advisory
+  (INF-A5a), while post-call defensive dispose/use stays silent.
 - **INF-F6 / INF-P3** — a patched-to-raise solver yields exactly one OWN052 and no
   fabricated verdicts; a healthy solve carries none.
 - **INF-R1/R2 (serialization)** — the `summaries` dump is byte-identical under

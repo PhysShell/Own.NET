@@ -1641,6 +1641,62 @@ def run() -> int:
     if d6plain:
         fails.append("untrack: a non-owned value at a may-position must stay quiet, "
                      f"got {[(x.component, x.code) for x in d6plain]}")
+    # (Codex P1) the untrack must not swallow PRE-call verdicts: a local is
+    # tracked normally up to its top-level may-call, so a use-after-release
+    # BEFORE the handoff still surfaces (before the fix the whole-body untrack
+    # skipped the acquire and the real OWN002 vanished, leaving only OWN051).
+    checks += 1
+    p1pre = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel5", "file": "K.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "pre_bug", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "release", "var": "r", "line": 11},
+                  {"op": "use", "var": "r", "line": 12},
+                  {"op": "call", "callee": "cond_rel5", "args": ["r"], "line": 13}]}]})
+    gotp1 = sorted((x.component, x.code, x.advisory) for x in p1pre)
+    if gotp1 != [("pre_bug", "OWN002", False), ("pre_bug", "OWN051", True)]:
+        fails.append("kill-site untrack: a pre-call use-after-release must keep its "
+                     f"OWN002 beside the OWN051 advisory, got {gotp1}")
+    # (Codex P1) ... while the POST-call region keeps the optimistic silence: the
+    # kill-site `$consume` discharges the obligation on every path through the
+    # top-level call, so a defensive dispose after it is still uncharged.
+    checks += 1
+    p1post = check_facts({"module": "M", "functions": [
+        {"name": "cond_rel6", "file": "K.cs", "params": [{"name": "x", "line": 1}],
+         "body": [{"op": "if", "line": 2,
+                   "then": [{"op": "release", "var": "x", "line": 3}], "else": []}]},
+        {"name": "post_guard", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "cond_rel6", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12},
+                  {"op": "use", "var": "r", "line": 13}]}]})
+    gotp1p = [(x.component, x.code, x.advisory) for x in p1post]
+    if gotp1p != [("post_guard", "OWN051", True)]:
+        fails.append("kill-site untrack: post-call defensive dispose/use must stay "
+                     f"silent (one OWN051 advisory), got {gotp1p}")
+    # (Codex P2) an early return SKIPPING the single top-level forward makes the
+    # handoff conditional: `guarded(x){ if(c) return; sink(x); }` must join to
+    # `may`, so the guarded helper does not leak its own param and a caller's
+    # defensive dispose is not charged a false OWN002 (the forward twin of D1).
+    checks += 1
+    p2er = check_facts({"module": "M", "functions": [
+        {"name": "sink_er", "file": "K.cs",
+         "params": [{"name": "x", "effect": "consume", "line": 1}],
+         "body": [{"op": "release", "var": "x", "line": 2}]},
+        {"name": "guarded", "file": "K.cs", "params": [{"name": "s", "line": 5}],
+         "body": [{"op": "if", "line": 6, "then": [{"op": "return", "line": 7}],
+                   "else": []},
+                  {"op": "call", "callee": "sink_er", "args": ["s"], "line": 8}]},
+        {"name": "guarded_user", "file": "K.cs",
+         "body": [{"op": "acquire", "var": "r", "line": 10},
+                  {"op": "call", "callee": "guarded", "args": ["r"], "line": 11},
+                  {"op": "release", "var": "r", "line": 12}]}]})
+    gotp2 = [(x.component, x.code, x.advisory) for x in p2er]
+    if gotp2 != [("guarded_user", "OWN051", True)]:
+        fails.append("S2 early return: a return-skipped forward must join to `may` "
+                     f"— no verdicts, one OWN051 advisory, got {gotp2}")
     # (TZ D5) a failed MOS solve must degrade OBSERVABLY: the bridge drops to
     # no-MOS (checker stays alive, forwards stay plain — no fabricated verdicts)
     # and surfaces ONE advisory OWN052 naming the inner error. Before the fix the
