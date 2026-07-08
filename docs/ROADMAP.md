@@ -325,3 +325,4 @@ own scan. Label them as estimates wherever they appear.
 | [P-017](proposals/P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | horizon | draft |
 | [P-020](proposals/P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — effect-storm angle | horizon | draft |
 | [P-021](proposals/P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) — safety-first WPF/application async lifecycle diagnostics | P2 | draft |
+| [P-025](proposals/P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`) — barrier-sensitive project invariants (OBL001–005) | P1 | first slice built (core + bridge + fixtures; extractor pending) |

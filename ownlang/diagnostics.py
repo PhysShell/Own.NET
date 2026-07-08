@@ -8,6 +8,9 @@ Numbering scheme (renumbered in this revision -- see README changelog):
   040-041  extern / call-boundary
   050      C# front-end resolution coverage (P-014; advisory, never a verdict)
 
+Sidecar analysis families carry their own prefixes (DI, EFF, OBL) — each is a
+separate analysis the OwnIR bridge routes facts to, not the core lattice.
+
 The split between *definite* (002 use-after-release, 005 use-after-move) and
 *maybe* (009, 010) codes is deliberate: a fault that holds on every path is a
 different, sharper message than one that holds on only some path through a
@@ -90,6 +93,12 @@ TITLES = {
     "DI005": "disposable transient resolved from a long-lived scope (delayed disposal)",
     # ---- reactive-effect stability (P-020; a separate analysis, like DI001) ----
     "EFF001": "reactive effect re-runs on an unstable dependency identity (render-time IO storm)",
+    # ---- obligation protocols (P-025; a separate analysis, like DI001) ----
+    "OBL001": "obligation still open when a barrier fires (open on every path)",
+    "OBL002": "obligation may still be open when a barrier fires (open on some path)",
+    "OBL003": "obligation not closed before the method exits (on every path)",
+    "OBL004": "obligation may not be closed before the method exits (on some path)",
+    "OBL005": "protocol scope matched no reported method -- rule is dead (advisory)",
 }
 
 
@@ -199,6 +208,46 @@ EXPLANATIONS = {
         "container tracks it and only disposes it when that scope ends, delaying disposal.\n"
         "Fix: resolve disposable transients within a short-lived scope you dispose, or manage "
         "their lifetime explicitly."
+    ),
+    "OBL001": (
+        "A project-declared obligation protocol (e.g. \"`IsLoaded = false` must be closed by "
+        "`IsLoaded = true`\") is still open when a declared barrier fires — on every path that "
+        "reaches the barrier. The classic WPF shape: a method flips a consistency flag down, "
+        "rebuilds state, and raises `PropertyChanged(\"Document\")` before flipping the flag "
+        "back up, publishing an inconsistent object to bindings and listeners.\n"
+        "Fix: close the obligation before the barrier (move the closing assignment/call above "
+        "the notification), or — if that notification is genuinely safe while open — add it to "
+        "the protocol's `allow` list."
+    ),
+    "OBL002": (
+        "Like OBL001, but the obligation is open on only *some* paths that reach the barrier — "
+        "whether the notification publishes a broken object depends on the branch taken (the "
+        "same definite/maybe split as OWN002 vs OWN009).\n"
+        "Fix: close the obligation on every path before the barrier (or on none — make the "
+        "state unambiguous), or add the call to the protocol's `allow` list if it is genuinely "
+        "safe while open."
+    ),
+    "OBL003": (
+        "A project-declared obligation is opened but not closed before the method exits "
+        "(return / throw / falling off the end) on every path — the object is left in its "
+        "\"temporarily broken\" state for the outside world to observe. The exception path is "
+        "the classic culprit: `IsLoaded = false; Load(); IsLoaded = true;` leaves the flag down "
+        "forever when `Load()` throws.\n"
+        "Fix: close in a `finally`, or on every early-return path."
+    ),
+    "OBL004": (
+        "Like OBL003, but the obligation is left open on only *some* exit paths — whether the "
+        "object stays broken depends on the branch taken (typically an early return or a "
+        "may-throw call before the close).\n"
+        "Fix: close on every exit path — a `finally` covers the throw paths; move the close "
+        "above the early returns."
+    ),
+    "OBL005": (
+        "Advisory, not a verdict: a protocol's `scope.methods` matched none of the methods the "
+        "frontend reported events for — the rule is dead (usually a typo'd or renamed method "
+        "name). A silently dead project rule is worse than none: it reads as coverage that "
+        "does not exist.\n"
+        "Fix: correct the scope, or delete the rule."
     ),
     "EFF001": (
         "A React `useEffect` re-runs whenever one of its declared dependencies changes identity. "

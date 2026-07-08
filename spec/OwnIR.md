@@ -2,7 +2,7 @@
 
 > **Status: normative, descriptive.** This document specifies the OwnIR fact
 > contract *as it is today*, derived from the working bridge
-> (`ownlang/ownir.py`) and pinned by tests (see [§9 Conformance](#9-conformance)).
+> (`ownlang/ownir.py`) and pinned by tests (see [§10 Conformance](#10-conformance)).
 > Forward-looking ideas live in [`docs/proposals/`](../docs/proposals/), never
 > here.
 
@@ -24,12 +24,14 @@ A facts document is a single JSON object:
   "components": [ /* §4 owned-resource records, grouped by type */ ],
   "functions":  [ /* §5 flow bodies (intra-procedural CFG facts) */ ],
   "services":   [ /* §6 DI registration graph */ ],
-  "effects":    [ /* §7 reactive-effect graph (EFF001) */ ]
+  "effects":    [ /* §7 reactive-effect graph (EFF001) */ ],
+  "protocols":  [ /* §8 obligation protocols (OBL001-005): rules */ ],
+  "protocol_functions": [ /* §8 obligation protocols: per-method events */ ]
 }
 ```
 
-`ownir_version` (int) and `module` (string) are required; `components`,
-`functions`, `services`, and `effects` are each optional and default to empty.
+`ownir_version` (int) and `module` (string) are required; every other top-level
+block is optional and defaults to empty.
 `load()` ([`ownir.py`](../ownlang/ownir.py)) validates the shape and raises
 `OwnIRError` (a `ValueError`) with an actionable message on any violation — types,
 the `bool`-is-`int` trap, empty identity strings, unknown DI lifetime enums, and
@@ -176,7 +178,87 @@ dep is unstable is EFF001 (the effect storm — "not all lifecycle bugs leak mem
 some leak requests"). Like `services`, this block is additive/optional; the core
 decides identity stability, not the frontend.
 
-## 8. Rules
+## 8. Obligation protocols (`protocols[]` / `protocol_functions[]`)
+
+Two optional top-level arrays feeding the **OBL001–OBL005** obligation-protocol
+checks (P-025) — a separate path-sensitive core analysis
+([`ownlang/obligations.py`](../ownlang/obligations.py)) for *project-specific
+temporal invariants*: a method briefly breaks one of its own invariants
+(`IsLoaded = false` while the document rebuilds) and must restore it before a
+*barrier* — a configured call (`OnPropertyChanged("Document")`) or a method
+exit. The general checker cannot know that `IsLoaded` means "the document is
+consistent"; the project declares it.
+
+`protocols[]` is the **rule side** (project configuration):
+
+```json
+"protocols": [
+  {"name": "DocumentLoading",
+   "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+   "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+   "barriers": [{"kind": "call", "callee": "OnPropertyChanged",
+                 "args": ["Document", "Rows", "Totals"]}],
+   "allow":    [{"kind": "call", "callee": "OnPropertyChanged",
+                 "args": ["IsLoaded", "IsBusy", "Progress"]}],
+   "exit_barriers": true,
+   "scope": {"methods": ["BigDocumentViewModel.LoadBigDocument"]}}
+]
+```
+
+`opens`/`closes` are required matchers (`assign` with a stated boolean `value`,
+or `call`); `barriers` lists the events the obligation must not cross while
+open (`allow` exempts explicitly safe ones); `exit_barriers` (default `true`)
+makes `return`/`throw`/end-of-body barriers too; `scope.methods` restricts the
+rule to named methods (exact, or a trailing `Type.Method` suffix). Tight
+scoping is the false-positive control: a rule only fires where the project
+asked. A scoped protocol matching no reported method is surfaced as the
+advisory **OBL005** (a dead rule), never a verdict.
+
+`protocol_functions[]` is the **fact side** — one ordered event tree per
+method, in the flow-body shape of §5 (`if`/`while` nest; frontends thread
+`finally` bodies onto exits exactly like the flow lowering):
+
+```json
+"protocol_functions": [
+  {"name": "Broker.BigDocumentViewModel.LoadBigDocument",
+   "file": "BigDocumentViewModel.cs",
+   "events": [
+     {"ev": "assign", "target": "IsLoaded", "value": false, "line": 184},
+     {"ev": "if", "line": 220, "then": [
+       {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 241}
+     ], "else": []},
+     {"ev": "assign", "target": "IsLoaded", "value": true, "line": 260}
+   ]}
+]
+```
+
+The event vocabulary is `assign` / `call` / `return` / `throw` / `if` /
+`while` — closed and fail-loud like a flow op (IR4): a present-but-unknown
+`ev` or matcher `kind` is rejected at load. Both blocks are additive/optional
+(an older core ignores them — the IR3 additive rule), and their internal
+vocabularies version *with the blocks*: extending them is a vocabulary change
+under IR3/IR4.
+
+The obligation state is a set over {OPEN, CLOSED} joined by union at merges,
+so the definite/maybe split (OBL001/OBL003 vs OBL002/OBL004) falls out of the
+lattice the same way OWN002 vs OWN009 does. Precision rules (normative):
+
+- an **opaque write** to a tracked flag (`"value"` absent) may *discharge* an
+  open obligation but never *creates* one — the checker never invents a
+  violation;
+- a **call the protocol does not name is neutral** (no discharge, no
+  crossing); interprocedural obligation summaries are a later slice (P-025);
+- a call with an **unknown argument** does not match an args-narrowed barrier.
+
+Findings anchor at the barrier site (OBL001/002, and OBL003/004 for
+`return`/`throw`) or at the *open* site for an obligation leaking off the end
+of the method (the OWN001 anchor-at-acquire precedent), and carry an ordered
+evidence slice: *opened here → barrier fired here (→ closed only here, after
+the barrier)*. Messages are deliberately line-free so baseline ratchets and
+FP-judge overlays that fingerprint on (path, rule, message) survive unrelated
+edits.
+
+## 9. Rules
 
 - **IR1.** `ownir_version` must equal the core's `OWNIR_VERSION` (or be absent);
   otherwise `load()` raises `OwnIRError`.
@@ -190,7 +272,7 @@ decides identity stability, not the frontend.
   never a silently dropped verdict.
 - **IR6.** A frontend emits facts only; all verdicts come from the core.
 
-## 9. Conformance
+## 10. Conformance
 
 Pinned by [`tests/test_ownir.py`](../tests/test_ownir.py) (the bridge suite,
 `python tests/test_ownir.py`), not `test_spec.py` (OwnIR is a bridge contract,
@@ -206,6 +288,10 @@ not a surface-language rule):
   "cannot map back" instead of reporting the leak), not a dedicated raise-test.
 - **§4/§5/§6/§7** — the resource-kind, flow-op, DI, and effect fixtures
   (`tests/fixtures/ownir/*.facts.json`) each assert their expected code.
+- **§8** — pinned by [`tests/test_obligations.py`](../tests/test_obligations.py):
+  the event/matcher vocabularies are bound to the schema's `protocolEvent`/
+  `protocolMatcher` consts both ways, an unknown `ev`/`kind` raises at load,
+  and the `protocol_isloaded_*` fixtures assert the OBL codes end-to-end.
 
 A change to this spec without a matching change under `tests/test_ownir.py` (or
 vice-versa) is a red build.

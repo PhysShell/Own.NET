@@ -331,7 +331,7 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     selects the surface: human (CLI), github (CI annotations), msbuild (VS),
     sarif (SARIF 2.1.0 log);
     `severity` picks how the host shows them (error/warning); `verbosity` is
-    `quiet` (errors only — hide the advisory OWN05x notes), `normal` (default), or
+    `quiet` (errors only — hide the advisory notes), `normal` (default), or
     `verbose` (also print a per-code breakdown)."""
     from .ownir import OwnIRError, build_sarif, check_facts, load, render_finding
     try:
@@ -345,9 +345,9 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     # pollute that stream.
     machine = fmt in {"github", "msbuild", "sarif"}
     summary_to = sys.stderr if machine else sys.stdout
-    # OWN050 "leakage analysis skipped" notes are advisory (P-014 Tier A): always
-    # shown as warnings regardless of --severity, and never affect the exit code —
-    # they are coverage notes ("we could not check this"), not verdicts.
+    # Advisory findings (OWN050 "leakage analysis skipped", OBL005 "dead protocol
+    # rule") are always shown as warnings regardless of --severity, and never
+    # affect the exit code — they are coverage/hygiene notes, not verdicts.
     leaks = [f for f in findings if not f.advisory]
     notes = [f for f in findings if f.advisory]
     shown = leaks if verbosity == "quiet" else findings
@@ -375,11 +375,12 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     n = len(leaks)
     summary = f"\n{n} finding{'s' if n != 1 else ''}"
     if notes:
-        # name the advisory codes actually present (OWN050, OWN052, ...): with only
-        # OWN050 notes this renders byte-identically to the historical fixed label.
-        note_codes = ", ".join(sorted({f.code for f in notes}))
-        summary += (f" ({len(notes)} unchecked hidden)" if verbosity == "quiet"
-                    else f", {len(notes)} unchecked ({note_codes})")
+        # the advisory band is no longer only OWN050 (OBL005 and the OWN051/OWN052
+        # interprocedural notes ride it too) — name the codes actually present
+        # instead of hardcoding one.
+        note_codes = "/".join(sorted({x.code for x in notes}))
+        summary += (f" ({len(notes)} advisory hidden)" if verbosity == "quiet"
+                    else f", {len(notes)} advisory ({note_codes})")
     print(summary + ".", file=summary_to)
     if verbosity == "verbose" and findings:
         by_code: dict[str, int] = {}

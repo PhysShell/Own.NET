@@ -146,6 +146,16 @@ from .effects import Binding as EffectBinding
 from .effects import Effect as ReactEffect
 from .effects import find_effect_storms
 from .evidence import code_flow, di_path_steps
+from .obligations import (
+    MethodEvents,
+    Protocol,
+    ProtocolFactsError,
+    Violation,
+    check_protocols,
+    parse_method,
+    parse_protocol,
+    unmatched_scopes,
+)
 from .ownership import (
     MethodSkeleton,
     ParamSkeleton,
@@ -643,6 +653,37 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"parameter 'effect' must be one of {sorted(_PARAM_EFFECTS)}, "
                     f"got {peff!r}")
+    # Optional obligation protocols (OBL001-005 — P-025). Additive/optional like
+    # `services`/`effects`: an older core ignores both blocks. Their internal
+    # vocabularies (matcher kinds, the `ev` discriminator) are fail-loud like a
+    # flow op (IR4): a present-but-unknown value is rejected at load, never
+    # skipped. The shared parser (ownlang/obligations.py) is the single shape
+    # authority for both this gate and the bridge path.
+    protos = result.get("protocols", [])
+    if not isinstance(protos, list):
+        raise OwnIRError("OwnIR 'protocols' must be a JSON array of objects")
+    proto_names: set[str] = set()
+    for praw in protos:
+        try:
+            parsed = parse_protocol(praw)
+        except ProtocolFactsError as e:
+            raise OwnIRError(str(e)) from e
+        # the name is the identity the bridge maps verdicts back by (the
+        # handle rule, IR5) — two protocols sharing one name would make that
+        # mapping ambiguous and can collapse distinct findings in the dedup.
+        if parsed.name in proto_names:
+            raise OwnIRError(
+                f"duplicate protocol name '{parsed.name}' — protocol names "
+                f"are the identity findings map back by and must be unique")
+        proto_names.add(parsed.name)
+    pfns = result.get("protocol_functions", [])
+    if not isinstance(pfns, list):
+        raise OwnIRError("OwnIR 'protocol_functions' must be a JSON array of objects")
+    for fraw in pfns:
+        try:
+            parse_method(fraw)
+        except ProtocolFactsError as e:
+            raise OwnIRError(str(e)) from e
     return result
 
 
@@ -2437,6 +2478,13 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # syntactically is — the stability verdict is the core's.
     findings.extend(_effect_findings(facts))
 
+    # OBL001-005 (obligation protocols, P-025): a separate path-sensitive core
+    # analysis over the project-declared protocol rules and per-method event
+    # trees (ownlang/obligations.py), NOT the acquire/release model. The bridge
+    # routes the optional `protocols`/`protocol_functions` facts to it; the
+    # frontend only reports what the method does — the verdict is the core's.
+    findings.extend(_protocol_findings(facts))
+
     # OWN050 (P-014 Tier A): a `+=` whose declaring type could not be resolved —
     # an advisory "leakage analysis skipped" note, never a leak. Routed through
     # this side path so it bypasses the ERROR-only diagnostic mapping above.
@@ -2720,6 +2768,103 @@ def _effect_findings(facts: dict[str, Any]) -> list[Finding]:
             file=s.file, line=s.line, code="EFF001",
             component=s.component, event=s.dep, handler="",
             message=s.message, kind="react effect", flow=flow))
+    return out
+
+
+_OBL_CODE = {
+    # (kind, definite) -> code: the definite/maybe split is the same lattice
+    # story as OWN002 vs OWN009 — open on every path vs open on some path.
+    ("barrier", True): "OBL001",
+    ("barrier", False): "OBL002",
+    ("exit", True): "OBL003",
+    ("exit", False): "OBL004",
+}
+
+
+def _protocol_message(v: Violation, proto: Protocol) -> str:
+    """The finding message. Deliberately line-free: OwnAudit fingerprints
+    findings on (path, rule, message), so a line number here would break the
+    baseline ratchet and the FP-judge overlay on every unrelated edit. The
+    lines live in the evidence slice instead."""
+    close = proto.closes.describe()
+    if v.kind == "barrier":
+        state = ("is still open" if v.definite
+                 else "may still be open (open on some path)")
+        return (f"obligation '{v.protocol}' {state} when barrier "
+                f"'{v.barrier_desc}' fires in '{v.method}' — '{close}' must "
+                f"happen first")
+    state = ("is not closed" if v.definite
+             else "may not be closed (open on some path)")
+    exit_desc = ("the method falls off the end" if v.barrier_desc == "end of method"
+                 else f"'{v.method}' exits via {v.barrier_desc}")
+    return (f"obligation '{v.protocol}' {state} when {exit_desc} — the object "
+            f"is published in its in-between state; close with '{close}' on "
+            f"every path (a finally block covers the throw paths)")
+
+
+def _protocol_findings(facts: dict[str, Any]) -> list[Finding]:
+    """Run the obligation-protocol check over the facts' `protocols` /
+    `protocol_functions` blocks and map each violation to a Finding at its C#
+    location (ownlang/obligations.py). Additive/optional, like `services` and
+    `effects`: absent blocks -> no findings. Entries are re-validated here and
+    a malformed one is SKIPPED (not coerced) — load() already fail-louds on
+    this, but the direct check_facts() path (tests / embedders) never went
+    through load()."""
+    raw_protos = facts.get("protocols", [])
+    raw_fns = facts.get("protocol_functions", [])
+    if not isinstance(raw_protos, list) or not isinstance(raw_fns, list):
+        return []
+    protocols: list[Protocol] = []
+    for praw in raw_protos:
+        try:
+            parsed = parse_protocol(praw)
+        except ProtocolFactsError:
+            continue
+        # a duplicate name is rejected by load(); on the direct path skip the
+        # later one (first wins, deterministically) — the name is the identity
+        # the violation->protocol re-pairing below relies on.
+        if any(p.name == parsed.name for p in protocols):
+            continue
+        protocols.append(parsed)
+    methods: list[MethodEvents] = []
+    for fraw in raw_fns:
+        try:
+            methods.append(parse_method(fraw))
+        except ProtocolFactsError:
+            continue
+    if not protocols:
+        return []
+    out: list[Finding] = []
+    for v in check_protocols(protocols, methods):
+        proto = next(p for p in protocols if p.name == v.protocol)
+        component = v.method.rsplit(".", 2)[-2] if "." in v.method else v.method
+        opened = proto.opens.describe()
+        flow: list[tuple[int, str]] = [
+            (v.open_line, f"obligation '{v.protocol}' opens here ({opened})")]
+        if v.kind == "barrier":
+            flow.append((v.line, f"barrier '{v.barrier_desc}' fires while it is open"))
+        elif v.line != v.open_line:
+            flow.append((v.line, f"the method exits here via {v.barrier_desc} "
+                                 f"while it is open"))
+        if v.close_line is not None:
+            flow.append((v.close_line,
+                         "closed here — after the barrier has already fired"))
+        out.append(Finding(
+            file=v.file, line=v.line, code=_OBL_CODE[(v.kind, v.definite)],
+            component=component, event=v.protocol,
+            handler=v.method.rsplit(".", 1)[-1],
+            message=_protocol_message(v, proto),
+            kind="protocol obligation",
+            flow=tuple((v.file, ln, label) for ln, label in flow if ln >= 1)))
+    # a scoped protocol that matched no reported method is a dead rule —
+    # surface it honestly (advisory, never fails the build), like OWN050.
+    for p in unmatched_scopes(protocols, methods):
+        out.append(Finding(
+            file="?", line=0, code="OBL005", component="?", event=p.name,
+            handler="", advisory=True, kind="protocol obligation",
+            message=(f"protocol '{p.name}' is scoped to "
+                     f"{sorted(p.methods)} but no reported method matches — "
+                     f"the rule is dead (typo in scope.methods?)")))
     return out
 
 

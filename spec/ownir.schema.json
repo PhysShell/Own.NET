@@ -33,6 +33,16 @@
       "description": "The reactive-effect graph feeding the EFF001 effect-storm check (spec/OwnIR.md §7).",
       "type": "array",
       "items": { "$ref": "#/$defs/effect" }
+    },
+    "protocols": {
+      "description": "Project-declared obligation protocols feeding the OBL001-005 checks (spec/OwnIR.md §8) — the rule side of the pair; the event side is protocol_functions.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/protocol" }
+    },
+    "protocol_functions": {
+      "description": "Per-method ordered obligation-event trees the protocols are checked against (spec/OwnIR.md §8) — the fact side of the pair.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/protocolFunction" }
     }
   },
   "$defs": {
@@ -295,6 +305,156 @@
         },
         "refs": { "type": "array", "items": { "type": "string" } },
         "line": { "type": "integer" }
+      }
+    },
+    "protocolMatcher": {
+      "description": "One event pattern for barriers/allow (spec/OwnIR.md §8); opens/closes use the stricter protocolOpenClose variant. The `kind` discriminator is a closed vocabulary pinned to ownlang/obligations.py::MATCHER_KINDS by tests/test_obligations.py; an unknown kind is rejected at load (IR4).",
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "title": "assign",
+          "description": "Matches an assign event on `target`; `value` narrows to a written boolean (null/absent = any written value).",
+          "properties": {
+            "kind": { "const": "assign" },
+            "target": { "type": "string", "minLength": 1 },
+            "value": { "type": ["boolean", "null"] }
+          },
+          "required": ["kind", "target"]
+        },
+        {
+          "title": "call",
+          "description": "Matches a call event on `callee`; a non-empty `args` narrows to calls whose distinguished argument is in the set (a call with an unknown argument does not match a narrowed matcher — never invent a crossing).",
+          "properties": {
+            "kind": { "const": "call" },
+            "callee": { "type": "string", "minLength": 1 },
+            "args": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["kind", "callee"]
+        }
+      ]
+    },
+    "protocolOpenClose": {
+      "description": "The opens/closes matcher: like protocolMatcher, but an assign variant MUST state the written boolean `value` — 'any write' cannot open or close an obligation (ownlang/obligations.py::parse_matcher require_value).",
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "title": "assign",
+          "properties": {
+            "kind": { "const": "assign" },
+            "target": { "type": "string", "minLength": 1 },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "target", "value"]
+        },
+        {
+          "title": "call",
+          "properties": {
+            "kind": { "const": "call" },
+            "callee": { "type": "string", "minLength": 1 },
+            "args": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["kind", "callee"]
+        }
+      ]
+    },
+    "protocol": {
+      "description": "One obligation protocol (spec/OwnIR.md §8): `opens` creates the obligation, `closes` discharges it, `barriers` are points it must not cross while open, `allow` exempts explicitly safe events from barrier matching, `exit_barriers` (default true) makes return/throw/end-of-body barriers too. `scope.methods` restricts the rule to named methods (exact, or trailing 'Type.Method' suffix) — tight scoping is the false-positive control. Parser-enforced beyond this schema (ownlang/obligations.py::parse_protocol): protocol names must be unique per document, `barriers` may not be empty while `exit_barriers` is false (the rule could never fire), and a barrier equal to `opens` is rejected (silently dead).",
+      "type": "object",
+      "required": ["name", "opens", "closes"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "opens": { "$ref": "#/$defs/protocolOpenClose" },
+        "closes": { "$ref": "#/$defs/protocolOpenClose" },
+        "barriers": { "type": "array", "items": { "$ref": "#/$defs/protocolMatcher" } },
+        "allow": { "type": "array", "items": { "$ref": "#/$defs/protocolMatcher" } },
+        "exit_barriers": { "type": "boolean", "default": true },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "methods": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        }
+      }
+    },
+    "protocolEvent": {
+      "description": "One ordered obligation event (spec/OwnIR.md §8). The `ev` discriminator is the complete vocabulary ownlang/obligations.py::parse_events handles, pinned to EVENT_KINDS by tests/test_obligations.py; any other value is rejected at load (fail-loud, the flow-op rule).",
+      "type": "object",
+      "required": ["ev"],
+      "oneOf": [
+        {
+          "title": "assign",
+          "description": "A member/flag assignment; a null/absent `value` is an opaque write (non-literal RHS) — it may discharge an open obligation but never creates one.",
+          "properties": {
+            "ev": { "const": "assign" },
+            "target": { "type": "string", "minLength": 1 },
+            "value": { "type": ["boolean", "null"] },
+            "line": { "type": "integer" }
+          },
+          "required": ["ev", "target"]
+        },
+        {
+          "title": "call",
+          "description": "An invocation; `arg` is the distinguished argument (a nameof()/string literal), null/absent when unknown.",
+          "properties": {
+            "ev": { "const": "call" },
+            "callee": { "type": "string", "minLength": 1 },
+            "arg": { "type": ["string", "null"] },
+            "line": { "type": "integer" }
+          },
+          "required": ["ev", "callee"]
+        },
+        {
+          "title": "return",
+          "description": "A normal method exit.",
+          "properties": {
+            "ev": { "const": "return" },
+            "line": { "type": "integer" }
+          },
+          "required": ["ev"]
+        },
+        {
+          "title": "throw",
+          "description": "An exceptional method exit. Frontends thread finally bodies onto exits, like the flow lowering (§5).",
+          "properties": {
+            "ev": { "const": "throw" },
+            "line": { "type": "integer" }
+          },
+          "required": ["ev"]
+        },
+        {
+          "title": "if",
+          "description": "A branch with both arms lowered.",
+          "properties": {
+            "ev": { "const": "if" },
+            "line": { "type": "integer" },
+            "then": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } },
+            "else": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
+          },
+          "required": ["ev"]
+        },
+        {
+          "title": "while",
+          "description": "A loop; the checker solves the body to a local fixpoint.",
+          "properties": {
+            "ev": { "const": "while" },
+            "line": { "type": "integer" },
+            "body": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
+          },
+          "required": ["ev"]
+        }
+      ]
+    },
+    "protocolFunction": {
+      "description": "One method's ordered obligation-event tree, as reported by a frontend (spec/OwnIR.md §8).",
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "file": { "type": "string" },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
       }
     }
   }
