@@ -83,7 +83,9 @@ pub fn module_cfg_json(module: &Module) -> String {
 #[cfg(test)]
 #[allow(clippy::expect_used)] // test-only unwraps on known-good fixtures
 mod tests {
-    use super::{build_module, module_cfg_json, CFG_JSON_VERSION};
+    use super::{
+        build_module, collect_policies, module_cfg_json, validate_policies, CFG_JSON_VERSION,
+    };
     use own_syntax::parse;
     use serde_json::Value;
 
@@ -121,6 +123,17 @@ mod tests {
             .get("functions")
             .and_then(Value::as_array)
             .is_some_and(|a| a.len() == 1));
+    }
+
+    #[test]
+    fn validate_policies_follows_source_declaration_order() {
+        // Names deliberately out of alphabetical order: sorting by name would
+        // reorder the diagnostics; Python emits them in declaration (line) order.
+        let src = "module M\npolicy Zeta { bogus = 1; }\npolicy Alpha { alsobad = 2; }\n";
+        let module = parse(src).expect("parses");
+        let diags = validate_policies(&collect_policies(&module));
+        let got: Vec<(u32, &str)> = diags.iter().map(|d| (d.line, d.code)).collect();
+        assert_eq!(got, vec![(2, "OWN030"), (3, "OWN030")]);
     }
 
     #[test]

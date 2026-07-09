@@ -314,21 +314,21 @@ fn trace_flag(
 #[must_use]
 pub fn validate_policies(policies: &Policies) -> Vec<Diag> {
     let mut diags = Vec::new();
-    // Deterministic order: by policy name, then declaration order of keys. (The
-    // Python dict iterates in insertion order; a HashMap does not, so sort to
-    // keep the diagnostic stream stable.)
-    let mut names: Vec<&String> = policies.keys().collect();
-    names.sort();
-    for name in names {
-        if let Some(pol) = policies.get(name) {
-            for (key, _) in &pol.settings {
-                if !VALID_POLICY_KEYS.contains(&key.as_str()) {
-                    diags.push(Diag::new("OWN030", pol.line));
-                }
-            }
-            for _ in &pol.dups {
+    // Python iterates `policies.values()` in dict insertion order, i.e. source
+    // declaration order, and emits diagnostics in that order. A `HashMap` loses
+    // it, so recover declaration order by sorting on the declaration line (which
+    // *is* that order) — NOT by name, which would reorder the diagnostic stream
+    // for policies not already alphabetized.
+    let mut pols: Vec<&Policy> = policies.values().collect();
+    pols.sort_by_key(|p| p.line);
+    for pol in pols {
+        for (key, _) in &pol.settings {
+            if !VALID_POLICY_KEYS.contains(&key.as_str()) {
                 diags.push(Diag::new("OWN030", pol.line));
             }
+        }
+        for _ in &pol.dups {
+            diags.push(Diag::new("OWN030", pol.line));
         }
     }
     diags
