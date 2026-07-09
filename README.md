@@ -1,18 +1,99 @@
 **English** · [Русский](README.ru.md)
 
-# OwnLang — PoC
+# Own.NET
 
-A working prototype of what the design documents were about: a small
-ownership language with strict Rust-style ownership discipline that compiles to
-C#. This is the **front half** of the whole idea — exactly the layer document №2
-advised building first (annotations/subset → analyzer → IR), and deliberately
-**before** a Boogie/Dafny/F\* backend.
+> Own.NET finds lifetime/resource bugs that C# cannot express: WPF/event
+> leaks, missing `Dispose`, DI lifetime mismatch, and pooled-buffer misuse.
 
-Not "Rust for C#". More honestly:
+*Find leaks before the profiler.* GC collects unreachable objects; Own finds
+objects that should have become unreachable. `event +=` is acquire, `-=` is
+release.
 
-> A static ownership checker for a small resource subset, with flow-sensitive
-> analysis, a loans/permissions model, a strict call boundary, and code
-> generation to C#.
+## Run it in CI — 6 lines
+
+```yaml
+- uses: actions/checkout@v4
+- uses: PhysShell/own.net@main
+  with:
+    format: github          # inline PR annotations; use "sarif" for the Security tab
+    fail-on-finding: "true"
+```
+
+## Or point it at a repo you already have
+
+```bash
+git clone https://github.com/PhysShell/Own.NET && cd Own.NET
+scripts/own-check.sh --format human -- /path/to/your/csharp/repo
+```
+
+Needs Python 3.11+ and the .NET SDK on `PATH` — nothing to build, nothing to
+`pip install` (there's no packaged CLI yet; see
+[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md) gate **A**).
+
+## One it actually found
+
+A real, unmodified file from [`ScreenToGif`](https://github.com/NickeManarin/ScreenToGif) —
+a `Window` subscribes to a **static, process-lifetime** event and never
+unsubscribes, so the window can never be collected:
+
+```csharp
+// bad — GraphicsConfigurationDialog.xaml.cs:35
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+// ...never `-=`'d
+
+// fixed
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+```
+
+```text
+GraphicsConfigurationDialog.xaml.cs:35: error: [OWN001] event
+  'SystemEvents.DisplaySettingsChanged' is subscribed (handler
+  'SystemEvents_DisplaySettingsChanged') but never unsubscribed — the source keeps
+  'GraphicsConfigurationDialog' alive (leak) [resource: subscription token]
+```
+
+No `IDisposable` involved, nothing "not disposed" — a defect class Dispose/RAII
+checkers (CA2213, CodeQL's `cs/local-not-disposed`, …) have no query for. Three
+more real finds, one where Own.NET's verdict lines up with CodeQL/Infer# and one
+consolidated suppression/false-positive policy:
+
+- [`docs/case-studies/screentogif-videosource.md`](docs/case-studies/screentogif-videosource.md) — the flagship find, a view→view-model handler leak
+- [`docs/case-studies/screentogif-systemevents.md`](docs/case-studies/screentogif-systemevents.md) — the pair above, in full
+- [`docs/case-studies/dispose-agreement-with-codeql.md`](docs/case-studies/dispose-agreement-with-codeql.md) — where Own.NET, CodeQL, and Infer# agree
+- [`docs/suppression-and-fp-policy.md`](docs/suppression-and-fp-policy.md) — suppressing a finding, and the false-positive policy
+
+## Why not Sonar / CodeQL / Semgrep?
+
+Because they already own "find bugs/vulnerabilities," backed by sales teams —
+that is a fight lost to marketing budget, not merit. Own.NET's niche is
+narrower and doesn't overlap where it doesn't have to: a **resource / lifetime /
+effect contract checker** — who holds whom, who must release, which resource
+outlives which. Full positioning, including the "same model, many skins" case
+for treating WPF leaks, DI captive dependencies, and pooled-buffer misuse as one
+underlying bug class:
+[`docs/ROADMAP.md` — Positioning against the competition](docs/ROADMAP.md#positioning-against-the-competition-not-another-sast).
+
+---
+
+Everything below this line is the research-depth documentation: the analysis
+model, the ownership core, codegen, and how this maps to the original design
+proposals. Start here if you're evaluating the engine itself, contributing, or
+just curious how "GC finds unreachable objects; Own finds objects that should
+have become unreachable" is actually implemented.
+
+`ownlang/` (the Python core described below) began as a working prototype of
+the design documents' idea: a small ownership language with strict Rust-style
+ownership discipline that compiles to C#. Not "Rust for C#" — more honestly, **a
+static ownership checker for a small resource subset**, with flow-sensitive
+analysis, a loans/permissions model, a strict call boundary, and code
+generation to C#. This is the **front half** of the whole idea — exactly the
+layer document №2 advised building first (annotations/subset → analyzer → IR),
+and deliberately **before** a Boogie/Dafny/F\* backend. It is also, today, the
+reference implementation the real C# extractor (`frontend/roslyn/`) and the
+Rust port (`rust/`) are held to parity against — see
+[`corpus/wpf/`](corpus/wpf/) and the case studies above for what it looks like
+pointed at real code, and everything from here down for how it works.
 
 This revision is a rework after review. What changed: an explicit
 **loans + permissions** model (the owner stays `Owned`, borrows are separate

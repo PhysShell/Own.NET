@@ -1,18 +1,104 @@
 [English](README.md) · **Русский**
 
-# OwnLang — PoC
+# Own.NET
 
-Рабочий прототип того, о чём шла речь в твоих документах: маленький
-ownership-язык со строгой дисциплиной владения в духе Rust, который
-компилируется в C#. Это **передняя половина** всей задумки — ровно тот слой,
-который документ №2 советовал строить первым (annotations/subset → analyzer →
-IR), и сознательно **до** backend'а на Boogie/Dafny/F\*.
+> Own.NET находит баги времени жизни/ресурсов, которые C# не может выразить:
+> WPF/event-лики, забытый `Dispose`, рассинхрон DI lifetime и неправильное
+> использование pooled-буферов.
 
-Не «Rust для C#». Честнее так:
+*Находи лики до профайлера.* GC собирает недостижимые объекты; Own находит
+объекты, которые должны были стать недостижимыми. `event +=` — это acquire,
+`-=` — это release.
 
-> Статический ownership-checker для маленького ресурсного подмножества,
-> с flow-sensitive анализом, моделью loans/permissions, строгой границей вызовов
-> и кодогенерацией в C#.
+## Запустить в CI — 6 строк
+
+```yaml
+- uses: actions/checkout@v4
+- uses: PhysShell/own.net@main
+  with:
+    format: github          # инлайн-аннотации в PR; "sarif" — для вкладки Security
+    fail-on-finding: "true"
+```
+
+## Или локально, на репозитории, который уже есть
+
+```bash
+git clone https://github.com/PhysShell/Own.NET && cd Own.NET
+scripts/own-check.sh --format human -- /путь/к/вашему/csharp/репозиторию
+```
+
+Нужны Python 3.11+ и .NET SDK в `PATH` — ничего собирать, ничего ставить через
+`pip install` (упакованного CLI пока нет; см.
+[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md), gate **A**).
+
+## Один реальный баг, который он нашёл
+
+Настоящий, неизменённый файл из
+[`ScreenToGif`](https://github.com/NickeManarin/ScreenToGif) — `Window`
+подписывается на **статическое, process-lifetime** событие и никогда не
+отписывается, поэтому окно никогда не будет собрано GC:
+
+```csharp
+// bad — GraphicsConfigurationDialog.xaml.cs:35
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+// ...ни разу не `-=`
+
+// fixed
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+```
+
+```text
+GraphicsConfigurationDialog.xaml.cs:35: error: [OWN001] event
+  'SystemEvents.DisplaySettingsChanged' is subscribed (handler
+  'SystemEvents_DisplaySettingsChanged') but never unsubscribed — the source keeps
+  'GraphicsConfigurationDialog' alive (leak) [resource: subscription token]
+```
+
+Никакого `IDisposable`, нечему быть «not disposed» — класс дефектов, для
+которого у Dispose/RAII-чекеров (CA2213, CodeQL `cs/local-not-disposed`, …)
+попросту нет запроса. Ещё три реальные находки, одна — где вердикт Own.NET
+совпадает с CodeQL/Infer#, и одна консолидированная страница про
+suppression/false-positive:
+
+- [`docs/case-studies/screentogif-videosource.md`](docs/case-studies/screentogif-videosource.md) — флагманская находка, лик handler'а view→view-model
+- [`docs/case-studies/screentogif-systemevents.md`](docs/case-studies/screentogif-systemevents.md) — пара выше, целиком
+- [`docs/case-studies/dispose-agreement-with-codeql.md`](docs/case-studies/dispose-agreement-with-codeql.md) — где Own.NET, CodeQL и Infer# сходятся
+- [`docs/suppression-and-fp-policy.md`](docs/suppression-and-fp-policy.md) — как подавить находку, и политика false positive
+
+## Почему не Sonar / CodeQL / Semgrep?
+
+Потому что они уже владеют «находим баги/уязвимости», за спиной — sales-команды:
+это бой, проигранный маркетинговому бюджету, а не по существу. Ниша Own.NET
+у́же и не пересекается там, где не обязана: **чекер контрактов
+ресурсов/времени жизни/эффектов** — кто кем владеет, кто обязан release,
+какой ресурс переживает какой. Полное позиционирование, включая кейс «одна
+модель, много обличий» для WPF-ликов, DI captive dependencies и неправильного
+использования pooled-буферов как одного класса багов:
+[`docs/ROADMAP.md` — Positioning against the competition](docs/ROADMAP.md#positioning-against-the-competition-not-another-sast)
+(на английском).
+
+---
+
+Всё, что ниже этой черты — исследовательская документация: модель анализа,
+ownership-ядро, кодогенерация и как это соотносится с исходными
+design-документами. Начните отсюда, если оцениваете сам движок, собираетесь
+контрибьютить или просто любопытно, как «GC находит недостижимые объекты; Own
+находит объекты, которые должны были стать недостижимыми» устроено на самом
+деле.
+
+`ownlang/` (Python-ядро, описанное ниже) начинался как рабочий прототип идеи
+из design-документов: маленький ownership-язык со строгой дисциплиной владения
+в духе Rust, который компилируется в C#. Не «Rust для C#» — честнее: **статический
+ownership-checker для маленького ресурсного подмножества**, с flow-sensitive
+анализом, моделью loans/permissions, строгой границей вызовов и кодогенерацией
+в C#. Это **передняя половина** всей задумки — ровно тот слой, который
+документ №2 советовал строить первым (annotations/subset → analyzer → IR), и
+сознательно **до** backend'а на Boogie/Dafny/F\*. Сегодня это ещё и эталонная
+реализация, с которой на паритет держат реальный C#-экстрактор
+(`frontend/roslyn/`) и Rust-порт (`rust/`) — см. [`corpus/wpf/`](corpus/wpf/) и
+кейсы выше, как это выглядит на реальном коде, и всё, что ниже — как это
+устроено внутри.
 
 Эта ревизия — переработка по ревью. Что изменилось: явная модель
 **loans + permissions** (владелец остаётся `Owned`, borrow'ы — отдельные факты),
