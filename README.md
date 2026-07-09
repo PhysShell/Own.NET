@@ -823,6 +823,8 @@ ownlang/
     test_spec.py              # conformance: every spec/ rule fires on an example
     test_ownir.py             # the OwnIR bridge: C# facts -> core -> OWN001 at the C# site
   frontend/roslyn/            # the C# extractor (Roslyn, CI-only) + .cs samples (P-001)
+  rust/                       # the Rust core migration (P-022): own-ir + own-syntax so far,
+                               #   oracle-gated against this Python core — see rust/README.md
   pyproject.toml              # gate: ruff + mypy --strict (see below)
 ```
 
