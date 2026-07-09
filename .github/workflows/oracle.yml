@@ -57,11 +57,11 @@ jobs:
     name: oracle ${{ inputs.repo }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
 
@@ -182,7 +182,7 @@ jobs:
       # default code-scanning (security) suite — so request security-and-quality,
       # else CodeQL silently contributes zero. Comparator filters to the leak family.
       - name: CodeQL init
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         continue-on-error: true
         with:
           languages: csharp
@@ -190,7 +190,7 @@ jobs:
           source-root: target
           queries: security-and-quality
       - name: CodeQL analyze
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         continue-on-error: true
         with:
           category: ownnet-oracle
@@ -243,7 +243,7 @@ jobs:
           fi
       - name: Run Infer#
         if: env.BUILD_OK == '1'
-        uses: microsoft/infersharpaction@v1.5
+        uses: microsoft/infersharpaction@b749060de518f410f92c87d37d2366e5e9d7c5fc # v1.5
         continue-on-error: true
         with:
           binary-path: _bin
@@ -281,7 +281,7 @@ jobs:
           fi
       - name: Upload the report and raw outputs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: oracle-report
           path: |

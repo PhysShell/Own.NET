@@ -701,10 +701,10 @@ This is a PoC. The list of holes is deliberately explicit.
 
 6. **Shadowing is forbidden** (OWN031). Rust allows it; for the PoC the ban is simpler.
 
-7. **CI actions are not pinned by commit SHA** (`actions/checkout@v4` and so on on tags,
-   without `persist-credentials: false`) — SAST (zizmor) flags this. Deliberately
-   deferred: SHA pinning is a repo-wide policy run by Dependabot / a separate hardening
-   pass, not a single PR; the jobs are only checkout + running tests, with no push and no
+7. ~~CI actions are not pinned by commit SHA~~ — **fixed**: every `uses:` in
+   `ci.yml`/`mine.yml`/`mine-on-push.yml`/`oracle.yml`/`pr-issue-validation.yml` is now a
+   commit SHA with a `# vN` comment. `persist-credentials: false` is still open — SAST
+   (zizmor) flags it, but the jobs are checkout + running tests, with no push and no
    secrets, so the exposure is minimal.
 
 ---

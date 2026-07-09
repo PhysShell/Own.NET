@@ -684,11 +684,11 @@ OWN010 в новой схеме занят «maybe-move».)
 
 6. **Запрещено shadowing** (OWN031). Rust разрешает; для PoC запрет проще.
 
-7. **CI-экшены не запинены по commit-SHA** (`actions/checkout@v4` и пр. на тегах,
-   без `persist-credentials: false`) — SAST (zizmor) это флагует. Сознательно
-   отложено: SHA-пиннинг — repo-wide политика, которую ведёт Dependabot / отдельный
-   hardening-проход, а не один PR; джобы только checkout + прогон тестов, без push
-   и без секретов, так что экспозиция минимальна.
+7. ~~CI-экшены не запинены по commit-SHA~~ — **исправлено**: каждый `uses:` в
+   `ci.yml`/`mine.yml`/`mine-on-push.yml`/`oracle.yml`/`pr-issue-validation.yml` теперь
+   commit-SHA с комментарием `# vN`. `persist-credentials: false` пока не сделано — SAST
+   (zizmor) это флагует, но джобы только checkout + прогон тестов, без push и без
+   секретов, так что экспозиция минимальна.
 
 ---
 
