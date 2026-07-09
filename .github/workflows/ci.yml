@@ -866,6 +866,32 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
+        run: |
+          # C#-native mirror of examples/gallery/*.own, run through the real extractor ->
+          # OwnIR -> core (not the toy .own DSL's own dataflow) — see
+          # examples/gallery/cs/README.md for the 7-of-12 mapping and why the remaining 5
+          # (move/borrow/stack-buffer/unknown-call) have no real C# detector yet.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            examples/gallery/cs --flow-locals -o "$RUNNER_TEMP/gallery.json"
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/gallery.json" || true)
+          echo "$out"
+          echo "$out" | grep -qE "01_leak_on_error_path\.bad\.cs:[0-9]+:.*\[OWN001\].*'galleryLeakOnError'" \
+            || { echo "FAIL: expected OWN001 on galleryLeakOnError"; exit 1; }
+          echo "$out" | grep -qE "02_use_after_release\.bad\.cs:[0-9]+:.*\[OWN002\].*'galleryUseAfterRelease'" \
+            || { echo "FAIL: expected OWN002 on galleryUseAfterRelease"; exit 1; }
+          echo "$out" | grep -qE "03_double_release\.bad\.cs:[0-9]+:.*\[OWN003\].*'galleryDoubleRelease'" \
+            || { echo "FAIL: expected OWN003 on galleryDoubleRelease"; exit 1; }
+          echo "$out" | grep -qE "07_use_after_handoff\.bad\.cs:[0-9]+:.*\[OWN002\].*'galleryHandoff'" \
+            || { echo "FAIL: expected OWN002 on galleryHandoff (use after handoff)"; exit 1; }
+          echo "$out" | grep -qE "10_leak_in_loop\.bad\.cs:[0-9]+:.*\[OWN001\].*'galleryLoopLeak'" \
+            || { echo "FAIL: expected OWN001 on galleryLoopLeak"; exit 1; }
+          echo "$out" | grep -qE "11_overspan_full_view\.bad\.cs:[0-9]+:.*\[OWN025\].*'galleryOverspanBuf'" \
+            || { echo "FAIL: expected OWN025 on galleryOverspanBuf"; exit 1; }
+          for ok in galleryClean galleryLeakOnErrorOk galleryUseAfterReleaseOk galleryDoubleReleaseOk galleryHandoffOk galleryLoopLeakOk galleryOverspanOkBuf; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: clean gallery case '$ok' was reported"; exit 1; fi
+          done
+          echo "OK: examples/gallery/cs/ bad/ok pairs match the .own gallery's codes 1:1 on the real extractor pipeline"
       - name: P-005 D5.4 T4 wrap/adopt (--flow-locals)
         run: |
           # The extractor recognises a first-party wrapper that ADOPTS a disposable arg into an

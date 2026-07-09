@@ -167,9 +167,17 @@ python tests/test_gallery.py
 | `07_use_after_handoff` | **OWN002** | тронул буфер после того, как его забрал вызов |
 | `08_stack_buffer_escapes` | **OWN015** | вернул `Span<byte>` над `stackalloc` (dangling) |
 | `09_untracked_call` | **OWN040** | владение «отмыли» через непрозрачный вызов |
+| `10_leak_in_loop` | **OWN001** | ресурс, который забирают на каждой итерации цикла и никогда не освобождают |
+| `11_overspan_full_view` | **OWN025** | полноразмерный `buf.AsSpan()`, читающий за пределы rented-длины |
 
 `00_ok_clean` — чистый happy-path (rent → view → return), лоуэрится в exception-safe
 `ArrayPool` Rent/Return.
+
+[`examples/gallery/cs/`](examples/gallery/cs/) — 7 из этих 12 кейсов в виде настоящего,
+компилируемого C#, прогнанного через реальный пайплайн Roslyn-экстрактор → OwnIR → ядро
+(не через dataflow самого `.own`-DSL), проверяется в CI. Остальные 5 (move/borrow/
+stack-buffer/unknown-call) — концепции, существующие только в DSL, для них пока нет
+реального C#-детектора — почему именно, см. README той директории.
 
 `check` печатает ошибку в стиле rustc — `file:line:col`, сама строка исходника и
 каретка под виновным именем:

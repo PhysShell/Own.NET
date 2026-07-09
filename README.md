@@ -162,9 +162,17 @@ python tests/test_gallery.py
 | `07_use_after_handoff` | **OWN002** | touched the buffer after a call took it |
 | `08_stack_buffer_escapes` | **OWN015** | returned a `Span<byte>` over a `stackalloc` (dangling) |
 | `09_untracked_call` | **OWN040** | ownership "laundered" through an opaque call |
+| `10_leak_in_loop` | **OWN001** | a resource acquired every loop iteration, never released |
+| `11_overspan_full_view` | **OWN025** | a full-length `buf.AsSpan()` reading past the rented length |
 
 `00_ok_clean` — a clean happy path (rent → view → return) that lowers into
 exception-safe `ArrayPool` Rent/Return.
+
+[`examples/gallery/cs/`](examples/gallery/cs/) mirrors 7 of these 12 cases in real,
+compilable C#, run through the actual Roslyn extractor → OwnIR → core pipeline
+(not the `.own` DSL's own dataflow) and verified in CI. The other 5 (move/borrow/
+stack-buffer/unknown-call) are DSL-only concepts with no real C# detector yet —
+see that directory's README for exactly why.
 
 `check` prints the error rustc-style — `file:line:col`, the source line itself, and
 a caret under the offending name:
