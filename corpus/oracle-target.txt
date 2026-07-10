@@ -3,6 +3,15 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# issue #201 oracle sweep (5/5): ClosedXML/ClosedXML — plain library (Excel/OOXML,
-# Stream/IDisposable-heavy, no UI) — the clean-code control per the issue brief.
-ClosedXML/ClosedXML
+# Cross-tool oracle on a Linux-buildable fixture, so ALL THREE tools run (Infer#
+# included — ScreenToGif's WPF won't build on Linux). Re-run after the OWN014
+# migration (PR #35): the fixture's SUBSCRIPTION leak (#1 — SystemEvents.Display
+# SettingsChanged += with no -=) is now lowered by the extractor to a `capture`
+# fact and reported as OWN014 (region escape), not OWN001; OWN014 was added to the
+# comparator's OWN_LEAK set. So #1 must STILL land "Own.NET-only" (CodeQL / Infer#
+# have no event-subscription-leak query) — this run confirms the migration kept the
+# differentiation, on real cross-tool output rather than the selftest's fixtures.
+# Expect: #1 Own.NET-only (now OWN014), #2/#3/#4 dispose leaks in "Agree", 0
+# oracle-only.
+local:corpus/fixtures/systemevents-console
+build=SystemEventsLeak.csproj
