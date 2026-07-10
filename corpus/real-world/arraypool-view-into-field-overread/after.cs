@@ -24,7 +24,8 @@ sealed class FieldViewFramer : IDisposable
         Fill(_buf, n);
         _view = _buf.AsMemory(0, _n);            // FIX: bounded to the logical length
         _metaLen = 8;
-        _metaView = _meta.AsMemory(0, _metaLen); // FIX: bounded
+        Fill(_meta, _metaLen);                   // write the valid metadata bytes first...
+        _metaView = _meta.AsMemory(0, _metaLen); // ...then expose only those (bounded — no stale tail)
     }
 
     public byte[] Flush() => _view.ToArray();

@@ -28,14 +28,17 @@ sealed class FieldViewFramer : IDisposable
     // is cached into a ReadOnlyMemory field below.
     private readonly byte[] _meta = ArrayPool<byte>.Shared.Rent(64);   // Length >= 64
     private ReadOnlyMemory<byte> _metaView;
+    private int _metaLen;
 
     public void Capture(int n)
     {
         _n = n;
         _buf = ArrayPool<byte>.Shared.Rent(n);   // pooled buffer stored in a FIELD (Length >= n)
         Fill(_buf, n);                            // valid payload is _buf[0..n]
+        _metaLen = 8;
+        Fill(_meta, _metaLen);                    // valid payload is _meta[0.._metaLen)
         _view = _buf.AsMemory();                  // <-- BUG: full-length view cached into a field
-        _metaView = _meta.AsMemory();             // <-- BUG: full-length view into a ReadOnlyMemory field
+        _metaView = _meta.AsMemory();             // <-- BUG: full view (past _metaLen) into a ReadOnlyMemory field
     }
 
     public byte[] Flush() => _view.ToArray();        // reads the cached full view: n bytes + stale [n, Length) tail
