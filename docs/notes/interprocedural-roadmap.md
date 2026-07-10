@@ -191,6 +191,23 @@ consume-сводку всех остальных, а overload-неоднозна
 одной арности с разными типами при варианте `arity` остаются слитыми — потому
 предпочтителен сразу `signature`, чтобы не делать двух миграций.
 
+> **Статус: сделано (вариант `signature` сразу, минуя `arity`).** Формат и
+> fallback-правила — `spec/OwnIR.md` §5.1 + `spec/ownir.schema.json`. Мост:
+> `_build_skeletons` эмитит per-overload скелет `name(sig)` РЯДОМ со слитым
+> по имени (fallback для рёбер без `sig`); `_mos_lookup` — единая резолюция
+> (sig-ключ → точное имя → каноническое) для канала, kill-sites, OWN051,
+> fresh-минта и параметров самого метода. Extractor штампует `sig` из одного
+> и того же `IMethodSymbol` на `functions[]`-записи и `call`-опе (generic-
+> аргументы стёрты до backtick-арности — коллизия просто сливает группу,
+> никогда не «мимо»). Паритетный дамп несёт оба словаря ключей; e2e-якорь —
+> `OverloadSigSample.cs` (fresh-перегрузка возвращает OWN001, который merge
+> терял). Тест-матрица §6.1 ТЗ — в `tests/test_ownir.py` (stage 2 блок).
+> Пересмотр Tier B-исключений: `Process.Start` / `new StreamReader(stream)`
+> остаются вне таблицы — их неоднозначность лежит на BCL-стороне (static-vs-
+> instance, adopt-vs-factory), где `functions[]`-записей нет и per-overload
+> summary не возникает; sig-ключёванная Tier B-таблица теперь ВОЗМОЖНА
+> (у `call`-опа есть `sig`), но это отдельный аддитивный срез.
+
 ## 6. Этап 3 — дожать T1/T4: `aliasOf:i` через return, out/ref (2–3 недели)
 
 Самый большой прикладной выигрыш из оставшихся — «step 2 remainder» D5.4:

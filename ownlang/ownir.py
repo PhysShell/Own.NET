@@ -103,7 +103,8 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from typing import Any
 
 from .ast_nodes import (
@@ -639,6 +640,16 @@ def load(path: str) -> dict[str, Any]:
     if not isinstance(fns, list) or not all(isinstance(f, dict) for f in fns):
         raise OwnIRError("OwnIR 'functions' must be a JSON array of objects")
     for f in fns:
+        # Optional per-overload signature key (interprocedural stage 2): the
+        # canonical parameter-type list a `call` op's `sig` resolves against.
+        # Additive/optional — a producer without type information (ownts) omits
+        # it and the name-merged summary applies as before. Present-but-malformed
+        # is rejected here (fail loud); a malformed `sig` on a *flow op* is
+        # instead read as absent (`_call_sig`), which degrades to the merged
+        # summary — never a wrong overload.
+        fsig = f.get("sig")
+        if fsig is not None and not isinstance(fsig, str):
+            raise OwnIRError(f"function 'sig' must be a string, got {fsig!r}")
         # Optional ownership CONTRACT (P-006/2b): params + their effects. Additive
         # and optional — an older core just reads functions without contracts. An
         # omitted `effect` is INFERRED from the body (v1 contract inference), so the
@@ -1048,7 +1059,7 @@ def to_module(facts: dict[str, Any],
                 # to a may-position is not a gap worth a note.
                 owned_here = _collect_vars(nodes, "acquire", "var") | {
                     v for v, c in _call_result_callees(nodes).items()
-                    if c and _callee_returns_fresh(c, mos, first_party)}
+                    if c and _callee_returns_fresh(c[0], mos, first_party, c[1])}
                 for arg, callee, transfer, cline in unverified:
                     if arg not in owned_here:
                         continue
@@ -1153,11 +1164,11 @@ def _unverified_transfer_calls(
             op = n.get("op")
             if op == "call":
                 callee = str(n.get("callee", ""))
-                summ = mos.get(callee) if callee else None
-                if summ is None and callee:
-                    identity = _canonical_callee_name(callee)
-                    if identity != callee:
-                        summ = mos.get(identity)
+                # per-overload key first, merged fallback second (stage 2) — the
+                # SAME resolution the `call` handler and the kill sites use, so
+                # the untrack set, the OWN051 advisories and the emitted channel
+                # effects can never disagree about which summary applied.
+                summ = _mos_lookup(mos, callee, _call_sig(n))
                 args = n.get("args", [])
                 if summ is not None and isinstance(args, list):
                     for j, a in enumerate(args):
@@ -1229,11 +1240,8 @@ def _kill_sites_for_unverified(
             continue
         if n.get("op") == "call":
             callee = str(n.get("callee", ""))
-            summ = mos.get(callee) if callee else None
-            if summ is None and callee:
-                identity = _canonical_callee_name(callee)
-                if identity != callee:
-                    summ = mos.get(identity)
+            # same stage-2 resolution as `_unverified_transfer_calls` — see there.
+            summ = _mos_lookup(mos, callee, _call_sig(n))
             args = n.get("args", [])
             if summ is not None and isinstance(args, list):
                 for j, a in enumerate(args):
@@ -1311,12 +1319,15 @@ def _has_bare_return(nodes: Any) -> bool:
     return False
 
 
-def _call_result_callees(nodes: Any) -> dict[str, str | None]:
-    """Map each `result` local of a `call` op to the callee that produced it (for
-    forward-return inference, P-005 D5.2). A local bound by two *different* callees
-    (e.g. on separate branches) maps to None — ambiguous, so never claimed as a
-    forward-return (precision-first)."""
-    out: dict[str, str | None] = {}
+def _call_result_callees(nodes: Any) -> dict[str, tuple[str, str | None] | None]:
+    """Map each `result` local of a `call` op to `(callee, sig)` — the callee that
+    produced it plus the call's optional per-overload signature (for forward-return
+    inference, P-005 D5.2, and stage-2 fresh-factory resolution). A local bound by
+    two *different* callees (e.g. on separate branches) maps to None — ambiguous,
+    so never claimed as a forward-return; the same callee reached with two
+    different sigs keeps the callee but drops the sig (the name-merged fallback) —
+    degraded, never a wrong overload (precision-first)."""
+    out: dict[str, tuple[str, str | None] | None] = {}
     if not isinstance(nodes, list):
         return out
 
@@ -1331,7 +1342,14 @@ def _call_result_callees(nodes: Any) -> dict[str, str | None]:
                 res = n.get("result")
                 callee = n.get("callee")
                 if isinstance(res, str) and isinstance(callee, str) and callee:
-                    out[res] = None if res in out and out[res] != callee else callee
+                    entry: tuple[str, str | None] = (callee, _call_sig(n))
+                    prev = out.get(res)
+                    if res not in out:
+                        out[res] = entry
+                    elif prev is None or prev[0] != callee:
+                        out[res] = None
+                    elif prev[1] != entry[1]:
+                        out[res] = (callee, None)
             elif op == "if":
                 visit(n.get("then"))
                 visit(n.get("else"))
@@ -1343,7 +1361,9 @@ def _call_result_callees(nodes: Any) -> dict[str, str | None]:
 
 
 def _infer_return_skeleton(nodes: Any, param_names: set[str],
-                           first_party: frozenset[str] = frozenset()) -> ReturnSkeleton:
+                           first_party: frozenset[str] = frozenset(),
+                           call_key: Callable[[str, str | None], str] | None = None,
+                           ) -> ReturnSkeleton:
     """Infer a method's owned-return kind for the D5.0 solver (P-005 D5.2, T1).
 
     `fresh` — every `return <var>` path returns a local the body itself `acquire`d
@@ -1353,7 +1373,12 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str],
     is the result of a first-party `call` (a factory-of-factory: `var t = Make();
     return t;`); the solver propagates `Make`'s own return kind. Anything else stays
     `none` (no claim) — precision-first: we only mark a call an acquire site when we
-    can prove the result is freshly owned."""
+    can prove the result is freshly owned.
+
+    `call_key` (interprocedural stage 2) maps a forward's `(callee, sig)` to the
+    summary key the solver resolves it against — the per-overload signature key
+    when one exists, else the bare name (the merged fallback). None keeps the
+    bare-name edge (hand-authored skeleton tests)."""
     returned = _collect_vars(nodes, "return", "var")
     if not returned:
         return ReturnSkeleton()  # void / no value return
@@ -1373,8 +1398,9 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str],
         return ReturnSkeleton("fresh")
     if len(returned) == 1:
         (v,) = tuple(returned)
-        callee = call_results.get(v)
-        if callee and v not in param_names and v not in acquired:
+        entry = call_results.get(v)
+        if entry and v not in param_names and v not in acquired:
+            callee, csig = entry
             if _canonical_callee_name(callee) not in first_party \
                     and _is_bcl_fresh_factory(callee):
                 # a thin wrapper returning a BCL factory's result is itself `fresh` — the
@@ -1385,7 +1411,8 @@ def _infer_return_skeleton(nodes: Any, param_names: set[str],
                 # own summary, fresh or not), do NOT apply the bare BCL table — `forward` so
                 # the solver resolves the wrapper through that summary instead (Codex P2).
                 return ReturnSkeleton("fresh")
-            return ReturnSkeleton("forward", callee=callee)
+            return ReturnSkeleton(
+                "forward", callee=call_key(callee, csig) if call_key else callee)
     return ReturnSkeleton()  # not provably owned -> no claim
 
 
@@ -1507,6 +1534,48 @@ def _canonical_callee_name(name: str) -> str:
     return name.removeprefix("global::")
 
 
+def _sig_key(name: str, sig: str) -> str:
+    """The per-overload summary key (interprocedural stage 2): the method name plus
+    its canonical parameter-type list — `Ns.Type.M(System.IO.Stream,System.Int32)`.
+    A zero-parameter overload keys as `name()`, distinct from the bare name (which
+    stays the key of the name-MERGED fallback summary)."""
+    return f"{name}({sig})"
+
+
+def _call_sig(node: dict[str, Any]) -> str | None:
+    """The optional `sig` field of a `functions[]` record or `call` op — the
+    canonical parameter-type list of the (resolved) method: fully-qualified names,
+    no spaces, generic arity via backtick, `global::` stripped. A missing or
+    non-string value reads as absent: the edge then resolves against the
+    name-merged summary (today's conservative join) — degraded, never a wrong
+    overload (interprocedural stage 2, tz §6.1 fallback rule)."""
+    sig = node.get("sig")
+    return sig if isinstance(sig, str) else None
+
+
+def _mos_lookup(mos: dict[str, Any] | None, callee: str,
+                sig: str | None = None) -> Any | None:
+    """Resolve a call's MOS summary (interprocedural stage 2): the per-overload
+    signature key first (raw and `global::`-stripped), then the exact name, then
+    its canonical form — the name-merged fallback. A `sig` missing on either side
+    of the edge lands on the merged summary, never *past* a first-party callee;
+    the `first_party`/`overloaded` suppressions elsewhere stay keyed on the BARE
+    name regardless of `sig` (INV4)."""
+    if mos is None or not callee:
+        return None
+    identity = _canonical_callee_name(callee)
+    if sig is not None:
+        summ = mos.get(_sig_key(callee, sig))
+        if summ is None and identity != callee:
+            summ = mos.get(_sig_key(identity, sig))
+        if summ is not None:
+            return summ
+    summ = mos.get(callee)
+    if summ is None and identity != callee:
+        summ = mos.get(identity)
+    return summ
+
+
 def _is_bcl_fresh_factory(callee: str) -> bool:
     """True if `callee` names a curated BCL factory whose return the caller owns. Accepts
     ONLY the bare `Type.Method` (`File.OpenRead`, `SHA256.Create`) or its fully-qualified
@@ -1521,7 +1590,8 @@ def _is_bcl_fresh_factory(callee: str) -> bool:
 
 
 def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None,
-                          first_party: frozenset[str] = frozenset()) -> bool:
+                          first_party: frozenset[str] = frozenset(),
+                          sig: str | None = None) -> bool:
     """Whether a `call` to `callee` yields a fresh owned result the caller must release.
     A first-party summary is AUTHORITATIVE — if one exists we trust its `returns`, so a
     same-named first-party `File.OpenRead` (Tier A) overrides the BCL table (Tier B) and is
@@ -1535,13 +1605,16 @@ def _callee_returns_fresh(callee: str, mos: dict[str, Any] | None,
     would look fresh on a direct call while a wrapper around it (which `_infer_return_skeleton`
     already excludes) stays silent. Suppress the Tier B fallback for any first-party name so
     direct and wrapper-returned paths agree (CodeRabbit). Precision-safe: no summary + first-party
-    => no claim (a dropped overload we cannot prove owns its result)."""
+    => no claim (a dropped overload we cannot prove owns its result).
+
+    `sig` (interprocedural stage 2) resolves a call to its per-overload summary
+    first, so a sig-carrying call to the fresh overload of a mixed factory is seen
+    as fresh; a sig-less call keeps the merged verdict (fresh only if ALL agree).
+    The `first_party` suppression stays on the bare name regardless (INV4)."""
     if not callee:
         return False
     identity = _canonical_callee_name(callee)
-    summ = mos.get(callee) if mos is not None else None
-    if summ is None and mos is not None and identity != callee:
-        summ = mos.get(identity)  # a `global::`-qualified call resolves to its bare summary
+    summ = _mos_lookup(mos, callee, sig)
     if summ is not None:
         return getattr(summ, "returns", None) == "fresh"
     if identity in first_party:
@@ -1634,13 +1707,14 @@ def _definite_release(pname: str, nodes: Any) -> bool:
 
 
 def _forward_targets(pname: str, nodes: Any,
-                     recurse: bool = True) -> list[tuple[str, int]]:
-    """Every `(callee, arg_index)` a `call` op hands `pname` to. The argument
+                     recurse: bool = True) -> list[tuple[str, str | None, int]]:
+    """Every `(callee, sig, arg_index)` a `call` op hands `pname` to. The argument
     *position* is the callee's parameter index — what `solve()` resolves against
-    the callee's summary (P-005 D5.1). With `recurse=False`, only top-level
+    the callee's summary (P-005 D5.1); `sig` is the call's optional per-overload
+    signature (interprocedural stage 2). With `recurse=False`, only top-level
     (straight-line) calls are counted, so a conditional/looped forward can be told
     apart from an unconditional one."""
-    out: list[tuple[str, int]] = []
+    out: list[tuple[str, str | None, int]] = []
     if not isinstance(nodes, list):
         return out
     for n in nodes:
@@ -1653,7 +1727,7 @@ def _forward_targets(pname: str, nodes: Any,
             if callee and isinstance(args, list):
                 for j, a in enumerate(args):
                     if str(a) == pname:
-                        out.append((callee, j))
+                        out.append((callee, _call_sig(n), j))
         elif op in ("if", "while") and recurse:
             subs = ([n.get("then"), n.get("else")] if op == "if" else [n.get("body")])
             for sub in subs:
@@ -1702,15 +1776,18 @@ def _early_return_before_forward(pname: str, nodes: Any) -> bool:
     return False
 
 
-def _forward_path_action(callee: str, arg: int) -> PathAction:
+def _forward_path_action(callee: str, sig: str | None, arg: int,
+                         call_key: Callable[[str, str | None], str]) -> PathAction:
     """The skeleton path action for one forward edge. A forward to a fixed
     ownership-sink extern (D5.1b) is a *resolved* transfer recorded directly
     (`$consume` → `dispose`, `$borrow*` → `borrow`); any other callee is a
-    `forward` edge the solver resolves against that callee's summary."""
+    `forward` edge the solver resolves against that callee's summary —
+    the per-overload signature key when the edge carries a `sig` that names an
+    emitted overload group, else the bare name (the merged fallback; stage 2)."""
     kind = _SINK_PATH_ACTION.get(callee)
     if kind is not None:
         return PathAction(kind)
-    return PathAction("forward", callee, arg)
+    return PathAction("forward", call_key(callee, sig), arg)
 
 
 def _merge_returns(rets: list[ReturnSkeleton]) -> ReturnSkeleton:
@@ -1730,16 +1807,16 @@ def _merge_returns(rets: list[ReturnSkeleton]) -> ReturnSkeleton:
 
 
 def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
-    """Collapse same-name overloads into ONE conservative summary. The extractor
-    names a call's callee `{Type}.{Method}` with no parameter signature (note's open
-    question 2), so a forward to an overloaded name cannot pick an overload. Rather
-    than drop them all (every such forward then stays `unknown`), join them on the
-    lattice at (name, parameter-index) granularity: a parameter transfers `must` only
-    when EVERY overload carrying that index consumes it, and an overload that merely
+    """Collapse same-key overloads into ONE conservative summary. A call op that
+    carries no `sig` names its callee `{Type}.{Method}` with no parameter
+    signature, so such a forward cannot pick an overload. Rather than drop them
+    all (every such forward then stays `unknown`), join them on the lattice at
+    (key, parameter-index) granularity: a parameter transfers `must` only when
+    EVERY overload carrying that index consumes it, and an overload that merely
     keeps an index contributes a `borrow` path so the join can never fabricate a
-    `must`. Disambiguating by argument type would need call-site type info the fact
-    stream does not carry; arity is available but not modelled here (the join is
-    already precision-safe, just coarser than a per-arity split would be)."""
+    `must`. Since interprocedural stage 2 this is the FALLBACK summary: a call op
+    whose `sig` names an emitted per-overload group resolves that overload's own
+    (unmerged) summary instead — see `_build_skeletons` / `_mos_lookup`."""
     if len(group) == 1:
         return group[0]
     by_index: dict[int, list[PathAction]] = {}
@@ -1749,7 +1826,10 @@ def _merge_skeletons(group: list[MethodSkeleton]) -> MethodSkeleton:
             # an overload that does nothing with this index KEEPS it (= `no`); record
             # that as a borrow path so it joins in rather than vanishing from concat.
             by_index.setdefault(p.index, []).extend(p.paths or (PathAction("borrow"),))
-            names.setdefault(p.index, p.name)
+            # the merged param NAME must not depend on `functions[]` input order
+            # either (first-seen was order-dependent — latent until the stage-2
+            # dump test permuted an overloaded name): take the lexicographic min.
+            names[p.index] = min(names.get(p.index, p.name), p.name)
     params = tuple(
         ParamSkeleton(i, names[i], True, tuple(by_index[i])) for i in sorted(by_index)
     )
@@ -1790,18 +1870,47 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
     and returns it is `fresh` (a factory); `_infer_return_skeleton` keeps it
     precision-first (a returned parameter is never `fresh`).
 
-    Same-name overloads are MERGED into one conservative summary (`_merge_skeletons`)
-    rather than dropped: the call node names its callee without a parameter signature
-    (note's open question 2), so a forward to an overloaded name cannot pick an
-    overload, but a lattice join over the overloads still resolves it precision-safely
-    (and lets a uniformly-`fresh` overloaded factory be seen as fresh)."""
+    Same-name overloads (interprocedural stage 2): a name defined more than once
+    always yields the name-MERGED conservative summary (`_merge_skeletons`, keyed by
+    the bare name — the fallback every sig-less edge resolves against, exactly
+    today's behaviour), and ADDITIONALLY one summary per overload whose record
+    carries a `sig`, keyed `name(sig)` (`_sig_key`). A forward/return edge whose
+    call op carries a `sig` naming an emitted overload group targets that precise
+    key; any other edge targets the bare name — degraded to the merge, never *past*
+    a first-party callee (tz §6.1 fallback rule). A unique (non-overloaded) name
+    keeps its bare key even when its record carries a `sig` — there is nothing to
+    split, and the parity dump stays stable."""
     counts = Counter(str(fn.get("name", "")) for fn in raw_fns if isinstance(fn, dict))
     # every first-party method name (even overloaded ones): the BCL fresh-factory table
     # must NOT apply to a call whose target we compile from source — Tier A (the
     # first-party summary) authoritatively overrides Tier B (the curated BCL table) even
     # when the source method happens to share a BCL factory's name (Codex P2).
     first_party = frozenset(_canonical_callee_name(k) for k in counts if k)
+    # stage 2, pass 1: the per-overload keys that WILL be emitted, so pass 2 can
+    # target forward/return edges at them. Only an overloaded name's sig-carrying
+    # records mint a `name(sig)` key.
+    sig_keys = set()
+    for fn in raw_fns:
+        if not isinstance(fn, dict):
+            continue
+        name = str(fn.get("name", ""))
+        fsig = _call_sig(fn)
+        if name and counts[name] > 1 and fsig is not None:
+            sig_keys.add(_sig_key(name, fsig))
+
+    def call_key(callee: str, sig: str | None) -> str:
+        """The summary key a call-op edge resolves against: the per-overload key
+        when the edge's `sig` names an emitted group (raw or `global::`-stripped,
+        mirroring `_mos_lookup`), else the bare callee (merged fallback)."""
+        if sig is not None:
+            for cand in (_sig_key(callee, sig),
+                         _sig_key(_canonical_callee_name(callee), sig)):
+                if cand in sig_keys:
+                    return cand
+        return callee
+
     by_key: dict[str, list[MethodSkeleton]] = {}
+    by_sig: dict[str, list[MethodSkeleton]] = {}
     for fn in raw_fns:
         if not isinstance(fn, dict):
             continue
@@ -1840,7 +1949,8 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
                 elif passed:
                     allt = _forward_targets(cname, body)
                     top = _forward_targets(cname, body, recurse=False)
-                    paths = tuple(_forward_path_action(c, j) for c, j in allt)
+                    paths = tuple(_forward_path_action(c, s, j, call_key)
+                                  for c, s, j in allt)
                     if not (len(allt) == 1 and len(top) == 1
                             and not _early_return_before_forward(cname, body)):
                         # not a single unconditional handoff: a no-transfer path
@@ -1854,14 +1964,23 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
                     paths = ()
             params.append(ParamSkeleton(i, cname, True, paths))
         pnames = {str(p.get("name", "")) for p in raw_params if isinstance(p, dict)}
-        ret = _infer_return_skeleton(body, pnames, first_party)
+        ret = _infer_return_skeleton(body, pnames, first_party, call_key)
         # carry the declaration file so the summary dump is navigable (functions[]
         # entries carry no line of their own — params do; line stays 0).
-        by_key.setdefault(key, []).append(
-            MethodSkeleton(key, tuple(params), ret, str(fn.get("file", "?"))))
-    # one skeleton per name: solve() keys by name (a forward names its callee with no
-    # signature), so same-name overloads are joined into a single conservative summary.
-    return [_merge_skeletons(group) for group in by_key.values()]
+        sk = MethodSkeleton(key, tuple(params), ret, str(fn.get("file", "?")))
+        by_key.setdefault(key, []).append(sk)
+        fsig = _call_sig(fn)
+        if counts[key] > 1 and fsig is not None:
+            by_sig.setdefault(_sig_key(key, fsig), []).append(sk)
+    # one skeleton per bare name — same-name overloads joined into the conservative
+    # merged summary every sig-less edge resolves against (the stage-2 fallback) —
+    # plus one per emitted `name(sig)` overload group (usually a singleton; two
+    # records claiming the SAME name+sig still merge, so the solver never sees a
+    # duplicate key). Rekeying via `replace` keeps the record itself shared.
+    out = [_merge_skeletons(group) for group in by_key.values()]
+    out.extend(replace(_merge_skeletons(group), key=k)
+               for k, group in by_sig.items())
+    return out
 
 
 def _infer_param_effect(pname: str, nodes: Any,
@@ -1909,12 +2028,17 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
     the C# name. A `consume` parameter is an owned obligation in the callee — the
     same Param the `.own` front-end produces — so an undischarged one leaks (the
     obligation having moved in from the caller). A parameter with no explicit
-    `effect` has its contract INFERRED from the body (`_infer_param_effect`)."""
+    `effect` has its contract INFERRED from the body (`_infer_param_effect`).
+
+    The method's own summary is resolved through its record's `sig` when present
+    (stage 2): an overload whose record carries a signature seeds its params from
+    its OWN per-overload summary, not the conservative name-merge — the contract
+    that actually matches the body being lowered."""
     out: list[Param] = []
     raw = fn.get("params", [])
     if not isinstance(raw, list):
         return out
-    summ = mos.get(fname) if mos is not None else None
+    summ = _mos_lookup(mos, fname, _call_sig(fn))
     for i, p in enumerate(raw):
         if not isinstance(p, dict):
             continue
@@ -1959,7 +2083,8 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None,
         if n.get("op") == "acquire" and str(n.get("var", "")) == name:
             return True
         if n.get("op") == "call" and str(n.get("result", "")) == name:
-            return _callee_returns_fresh(str(n.get("callee", "")), mos, first_party)
+            return _callee_returns_fresh(str(n.get("callee", "")), mos,
+                                         first_party, _call_sig(n))
         return False
 
     def analyze(seq: Any, acquired: bool) -> tuple[bool, bool]:
@@ -2029,7 +2154,8 @@ def _hoisted_branch_locals(nodes: Any,
         callee, res = n.get("callee"), n.get("result")
         if not (isinstance(res, str) and res and isinstance(callee, str) and callee):
             return None
-        return res if _callee_returns_fresh(callee, mos, first_party) else None
+        return (res if _callee_returns_fresh(callee, mos, first_party, _call_sig(n))
+                else None)
 
     def note_ref(name: str, depth: int) -> None:
         if name not in ref_depth or depth < ref_depth[name]:
@@ -2222,21 +2348,26 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             identity = _canonical_callee_name(callee)
             raw_args = n.get("args", [])
             summ = mos.get(callee) if (mos is not None and callee) else None
-            # The merged summary, resolving a `global::`-qualified call to its bare key (like
-            # `_callee_returns_fresh`). Used only by the overload channel below; the direct-`Call`
-            # path stays on the raw `summ` so it never names a callee absent from the core
-            # signature table (which would raise OWN040).
-            merged = summ if summ is not None else (
-                mos.get(identity) if (mos is not None and identity != callee) else None)
-            if merged is not None and isinstance(raw_args, list) and (
+            # The stage-2 resolution: the call's per-overload signature key first,
+            # then the name-merged summary (`global::`-resolved, like
+            # `_callee_returns_fresh`). Used only by the overload channel below; the
+            # direct-`Call` path stays on the raw `summ` so it never names a callee
+            # absent from the core signature table (which would raise OWN040).
+            resolved = _mos_lookup(mos, callee, _call_sig(n))
+            if resolved is not None and isinstance(raw_args, list) and (
                     identity in overloaded
                     or any(q.transfer in (Transfer.MAY, Transfer.UNKNOWN)
-                           for q in merged.params)):
+                           for q in resolved.params)):
                 # Per-argument channel routing, for two shapes that must NOT emit a
                 # direct `Call`:
                 #  - an OVERLOADED name: the core's last-wins signature table stores
                 #    one same-name FnDecl, so a direct Call would mis-apply one
-                #    overload's effect — a false OWN002 when overloads disagree;
+                #    overload's effect — a false OWN002 when overloads disagree.
+                #    Routing is keyed on the BARE name regardless of `sig` (INV4),
+                #    but the contract applied through the channel is the RESOLVED
+                #    one: a sig-carrying call uses its own overload's precise
+                #    summary (stage 2 — one borrow overload no longer dilutes the
+                #    others' consume), a sig-less call the conservative merge;
                 #  - a callee with a MAY/UNKNOWN param: its arg is UNTRACKED (the
                 #    optimistic default + advisory OWN051), so a direct Call would
                 #    reference an undeclared name — a loud OWN030 (map-or-raise).
@@ -2247,7 +2378,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 # externs (never the callee name), so a qualified callee is safe
                 # here. (Codex P2 / CodeRabbit.)
                 for j, a in enumerate(raw_args):
-                    ps = next((q for q in merged.params if q.index == j), None)
+                    ps = next((q for q in resolved.params if q.index == j), None)
                     channel = _CHANNEL_FOR_TRANSFER.get(ps.transfer) if ps else None
                     if channel is not None and str(a) not in untracked:
                         body.append(Call(channel,
@@ -2292,7 +2423,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 localmap.pop(result, None)
             if (isinstance(result, str) and result and result not in hoisted
                     and result not in untracked
-                    and _callee_returns_fresh(callee, mos, first_party)):
+                    and _callee_returns_fresh(callee, mos, first_party,
+                                              _call_sig(n))):
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[result] = handle
@@ -2381,7 +2513,12 @@ def dump_summaries(facts: dict[str, Any]) -> dict[str, Any]:
     order is fixed — the same facts yield byte-identical JSON regardless of
     `functions[]` input order. A failed solve degrades exactly like
     `check_facts` (empty summaries), with the reason in `degraded` — the same
-    honesty OWN052 gives the checking path."""
+    honesty OWN052 gives the checking path.
+
+    Interprocedural stage 2 extends the key vocabulary: an overloaded name whose
+    records carry `sig` appears BOTH as its bare-name merged fallback summary and
+    once per overload as `name(sig)` — the same keys `solve()` resolved edges
+    against, so the parity surface shows exactly what the checker used."""
     raw_fns = facts.get("functions", [])
     raw_fns = raw_fns if isinstance(raw_fns, list) else []
     degraded: str | None = None

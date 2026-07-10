@@ -2003,6 +2003,231 @@ def run() -> int:
     if gotq != [("dQ", "OWN002")]:
         fails.append("§10 q2 qualified (global::) call to agreeing-consume overloads should "
                      f"apply the merged consume (dQ OWN002), got {gotq}")
+    # --- interprocedural stage 2 (roadmap §5 / tz §6.1): the per-overload signature
+    #     key. A `sig` on BOTH sides of an edge (the `functions[]` record and the
+    #     `call` op) resolves that overload's own contract instead of the
+    #     conservative name-merge; a `sig` missing/unmatched on EITHER side falls
+    #     back to the merged summary — degraded, never a wrong overload. The
+    #     `overloaded`/`first_party` suppressions stay keyed on the bare name (INV4).
+    _SIGC = "System.IO.Stream"                    # the consume overload
+    _SIGB = "System.IO.Stream,System.Boolean"     # the borrow overload
+    _sig_fns = [
+        {"name": "C.S", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},          # consumes
+        {"name": "C.S", "file": "F.cs", "sig": _SIGB,
+         "params": [{"name": "b", "line": 5}, {"name": "flag", "line": 5}],
+         "body": [{"op": "use", "var": "b", "line": 6}]},              # borrows
+    ]
+    # (tz §6.1 matrix) sig'd DIRECT call to the CONSUME overload: the precise
+    # contract applies (must → $consume), so a later use is OWN002. Under the
+    # name-merge this was `may` (one OWN051, no verdict) — the recall stage 2 buys.
+    checks += 1
+    s2c = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "d1", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.S", "args": ["s"], "sig": _SIGC,
+                   "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    got2c = sorted((x.component, x.code) for x in s2c)
+    if got2c != [("d1", "OWN002")]:
+        fails.append("stage 2: sig'd call to the consume overload must apply consume "
+                     f"(d1 OWN002), got {got2c}")
+    # sig'd DIRECT call to the BORROW overload: a lend, so the caller's own release
+    # balances the acquire — fully silent (no verdict, and no OWN051: the contract
+    # is verified, not `may`).
+    checks += 1
+    s2b = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "d2", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.S", "args": ["s"], "sig": _SIGB,
+                   "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if s2b:
+        fails.append("stage 2: sig'd call to the borrow overload must be silent "
+                     f"(verified lend + caller release), got "
+                     f"{[(x.component, x.code) for x in s2b]}")
+    # (fallback, critical) a call WITHOUT `sig` into sig-carrying overloads keeps
+    # today's merged behaviour exactly: consume+borrow join to `may` → one OWN051
+    # advisory, no verdict.
+    checks += 1
+    s2f = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "d3", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.S", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    got2f = [(x.component, x.code, x.advisory) for x in s2f]
+    if got2f != [("d3", "OWN051", True)]:
+        fails.append("stage 2: sig-less call must fall back to the merged `may` "
+                     f"(d3 OWN051), got {got2f}")
+    # (fallback, critical) an UNMATCHED sig (no overload group with that key) also
+    # lands on the merge — never "past" the first-party callee, never a guess.
+    checks += 1
+    s2u = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "d3u", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "C.S", "args": ["s"],
+                   "sig": "System.String", "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    got2u = [(x.component, x.code, x.advisory) for x in s2u]
+    if got2u != [("d3u", "OWN051", True)]:
+        fails.append("stage 2: unmatched sig must fall back to the merged `may` "
+                     f"(d3u OWN051), got {got2u}")
+    # a `global::`-qualified sig'd call resolves the same per-overload key as the
+    # bare spelling (the canonical-name half of `_mos_lookup`/`call_key`).
+    checks += 1
+    s2q = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "d1q", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "global::C.S", "args": ["s"],
+                   "sig": _SIGC, "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    got2q = sorted((x.component, x.code) for x in s2q)
+    if got2q != [("d1q", "OWN002")]:
+        fails.append("stage 2: global::-qualified sig'd call must resolve the "
+                     f"consume overload (d1q OWN002), got {got2q}")
+    # FORWARD edges resolve by the same key: a helper whose body sig-forwards to
+    # the consume overload is itself a consumer (must), so the caller's later use
+    # is OWN002 — while a helper sig-forwarding to the borrow overload stays a
+    # verified lend (caller release balances; fully silent, no OWN051).
+    checks += 1
+    s2fw = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "fwc", "file": "F.cs", "params": [{"name": "p", "line": 8}],
+         "body": [{"op": "call", "callee": "C.S", "args": ["p"], "sig": _SIGC,
+                   "line": 9}]},
+        {"name": "d4", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "fwc", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    got2fw = sorted((x.component, x.code) for x in s2fw)
+    if got2fw != [("d4", "OWN002")]:
+        fails.append("stage 2: forward edge with sig must resolve `must` through "
+                     f"the consume overload (d4 OWN002), got {got2fw}")
+    checks += 1
+    s2fb = check_facts({"module": "M", "functions": [*_sig_fns,
+        {"name": "fwb", "file": "F.cs", "params": [{"name": "p", "line": 8}],
+         "body": [{"op": "call", "callee": "C.S", "args": ["p"], "sig": _SIGB,
+                   "line": 9}]},
+        {"name": "d5", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "fwb", "args": ["s"], "line": 11},
+                  {"op": "release", "var": "s", "line": 12}]}]})
+    if s2fb:
+        fails.append("stage 2: forward edge with sig to the borrow overload must "
+                     f"stay a silent lend, got "
+                     f"{[(x.component, x.code) for x in s2fb]}")
+    # (tz §6.1 matrix) MIXED producers in one fact file: one record carries `sig`,
+    # its same-name sibling does not. The sig'd call still resolves its precise
+    # overload; the sig-less call gets the merge of BOTH records.
+    checks += 1
+    s2m = check_facts({"module": "M", "functions": [
+        {"name": "D.M", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},          # consumes
+        {"name": "D.M", "file": "F.cs",
+         "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "use", "var": "b", "line": 6}]},              # borrows, no sig
+        {"name": "d6", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "D.M", "args": ["s"], "sig": _SIGC,
+                   "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]},
+        {"name": "d7", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "t", "line": 20},
+                  {"op": "call", "callee": "D.M", "args": ["t"], "line": 21},
+                  {"op": "release", "var": "t", "line": 22}]}]})
+    got2m = sorted((x.component, x.code) for x in s2m)
+    if got2m != [("d6", "OWN002"), ("d7", "OWN051")]:
+        fails.append("stage 2: mixed producers — sig'd call precise (d6 OWN002), "
+                     f"sig-less call merged (d7 OWN051), got {got2m}")
+    # (tz §6.1 regression) a uniformly-fresh overloaded FACTORY stays fresh at the
+    # merged fallback even when its records now carry sigs — adding `sig` must not
+    # cost the fallback any of the merge's existing recall.
+    checks += 1
+    s2rf = check_facts({"module": "M", "functions": [
+        {"name": "C.F", "file": "F.cs", "sig": "",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},
+        {"name": "C.F", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "p", "line": 4}],
+         "body": [{"op": "acquire", "var": "r", "line": 5},
+                  {"op": "return", "var": "r", "line": 6}]},
+        {"name": "fdrop2", "file": "F.cs",
+         "body": [{"op": "call", "callee": "C.F", "args": [], "result": "x",
+                   "line": 10}]}]})
+    got2rf = sorted((x.component, x.code) for x in s2rf)
+    if got2rf != [("fdrop2", "OWN001")]:
+        fails.append("stage 2: uniformly-fresh overloaded factory must stay fresh "
+                     f"at the sig-less fallback (fdrop2 OWN001), got {got2rf}")
+    # a MIXED factory (one fresh overload, one not): the sig'd call to the fresh
+    # overload now leaks a dropped result (per-overload recall the merge lost);
+    # the sig'd call to the non-fresh overload and the sig-less call stay silent
+    # (merged returns disagree → no claim, exactly as before).
+    checks += 1
+    s2mf = check_facts({"module": "M", "functions": [
+        {"name": "C.H", "file": "F.cs", "sig": "",
+         "body": [{"op": "acquire", "var": "r", "line": 1},
+                  {"op": "return", "var": "r", "line": 2}]},           # fresh
+        {"name": "C.H", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "p", "line": 4}],
+         "body": [{"op": "use", "var": "p", "line": 5}]},              # not fresh
+        {"name": "d8", "file": "F.cs",
+         "body": [{"op": "call", "callee": "C.H", "args": [], "result": "x",
+                   "sig": "", "line": 10}]},
+        {"name": "d9", "file": "F.cs",
+         "body": [{"op": "call", "callee": "C.H", "args": [], "result": "y",
+                   "line": 20}]}]})
+    got2mf = sorted((x.component, x.code) for x in s2mf)
+    if got2mf != [("d8", "OWN001")]:
+        fails.append("stage 2: mixed factory — sig'd call to the fresh overload "
+                     f"leaks a dropped result, others silent, got {got2mf}")
+    # two records claiming the SAME name+sig merge inside their overload group
+    # (the solver never sees a duplicate key — no degradation, no OWN052).
+    checks += 1
+    s2dup = check_facts({"module": "M", "functions": [
+        {"name": "D.D", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "D.D", "file": "F.cs", "sig": _SIGC,
+         "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "release", "var": "b", "line": 6}]},
+        {"name": "dd", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "D.D", "args": ["s"], "sig": _SIGC,
+                   "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    got2dup = sorted((x.component, x.code) for x in s2dup)
+    if got2dup != [("dd", "OWN002")]:
+        fails.append("stage 2: duplicate name+sig records must merge within their "
+                     f"group, not degrade the solve (dd OWN002), got {got2dup}")
+    # the parity dump (roadmap stage 1) carries the extended key vocabulary: the
+    # bare-name merged fallback AND one `name(sig)` entry per overload, each with
+    # its own (unmerged) verdicts — byte-deterministic under input permutation.
+    checks += 1
+    _sig_dump_facts = {"module": "M", "functions": [dict(f) for f in _sig_fns]}
+    sdoc = dump_summaries(_sig_dump_facts)
+    skeys = [s["method"] for s in sdoc["summaries"]]
+    stransfers = {s["method"]: [p["transfer"] for p in s["params"]]
+                  for s in sdoc["summaries"]}
+    if (skeys != ["C.S", f"C.S({_SIGC})", f"C.S({_SIGB})"]
+            or stransfers["C.S"] != ["may", "no"]
+            or stransfers[f"C.S({_SIGC})"] != ["must"]
+            or stransfers[f"C.S({_SIGB})"] != ["no", "no"]):
+        fails.append(f"stage 2: summaries dump key/verdict vocabulary wrong: {sdoc}")
+    checks += 1
+    sblob1 = json.dumps(sdoc, indent=2, sort_keys=True)
+    _sig_dump_facts["functions"].reverse()
+    sblob2 = json.dumps(dump_summaries(_sig_dump_facts), indent=2, sort_keys=True)
+    if sblob1 != sblob2:
+        fails.append("stage 2: sig-keyed summaries dump must stay byte-identical "
+                     "under functions[] input permutation")
+    # load() validates the record field's type (additive optional, never garbage);
+    # a malformed sig on a flow OP is read as absent (merged fallback), not a crash.
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "module": "M",
+                         "components": [],
+                         "functions": [{"name": "C.S", "sig": 5, "body": []}]}):
+        fails.append("non-string function 'sig' was accepted (should raise OwnIRError)")
     # --- P-005 D5.1b: the per-call-site ownership-contract channel. The extractor
     #     routes a call's per-argument ownership through fixed sink externs
     #     ($consume / $borrow / $borrow_mut) the bridge pre-declares, so an effect

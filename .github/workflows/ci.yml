@@ -205,6 +205,7 @@ jobs:
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             frontend/roslyn/samples/VoidSubscribeSample.cs \
             frontend/roslyn/samples/ReturnedPublisherSample.cs \
+            frontend/roslyn/samples/OverloadSigSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -256,6 +257,18 @@ jobs:
             echo "$out" | grep -qE "ReturnedPublisherSample\.cs:[0-9]+: warning: \[OWN001\].*'$ev'" \
               || { echo "FAIL: expected the OWN001 warning to survive for '$ev' (provenance must deny)"; exit 1; }
           done
+          # Interprocedural stage 2 (spec/OwnIR.md §5.1): per-overload signature keys.
+          # SigOverloads.Open is overloaded — the (string) overload is a fresh factory,
+          # the (FileStream,bool) one returns its parameter — so the name-merged returns
+          # DISAGREE (no claim). The `sig` stamped on both the functions[] records and
+          # the call op resolves the fresh overload's own summary, so the dropped
+          # stream in Drop surfaces as OWN001 (severity-agnostic: a flow leak is an error).
+          grep -q '"sig":"System.String"\|"sig": "System.String"' "$RUNNER_TEMP/facts.json" \
+            || { echo "FAIL: expected the (string) overload sig in the facts"; exit 1; }
+          grep -q '"sig":"System.IO.FileStream,System.Boolean"\|"sig": "System.IO.FileStream,System.Boolean"' "$RUNNER_TEMP/facts.json" \
+            || { echo "FAIL: expected the (FileStream,bool) overload sig in the facts"; exit 1; }
+          echo "$out" | grep -qE "OverloadSigSample\.cs:[0-9]+:.*\[OWN001\]" \
+            || { echo "FAIL: expected the sig-resolved fresh-overload leak (OWN001) in Drop"; exit 1; }
           # P-004 provenance: a local that ALIASES an injected source (var src =
           # _bus) is NOT method-bounded — it must warn, not be silently dropped. A
           # local the scope CONSTRUCTS (var owned = new Calc()) IS bounded -> silent.
