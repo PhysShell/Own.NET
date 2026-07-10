@@ -14,8 +14,8 @@ public static class SigOverloads
 {
     public static FileStream Open(string path)
     {
-        var made = new FileStream(path, FileMode.Open);   // fresh factory
-        return made;
+        var opened = new FileStream(path, FileMode.Open);   // fresh factory
+        return opened;
     }
 
     public static FileStream Open(FileStream existing, bool flush)
@@ -29,7 +29,7 @@ public static class SigOverloads
 
     public static void Drop(string path)
     {
-        var s = Open(path);   // sig'd call -> the fresh overload's contract -> dropped result
-        s.Flush();            // used but never disposed: OWN001 (the leak stage 2 restores)
+        var dropped = Open(path);   // sig'd call -> the fresh overload's contract
+        dropped.Flush();            // used but never disposed: OWN001 (the leak stage 2 restores)
     }
 }

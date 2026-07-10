@@ -205,7 +205,6 @@ jobs:
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             frontend/roslyn/samples/VoidSubscribeSample.cs \
             frontend/roslyn/samples/ReturnedPublisherSample.cs \
-            frontend/roslyn/samples/OverloadSigSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -257,18 +256,6 @@ jobs:
             echo "$out" | grep -qE "ReturnedPublisherSample\.cs:[0-9]+: warning: \[OWN001\].*'$ev'" \
               || { echo "FAIL: expected the OWN001 warning to survive for '$ev' (provenance must deny)"; exit 1; }
           done
-          # Interprocedural stage 2 (spec/OwnIR.md §5.1): per-overload signature keys.
-          # SigOverloads.Open is overloaded — the (string) overload is a fresh factory,
-          # the (FileStream,bool) one returns its parameter — so the name-merged returns
-          # DISAGREE (no claim). The `sig` stamped on both the functions[] records and
-          # the call op resolves the fresh overload's own summary, so the dropped
-          # stream in Drop surfaces as OWN001 (severity-agnostic: a flow leak is an error).
-          grep -q '"sig":"System.String"\|"sig": "System.String"' "$RUNNER_TEMP/facts.json" \
-            || { echo "FAIL: expected the (string) overload sig in the facts"; exit 1; }
-          grep -q '"sig":"System.IO.FileStream,System.Boolean"\|"sig": "System.IO.FileStream,System.Boolean"' "$RUNNER_TEMP/facts.json" \
-            || { echo "FAIL: expected the (FileStream,bool) overload sig in the facts"; exit 1; }
-          echo "$out" | grep -qE "OverloadSigSample\.cs:[0-9]+:.*\[OWN001\]" \
-            || { echo "FAIL: expected the sig-resolved fresh-overload leak (OWN001) in Drop"; exit 1; }
           # P-004 provenance: a local that ALIASES an injected source (var src =
           # _bus) is NOT method-bounded — it must warn, not be silently dropped. A
           # local the scope CONSTRUCTS (var owned = new Calc()) IS bounded -> silent.
@@ -744,7 +731,8 @@ jobs:
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/FlowLocalsSample.cs \
             frontend/roslyn/samples/MemoryOwnerEscapeSample.cs \
-            frontend/roslyn/samples/FactoryLeakSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+            frontend/roslyn/samples/FactoryLeakSample.cs \
+            frontend/roslyn/samples/OverloadSigSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
           echo "$out"
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
@@ -932,6 +920,23 @@ jobs:
             || { echo "FAIL: expected the interprocedural OWN001 on the dropped factory result at its call site"; exit 1; }
           for ok in factoryOk made; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
+          done
+          # Interprocedural stage 2 (spec/OwnIR.md §5.1): per-overload signature keys.
+          # SigOverloads.Open is overloaded — the (string) overload is a fresh factory,
+          # the (FileStream,bool) one returns its parameter — so the name-merged returns
+          # DISAGREE (no fresh claim). The `sig` stamped on both the functions[] records
+          # and the call op resolves the fresh overload's OWN summary, so the dropped
+          # stream in Drop surfaces as OWN001 at the call — the recall the merge lost.
+          grep -q '"sig": "System.String"\|"sig":"System.String"' "$RUNNER_TEMP/flow.json" \
+            || { echo "FAIL: expected the (string) overload sig in the facts"; exit 1; }
+          grep -q '"sig": "System.IO.FileStream,System.Boolean"\|"sig":"System.IO.FileStream,System.Boolean"' "$RUNNER_TEMP/flow.json" \
+            || { echo "FAIL: expected the (FileStream,bool) overload sig in the facts"; exit 1; }
+          echo "$out" | grep -qE "OverloadSigSample\.cs:[0-9]+:.*\[OWN001\].*'dropped' is never disposed" \
+            || { echo "FAIL: expected the sig-resolved fresh-overload leak (OWN001 on 'dropped')"; exit 1; }
+          # the factory itself (transfers out via return), the non-fresh overload's
+          # balanced probe, and the fresh local it returns all stay silent.
+          for ok in opened probe; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: stage-2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)

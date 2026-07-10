@@ -2200,6 +2200,28 @@ def run() -> int:
     if got2dup != [("dd", "OWN002")]:
         fails.append("stage 2: duplicate name+sig records must merge within their "
                      f"group, not degrade the solve (dd OWN002), got {got2dup}")
+    # (Codex P2 on #217) a FORWARD to a `global::`-qualified first-party callee
+    # resolves through the bare-name merged key, exactly like `_mos_lookup` does
+    # for a direct call: both overloads consume, so the wrapper's param solves
+    # `must` and the caller's later use is OWN002 — the raw-keyed edge used to go
+    # extern (`unknown`), downgrading the verdict to an OWN051 advisory.
+    checks += 1
+    s2gf = check_facts({"module": "M", "functions": [
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "a", "line": 1}],
+         "body": [{"op": "release", "var": "a", "line": 2}]},
+        {"name": "C.M", "file": "F.cs", "params": [{"name": "b", "line": 5}],
+         "body": [{"op": "release", "var": "b", "line": 6}]},
+        {"name": "gfw", "file": "F.cs", "params": [{"name": "p", "line": 8}],
+         "body": [{"op": "call", "callee": "global::C.M", "args": ["p"],
+                   "line": 9}]},
+        {"name": "d10", "file": "F.cs",
+         "body": [{"op": "acquire", "var": "s", "line": 10},
+                  {"op": "call", "callee": "gfw", "args": ["s"], "line": 11},
+                  {"op": "use", "var": "s", "line": 12}]}]})
+    got2gf = sorted((x.component, x.code) for x in s2gf)
+    if got2gf != [("d10", "OWN002")]:
+        fails.append("stage 2: forward to a global::-qualified first-party callee "
+                     f"must resolve the merged consume (d10 OWN002), got {got2gf}")
     # the parity dump (roadmap stage 1) carries the extended key vocabulary: the
     # bare-name merged fallback AND one `name(sig)` entry per overload, each with
     # its own (unmerged) verdicts — byte-deterministic under input permutation.

@@ -1203,8 +1203,15 @@ static string FlowFunctionName(BaseMethodDeclarationSyntax method, string fallba
 // the `call` op) derive it from the SAME resolved IMethodSymbol, so they agree by
 // construction; the bridge falls back to the name-merged summary whenever either side
 // lacks or mismatches it.
+// Canonicalize through the DECLARED definition (Codex P2 on #217): a call site
+// resolves the REDUCED form of an extension method (no `this` receiver in
+// Parameters) and/or a CONSTRUCTED generic (type args substituted), while the
+// `functions[]` record is stamped from the declaration — `ReducedFrom` restores
+// the receiver parameter, `OriginalDefinition` restores the open type params, so
+// both sides of the edge always produce the same string.
 static string CanonicalSig(IMethodSymbol m) =>
-    string.Join(",", m.Parameters.Select(p => CanonicalTypeName(p.Type)));
+    string.Join(",", (m.ReducedFrom ?? m).OriginalDefinition
+        .Parameters.Select(p => CanonicalTypeName(p.Type)));
 
 static string CanonicalTypeName(ITypeSymbol t) => t switch
 {

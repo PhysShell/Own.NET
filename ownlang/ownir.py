@@ -1900,13 +1900,21 @@ def _build_skeletons(raw_fns: list[Any]) -> list[MethodSkeleton]:
 
     def call_key(callee: str, sig: str | None) -> str:
         """The summary key a call-op edge resolves against: the per-overload key
-        when the edge's `sig` names an emitted group (raw or `global::`-stripped,
-        mirroring `_mos_lookup`), else the bare callee (merged fallback)."""
+        when the edge's `sig` names an emitted group (raw or `global::`-stripped),
+        else the bare callee — canonicalized to its `global::`-stripped form when
+        THAT names a first-party record, so a forward to a qualified callee lands
+        on the merged summary exactly like `_mos_lookup` resolves a direct call
+        (Codex P2 on #217: the raw-keyed edge went extern → `unknown`, downgrading
+        a resolvable `must`/`fresh` to OWN051/silence)."""
         if sig is not None:
             for cand in (_sig_key(callee, sig),
                          _sig_key(_canonical_callee_name(callee), sig)):
                 if cand in sig_keys:
                     return cand
+        if callee not in counts:
+            identity = _canonical_callee_name(callee)
+            if identity in counts:
+                return identity
         return callee
 
     by_key: dict[str, list[MethodSkeleton]] = {}
