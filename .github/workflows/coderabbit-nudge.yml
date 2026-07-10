@@ -1,0 +1,113 @@
+name: coderabbit-nudge
+
+# CodeRabbit rate-limits per developer; when it does, it posts a "Review limit
+# reached" comment and only retries on its own after the stated cooldown, or
+# when someone explicitly comments "@coderabbitai review". If nobody pushes a
+# new commit to a stalled PR in the meantime, that comment just sits there
+# forever. This is the backstop: on our own PRs, if the *last* CodeRabbit
+# comment is a rate-limit notice and we haven't already nudged it since, poke
+# it with "@coderabbitai review" so it wakes up on its own schedule instead of
+# waiting for a human to notice.
+#
+# Scope is deliberately narrow: only PRs opened by the repo owner, or PRs that
+# carry a "Co-Authored-By: Claude" trailer in any commit (our own automated
+# work) — not every open PR in the repo.
+
+on:
+  schedule:
+    # Hourly, not more often: CodeRabbit's own cooldown is ~an hour, so a tighter
+    # loop would just burn its rate-limit window (or push us into usage-based
+    # billing) without getting reviews any sooner. Offset from the hour boundary:
+    # scheduled runs queue up right at :00 across all of GitHub, so a few minutes
+    # off reduces the chance of a delayed run.
+    - cron: "3 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  nudge:
+    name: wake CodeRabbit up if it rate-limited on our PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const RATE_LIMIT_MARK = "review limit reached";
+            const NUDGE_BODY = "@coderabbitai review";
+            const CODERABBIT_LOGIN = "coderabbitai[bot]";
+
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            for (const pr of prs) {
+              const isOwnerPr = pr.user?.login === context.repo.owner;
+
+              let isOurWork = isOwnerPr;
+              if (!isOurWork) {
+                const commits = await github.paginate(
+                  github.rest.pulls.listCommits,
+                  {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    per_page: 100,
+                  }
+                );
+                isOurWork = commits.some((c) =>
+                  /co-authored-by:\s*claude/i.test(c.commit.message)
+                );
+              }
+              if (!isOurWork) continue;
+
+              const comments = await github.paginate(
+                github.rest.issues.listComments,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 100,
+                }
+              );
+
+              const rabbitComments = comments.filter(
+                (c) => c.user?.login === CODERABBIT_LOGIN
+              );
+              if (rabbitComments.length === 0) continue;
+
+              const lastRabbit = rabbitComments[rabbitComments.length - 1];
+              const isRateLimited = (lastRabbit.body ?? "")
+                .toLowerCase()
+                .includes(RATE_LIMIT_MARK);
+              if (!isRateLimited) {
+                core.info(`PR #${pr.number}: last CodeRabbit comment is not a rate-limit notice, skipping.`);
+                continue;
+              }
+
+              const lastNudge = comments
+                .filter(
+                  (c) =>
+                    c.user?.login === "github-actions[bot]" &&
+                    c.body.trim() === NUDGE_BODY
+                )
+                .pop();
+              if (lastNudge && new Date(lastNudge.created_at) > new Date(lastRabbit.created_at)) {
+                core.info(`PR #${pr.number}: already nudged since the last rate-limit notice, skipping.`);
+                continue;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: NUDGE_BODY,
+              });
+              core.info(`PR #${pr.number}: CodeRabbit was rate-limited, posted "${NUDGE_BODY}" to wake it up.`);
+            }
