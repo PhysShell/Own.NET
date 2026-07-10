@@ -72,7 +72,7 @@ there:
 | `subscribe_not_to` | `subscribe self from bus;` | `expected 'to' in 'subscribe self to <source>' (got IDENT 'from')` |
 | `buffer_positional_after_named` | `Buffer.stack(1, max = 2, 3)` | `only the leading size may be positional in a buffer intent; later arguments must be named` |
 | `unicode_idents` | `module м { fn f(х: int) {} }` | accepted; digest matches Python's |
-| `full_module` | a resource + 2 externs + 2 fns, one with a `while` | digest `m=Demo r=2 e=4 f=2 p=1 l=2 fns=[setup/2/16,empty/0/1] conds=[n < 10|n]` |
+| `full_module` | a resource + 2 externs + 2 fns, one with a `while` | digest `m=Demo r=2 e=4 f=2 p=1 l=2 fns=[setup/2/16,empty/0/1] conds=[n < 10\|n]` |
 
 The point of the digest cases isn't the string itself — it's that Rust and
 Python parsed the **same shape** (resource/extern/fn counts, statement

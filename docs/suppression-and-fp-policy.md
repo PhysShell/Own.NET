@@ -61,7 +61,7 @@ carry.
 
 Precedence, once both land (P-015's draft order):
 
-```
+```text
 CLI flag  >  inline [OwnIgnore]  >  config file  >  built-in default
 ```
 

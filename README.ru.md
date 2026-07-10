@@ -13,7 +13,7 @@
 ## Запустить в CI — 6 строк
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 - uses: PhysShell/own.net@main
   with:
     format: github          # инлайн-аннотации в PR; "sarif" — для вкладки Security

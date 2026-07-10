@@ -41,28 +41,30 @@ The bar for "showable": a person can reproduce the wow in ~3 minutes
 | **C** | SARIF / PR annotations | ✅ **built** — SARIF 2.1.0 + GitHub annotations + reachability/evidence (P-015). | — |
 | **D** | 5 core diagnostics | ✅ **built, well past** — OWN001/002/003, OWN014, DI001–005, POOL001–005, WPF001–005 (catalog). The comment's `SUB001/SUB002/TMR001/DISP001/DI001` all exist *semantically*; the `SUB/TMR/DISP` catalog rename is the deferred consolidation item, not new work. | (naming only) land the catalog rename with the OwnIR-v1/profile-label work. |
 | **E** | 10 bad/ok examples | ✅ **built** — 12 test-pinned gallery cases (`examples/gallery/`, incl. `00_ok_clean`) + extractor samples. `.cs`-native bad/ok pairs now exist for 7/12 (`examples/gallery/cs/`, verified through the real extractor in CI). | The remaining 5 (`04`/`05`/`06`/`08`/`09`) need move/borrow/stack-buffer/unknown-call detectors on the C# side — recorded in `examples/gallery/cs/README.md`, not yet scheduled. |
-| **F** | 3 real-world case studies | ◑ **partial** — one honest mining write-up (`real-world-mining.md`: Dapper, CsvHelper, **ScreenToGif** flagship `VideoSource` + two `SystemEvents` leaks, all TPs, clean on disciplined libs) + a 20-case `corpus/real-world/`. Raw material for 3 studies exists; the *packaged* studies don't. | Write 3 `bad → fixed → what others miss → how Own reports it` studies from existing finds. |
-| **G** | suppression + false-positive policy | ◑ **partial** — `[OwnIgnore("reason")]` designed (P-004), project-wide config is P-015 (draft); precision behaviour is strong & documented ("no FP from `using`"). | One consolidated user-facing page: suppression mechanism + explicit FP policy. |
+| **F** | 3 real-world case studies | ✅ **built** — `docs/case-studies/`: `screentogif-videosource.md` (flagship view→view-model handler leak), `screentogif-systemevents.md` (two independent `SystemEvents` leaks), `dispose-agreement-with-codeql.md` (the Dispose/RAII class where Own.NET agrees with CodeQL/Infer#), all `bad → fixed → what others miss → how Own reports it`, linked from the README. | The wider proof (20–50 OSS repos, days 31–60 below) is still open — these three are the *packaged* studies, not the full real-world sweep. |
+| **G** | suppression + false-positive policy | ✅ **built** — `docs/suppression-and-fp-policy.md` consolidates the FP policy (`OWN050` honest-skip, "no FP from `using`") with the suppression mechanisms, honestly marking `[OwnIgnore]` (P-004) as designed-not-implemented and project config (P-015) as draft-not-implemented — today's only working lever is `--severity`/`--fail-on-finding`. | — |
 
-**Plus the front door (not in A–G but the real blocker):** `README.md` is now
-bilingual (English default + a `README.ru.md` variant), but still `# OwnLang — PoC` —
-deep, research-framed, no wedge landing. There is **no 20-second landing /
-copy-paste install / Action quickstart** at the top. Per the comment's own
-open-source-path list (README-in-20s → copy-paste → bad/ok → Action → SARIF →
-suppression → "why not Sonar/CodeQL"), this is the highest-leverage missing piece.
+**Plus the front door (not in A–G but the real blocker):** ✅ **built** —
+`README.md`/`README.ru.md` now open with a 20-second landing (verbatim pitch,
+slogans, a 6-line Action quickstart, a local one-liner, one real bad/fixed
+example, a "why not Sonar/CodeQL" link) instead of `# OwnLang — PoC`; the prior
+research-framed opening moved down rather than being deleted. Per the comment's
+own open-source-path list (README-in-20s → copy-paste → bad/ok → Action → SARIF →
+suppression → "why not Sonar/CodeQL"), every step of that path now exists.
 
 ## Honest verdict
 
-**The engine is past alpha on *capability* (D/E strong, B/C built). The gap to
-"showable" is *packaging and presentation*, not analysis power:**
+**The engine is past alpha on *capability* (D/E strong, B/C built). F/G and the
+front door have since closed too — the remaining packaging gap is narrower:**
 
-1. a single `ownsharp check MyApp.sln` tool (**A**);
-2. a wedge landing README + copy-paste quickstart (front door);
-3. three packaged case studies from finds we already have (**F**);
-4. one consolidated suppression / false-positive page (**G**).
+1. a single `ownsharp check MyApp.sln` tool (**A**) — still open;
+2. ~~a wedge landing README + copy-paste quickstart (front door)~~ — **done**;
+3. ~~three packaged case studies from finds we already have (**F**)~~ — **done**;
+4. ~~one consolidated suppression / false-positive page (**G**)~~ — **done**.
 
 None of those is research; all are the difference between "interesting PoC" and
-"people install it." That ordering *is* the day 1–30 milestone.
+"people install it." **A** is now the one item standing between here and the
+day 1–30 milestone.
 
 ## The 20% rule (other stacks)
 
@@ -83,8 +85,9 @@ until the .NET alpha above is delicious. Do not let the spike exceed 20%.
 
 ## 90-day shape (sequencing, not a schedule)
 
-- **Days 1–30 — make the .NET alpha tasty:** close A, the README front door, F, G
-  (B/C/D/E already done). Suppression UX + bad/ok corpus polish.
+- **Days 1–30 — make the .NET alpha tasty:** close A (B/C/D/E/F/G and the README
+  front door already done). Suppression UX + bad/ok corpus polish continue as
+  bug-driven follow-ups, not a blocking gate.
 - **Days 31–60 — real-world proof:** run over 20–50 OSS .NET/WPF/Avalonia/WinForms
   repos; table of findings / confirmed / FP / unsupported; 2 case studies; compare
   with CodeQL / NetAnalyzers / Infer# where possible (the oracle, `docs/notes/oracle.md`).

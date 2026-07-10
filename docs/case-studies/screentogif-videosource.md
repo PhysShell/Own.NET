@@ -8,7 +8,7 @@ first real-world mining run
 
 ## Bad
 
-A `Window` reads its view-model out of `DataContext`, then wires four inline
+A `Window` reads its view-model out of `DataContext`, then wires three inline
 lambdas to the view-model's custom events inside `Window_Loaded`:
 
 ```csharp
@@ -69,7 +69,12 @@ private void OnClose(object sender, EventArgs e) => DialogResult = true;
 ```
 
 No behavior change, no new fields — the fix is entirely "have a handle to
-unsubscribe with, and use it in the close path that was already there."
+unsubscribe with, and use it in the close path that was already there." This
+closes the leak (the window is now collectible after `Closing`); it does not
+by itself make `Window_Loaded` idempotent against firing twice before a single
+`Closing` — that residual double-subscribe edge case is the same one flagged
+above, and would need a detach-before-attach guard (or a one-time-subscribe
+flag) to close fully.
 
 ## What others miss
 
@@ -80,7 +85,7 @@ plain C# event, the kind `CA2213`/`IDisposableAnalyzers`/CodeQL's
 `cs/local-not-disposed` don't model at all. Cross-checked against CodeQL on the
 same commit ([`docs/notes/oracle.md`](../notes/oracle.md)): its findings on
 ScreenToGif are entirely the Dispose/RAII class (`OpenFileDialog`, `Pen`,
-`Bitmap`, …); it flags none of the four `VideoSource` subscriptions, because its
+`Bitmap`, …); it flags none of the three `VideoSource` subscriptions, because its
 query set has no "event subscribed, never unsubscribed" rule. Own.NET and CodeQL
 are complementary here, not redundant — see the
 [Dispose-agreement case study](dispose-agreement-with-codeql.md) for where they

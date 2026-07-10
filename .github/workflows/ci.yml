@@ -1,10 +1,12 @@
 name: CI
 
 # Least privilege: every job only reads the repo (no job pushes or needs write).
-# Every `uses:` is pinned to a commit SHA (with a `# vN` comment for the human-
-# readable version) — see README "Where it cheats" item #7. `persist-credentials:
-# false` is a separate, still-open hardening item (no job pushes or has secrets,
-# so the exposure is checkout-token-lifetime only).
+# Every third-party `uses:` is pinned to a commit SHA (with a `# vN` comment for
+# the human-readable version) — see README "Where it cheats" item #7. (The local
+# `uses: ./` composite-action references are this repo's own action, not a
+# pinnable external dependency.) `persist-credentials: false` is a separate,
+# still-open hardening item (no job pushes or has secrets, so the exposure is
+# checkout-token-lifetime only).
 permissions:
   contents: read
 
@@ -875,8 +877,17 @@ jobs:
           # (move/borrow/stack-buffer/unknown-call) have no real C# detector yet.
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             examples/gallery/cs --flow-locals -o "$RUNNER_TEMP/gallery.json"
-          out=$(python -m ownlang ownir "$RUNNER_TEMP/gallery.json" || true)
+          set +e
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/gallery.json")
+          rc=$?
+          set -e
           echo "$out"
+          # own-check's contract: 0 clean, 1 findings (the expected outcome here — the
+          # .bad.cs files are SUPPOSED to trip a finding), >=2 a hard error (bad facts /
+          # drifted contract) that must fail loudly, not be swallowed as "no findings".
+          if [ "$rc" -ge 2 ]; then
+            echo "FAIL: ownir hard error (rc=$rc) — bad OwnIR facts or a drifted contract"; exit 1
+          fi
           echo "$out" | grep -qE "01_leak_on_error_path\.bad\.cs:[0-9]+:.*\[OWN001\].*'galleryLeakOnError'" \
             || { echo "FAIL: expected OWN001 on galleryLeakOnError"; exit 1; }
           echo "$out" | grep -qE "02_use_after_release\.bad\.cs:[0-9]+:.*\[OWN002\].*'galleryUseAfterRelease'" \
@@ -891,6 +902,17 @@ jobs:
             || { echo "FAIL: expected OWN025 on galleryOverspanBuf"; exit 1; }
           for ok in galleryClean galleryLeakOnErrorOk galleryUseAfterReleaseOk galleryDoubleReleaseOk galleryHandoffOk galleryLoopLeakOk galleryOverspanOkBuf; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: clean gallery case '$ok' was reported"; exit 1; fi
+          done
+          # Stronger silence check: the ok/clean fixture FILES themselves must never
+          # appear as a flagged location, not just the variable names we happened to
+          # anticipate above (an unexpected finding on some other identifier in one of
+          # these files would otherwise slip through the name-only loop).
+          for f in 00_ok_clean.cs 01_leak_on_error_path.ok.cs 02_use_after_release.ok.cs \
+                   03_double_release.ok.cs 07_use_after_handoff.ok.cs 10_leak_in_loop.ok.cs \
+                   11_overspan_full_view.ok.cs; do
+            if echo "$out" | grep -q "$f:"; then
+              echo "FAIL: clean fixture '$f' was flagged"; exit 1
+            fi
           done
           echo "OK: examples/gallery/cs/ bad/ok pairs match the .own gallery's codes 1:1 on the real extractor pipeline"
       - name: P-005 D5.4 T4 wrap/adopt (--flow-locals)
