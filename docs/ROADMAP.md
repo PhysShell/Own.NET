@@ -218,9 +218,12 @@ architectural strictness, and the borrow-checker showcase):
    the scope is disposed and is promoted to app lifetime) is built end to end too, a store-site
    property anchored at the field assignment. The family now also has its first **real-world
    corpus case** — a singleton injecting a scoped EF `DbContext` → DI001 (`corpus/di/`, a
-   benchmark-only corpus since DI has no `.own` form). Remaining (deliberate-deferral / future):
-   directly-injected `IServiceScopeFactory`-as-a-positive-signal recognition (P-006 OQ#3), and
-   the dynamic registrations that are explicit non-goals.
+   benchmark-only corpus since DI has no `.own` form). Directly-injected
+   `IServiceScopeFactory`-as-a-positive-signal recognition (P-006 OQ#3) is **done** — shipped in
+   PR #126, reconciled in #200: the correct scope-per-operation pattern is silent *by construction*
+   (a scope-resolved value used in the scope is a local, not a `scope_cached` field store), and
+   caching it into a field is DI005. Remaining (deliberate non-goals): the dynamic registrations a
+   static graph cannot see.
 4. **Pool/Span** — `Rent`/`Return`, borrowed views, return-invalidates-views,
    known-bug replay corpus (P-007). The borrow checker on stage at full height.
    ◑ *In progress* — POOL001 (leak), POOL002 (view-after-return → OWN002),

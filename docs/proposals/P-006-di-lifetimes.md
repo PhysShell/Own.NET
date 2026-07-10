@@ -162,11 +162,21 @@ rather than guessed.
 2. How far to chase transitive captures through the constructor graph before the
    dynamic cases make it unreliable? (Bounded depth; stop at unknown edges.)
 3. Is `IServiceScopeFactory` usage inside a singleton recognised as the *fix*
-   (so we stay silent), as it should be? (For the explicit form (DI004): **yes**, by
-   construction — DI004 records only `GetService<T>()` / `GetRequiredService<T>()` on the
-   injected `IServiceProvider` names and **excludes** a scope's `.ServiceProvider` receiver, so
-   resolving from a scope created with `CreateScope()` is silent. Modelling a directly-injected
-   `IServiceScopeFactory` is not yet implemented — a natural future extension.)
+   (so we stay silent), as it should be? **Resolved — shipped in PR #126, reconciled in #200.**
+   For the explicit form (DI004): **yes**, by construction — DI004 records only `GetService<T>()` /
+   `GetRequiredService<T>()` on the injected `IServiceProvider` names and **excludes** a scope's
+   `.ServiceProvider` receiver, so resolving from a scope created with `CreateScope()` is silent.
+   A **directly-injected `IServiceScopeFactory`** is modelled the same way: the extractor
+   recognises it as a scope-creator name (`Program.cs`, alongside the injected provider) and emits
+   a `scope_cached` fact **only** for a value stored into a *field*. So the correct scope-per-
+   operation pattern — resolve inside the scope, use, discard (a local) — produces **no fact** and
+   stays silent *by construction*, while caching the scope-resolved scoped service into a field is
+   DI005. That silence **is** the finished state: the "positive signal" is the **absence** of a
+   captive fact, not a separate approval marker. Recognising the factory injection as licence to
+   suppress *other* captive findings would be wrong — a singleton that also injects a scoped service
+   directly is still DI001, regardless of any scope it opens elsewhere. Pinned by
+   `DiCaptiveSample.cs` (`ScopeUsingService` silent / `ScopeCachingService` DI005), the
+   `wpf-extractor` CI DI-contrast, and `tests/test_ownir.py`.
 4. Treat transient-`IDisposable`-from-root (DI003/DI004) as warning or error? (Warning
    — it is a slow leak, not always a bug. DI004's call-site form is repeated at runtime,
    arguably worse, but kept a warning for consistency with DI003.)
