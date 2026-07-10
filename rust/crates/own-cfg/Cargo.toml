@@ -1,0 +1,20 @@
+[package]
+name = "own-cfg"
+description = "OwnLang AST -> CFG lowering, an exact port of ownlang/{cfg,cfg_json,buffers}.py gated by the CFG-JSON differential oracle"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+[dependencies]
+own-syntax = { path = "../own-syntax" }
+# The canonical CFG JSON seam is built as a serde_json value tree and dumped
+# through a Python-`json.dumps(indent=2, sort_keys=True)`-compatible printer, so
+# the oracle can byte-compare it against `python -m ownlang cfg --format json`.
+serde_json = { workspace = true }
+
+[dev-dependencies]
+
+[lints]
+workspace = true
