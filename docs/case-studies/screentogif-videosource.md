@@ -119,4 +119,7 @@ Contrast the [SystemEvents case study](screentogif-systemevents.md), where the
 subscription source is `static` and the same shape escalates to a hard error.
 
 Regression-locked as `corpus/real-world/screentogif-loaded-subscription/`
-(`before.cs`/`after.cs`, pinned by `tests/test_corpus.py`).
+(`before.cs`/`after.cs`, pinned by `tests/test_corpus.py`) — the corpus entry is
+a deliberate three-event *reduction* of the four-subscription original (it drops
+`ShowWarningRequested`; the pattern is identical), so its snippets are one line
+shorter than the real-file examples above.
