@@ -15,9 +15,12 @@ name: coderabbit-nudge
 
 on:
   schedule:
-    # Offset from the hour boundary: scheduled runs queue up right at :00 across
-    # all of GitHub, so a few minutes off reduces the chance of a delayed run.
-    - cron: "3,18,33,48 * * * *"
+    # Hourly, not more often: CodeRabbit's own cooldown is ~an hour, so a tighter
+    # loop would just burn its rate-limit window (or push us into usage-based
+    # billing) without getting reviews any sooner. Offset from the hour boundary:
+    # scheduled runs queue up right at :00 across all of GitHub, so a few minutes
+    # off reduces the chance of a delayed run.
+    - cron: "3 * * * *"
   workflow_dispatch:
 
 permissions:
