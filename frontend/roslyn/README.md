@@ -102,7 +102,10 @@ consumer repo adds (see `examples/ci/own-check.yml`):
 **`dotnet tool`.** The extractor alone is packable
 (`dotnet pack` → `dotnet tool install --global OwnSharp.Extractor` →
 `ownsharp-extract`). It emits facts only; the verdict still comes from the
-Python core, so the script/Action are the complete product.
+Python core, so the script/Action are the complete product. For the single
+command that wraps both stages into one install, see
+[`OwnSharp.Cli`](OwnSharp.Cli/README.md) (alpha gate A, issue #202) —
+`ownsharp check <path|.sln>`.
 
 Why CI/CLI and not a native Roslyn analyzer: a true `DiagnosticAnalyzer` runs
 in-process and would force a *second* checker in C# (or shelling out to Python

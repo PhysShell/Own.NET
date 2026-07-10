@@ -65,6 +65,17 @@ and defer the native analyzer until (if ever) the core itself moves to .NET.
   (`dotnet tool install --global OwnSharp.Extractor` → `ownsharp-extract`).
   Honest caveat: the tool is only the C# *extractor*; the verdict is still the
   Python core. The script/Action are the complete product.
+- **`OwnSharp.Cli`** (alpha gate A, issue #202) — the single-install answer to
+  that caveat: `dotnet tool install --global OwnSharp.Cli` → `ownsharp check
+  <path|.sln>` wraps both stages in one tool. It bundles the *unmodified*
+  extractor (`ProjectReference`, invoked as a child process) and vendors the
+  *unmodified* `ownlang/` core (run on the machine's own Python, resolved via
+  `OWN_PYTHON`/`py -3`/`python3`, `>=3.11`, fail-fast otherwise — never an
+  auto-download). See [`frontend/roslyn/OwnSharp.Cli/README.md`](../../frontend/roslyn/OwnSharp.Cli/README.md)
+  for the packaging shape and the rejected alternatives on record in the issue.
+  Not yet published to nuget.org (Non-goals below, unchanged) —
+  build-and-install from source until then; `own-check.sh`/`.ps1`/`action.yml`
+  are untouched and remain the supported surfaces alongside it.
 
 ## Not the same as P-011
 
