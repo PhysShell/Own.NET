@@ -3,6 +3,7 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# issue #201 oracle sweep (1/7): ShareX/ShareX — WinForms screen-capture app,
-# same domain as the ScreenToGif flagship find (subscription/timer-dense).
-ShareX/ShareX
+# issue #201 oracle sweep (2/5): MahApps/MahApps.Metro — WPF UI toolkit
+# (control library: heavy on custom controls/events, different shape than a
+# WinForms app).
+MahApps/MahApps.Metro
