@@ -16,7 +16,7 @@ hand; this is that, packaged.
   build output (dll + `.deps.json`/`.runtimeconfig.json` + Roslyn
   dependencies) rides along in this tool's own pack payload because
   `PackAsTool` packs the full publish closure. `check` invokes it as a child
-  process (`dotnet exec <bundled>/OwnSharp.Extractor.dll ...`).
+  process (`dotnet exec <bundled>/ownsharp-extract.dll ...`).
 - **The core is unmodified**, vendored as loose `*.py` content (see the
   `.csproj`) and unpacked to `~/.ownsharp/core/<version>/` on first run —
   never into the analyzed repo. It runs on the machine's own Python; nothing

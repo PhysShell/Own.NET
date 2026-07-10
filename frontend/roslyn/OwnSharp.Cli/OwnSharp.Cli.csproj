@@ -18,7 +18,7 @@
            .deps.json/.runtimeconfig.json + Roslyn deps) rides along in this
            tool's own pack payload because PackAsTool packs this project's
            full publish closure. At runtime `check` invokes it as a child
-           process ("dotnet exec (bundled)/OwnSharp.Extractor.dll ..."),
+           process ("dotnet exec (bundled)/ownsharp-extract.dll ..."),
            the same subprocess shape own-check.sh already uses, just against
            a bundled binary instead of running the extractor from source.
          - The Python core (ownlang/, zero-dependency pure Python, see

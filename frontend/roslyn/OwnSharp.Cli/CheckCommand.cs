@@ -145,7 +145,7 @@ internal static class CheckCommand
     private static async Task<int> RunExtractorAsync(
         IReadOnlyList<string> paths, string factsPath, bool legacy, bool stats, bool bodyThrowEdges)
     {
-        var extractorDll = Path.Combine(AppContext.BaseDirectory, "OwnSharp.Extractor.dll");
+        var extractorDll = Path.Combine(AppContext.BaseDirectory, "ownsharp-extract.dll");
         if (!File.Exists(extractorDll))
         {
             Console.Error.WriteLine(
