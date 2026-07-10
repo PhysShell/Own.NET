@@ -216,9 +216,41 @@ hand-resolved, not at the container-built `PooledConnection`. Falls back to the 
 when the call is unknown. Pinned by `DiCaptiveSample.cs` (`ConnectionResolver:79`,
 `ExprBodiedResolver:123`, transitive `WrapperResolver:137`).
 
+## DI005 — scope-resolved scoped service cached into a field (shipped), and the OQ#3 fix recognised
+
+The remedy DI001/DI002 point at is **scope-per-operation**: inject `IServiceScopeFactory`, and per
+operation `using var scope = factory.CreateScope();` then resolve the scoped dependency *inside* the
+scope. DI005 catches that remedy done wrong — the scope-resolved **scoped** service **cached into a
+field**. The field outlives the `using` scope, so the cached instance dangles after the scope (and
+the service) is disposed *and* is promoted to the singleton's application lifetime: the captive is
+back, hidden behind the API meant to fix it (a **warning**, anchored at the field-store site).
+
+The extractor (still purely syntactic) records the **scope-creator** names with the same this-field
+discipline as DI004 — a **directly-injected `IServiceScopeFactory`** *and* an injected
+`IServiceProvider` (both expose `CreateScope()`) — then the scope locals their `CreateScope()`
+produces, and every `scope.ServiceProvider.Get(Required)Service<T>()` whose result is **assigned to
+a field** into a `scope_cached` list with its store site. `find_scope_cached_captives`
+(`ownlang/di.py`) walks each cached entry's strong transient graph like DI001; the field-store site
+is the finding's primary anchor, the registration the secondary.
+
+**This is the answer to P-006 open question #3 — recognising the directly-injected
+`IServiceScopeFactory` fix.** It needs no separate "approval" fact: the correct pattern (resolve
+inside the scope, use, **discard** — a local, not a field store) simply **produces no `scope_cached`
+entry**, so it is silent **by construction**. The "positive signal" is the *absence* of a captive
+fact. Recognising the factory injection as licence to suppress *other* captive findings would be
+wrong — a singleton that also injects a scoped service directly is still DI001. Pinned end-to-end by
+`DiCaptiveSample.cs` (`ScopeCachingService` DI005 direct, `UnitOfWorkCachingService` DI005
+transitive; `ScopeUsingService` — the correct scope-per-operation use — and `ClockCachingService`
+— a cached *singleton*, shareable — both silent) in the `wpf-extractor` CI job, and at the graph
+level by `tests/test_ownir.py`.
+
 ## Next (separate slices)
 - Per-**parameter** precision for the captive anchor (the specific injecting parameter, not just
   the constructor).
-- The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms, and a
-  directly-injected `IServiceScopeFactory` as the recognised fix (DI004 currently reads the
-  generic singular `Get(Required)Service<T>()` and the `CreateScope()` → scope-provider form).
+- The plural `GetServices<T>()` and non-generic `GetService(typeof(T))` resolution forms (DI004
+  currently reads the generic singular `Get(Required)Service<T>()`).
+- **A scope-resolved scoped service that *escapes* its scope by being returned (or passed out as a
+  `ref`/`out`/method argument)** rather than cached into a field — the same lifetime promotion as
+  DI005, but through a data-flow edge the store-site pass does not model. Silent today
+  (precision-safe: the extractor records only field stores, so an escaping local is no
+  `scope_cached` fact). A candidate for a future flow-aware slice, not the store-site model.
