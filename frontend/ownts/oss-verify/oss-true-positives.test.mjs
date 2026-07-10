@@ -68,14 +68,25 @@ test("RSTB control: removing with the matching capture flag is clean", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Case 2 — @reactuses/core@6.4.0
-//   dist/index.mjs: add dragstart/touchstart :2830/:2835, remove :2846/:2851
+// Case 2 — @reactuses/core@6.4.0, hook `useMousePressed`
+//   dist/index.mjs: `const listenerOptions$2 = { passive: true }` (:2809);
+//   add dragstart/touchstart :2830/:2835 (WITH listenerOptions$2), remove
+//   :2846/:2851 (WITHOUT it).
 //   Bug class: fresh function identity. onPressed = useCallback(t => () => {…}),
 //   so onPressed('mouse') returns a NEW function every call. add registers one
 //   instance; cleanup calls onPressed('mouse') AGAIN, producing a different
 //   instance that removeEventListener cannot match. The drag/touch listeners are
 //   never removed (the sibling onReleased listeners use a stable ref and are fine).
+//
+//   The published add passes { passive: true } and the remove omits it, but that
+//   dropped option is NOT the cause: a listener's removal key is (type, callback,
+//   CAPTURE) — `passive` is not part of it, and no `capture` is set (defaults to
+//   false on both sides). So the identity mismatch is the sole reason it leaks;
+//   the control below proves the option-drop alone stays clean. (Reduced shape
+//   keeps the { passive: true } on add so this is the package's exact shape.)
 // ---------------------------------------------------------------------------
+const REACTUSES_LISTENER_OPTIONS = { passive: true }; // = listenerOptions$2
+
 test("@reactuses/core@6.4.0: onPressed('mouse') returns a fresh fn each call", () => {
   const onPressed = (srcType) => () => { void srcType; };
   assert.notEqual(onPressed("mouse"), onPressed("mouse"),
@@ -89,25 +100,28 @@ test("@reactuses/core@6.4.0: add(onPressed('mouse')) + remove(onPressed('mouse')
   // curried, as published: a new inner fn per invocation
   const onPressed = (srcType) => () => { void srcType; fired++; };
 
-  // effect body — the freshly-returned fn is what gets registered
-  element.addEventListener("dragstart", onPressed("mouse"));
-  // effect cleanup, as published — a *different* freshly-returned fn
+  // effect body — the freshly-returned fn is registered, with the published options
+  element.addEventListener("dragstart", onPressed("mouse"), REACTUSES_LISTENER_OPTIONS);
+  // effect cleanup, as published — a *different* freshly-returned fn, options omitted
   element.removeEventListener("dragstart", onPressed("mouse"));
 
   element.dispatchEvent(new Event("dragstart"));
   assert.equal(fired, 1, "listener survived cleanup → leak (expected 1 fire)");
 });
 
-test("@reactuses/core control: add & remove the SAME captured fn is clean", () => {
+test("@reactuses/core control: same captured fn, options dropped on remove, is clean", () => {
   const { document, Event } = dom();
   const element = document.createElement("div");
   let fired = 0;
   const onPressed = (srcType) => () => { void srcType; fired++; };
 
   const handler = onPressed("mouse"); // capture once (the fix)
-  element.addEventListener("dragstart", handler);
+  // Add WITH the published { passive: true }, remove WITHOUT it — exactly the
+  // option-drop Codex flagged. It removes cleanly, proving the drop is not the
+  // leak: `passive` is not part of the removal key, and capture is false on both.
+  element.addEventListener("dragstart", handler, REACTUSES_LISTENER_OPTIONS);
   element.removeEventListener("dragstart", handler);
 
   element.dispatchEvent(new Event("dragstart"));
-  assert.equal(fired, 0, "correct cleanup must remove the listener");
+  assert.equal(fired, 0, "correct cleanup must remove the listener despite the dropped option");
 });

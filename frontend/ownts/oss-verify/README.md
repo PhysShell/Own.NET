@@ -17,10 +17,18 @@ must go silent, so a passing leak assertion can't be a harness artefact.
 | # | Package | Site | Upstream file sha256 | Bug class |
 |---|---------|------|----------------------|-----------|
 | 1 | `react-scroll-to-bottom@4.2.0` | `lib/esm/ScrollToBottom/Composer.js:574` (add) / `:579` (remove) | `114886d7…efe16` | capture-flag mismatch: added `{ capture: true }`, removed with default `false` |
-| 2 | `@reactuses/core@6.4.0` | `dist/index.mjs:2830/2835` (add) / `:2846/2851` (remove) | `4e47dc7a…6b9c` | fresh function identity: `onPressed = t => () => {…}`, so `onPressed('mouse')` is a new fn at add and again at remove |
+| 2 | `@reactuses/core@6.4.0` (hook `useMousePressed`) | `dist/index.mjs:2830/2835` (add) / `:2846/2851` (remove); `listenerOptions$2` at `:2809` | `4e47dc7a…6b9c` | fresh function identity: `onPressed = t => () => {…}`, so `onPressed('mouse')` is a new fn at add and again at remove |
 
 Both `removeEventListener` calls therefore never match what `addEventListener`
 registered, and a listener piles up on every effect re-run / `target` change.
+
+> **Note on case 2 — it is identity, not the dropped option.** The published add
+> passes `listenerOptions$2 = { passive: true }` and the remove omits it, so it may
+> look like an option-drop leak. It is not: a listener's removal key is `(type,
+> callback, capture)` — `passive` is not part of it, and no `capture` is set (false
+> on both sides). The sole cause is the fresh function identity; the case-2 control
+> adds *with* `{ passive: true }` and removes *without* it and still goes clean,
+> isolating the option-drop as a red herring.
 
 ## Run
 
