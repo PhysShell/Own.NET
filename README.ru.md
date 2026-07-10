@@ -14,7 +14,7 @@
 
 ```yaml
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-- uses: PhysShell/own.net@main
+- uses: PhysShell/own.net@main  # пре-релиз: тегов ещё нет — для воспроизводимости пиньте commit SHA
   with:
     format: github          # инлайн-аннотации в PR; "sarif" — для вкладки Security
     fail-on-finding: "true"
@@ -250,7 +250,12 @@ CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribe
 `capture`-факт, и **то же ядро** выдаёт **OWN014** (объект промотится в
 process-lifetime; парный `-=` снимает находку) — WPF-escape как профиль общей
 region-модели, а не отдельный детектор (P-004 WPF005; сэмпл
-`StaticEventEscapeViewModel`). Источник-инъекция (неизвестное время жизни)
+`StaticEventEscapeViewModel`). Это две запиненные модели одной и той же
+формы, а не одна находка, меняющая код: вердикт для
+`GraphicsConfigurationDialog` в начале этого README — токен-уровневая ошибка
+**OWN001** (запинена в `corpus/real-world/screentogif-systemevents-leak`),
+а region-понижение того же статического паттерна запинено как **OWN014** в
+`corpus/wpf/systemevents-region-escape`. Источник-инъекция (неизвестное время жизни)
 остаётся OWN001-warning'ом — это осознанный down-tier профиля подписок (по умолчанию OWN001 — ошибка), — пока ownership-моделирование не докажет его время жизни.
 
 Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet

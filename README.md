@@ -13,7 +13,7 @@ release.
 
 ```yaml
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-- uses: PhysShell/own.net@main
+- uses: PhysShell/own.net@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
   with:
     format: github          # inline PR annotations; use "sarif" for the Security tab
     fail-on-finding: "true"
@@ -246,7 +246,13 @@ but a *region escape*: the extractor lowers it to a tokenless `capture` fact, an
 **the same core** produces **OWN014** (the object is promoted to process lifetime; a
 matching `-=` clears the finding) — the WPF escape as a profile of the general
 region model, not a separate detector (P-004 WPF005; sample
-`StaticEventEscapeViewModel`). An injected source (unknown lifetime) stays an
+`StaticEventEscapeViewModel`). These are two pinned modelings of the same
+underlying shape, not one finding changing codes: the quickstart's
+`GraphicsConfigurationDialog` verdict near the top of this README is the
+token-tier **OWN001** error (pinned in
+`corpus/real-world/screentogif-systemevents-leak`), while the region lowering
+of the same static-source pattern is pinned as **OWN014** in
+`corpus/wpf/systemevents-region-escape`. An injected source (unknown lifetime) stays an
 OWN001 warning — the subscription profile's deliberate down-tier (OWN001 is otherwise
 an error) — until ownership modelling can prove its lifetime.
 

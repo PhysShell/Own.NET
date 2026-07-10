@@ -8,8 +8,9 @@ first real-world mining run
 
 ## Bad
 
-A `Window` reads its view-model out of `DataContext`, then wires three inline
-lambdas to the view-model's custom events inside `Window_Loaded`:
+A `Window` reads its view-model out of `DataContext`, then wires four inline
+lambdas to the view-model's custom events inside `Window_Loaded` (real file,
+lines 50/67/75/83):
 
 ```csharp
 public partial class VideoSource : Window
@@ -26,6 +27,7 @@ public partial class VideoSource : Window
     {
         _viewModel.ShowErrorRequested += (_, args) => StatusBand.Error(args?.ToString());
         _viewModel.HideErrorRequested += (_, _) => StatusBand.Hide();
+        _viewModel.ShowWarningRequested += (_, args) => StatusBand.Warning(args?.ToString());
         _viewModel.CloseRequested += (_, _) => DialogResult = true;
         // ...never unsubscribed
     }
@@ -53,6 +55,7 @@ private void Window_Loaded(object sender, RoutedEventArgs e)
 {
     _viewModel.ShowErrorRequested += OnShowError;
     _viewModel.HideErrorRequested += OnHideError;
+    _viewModel.ShowWarningRequested += OnShowWarning;
     _viewModel.CloseRequested += OnClose;
 }
 
@@ -60,11 +63,13 @@ private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs
 {
     _viewModel.ShowErrorRequested -= OnShowError;
     _viewModel.HideErrorRequested -= OnHideError;
+    _viewModel.ShowWarningRequested -= OnShowWarning;
     _viewModel.CloseRequested -= OnClose;
 }
 
 private void OnShowError(object sender, EventArgs args) => StatusBand.Error(args?.ToString());
 private void OnHideError(object sender, EventArgs e) => StatusBand.Hide();
+private void OnShowWarning(object sender, EventArgs args) => StatusBand.Warning(args?.ToString());
 private void OnClose(object sender, EventArgs e) => DialogResult = true;
 ```
 
@@ -85,7 +90,7 @@ plain C# event, the kind `CA2213`/`IDisposableAnalyzers`/CodeQL's
 `cs/local-not-disposed` don't model at all. Cross-checked against CodeQL on the
 same commit ([`docs/notes/oracle.md`](../notes/oracle.md)): its findings on
 ScreenToGif are entirely the Dispose/RAII class (`OpenFileDialog`, `Pen`,
-`Bitmap`, …); it flags none of the three `VideoSource` subscriptions, because its
+`Bitmap`, …); it flags none of the four `VideoSource` subscriptions, because its
 query set has no "event subscribed, never unsubscribed" rule. Own.NET and CodeQL
 are complementary here, not redundant — see the
 [Dispose-agreement case study](dispose-agreement-with-codeql.md) for where they
