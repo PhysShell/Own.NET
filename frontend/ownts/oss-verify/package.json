@@ -1,0 +1,13 @@
+{
+  "name": "ownts-oss-verify",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runtime ground-truth confirmation that OwnTS's OSS useEffect true positives really leak a listener in a DOM.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  }
+}

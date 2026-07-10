@@ -1189,6 +1189,27 @@ jobs:
           [ "$(echo "$clean" | grep -cE '\[(OWN|EFF|DI)[0-9]{3}\]')" -eq 0 ] \
             || { echo "FAIL: cleaned-up + memoised effects must not fire"; exit 1; }
 
+  # Runtime ground-truth for the two OwnTS OSS *true positives* (the
+  # react-scroll-to-bottom@4.2.0 capture-mismatch and the @reactuses/core@6.4.0
+  # fresh-fn-identity leaks from docs/notes/ownts-oss-benchmark.md). The analyzer
+  # flags these statically (ownts-react-effects, above); this job EXECUTES the
+  # reduced shapes in a real DOM (jsdom) and asserts the effect's own cleanup fails
+  # to remove the listener — with correct-cleanup controls that must go silent. So
+  # the "true positive" label rests on observed behaviour, not the analyzer alone.
+  ownts-oss-verify:
+    name: OwnTS OSS true positives -> runtime leak proof (jsdom)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Confirm the two OSS leaks reproduce (and controls stay clean)
+        working-directory: frontend/ownts/oss-verify
+        run: |
+          npm ci
+          npm test
+
   # The distribution surface (Уровень 1): the own-check.sh orchestrator walks a
   # directory of real C# and prints findings in the host-parseable formats the
   # GitHub Action (PR annotations) and a VS Error List (MSBuild) consume — and

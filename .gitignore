@@ -8,6 +8,9 @@ __pycache__/
 bin/
 obj/
 
+# Node deps for the OwnTS OSS runtime-confirmation project (frontend/ownts/oss-verify)
+node_modules/
+
 # Corpus mining: cloned third-party source + raw reports (scripts/mine.sh).
 # Never commit other projects' code; promote interesting findings into
 # corpus/real-world/ as minimal reduced cases instead.
