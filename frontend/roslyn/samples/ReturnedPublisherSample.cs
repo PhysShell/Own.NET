@@ -20,6 +20,8 @@ public class ProvPublisher
     public event EventHandler? Faulted;  // public candidate (warning)
     public event EventHandler? Mixed;    // mixed callers (warning)
     public event EventHandler? Stored;   // field-stored fresh local (warning)
+    public event EventHandler? Deferred; // callee-side local-function capture (warning)
+    public event EventHandler? Later;    // caller-side local-function capture (warning)
 }
 
 public class ProvSettings
@@ -108,6 +110,50 @@ public static class ProvStoredFactory
     private static void ApplyStored(ProvPublisher stored, ProvSettings settings)
     {
         stored.Stored += settings.Error;         // stays the OWN001 warning
+    }
+}
+
+// CALLEE-SIDE LOCAL-FUNCTION CAPTURE (warning stays; Codex P2 regression): the
+// `+=` sits inside a local function that captures the publisher parameter and is
+// STORED into a delegate field — the closure can run from a longer-lived root
+// after the call returns, so the parameter escaped and provenance must deny.
+public static class ProvLocalFuncFactory
+{
+    private static Action? _pending;
+
+    public static ProvPublisher CreateDeferred(ProvSettings settings)
+    {
+        var fresh = new ProvPublisher();
+        ApplyDeferred(fresh, settings);
+        return fresh;
+    }
+
+    private static void ApplyDeferred(ProvPublisher deferred, ProvSettings settings)
+    {
+        void Later() { deferred.Deferred += settings.Error; }  // captures the param
+        _pending = Later;                        // closure escapes -> deny
+    }
+}
+
+// CALLER-SIDE LOCAL-FUNCTION CAPTURE (warning stays; Codex P2 regression): the
+// fresh local is passed to the audited helper FROM a stored local function — the
+// closure may run after `made` escaped, so the target-argument use inside it
+// must deny the "bounded" proof.
+public static class ProvCallerLocalFuncFactory
+{
+    private static Action? _wire;
+
+    public static ProvPublisher CreateLater(ProvSettings settings)
+    {
+        var made = new ProvPublisher();
+        void Wire() => ApplyLater(made, settings);   // capture of the fresh local
+        _wire = Wire;                                // closure escapes -> deny
+        return made;
+    }
+
+    private static void ApplyLater(ProvPublisher later, ProvSettings settings)
+    {
+        later.Later += settings.Error;           // stays the OWN001 warning
     }
 }
 

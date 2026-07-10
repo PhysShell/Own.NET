@@ -247,9 +247,11 @@ jobs:
             echo "FAIL: the proven returned-fresh publisher subscription must be silent"; exit 1
           fi
           # ...and every denial case KEEPS the honest OWN001 warning — public
-          # candidate, mixed callers, field-stored fresh local, and the
-          # param->param DI dual this feature must never silence.
-          for ev in "pub.Faulted" "target.Mixed" "stored.Stored" "bus.Changed"; do
+          # candidate, mixed callers, field-stored fresh local, the param->param
+          # DI dual this feature must never silence, and the two local-function
+          # closure escapes (callee-side capture / caller-side capture, Codex P2).
+          for ev in "pub.Faulted" "target.Mixed" "stored.Stored" "bus.Changed" \
+                    "deferred.Deferred" "later.Later"; do
             echo "$out" | grep -qE "ReturnedPublisherSample\.cs:[0-9]+: warning: \[OWN001\].*'$ev'" \
               || { echo "FAIL: expected the OWN001 warning to survive for '$ev' (provenance must deny)"; exit 1; }
           done

@@ -843,7 +843,15 @@ static bool ComputeReturnedFreshParam(IParameterSymbol p, CSharpCompilation comp
                 || !SymbolEqualityComparer.Default.Equals(rp, p)) continue;
             if (id.Parent is not MemberAccessExpressionSyntax pma || pma.Expression != id)
                 return false;
-            if (id.Ancestors().OfType<AnonymousFunctionExpressionSyntax>().Any())
+            // ANY nested function boundary between the reference and the method's
+            // own declaration is a closure that can be stored and invoked from a
+            // longer-lived root — a lambda OR a local function (Codex P2: a stored
+            // `void Later() { p.Event += h; }` escapes exactly like a lambda).
+            // Bounded at `mnode` so the method's own declaration node never
+            // self-denies.
+            if (id.Ancestors().TakeWhile(a => a != mnode)
+                   .Any(a => a is AnonymousFunctionExpressionSyntax
+                          or LocalFunctionStatementSyntax))
                 return false;
         }
     }
@@ -916,8 +924,13 @@ static bool CallPassesBoundedFreshLocal(InvocationExpressionSyntax inv, int ordi
         if (use.Identifier.Text != local.Name) continue;
         if (model.GetSymbolInfo(use).Symbol is not ILocalSymbol us
             || !SymbolEqualityComparer.Default.Equals(us, local)) continue;
+        // a use inside ANY nested function below the scope — lambda or local
+        // function — is a closure capture: the closure can be stored and run
+        // after the local has escaped (Codex P2: `void Wire() => Apply(p, s);`
+        // stored into a delegate), so even a target-argument use there denies.
         if (use.Ancestors().TakeWhile(a => a != scope)
-               .OfType<AnonymousFunctionExpressionSyntax>().Any())
+               .Any(a => a is AnonymousFunctionExpressionSyntax
+                      or LocalFunctionStatementSyntax))
             return false;
         if (use.Parent is ReturnStatementSyntax) continue;
         if (use.Parent is ArgumentSyntax ua && ua.RefKindKeyword.IsKind(SyntaxKind.None)
