@@ -59,8 +59,9 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable, 2026-07-09
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
         with:
+          toolchain: stable
           components: rustfmt, clippy
       - name: cargo fmt --check
         run: cargo fmt --check
