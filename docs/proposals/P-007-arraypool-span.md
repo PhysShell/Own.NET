@@ -32,8 +32,16 @@
   spelling) over-reads the oversized `[n, Length)` tail; the per-method flow pass only tracks LOCAL
   rents, so a class-level field pass collects the pooled fields (shared `IsPoolRent`) and emits a
   synthetic `acquire`/`overspan`/`release` flow at the view → OWN025 (corpus
-  `arraypool-field-fullspan-overread`). A full-length view STORED into another field (read only
-  elsewhere) is the deeper alias-tracking frontier, left next
+  `arraypool-field-fullspan-overread`). **A full-length view STORED into another field is covered
+  too** — because the field pass fires on the full-length view *expression*, the RHS of a store
+  `_view = _buf.AsMemory()` (a `Memory<T>`/`ReadOnlyMemory<T>` field; `Span<T>` is a ref struct and
+  cannot be a field) is itself such an expression, so the over-read is caught **at the store**, where
+  the unbounded view is materialized (corpus `arraypool-view-into-field-overread`). The one shape past
+  this is a **deliberate deferral** (§Non-goals; "a deliberate deferral beats a soft false positive"):
+  a **bounded** view cached in a field then read **after the owner is `Return`ed in a *different*
+  member** — an object-level, cross-member escape whose bug-ness depends on the caller's method-call
+  order, which needs interprocedural reasoning the per-method + field passes do not have. Tracked as a
+  follow-up (POOL004 object-level escape, #205)
 - **Depends on:** `spec/OwnCore.md` (OWN001 leak, OWN002 use-after-release,
   OWN003 double-release, OWN008 release-while-borrowed), the buffer/borrow model
   in `spec/`, [P-001](P-001-csharp-extractor.md). See
@@ -65,7 +73,7 @@ The corpus already pins two real cases (`corpus/real-world/arraypool-double-retu
 | **POOL002** view after return | a `Span`/`Memory` view used after the owner is `Return`ed | `OWN002` |
 | **POOL003** double return | `Return`/`Dispose` reachable twice for the same buffer (ArrayPool *and* MemoryPool) | `OWN003` ✅ |
 | **POOL004** view escapes | a borrowed `Span` returned/stored beyond the owner's lifetime | `OWN004`/`OWN008` |
-| **POOL005** read/copy past length | a full-length **view** (`buf.AsSpan()`, no bound) **or** the `.Length` spelling (`buf.AsSpan(0, buf.Length)`) reads/copies beyond the logical length (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is NOT flagged — it exposes nothing) | `OWN025` `[resource: pooled buffer]` ✅ (local **and** pooled `byte[]` FIELD; a view stored-into-a-field next) |
+| **POOL005** read/copy past length | a full-length **view** (`buf.AsSpan()`, no bound) **or** the `.Length` spelling (`buf.AsSpan(0, buf.Length)`) reads/copies beyond the logical length (a write/wipe like `Array.Clear(buf, 0, buf.Length)` is NOT flagged — it exposes nothing) | `OWN025` `[resource: pooled buffer]` ✅ (local, pooled `byte[]` FIELD, **and** a full-length view stored-into-a-field) |
 
 Resource mapping:
 

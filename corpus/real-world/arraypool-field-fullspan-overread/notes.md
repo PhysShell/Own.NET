@@ -40,9 +40,14 @@ fields/members, so it pins the *core* OWN025 verdict the field pass produces, wh
 the field-vs-local distinction lives in `before.cs` / `after.cs` (scanned end to end
 by the dotnet `corpus-benchmark` CI job). `before.cs` / `after.cs` are representative
 of the bug and its fix, not a verbatim PR diff. v0 of the field pass fires on the
-*first* full-length view of each pooled field per member (a read site); a full-length
-view of a pooled field **stored into another field** and only read elsewhere is a
-deeper alias-tracking frontier, left honest.
+*first* full-length view of each pooled field per member (a read site). A full-length
+view of a pooled field **stored into another field** is caught too — the pass fires on
+the view *expression*, so the RHS of `_view = _buf.AsMemory()` is itself a full-length
+view (pinned separately by
+[`arraypool-view-into-field-overread`](../arraypool-view-into-field-overread/notes.md)).
+The one shape left honest is a **bounded** view cached in a field then read after the
+owner is `Return`ed in a *different* member — an object-level, cross-member escape that
+needs interprocedural call-ordering (a deliberate deferral; follow-up POOL004 issue #205).
 
 Reference: [P-007](../../../docs/proposals/P-007-arraypool-span.md); replay target
 AiDotNet.Tensors pooled-buffer over-clear/over-read.
