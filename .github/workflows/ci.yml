@@ -203,6 +203,7 @@ jobs:
             frontend/roslyn/samples/CloseReleaseSample.cs \
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             frontend/roslyn/samples/VoidSubscribeSample.cs \
+            frontend/roslyn/samples/ReturnedPublisherSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -235,6 +236,25 @@ jobs:
             || { echo "FAIL: expected the lambda-handler subscription leak (warning)"; exit 1; }
           echo "$out" | grep -q "inline lambda it has no '-=' handle" \
             || { echo "FAIL: expected the lambda no-handle wording"; exit 1; }
+          # #146 interprocedural publisher provenance (the Newtonsoft
+          # Create->ApplySerializerSettings shape): every caller of ApplyBounded
+          # constructs the publisher and returns it, so the param-publisher
+          # subscription is bounded -> the extractor stamps
+          # `source_provenance: "returned_fresh"` and the bridge drops it (SILENT).
+          grep -q '"source_provenance": "returned_fresh"' "$RUNNER_TEMP/facts.json" \
+            || { echo "FAIL: expected the returned_fresh provenance stamp in the facts"; exit 1; }
+          if echo "$out" | grep -q "publisher.Error"; then
+            echo "FAIL: the proven returned-fresh publisher subscription must be silent"; exit 1
+          fi
+          # ...and every denial case KEEPS the honest OWN001 warning — public
+          # candidate, mixed callers, field-stored fresh local, the param->param
+          # DI dual this feature must never silence, and the two local-function
+          # closure escapes (callee-side capture / caller-side capture, Codex P2).
+          for ev in "pub.Faulted" "target.Mixed" "stored.Stored" "bus.Changed" \
+                    "deferred.Deferred" "later.Later"; do
+            echo "$out" | grep -qE "ReturnedPublisherSample\.cs:[0-9]+: warning: \[OWN001\].*'$ev'" \
+              || { echo "FAIL: expected the OWN001 warning to survive for '$ev' (provenance must deny)"; exit 1; }
+          done
           # P-004 provenance: a local that ALIASES an injected source (var src =
           # _bus) is NOT method-bounded — it must warn, not be silently dropped. A
           # local the scope CONSTRUCTS (var owned = new Calc()) IS bounded -> silent.

@@ -59,7 +59,12 @@ protobuf-net/protobuf-net | Page.xaml.cs | OWN001 | local 'timer' | non-product 
 # INSTANCE facts (no ArrayPool set + the sink is a StringWriter), not a type-level no-op, so it stays
 # baselined — consistent with excluding writers from IsNoOpDisposeWrapper. See no-op-dispose-wrapper.md.
 JamesNK/Newtonsoft.Json | TraceJsonReader.cs | OWN001 | _textWriter | benign-by-instance, NOT a no-op type: JsonTextWriter.Close() returns a (possibly pooled) write buffer and auto-completes JSON tokens; harmless here only because no ArrayPool is set and the sink is a StringWriter — kept baselined (not soundly auto-fixable)
-JamesNK/Newtonsoft.Json | JsonSerializer.cs | OWN001 | serializer.Error | intra-call self-subscription: the serializer is freshly created from the same JsonSerializerSettings whose .Error handler it subscribes; source and handler are co-lifetimed
+# REMOVED (fixed by #146): `JsonSerializer.cs | OWN001 | serializer.Error` — the
+# returned-fresh publisher provenance pass now proves the Create->
+# ApplySerializerSettings shape bounded (source_provenance: "returned_fresh") and
+# the finding no longer fires. Deliberately NOT left baselined: if the provenance
+# pass regresses, the finding must reappear in the triage queue, not be silently
+# swallowed by this allowlist. (field-notes #8)
 
 # --- JoshClose/CsvHelper --------------------------------------------------------
 JoshClose/CsvHelper | ConsoleHost.cs | OWN014 | AppDomain.CurrentDomain.ProcessExit | non-product (docs-src/ doc-generator) + process-lived subscriber: ConsoleHost itself lives for the whole process, so promoting it to a process-lived event source changes nothing

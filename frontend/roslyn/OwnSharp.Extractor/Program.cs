@@ -789,6 +789,178 @@ static string SubscriptionSourceKind(ExpressionSyntax left, IEventSymbol ev,
 static bool IsLambdaHandler(ExpressionSyntax right) =>
     right is AnonymousFunctionExpressionSyntax;
 
+// --- #146: interprocedural "constructed-and-returned" publisher provenance ---
+//
+// A `+=` whose publisher is a PARAMETER is tiered `injected` by
+// SubscriptionSourceKind — honest locally, because inside the method a DI
+// singleton bus (a real leak) and a caller-owned fresh publisher (bounded) are
+// syntactically identical. This pass proves the bounded case ACROSS the
+// compilation — the dual of ownership transfer (D5): if EVERY visible caller
+// passes a publisher it freshly constructs and lets escape only into this call
+// or its own `return`, and the callee itself never lets the parameter escape,
+// then the handler lives exactly as long as the object the caller now holds —
+// bounded, not a leak (the bridge drops the stamped fact; ownlang/ownir.py
+// `source_provenance`). Precision-first: ANY unprovable step — public/protected
+// candidate, method-group reference, named/ref/omitted argument, non-local or
+// non-fresh argument, any other use of the caller's local, lambda capture, zero
+// visible callers — denies the proof and the honest OWN001 warning stands.
+// (Mined shape: Newtonsoft JsonSerializer.Create -> ApplySerializerSettings;
+// field-notes #7.)
+
+static bool IsReturnedFreshParam(IParameterSymbol p, CSharpCompilation compilation,
+                                 Dictionary<IParameterSymbol, bool> cache)
+{
+    if (cache.TryGetValue(p, out var hit)) return hit;
+    var ok = ComputeReturnedFreshParam(p, compilation);
+    cache[p] = ok;
+    return ok;
+}
+
+static bool ComputeReturnedFreshParam(IParameterSymbol p, CSharpCompilation compilation)
+{
+    // Callee gate: only an in-compilation-callable method can have ALL its
+    // callers audited. `public`/`protected` (incl. `protected internal`) may be
+    // called from outside this compilation -> deny; `internal` is auditable
+    // here (this scan IS the assembly view).
+    if (p.RefKind != RefKind.None || p.IsParams) return false;
+    if (p.ContainingSymbol is not IMethodSymbol m) return false;
+    if (m.MethodKind is not (MethodKind.Ordinary or MethodKind.LocalFunction)) return false;
+    if (m.DeclaredAccessibility is not (Accessibility.Private or Accessibility.Internal
+                                        or Accessibility.ProtectedAndInternal)) return false;
+    // The callee must never let the publisher escape: every reference to the
+    // parameter must be a plain member-access RECEIVER (`p.Event += h`,
+    // `p.Prop = v`, `p.Method()`), outside any lambda (a capturing lambda can
+    // outlive the call). A bare `p` — as an argument, an assignment side, a
+    // return value, a conditional access — denies.
+    foreach (var declRef in m.DeclaringSyntaxReferences)
+    {
+        var mnode = declRef.GetSyntax();
+        var mModel = compilation.GetSemanticModel(mnode.SyntaxTree);
+        foreach (var id in mnode.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (id.Identifier.Text != p.Name) continue;
+            if (mModel.GetSymbolInfo(id).Symbol is not IParameterSymbol rp
+                || !SymbolEqualityComparer.Default.Equals(rp, p)) continue;
+            if (id.Parent is not MemberAccessExpressionSyntax pma || pma.Expression != id)
+                return false;
+            // ANY nested function boundary between the reference and the method's
+            // own declaration is a closure that can be stored and invoked from a
+            // longer-lived root — a lambda OR a local function (Codex P2: a stored
+            // `void Later() { p.Event += h; }` escapes exactly like a lambda).
+            // Bounded at `mnode` so the method's own declaration node never
+            // self-denies.
+            if (id.Ancestors().TakeWhile(a => a != mnode)
+                   .Any(a => a is AnonymousFunctionExpressionSyntax
+                          or LocalFunctionStatementSyntax))
+                return false;
+        }
+    }
+    // Caller gate: every visible reference to the method must be a direct call
+    // whose argument for THIS parameter is a bounded fresh local. A method-group
+    // reference (delegate conversion) hides call paths -> deny. Zero visible
+    // calls (reflection-only / dead code) -> deny. (A `nameof` reference binds
+    // to no single symbol and creates no call path, so it is skipped, not
+    // denied.)
+    var target = m.OriginalDefinition;
+    var sawCall = false;
+    foreach (var tree in compilation.SyntaxTrees)
+    {
+        // name-prefilter: bind only trees/nodes that even mention the name.
+        List<SimpleNameSyntax>? hits = null;
+        foreach (var n in tree.GetRoot().DescendantNodes().OfType<SimpleNameSyntax>())
+            if (n.Identifier.Text == m.Name)
+                (hits ??= new List<SimpleNameSyntax>()).Add(n);
+        if (hits is null) continue;
+        var tModel = compilation.GetSemanticModel(tree);
+        foreach (var id in hits)
+        {
+            if (tModel.GetSymbolInfo(id).Symbol is not IMethodSymbol called
+                || !SymbolEqualityComparer.Default.Equals(called.OriginalDefinition, target))
+                continue;
+            var expr = id.Parent is MemberAccessExpressionSyntax ma && ma.Name == id
+                ? (ExpressionSyntax)ma : (ExpressionSyntax)id;
+            if (expr.Parent is not InvocationExpressionSyntax inv || inv.Expression != expr)
+                return false;
+            sawCall = true;
+            if (!CallPassesBoundedFreshLocal(inv, p.Ordinal, target, tModel))
+                return false;
+        }
+    }
+    return sawCall;
+}
+
+static bool CallPassesBoundedFreshLocal(InvocationExpressionSyntax inv, int ordinal,
+                                        IMethodSymbol target, SemanticModel model)
+{
+    var arg = ArgumentForOrdinal(inv, ordinal, target);
+    if (arg is null || !arg.RefKindKeyword.IsKind(SyntaxKind.None)) return false;
+    // the argument must be a LOCAL, freshly constructed at its declarator
+    // (`var x = new T()` / `Publisher x = new()`); a field, parameter, property
+    // or call result may alias a long-lived publisher -> deny.
+    if (arg.Expression is not IdentifierNameSyntax lid
+        || model.GetSymbolInfo(lid).Symbol is not ILocalSymbol local)
+        return false;
+    var decl = local.DeclaringSyntaxReferences
+        .Select(r => r.GetSyntax()).OfType<VariableDeclaratorSyntax>().FirstOrDefault();
+    if (decl?.Initializer?.Value is not (ObjectCreationExpressionSyntax
+                                         or ImplicitObjectCreationExpressionSyntax))
+        return false;
+    // the local's scope: the enclosing method/accessor/local-function body.
+    SyntaxNode? scope = decl;
+    while (scope is not null
+           && scope is not BaseMethodDeclarationSyntax
+           && scope is not AccessorDeclarationSyntax
+           && scope is not LocalFunctionStatementSyntax
+           && scope is not AnonymousFunctionExpressionSyntax)
+        scope = scope.Parent;
+    if (scope is null) return false;
+    // every use of the local must be an argument feeding THIS parameter of THIS
+    // method, or a plain `return local;`. Anything else — a field/property
+    // store, another callee, a lambda capture, a reassignment, `ref`/`out` —
+    // denies. (The declarator identifier is a token, not an IdentifierName, so
+    // the declaration itself is not walked.)
+    foreach (var use in scope.DescendantNodes().OfType<IdentifierNameSyntax>())
+    {
+        if (use.Identifier.Text != local.Name) continue;
+        if (model.GetSymbolInfo(use).Symbol is not ILocalSymbol us
+            || !SymbolEqualityComparer.Default.Equals(us, local)) continue;
+        // a use inside ANY nested function below the scope — lambda or local
+        // function — is a closure capture: the closure can be stored and run
+        // after the local has escaped (Codex P2: `void Wire() => Apply(p, s);`
+        // stored into a delegate), so even a target-argument use there denies.
+        if (use.Ancestors().TakeWhile(a => a != scope)
+               .Any(a => a is AnonymousFunctionExpressionSyntax
+                      or LocalFunctionStatementSyntax))
+            return false;
+        if (use.Parent is ReturnStatementSyntax) continue;
+        if (use.Parent is ArgumentSyntax ua && ua.RefKindKeyword.IsKind(SyntaxKind.None)
+            && ua.Parent?.Parent is InvocationExpressionSyntax uinv
+            && model.GetSymbolInfo(uinv).Symbol is IMethodSymbol ucalled
+            && SymbolEqualityComparer.Default.Equals(ucalled.OriginalDefinition, target)
+            && ArgumentForOrdinal(uinv, ordinal, target) == ua)
+            continue;
+        return false;
+    }
+    return true;
+}
+
+static ArgumentSyntax? ArgumentForOrdinal(InvocationExpressionSyntax inv, int ordinal,
+                                          IMethodSymbol target)
+{
+    var args = inv.ArgumentList.Arguments;
+    for (int i = 0; i < args.Count; i++)
+    {
+        var a = args[i];
+        if (a.NameColon is { } nc)
+        {
+            if (nc.Name.Identifier.Text == target.Parameters[ordinal].Name) return a;
+        }
+        else if (i == ordinal)
+            return a;
+    }
+    return null;   // omitted (optional) / params-collapsed -> unprovable
+}
+
 // P-004 source-lifetime tier for an ignored `.Subscribe()` chain (WPF004). A
 // self-rooted `this.WhenAnyValue(p => p.SelfProp).<self-preserving ops>.Subscribe`
 // watches the component's OWN property: the observable, its handler and `this`
@@ -3383,6 +3555,12 @@ var compilation = CSharpCompilation.Create(
     "own", parsed.Select(p => p.tree), references,
     new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
+// #146 — memo for the interprocedural "constructed-and-returned" publisher
+// provenance (computed lazily, only for param-publisher subscriptions; the
+// compilation-wide caller walk is name-prefiltered, so a repo with no such
+// subscriptions pays nothing).
+var returnedFreshCache = new Dictionary<IParameterSymbol, bool>(SymbolEqualityComparer.Default);
+
 // --flow-locals coverage counters (--stats). A method "with a local" here is one
 // that has a non-escaping `new` IDisposable worth tracking; of those we either
 // flow-analyse it or honestly skip it (an unmodelled for/do/try/switch/async made
@@ -3552,27 +3730,55 @@ foreach (var (file, tree) in parsed)
                     continue;
                 var released = unsub.Contains($"{a.Left}|{NormalizeHandler(a.Right)}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
-                subs.Add(new
-                {
-                    @event = a.Left.ToString(),
-                    handler = a.Right.ToString(),
-                    line = LineOf(a.Left),
-                    released,
-                    // A static-source subscription (a process-lived event, or a
-                    // static-field/property receiver) is a region escape, not a
-                    // token leak: route it through the lifetime engine as a
-                    // `capture` -> OWN014 (the WPF "escape to App"). The bridge
-                    // skips a released capture (a `-=` on close), so a correctly
-                    // unsubscribed static subscription stays silent. An injected/
-                    // unknown source stays a token `subscription` (OWN001,
-                    // severity-tiered); timers are their own kind. (P-004 WPF005;
-                    // see ownlang/ownir.py `capture`.)
-                    resource = isTimer ? "timer"
-                             : source == "static" ? "capture"
-                             : "subscription",
-                    source,
-                    lambda = !isTimer && IsLambdaHandler(a.Right),
-                });
+                // #146 — interprocedural publisher provenance: a `+=` on a PARAMETER
+                // publisher stays `injected` (locally honest — param→param syntax is
+                // identical for a DI singleton bus, a real leak, and for the
+                // Newtonsoft Create→ApplySerializerSettings shape, which is bounded).
+                // The compilation-wide check can prove the LATTER: every visible
+                // caller passes a freshly-constructed local that escapes only into
+                // this call / its own `return`, and the callee never lets the param
+                // escape — then the subscription dies with the returned publisher
+                // and the bridge drops it (ownlang/ownir.py `source_provenance`).
+                // Any uncertainty leaves the fact unstamped and the OWN001 warning
+                // stands.
+                var returnedFresh = !isTimer && source == "injected"
+                    && a.Left is MemberAccessExpressionSyntax provRecv
+                    && model.GetSymbolInfo(provRecv.Expression).Symbol is IParameterSymbol provParam
+                    && IsReturnedFreshParam(provParam, compilation, returnedFreshCache);
+                // A static-source subscription (a process-lived event, or a
+                // static-field/property receiver) is a region escape, not a
+                // token leak: route it through the lifetime engine as a
+                // `capture` -> OWN014 (the WPF "escape to App"). The bridge
+                // skips a released capture (a `-=` on close), so a correctly
+                // unsubscribed static subscription stays silent. An injected/
+                // unknown source stays a token `subscription` (OWN001,
+                // severity-tiered); timers are their own kind. (P-004 WPF005;
+                // see ownlang/ownir.py `capture`.)
+                if (returnedFresh)
+                    subs.Add(new
+                    {
+                        @event = a.Left.ToString(),
+                        handler = a.Right.ToString(),
+                        line = LineOf(a.Left),
+                        released,
+                        resource = "subscription",
+                        source,
+                        lambda = IsLambdaHandler(a.Right),
+                        source_provenance = "returned_fresh",
+                    });
+                else
+                    subs.Add(new
+                    {
+                        @event = a.Left.ToString(),
+                        handler = a.Right.ToString(),
+                        line = LineOf(a.Left),
+                        released,
+                        resource = isTimer ? "timer"
+                                 : source == "static" ? "capture"
+                                 : "subscription",
+                        source,
+                        lambda = !isTimer && IsLambdaHandler(a.Right),
+                    });
             }
             else if (leftSymbol is null && IsHandler(a.Right))
             {

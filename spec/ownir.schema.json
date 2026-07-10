@@ -125,6 +125,10 @@
         "source_type": {
           "description": "The declared type of an injected event source, cross-referenced against `services` to derive its DI lifetime/region (P-006 + P-004). Additive/optional. Explicit null is accepted and preserved (Option<String>).",
           "type": ["string", "null"]
+        },
+        "source_provenance": {
+          "description": "Interprocedural publisher provenance for an injected source (#146). The only routing value is \"returned_fresh\": every in-compilation caller passes a publisher it freshly constructs and lets escape only into this call or its own return, so the subscription is bounded by the returned publisher's lifetime (silent). Any other string keeps the honest OWN001 warning. Additive/optional.",
+          "type": ["string", "null"]
         }
       }
     },

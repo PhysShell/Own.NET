@@ -181,6 +181,77 @@ def run() -> int:
     if "inline lambda" not in lam.message or "-=" not in lam.message:
         fails.append(f"lambda handler should note the missing -= handle: {lam.message!r}")
 
+    # --- #146: interprocedural publisher provenance. An injected `+=` whose
+    #     publisher is proven "constructed-and-returned" by EVERY in-compilation
+    #     caller (the extractor's compilation-wide pass stamps
+    #     `source_provenance: "returned_fresh"`) is bounded by the returned
+    #     publisher's lifetime -> SILENT, like a locally-constructed source (the
+    #     Newtonsoft `JsonSerializer.Create` -> `ApplySerializerSettings` shape).
+    #     Precision-first: only the exact vocabulary value routes; anything else
+    #     keeps the honest OWN001 warning.
+    def _prov(provenance: str | None, source_type: str | None = None,
+              services: list[dict[str, object]] | None = None) -> list[Finding]:
+        s: dict[str, object] = {
+            "event": "serializer.Error", "handler": "settings.Error", "line": 9,
+            "released": False, "resource": "subscription", "source": "injected"}
+        if provenance is not None:
+            s["source_provenance"] = provenance
+        if source_type is not None:
+            s["source_type"] = source_type
+        pfacts: dict[str, object] = {"module": "M", "components": [
+            {"name": "SerializerFactory", "file": "F.cs", "subscriptions": [s]}]}
+        if services is not None:
+            pfacts["services"] = services
+        return check_facts(pfacts)
+
+    # proven returned-fresh publisher -> silent.
+    checks += 1
+    if _prov("returned_fresh"):
+        fails.append(f"returned-fresh publisher should be silent, got "
+                     f"{[(x.code, x.severity) for x in _prov('returned_fresh')]}")
+    # an UNKNOWN provenance value never silences — the honest warning stays.
+    checks += 1
+    if [(x.code, x.severity) for x in _prov("hearsay")] != [("OWN001", "warning")]:
+        fails.append(f"unknown provenance must keep the OWN001 warning, got "
+                     f"{[(x.code, x.severity) for x in _prov('hearsay')]}")
+    # premise guard: WITHOUT provenance, a singleton-registered source_type
+    # escalates through the DI hop to OWN014 (the type-level path this test
+    # pits the instance-level fact against).
+    _prov_svcs: list[dict[str, object]] = [
+        {"name": "IEventBus", "lifetime": "singleton", "file": "S.cs", "line": 3}]
+    checks += 1
+    if [x.code for x in _prov(None, "IEventBus", _prov_svcs)] != ["OWN014"]:
+        fails.append(f"premise: singleton-typed injected source should escalate "
+                     f"to OWN014, got "
+                     f"{[x.code for x in _prov(None, 'IEventBus', _prov_svcs)]}")
+    # instance-level provenance BEATS the type-level DI hop: even with the
+    # publisher's type registered as a singleton, THIS publisher was freshly
+    # constructed by the caller, not resolved from the container -> silent.
+    checks += 1
+    if _prov("returned_fresh", "IEventBus", _prov_svcs):
+        fails.append(
+            f"returned-fresh must beat the DI singleton escalation, got "
+            f"{[(x.code, x.severity) for x in _prov('returned_fresh', 'IEventBus', _prov_svcs)]}")
+    # the lowered sketch still parses with a provenance-skipped record present.
+    checks += 1
+    try:
+        parse(to_own({"module": "M", "components": [
+            {"name": "F", "file": "F.cs", "subscriptions": [
+                {"event": "s.E", "handler": "h", "line": 2, "released": False,
+                 "resource": "subscription", "source": "injected",
+                 "source_provenance": "returned_fresh"}]}]})[0])
+    except Exception as e:
+        fails.append(f"provenance-skipped facts do not lower/parse: {e}")
+    # load() validates the field's type (additive optional, but never garbage).
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "module": "M",
+                         "components": [{"name": "F", "file": "F.cs",
+                                         "subscriptions": [
+                                             {"event": "e", "line": 1,
+                                              "source_provenance": 7}]}]}):
+        fails.append("non-string source_provenance was accepted "
+                     "(should raise OwnIRError)")
+
     # --- P-004 source-lifetime tiering for `subscribe` (ignored `.Subscribe()`
     #     result) — the WalletWasabi precision win. A SELF-rooted subscribe
     #     (`this.WhenAnyValue(x => x.SelfProp)`) is a GC-collectible self-cycle ->

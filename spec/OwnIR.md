@@ -111,6 +111,16 @@ every record as a `subscription`.
 `static`/external/`unknown` (process- or longer-lived → leak). The region model
 (`capture`) is precise where the token model only warns.
 
+**Publisher provenance** (additive/optional, #146): an `injected` `subscription`
+record may carry `source_provenance: "returned_fresh"` — the frontend's
+compilation-wide pass proved that **every** in-compilation caller of the method
+passes a publisher it freshly constructs and lets escape only into this call or
+its own `return`. The subscription is then bounded by the returned publisher's
+lifetime (the handler dies with it) and is dropped silently, like a
+locally-constructed source. The instance-level provenance beats the type-level
+DI hop (§6). Only this exact value routes; any other string keeps the honest
+OWN001 warning, and a non-string value is rejected at load.
+
 ## 5. Flow bodies (`functions[]`)
 
 A flow function has a `name`, a `file`, and a `body`: an ordered list of flow
