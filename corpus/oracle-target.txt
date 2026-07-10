@@ -3,7 +3,6 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# issue #201 oracle sweep (2/5): MahApps/MahApps.Metro — WPF UI toolkit
-# (control library: heavy on custom controls/events, different shape than a
-# WinForms app).
-MahApps/MahApps.Metro
+# issue #201 oracle sweep (3/5): MaterialDesignInXAML/MaterialDesignInXamlToolkit
+# — another WPF UI toolkit (control library), different codebase/idioms than MahApps.
+MaterialDesignInXAML/MaterialDesignInXamlToolkit
