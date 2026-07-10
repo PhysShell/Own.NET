@@ -106,7 +106,11 @@ We keep the code `OWN001`. The open behavioural question was: do we always shout
 lifetime evidence, tier `OWN001`'s *severity* by what the source provably is:
 
 ```text
-static event + capturing handler   -> error    process-lifetime: a provable leak
+static event + retaining handler   -> error    process-lifetime: a provable leak — the
+  (captures `this` or a local)                 handler pins the subscriber to the source
+static event + non-retaining       -> silent   nothing is pinned: a static method (null
+  handler (static method /                     delegate target) or a NON-capturing lambda
+  non-capturing lambda)                        (closure analog of the static-method exempt)
 field / ctor-param / property      -> warning  lifetime unknown — may leak if the
                                                source outlives `this`; an inline
                                                lambda has no handle to `-=` at all
@@ -115,6 +119,31 @@ local publisher                    -> drop     dies with the scope (today a fals
                                                self-owned set, so it leaks-by-mistake)
 this / constructed field           -> exempt   self-owned cycle, GC-collectable (P-004)
 ```
+
+**Ledger (issue #199): the static tier keys on whether the handler RETAINS an
+instance.** OWN014's premise is "the strong subscription pins the subscriber to the
+source's (process) lifetime." A handler that retains **nothing** — a static method
+(null delegate `Target`) or a **non-capturing lambda** — pins no subscriber, so the
+premise fails and it is **silent**, the closure analog of the long-standing
+static-method exemption (`StaticHandlerViewModel`). A handler that captures `this`
+**or an enclosing local** (the CsvHelper `ConsoleHost` `cts`/`resetEvent` shape) does
+pin state and stays **OWN014**. This is gated strictly through the extractor's
+conservative `HandlerRetainsNoInstance` (Program.cs): any handler it cannot *prove*
+non-retaining — a captured local, an opaque delegate-typed value — is treated as
+retaining and still flags. It never widens the exemption syntactically (no
+`clsIsStatic`, no "all lambdas"). Pinned by `AppDomainShutdownSample`
+(`NonAppDomainSubscriber` capturing → OWN014, `NonCapturingStaticSubscriber` → silent).
+
+**Deliberate non-goal — invocation-list growth from repeated non-capturing
+subscriptions.** A non-capturing `+=` still *appends* a delegate to the event's
+invocation list, and a hot path that re-subscribes (e.g. `+=` in the ctor of a
+short-lived / transient object created many times) grows that list unbounded — a real
+but *different* memory-growth shape (unbounded list length, not a pinned subscriber
+instance) that the OWN014 region-escape model does not express. It was never covered
+for the static-method exemption either, so silencing the non-capturing **lambda** is
+*not* a regression relative to that. Recorded as a candidate in
+[`field-notes-patterns.md`](field-notes-patterns.md); it would need its own signal
+(a subscribe-in-a-hot-constructor heuristic), not the region model.
 
 The punchline ties the two halves together: **the WPF profile is exactly the thing
 that turns that `warning` back into an `error`.** When the profile (or an explicit
