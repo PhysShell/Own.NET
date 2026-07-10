@@ -37,7 +37,7 @@ jobs:
             const NUDGE_BODY = "@coderabbitai review";
             const CODERABBIT_LOGIN = "coderabbitai[bot]";
 
-            const { data: prs } = await github.rest.pulls.list({
+            const prs = await github.paginate(github.rest.pulls.list, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
@@ -49,24 +49,30 @@ jobs:
 
               let isOurWork = isOwnerPr;
               if (!isOurWork) {
-                const { data: commits } = await github.rest.pulls.listCommits({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: pr.number,
-                  per_page: 100,
-                });
+                const commits = await github.paginate(
+                  github.rest.pulls.listCommits,
+                  {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    per_page: 100,
+                  }
+                );
                 isOurWork = commits.some((c) =>
                   /co-authored-by:\s*claude/i.test(c.commit.message)
                 );
               }
               if (!isOurWork) continue;
 
-              const { data: comments } = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                per_page: 100,
-              });
+              const comments = await github.paginate(
+                github.rest.issues.listComments,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 100,
+                }
+              );
 
               const rabbitComments = comments.filter(
                 (c) => c.user?.login === CODERABBIT_LOGIN
@@ -74,7 +80,7 @@ jobs:
               if (rabbitComments.length === 0) continue;
 
               const lastRabbit = rabbitComments[rabbitComments.length - 1];
-              const isRateLimited = lastRabbit.body
+              const isRateLimited = (lastRabbit.body ?? "")
                 .toLowerCase()
                 .includes(RATE_LIMIT_MARK);
               if (!isRateLimited) {
