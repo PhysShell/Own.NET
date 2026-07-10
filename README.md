@@ -1,18 +1,99 @@
 **English** · [Русский](README.ru.md)
 
-# OwnLang — PoC
+# Own.NET
 
-A working prototype of what the design documents were about: a small
-ownership language with strict Rust-style ownership discipline that compiles to
-C#. This is the **front half** of the whole idea — exactly the layer document №2
-advised building first (annotations/subset → analyzer → IR), and deliberately
-**before** a Boogie/Dafny/F\* backend.
+> Own.NET finds lifetime/resource bugs that C# cannot express: WPF/event
+> leaks, missing `Dispose`, DI lifetime mismatch, and pooled-buffer misuse.
 
-Not "Rust for C#". More honestly:
+*Find leaks before the profiler.* GC collects unreachable objects; Own finds
+objects that should have become unreachable. `event +=` is acquire, `-=` is
+release.
 
-> A static ownership checker for a small resource subset, with flow-sensitive
-> analysis, a loans/permissions model, a strict call boundary, and code
-> generation to C#.
+## Run it in CI — 6 lines
+
+```yaml
+- uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+- uses: PhysShell/own.net@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
+  with:
+    format: github          # inline PR annotations; use "sarif" for the Security tab
+    fail-on-finding: "true"
+```
+
+## Or point it at a repo you already have
+
+```bash
+git clone https://github.com/PhysShell/Own.NET && cd Own.NET
+scripts/own-check.sh --format human -- /path/to/your/csharp/repo
+```
+
+Needs Python 3.11+ and the .NET SDK on `PATH` — nothing to build, nothing to
+`pip install` (there's no packaged CLI yet; see
+[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md) gate **A**).
+
+## One it actually found
+
+A real, unmodified file from [`ScreenToGif`](https://github.com/NickeManarin/ScreenToGif) —
+a `Window` subscribes to a **static, process-lifetime** event and never
+unsubscribes, so the window can never be collected:
+
+```csharp
+// bad — GraphicsConfigurationDialog.xaml.cs:35
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+// ...never `-=`'d
+
+// fixed
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+```
+
+```text
+GraphicsConfigurationDialog.xaml.cs:35: error: [OWN001] event
+  'SystemEvents.DisplaySettingsChanged' is subscribed (handler
+  'SystemEvents_DisplaySettingsChanged') but never unsubscribed — the source keeps
+  'GraphicsConfigurationDialog' alive (leak) [resource: subscription token]
+```
+
+No `IDisposable` involved, nothing "not disposed" — a defect class Dispose/RAII
+checkers (CA2213, CodeQL's `cs/local-not-disposed`, …) have no query for. Three
+more real finds, one where Own.NET's verdict lines up with CodeQL/Infer# and one
+consolidated suppression/false-positive policy:
+
+- [`docs/case-studies/screentogif-videosource.md`](docs/case-studies/screentogif-videosource.md) — the flagship find, a view→view-model handler leak
+- [`docs/case-studies/screentogif-systemevents.md`](docs/case-studies/screentogif-systemevents.md) — the pair above, in full
+- [`docs/case-studies/dispose-agreement-with-codeql.md`](docs/case-studies/dispose-agreement-with-codeql.md) — where Own.NET, CodeQL, and Infer# agree
+- [`docs/suppression-and-fp-policy.md`](docs/suppression-and-fp-policy.md) — suppressing a finding, and the false-positive policy
+
+## Why not Sonar / CodeQL / Semgrep?
+
+Because they already own "find bugs/vulnerabilities," backed by sales teams —
+that is a fight lost to marketing budget, not merit. Own.NET's niche is
+narrower and doesn't overlap where it doesn't have to: a **resource / lifetime /
+effect contract checker** — who holds whom, who must release, which resource
+outlives which. Full positioning, including the "same model, many skins" case
+for treating WPF leaks, DI captive dependencies, and pooled-buffer misuse as one
+underlying bug class:
+[`docs/ROADMAP.md` — Positioning against the competition](docs/ROADMAP.md#positioning-against-the-competition-not-another-sast).
+
+---
+
+Everything below this line is the research-depth documentation: the analysis
+model, the ownership core, codegen, and how this maps to the original design
+proposals. Start here if you're evaluating the engine itself, contributing, or
+just curious how "GC finds unreachable objects; Own finds objects that should
+have become unreachable" is actually implemented.
+
+`ownlang/` (the Python core described below) began as a working prototype of
+the design documents' idea: a small ownership language with strict Rust-style
+ownership discipline that compiles to C#. Not "Rust for C#" — more honestly, **a
+static ownership checker for a small resource subset**, with flow-sensitive
+analysis, a loans/permissions model, a strict call boundary, and code
+generation to C#. This is the **front half** of the whole idea — exactly the
+layer document №2 advised building first (annotations/subset → analyzer → IR),
+and deliberately **before** a Boogie/Dafny/F\* backend. It is also, today, the
+reference implementation the real C# extractor (`frontend/roslyn/`) and the
+Rust port (`rust/`) are held to parity against — see
+[`corpus/wpf/`](corpus/wpf/) and the case studies above for what it looks like
+pointed at real code, and everything from here down for how it works.
 
 This revision is a rework after review. What changed: an explicit
 **loans + permissions** model (the owner stays `Owned`, borrows are separate
@@ -81,9 +162,17 @@ python tests/test_gallery.py
 | `07_use_after_handoff` | **OWN002** | touched the buffer after a call took it |
 | `08_stack_buffer_escapes` | **OWN015** | returned a `Span<byte>` over a `stackalloc` (dangling) |
 | `09_untracked_call` | **OWN040** | ownership "laundered" through an opaque call |
+| `10_leak_in_loop` | **OWN001** | a resource acquired every loop iteration, never released |
+| `11_overspan_full_view` | **OWN025** | a full-length `buf.AsSpan()` reading past the rented length |
 
 `00_ok_clean` — a clean happy path (rent → view → return) that lowers into
 exception-safe `ArrayPool` Rent/Return.
+
+[`examples/gallery/cs/`](examples/gallery/cs/) mirrors 7 of these 12 cases in real,
+compilable C#, run through the actual Roslyn extractor → OwnIR → core pipeline
+(not the `.own` DSL's own dataflow) and verified in CI. The other 5 (move/borrow/
+stack-buffer/unknown-call) are DSL-only concepts with no real C# detector yet —
+see that directory's README for exactly why.
 
 `check` prints the error rustc-style — `file:line:col`, the source line itself, and
 a caret under the offending name:
@@ -157,7 +246,13 @@ but a *region escape*: the extractor lowers it to a tokenless `capture` fact, an
 **the same core** produces **OWN014** (the object is promoted to process lifetime; a
 matching `-=` clears the finding) — the WPF escape as a profile of the general
 region model, not a separate detector (P-004 WPF005; sample
-`StaticEventEscapeViewModel`). An injected source (unknown lifetime) stays an
+`StaticEventEscapeViewModel`). These are two pinned modelings of the same
+underlying shape, not one finding changing codes: the quickstart's
+`GraphicsConfigurationDialog` verdict near the top of this README is the
+token-tier **OWN001** error (pinned in
+`corpus/real-world/screentogif-systemevents-leak`), while the region lowering
+of the same static-source pattern is pinned as **OWN014** in
+`corpus/wpf/systemevents-region-escape`. An injected source (unknown lifetime) stays an
 OWN001 warning — the subscription profile's deliberate down-tier (OWN001 is otherwise
 an error) — until ownership modelling can prove its lifetime.
 
@@ -701,10 +796,10 @@ This is a PoC. The list of holes is deliberately explicit.
 
 6. **Shadowing is forbidden** (OWN031). Rust allows it; for the PoC the ban is simpler.
 
-7. **CI actions are not pinned by commit SHA** (`actions/checkout@v4` and so on on tags,
-   without `persist-credentials: false`) — SAST (zizmor) flags this. Deliberately
-   deferred: SHA pinning is a repo-wide policy run by Dependabot / a separate hardening
-   pass, not a single PR; the jobs are only checkout + running tests, with no push and no
+7. ~~CI actions are not pinned by commit SHA~~ — **fixed**: every `uses:` in
+   `ci.yml`/`mine.yml`/`mine-on-push.yml`/`oracle.yml`/`pr-issue-validation.yml` is now a
+   commit SHA with a `# vN` comment. `persist-credentials: false` is still open — SAST
+   (zizmor) flags it, but the jobs are checkout + running tests, with no push and no
    secrets, so the exposure is minimal.
 
 ---
@@ -823,6 +918,8 @@ ownlang/
     test_spec.py              # conformance: every spec/ rule fires on an example
     test_ownir.py             # the OwnIR bridge: C# facts -> core -> OWN001 at the C# site
   frontend/roslyn/            # the C# extractor (Roslyn, CI-only) + .cs samples (P-001)
+  rust/                       # the Rust core migration (P-022): own-ir + own-syntax so far,
+                               #   oracle-gated against this Python core — see rust/README.md
   pyproject.toml              # gate: ruff + mypy --strict (see below)
 ```
 

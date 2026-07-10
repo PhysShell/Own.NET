@@ -1,18 +1,104 @@
 [English](README.md) · **Русский**
 
-# OwnLang — PoC
+# Own.NET
 
-Рабочий прототип того, о чём шла речь в твоих документах: маленький
-ownership-язык со строгой дисциплиной владения в духе Rust, который
-компилируется в C#. Это **передняя половина** всей задумки — ровно тот слой,
-который документ №2 советовал строить первым (annotations/subset → analyzer →
-IR), и сознательно **до** backend'а на Boogie/Dafny/F\*.
+> Own.NET находит баги времени жизни/ресурсов, которые C# не может выразить:
+> WPF/event-лики, забытый `Dispose`, рассинхрон DI lifetime и неправильное
+> использование pooled-буферов.
 
-Не «Rust для C#». Честнее так:
+*Находи лики до профайлера.* GC собирает недостижимые объекты; Own находит
+объекты, которые должны были стать недостижимыми. `event +=` — это acquire,
+`-=` — это release.
 
-> Статический ownership-checker для маленького ресурсного подмножества,
-> с flow-sensitive анализом, моделью loans/permissions, строгой границей вызовов
-> и кодогенерацией в C#.
+## Запустить в CI — 6 строк
+
+```yaml
+- uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+- uses: PhysShell/own.net@main  # пре-релиз: тегов ещё нет — для воспроизводимости пиньте commit SHA
+  with:
+    format: github          # инлайн-аннотации в PR; "sarif" — для вкладки Security
+    fail-on-finding: "true"
+```
+
+## Или локально, на репозитории, который уже есть
+
+```bash
+git clone https://github.com/PhysShell/Own.NET && cd Own.NET
+scripts/own-check.sh --format human -- /путь/к/вашему/csharp/репозиторию
+```
+
+Нужны Python 3.11+ и .NET SDK в `PATH` — ничего собирать, ничего ставить через
+`pip install` (упакованного CLI пока нет; см.
+[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md), gate **A**).
+
+## Один реальный баг, который он нашёл
+
+Настоящий, неизменённый файл из
+[`ScreenToGif`](https://github.com/NickeManarin/ScreenToGif) — `Window`
+подписывается на **статическое, process-lifetime** событие и никогда не
+отписывается, поэтому окно никогда не будет собрано GC:
+
+```csharp
+// bad — GraphicsConfigurationDialog.xaml.cs:35
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+// ...ни разу не `-=`
+
+// fixed
+SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+```
+
+```text
+GraphicsConfigurationDialog.xaml.cs:35: error: [OWN001] event
+  'SystemEvents.DisplaySettingsChanged' is subscribed (handler
+  'SystemEvents_DisplaySettingsChanged') but never unsubscribed — the source keeps
+  'GraphicsConfigurationDialog' alive (leak) [resource: subscription token]
+```
+
+Никакого `IDisposable`, нечему быть «not disposed» — класс дефектов, для
+которого у Dispose/RAII-чекеров (CA2213, CodeQL `cs/local-not-disposed`, …)
+попросту нет запроса. Ещё три реальные находки, одна — где вердикт Own.NET
+совпадает с CodeQL/Infer#, и одна консолидированная страница про
+suppression/false-positive:
+
+- [`docs/case-studies/screentogif-videosource.md`](docs/case-studies/screentogif-videosource.md) — флагманская находка, лик handler'а view→view-model
+- [`docs/case-studies/screentogif-systemevents.md`](docs/case-studies/screentogif-systemevents.md) — пара выше, целиком
+- [`docs/case-studies/dispose-agreement-with-codeql.md`](docs/case-studies/dispose-agreement-with-codeql.md) — где Own.NET, CodeQL и Infer# сходятся
+- [`docs/suppression-and-fp-policy.md`](docs/suppression-and-fp-policy.md) — как подавить находку, и политика false positive
+
+## Почему не Sonar / CodeQL / Semgrep?
+
+Потому что они уже владеют «находим баги/уязвимости», за спиной — sales-команды:
+это бой, проигранный маркетинговому бюджету, а не по существу. Ниша Own.NET
+у́же и не пересекается там, где не обязана: **чекер контрактов
+ресурсов/времени жизни/эффектов** — кто кем владеет, кто обязан release,
+какой ресурс переживает какой. Полное позиционирование, включая кейс «одна
+модель, много обличий» для WPF-ликов, DI captive dependencies и неправильного
+использования pooled-буферов как одного класса багов:
+[`docs/ROADMAP.md` — Positioning against the competition](docs/ROADMAP.md#positioning-against-the-competition-not-another-sast)
+(на английском).
+
+---
+
+Всё, что ниже этой черты — исследовательская документация: модель анализа,
+ownership-ядро, кодогенерация и как это соотносится с исходными
+design-документами. Начните отсюда, если оцениваете сам движок, собираетесь
+контрибьютить или просто любопытно, как «GC находит недостижимые объекты; Own
+находит объекты, которые должны были стать недостижимыми» устроено на самом
+деле.
+
+`ownlang/` (Python-ядро, описанное ниже) начинался как рабочий прототип идеи
+из design-документов: маленький ownership-язык со строгой дисциплиной владения
+в духе Rust, который компилируется в C#. Не «Rust для C#» — честнее: **статический
+ownership-checker для маленького ресурсного подмножества**, с flow-sensitive
+анализом, моделью loans/permissions, строгой границей вызовов и кодогенерацией
+в C#. Это **передняя половина** всей задумки — ровно тот слой, который
+документ №2 советовал строить первым (annotations/subset → analyzer → IR), и
+сознательно **до** backend'а на Boogie/Dafny/F\*. Сегодня это ещё и эталонная
+реализация, с которой на паритет держат реальный C#-экстрактор
+(`frontend/roslyn/`) и Rust-порт (`rust/`) — см. [`corpus/wpf/`](corpus/wpf/) и
+кейсы выше, как это выглядит на реальном коде, и всё, что ниже — как это
+устроено внутри.
 
 Эта ревизия — переработка по ревью. Что изменилось: явная модель
 **loans + permissions** (владелец остаётся `Owned`, borrow'ы — отдельные факты),
@@ -81,9 +167,17 @@ python tests/test_gallery.py
 | `07_use_after_handoff` | **OWN002** | тронул буфер после того, как его забрал вызов |
 | `08_stack_buffer_escapes` | **OWN015** | вернул `Span<byte>` над `stackalloc` (dangling) |
 | `09_untracked_call` | **OWN040** | владение «отмыли» через непрозрачный вызов |
+| `10_leak_in_loop` | **OWN001** | ресурс, который забирают на каждой итерации цикла и никогда не освобождают |
+| `11_overspan_full_view` | **OWN025** | полноразмерный `buf.AsSpan()`, читающий за пределы rented-длины |
 
 `00_ok_clean` — чистый happy-path (rent → view → return), лоуэрится в exception-safe
 `ArrayPool` Rent/Return.
+
+[`examples/gallery/cs/`](examples/gallery/cs/) — 7 из этих 12 кейсов в виде настоящего,
+компилируемого C#, прогнанного через реальный пайплайн Roslyn-экстрактор → OwnIR → ядро
+(не через dataflow самого `.own`-DSL), проверяется в CI. Остальные 5 (move/borrow/
+stack-buffer/unknown-call) — концепции, существующие только в DSL, для них пока нет
+реального C#-детектора — почему именно, см. README той директории.
 
 `check` печатает ошибку в стиле rustc — `file:line:col`, сама строка исходника и
 каретка под виновным именем:
@@ -156,7 +250,12 @@ CustomerViewModel.cs:9: error: [OWN001] event 'bus.CustomerChanged' is subscribe
 `capture`-факт, и **то же ядро** выдаёт **OWN014** (объект промотится в
 process-lifetime; парный `-=` снимает находку) — WPF-escape как профиль общей
 region-модели, а не отдельный детектор (P-004 WPF005; сэмпл
-`StaticEventEscapeViewModel`). Источник-инъекция (неизвестное время жизни)
+`StaticEventEscapeViewModel`). Это две запиненные модели одной и той же
+формы, а не одна находка, меняющая код: вердикт для
+`GraphicsConfigurationDialog` в начале этого README — токен-уровневая ошибка
+**OWN001** (запинена в `corpus/real-world/screentogif-systemevents-leak`),
+а region-понижение того же статического паттерна запинено как **OWN014** в
+`corpus/wpf/systemevents-region-escape`. Источник-инъекция (неизвестное время жизни)
 остаётся OWN001-warning'ом — это осознанный down-tier профиля подписок (по умолчанию OWN001 — ошибка), — пока ownership-моделирование не докажет его время жизни.
 
 Ядро одно (не второй чекер на C#): экстрактор только производит факты. dotnet
@@ -684,11 +783,11 @@ OWN010 в новой схеме занят «maybe-move».)
 
 6. **Запрещено shadowing** (OWN031). Rust разрешает; для PoC запрет проще.
 
-7. **CI-экшены не запинены по commit-SHA** (`actions/checkout@v4` и пр. на тегах,
-   без `persist-credentials: false`) — SAST (zizmor) это флагует. Сознательно
-   отложено: SHA-пиннинг — repo-wide политика, которую ведёт Dependabot / отдельный
-   hardening-проход, а не один PR; джобы только checkout + прогон тестов, без push
-   и без секретов, так что экспозиция минимальна.
+7. ~~CI-экшены не запинены по commit-SHA~~ — **исправлено**: каждый `uses:` в
+   `ci.yml`/`mine.yml`/`mine-on-push.yml`/`oracle.yml`/`pr-issue-validation.yml` теперь
+   commit-SHA с комментарием `# vN`. `persist-credentials: false` пока не сделано — SAST
+   (zizmor) это флагует, но джобы только checkout + прогон тестов, без push и без
+   секретов, так что экспозиция минимальна.
 
 ---
 

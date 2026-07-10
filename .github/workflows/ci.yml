@@ -1,8 +1,12 @@
 name: CI
 
 # Least privilege: every job only reads the repo (no job pushes or needs write).
-# Action SHA-pinning / persist-credentials hardening is deliberately deferred to
-# a Dependabot/hardening pass — see README "Where it cheats" item #7.
+# Every third-party `uses:` is pinned to a commit SHA (with a `# vN` comment for
+# the human-readable version) — see README "Where it cheats" item #7. (The local
+# `uses: ./` composite-action references are this repo's own action, not a
+# pinnable external dependency.) `persist-credentials: false` is a separate,
+# still-open hardening item (no job pushes or has secrets, so the exposure is
+# checkout-token-lifetime only).
 permissions:
   contents: read
 
@@ -20,8 +24,8 @@ jobs:
     name: lint (ruff + mypy --strict)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
       - name: Install linters
@@ -56,9 +60,10 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
         with:
+          toolchain: stable
           components: rustfmt, clippy
       - name: cargo fmt --check
         run: cargo fmt --check
@@ -75,8 +80,8 @@ jobs:
     name: audit aggregation selftests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
       - name: Install audit deps (PyYAML, audit-scoped)
@@ -102,10 +107,10 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -121,8 +126,8 @@ jobs:
     name: extended codegen fuzz
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
       - name: Property fuzz (50k draws, rotating seed)
@@ -136,11 +141,11 @@ jobs:
     name: golden C# compiles & runs (.NET)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
       - name: Check the emitted method is still in sync with the golden host
@@ -158,11 +163,11 @@ jobs:
     name: C# leak extractor (Roslyn) -> OwnIR -> core
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
       - name: Extract OwnIR facts from sample C#
@@ -864,6 +869,52 @@ jobs:
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+      - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
+        run: |
+          # C#-native mirror of examples/gallery/*.own, run through the real extractor ->
+          # OwnIR -> core (not the toy .own DSL's own dataflow) — see
+          # examples/gallery/cs/README.md for the 7-of-12 mapping and why the remaining 5
+          # (move/borrow/stack-buffer/unknown-call) have no real C# detector yet.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            examples/gallery/cs --flow-locals -o "$RUNNER_TEMP/gallery.json"
+          set +e
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/gallery.json")
+          rc=$?
+          set -e
+          echo "$out"
+          # own-check's contract: 0 clean, 1 findings (the expected outcome here — the
+          # .bad.cs files are SUPPOSED to trip a finding), >=2 a hard error (bad facts /
+          # drifted contract) that must fail loudly, not be swallowed as "no findings".
+          if [ "$rc" -ge 2 ]; then
+            echo "FAIL: ownir hard error (rc=$rc) — bad OwnIR facts or a drifted contract"; exit 1
+          fi
+          echo "$out" | grep -qE "01_leak_on_error_path\.bad\.cs:[0-9]+:.*\[OWN001\].*'galleryLeakOnError'" \
+            || { echo "FAIL: expected OWN001 on galleryLeakOnError"; exit 1; }
+          echo "$out" | grep -qE "02_use_after_release\.bad\.cs:[0-9]+:.*\[OWN002\].*'galleryUseAfterRelease'" \
+            || { echo "FAIL: expected OWN002 on galleryUseAfterRelease"; exit 1; }
+          echo "$out" | grep -qE "03_double_release\.bad\.cs:[0-9]+:.*\[OWN003\].*'galleryDoubleRelease'" \
+            || { echo "FAIL: expected OWN003 on galleryDoubleRelease"; exit 1; }
+          echo "$out" | grep -qE "07_use_after_handoff\.bad\.cs:[0-9]+:.*\[OWN002\].*'galleryHandoff'" \
+            || { echo "FAIL: expected OWN002 on galleryHandoff (use after handoff)"; exit 1; }
+          echo "$out" | grep -qE "10_leak_in_loop\.bad\.cs:[0-9]+:.*\[OWN001\].*'galleryLoopLeak'" \
+            || { echo "FAIL: expected OWN001 on galleryLoopLeak"; exit 1; }
+          echo "$out" | grep -qE "11_overspan_full_view\.bad\.cs:[0-9]+:.*\[OWN025\].*'galleryOverspanBuf'" \
+            || { echo "FAIL: expected OWN025 on galleryOverspanBuf"; exit 1; }
+          for ok in galleryClean galleryLeakOnErrorOk galleryUseAfterReleaseOk galleryDoubleReleaseOk galleryHandoffOk galleryLoopLeakOk galleryOverspanOkBuf; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: clean gallery case '$ok' was reported"; exit 1; fi
+          done
+          # Stronger silence check: the ok/clean fixture FILES themselves must never
+          # appear as a flagged location, not just the variable names we happened to
+          # anticipate above (an unexpected finding on some other identifier in one of
+          # these files would otherwise slip through the name-only loop).
+          for f in 00_ok_clean.cs 01_leak_on_error_path.ok.cs 02_use_after_release.ok.cs \
+                   03_double_release.ok.cs 07_use_after_handoff.ok.cs 10_leak_in_loop.ok.cs \
+                   11_overspan_full_view.ok.cs; do
+            if echo "$out" | grep -q "$f:"; then
+              echo "FAIL: clean fixture '$f' was flagged"; exit 1
+            fi
+          done
+          echo "OK: examples/gallery/cs/ bad/ok pairs match the .own gallery's codes 1:1 on the real extractor pipeline"
       - name: P-005 D5.4 T4 wrap/adopt (--flow-locals)
         run: |
           # The extractor recognises a first-party wrapper that ADOPTS a disposable arg into an
@@ -1076,8 +1127,8 @@ jobs:
     name: OwnTS (React useEffect) -> OwnIR -> core
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
       - name: Pin the spike (leaky=3xOWN001+EFF001, clean=0, showcase=2xEFF001)
@@ -1219,11 +1270,11 @@ jobs:
     name: own-check repo scan (github + msbuild) + composite action
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
       - name: GitHub-annotation format over the sample tree (directory walk)
@@ -1322,7 +1373,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Own.NET leak check (SARIF surface)
         id: own
         uses: ./
@@ -1338,7 +1389,7 @@ jobs:
           test -s "$f" || { echo "FAIL: sarif-file '$f' is missing or empty"; exit 1; }
           echo "OK: action wrote $(wc -c < "$f") bytes to $f"
       - name: Upload to GitHub code scanning
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: ${{ steps.own.outputs.sarif-file }}
           category: own-net-samples
@@ -1353,11 +1404,11 @@ jobs:
     name: P-014 Tier B — external reference resolution (--ref-dir)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
       - name: Materialize a third-party reference (CommunityToolkit.Mvvm 8.2.2, pinned)
@@ -1416,11 +1467,11 @@ jobs:
     name: corpus benchmark (real C# recall + specificity)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"
       # Some corpus cases subscribe to framework events (WPF Window, Microsoft.Win32
