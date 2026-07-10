@@ -28,8 +28,10 @@ scripts/own-check.sh --format human -- /путь/к/вашему/csharp/репо
 ```
 
 Нужны Python 3.11+ и .NET SDK в `PATH` — ничего собирать, ничего ставить через
-`pip install` (упакованного CLI пока нет; см.
-[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md), gate **A**).
+`pip install`. Есть и упакованный однокомандный CLI (`ownsharp check`) — сегодня
+собирается и ставится локально, в nuget.org ещё не опубликован; см.
+[`frontend/roslyn/OwnSharp.Cli/README.md`](frontend/roslyn/OwnSharp.Cli/README.md)
+и [`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md), gate **A**.
 
 ## Один реальный баг, который он нашёл
 

@@ -27,8 +27,10 @@ scripts/own-check.sh --format human -- /path/to/your/csharp/repo
 ```
 
 Needs Python 3.11+ and the .NET SDK on `PATH` — nothing to build, nothing to
-`pip install` (there's no packaged CLI yet; see
-[`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md) gate **A**).
+`pip install`. A packaged single-command CLI (`ownsharp check`) also exists —
+build-and-install-locally today, not yet published to nuget.org; see
+[`frontend/roslyn/OwnSharp.Cli/README.md`](frontend/roslyn/OwnSharp.Cli/README.md)
+and [`docs/notes/alpha-readiness.md`](docs/notes/alpha-readiness.md) gate **A**.
 
 ## One it actually found
 
@@ -918,6 +920,8 @@ ownlang/
     test_spec.py              # conformance: every spec/ rule fires on an example
     test_ownir.py             # the OwnIR bridge: C# facts -> core -> OWN001 at the C# site
   frontend/roslyn/            # the C# extractor (Roslyn, CI-only) + .cs samples (P-001)
+    OwnSharp.Extractor/        # ownsharp-extract (dotnet tool): facts only
+    OwnSharp.Cli/              # ownsharp (dotnet tool, gate A): extractor + vendored core, one install
   rust/                       # the Rust core migration (P-022): own-ir + own-syntax so far,
                                #   oracle-gated against this Python core — see rust/README.md
   pyproject.toml              # gate: ruff + mypy --strict (see below)

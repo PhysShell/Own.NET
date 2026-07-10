@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ownsharp</AssemblyName>
+
+    <!-- Alpha gate A (issue #202): the single delightful command. Packaging
+         only, no analysis logic here — this tool wraps the two existing
+         pieces (extractor -> core) the same way scripts/own-check.sh already
+         does, so they ship as ONE `dotnet tool install`.
+
+         Packaging shape (design decision recorded in issue #202):
+         - The Roslyn extractor (OwnSharp.Extractor, unmodified, P-013) is
+           pulled in via ProjectReference below; its build output (dll +
+           .deps.json/.runtimeconfig.json + Roslyn deps) rides along in this
+           tool's own pack payload because PackAsTool packs this project's
+           full publish closure. At runtime `check` invokes it as a child
+           process ("dotnet exec (bundled)/OwnSharp.Extractor.dll ..."),
+           the same subprocess shape own-check.sh already uses, just against
+           a bundled binary instead of running the extractor from source.
+         - The Python core (ownlang/, zero-dependency pure Python, see
+           ../../../pyproject.toml) is vendored as loose *.py content below
+           and unpacked to ~/.ownsharp/core/<version>/ on first run; it is
+           executed by the machine's own Python (>=3.11), never embedded or
+           compiled. See Program.cs for the resolution/unpack/fail-fast
+           logic and the rejected alternatives on record in issue #202.
+    -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ownsharp</ToolCommandName>
+    <PackageId>OwnSharp.Cli</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Own.NET's single command: `ownsharp check &lt;path|.sln&gt;` wraps the Roslyn extractor and the Python core (run on system Python) into one dotnet tool install.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OwnSharp.Extractor\OwnSharp.Extractor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Vendor the Python core's source as-is (no build step needed — it is
+         zero-dependency pure Python, pyproject.toml: requires-python >=3.11).
+         Flat file list: ownlang/ has no subdirectories besides __pycache__,
+         excluded here since it's interpreter/version-specific and regenerated
+         on first run anyway. -->
+    <OwnlangCoreFiles Include="..\..\..\ownlang\*.py" />
+    <None Include="@(OwnlangCoreFiles)"
+          Pack="true"
+          PackagePath="tools\$(TargetFramework)\any\ownlang-core\ownlang\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          Visible="false" />
+  </ItemGroup>
+
+</Project>

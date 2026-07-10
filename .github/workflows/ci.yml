@@ -1543,3 +1543,89 @@ jobs:
         # use, and an injected-source region-escape. A drop below the floor is a regression.
         run: python scripts/benchmark.py --min-recall 25
 
+  # Alpha gate A (issue #202): the single delightful command, proven end-to-end
+  # on a clean runner — install -> check -> findings. Packaging only, no
+  # analysis-behaviour change: OwnSharp.Cli bundles the *unmodified* extractor
+  # (ProjectReference; invoked as a child process, same shape own-check.sh
+  # already uses) and vendors the *unmodified* ownlang/ core, run by the
+  # machine's own Python. Both ubuntu AND windows matter here specifically
+  # (not just "more coverage") — a dotnet-tool shim is a native apphost on
+  # Windows and a shell script on Unix, so they exercise genuinely different
+  # process-launch mechanics; ubuntu-only would not prove the Windows path.
+  ownsharp-cli-smoke:
+    name: ownsharp CLI (gate A) — clean install -> check -> findings
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # bash (git-bash on Windows runners) so one script works on both legs;
+        # the thing under test is the ownsharp/dotnet/python binaries, not the
+        # shell driving them.
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Put the dotnet global-tools shim dir on PATH
+        run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+      # CI-only stand-in for "download the package from nuget.org" (not
+      # published there yet, see P-013's Non-goals) -- pack from the source
+      # this job already checked out. Deliberately OUTSIDE the timed window
+      # below: it is not part of the "install -> check" claim being proven.
+      - name: Pack OwnSharp.Cli (pulls in the extractor via ProjectReference)
+        run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/ownsharp-nupkg"
+      - name: A minimal leak, in a scratch dir OUTSIDE the repo
+        # Proves the tool needs nothing but itself + Python -- not the Own.NET
+        # checkout (a real end user obviously won't have this repo on disk).
+        run: |
+          mkdir -p "$RUNNER_TEMP/ownsharp-sample"
+          cat > "$RUNNER_TEMP/ownsharp-sample/Leak.cs" <<'EOF'
+          using System.IO;
+          public class Leaky
+          {
+              public void Run()
+              {
+                  var s = new MemoryStream();
+                  s.WriteByte(1);
+              }
+          }
+          EOF
+      - name: Start the clean-machine timer (install -> check -> findings)
+        run: echo "SMOKE_START=$(date +%s)" >> "$GITHUB_ENV"
+      - name: dotnet tool install --global (the one install the user runs)
+        run: dotnet tool install --global OwnSharp.Cli --version 0.1.0 --add-source "$RUNNER_TEMP/ownsharp-nupkg"
+      - name: ownsharp check finds the leak
+        run: |
+          set +e
+          out=$(ownsharp check "$RUNNER_TEMP/ownsharp-sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (findings), got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 in the output"; exit 1; }
+      - name: Stop the timer -- report it, and gate on a generous regression ceiling
+        # A hard ceiling, not a precision claim: CI timing varies with runner
+        # load, so this is a regression guard (catch "it now takes 20 minutes"),
+        # not a rubber stamp of the "~3 minutes" marketing number itself.
+        run: |
+          elapsed=$(( $(date +%s) - SMOKE_START ))
+          echo "install -> check -> findings: ${elapsed}s"
+          [ "$elapsed" -lt 240 ] || { echo "FAIL: took ${elapsed}s (ceiling 240s) — see alpha-readiness.md gate A"; exit 1; }
+      - name: No Python found -> a fast, actionable failure (never an auto-download)
+        run: |
+          set +e
+          out=$(OWN_PYTHON=/definitely/does/not/exist/python3 ownsharp check "$RUNNER_TEMP/ownsharp-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 3 ] || { echo "FAIL: expected exit 3 (Python not found), got $rc"; exit 1; }
+          echo "$out" | grep -qi "OWN_PYTHON" || { echo "FAIL: expected the OWN_PYTHON-specific message"; exit 1; }
+          echo "$out" | grep -Eiq "winget|apt|brew|python.org" || { echo "FAIL: expected an actionable install hint"; exit 1; }
+
