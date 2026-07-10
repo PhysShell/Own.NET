@@ -1,0 +1,25 @@
+// OwnLang model of the ArrayPool full-length view over-read where the view is STORED
+// INTO A FIELD (P-007 POOL005; the "into a field" twin of arraypool-field-fullspan-
+// overread). `acquire` == ArrayPool.Rent into a field (the array is OVERSIZED:
+// Length >= n), `release` == ArrayPool.Return (in Dispose, class-wide). `overspan buf`
+// models the full-length view `_view = _buf.AsMemory()` cached into another field and
+// read through in a later member — it reaches past the logical length n into the stale
+// [n, Length) tail. The extractor's POOL005 field pass fires on the full-length view
+// EXPRESSION at the store, so the bug is caught where the unbounded view is
+// materialized; the bounded form `_buf.AsMemory(0, _n)` takes no full view, so the
+// fixed code has no `overspan` and is silent. `.own` has no fields/members, so this
+// single-function reduction pins the same core verdict the field pass produces; the
+// stored-into-a-field distinction lives in before.cs/after.cs (checked end to end by
+// the dotnet benchmark). The checker trips OWN025 (POOL005) at the view; the buffer is
+// still returned, so there is no leak (OWN001) and no use-after-return (OWN002).
+module Corpus
+resource Buffer {
+  acquire rent
+  release give
+  kind "pooled buffer"
+}
+fn capture_then_flush(n: int) {
+  let buf = acquire Buffer(n);   // _buf = ArrayPool.Rent(n)   (Length >= n)
+  overspan buf;                  // _view = _buf.AsMemory() cached into a field -> OWN025
+  release buf;                   // ArrayPool.Return (Dispose)
+}

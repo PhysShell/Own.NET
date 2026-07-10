@@ -2617,6 +2617,24 @@ def run() -> int:
         fails.append(f"OWN025 Rent->view reachability flow wrong: "
                      f"{osp[0].flow if osp else None!r}")
 
+    # POOL005, view STORED INTO A FIELD (P-007 / issue #198). A full-length view of a
+    # pooled FIELD assigned into another field (`_view = _buf.AsMemory()`, read only
+    # elsewhere) is caught at the STORE: the extractor's field pass fires on the view
+    # EXPRESSION regardless of where the result is stored, so it emits the SAME
+    # pool-tagged acquire/overspan/release flow the inline field over-read does. This
+    # pins that fact shape — the frozen target the extractor is validated against —
+    # exactly as `dotnet run … --flow-locals` emits it (acquire carries `kind:"pool"`).
+    checks += 1
+    vif = check_facts({"module": "M", "functions": [
+        {"name": "FieldViewFramer.Capture", "file": "Framer.cs",
+         "body": [{"op": "acquire", "var": "_buf", "line": 13, "kind": "pool"},
+                  {"op": "overspan", "var": "_buf", "line": 14},
+                  {"op": "release", "var": "_buf", "line": 14}]}]})
+    if [(x.code, x.line, x.kind) for x in vif] != [("OWN025", 14, "pooled buffer")]:
+        fails.append(f"POOL005 view-into-field: a pool-tagged acquire/overspan/release "
+                     f"flow should raise OWN025 at the store/view line (14) tagged a "
+                     f"pooled buffer, got {[(x.code, x.line, x.kind) for x in vif]}")
+
     # --- output surfaces (Уровень 1): the same finding renders for a human, a
     #     GitHub annotation, and an MSBuild/VS Error List line. The format lives
     #     in the core (one checker), so the Action/script stay thin wrappers.
