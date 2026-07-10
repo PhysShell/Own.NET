@@ -475,9 +475,19 @@ jobs:
           # like OWN001 does (extractor stamps lambda:true; the bridge folds in the note).
           echo "$out" | grep -qE "\[OWN014\].*NonAppDomainSubscriber.*inline lambda it has no" \
             || { echo "FAIL: OWN014 on a lambda handler must carry the inline-lambda no-'-=' note"; exit 1; }
+          # issue #199 — POSITIVE anchor for LambdaTiersSample.cs: an INJECTED-source lambda
+          # (publisher handed in as a ctor param, lifetime unknown) is the honest hedge -> OWN001
+          # WARNING, and it carries the inline-lambda no-'-=' note like OWN014 does. This is the ONLY
+          # component the extractor emits from LambdaTiersSample.cs, so it proves the file is actually
+          # extracted — without it the two silent negatives below would pass VACUOUSLY (CodeRabbit).
+          echo "$out" | grep -qE "LambdaTiersSample\.cs:[0-9]+: warning: \[OWN001\].*injected dependency.*'InjectedSourceLambda'" \
+            || { echo "FAIL: expected OWN001 warning on the injected-source lambda (also the file's extraction anchor)"; exit 1; }
+          echo "$out" | grep -qE "\[OWN001\].*InjectedSourceLambda.*inline lambda it has no" \
+            || { echo "FAIL: OWN001 on a lambda handler must also carry the inline-lambda no-'-=' note"; exit 1; }
           # issue #199 — the SILENT lambda tiers (bounded/local + self-owned): a lambda on a
           # method-bounded local source, or on a field the class constructs, is not a heap leak
-          # (the '-=-impossible-but-bounded' shape) -> must be silent.
+          # (the '-=-impossible-but-bounded' shape) -> must be silent. These negatives are NOT
+          # vacuous: the InjectedSourceLambda anchor above proves the file reached the extractor.
           if echo "$out" | grep -qE "LocalBoundedLambda|SelfOwnedFieldLambda"; then
             echo "FAIL: a lambda on a bounded/local or self-owned source must stay SILENT"; exit 1
           fi

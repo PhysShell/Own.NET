@@ -36,6 +36,22 @@ public sealed class SelfOwnedFieldLambda
     }
 }
 
+// INJECTED source + lambda: the publisher is handed in (a ctor param), so its lifetime is
+// unknown — it may outlive `this`, and the inline lambda has no `-=` handle to ever detach ->
+// OWN001 WARNING (the injected tier — the honest hedge; a WPF/region profile is what escalates
+// it to OWN014). This is also the file's POSITIVE anchor: it is the only class here the extractor
+// emits a component for, so the silent negatives above cannot pass vacuously if this file ever
+// stops being extracted.
+public sealed class InjectedSourceLambda
+{
+    private int _n;
+
+    public InjectedSourceLambda(Publisher pub)
+    {
+        pub.Changed += (s, e) => _n++;   // injected source -> OWN001 warning
+    }
+}
+
 public sealed class Publisher
 {
     public event EventHandler? Changed;
