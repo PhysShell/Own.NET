@@ -3,6 +3,6 @@
 # or "local:<in-repo path>" (a fixture copied into the oracle's target/).
 # Optional lines: ref=, paths=, build=, include_tests=. Dev-branch only.
 #
-# issue #201 oracle sweep (3/5): MaterialDesignInXAML/MaterialDesignInXamlToolkit
-# — another WPF UI toolkit (control library), different codebase/idioms than MahApps.
-MaterialDesignInXAML/MaterialDesignInXamlToolkit
+# issue #201 oracle sweep (4/5): icsharpcode/AvalonEdit — WPF text-editor
+# control (moderate size, event-heavy, different domain than the UI toolkits above).
+icsharpcode/AvalonEdit
