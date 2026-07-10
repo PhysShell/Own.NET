@@ -342,6 +342,18 @@ class Finding:
     # chain, each hop anchored at a real registration site. Rides along as a SARIF `codeFlows`
     # (the step-through trace `relatedLocations` cannot express). Empty for a single-point finding.
     flow: tuple[tuple[str, int, str], ...] = ()
+    # P-004 `[OwnIgnore("reason")]` per-site suppression (#209): a non-None reason means the
+    # finding is SUPPRESSED — excluded from the exit code and the human findings stream, but
+    # still COUNTED (a summary tally) and carried in SARIF `suppressions` (visibility over
+    # silence, never a silent drop). The reason is mandatory by design (a documented decision):
+    # the extractor emits it only for an `[OwnIgnore]` with a non-empty reason, so a reason-less
+    # attribute never suppresses. Declared LAST (positional-constructor safe).
+    ignore_reason: str | None = None
+
+    @property
+    def suppressed(self) -> bool:
+        """Whether an inline `[OwnIgnore("reason")]` suppresses this finding (P-004, #209)."""
+        return self.ignore_reason is not None
 
     def render(self, severity: str = "error") -> str:
         return (f"{self.file}:{self.line}: {severity}: [{self.code}] "
@@ -438,6 +450,15 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
     flows = code_flow(f.flow)
     if flows:
         result["codeFlows"] = flows
+    # P-004 `[OwnIgnore("reason")]` (#209): a suppressed finding stays in `results` (so a
+    # consumer counts it) but carries the SARIF 2.1.0 `suppressions` property — `inSource`
+    # because the suppression is an in-code attribute, with the mandatory reason as the
+    # `justification`. GitHub code scanning and other consumers then show it as suppressed
+    # rather than an open alert, and it never fails the run.
+    if f.suppressed:
+        result["suppressions"] = [
+            {"kind": "inSource", "justification": f.ignore_reason},
+        ]
     return result
 
 
@@ -541,6 +562,14 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"subscription 'source_provenance' must be a string, "
                     f"got {spr!r}")
+            # `ignore_reason` (P-004 `[OwnIgnore("reason")]`, #209): the mandatory
+            # justification for an inline per-site suppression. Additive/optional; an
+            # older core ignores it and still reports the finding. When present it must
+            # be a string (an empty one does not suppress — see check_facts).
+            igr = s.get("ignore_reason")
+            if igr is not None and not isinstance(igr, str):
+                raise OwnIRError(
+                    f"subscription 'ignore_reason' must be a string, got {igr!r}")
     # Optional DI registration graph (DI001 — captive dependency, P-006). Additive
     # and optional: an older core simply ignores it.
     svcs = result.get("services", [])
@@ -2462,6 +2491,13 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         handler = sub.get("handler", "?")
         component = sub["component"]
         rkind = sub.get("resource", "subscription")
+        # P-004 `[OwnIgnore("reason")]` (#209): a non-empty reason on this record suppresses
+        # the finding — the core stays the sole authority (P-013 "one checker"), so we still
+        # MINT the finding and mark it suppressed rather than dropping it (counted, in SARIF
+        # `suppressions`, excluded from the exit code). An empty string is not a documented
+        # decision and does not suppress. Flow-local records never carry it (a method local
+        # cannot bear a C# attribute), so their branches below leave the finding unsuppressed.
+        ir = sub.get("ignore_reason") or None
         if rkind == "flow-local":
             # P-016 B0b/B2: path-sensitive local-IDisposable verdicts. The code is
             # the core's (OWN001/002/003/009); phrase it for the C# local.
@@ -2562,7 +2598,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
-                message=message, kind="subscription token", flow=esc_flow))
+                message=message, kind="subscription token", flow=esc_flow,
+                ignore_reason=ir))
             continue
         if rkind == "capture":
             # OWN014 region escape (P-004): the lifetime engine proved the event
@@ -2590,7 +2627,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
-                message=message, kind="subscription token"))
+                message=message, kind="subscription token", ignore_reason=ir))
             continue
         _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
         # P-004 tiering: only the plain `event += handler` leak (the else branch
@@ -2653,7 +2690,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         findings.append(Finding(
             file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
             component=component, event=event, handler=handler,
-            message=message, kind=kind, severity=fsev))
+            message=message, kind=kind, severity=fsev, ignore_reason=ir))
 
     # DI001 (captive dependency): a separate core analysis over the registration
     # graph, not the acquire/release model — the bridge just routes the facts to
@@ -2707,7 +2744,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     deduped: list[Finding] = []
     for f in findings:
         key = (f.file, f.line, f.code, f.component, f.event, f.handler,
-               f.message, f.kind, f.advisory, f.severity)
+               f.message, f.kind, f.advisory, f.severity, f.ignore_reason)
         if key in seen:
             continue
         seen.add(key)

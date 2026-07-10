@@ -252,6 +252,64 @@ def run() -> int:
         fails.append("non-string source_provenance was accepted "
                      "(should raise OwnIRError)")
 
+    # --- #209: inline `[OwnIgnore("reason")]` per-site suppression (P-004). A
+    #     disposable-field record carrying a non-empty `ignore_reason` still MINTS
+    #     the OWN001 finding, but the core marks it SUPPRESSED (counted, in SARIF
+    #     `suppressions`, excluded from the exit code) — visibility over silence. An
+    #     empty/absent reason never suppresses (never a silent accept). The reason is
+    #     mandatory by design.
+    def _ign(reason: str | None) -> list[Finding]:
+        s: dict[str, object] = {
+            "event": "_h", "line": 5, "released": False,
+            "resource": "disposable", "type": "Handle"}
+        if reason is not None:
+            s["ignore_reason"] = reason
+        return check_facts({"module": "M", "components": [
+            {"name": "Leaky", "file": "F.cs", "subscriptions": [s]}]})
+
+    # a documented reason -> the finding is still produced (visibility) but suppressed.
+    checks += 1
+    _supp = _ign("owned by the container")
+    if not (len(_supp) == 1 and _supp[0].code == "OWN001"
+            and _supp[0].suppressed
+            and _supp[0].ignore_reason == "owned by the container"):
+        fails.append(f"[OwnIgnore] should mint a suppressed OWN001, got "
+                     f"{[(x.code, x.suppressed, x.ignore_reason) for x in _supp]}")
+    # no attribute -> a normal, UN-suppressed OWN001.
+    checks += 1
+    _plain = _ign(None)
+    if not (len(_plain) == 1 and _plain[0].code == "OWN001"
+            and not _plain[0].suppressed):
+        fails.append(f"a plain disposable field must be an un-suppressed OWN001, got "
+                     f"{[(x.code, x.suppressed) for x in _plain]}")
+    # an EMPTY reason is not a documented decision -> must NOT suppress (fires).
+    checks += 1
+    _empty = _ign("")
+    if not (len(_empty) == 1 and not _empty[0].suppressed):
+        fails.append(f"an empty [OwnIgnore] reason must not suppress, got "
+                     f"{[(x.code, x.suppressed) for x in _empty]}")
+    # SARIF carries the suppressed finding as a result WITH a `suppressions` array
+    # (kind inSource, the reason as justification) — counted, not dropped.
+    checks += 1
+    _sar = build_sarif(_supp)
+    _results = _sar["runs"][0]["results"]
+    _sup_results = [r for r in _results if "suppressions" in r]
+    if not (len(_results) == 1 and len(_sup_results) == 1
+            and _sup_results[0]["suppressions"][0]["kind"] == "inSource"
+            and _sup_results[0]["suppressions"][0]["justification"]
+                == "owned by the container"):
+        fails.append(f"SARIF must carry the suppressed finding with a `suppressions` "
+                     f"array (inSource + justification), got {_sup_results!r}")
+    # load() validates the field's type (additive optional, but never garbage).
+    checks += 1
+    if not _load_raises({"ownir_version": OWNIR_VERSION, "module": "M",
+                         "components": [{"name": "F", "file": "F.cs",
+                                         "subscriptions": [
+                                             {"event": "_h", "line": 1,
+                                              "resource": "disposable",
+                                              "ignore_reason": 7}]}]}):
+        fails.append("non-string ignore_reason was accepted (should raise OwnIRError)")
+
     # --- P-004 source-lifetime tiering for `subscribe` (ignored `.Subscribe()`
     #     result) — the WalletWasabi precision win. A SELF-rooted subscribe
     #     (`this.WhenAnyValue(x => x.SelfProp)`) is a GC-collectible self-cycle ->

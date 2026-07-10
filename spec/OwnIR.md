@@ -121,6 +121,20 @@ locally-constructed source. The instance-level provenance beats the type-level
 DI hop (§6). Only this exact value routes; any other string keeps the honest
 OWN001 warning, and a non-string value is rejected at load.
 
+**Inline suppression** (additive/optional, #209): any owned-resource record may
+carry `ignore_reason: "<reason>"` — the mandatory justification of an inline
+`[OwnIgnore("reason")]` at that site (P-004). When present and **non-empty**, the
+core still **mints** the finding but marks it **suppressed**: it is excluded from
+the exit code and the human findings stream, yet still **counted** (a summary
+tally) and carried in SARIF `suppressions` (`kind: "inSource"`, the reason as
+`justification`) — visibility over silence, never a silent drop. The reason is
+mandatory by design: an **empty** string (or an absent field) does **not**
+suppress — a reason-less `[OwnIgnore]` is never a silent accept. The core, not the
+frontend, decides the verdict (P-013 "one checker"): the extractor only records
+the reason it read. A non-string value is rejected at load. The Roslyn frontend
+currently reads `[OwnIgnore]` on **`IDisposable` field declarations** (the clearest
+attribute site — the record anchors at the field); other sites are follow-ups.
+
 ## 5. Flow bodies (`functions[]`)
 
 A flow function has a `name`, a `file`, and a `body`: an ordered list of flow

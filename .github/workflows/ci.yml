@@ -205,6 +205,7 @@ jobs:
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             frontend/roslyn/samples/VoidSubscribeSample.cs \
             frontend/roslyn/samples/ReturnedPublisherSample.cs \
+            frontend/roslyn/samples/OwnIgnoreSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -723,7 +724,35 @@ jobs:
           if echo "$out" | grep -qE "(ScopeUsingService|ClockCachingService)"; then
             echo "FAIL: a correct scope use (used-in-scope, or a cached singleton) was wrongly flagged DI005"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) at the C# location"
+          # issue #209 — inline [OwnIgnore("reason")] per-site suppression (P-004), on an
+          # IDisposable field. Four contrasting shapes in OwnIgnoreSample.cs: the un-annotated
+          # leak, a reason-less [OwnIgnore], and an empty [OwnIgnore("")] all FIRE OWN001; only
+          # [OwnIgnore("reason")] is silent-but-COUNTED (SARIF suppressions), never failing the run.
+          echo "$out" | grep -qE "OwnIgnoreSample\.cs:[0-9]+: error: \[OWN001\].*'UnsuppressedLeak'" \
+            || { echo "FAIL: an un-annotated IDisposable field must raise OWN001"; exit 1; }
+          echo "$out" | grep -qE "\[OWN001\].*'ReasonlessLeak'" \
+            || { echo "FAIL: a reason-less [OwnIgnore] must NOT suppress (OWN001 must still fire)"; exit 1; }
+          echo "$out" | grep -qE "\[OWN001\].*'EmptyReasonLeak'" \
+            || { echo "FAIL: an empty [OwnIgnore(\"\")] reason must NOT suppress (OWN001 must still fire)"; exit 1; }
+          # the suppressed leak is SILENT in the human findings stream...
+          if echo "$out" | grep -q "'SuppressedLeak'"; then
+            echo "FAIL: a [OwnIgnore(\"reason\")] finding must be silent in the human output"; exit 1
+          fi
+          # ...but COUNTED in the run summary (visibility over silence).
+          echo "$out" | grep -qE "[0-9]+ suppressed \(\[OwnIgnore\]\)" \
+            || { echo "FAIL: the suppressed finding must be counted in the summary tally"; exit 1; }
+          # SARIF carries it as a result WITH a `suppressions` array (kind inSource + the
+          # mandatory reason as justification) — a consumer counts it, GitHub shows it
+          # suppressed rather than an open alert, and it never fails the run.
+          python -m ownlang ownir "$RUNNER_TEMP/facts.json" --format sarif > "$RUNNER_TEMP/own.sarif" 2>/dev/null || true
+          jq -e '[.runs[0].results[] | select(.properties.component == "SuppressedLeak")] as $s
+                 | ($s | length) == 1
+                   and ($s[0].suppressions[0].kind == "inSource")
+                   and ($s[0].suppressions[0].justification | contains("owned and disposed by the DI container"))' \
+            "$RUNNER_TEMP/own.sarif" >/dev/null \
+            || { echo "FAIL: SARIF must carry SuppressedLeak once, with an inSource suppressions justification"; \
+                 jq '.runs[0].results[]|{ruleId,component:.properties.component,suppressions}' "$RUNNER_TEMP/own.sarif"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
