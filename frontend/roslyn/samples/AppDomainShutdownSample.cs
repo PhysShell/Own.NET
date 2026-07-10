@@ -42,12 +42,30 @@ public static class SomeBus
     public static void Raise() => Pinged?.Invoke(null, EventArgs.Empty);
 }
 
-// Control: a lambda on a NON-AppDomain process-lived (static) event -> region escape -> must WARN.
+// Control (the shape Codex defended — CsvHelper ConsoleHost's cts/resetEvent capture):
+// a CAPTURING lambda on a NON-AppDomain process-lived (static) event pins the captured
+// state (here the ctor's `cts`) for the whole process — a real region escape that must
+// STILL raise OWN014. The non-retaining static gate (issue #199) must NOT clear this:
+// HandlerRetainsNoInstance returns false because an enclosing local/parameter is captured.
 public sealed class NonAppDomainSubscriber
 {
-    public NonAppDomainSubscriber()
+    public NonAppDomainSubscriber(System.Threading.CancellationTokenSource cts)
     {
-        SomeBus.Pinged += (_, _) => Handle();   // static event, lambda, not AppDomain -> OWN014
+        SomeBus.Pinged += (_, _) => cts.Cancel();   // captures `cts` -> OWN014
+    }
+}
+
+// CONTRAST (issue #199): a NON-CAPTURING lambda on the SAME non-AppDomain static event
+// captures neither `this` nor any enclosing local (a bare static call) -> retains no
+// instance -> the closure analog of the static-METHOD exemption (StaticHandlerViewModel)
+// -> SILENT. This is the false positive the non-retaining static gate removes: a
+// non-retaining handler cannot pin a subscriber, so OWN014's premise does not hold.
+// Policy: docs/notes/subscription-leaks-and-profiles.md (static + non-retaining -> silent).
+public sealed class NonCapturingStaticSubscriber
+{
+    public NonCapturingStaticSubscriber()
+    {
+        SomeBus.Pinged += (_, _) => Handle();   // no capture -> silent
     }
 
     private static void Handle() { }

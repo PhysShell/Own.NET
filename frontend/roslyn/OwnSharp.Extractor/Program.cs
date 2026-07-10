@@ -3550,6 +3550,23 @@ foreach (var (file, tree) in parsed)
                 // write-up: docs/notes/oracle-known-fps.md → "Rejected approaches".
                 if (!isTimer && source == "static" && clsIsApp)
                     continue;
+                // P-004 / issue #199: a NON-RETAINING handler on a static (process-lived)
+                // source promotes nothing, so OWN014's premise ("the subscriber is pinned
+                // for the source's life") does not hold -> silent. A static METHOD handler
+                // is already dropped above (IsStaticHandler: null delegate target); a
+                // NON-CAPTURING lambda is its closure analog — it captures neither `this`
+                // nor an enclosing local, so no subscriber instance is retained. Gated
+                // STRICTLY through HandlerRetainsNoInstance, which is CONSERVATIVE: a lambda
+                // that captures `this` OR any enclosing local (the CsvHelper cts/resetEvent
+                // shape), or any delegate-typed value it cannot prove, is treated as
+                // RETAINING and STILL raises OWN014. This never widens the exemption
+                // syntactically (no `clsIsStatic`, no "all lambdas"): only what is provably
+                // non-retaining is dropped, exactly like the static-method exemption. Policy:
+                // docs/notes/subscription-leaks-and-profiles.md ("static + non-retaining
+                // handler (static method / non-capturing lambda) -> silent; static +
+                // retaining -> OWN014").
+                if (!isTimer && source == "static" && HandlerRetainsNoInstance(a.Right, model))
+                    continue;
                 var released = unsub.Contains($"{a.Left}|{NormalizeHandler(a.Right)}")
                     || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
                 subs.Add(new

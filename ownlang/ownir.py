@@ -2502,11 +2502,16 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 "scoped": "a DI scoped service",
                 "transient": "a DI transient service",
             }.get(life, f"a DI {life} service")
+            # An inline lambda handler has no `-=` handle, so it could never be
+            # detached even on purpose — surfaced on OWN014 too (P-004; issue #199),
+            # matching the OWN001 note below. Empty for a method-group handler.
+            lam = (" — and being an inline lambda it has no '-=' handle, so it "
+                   "could never be detached") if sub.get("lambda") else ""
             message = (f"event '{event}' is subscribed (handler '{handler}') to "
                        f"'{st}' — {nice} that outlives '{component}'; the strong "
                        f"subscription promotes '{component}' to the source's "
                        f"lifetime, so it can never be collected — a captive/region "
-                       f"escape (leak, no release path)")
+                       f"escape (leak, no release path{lam})")
             # reachability slice: the subscribe site -> where the longer-lived source was
             # registered (its lifetime is why this escapes). The source hop is present only
             # when the registration site is known from the services graph.
@@ -2538,11 +2543,18 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             src = sub.get("source", "?")
             origin = ("a static (process-lived) event source" if src == "static"
                       else f"a longer-lived source ('{src}')")
+            # An inline lambda handler has no `-=` handle (issue #199) — surface it on
+            # the OWN014 region-escape message too, like the OWN001 note below. A
+            # non-capturing lambda on a static source is exempted upstream (the
+            # extractor's non-retaining gate), so a lambda that reaches HERE is a
+            # capturing one — the note is apt. Empty for a method-group handler.
+            lam = (" — and being an inline lambda it has no '-=' handle, so it "
+                   "could never be detached") if sub.get("lambda") else ""
             message = (f"event '{event}' is subscribed (handler '{handler}') to "
                        f"{origin} that outlives '{component}'; the strong "
                        f"subscription promotes '{component}' to the source's "
                        f"lifetime, so it can never be collected — a region escape "
-                       f"(leak, no release path)")
+                       f"(leak, no release path{lam})")
             findings.append(Finding(
                 file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,

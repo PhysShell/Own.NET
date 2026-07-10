@@ -1202,6 +1202,24 @@ def run() -> int:
     if any(x.component == "CleanThemeViewModel" for x in cfindings):
         fails.append("a released (unsubscribed) static capture was wrongly reported")
 
+    # issue #199: a static-source capture whose handler is an inline LAMBDA gets the
+    # same OWN014 region escape, now carrying the "inline lambda — no '-=' handle" note
+    # (the extractor stamps lambda:true). A NON-capturing static lambda is dropped
+    # upstream by the extractor's non-retaining gate, so a lambda reaching this branch
+    # is a capturing one; a method-group capture (lambda absent, above) has no note.
+    checks += 1
+    lamcap = check_facts({"module": "M", "components": [
+        {"name": "PingVM", "file": "PingVM.cs", "subscriptions": [
+            {"event": "SomeBus.Pinged", "handler": "(_, _) => _n++", "line": 7,
+             "released": False, "resource": "capture", "source": "static",
+             "lambda": True}]}]})
+    if [(x.component, x.line, x.code) for x in lamcap] != [("PingVM", 7, "OWN014")]:
+        fails.append(f"a lambda static capture should raise OWN014 (PingVM@7), got "
+                     f"{[(x.component, x.line, x.code) for x in lamcap]}")
+    elif "inline lambda" not in lamcap[0].message or "-=" not in lamcap[0].message:
+        fails.append(f"OWN014 lambda-capture message missing the no-'-=' note: "
+                     f"{lamcap[0].message!r}")
+
     # --- P-006 + P-004: DI-sourced region escape. An injected subscription whose
     #     source TYPE resolves (via the `services` graph) to a longer-lived DI
     #     registration than the subscriber is a PROVABLE region escape -> OWN014,

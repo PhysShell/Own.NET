@@ -299,6 +299,41 @@ and the `IsDisposeOptional` allowlist is where that knowledge belongs.**
 
 ---
 
+## 10. Invocation-list growth from repeated *non-capturing* subscriptions (candidate, uncovered)
+
+Recorded as a deliberate non-goal of the issue #199 static-lambda precision fix
+(see [`subscription-leaks-and-profiles.md`](subscription-leaks-and-profiles.md)).
+
+```csharp
+static event EventHandler? Pinged;               // process-lived static event
+sealed class Widget {
+    public Widget() => Pinged += (_, _) => Log("tick");  // NON-capturing lambda
+}
+// new Widget(); … many times ⇒ Pinged's invocation list grows without bound
+```
+
+A **non-capturing** `+=` retains no subscriber instance, so it is *not* a region
+escape (OWN014) and is now correctly **silent**. But it still *appends* a delegate to
+the event's invocation list, and a hot path that re-subscribes (a `+=` in the
+constructor of a short-lived / transient object created repeatedly) grows that list
+unbounded — a genuine memory-growth bug of a **different shape**: unbounded *list
+length*, not a pinned *instance*.
+
+**Why the region model doesn't (and shouldn't) cover it.** OWN014 answers "is *this*
+subscriber promoted to the source's lifetime?" — a per-instance lifetime question.
+Invocation-list growth is a *call-count* question (how often does this `+=` run?),
+which needs a different signal: a "subscribe in a hot/repeated constructor without a
+matching `-=`" heuristic. It was **never** covered for the static-*method* exemption
+either (`X.Event += StaticM` in a loop grows the list identically), so silencing the
+non-capturing **lambda** is not a regression relative to that baseline — both are
+outside the region model by construction.
+
+**Analyzer angle:** if pursued, gate on *repetition* (a `+=` reachable from a
+type instantiated in a loop / registered transient) + *no `-=`*, and tier it as a
+warning — never fold it into OWN014, whose subscriber-pinning premise it does not share.
+
+---
+
 ## The through-line
 
 Entries 1–6 are the *same lesson from different angles*: **disposal
