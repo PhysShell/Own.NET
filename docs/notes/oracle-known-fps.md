@@ -23,8 +23,8 @@ reason: we and the oracles occupy orthogonal niches.
 
 | disposition | count | what happens on re-run |
 |---|---:|---|
-| **Fixed in the extractor** | 6 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle — see below) |
-| **Baselined FP** | 5 | moved to "Known FP (baselined)", out of the triage queue |
+| **Fixed in the extractor** | 7 | no longer fire (5 NLog `WaitForDispose` timers + protobuf `XsltOptions` self-cycle + Newtonsoft `serializer.Error` returned-fresh provenance, #146 — see below) |
+| **Baselined FP** | 4 | moved to "Known FP (baselined)", out of the triage queue |
 | **Non-product (path filter)** | 2 | dropped by `--exclude-tests` (`unittest` rule) |
 | **True positive — kept visible** | 4 | stays in "Own.NET only" (real catch, oracle can't express) |
 | **True-but-benign — kept, baselined-as-sample** | 3 | (protobuf `assorted/` samples) baselined as non-product |
@@ -33,10 +33,11 @@ reason: we and the oracles occupy orthogonal niches.
 "True-but-benign sample" 2→3 — it is a real leak of a custom `IDisposable`
 `Nuxleus.Performance.Stopwatch`, not the BCL non-disposable type first assumed.)
 
-The 5 baselined FPs + the 3 non-product-sample reals = 8 findings, covered by
-**7 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
-share one basename-keyed rule); the 2 test-base findings are the `--exclude-tests`
-drops; the 4 true positives are deliberately **not** suppressed.
+The 4 baselined FPs + the 3 non-product-sample reals = 7 findings, covered by
+**6 rules** in `corpus/oracle-fp-baseline.txt` (the two `NetTranscoder` copies
+share one basename-keyed rule; the Newtonsoft `serializer.Error` rule was removed
+when #146 fixed it at the source); the 2 test-base findings are the
+`--exclude-tests` drops; the 4 true positives are deliberately **not** suppressed.
 
 **Update (extractor fix landed — protobuf self-cycle).** `CommandLineOptions.XsltOptions.
 XsltMessageEncountered` — a `this`-capturing handler subscribed to an event on
@@ -53,8 +54,9 @@ pass proves the `Create` → `ApplySerializerSettings` shape bounded
 entry is removed (deliberately — a regression must reappear in triage, not be
 swallowed by the allowlist). Pinned by
 `frontend/roslyn/samples/ReturnedPublisherSample.cs`; denial cases (public
-candidate, mixed callers, field-stored local, param→param DI forwarding) keep the
-honest warning.
+candidate, mixed callers, field-stored local, param→param DI forwarding, and the
+two local-function closure captures — callee-side `ProvLocalFuncFactory` and
+caller-side `ProvCallerLocalFuncFactory`) keep the honest warning.
 
 **Update (extractor fix landed — all NLog timers).** All 5 of the original NLog
 `WaitForDispose` timer FPs are now **fixed at the source**, baseline entries deleted.

@@ -263,8 +263,10 @@ pass: when a `+=` publisher is a parameter of a private/internal method and
 the call / its own `return` (and the callee never lets the param escape), the
 subscription is stamped `source_provenance: "returned_fresh"` and the bridge
 drops it (bounded, silent). Any unprovable step — public candidate, method-group
-reference, mixed callers, field-stored local, param→param forwarding — denies
-the proof and the honest warning stands. Pinned by
+reference, mixed callers, field-stored local, param→param forwarding, or a
+local-function closure capture on either side (callee-side `ProvLocalFuncFactory`,
+caller-side `ProvCallerLocalFuncFactory` — a stored local function escapes exactly
+like a lambda) — denies the proof and the honest warning stands. Pinned by
 `frontend/roslyn/samples/ReturnedPublisherSample.cs` (CI `wpf-extractor`) and
 the `source_provenance` checks in `tests/test_ownir.py`; spec'd in
 `spec/OwnIR.md` §4.
