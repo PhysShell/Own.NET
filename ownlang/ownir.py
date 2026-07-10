@@ -532,6 +532,15 @@ def load(path: str) -> dict[str, Any]:
             if stp is not None and not isinstance(stp, str):
                 raise OwnIRError(
                     f"subscription 'source_type' must be a string, got {stp!r}")
+            # `source_provenance` (P-004, #146): interprocedural publisher
+            # provenance for an injected source. Additive/optional; only the
+            # exact value "returned_fresh" routes (bounded -> silent) — any
+            # other value keeps the honest OWN001 warning path.
+            spr = s.get("source_provenance")
+            if spr is not None and not isinstance(spr, str):
+                raise OwnIRError(
+                    f"subscription 'source_provenance' must be a string, "
+                    f"got {spr!r}")
     # Optional DI registration graph (DI001 — captive dependency, P-006). Additive
     # and optional: an older core simply ignores it.
     svcs = result.get("services", [])
@@ -751,6 +760,14 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
                 cap_handles.append(handle)
                 any_capture = True
                 continue
+            # Interprocedural publisher provenance (#146, mirrors to_module): an
+            # injected `+=` whose publisher every in-compilation caller freshly
+            # constructs and lets escape only into this call / its own `return`
+            # is bounded by the returned publisher's lifetime — the handler dies
+            # with it. Same boundedness as a locally-constructed source: silent.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and sub.get("source_provenance") == "returned_fresh"):
+                continue
             # DI-sourced escape (mirrors to_module): an injected source with a KNOWN
             # DI lifetime lowers to `subscribe self to <source>` under its DI region.
             # Only subscriptions reroute here — a non-subscription resource with an
@@ -900,6 +917,21 @@ def to_module(facts: dict[str, Any],
                 body.append(Subscribe(handle, line))
                 fn_lt = self_region
                 any_capture = True
+                continue
+            # Interprocedural publisher provenance (P-004, #146): an injected `+=`
+            # whose publisher is proven "constructed-and-returned" by EVERY
+            # in-compilation caller (the extractor's compilation-wide pass stamps
+            # `source_provenance: "returned_fresh"`) is bounded by the returned
+            # publisher's lifetime — the handler lives exactly as long as the
+            # object the caller now holds, and dies with it. That is the same
+            # boundedness as a locally-constructed source, so it is dropped
+            # (silent). The INSTANCE-level provenance fact deliberately beats the
+            # TYPE-level DI hop below: even if the publisher's type is DI-
+            # registered, THIS publisher was freshly constructed by the caller,
+            # not resolved from the container. Only the exact vocabulary value
+            # routes — an unknown provenance keeps the honest OWN001 warning.
+            if (rkind == "subscription" and sub.get("source") == "injected"
+                    and sub.get("source_provenance") == "returned_fresh"):
                 continue
             # P-006 + P-004 DI-sourced escape: an injected subscription whose source
             # TYPE resolves (via the `services` graph) to a KNOWN DI lifetime routes

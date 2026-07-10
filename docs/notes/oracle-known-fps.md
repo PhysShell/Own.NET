@@ -44,10 +44,17 @@ XsltMessageEncountered` — a `this`-capturing handler subscribed to an event on
 **fixed at the source** by `PropertyReturnsOwnedMember` (the self-owned-source exemption
 now covers a property receiver, not just `this`/fields/locals). A live protobuf re-run
 confirmed it: own-only **0**, the finding absent from own-only and baselined. See
-root-cause #3. Corpus fixture: `subscription-self-owned-property`. Newtonsoft's
-`serializer.Error` stays baselined — its source escapes (a returned `Create()` result)
-and the handler is a parameter's delegate, so proving non-leak needs lifetime modelling;
-the "may outlive" warning is honest, not a clear FP.
+root-cause #3. Corpus fixture: `subscription-self-owned-property`.
+
+**Update (#146 landed).** Newtonsoft's `serializer.Error` is now **fixed at the
+source** too: the extractor's compilation-wide returned-fresh publisher provenance
+pass proves the `Create` → `ApplySerializerSettings` shape bounded
+(`source_provenance: "returned_fresh"`) and the bridge drops it. Its baseline
+entry is removed (deliberately — a regression must reappear in triage, not be
+swallowed by the allowlist). Pinned by
+`frontend/roslyn/samples/ReturnedPublisherSample.cs`; denial cases (public
+candidate, mixed callers, field-stored local, param→param DI forwarding) keep the
+honest warning.
 
 **Update (extractor fix landed — all NLog timers).** All 5 of the original NLog
 `WaitForDispose` timer FPs are now **fixed at the source**, baseline entries deleted.
@@ -114,7 +121,7 @@ visible.
 | location | verdict | why |
 |---|---|---|
 | `TraceJsonReader.cs` `_textWriter` | **FP → baseline** | no-op dispose: a `JsonTextWriter` over an in-memory `StringWriter`/`StringBuilder` holds no unmanaged resource |
-| `JsonSerializer.cs` `serializer.Error` | **FP → baseline** | intra-call self-subscription: the serializer is freshly built from the same `JsonSerializerSettings` whose `.Error` it subscribes; co-lifetimed |
+| `JsonSerializer.cs` `serializer.Error` | **FP → fixed (#146)** | intra-call self-subscription: the serializer is freshly built from the same `JsonSerializerSettings` whose `.Error` it subscribes; co-lifetimed. Now proven bounded by the returned-fresh publisher provenance pass; baseline entry removed |
 
 ### JoshClose/CsvHelper — 2 findings
 
