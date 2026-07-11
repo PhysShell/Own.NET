@@ -1009,6 +1009,132 @@ static bool IsOwnMethodGroupHandler(ExpressionSyntax right, SemanticModel model,
         && SymbolEqualityComparer.Default.Equals(sym.ContainingType, cls);
 }
 
+// P-004 / issue #227: is the subscriber a `Behavior`-derived class? A behavior is
+// attached to (and detached from) exactly one element and CANNOT outlive being
+// attached, so the element it reaches through the base-class `AssociatedObject`
+// accessor is co-lifetimed with the behavior — the same collectable source<->this
+// cycle the shipped self-owned-source exemption already encodes for a constructed
+// field. Matched SYNTACTICALLY by the direct base's simple name `Behavior`
+// (mirroring IsProcessLivedApplication): the Microsoft.Xaml.Behaviors /
+// System.Windows.Interactivity `Behavior`/`Behavior<T>` base does not resolve on the
+// Linux runner. Only the direct base is inspected — an intermediate user base
+// (`class Concrete : MyBehavior`) is not chased (precision-first: no exemption, the
+// honest warning stands), exactly as the App-partial precedent does.
+static bool IsBehaviorSubscriber(TypeDeclarationSyntax cls)
+{
+    if (cls.BaseList is not { } bl)
+        return false;
+    foreach (var bt in bl.Types)
+        if (SimpleBaseName(bt.Type) == "Behavior")
+            return true;
+    return false;
+}
+
+static string? SimpleBaseName(TypeSyntax t) => t switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    GenericNameSyntax g => g.Identifier.Text,           // Behavior<T>
+    QualifiedNameSyntax q => SimpleBaseName(q.Right),    // ...Interactivity.Behavior
+    AliasQualifiedNameSyntax aq => SimpleBaseName(aq.Name),
+    _ => null,
+};
+
+// #227: a bare/`this`-qualified read of the base-class `AssociatedObject` accessor —
+// `this.AssociatedObject` or `AssociatedObject`. Matched by NAME (the property is
+// inherited from the unresolved `Behavior` base), through casts/`!`. A member access
+// qualified with anything else (`other.AssociatedObject`) reaches ANOTHER object and
+// is not this behavior's own attached element, so it is rejected.
+static bool IsAssociatedObjectAccess(ExpressionSyntax expr)
+{
+    expr = StripCasts(expr);
+    return expr switch
+    {
+        MemberAccessExpressionSyntax m => m.Name.Identifier.Text == "AssociatedObject"
+            && m.Expression is ThisExpressionSyntax,
+        IdentifierNameSyntax id => id.Identifier.Text == "AssociatedObject",
+        _ => false,
+    };
+}
+
+// #227: does `expr` provably resolve to `this.AssociatedObject` — directly, or through
+// an assignment-chain-LOCAL step (a `var x = ...` initializer, an `is`-pattern
+// designation, or a FIELD of this class assigned from it)? The provenance is
+// syntactic and same-class (never interprocedural): a local carries the binding only
+// when nothing rebinds it (IsNeverReassigned), and a field only when EVERY assignment
+// to it in the class resolves to `AssociatedObject` (a single injected/constructed
+// write anywhere denies the proof — precision-first, the worst case keeps the honest
+// warning). Depth-bounded so a self-referential field cannot spin.
+static bool ResolvesToAssociatedObject(ExpressionSyntax expr, SemanticModel model,
+                                       TypeDeclarationSyntax clsNode, int depth)
+{
+    if (depth > 4)
+        return false;
+    expr = StripCasts(expr);
+    if (IsAssociatedObjectAccess(expr))
+        return true;
+    var sym = model.GetSymbolInfo(expr).Symbol;
+    if (sym is ILocalSymbol local)
+    {
+        // The declaration-site binding proves the local's value at the use only if
+        // nothing rebinds it (same conservative whole-member scan as #228).
+        if (!IsNeverReassigned(local, model))
+            return false;
+        foreach (var r in local.DeclaringSyntaxReferences)
+            switch (r.GetSyntax())
+            {
+                // var panel = this.AssociatedObject;
+                case VariableDeclaratorSyntax { Initializer.Value: { } init }
+                    when ResolvesToAssociatedObject(init, model, clsNode, depth + 1):
+                    return true;
+                // this.AssociatedObject is Panel panel   /   ... is { } panel
+                case SingleVariableDesignationSyntax des
+                    when des.Ancestors().OfType<IsPatternExpressionSyntax>().FirstOrDefault()
+                         is { Expression: { } scrutinee }
+                         && ResolvesToAssociatedObject(scrutinee, model, clsNode, depth + 1):
+                    return true;
+            }
+        return false;
+    }
+    if (sym is IFieldSymbol field)
+        return FieldAssignedOnlyFromAssociatedObject(field, model, clsNode, depth);
+    return false;
+}
+
+// #227: a field is a valid `AssociatedObject` alias only when it is populated ONLY
+// from `AssociatedObject` — at least one such assignment, and no assignment to a
+// value we cannot prove is `AssociatedObject` (an injected/constructed write would
+// make the field's contents ambiguous at the `+=`). Class-level assignment scan, the
+// same mechanism the field-based self-owned search already uses; the field-population
+// evidence may live in the same `OnAttached` or any other member of the class.
+static bool FieldAssignedOnlyFromAssociatedObject(IFieldSymbol field, SemanticModel model,
+                                                  TypeDeclarationSyntax clsNode, int depth)
+{
+    var any = false;
+    foreach (var asg in clsNode.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+    {
+        if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
+            continue;
+        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(asg.Left).Symbol, field))
+            continue;
+        any = true;
+        if (!ResolvesToAssociatedObject(asg.Right, model, clsNode, depth + 1))
+            return false;
+    }
+    return any;
+}
+
+// #227: the self-owned-source exemption for a `Behavior` reaching its own
+// `AssociatedObject`. The `+=` receiver must resolve to `this.AssociatedObject` (or an
+// assignment-chain-local/field/pattern-var provably drawn from it). Caller gates on
+// IsBehaviorSubscriber — attaching/detaching guarantees co-lifetime ONLY in that
+// pairing — so a lambda handler is fine here (unlike #228): capturing `this`/its
+// locals just closes the collectable source<->behavior cycle, it does not pin a
+// process-lived source to a shorter-lived capture.
+static bool IsAssociatedObjectSource(ExpressionSyntax left, SemanticModel model,
+                                     TypeDeclarationSyntax clsNode)
+    => left is MemberAccessExpressionSyntax m
+       && ResolvesToAssociatedObject(m.Expression, model, clsNode, depth: 0);
+
 // P-004 WPF MVVM ownership: a field read from `this.DataContext`, optionally through
 // an `as`/cast (`DataContext as VM`, `(VM)DataContext`). Combined with a view whose
 // own XAML CONSTRUCTS its DataContext, such a field is the view's owned view-model.
@@ -4108,6 +4234,11 @@ foreach (var (file, tree) in parsed)
         // static-source region escape (OWN014) — `App` cannot be over-promoted.
         var clsIsApp = IsProcessLivedApplication(cls);
 
+        // #227: is this a `Behavior`-derived subscriber? Then a `+=` whose source is
+        // its own `AssociatedObject` (the attached element, co-lifetimed with the
+        // behavior) is the collectable self-owned cycle, not a leak.
+        var clsIsBehavior = IsBehaviorSubscriber(cls);
+
         var subs = new List<object>();
         foreach (var a in assigns)
         {
@@ -4139,6 +4270,18 @@ foreach (var (file, tree) in parsed)
                                  || IsStaticHandler(a.Right, model)
                                  || (IsProcessLifetimeAppDomainEvent(ev)
                                      && HandlerRetainsNoInstance(a.Right, model))))
+                    continue;
+                // P-004 / issue #227: a `Behavior` subscribing to (an element reached
+                // from) its own `AssociatedObject`. The behavior cannot outlive being
+                // attached, so the source is co-lifetimed with the subscriber — the
+                // same self-owned source<->this cycle as a constructed field, just
+                // reached through the base-class accessor. Gated on the `Behavior`
+                // base (co-lifetime holds ONLY in the attach/detach pairing) and on a
+                // same-class assignment-chain provenance to `AssociatedObject`; a
+                // subscription to an unrelated injected/constructed source in the same
+                // method keeps today's warning (its receiver does not resolve there).
+                if (!isTimer && clsIsBehavior
+                    && IsAssociatedObjectSource(a.Left, model, cls))
                     continue;
                 // P-004 (issue #223): the curated weak-referenced-static-event allowlist —
                 // unconditional (unlike the AppDomain exemption above, this does NOT gate on
