@@ -619,6 +619,24 @@ static bool IsProcessLifetimeAppDomainEvent(IEventSymbol ev) =>
     && ev.ContainingType is { Name: "AppDomain" } ct
     && IsInNamespace(ct, "System");
 
+// P-004 (issue #223): a curated allowlist of BCL/WPF static events KNOWN to be
+// implemented internally over weak references, so a subscriber is never pinned
+// alive by the subscription — unsubscribing is optional, not merely undetected.
+// `System.Windows.Input.CommandManager.RequerySuggested` is the motivating (and,
+// deliberately, the ONLY) entry: mined from AvalonEdit's `ImeSupport.cs`, whose own
+// comment explains the field exists to keep the HANDLER alive (weak refs can collect
+// it), the opposite of the usual leak concern — see
+// docs/notes/field-notes-patterns.md entry 17. This is NOT a general "static sources
+// are fine" relaxation (every other static-source subscription still raises OWN014
+// via the `capture` lowering below) — extend this list only when another sibling
+// event's weak-reference implementation is independently confirmed, never by
+// widening the predicate's shape (e.g. matching on name alone, or on "any
+// System.Windows.Input member").
+static bool IsWeakReferencedStaticEvent(IEventSymbol ev) =>
+    ev.Name == "RequerySuggested"
+    && ev.ContainingType is { Name: "CommandManager" } ct
+    && IsInNamespace(ct, "System", "Windows", "Input");
+
 // Does this handler retain NO subscriber instance? A static method group has a null delegate
 // target; a lambda / anonymous method retains nothing only when it captures neither `this`
 // (explicit, or implicit via an instance member) nor an enclosing local/parameter. Keeps the
@@ -659,6 +677,50 @@ static bool DeclaredWithin(ISymbol sym, SyntaxNode scope)
         if (!scope.FullSpan.Contains(r.Span))
             return false;
     return true;
+}
+
+// P-004 (issue #224): a subscribed handler that unsubscribes ITSELF, inside its own
+// body, the first time it runs ("do this once, then stop listening") needs no
+// external `-=` — by the time the event could fire again, the subscription is
+// already gone. Typical shape: cast the handler's own `sender` parameter back to the
+// source's type and `-=` the very same handler off it. Recognised by finding, inside
+// the candidate handler METHOD's own body, a `-=` whose LHS member name matches the
+// SUBSCRIBED event's name (not just any event) and whose RHS resolves to the SAME
+// method symbol (a true self-reference — a same-named handler on a different,
+// unrelated subscription cannot satisfy this, since matching is by symbol). Scoped to
+// a named METHOD-GROUP handler only: a lambda has no name to self-reference by, so it
+// is left exactly as before (still gets the "no '-=' handle" note). Mined: AvalonEdit
+// `Search/DropDownButton.cs` (`((Popup)sender).Closed -= DropDownContent_Closed;`
+// inside the very handler subscribed as `DropDownContent.Closed += DropDownContent_Closed`).
+static bool HandlerSelfDetaches(ExpressionSyntax right, IEventSymbol ev,
+                                SemanticModel model, CSharpCompilation compilation)
+{
+    right = NormalizeHandler(right);
+    var info = model.GetSymbolInfo(right);
+    var handlerMethod = info.Symbol as IMethodSymbol
+        ?? info.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+    if (handlerMethod is null)
+        return false;
+    foreach (var sref in handlerMethod.DeclaringSyntaxReferences)
+    {
+        if (sref.GetSyntax() is not MethodDeclarationSyntax mdecl)
+            continue;
+        SyntaxNode? body = (SyntaxNode?)mdecl.Body ?? mdecl.ExpressionBody;
+        if (body is null)
+            continue;
+        var bodyModel = compilation.GetSemanticModel(mdecl.SyntaxTree);
+        foreach (var inner in body.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+        {
+            if (!inner.IsKind(SyntaxKind.SubtractAssignmentExpression)
+                || inner.Left is not MemberAccessExpressionSyntax innerLeft
+                || innerLeft.Name.Identifier.Text != ev.Name)
+                continue;
+            var innerHandlerSym = bodyModel.GetSymbolInfo(NormalizeHandler(inner.Right)).Symbol;
+            if (SymbolEqualityComparer.Default.Equals(innerHandlerSym, handlerMethod))
+                return true;
+        }
+    }
+    return false;
 }
 
 // P-004 process-lived-subscriber exemption: the WPF application object (`App`) is a
@@ -3722,6 +3784,27 @@ foreach (var (file, tree) in parsed)
                 && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol tf
                 && IsTemplatePartFetch(a.Right))
                 selfOwned.Add(tf.Name);
+        // P-004 (issue #222): a template part is EQUALLY self-owned when it is captured
+        // as a plain LOCAL variable (`Button upButton = (Button)this.Template.FindName(
+        // "PART_UP", this);`) or an `is T x` PATTERN variable (`if (this.GetTemplateChild(
+        // ...) is T x)`), not only a field — same fetch, same template-owned lifetime,
+        // just not stored in a field. `IsSelfOwnedSource` already accepts an `ILocalSymbol`
+        // receiver via `owned.Contains(recv.Name)` (see its doc comment) — it only needed
+        // template-part LOCAL names folded into `selfOwned`, which is what these two loops
+        // do; no change to IsSelfOwnedSource itself. Mined: MahApps.Metro
+        // `Controls/MetroWindow.cs` (pattern-variable form), AvalonEdit
+        // `CodeCompletion/OverloadViewer.cs` (plain local-variable form).
+        foreach (var declr in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+            if (declr.Initializer?.Value is { } declInit
+                && IsTemplatePartFetch(declInit)
+                && model.GetDeclaredSymbol(declr) is ILocalSymbol declLocal)
+                selfOwned.Add(declLocal.Name);
+        foreach (var isPat in cls.DescendantNodes().OfType<IsPatternExpressionSyntax>())
+            if (IsTemplatePartFetch(isPat.Expression)
+                && isPat.Pattern is DeclarationPatternSyntax
+                   { Designation: SingleVariableDesignationSyntax svd }
+                && model.GetDeclaredSymbol(svd) is ILocalSymbol patLocal)
+                selfOwned.Add(patLocal.Name);
         //   * WPF MVVM view-model — `_vm = DataContext as VM`: when THIS view's own
         //     XAML constructs its DataContext (recorded in viewsOwningDataContext from
         //     the sibling `.xaml`), the view owns that VM, so the view<->VM cycle is
@@ -3769,6 +3852,12 @@ foreach (var (file, tree) in parsed)
                                  || IsStaticHandler(a.Right, model)
                                  || (IsProcessLifetimeAppDomainEvent(ev)
                                      && HandlerRetainsNoInstance(a.Right, model))))
+                    continue;
+                // P-004 (issue #223): the curated weak-referenced-static-event allowlist —
+                // unconditional (unlike the AppDomain exemption above, this does NOT gate on
+                // HandlerRetainsNoInstance: the whole point of a weak-referenced source is
+                // that even a normally-retaining handler cannot be pinned by it).
+                if (IsWeakReferencedStaticEvent(ev))
                     continue;
                 // P-004 tiering: a local-variable source is method-bounded — it
                 // cannot outlive `this`, so it is not a heap leak; drop it (the same
@@ -3819,7 +3908,11 @@ foreach (var (file, tree) in parsed)
                 if (!isTimer && source == "static" && HandlerRetainsNoInstance(a.Right, model))
                     continue;
                 var released = unsub.Contains($"{a.Left}|{NormalizeHandler(a.Right)}")
-                    || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
+                    || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv))
+                    // P-004 (issue #224): the handler unsubscribes ITSELF inside its own body
+                    // (a self-detaching one-shot handler) — bounded, so no external `-=` is
+                    // needed. Timers already have their own Stop()-based release check above.
+                    || (!isTimer && HandlerSelfDetaches(a.Right, ev, model, compilation));
                 // #146 — interprocedural publisher provenance: a `+=` on a PARAMETER
                 // publisher stays `injected` (locally honest — param→param syntax is
                 // identical for a DI singleton bus, a real leak, and for the
@@ -3956,6 +4049,22 @@ foreach (var (file, tree) in parsed)
                     || CallReleasesReceiver(model.GetSymbolInfo(cinv).Symbol as IMethodSymbol, model)))
                 disposed.Add(model.GetSymbolInfo(cae.Expression).Symbol is ILocalSymbol lc
                              && aliasToField.TryGetValue(lc, out var fc) ? fc : cdf);
+
+        // P-004 (issue #220): `using (field = new T()) { ... }` — the STATEMENT form of
+        // `using` whose parenthesized expression IS the acquisition, assigned directly to
+        // a FIELD rather than a local. `using (expr) { }` disposes whatever `expr`
+        // evaluates to at scope exit, regardless of whether `expr` is a bare `new T()`, an
+        // already-tracked LOCAL (the `using (existingLocal)` shape the flow-locals engine
+        // lowers elsewhere in this file), or, as here, a field assignment — the field is
+        // disposed exactly once, deterministically, when the block exits. This-instance
+        // only (`ThisFieldName`), matching every other release recognition above. Mined:
+        // ShareX `HashChecker.cs`/`TaskEx.cs` (`using (cts = new CancellationTokenSource())`),
+        // `IndexerJson.cs` (`using (jsonWriter = new JsonTextWriter(sw))`).
+        foreach (var us in cls.DescendantNodes().OfType<UsingStatementSyntax>())
+            if (us.Expression is AssignmentExpressionSyntax { } uae
+                && uae.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && ThisFieldName(uae.Left) is { } uf)
+                disposed.Add(uf);
 
         // P-004 EventSource counter exemption: inside an EventSource, a DiagnosticCounter field
         // constructed with `this` is registered to (and lifetime-owned by) the source — a
