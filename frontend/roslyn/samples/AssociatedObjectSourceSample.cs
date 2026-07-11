@@ -141,4 +141,18 @@ namespace OwnSamples.AssociatedObject
 
         void OnLoaded(object? sender, EventArgs e) { }
     }
+
+    // CONTROL 4 (flagged, Codex P2): a PARAMETER named `AssociatedObject` SHADOWS the
+    // inherited base accessor — the identifier text matches, but the symbol is an
+    // injected parameter, not the co-lifetimed attached element, so the exemption must
+    // check the binding, not just the name.
+    public class ShadowParamBehavior : Behavior<UiElement>
+    {
+        public void Wire(UiElement AssociatedObject)
+        {
+            AssociatedObject.Loaded += OnLoaded;             // OWN001: shadowing parameter
+        }
+
+        void OnLoaded(object? sender, EventArgs e) { }
+    }
 }

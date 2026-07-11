@@ -909,6 +909,11 @@ jobs:
           # source before the `+=` — the stale declaration binding must not exempt.
           echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignedLocalBehavior'" \
             || { echo "FAIL: expected OWN001 when the AssociatedObject-bound local is reassigned before the +="; exit 1; }
+          # (4, Codex P2) a PARAMETER named `AssociatedObject` SHADOWS the inherited base
+          # accessor — the name matches by text, but the symbol is an injected parameter,
+          # so the exemption must resolve the binding, not just the name.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ShadowParamBehavior'" \
+            || { echo "FAIL: expected OWN001 when a shadowing parameter is named AssociatedObject (#227)"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #227 self-owned Behavior.AssociatedObject source (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |

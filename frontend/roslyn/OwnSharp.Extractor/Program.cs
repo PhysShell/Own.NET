@@ -1040,20 +1040,42 @@ static string? SimpleBaseName(TypeSyntax t) => t switch
 };
 
 // #227: a bare/`this`-qualified read of the base-class `AssociatedObject` accessor —
-// `this.AssociatedObject` or `AssociatedObject`. Matched by NAME (the property is
-// inherited from the unresolved `Behavior` base), through casts/`!`. A member access
-// qualified with anything else (`other.AssociatedObject`) reaches ANOTHER object and
-// is not this behavior's own attached element, so it is rejected.
-static bool IsAssociatedObjectAccess(ExpressionSyntax expr)
+// `this.AssociatedObject` or `AssociatedObject`. The NAME is matched syntactically (the
+// property is inherited from the `Behavior` base, which does not resolve on the Linux
+// runner), through casts/`!`. A member access qualified with anything else
+// (`other.AssociatedObject`) reaches ANOTHER object and is rejected.
+//
+// But the name alone is not enough: a local, a parameter, or a hidden member DECLARED in
+// this class named `AssociatedObject` can SHADOW the inherited accessor and hold an
+// injected publisher (`void Wire(UiElement AssociatedObject) { AssociatedObject.Loaded +=
+// H; }`) — that source is NOT co-lifetimed with the behavior (Codex P2). So the symbol is
+// checked: the genuine base accessor is either UNRESOLVED (null — the Interactivity
+// assembly is absent, the normal WPF case) or an INHERITED member (containing type is a
+// base, not this class); a local/parameter binding, or a member declared on this class,
+// is a shadow and denies the exemption.
+static bool IsAssociatedObjectAccess(ExpressionSyntax expr, SemanticModel model,
+                                     TypeDeclarationSyntax clsNode)
 {
     expr = StripCasts(expr);
-    return expr switch
+    var nameMatches = expr switch
     {
         MemberAccessExpressionSyntax m => m.Name.Identifier.Text == "AssociatedObject"
             && m.Expression is ThisExpressionSyntax,
         IdentifierNameSyntax id => id.Identifier.Text == "AssociatedObject",
         _ => false,
     };
+    if (!nameMatches)
+        return false;
+    var sym = model.GetSymbolInfo(expr).Symbol;
+    if (sym is null)
+        return true;                       // unresolved inherited accessor (the WPF runner case)
+    if (sym is ILocalSymbol or IParameterSymbol)
+        return false;                      // a shadowing local/parameter, not the accessor
+    if (sym is IFieldSymbol or IPropertySymbol
+        && model.GetDeclaredSymbol(clsNode) is { } clsSym
+        && SymbolEqualityComparer.Default.Equals(sym.ContainingType, clsSym))
+        return false;                      // a hidden own member shadowing the accessor
+    return true;                           // an inherited (or resolvable base) accessor
 }
 
 // #227: does `expr` provably resolve to `this.AssociatedObject` — directly, or through
@@ -1070,7 +1092,7 @@ static bool ResolvesToAssociatedObject(ExpressionSyntax expr, SemanticModel mode
     if (depth > 4)
         return false;
     expr = StripCasts(expr);
-    if (IsAssociatedObjectAccess(expr))
+    if (IsAssociatedObjectAccess(expr, model, clsNode))
         return true;
     var sym = model.GetSymbolInfo(expr).Symbol;
     if (sym is ILocalSymbol local)
