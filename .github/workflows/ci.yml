@@ -744,7 +744,8 @@ jobs:
           # SARIF carries it as a result WITH a `suppressions` array (kind inSource + the
           # mandatory reason as justification) — a consumer counts it, GitHub shows it
           # suppressed rather than an open alert, and it never fails the run.
-          python -m ownlang ownir "$RUNNER_TEMP/facts.json" --format sarif > "$RUNNER_TEMP/own.sarif" 2>/dev/null || true
+          rc=0; python -m ownlang ownir "$RUNNER_TEMP/facts.json" --format sarif > "$RUNNER_TEMP/own.sarif" || rc=$?
+          [ "$rc" -le 1 ] || { echo "FAIL: SARIF generation errored (rc=$rc)"; exit 1; }
           jq -e '[.runs[0].results[] | select(.properties.component == "SuppressedLeak")] as $s
                  | ($s | length) == 1
                    and ($s[0].suppressions[0].kind == "inSource")
