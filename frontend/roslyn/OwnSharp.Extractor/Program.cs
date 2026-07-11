@@ -309,6 +309,13 @@ static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
         result.RemoveAll(f => rmMatch.Any(m => m(f)));
     }
 
+    // #240: if THIS project is weaver-enabled (FodyWeavers.xml in its directory or above),
+    // EVERY file it compiles — including linked sources outside its tree — is weavable at
+    // build time; record them so the empty-Dispose kill-switch sees past the file's own path.
+    if (AncestorsHaveWeaverConfig(dir))
+        foreach (var f in result)
+            WeaverOwnedFiles.Add(Path.GetFullPath(f));
+
     return result.Distinct().ToList();
 }
 
@@ -1487,15 +1494,33 @@ static bool SourceTreeHasWeaverConfig(INamedTypeSymbol nt)
         return true;
     try
     {
-        for (var dir = Path.GetDirectoryName(Path.GetFullPath(path));
-             !string.IsNullOrEmpty(dir);
-             dir = Path.GetDirectoryName(dir))
+        var full = Path.GetFullPath(path);
+        // A linked source compiled by a Fody-enabled project (Codex on #240): the weaver
+        // config sits next to the OWNING .csproj, not above the file — ProjectCsFiles
+        // recorded such files while expanding the project's <Compile> items.
+        if (WeaverOwnedFiles.Contains(full))
+            return true;
+        return AncestorsHaveWeaverConfig(Path.GetDirectoryName(full));
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+    {
+        return true;   // cannot inspect the tree -> cannot rule a weaver out -> no exemption
+    }
+}
+
+// #238/#240: FodyWeavers.xml in `startDir` or any ancestor. Unreadable filesystem state is
+// treated as "a weaver may be present" — the callers then withhold the exemption.
+static bool AncestorsHaveWeaverConfig(string? startDir)
+{
+    try
+    {
+        for (var dir = startDir; !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
             if (File.Exists(Path.Combine(dir, "FodyWeavers.xml")))
                 return true;
     }
     catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
     {
-        return true;   // cannot inspect the tree -> cannot rule a weaver out -> no exemption
+        return true;
     }
     return false;
 }
@@ -5190,4 +5215,10 @@ return 0;
 partial class Program
 {
     internal static bool BodyThrowEdges;
+
+    // #240 (Codex review): full paths of files compiled by a Fody-enabled PROJECT, recorded
+    // while expanding its <Compile> items — a linked source outside the project directory
+    // would otherwise dodge the ancestor-walk weaver check (the FodyWeavers.xml lives next
+    // to the .csproj, not above the linked file).
+    internal static readonly HashSet<string> WeaverOwnedFiles = new(StringComparer.Ordinal);
 }

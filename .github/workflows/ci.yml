@@ -1140,6 +1140,14 @@ jobs:
           wout=$(python -m ownlang ownir "$RUNNER_TEMP/weaved.json" || true)
           echo "$wout" | grep -qE "WeavedEmptyDispose\.cs:[0-9]+:.*\[OWN001\].*'we' is never disposed" \
             || { echo "FAIL: #238: FodyWeavers.xml present -> even an enumerator empty Dispose must stay flagged"; exit 1; }
+          # ...and the LINKED-source variant (Codex on #240): the shared file lives OUTSIDE the
+          # weaver project's directory (no FodyWeavers.xml above it) — analysed THROUGH the
+          # .csproj, the project's weaver config must still disable the exemption.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/weaved-linked/Proj/Linked.csproj --flow-locals -o "$RUNNER_TEMP/weavedlink.json"
+          lout=$(python -m ownlang ownir "$RUNNER_TEMP/weavedlink.json" || true)
+          echo "$lout" | grep -qE "SharedEnumerator\.cs:[0-9]+:.*\[OWN001\].*'se' is never disposed" \
+            || { echo "FAIL: #240: a linked source of a Fody-enabled project must not get the empty-Dispose exemption"; exit 1; }
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, #225 empty-Dispose local exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
         run: |
