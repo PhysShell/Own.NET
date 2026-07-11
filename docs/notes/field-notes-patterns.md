@@ -382,6 +382,22 @@ call's value. **Rule of thumb: when a `+=`/`-=` pair straddles the old/new halve
 a property-changed callback (or an equivalent `On<X>Changed(old, new)` override),
 treat them as one paired lifecycle, not two independent, unpaired subscriptions.**
 
+**Shipped (issue #218).** The extractor now recognises the rotation and stamps the
+`+=` on the new half as `released` — so the core sees a balanced acquire/release and
+stays silent (no new OwnIR fact, no `OWNIR_VERSION` bump; it reuses the existing
+`released` field). A `+=` on `<newRecv>.<Event>` with handler `H` is paired when the
+same method holds a `-=` on `<oldRecv>.<Event>` with the same `H`, and `(oldRecv,
+newRecv)` are the **old/new halves of one change**: either bound from a
+`DependencyPropertyChangedEventArgs` `e.OldValue`/`e.NewValue` (directly, or via
+`e.OldValue is T old` / `(T)e.OldValue` / `var old = e.OldValue`), or two **same-type
+parameters** of the enclosing method with old positioned before new (the
+`OnXChanged(T old, T new)` override — matched by the param-pair shape, not the method
+name). It deliberately does **not** widen: a `+=` with a *different* handler than the
+`-=`, a pair on two class **fields**, or on **differently-typed** params are not a
+rotation and stay flagged. Pinned by `frontend/roslyn/samples/DpRotationSample.cs`
+(`CommandTriggerAction`/`AbstractMargin` silent; `MismatchedHandlerRotation`/
+`UnrelatedPairRotation`/`TwoFieldsRotation` flagged) in the `wpf-extractor` CI job.
+
 ## 12. WinForms `Controls`/`ToolStripItemCollection` membership as a disposal channel
 
 **Seen in:** ShareX `ShareX.HelpersLib/Forms/ImageViewer.cs` (`pbPreview`,

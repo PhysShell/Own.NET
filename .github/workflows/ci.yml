@@ -205,6 +205,7 @@ jobs:
             frontend/roslyn/samples/SemaphoreFieldSample.cs \
             frontend/roslyn/samples/VoidSubscribeSample.cs \
             frontend/roslyn/samples/ReturnedPublisherSample.cs \
+            frontend/roslyn/samples/DpRotationSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -723,7 +724,23 @@ jobs:
           if echo "$out" | grep -qE "(ScopeUsingService|ClockCachingService)"; then
             echo "FAIL: a correct scope use (used-in-scope, or a cached singleton) was wrongly flagged DI005"; exit 1
           fi
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) at the C# location"
+          # issue #218 — DP/property-changed old->new subscription ROTATION (unsub OLD, sub NEW, same
+          # handler = one paired lifecycle) must be SILENT. Two recognised forms: a DP callback reading
+          # e.OldValue/e.NewValue (CommandTriggerAction), and a plain virtual OnXChanged(old, new)
+          # override with two same-type params (AbstractMargin). Confirmed FP in 3 real repos, 6+ sites.
+          if echo "$out" | grep -qE "'CommandTriggerAction'|'AbstractMargin'"; then
+            echo "FAIL: a DP old->new subscription rotation was wrongly flagged as a leak (#218)"; exit 1
+          fi
+          # ...and it must NOT over-widen — three controls STAY flagged: (a) the += uses a DIFFERENT
+          # handler than the -= (a genuine unpaired subscription); (b) two UNRELATED, differently-typed
+          # params (not the old/new halves of one change); (c) `-=` on one class FIELD, `+=` on another.
+          echo "$out" | grep -qE "\[OWN001\].*'MismatchedHandlerRotation'" \
+            || { echo "FAIL: a rotation with a DIFFERENT += handler must stay flagged (no over-widen)"; exit 1; }
+          echo "$out" | grep -qE "\[OWN001\].*'UnrelatedPairRotation'" \
+            || { echo "FAIL: a -=/+= pair on differently-typed params must stay flagged (not old/new halves)"; exit 1; }
+          echo "$out" | grep -qE "\[OWN001\].*'TwoFieldsRotation'" \
+            || { echo "FAIL: a -=/+= pair across two class fields must stay flagged (not a rotation)"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + #218 DP old->new subscription rotation (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1

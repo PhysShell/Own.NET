@@ -486,6 +486,100 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
     left is MemberAccessExpressionSyntax m
         && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
 
+// Issue #218 — DP/property-changed old->new subscription ROTATION. A property-changed callback (a
+// `PropertyChangedCallback` reading `e.OldValue`/`e.NewValue`, or a virtual `OnXChanged(T old, T new)`
+// override) detaches the SAME handler from the OLD value and re-attaches it to the NEW one across a
+// value change. The extractor pairs `-=`/`+=` per source VARIABLE, so the `+=` on the new half looks
+// unpaired and false-flags OWN001 — yet at most one subscription is ever live. This treats the `+=`
+// on the new half as RELEASED when its matching `-=` sits on the OLD half of the SAME change: same
+// event member, same handler, same method. Precise by construction (see IsOldNewPair) — it never
+// pairs a `-=`/`+=` on unrelated sources (two fields, differently-typed params), which stay flagged.
+static bool IsRotationPairedRelease(AssignmentExpressionSyntax add, SemanticModel model)
+{
+    if (add.Left is not MemberAccessExpressionSyntax addLhs)
+        return false;                                        // only `receiver.EventMember += H`
+    var eventMember = addLhs.Name.Identifier.Text;           // e.g. CanExecuteChanged
+    var newRecv = addLhs.Expression;                         // the NEW half's receiver
+    var handler = NormalizeHandler(add.Right).ToString();
+    if (add.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>() is not { } method)
+        return false;                                        // a rotation lives in one callback
+    foreach (var node in method.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+        if (node.IsKind(SyntaxKind.SubtractAssignmentExpression)
+            && node.Left is MemberAccessExpressionSyntax subLhs
+            && subLhs.Name.Identifier.Text == eventMember               // same event member
+            && NormalizeHandler(node.Right).ToString() == handler        // same handler
+            && IsOldNewPair(subLhs.Expression, newRecv, method, model))  // old/new halves of one change
+            return true;
+    return false;
+}
+
+// Are (oldRecv, newRecv) — the receivers of a `-=`/`+=` on the same event+handler — the OLD/NEW
+// halves of ONE property change? Two provable forms, nothing wider:
+//   (1) DependencyPropertyChangedEventArgs: `e.OldValue` / `e.NewValue` — used directly, or bound to
+//       a local (`e.OldValue is T old`, `(T)e.OldValue`, `var old = e.OldValue`).
+//   (2) two parameters of the enclosing method of the SAME type, OLD positioned before NEW — the
+//       `OnXChanged(T oldValue, T newValue)` override, matched by the param-pair shape, not by name.
+// Two class fields, differently-typed parameters, or unrelated locals are NOT a pair -> stay flagged.
+static bool IsOldNewPair(ExpressionSyntax oldRecv, ExpressionSyntax newRecv,
+                         BaseMethodDeclarationSyntax method, SemanticModel model)
+{
+    // (1) direct e.OldValue / e.NewValue receivers.
+    if (IsDpValueAccess(oldRecv, "OldValue") && IsDpValueAccess(newRecv, "NewValue"))
+        return true;
+    var oldSym = model.GetSymbolInfo(oldRecv).Symbol;
+    var newSym = model.GetSymbolInfo(newRecv).Symbol;
+    if (oldSym is null || newSym is null
+        || SymbolEqualityComparer.Default.Equals(oldSym, newSym))
+        return false;   // unresolved, or the SAME source (that is the existing per-variable pairing)
+    // (1') locals bound from e.OldValue / e.NewValue.
+    if (BoundFromDpValue(oldSym, "OldValue", method, model)
+        && BoundFromDpValue(newSym, "NewValue", method, model))
+        return true;
+    // (2) two SAME-TYPE parameters, old before new.
+    return oldSym is IParameterSymbol op && newSym is IParameterSymbol np
+        && SymbolEqualityComparer.Default.Equals(op.Type, np.Type)
+        && op.Ordinal < np.Ordinal;
+}
+
+// `<recv>.OldValue` / `<recv>.NewValue` member access — the DependencyPropertyChangedEventArgs
+// halves. Matched by member name (those two members ARE the canonical DP-changed shape); the
+// extractor is syntactic by design, so this stays robust when the WPF ref is absent.
+static bool IsDpValueAccess(ExpressionSyntax expr, string member) =>
+    expr is MemberAccessExpressionSyntax ma && ma.Name.Identifier.Text == member;
+
+// Was the local/pattern variable `sym` bound from `e.<member>` (OldValue/NewValue) inside `method`?
+// Recognises a declaration pattern (`e.OldValue is T sym`) and a declarator initializer
+// (`var sym = e.OldValue`, `T sym = (T)e.OldValue`) — the ways a callback names its old/new half.
+static bool BoundFromDpValue(ISymbol sym, string member,
+                             BaseMethodDeclarationSyntax method, SemanticModel model)
+{
+    foreach (var node in method.DescendantNodes())
+    {
+        if (node is SingleVariableDesignationSyntax svd
+            && svd.Parent is DeclarationPatternSyntax { Parent: IsPatternExpressionSyntax ip }
+            && IsDpValueAccess(StripCasts(ip.Expression), member)
+            && SymbolEqualityComparer.Default.Equals(model.GetDeclaredSymbol(svd), sym))
+            return true;
+        if (node is VariableDeclaratorSyntax { Initializer: { } init } vd
+            && IsDpValueAccess(StripCasts(init.Value), member)
+            && SymbolEqualityComparer.Default.Equals(model.GetDeclaredSymbol(vd), sym))
+            return true;
+    }
+    return false;
+}
+
+// Peel enclosing casts / parentheses so `(ICommand)e.OldValue` and `(e.OldValue)` reach `e.OldValue`.
+static ExpressionSyntax StripCasts(ExpressionSyntax e)
+{
+    while (true)
+        switch (e)
+        {
+            case CastExpressionSyntax c: e = c.Expression; continue;
+            case ParenthesizedExpressionSyntax p: e = p.Expression; continue;
+            default: return e;
+        }
+}
+
 // P-004 self-owned exemption: is the event SOURCE owned by (and so never longer-
 // lived than) the subscriber? True for a bare instance event on `this`, or a
 // receiver that resolves to a field/local the class OWNS. "Owns" is the `owned`
@@ -3786,7 +3880,11 @@ foreach (var (file, tree) in parsed)
                 if (!isTimer && source == "static" && HandlerRetainsNoInstance(a.Right, model))
                     continue;
                 var released = unsub.Contains($"{a.Left}|{NormalizeHandler(a.Right)}")
-                    || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv));
+                    || (isTimer && Receiver(a.Left) is { } recv && stopped.Contains(recv))
+                    // #218: the `+=` on the NEW half of a property-changed old->new rotation whose
+                    // `-=` is on the OLD half (same event member, same handler, same method) — a
+                    // single paired lifecycle, not an unpaired leak.
+                    || IsRotationPairedRelease(a, model);
                 // #146 — interprocedural publisher provenance: a `+=` on a PARAMETER
                 // publisher stays `injected` (locally honest — param→param syntax is
                 // identical for a DI singleton bus, a real leak, and for the
