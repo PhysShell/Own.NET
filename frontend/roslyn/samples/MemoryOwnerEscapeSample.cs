@@ -16,7 +16,7 @@ internal sealed class PixelOwner : IMemoryOwner<byte>
 
     public Memory<byte> Memory => this.data;
 
-    public void Dispose() { }
+    public void Dispose() { Array.Clear(this.data, 0, this.data.Length); }   // real work (#225): not a no-op
 }
 
 internal static class MemoryOwnerEscape

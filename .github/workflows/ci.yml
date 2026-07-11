@@ -211,6 +211,7 @@ jobs:
             frontend/roslyn/samples/SelfDetachingHandlerSample.cs \
             frontend/roslyn/samples/UsingFieldAcquisitionSample.cs \
             frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs \
+            frontend/roslyn/samples/EmptyDisposeSample.cs \
             frontend/roslyn/samples/AppScopedSourceSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
@@ -836,6 +837,19 @@ jobs:
           # ...while the same-named local in the OTHER method must still warn.
           echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'SameNameDifferentScopeSubscriber'" \
             || { echo "FAIL: expected OWN001 on the same-named-but-unrelated local in a different method"; exit 1; }
+          # issue #225 — a user-defined type whose Dispose() body is provably EMPTY holds no resource,
+          # so a LOCAL of it never disposed is not a leak (extends the named-BCL no-op exemption to any
+          # type). Here the flat (non-flow) name path: a `*Reader`-named empty-Dispose local (ScratchReader)
+          # is silent, while a non-empty `*Reader` local (LeakyReader) still leaks. (The semantic enumerator
+          # form is exercised in the --flow-locals step below.)
+          if echo "$out" | grep -q "'ScratchReader'"; then
+            echo "FAIL: a local of a user type with a provably-empty Dispose() body was wrongly flagged (#225)"; exit 1
+          fi
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'lr'.*'LeakyReader'" \
+            || { echo "FAIL: a non-empty-Dispose local (LeakyReader) must still leak (#225 stays scoped)"; exit 1; }
+          # Codex P2: an empty SYNC Dispose but a real DisposeAsync (a `*Reader` here) must still leak.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar'.*'AsyncReader'" \
+            || { echo "FAIL: a type with a real DisposeAsync (empty sync Dispose) must still leak (#225)"; exit 1; }
           # issue #228 — an Application-derived subscriber on a CURATED app-scoped
           # resolver result (PaletteHelper.GetThemeManager) with a method-group handler
           # of the App class itself must be SILENT: the source is process-lived (bound
@@ -864,7 +878,7 @@ jobs:
           # curated initializer — the stale declaration binding must not exempt.
           echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignApp'" \
             || { echo "FAIL: expected OWN001 when the resolver-bound local is reassigned before the +="; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) at the C# location"
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
@@ -873,7 +887,8 @@ jobs:
             frontend/roslyn/samples/FlowLocalsSample.cs \
             frontend/roslyn/samples/MemoryOwnerEscapeSample.cs \
             frontend/roslyn/samples/FactoryLeakSample.cs \
-            frontend/roslyn/samples/OverloadSigSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+            frontend/roslyn/samples/OverloadSigSample.cs \
+            frontend/roslyn/samples/EmptyDisposeSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
           echo "$out"
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
@@ -1095,7 +1110,26 @@ jobs:
           for ok in opened probe; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: stage-2 silent case '$ok' was reported"; exit 1; fi
           done
-          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
+          # issue #225 (semantic flow path — the real ClosedXML Slice.Enumerator shape): a LOCAL of a
+          # user type whose Dispose() body is provably EMPTY holds no resource, so never disposing it
+          # cannot leak. The three controls STILL leak: a real IDisposable ('r'), a non-empty *Reader
+          # ('lr'), and an empty override over a base that owns a real Dispose ('d').
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'r' is never disposed" \
+            || { echo "FAIL: #225 flow: a real IDisposable local must still leak"; exit 1; }
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'lr' is never disposed" \
+            || { echo "FAIL: #225 flow: a non-empty *Reader local must still leak"; exit 1; }
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'d' is never disposed" \
+            || { echo "FAIL: #225 flow: an empty override over a real base Dispose must still leak"; exit 1; }
+          # Codex P2: an empty SYNC Dispose() but a real DisposeAsync() (IDisposable + IAsyncDisposable)
+          # must NOT be exempted — the real cleanup is async and the flow detector treats it as a release.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar' is never disposed" \
+            || { echo "FAIL: #225 flow: a type with a real DisposeAsync (empty sync Dispose) must still leak"; exit 1; }
+          # exactly 4 EmptyDisposeSample findings -> the two provably-empty-Dispose locals (the enumerator
+          # and ScratchReader) are SILENT; any leak of them would push the count past 4.
+          n225=$(echo "$out" | grep -cE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN00")
+          [ "$n225" = "4" ] \
+            || { echo "FAIL: #225 flow: expected exactly 4 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, #225 empty-Dispose local exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
         run: |
           # C#-native mirror of examples/gallery/*.own, run through the real extractor ->
