@@ -49,6 +49,21 @@ public sealed class CommandTriggerAction
     }
 }
 
+// FORM (1, inline cast) — DP callback that subscribes DIRECTLY on the cast DP value, no intermediate
+// local: `((ICommand)e.NewValue!).CanExecuteChanged += H` paired with the OldValue `-=`. Since
+// OldValue/NewValue are object-typed the cast is mandatory, so this direct-cast form is a common way
+// to write the rotation -> SILENT. (Codex review: strip casts / `!` before the direct DP-receiver check.)
+public sealed class InlineCastRotation
+{
+    private void OnCanExecuteChanged(object? sender, EventArgs e) { }
+
+    private void OnCommandChanged(DependencyPropertyChangedEventArgs e)
+    {
+        ((ICommand)e.OldValue!).CanExecuteChanged -= OnCanExecuteChanged;   // unsub OLD (inline cast)
+        ((ICommand)e.NewValue!).CanExecuteChanged += OnCanExecuteChanged;   // sub NEW (inline cast) -> paired (SILENT)
+    }
+}
+
 // FORM (2) — plain virtual OnXChanged(old, new) override, two SAME-type parameters (the AvalonEdit
 // AbstractMargin shape — not even a DP callback). unsub param0, sub param1, same handler -> SILENT.
 public class AbstractMargin

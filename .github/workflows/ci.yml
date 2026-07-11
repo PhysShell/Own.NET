@@ -728,7 +728,9 @@ jobs:
           # handler = one paired lifecycle) must be SILENT. Two recognised forms: a DP callback reading
           # e.OldValue/e.NewValue (CommandTriggerAction), and a plain virtual OnXChanged(old, new)
           # override with two same-type params (AbstractMargin). Confirmed FP in 3 real repos, 6+ sites.
-          if echo "$out" | grep -qE "'CommandTriggerAction'|'AbstractMargin'"; then
+          # InlineCastRotation covers the direct inline-cast receiver `((ICommand)e.NewValue!).Event +=`
+          # (OldValue/NewValue are object-typed, so the cast is mandatory) — Codex review catch.
+          if echo "$out" | grep -qE "'CommandTriggerAction'|'AbstractMargin'|'InlineCastRotation'"; then
             echo "FAIL: a DP old->new subscription rotation was wrongly flagged as a leak (#218)"; exit 1
           fi
           # ...and it must NOT over-widen — three controls STAY flagged: (a) the += uses a DIFFERENT

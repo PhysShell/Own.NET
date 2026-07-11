@@ -523,8 +523,10 @@ static bool IsRotationPairedRelease(AssignmentExpressionSyntax add, SemanticMode
 static bool IsOldNewPair(ExpressionSyntax oldRecv, ExpressionSyntax newRecv,
                          BaseMethodDeclarationSyntax method, SemanticModel model)
 {
-    // (1) direct e.OldValue / e.NewValue receivers.
-    if (IsDpValueAccess(oldRecv, "OldValue") && IsDpValueAccess(newRecv, "NewValue"))
+    // (1) direct e.OldValue / e.NewValue receivers — including the inline CAST form
+    // `((ICommand)e.NewValue).CanExecuteChanged += H` (OldValue/NewValue are object-typed, so a
+    // cast is mandatory to reach the event), which is the common way to write this rotation.
+    if (IsDpValueAccess(StripCasts(oldRecv), "OldValue") && IsDpValueAccess(StripCasts(newRecv), "NewValue"))
         return true;
     var oldSym = model.GetSymbolInfo(oldRecv).Symbol;
     var newSym = model.GetSymbolInfo(newRecv).Symbol;
@@ -568,7 +570,8 @@ static bool BoundFromDpValue(ISymbol sym, string member,
     return false;
 }
 
-// Peel enclosing casts / parentheses so `(ICommand)e.OldValue` and `(e.OldValue)` reach `e.OldValue`.
+// Peel enclosing casts / parentheses / the null-forgiving `!` so `(ICommand)e.OldValue`,
+// `(e.OldValue)` and `((ICommand)e.NewValue!)` all reach the underlying `e.OldValue`/`e.NewValue`.
 static ExpressionSyntax StripCasts(ExpressionSyntax e)
 {
     while (true)
@@ -576,6 +579,9 @@ static ExpressionSyntax StripCasts(ExpressionSyntax e)
         {
             case CastExpressionSyntax c: e = c.Expression; continue;
             case ParenthesizedExpressionSyntax p: e = p.Expression; continue;
+            case PostfixUnaryExpressionSyntax s
+                when s.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                e = s.Operand; continue;
             default: return e;
         }
 }
