@@ -1324,6 +1324,12 @@ static bool HasEmptyDisposeBody(ITypeSymbol? t)
     for (var b = nt.BaseType; b is not null && b.SpecialType != SpecialType.System_Object; b = b.BaseType)
         if (ImplementsIDisposable(b))
             return false;
+    // A non-empty DisposeAsync() can do the REAL cleanup even when the sync Dispose() is an empty
+    // compatibility no-op (a type implementing both IDisposable AND IAsyncDisposable). The flow
+    // detector already treats DisposeAsync() as a release, so an undisposed local of such a type is a
+    // real leak — conservatively refuse to exempt any type that declares its own DisposeAsync (Codex).
+    if (nt.GetMembers("DisposeAsync").OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0))
+        return false;
     var dispose = nt.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault(
         m => m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0);
     if (dispose is null || dispose.DeclaringSyntaxReferences.Length == 0)

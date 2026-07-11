@@ -58,6 +58,22 @@ public sealed class EmptyOverrideOverRealBase : BaseWithRealDispose
     public override void Dispose() { }   // empty, but base.Dispose does real work
 }
 
+// NON-empty cleanup via DisposeAsync, with the sync Dispose() an empty COMPATIBILITY no-op (a type
+// implementing both IDisposable and IAsyncDisposable). The empty sync body must NOT exempt it — the
+// real cleanup lives in DisposeAsync, which the flow detector treats as a release, so an undisposed
+// local still leaks (Codex P2). Name ends `Reader` so both detector paths see it.
+public sealed class AsyncReader : IDisposable, IAsyncDisposable
+{
+    private readonly System.Threading.CancellationTokenSource _cts = new();
+    public int Read() => 0;
+    public void Dispose() { }                                        // empty sync compat no-op
+    public System.Threading.Tasks.ValueTask DisposeAsync()           // REAL cleanup
+    {
+        _cts.Dispose();
+        return default;
+    }
+}
+
 public sealed class EmptyDisposeConsumers
 {
     // SILENT: an empty-Dispose enumerator local, iterated and never disposed (the ClosedXML shape).
@@ -95,5 +111,13 @@ public sealed class EmptyDisposeConsumers
     {
         var d = new EmptyOverrideOverRealBase();
         d.Ping();                  // base.Dispose() is real -> LEAK
+    }
+
+    // FLAGGED (control, Codex P2): empty SYNC Dispose but a real DisposeAsync -> never disposing
+    // (sync or async) leaks; the empty sync body must not exempt it.
+    public int LeakAsync()
+    {
+        var ar = new AsyncReader();
+        return ar.Read();          // never disposed (sync or async) -> LEAK
     }
 }

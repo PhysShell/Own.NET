@@ -846,6 +846,9 @@ jobs:
           fi
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'lr'.*'LeakyReader'" \
             || { echo "FAIL: a non-empty-Dispose local (LeakyReader) must still leak (#225 stays scoped)"; exit 1; }
+          # Codex P2: an empty SYNC Dispose but a real DisposeAsync (a `*Reader` here) must still leak.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar'.*'AsyncReader'" \
+            || { echo "FAIL: a type with a real DisposeAsync (empty sync Dispose) must still leak (#225)"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
@@ -1088,11 +1091,15 @@ jobs:
             || { echo "FAIL: #225 flow: a non-empty *Reader local must still leak"; exit 1; }
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'d' is never disposed" \
             || { echo "FAIL: #225 flow: an empty override over a real base Dispose must still leak"; exit 1; }
-          # exactly 3 EmptyDisposeSample findings -> the two empty-Dispose locals (the enumerator and
-          # ScratchReader) are SILENT; any leak would push the count past 3.
+          # Codex P2: an empty SYNC Dispose() but a real DisposeAsync() (IDisposable + IAsyncDisposable)
+          # must NOT be exempted — the real cleanup is async and the flow detector treats it as a release.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar' is never disposed" \
+            || { echo "FAIL: #225 flow: a type with a real DisposeAsync (empty sync Dispose) must still leak"; exit 1; }
+          # exactly 4 EmptyDisposeSample findings -> the two provably-empty-Dispose locals (the enumerator
+          # and ScratchReader) are SILENT; any leak of them would push the count past 4.
           n225=$(echo "$out" | grep -cE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN00")
-          [ "$n225" = "3" ] \
-            || { echo "FAIL: #225 flow: expected exactly 3 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          [ "$n225" = "4" ] \
+            || { echo "FAIL: #225 flow: expected exactly 4 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, #225 empty-Dispose local exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
         run: |
