@@ -914,6 +914,11 @@ jobs:
           # so the exemption must resolve the binding, not just the name.
           echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ShadowParamBehavior'" \
             || { echo "FAIL: expected OWN001 when a shadowing parameter is named AssociatedObject (#227)"; exit 1; }
+          # (5) a PARTIAL behavior whose field is assigned from AssociatedObject in one
+          # declaration but from an injected value in the sibling partial — the field-
+          # population scan must span every partial of the type.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'PartialFieldBehavior'" \
+            || { echo "FAIL: expected OWN001 when a sibling partial injects the AssociatedObject field (#227)"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #227 self-owned Behavior.AssociatedObject source (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |

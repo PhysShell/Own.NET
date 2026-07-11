@@ -155,4 +155,27 @@ namespace OwnSamples.AssociatedObject
 
         void OnLoaded(object? sender, EventArgs e) { }
     }
+
+    // CONTROL 5 (flagged): a PARTIAL behavior whose field is assigned from
+    // `AssociatedObject` in one declaration but ALSO from an injected value in the
+    // sibling partial — the field-population scan must span every partial of the type,
+    // so the ambiguous field keeps the warning.
+    public partial class PartialFieldBehavior : Behavior<UiElement>
+    {
+        UiElement? _el;
+
+        protected void OnAttached()
+        {
+            _el = this.AssociatedObject;
+            if (_el is Panel panel)
+                panel.Loaded += OnLoaded;                    // OWN001: _el also injected in the sibling partial
+        }
+
+        void OnLoaded(object? sender, EventArgs e) { }
+    }
+
+    public partial class PartialFieldBehavior
+    {
+        public void Inject(UiElement injected) => _el = injected;   // sibling-partial injected write
+    }
 }

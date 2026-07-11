@@ -1118,31 +1118,47 @@ static bool ResolvesToAssociatedObject(ExpressionSyntax expr, SemanticModel mode
         return false;
     }
     if (sym is IFieldSymbol field)
-        return FieldAssignedOnlyFromAssociatedObject(field, model, clsNode, depth);
+        return FieldAssignedOnlyFromAssociatedObject(field, model, depth);
     return false;
 }
 
 // #227: a field is a valid `AssociatedObject` alias only when it is populated ONLY
 // from `AssociatedObject` — at least one such assignment, and no assignment to a
 // value we cannot prove is `AssociatedObject` (an injected/constructed write would
-// make the field's contents ambiguous at the `+=`). Class-level assignment scan, the
-// same mechanism the field-based self-owned search already uses; the field-population
-// evidence may live in the same `OnAttached` or any other member of the class.
+// make the field's contents ambiguous at the `+=`). Scans EVERY partial declaration of
+// the field's containing type (a disqualifying injected write may live in a sibling
+// partial FILE — the merged compilation makes them all reachable through the symbol's
+// DeclaringSyntaxReferences), each with its own tree's semantic model. The field
+// population evidence may thus live in the same `OnAttached` or any other member/partial
+// of the class.
 static bool FieldAssignedOnlyFromAssociatedObject(IFieldSymbol field, SemanticModel model,
-                                                  TypeDeclarationSyntax clsNode, int depth)
+                                                  int depth)
 {
     var any = false;
-    foreach (var asg in clsNode.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+    foreach (var decl in EnumerateTypeDeclarations(field.ContainingType))
     {
-        if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
-            continue;
-        if (!SymbolEqualityComparer.Default.Equals(model.GetSymbolInfo(asg.Left).Symbol, field))
-            continue;
-        any = true;
-        if (!ResolvesToAssociatedObject(asg.Right, model, clsNode, depth + 1))
-            return false;
+        var m = model.Compilation.GetSemanticModel(decl.SyntaxTree);
+        foreach (var asg in decl.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+        {
+            if (!asg.IsKind(SyntaxKind.SimpleAssignmentExpression))
+                continue;
+            if (!SymbolEqualityComparer.Default.Equals(m.GetSymbolInfo(asg.Left).Symbol, field))
+                continue;
+            any = true;
+            if (!ResolvesToAssociatedObject(asg.Right, m, decl, depth + 1))
+                return false;
+        }
     }
     return any;
+}
+
+// The syntax declarations of a type symbol — every `partial` piece (in the merged
+// compilation, across files). Used to scan a member's assignment sites wherever they live.
+static IEnumerable<TypeDeclarationSyntax> EnumerateTypeDeclarations(INamedTypeSymbol type)
+{
+    foreach (var r in type.DeclaringSyntaxReferences)
+        if (r.GetSyntax() is TypeDeclarationSyntax td)
+            yield return td;
 }
 
 // #227: the self-owned-source exemption for a `Behavior` reaching its own
