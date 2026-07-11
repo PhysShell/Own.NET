@@ -102,4 +102,41 @@ namespace OwnSamples.AppScoped
 
         void OnTheme(object? sender, EventArgs e) { }
     }
+
+    // CONTROL 4 (flagged, Codex P2): the method group is qualified with ANOTHER
+    // instance of the same App-derived type — right ContainingType, wrong delegate
+    // TARGET: the process-lived source pins `_twin`, not `this`.
+    public class TwinApp : Application
+    {
+        readonly TwinApp? _twin;
+
+        public TwinApp(TwinApp? twin) => _twin = twin;
+
+        public void OnStartup()
+        {
+            if (new PaletteHelper().GetThemeManager() is { } themeManager)
+                themeManager.ThemeChanged += _twin!.OnTheme;              // OWN001 warning
+        }
+
+        public void OnTheme(object? sender, EventArgs e) { }
+    }
+
+    // CONTROL 5 (flagged, Codex P2): the local STARTS as the curated resolver result
+    // but is REASSIGNED to an injected publisher before the `+=` — the declaration-site
+    // binding is stale, so the exemption must not trust it.
+    public class ReassignApp : Application
+    {
+        readonly ThemeManagerLike _injectedBus;
+
+        public ReassignApp(ThemeManagerLike bus) => _injectedBus = bus;
+
+        public void OnStartup()
+        {
+            var tm = new PaletteHelper().GetThemeManager()!;
+            tm = _injectedBus;
+            tm.ThemeChanged += OnTheme;                                   // OWN001 warning
+        }
+
+        void OnTheme(object? sender, EventArgs e) { }
+    }
 }

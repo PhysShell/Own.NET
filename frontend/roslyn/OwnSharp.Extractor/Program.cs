@@ -929,6 +929,11 @@ static bool ResolvesToAppScopedCall(ExpressionSyntax expr, SemanticModel model, 
     }
     if (model.GetSymbolInfo(expr).Symbol is not ILocalSymbol local)
         return false;
+    // The binding is only trustworthy if the local still HOLDS it at the `+=`:
+    // a reassignment anywhere in the enclosing member (or a ref/out escape that
+    // could rebind it) makes the initializer stale — no exemption (Codex P2).
+    if (!IsNeverReassigned(local, model))
+        return false;
     foreach (var r in local.DeclaringSyntaxReferences)
         switch (r.GetSyntax())
         {
@@ -946,6 +951,34 @@ static bool ResolvesToAppScopedCall(ExpressionSyntax expr, SemanticModel model, 
     return false;
 }
 
+// #228 (Codex P2): the declaration-site binding proves the local's value at the
+// `+=` only if nothing rebinds it. Conservative whole-member scan: ANY assignment
+// whose LHS is this local, or ANY `ref`/`out` argument passing it, kills the proof
+// (even one after the subscription — cheaper than flow order and precision-safe:
+// the worst case is keeping today's honest warning).
+static bool IsNeverReassigned(ILocalSymbol local, SemanticModel model)
+{
+    foreach (var r in local.DeclaringSyntaxReferences)
+    {
+        var scope = r.GetSyntax().Ancestors().FirstOrDefault(n =>
+            n is MethodDeclarationSyntax or ConstructorDeclarationSyntax
+              or AccessorDeclarationSyntax or LocalFunctionStatementSyntax
+              or AnonymousFunctionExpressionSyntax);
+        if (scope is null)
+            return false;
+        foreach (var asg in scope.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            if (SymbolEqualityComparer.Default.Equals(
+                    model.GetSymbolInfo(asg.Left).Symbol, local))
+                return false;
+        foreach (var arg in scope.DescendantNodes().OfType<ArgumentSyntax>())
+            if (!arg.RefOrOutKeyword.IsKind(SyntaxKind.None)
+                && SymbolEqualityComparer.Default.Equals(
+                       model.GetSymbolInfo(arg.Expression).Symbol, local))
+                return false;
+    }
+    return true;
+}
+
 // #228: the handler must be a METHOD GROUP declared on the subscribing class itself —
 // its delegate target is then the App singleton (already process-lived, nothing to
 // promote). A lambda/anonymous method is rejected outright: it may capture an
@@ -955,7 +988,19 @@ static bool ResolvesToAppScopedCall(ExpressionSyntax expr, SemanticModel model, 
 static bool IsOwnMethodGroupHandler(ExpressionSyntax right, SemanticModel model,
                                     INamedTypeSymbol? cls)
 {
-    if (cls is null || right is AnonymousFunctionExpressionSyntax)
+    if (cls is null)
+        return false;
+    // The delegate TARGET must be `this` — a bare identifier (implicit this) or an
+    // explicit `this.X`. A method group qualified with ANOTHER instance of the same
+    // App-derived type (`otherApp.OnTheme`) has the right ContainingType but pins
+    // that other instance, not the process-lived singleton (Codex P2).
+    var receiverIsThis = right switch
+    {
+        IdentifierNameSyntax => true,
+        MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } => true,
+        _ => false,
+    };
+    if (!receiverIsThis)
         return false;
     var info = model.GetSymbolInfo(right);
     var sym = info.Symbol as IMethodSymbol

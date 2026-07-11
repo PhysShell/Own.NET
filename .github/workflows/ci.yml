@@ -853,9 +853,17 @@ jobs:
           # exact hole that sank the rejected clsIsStatic broadening;
           echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'LambdaApp'" \
             || { echo "FAIL: expected OWN001 on the lambda-handler subscription inside the App (capture hole)"; exit 1; }
-          # (3) App + method-group handler, but a NON-curated resolver.
+          # (3) App + method-group handler, but a NON-curated resolver;
           echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'CuratedOnlyApp'" \
             || { echo "FAIL: expected OWN001 on the non-curated resolver source inside the App"; exit 1; }
+          # (4, Codex P2) the method group is qualified with ANOTHER instance of the
+          # same App type — right ContainingType, wrong delegate target;
+          echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'TwinApp'" \
+            || { echo "FAIL: expected OWN001 when the handler target is another instance, not this"; exit 1; }
+          # (5, Codex P2) the local is REASSIGNED to an injected publisher after the
+          # curated initializer — the stale declaration binding must not exempt.
+          echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignApp'" \
+            || { echo "FAIL: expected OWN001 when the resolver-bound local is reassigned before the +="; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
