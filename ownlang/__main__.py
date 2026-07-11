@@ -349,15 +349,22 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     # Advisory findings (OWN050 "leakage analysis skipped", OBL005 "dead protocol
     # rule") are always shown as warnings regardless of --severity, and never
     # affect the exit code — they are coverage/hygiene notes, not verdicts.
-    leaks = [f for f in findings if not f.advisory]
-    notes = [f for f in findings if f.advisory]
-    shown = leaks if verbosity == "quiet" else findings
+    # Inline `[OwnIgnore("reason")]` suppressions (P-004, #209) are counted and carried in
+    # SARIF `suppressions`, but kept OUT of the human findings stream and the exit code —
+    # visibility over silence, without failing the run. Everything else is "active".
+    suppressed = [f for f in findings if f.suppressed]
+    active = [f for f in findings if not f.suppressed]
+    leaks = [f for f in active if not f.advisory]
+    notes = [f for f in active if f.advisory]
+    shown = leaks if verbosity == "quiet" else active
     if fmt == "sarif":
         # SARIF is one document for the whole run (not a line per finding): stdout
         # carries only the JSON; the summary goes to stderr like the other machine
         # formats. build_sarif applies the same per-finding severity policy below.
+        # Suppressed findings ride along (marked with a `suppressions` array) so a
+        # SARIF consumer can count them rather than losing them.
         import json
-        print(json.dumps(build_sarif(shown, severity), indent=2))
+        print(json.dumps(build_sarif(shown + suppressed, severity), indent=2))
     else:
         for f in shown:
             # Severity is the weaker of the host's --severity and the finding's own
@@ -382,6 +389,10 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
         note_codes = "/".join(sorted({x.code for x in notes}))
         summary += (f" ({len(notes)} advisory hidden)" if verbosity == "quiet"
                     else f", {len(notes)} advisory ({note_codes})")
+    if suppressed:
+        # counted, never silent: [OwnIgnore] suppressions are tallied here and carried in
+        # SARIF `suppressions`, but they do not print as findings and do not fail the run.
+        summary += f", {len(suppressed)} suppressed ([OwnIgnore])"
     print(summary + ".", file=summary_to)
     if verbosity == "verbose" and findings:
         by_code: dict[str, int] = {}

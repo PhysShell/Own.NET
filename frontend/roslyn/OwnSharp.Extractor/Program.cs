@@ -3488,6 +3488,39 @@ static bool IsPublicCtor(SyntaxTokenList modifiers)
     return false;
 }
 
+// [OwnIgnore("reason")] per-site suppression (P-004 / issue #209). The reason string is
+// MANDATORY by design — a suppression is a documented decision, not a silent one — so this
+// returns the reason ONLY when the attribute carries a constant, non-empty string first
+// argument; it returns null when the attribute is absent, reason-less (`[OwnIgnore]`), or
+// carries an empty/non-constant reason. A null therefore never suppresses (the finding fires),
+// which is exactly P-004's "never a silent accept" posture. Matched by SIMPLE name
+// (`OwnIgnore` / `OwnIgnoreAttribute`), namespace-agnostic, like the BCL `[SuppressMessage]`
+// convention — so a user may declare their own attribute type; the core (not this frontend) is
+// the sole authority on the resulting verdict (P-013 "one checker"). Uses the SemanticModel's
+// constant folding so a `const`/`nameof` reason resolves, not only a bare string literal.
+static string? OwnIgnoreReason(SyntaxList<AttributeListSyntax> attrLists, SemanticModel model)
+{
+    foreach (var al in attrLists)
+        foreach (var a in al.Attributes)
+        {
+            var simple = a.Name switch
+            {
+                QualifiedNameSyntax q => q.Right.Identifier.Text,
+                SimpleNameSyntax s => s.Identifier.Text,
+                _ => a.Name.ToString(),
+            };
+            if (simple is not ("OwnIgnore" or "OwnIgnoreAttribute"))
+                continue;
+            var arg = a.ArgumentList?.Arguments.FirstOrDefault();
+            if (arg is null)
+                return null;   // reason-less [OwnIgnore] -> does not suppress
+            if (model.GetConstantValue(arg.Expression).Value is string r && r.Length > 0)
+                return r;
+            return null;       // empty / non-constant reason -> does not suppress
+        }
+    return null;
+}
+
 var components = new List<object>();
 // P-016 B0b/B2: per-method flow bodies (only when --flow-locals).
 var flowFunctions = new List<object>();
@@ -4005,14 +4038,31 @@ foreach (var (file, tree) in parsed)
                     && fieldCtors.Count > 0
                     && fieldCtors.All(c => IsNoOpDisposeWrapper(c, model)))
                     continue;
-                subs.Add(new
-                {
-                    @event = v.Identifier.Text,
-                    line = LineOf(v),
-                    released = disposed.Contains(v.Identifier.Text),
-                    resource = "disposable",
-                    type = tname,
-                });
+                // [OwnIgnore("reason")] on the field declaration (P-004 / #209): emit the
+                // record WITH the reason marker rather than dropping it, so the core can
+                // count the suppression and SARIF carries it in `suppressions` (visibility
+                // over silence). Additive/optional: absent when there is no valid reason, so
+                // an older core ignores it — exactly the source_provenance convention.
+                var ignoreReason = OwnIgnoreReason(fd.AttributeLists, model);
+                if (ignoreReason is not null)
+                    subs.Add(new
+                    {
+                        @event = v.Identifier.Text,
+                        line = LineOf(v),
+                        released = disposed.Contains(v.Identifier.Text),
+                        resource = "disposable",
+                        type = tname,
+                        ignore_reason = ignoreReason,
+                    });
+                else
+                    subs.Add(new
+                    {
+                        @event = v.Identifier.Text,
+                        line = LineOf(v),
+                        released = disposed.Contains(v.Identifier.Text),
+                        resource = "disposable",
+                        type = tname,
+                    });
             }
         }
 
