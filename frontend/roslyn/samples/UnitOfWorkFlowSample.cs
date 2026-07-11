@@ -99,11 +99,15 @@ namespace Catalog
     // optional) — which is what makes a leaked local matter.
     public sealed class UnitOfWork : IUnitOfWork
     {
+        // Owns a real IDisposable (a DbContext-like resource) released in Dispose, so a leaked
+        // local genuinely leaks — its Dispose() is NOT a no-op (keeps this fixture faithful under
+        // the #225 empty-Dispose exemption, which only skips a provably-empty body).
+        private readonly System.Threading.CancellationTokenSource _cts = new();
         public UnitOfWork(bool isCatalogs) { }
         public IQueryable<ProductCatalog> ProductCatalogs => Enumerable.Empty<ProductCatalog>().AsQueryable();
         public IQueryable<TempProduct> TempProducts => Enumerable.Empty<TempProduct>().AsQueryable();
         public IGenericRepository<T> GenericRepository<T>() => new GenericRepository<T>();
-        public void Dispose() { }
+        public void Dispose() { _cts.Dispose(); }
     }
 
     public interface IGenericRepository<T>

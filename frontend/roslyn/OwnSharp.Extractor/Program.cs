@@ -1306,6 +1306,32 @@ static bool IsNoOpDisposeWrapper(BaseObjectCreationExpressionSyntax oce, Semanti
     return arg0 is not null && IsInMemoryDisposableBacking(model.GetTypeInfo(arg0).Type);
 }
 
+// Issue #225 — a user-defined type whose parameterless `Dispose()` body is provably EMPTY holds no
+// resource behind the interface: it implements IDisposable only to satisfy a contract (e.g.
+// `IEnumerator<T>`), so never calling Dispose() cannot leak. Recognised from SOURCE: the type
+// declares `void Dispose()` with a BLOCK body of ZERO statements, and no base in its chain carries a
+// Dispose to cascade to (the base is `object` / not IDisposable), so nothing real is skipped. A body
+// we cannot read (third-party metadata-only, or expression-bodied doing work) is NOT provably empty
+// and stays flagged — never a guessed drop. This generalises the named-BCL IsNoOpDisposeWrapper /
+// IsDisposeOptional idea to any type. Deliberately scoped to LOCAL disposables (the #201-sweep
+// evidence — ClosedXML's `Slice.Enumerator` locals): a FIELD keeps its own disposal contract, so an
+// empty-Dispose field (the OwnIgnoreSample `Handle` stand-in) is unaffected.
+static bool HasEmptyDisposeBody(ITypeSymbol? t)
+{
+    if (t is not INamedTypeSymbol nt)
+        return false;
+    // The base must not own a Dispose we'd be silently skipping — only `object` / a non-IDisposable base.
+    for (var b = nt.BaseType; b is not null && b.SpecialType != SpecialType.System_Object; b = b.BaseType)
+        if (ImplementsIDisposable(b))
+            return false;
+    var dispose = nt.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault(
+        m => m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0);
+    if (dispose is null || dispose.DeclaringSyntaxReferences.Length == 0)
+        return false;   // no readable source Dispose (metadata-only) -> cannot prove empty
+    return dispose.DeclaringSyntaxReferences.All(
+        sref => sref.GetSyntax() is MethodDeclarationSyntax { Body.Statements.Count: 0 });
+}
+
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
 // base chain). A modeless `Form.Show()` transfers ownership to the framework, which
 // disposes the form on close — EmitFlowExpr models that show as a release.
@@ -4715,6 +4741,11 @@ foreach (var (file, tree) in parsed)
                     };
                     if (ctype is null || !IsDisposableType(ctype))
                         continue;
+                    // #225: a user type whose Dispose() body is provably empty holds no resource —
+                    // never disposing a local of it cannot leak (mirrors the flow path's guard).
+                    if (v.Initializer?.Value is { } newExpr
+                        && HasEmptyDisposeBody(model.GetTypeInfo(newExpr).Type))
+                        continue;
                     subs.Add(new
                     {
                         @event = name,
@@ -4758,7 +4789,10 @@ foreach (var (file, tree) in parsed)
                         if (v.Initializer is { Value: ObjectCreationExpressionSyntax
                                                    or ImplicitObjectCreationExpressionSyntax } init
                             && model.GetTypeInfo(init.Value).Type is { } dt
-                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt))
+                            && ImplementsIDisposable(dt) && !IsDisposeOptional(dt)
+                            // #225: a user type with a provably-empty Dispose() body holds no
+                            // resource -> never disposing a local of it cannot leak.
+                            && !HasEmptyDisposeBody(dt))
                         {
                             candidates.Add(v.Identifier.Text);
                             newedDisposables.Add(v.Identifier.Text);

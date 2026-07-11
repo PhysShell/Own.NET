@@ -644,6 +644,24 @@ type names, a `Dispose()` method whose body is provably empty (no statements)
 is safe to skip regardless of whose type it is — first-party or third-party,
 named allowlist or not.**
 
+**Shipped (issue #225).** `HasEmptyDisposeBody` (extractor) recognises a type
+whose parameterless `Dispose()` is declared in source with a **block body of zero
+statements** *and* whose base chain carries no `Dispose` to cascade to (base is
+`object` / not `IDisposable`), so nothing real is skipped. A **LOCAL** of such a
+type never disposed is then dropped from both the flat (`IsDisposableType`) and the
+`--flow-locals` (`ImplementsIDisposable`) local-disposable paths. Deliberately
+**scoped to locals**: a FIELD keeps its own disposal contract (so the
+`OwnIgnoreSample` `Handle` field stand-in and other field fixtures are untouched).
+Precision guards, each pinned by `EmptyDisposeSample.cs`: a **non-empty** body
+(`RealResource`, `LeakyReader`) still leaks; an **empty override over a base whose
+`Dispose` does real work** (`EmptyOverrideOverRealBase`) still leaks; an
+**expression-bodied / metadata-only** `Dispose` we cannot read as empty is not
+exempted (never a guessed drop). The empty enumerator (`EmptyDisposeEnumerator`,
+the ClosedXML shape) and an empty `*Reader` (`ScratchReader`) stay silent. Two
+existing fixtures that had used an empty `Dispose()` as a modelling shortcut
+(`UnitOfWork`, `PixelOwner`) were made faithful (a real Dispose body) so they
+remain genuine leak fixtures.
+
 ---
 
 ## The through-line
