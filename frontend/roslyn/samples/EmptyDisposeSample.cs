@@ -23,12 +23,27 @@ public sealed class EmptyDisposeEnumerator : IEnumerator<int>
     public void Dispose() { }   // literally empty -> no resource
 }
 
-// EMPTY Dispose on a name that ALSO matches the flat (non-flow) name heuristic (`*Reader`), so the
-// non-flow local-disposable path exercises the same exemption.
+// EMPTY Dispose spelled as an EXPLICIT interface implementation — the actual ClosedXML
+// Slice.Enumerator form (#238 coverage): metadata name "System.IDisposable.Dispose", which a
+// plain GetMembers("Dispose") lookup misses.
+public sealed class ExplicitDisposeEnumerator : IEnumerator<int>
+{
+    private int _i;
+    public int Current => _i;
+    object IEnumerator.Current => Current;
+    public bool MoveNext() => ++_i <= 3;
+    public void Reset() => _i = 0;
+    void IDisposable.Dispose() { }   // literally empty, explicit-interface spelling
+}
+
+// #238 SOUNDNESS control — the XLWorkbook shape: an empty SOURCE Dispose on a NON-enumerator
+// type. An IL weaver (Janitor.Fody) can inject the real cleanup at build time, and source-level
+// analysis cannot prove it doesn't — so this must STAY flagged. (`*Reader` name keeps the flat
+// path exercising it too.)
 public sealed class ScratchReader : IDisposable
 {
     public int Read() => -1;
-    public void Dispose() { }   // empty -> no resource
+    public void Dispose() { }   // empty IN SOURCE only -> not provably a runtime no-op
 }
 
 // NON-empty Dispose — a real owned resource released in Dispose. A local never disposed LEAKS.
@@ -85,11 +100,21 @@ public sealed class EmptyDisposeConsumers
         return n;
     }
 
-    // SILENT: an empty-Dispose `*Reader` local (flat-path name match) never disposed.
+    // SILENT: the explicit-interface empty-Dispose enumerator (#238 coverage), never disposed.
+    public int CountExplicit()
+    {
+        var x = new ExplicitDisposeEnumerator();
+        var n = 0;
+        while (x.MoveNext()) n++;  // never disposed -> Dispose is empty -> SILENT
+        return n;
+    }
+
+    // FLAGGED (#238 soundness control): an empty SOURCE Dispose on a NON-enumerator — a weaver
+    // may add the real cleanup at build time, so the exemption must not apply -> OWN001.
     public int UseScratch()
     {
         var s = new ScratchReader();
-        return s.Read();           // never disposed -> Dispose is empty -> SILENT
+        return s.Read();           // non-enumerator empty-in-source Dispose -> LEAK
     }
 
     // FLAGGED (control): a real IDisposable local never disposed -> OWN001.

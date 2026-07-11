@@ -1434,6 +1434,16 @@ static bool HasEmptyDisposeBody(ITypeSymbol? t)
 {
     if (t is not INamedTypeSymbol nt)
         return false;
+    // Issue #238 SOUNDNESS gate: an empty SOURCE body proves nothing about the COMPILED body —
+    // IL weavers (Janitor.Fody wove the real cleanup into ClosedXML's XLWorkbook.Dispose(),
+    // 263 silently-swallowed findings) rewrite Dispose at build time, and source-level analysis
+    // cannot prove their absence. So the exemption is confined to the shape that motivated
+    // #225 and is idiomatically stubbed, not woven: ENUMERATORS (IEnumerator forces IDisposable
+    // onto types that usually hold nothing). Everything else keeps the honest warning.
+    if (!nt.AllInterfaces.Any(i => i.SpecialType
+            is SpecialType.System_Collections_IEnumerator
+            or SpecialType.System_Collections_Generic_IEnumerator_T))
+        return false;
     // The base must not own a Dispose we'd be silently skipping — only `object` / a non-IDisposable base.
     for (var b = nt.BaseType; b is not null && b.SpecialType != SpecialType.System_Object; b = b.BaseType)
         if (ImplementsIDisposable(b))
@@ -1442,14 +1452,52 @@ static bool HasEmptyDisposeBody(ITypeSymbol? t)
     // compatibility no-op (a type implementing both IDisposable AND IAsyncDisposable). The flow
     // detector already treats DisposeAsync() as a release, so an undisposed local of such a type is a
     // real leak — conservatively refuse to exempt any type that declares its own DisposeAsync (Codex).
-    if (nt.GetMembers("DisposeAsync").OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0))
+    // #238: an EXPLICIT `IAsyncDisposable.DisposeAsync` has metadata name "…DisposeAsync", so match
+    // by simple name OR explicit-implementation target.
+    if (nt.GetMembers().OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0
+            && (m.Name == "DisposeAsync"
+                || m.ExplicitInterfaceImplementations.Any(x => x.Name == "DisposeAsync"))))
         return false;
-    var dispose = nt.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault(
-        m => m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0);
-    if (dispose is null || dispose.DeclaringSyntaxReferences.Length == 0)
+    // #238 coverage: `void IDisposable.Dispose() { }` (explicit interface implementation — the
+    // actual ClosedXML Slice.Enumerator spelling) is a Dispose too; GetMembers("Dispose") misses
+    // it because its metadata name is "System.IDisposable.Dispose".
+    var disposes = nt.GetMembers().OfType<IMethodSymbol>().Where(m =>
+            m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0
+            && (m.Name == "Dispose"
+                || m.ExplicitInterfaceImplementations.Any(
+                       x => x.ContainingType.SpecialType == SpecialType.System_IDisposable)))
+        .ToList();
+    if (disposes.Count == 0 || disposes.Any(d => d.DeclaringSyntaxReferences.Length == 0))
         return false;   // no readable source Dispose (metadata-only) -> cannot prove empty
-    return dispose.DeclaringSyntaxReferences.All(
-        sref => sref.GetSyntax() is MethodDeclarationSyntax { Body.Statements.Count: 0 });
+    if (!disposes.All(d => d.DeclaringSyntaxReferences.All(
+            sref => sref.GetSyntax() is MethodDeclarationSyntax { Body.Statements.Count: 0 })))
+        return false;
+    // #238 defense in depth: a FodyWeavers.xml anywhere above the type's source file means a
+    // weaver CAN rewrite this Dispose at build time — never exempt, even an enumerator.
+    return !SourceTreeHasWeaverConfig(nt);
+}
+
+// #238: walk up from the type's declaring source file looking for FodyWeavers.xml (the Fody
+// weaver manifest — Janitor/Costura/etc. rewrite method bodies after compilation). A type we
+// cannot locate on disk is conservatively treated as weavable (no exemption).
+static bool SourceTreeHasWeaverConfig(INamedTypeSymbol nt)
+{
+    var path = nt.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree.FilePath;
+    if (string.IsNullOrEmpty(path))
+        return true;
+    try
+    {
+        for (var dir = Path.GetDirectoryName(Path.GetFullPath(path));
+             !string.IsNullOrEmpty(dir);
+             dir = Path.GetDirectoryName(dir))
+            if (File.Exists(Path.Combine(dir, "FodyWeavers.xml")))
+                return true;
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+    {
+        return true;   // cannot inspect the tree -> cannot rule a weaver out -> no exemption
+    }
+    return false;
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
