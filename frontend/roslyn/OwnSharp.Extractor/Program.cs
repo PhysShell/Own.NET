@@ -1368,28 +1368,42 @@ static bool ClassReachesDisposalRoot(ClassDeclarationSyntax cls)
     return false;
 }
 
-// A type that is (or implements) System.ComponentModel.IContainer — the designer `components` sink.
+// A type that is (or implements) `IContainer` — the designer `components` sink. Matched by simple
+// name (like the other WinForms type recognitions), so `System.ComponentModel.IContainer` and a
+// stand-in of the same name both resolve.
 static bool ImplementsIContainer(ITypeSymbol? t) =>
     t is not null
-    && ((t.Name == "IContainer" && t.ContainingNamespace?.ToString() == "System.ComponentModel")
-        || t.AllInterfaces.Any(i => i.Name == "IContainer"
-                                    && i.ContainingNamespace?.ToString() == "System.ComponentModel"));
+    && (t.Name == "IContainer" || t.AllInterfaces.Any(i => i.Name == "IContainer"));
 
 // The container an `X.Controls.Add(..)` / `X.Items.Add(..)` collection belongs to, given the
 // collection expression `X.Controls` / `X.Items` (or a bare inherited `Controls`/`Items`): "" (a
 // sentinel) for THIS object, the FIELD name for a `this.<field>`/`<field>` container, or null when it
-// is not a Controls/Items collection, or its container is FOREIGN (a parameter / local / another
-// instance) — an add into a foreign container is not this class's disposal channel. Semantic on the
-// receiver so a param named like a field is not mistaken for one.
+// is not a disposing collection, or its container is FOREIGN (a parameter / local / another
+// instance). A `Controls` collection (Control.ControlCollection) disposes its children, and a
+// ToolStrip's `Items` (ToolStripItemCollection) disposes its items — but a ComboBox/ListBox `Items`
+// (ObjectCollection) does NOT dispose arbitrary items, so an `Items` add is a channel only when the
+// collection's type is a ToolStripItemCollection (Codex). Semantic on the receiver so a parameter
+// named like a field is not mistaken for one.
 static string? CollectionContainerKey(ExpressionSyntax collExpr, SemanticModel model)
 {
-    if (collExpr is IdentifierNameSyntax { Identifier.Text: "Controls" or "Items" })
-        return "";   // an inherited `Controls`/`Items` member accessed bare -> this object
-    if (collExpr is not MemberAccessExpressionSyntax { Name.Identifier.Text: "Controls" or "Items" } coll)
+    string member;
+    ExpressionSyntax? containerObj;
+    switch (collExpr)
+    {
+        case IdentifierNameSyntax { Identifier.Text: "Controls" or "Items" } bare:
+            member = bare.Identifier.Text; containerObj = null; break;   // inherited member -> this
+        case MemberAccessExpressionSyntax { Name.Identifier.Text: "Controls" or "Items" } ma:
+            member = ma.Name.Identifier.Text; containerObj = ma.Expression; break;
+        default:
+            return null;
+    }
+    // `Items` disposes its items only for a ToolStripItemCollection; a ComboBox/ListBox
+    // ObjectCollection does not, so it is not a disposal channel.
+    if (member == "Items" && model.GetTypeInfo(collExpr).Type?.Name != "ToolStripItemCollection")
         return null;
-    if (coll.Expression is ThisExpressionSyntax)
+    if (containerObj is null or ThisExpressionSyntax)
         return "";
-    return model.GetSymbolInfo(coll.Expression).Symbol is IFieldSymbol { IsStatic: false } f ? f.Name : null;
+    return model.GetSymbolInfo(containerObj).Symbol is IFieldSymbol { IsStatic: false } f ? f.Name : null;
 }
 
 // The THIS-field names added by an `.Add(this.child)` / `.AddRange(new T[]{ this.a, this.b })` call —
@@ -4470,10 +4484,12 @@ foreach (var (file, tree) in parsed)
                         if (v.Initializer?.Value is BaseObjectCreationExpressionSyntax inew
                             && CtorTakesSink(inew))
                             disposed.Add(v.Identifier.Text);
-                // explicit `components.Add(this.G)`.
+                // explicit `components.Add(this.G)` — and the named overload `Add(this.G, "name")`
+                // (IContainer.Add(IComponent, string)); the FIRST argument is the registered component
+                // in both, so credit it whenever the receiver is a container sink (Codex).
                 foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                     if (inv.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: "Add" } addMa
-                        && inv.ArgumentList.Arguments.Count == 1
+                        && inv.ArgumentList.Arguments.Count >= 1
                         && model.GetSymbolInfo(addMa.Expression).Symbol is IFieldSymbol sinkf
                         && containerSinks.Contains(sinkf.Name)
                         && model.GetSymbolInfo(inv.ArgumentList.Arguments[0].Expression).Symbol is IFieldSymbol regf)

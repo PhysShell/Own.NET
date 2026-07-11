@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 
 namespace Own.Samples;
 
@@ -28,6 +27,33 @@ public class Control : IDisposable
 
 public sealed class Label : Control { }
 public sealed class Button : Control { }
+
+// A ComboBox/ListBox `Items` is an ObjectCollection that does NOT dispose its items — used by a
+// negative control so `Items` is only a disposal channel for a real ToolStripItemCollection.
+public sealed class ObjectCollection
+{
+    public void Add(object item) { }
+}
+
+public sealed class ComboBox : Control
+{
+    public ObjectCollection Items { get; } = new ObjectCollection();
+}
+
+// Stand-ins for System.ComponentModel.IContainer / Container (the designer `components` sink),
+// matched by simple name. `Add` has the plain and the named (`Add(x, "name")`) overloads.
+public interface IContainer : IDisposable
+{
+    void Add(object component);
+    void Add(object component, string name);
+}
+
+public sealed class Container : IContainer
+{
+    public void Add(object component) { }
+    public void Add(object component, string name) { }
+    public void Dispose() { }
+}
 
 public sealed class ToolStripItemCollection
 {
@@ -102,6 +128,26 @@ public sealed class RegisteredComponentForm : Control
     }
 }
 
+// A component registered through the NAMED IContainer overload `components.Add(x, "name")` is
+// disposed by components.Dispose() just like the single-arg form -> SILENT.
+public sealed class NamedRegistrationForm : Control
+{
+    private readonly Container components = new Container();
+    private NotifyIcon namedIcon;
+
+    public NamedRegistrationForm()
+    {
+        namedIcon = new NotifyIcon();
+        components.Add(this.namedIcon, "tray");   // (b) named registration -> SILENT
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) components.Dispose();
+        base.Dispose(disposing);
+    }
+}
+
 // ---- NEGATIVE CONTROLS ----
 
 // (a) FOREIGN container: the child is added to a container passed in as a PARAMETER, not THIS's own
@@ -114,6 +160,25 @@ public sealed class ForeignContainerAdder : Control
     {
         lblForeign = new Label();
         other.Controls.Add(this.lblForeign);   // added to a FOREIGN (param) container -> LEAK
+    }
+
+    protected override void Dispose(bool disposing) { base.Dispose(disposing); }
+}
+
+// (a) Codex P2: a ComboBox/ListBox `Items` is an ObjectCollection that does NOT dispose its items,
+// so a real IDisposable stored as a combo item still leaks even though the combo itself is disposed
+// (added to this.Controls). Only a ToolStripItemCollection's Items is a disposal channel.
+public sealed class ComboItemForm : Control
+{
+    private ComboBox combo;
+    private NotifyIcon comboItem;   // a real disposable stored as a combo item
+
+    public ComboItemForm()
+    {
+        combo = new ComboBox();
+        comboItem = new NotifyIcon();
+        this.Controls.Add(this.combo);       // combo IS disposed (Controls channel) -> silent
+        combo.Items.Add(this.comboItem);     // ComboBox.Items does NOT dispose it -> LEAK
     }
 
     protected override void Dispose(bool disposing) { base.Dispose(disposing); }
