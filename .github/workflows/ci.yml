@@ -760,7 +760,8 @@ jobs:
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             frontend/roslyn/samples/FlowLocalsSample.cs \
             frontend/roslyn/samples/MemoryOwnerEscapeSample.cs \
-            frontend/roslyn/samples/FactoryLeakSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
+            frontend/roslyn/samples/FactoryLeakSample.cs \
+            frontend/roslyn/samples/OverloadSigSample.cs --flow-locals -o "$RUNNER_TEMP/flow.json"
           out=$(python -m ownlang ownir "$RUNNER_TEMP/flow.json" || true)
           echo "$out"
           echo "$out" | grep -q "OWN002" || { echo "FAIL: expected OWN002 (use-after-dispose)"; exit 1; }
@@ -948,6 +949,39 @@ jobs:
             || { echo "FAIL: expected the interprocedural OWN001 on the dropped factory result at its call site"; exit 1; }
           for ok in factoryOk made; do
             if echo "$out" | grep -q "'$ok'"; then echo "FAIL: D5.2 silent case '$ok' was reported"; exit 1; fi
+          done
+          # Interprocedural stage 2 (spec/OwnIR.md §5.1): per-overload signature keys.
+          # SigOverloads.Open is overloaded — the (string) overload is a fresh factory,
+          # the (FileStream,bool) one returns its parameter — so the name-merged returns
+          # DISAGREE (no fresh claim). The `sig` stamped on both the functions[] records
+          # and the call op resolves the fresh overload's OWN summary, so the dropped
+          # stream in Drop surfaces as OWN001 at the call — the recall the merge lost.
+          # Structural check (CodeRabbit): pin BOTH sides of the edge exactly — the two
+          # overload records' sigs AND the Drop call op's callee/sig/result — so a
+          # missing or unmatched CALL-side sig fails here by itself, not only via the
+          # downstream finding.
+          python3 - "$RUNNER_TEMP/flow.json" <<'PY'
+          import json, sys
+          facts = json.load(open(sys.argv[1]))
+          fns = facts.get("functions", [])
+          sigs = sorted(str(f.get("sig")) for f in fns
+                        if f.get("name") == "SigOverloads.Open")
+          assert sigs == ["System.IO.FileStream,System.Boolean", "System.String"], \
+              f"overload record sigs wrong: {sigs}"
+          calls = [op for f in fns if f.get("name") == "SigOverloads.Drop"
+                   for op in f.get("body", []) if op.get("op") == "call"]
+          assert any(c.get("callee") == "SigOverloads.Open"
+                     and c.get("sig") == "System.String"
+                     and c.get("result") == "dropped" for c in calls), \
+              f"Drop call op missing the (string) overload sig: {calls}"
+          print("OK: stage-2 sig stamped on both sides of the Drop edge")
+          PY
+          echo "$out" | grep -qE "OverloadSigSample\.cs:[0-9]+:.*\[OWN001\].*'dropped' is never disposed" \
+            || { echo "FAIL: expected the sig-resolved fresh-overload leak (OWN001 on 'dropped')"; exit 1; }
+          # the factory itself (transfers out via return), the non-fresh overload's
+          # balanced probe, and the fresh local it returns all stay silent.
+          for ok in opened probe; do
+            if echo "$out" | grep -q "'$ok'"; then echo "FAIL: stage-2 silent case '$ok' was reported"; exit 1; fi
           done
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)

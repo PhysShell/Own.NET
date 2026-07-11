@@ -141,6 +141,10 @@
       "properties": {
         "name": { "type": "string" },
         "file": { "type": "string" },
+        "sig": {
+          "description": "Optional per-overload signature key (interprocedural stage 2): the canonical parameter-type list — fully-qualified names, comma-separated, no spaces, generic arity via backtick, global:: stripped (e.g. \"System.IO.Stream,System.Boolean\"; \"\" for zero parameters). When an overloaded name's records carry it, each overload gets its own summary keyed name(sig) beside the name-merged fallback; a producer without type information omits it and the merged summary applies as before. Additive/optional — no OWNIR_VERSION bump.",
+          "type": "string"
+        },
         "params": {
           "description": "The method's ownership contract: its parameters and their effects (P-006/2b). Optional — an omitted contract is inferred from the body.",
           "type": "array",
@@ -231,11 +235,12 @@
         },
         {
           "title": "call",
-          "description": "A Call checked against the callee's contract; a fresh-returning callee mints an acquire for `result` (D5.2).",
+          "description": "A Call checked against the callee's contract; a fresh-returning callee mints an acquire for `result` (D5.2). An optional `sig` (the callee's canonical parameter-type list, same format as a function record's `sig`) resolves the call against that overload's own summary; absent or unmatched, the name-merged summary applies (stage 2 fallback — degraded, never a wrong overload).",
           "properties": {
             "op": { "const": "call" },
             "line": { "type": "integer" },
             "callee": { "type": "string" },
+            "sig": { "type": "string" },
             "args": { "type": "array", "items": { "type": "string" } },
             "result": { "type": "string" }
           },

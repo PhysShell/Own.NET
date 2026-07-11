@@ -1,0 +1,21 @@
+// OwnLang model of the ShareX ShapeManager.menuForm leak (issue #201 oracle
+// sweep): a class's Dispose() disposes some of its owned resources (`history`)
+// but forgets one it itself created (`menuForm`) — a plain owned-field leak,
+// the generic OWN001 acquire-with-no-release. See notes.md for the real finding.
+module Corpus
+resource Form {
+  acquire create
+  release dispose
+  kind "disposable"
+}
+resource HistoryStack {
+  acquire create
+  release dispose
+  kind "disposable"
+}
+fn Dispose(unused: int) {
+  let menuForm = acquire Form(unused);        // CreateToolbar(): menuForm = new Form { ... }
+  let history = acquire HistoryStack(unused);
+  release history;                             // Dispose(): history.Dispose()
+  // no `release menuForm;` — Dispose() never touches menuForm (OWN001)
+}

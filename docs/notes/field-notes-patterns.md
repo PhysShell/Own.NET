@@ -348,6 +348,288 @@ warning — never fold it into OWN014, whose subscriber-pinning premise it does 
 
 ---
 
+## 11. Subscription rotation on a property/DP change (unsub old, sub new, same handler)
+
+**Seen in:** MahApps.Metro `src/MahApps.Metro/Actions/CommandTriggerAction.cs:102-117`;
+MaterialDesignInXamlToolkit `src/MaterialDesignThemes.Wpf/SmartHint.cs:189-209`;
+AvalonEdit `ICSharpCode.AvalonEdit/Editing/AbstractMargin.cs:92-101`,
+`LineNumberMargin.cs:105-118`, `Folding/FoldingMargin.cs`. Found by the issue #201
+oracle sweep — the single most-corroborated pattern in that run (3 repos, 6+ sites).
+
+A `DependencyProperty`-changed callback (or a plain virtual `On<X>Changed(old, new)`
+override) manages a subscription's lifetime across property changes: detach from
+the *old* value, attach to the *new* one, same handler.
+
+```csharp
+private static void OnCommandChanged(CommandTriggerAction action, DependencyPropertyChangedEventArgs e)
+{
+    if (e.OldValue is ICommand oldCommand)
+        oldCommand.CanExecuteChanged -= action.OnCommandCanExecuteChanged;   // unsub OLD
+    if (e.NewValue is ICommand newCommand)
+        newCommand.CanExecuteChanged += action.OnCommandCanExecuteChanged;   // sub NEW <- flagged
+}
+```
+
+**Why:** the subscriber (`action`) needs to track whichever value the property
+currently holds — as the property changes, the *previous* value's subscription
+must go and the *new* value's must start. There is no leak: at most one
+subscription is ever live, and it's cleaned up the moment it's superseded.
+
+**Analyzer angle:** Own.NET pairs a `+=` with a `-=` **per source variable**
+(`newCommand` has no `-=` written against it) — it doesn't see that the `oldCommand`
+unsubscribe a few lines above is the very same rotation slot, just against last
+call's value. **Rule of thumb: when a `+=`/`-=` pair straddles the old/new halves of
+a property-changed callback (or an equivalent `On<X>Changed(old, new)` override),
+treat them as one paired lifecycle, not two independent, unpaired subscriptions.**
+
+## 12. WinForms `Controls`/`ToolStripItemCollection` membership as a disposal channel
+
+**Seen in:** ShareX `ShareX.HelpersLib/Forms/ImageViewer.cs` (`pbPreview`,
+`lblStatus`), `Colors/ColorPicker.cs` (`colorBox`, `colorSlider`),
+`Forms/InputBox.cs` (`btnOK`, `btnCancel`, `txtInputText`), and ~20 more sites.
+Found by the issue #201 oracle sweep.
+
+A WinForms `Control`-derived field is added to `this.Controls` (directly or via
+`Controls.AddRange`) inside `InitializeComponent()`; the class never calls
+`.Dispose()` on the field itself.
+
+```csharp
+private System.Windows.Forms.Label lblStatus;
+// InitializeComponent():
+lblStatus = new Label();
+this.Controls.Add(this.lblStatus);
+// Dispose(bool disposing):
+protected override void Dispose(bool disposing) {
+    if (disposing) components?.Dispose();
+    base.Dispose(disposing);   // <- disposes every child in Controls, incl. lblStatus
+}
+```
+
+**Why:** `System.Windows.Forms.Control.Dispose(bool)` **recursively disposes every
+child control in its own `Controls` collection** when `disposing` is true — that's
+the framework's own designer-generated contract, not something the class needs to
+do by hand. The same holds for `ToolStrip`/`ContextMenuStrip`'s
+`ToolStripItemCollection`: disposing the strip disposes its items.
+
+**Analyzer angle:** Own.NET's field-disposal scan looks for an explicit
+`field.Dispose()` (or a recognised sink) and doesn't know about this WinForms-
+specific transitive channel, so it flags every child-control field as "never
+disposed" even though `base.Dispose(disposing)` already covers it. **Rule of
+thumb: a `Control` field added to a `Controls`/`Items` collection that itself
+eventually reaches a disposed root is disposed by the framework, not by the
+field owner directly — don't count it against the owner.**
+
+## 13. `IContainer`-registered component (`new T(components)` / `components.Add(x)`)
+
+**Seen in:** ShareX `ShareX.HelpersLib/Forms/TrayForm.cs:41` (`TrayIcon = new
+NotifyIcon(components)`). Found by the issue #201 oracle sweep.
+
+```csharp
+protected NotifyIcon TrayIcon;
+TrayIcon = new NotifyIcon(components);   // registers itself with the IContainer
+protected override void Dispose(bool disposing) {
+    if (disposing) components.Dispose();   // disposes everything registered above
+    base.Dispose(disposing);
+}
+```
+
+**Why:** several BCL/WinForms components (`NotifyIcon`, `Timer`, …) have a
+constructor overload taking an `IContainer` — passing the designer's `components`
+field registers the new instance with that container, so `components.Dispose()`
+(the designer-generated one-liner every WinForms `Form`/`UserControl` already has)
+disposes it. Same idea, different call shape as entry 12.
+
+**Analyzer angle:** the extractor's field-disposal scan doesn't recognise
+`new T(components)` or an explicit `components.Add(x)` as wiring `x` into the
+`IContainer` disposal chain, so it flags the field as leaked. **Rule of thumb:
+construction through (or explicit registration into) the designer's `IContainer`
+is a release, exactly like `Controls.Add` — the container's `Dispose()` is the
+real sink.**
+
+## 14. `using (field = new T())` — a field as the direct `using` acquisition target
+
+**Seen in:** ShareX `ShareX.HelpersLib/Cryptographic/HashChecker.cs:59`,
+`ShareX.HelpersLib/TaskEx.cs:55`, `ShareX.IndexerLib/IndexerJson.cs:49`. Found by
+the issue #201 oracle sweep.
+
+```csharp
+private CancellationTokenSource cts;
+public void Cancel() {
+    using (cts = new CancellationTokenSource()) {   // field IS the using target
+        ...
+    }
+    // cts.Dispose() ran at the end of the using block
+}
+```
+
+**Why:** a `using (expr) { }` disposes whatever `expr` evaluates to when the block
+exits — it doesn't matter whether `expr` is a bare `new T()`, a pre-existing local
+(the already-handled `using (preExistingLocal)` shape, `field-dispose-via-*`
+fixtures), or, as here, an **assignment to a field**. The field is disposed exactly
+once, deterministically, at the end of the block.
+
+**Analyzer angle:** the flow-locals detector's `using`-release recognition is
+scoped to a **local** target; a field on the left-hand side of the acquisition
+expression inside `using (...)` isn't threaded back to the field-disposal scan, so
+the field reads as permanently un-disposed. **Rule of thumb: `using (field = new
+T())` releases `field` just as surely as `using (var local = new T())` releases
+`local` — the target of a `using` acquisition can be any writable location, not
+only a fresh local.**
+
+## 15. Self-owned source reached through a base-class accessor or an owned collection element
+
+**Seen in:** MahApps.Metro `src/MahApps.Metro/Behaviors/TiltBehavior.cs:62-70`
+(`panel.Loaded +=` where `panel == this.AssociatedObject`); MaterialDesignInXamlToolkit
+`src/MainDemo.Wpf/Domain/ListsAndGridsViewModel.cs:16-17` (`model.PropertyChanged +=`
+where `model` is an element of `Items1`, a collection the ViewModel builds itself in
+its own constructor). Found by the issue #201 oracle sweep.
+
+```csharp
+protected override void OnAttached() {
+    this.attachedElement = this.AssociatedObject;      // base-class accessor
+    if (this.attachedElement is Panel panel)
+        panel.Loaded += (sl, el) => { ... };            // <- flagged
+}
+```
+```csharp
+public ListsAndGridsViewModel() {
+    Items1 = CreateData();                              // own factory
+    foreach (var model in Items1)
+        model.PropertyChanged += (s, a) => OnPropertyChanged(...);   // <- flagged
+}
+```
+
+**Why:** both are variations on the already-recognised self-owned-source
+exemption (a class subscribing to something it owns is a collectable cycle, not a
+leak) — just reached through a different path than a constructed field: a
+`Behavior<T>`'s `AssociatedObject` (the base class's own accessor for the element
+the behavior is attached to — necessarily co-lifetimed, since a `Behavior` cannot
+outlive being attached), or an element of a collection the class builds itself in
+its own constructor/factory (the collection and its elements share the
+constructing object's lifetime).
+
+**Analyzer angle:** the shipped self-owned-source exemption keys off a directly
+constructed/assigned field; it doesn't follow `this.AssociatedObject` (a
+base-class-provided reference, not a locally constructed one) or "an element
+pulled from a collection this class itself populated." **Rule of thumb: the
+exemption's real criterion is "does this object's lifetime start and end with the
+subscriber's" — a base-class accessor to the attached object, or an item of an
+owned collection, satisfies that just as well as a constructed field.**
+
+## 16. Template part fetched via `FindName`/`GetTemplateChild`, stored as a local
+
+**Seen in:** MahApps.Metro `src/MahApps.Metro/Controls/MetroWindow.cs:1447-1449`
+(`if (this.GetTemplateChild(PART_Content) is MetroContentControl
+metroContentControl)`); AvalonEdit `ICSharpCode.AvalonEdit/CodeCompletion/OverloadViewer.cs:58-64`
+(`Button upButton = (Button)this.Template.FindName("PART_UP", this);`). Found by
+the issue #201 oracle sweep.
+
+```csharp
+public override void OnApplyTemplate() {
+    base.OnApplyTemplate();
+    Button upButton = (Button)this.Template.FindName("PART_UP", this);
+    upButton.Click += (sender, e) => { ... };   // <- flagged
+}
+```
+
+**Why:** a named template part is owned by the control's own template — its
+lifetime is bound to the control instance, exactly the shape the shipped
+self-owned-template-part exemption already covers (real-world-mining.md's
+`GetTemplateChild`/`FindName` fix). The only difference here is where the result
+is stored.
+
+**Analyzer angle:** the existing exemption keys off a **field** assignment
+(`_field = GetTemplateChild(...) as T`); both examples above store the template
+part in a **local** instead (a plain local variable, or an `is T x` pattern
+match). Same safe shape, narrower syntactic form the exemption doesn't reach.
+**Rule of thumb: "fetched from my own template" is what makes a template part
+self-owned — whether the result lands in a field or a method-local variable
+doesn't change that.**
+
+## 17. `CommandManager.RequerySuggested` — a BCL/WPF event built on weak references
+
+**Seen in:** AvalonEdit `ICSharpCode.AvalonEdit/Editing/ImeSupport.cs:34-47`.
+Found by the issue #201 oracle sweep.
+
+```csharp
+EventHandler requerySuggestedHandler; // we need to keep the event handler instance
+                                       // alive because CommandManager.RequerySuggested
+                                       // uses weak references
+requerySuggestedHandler = OnRequerySuggested;
+CommandManager.RequerySuggested += requerySuggestedHandler;   // never -=, and that's fine
+```
+
+**Why:** `System.Windows.Input.CommandManager.RequerySuggested` is WPF's own
+answer to the classic "static event pins every subscriber forever" trap — it's
+implemented internally over weak references, so a subscriber is **not** kept
+alive by the subscription (the in-repo comment even explains the field exists to
+keep the handler *itself* from being collected prematurely, the opposite concern).
+Never unsubscribing is the normal, intended usage.
+
+**Analyzer angle:** Own.NET tiers a subscription to a provably `static` source as
+a hard **error** ("possible leak" promoted to certain, since a static source
+trivially outlives everything) — the systematically wrong verdict for this one
+named event. **Rule of thumb: a handful of BCL/WPF statics are deliberately
+weak-referenced specifically to be safe to never detach from; treat
+`CommandManager.RequerySuggested` (and any future confirmed sibling) as a named
+allowlist entry, not a case for the general static-source rule.**
+
+## 18. Self-detaching handler (unsubscribes itself inside its own body)
+
+**Seen in:** AvalonEdit `ICSharpCode.AvalonEdit/Search/DropDownButton.cs:78-86`.
+Found by the issue #201 oracle sweep.
+
+```csharp
+DropDownContent.Closed += DropDownContent_Closed;   // <- flagged: no visible -=
+
+void DropDownContent_Closed(object sender, EventArgs e) {
+    ((Popup)sender).Closed -= DropDownContent_Closed;   // removes itself, first firing
+    this.IsDropDownContentOpen = false;
+}
+```
+
+**Why:** the handler removes itself from the event the first time it runs — a
+common one-shot idiom ("do this once, then stop listening") that needs no
+external detach call at all. By the time the event could fire a second time, the
+subscription is already gone.
+
+**Analyzer angle:** Own.NET's `-=`-search is scoped to the subscribe call's
+enclosing method (or a class-level scan for a plain field-based handler); it
+doesn't look **inside the handler's own body** for a matching self-removal.
+**Rule of thumb: a handler that unsubscribes itself as its first action is
+bounded by construction — the search for a matching `-=` needs to include the
+handler body, not just sibling code near the `+=`.**
+
+## 19. A user-defined type whose `Dispose()` body is statically empty
+
+**Seen in:** ClosedXML `ClosedXML/Excel/Cells/Slice.cs:324-416` (`internal class
+Enumerator : IEnumerator<Point>`). Found by the issue #201 oracle sweep.
+
+```csharp
+internal class Enumerator : IEnumerator<Point> {
+    ...
+    public void Dispose() { }   // literally empty — no base call, no field release
+}
+// caller:
+var enumerator = new Enumerator(this, area);
+while (enumerator.MoveNext()) { ... }   // never disposed — flagged
+```
+
+**Why:** `Enumerator` implements `IDisposable` only because `IEnumerator<T>`
+requires it, not because it holds a real resource — its `Dispose()` does
+nothing at all. Never calling it cannot leak anything; there is nothing behind
+the interface to release.
+
+**Analyzer angle:** entry 9 already covers this *idea* for a handful of named
+**BCL** types (`StringWriter`/`StringReader`, via `IsNoOpDisposeWrapper`), but
+that allowlist doesn't reach a **user-defined** type, however trivially empty
+its `Dispose()` is. **Rule of thumb: rather than growing a list of known-safe
+type names, a `Dispose()` method whose body is provably empty (no statements)
+is safe to skip regardless of whose type it is — first-party or third-party,
+named allowlist or not.**
+
+---
+
 ## The through-line
 
 Entries 1–6 are the *same lesson from different angles*: **disposal
