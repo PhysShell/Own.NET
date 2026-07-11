@@ -207,6 +207,10 @@ jobs:
             frontend/roslyn/samples/ReturnedPublisherSample.cs \
             frontend/roslyn/samples/OwnIgnoreSample.cs \
             frontend/roslyn/samples/DpRotationSample.cs \
+            frontend/roslyn/samples/RequerySuggestedAllowlistSample.cs \
+            frontend/roslyn/samples/SelfDetachingHandlerSample.cs \
+            frontend/roslyn/samples/UsingFieldAcquisitionSample.cs \
+            frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -772,6 +776,65 @@ jobs:
             || { echo "FAIL: a -=/+= pair on differently-typed params must stay flagged (not old/new halves)"; exit 1; }
           echo "$out" | grep -qE "\[OWN001\].*'TwoFieldsRotation'" \
             || { echo "FAIL: a -=/+= pair across two class fields must stay flagged (not a rotation)"; exit 1; }
+          # issue #223 — curated allowlist: CommandManager.RequerySuggested is implemented
+          # over weak references (see docs/notes/field-notes-patterns.md entry 17), so an
+          # ordinary instance-bound handler that never `-=`s it must NOT raise OWN014.
+          if echo "$out" | grep -q "ImeSupportLike"; then
+            echo "FAIL: an allowlisted CommandManager.RequerySuggested subscription was wrongly reported"; exit 1
+          fi
+          # control: an ORDINARY (non-allowlisted) static event, same never-detached
+          # instance-handler shape, must STILL raise OWN014 — the allowlist must not
+          # weaken the general static-source tier.
+          echo "$out" | grep -qE "RequerySuggestedAllowlistSample\.cs:[0-9]+: error: \[OWN014\].*'OrdinaryStaticSubscriber'" \
+            || { echo "FAIL: expected OWN014 on the non-allowlisted static-event subscriber"; exit 1; }
+          # issue #224 — a handler that unsubscribes ITSELF inside its own body (a
+          # self-detaching one-shot handler) is bounded -> must be SILENT.
+          if echo "$out" | grep -q "DropDownButtonLike"; then
+            echo "FAIL: a self-detaching handler subscription was wrongly reported"; exit 1
+          fi
+          # control 1: the SAME shape but the handler does NOT self-detach -> must STILL warn.
+          echo "$out" | grep -qE "SelfDetachingHandlerSample\.cs:[0-9]+: warning: \[OWN001\].*'NonDetachingSubscriber'" \
+            || { echo "FAIL: expected OWN001 on the non-self-detaching subscriber"; exit 1; }
+          # control 2: the handler detaches a DIFFERENT event name -> must NOT be credited
+          # as releasing the subscribed event -> must STILL warn.
+          echo "$out" | grep -qE "SelfDetachingHandlerSample\.cs:[0-9]+: warning: \[OWN001\].*'WrongEventDetachSubscriber'" \
+            || { echo "FAIL: expected OWN001 when the self-detach targets the wrong event name"; exit 1; }
+          # control 3 (Codex P2 on PR #231): the handler detaches the CORRECT event name
+          # but off an UNRELATED receiver, not its own `sender` parameter -> the actual
+          # subscribed source is never released -> must STILL warn.
+          echo "$out" | grep -qE "SelfDetachingHandlerSample\.cs:[0-9]+: warning: \[OWN001\].*'WrongReceiverDetachSubscriber'" \
+            || { echo "FAIL: expected OWN001 when the self-detach targets the wrong receiver (not sender)"; exit 1; }
+          # issue #220 — `using (field = new T())`: the field IS the `using` acquisition
+          # target, disposed at scope exit -> must be SILENT.
+          if echo "$out" | grep -q "HashCheckerLike"; then
+            echo "FAIL: a field disposed via using (field = new T()) was wrongly reported"; exit 1
+          fi
+          # control: the SAME field, constructed the same way, but OUTSIDE any `using` and
+          # never disposed -> must STILL warn (the recognition is using-scoped, not "any
+          # field assignment from new is a release").
+          echo "$out" | grep -qE "UsingFieldAcquisitionSample\.cs:[0-9]+: error: \[OWN001\].*'LeakyAssignerLike'" \
+            || { echo "FAIL: expected OWN001 on the field assigned outside any using block"; exit 1; }
+          # issue #222 — a template part captured as a LOCAL (plain variable, via
+          # Template.FindName) or an `is T x` PATTERN variable (via GetTemplateChild), not
+          # only a field, is self-owned -> both must be SILENT.
+          if echo "$out" | grep -qE "MetroWindowLike|OverloadViewerLike"; then
+            echo "FAIL: a template part captured as a local/pattern variable was wrongly reported"; exit 1
+          fi
+          # control: a local variable that merely ALIASES an INJECTED field (not a
+          # GetTemplateChild/FindName fetch) must STILL warn — the exemption is scoped to
+          # an actual template-part fetch, not "any local-variable subscription is self-owned."
+          echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'InjectedLocalSubscriber'" \
+            || { echo "FAIL: expected OWN001 on the injected-local (non-template-part) subscriber"; exit 1; }
+          # control (Codex P2 on PR #231): a template-part local in one method must NOT
+          # exempt an UNRELATED same-named local (aliasing an injected source) in a
+          # DIFFERENT method of the same class — locals are self-owned by SYMBOL, not
+          # name. The template-part method's own subscription must stay silent...
+          if echo "$out" | grep -q "OnTemplateClick"; then
+            echo "FAIL: the legitimate template-part-local subscription was wrongly reported"; exit 1
+          fi
+          # ...while the same-named local in the OTHER method must still warn.
+          echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'SameNameDifferentScopeSubscriber'" \
+            || { echo "FAIL: expected OWN001 on the same-named-but-unrelated local in a different method"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
