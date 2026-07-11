@@ -308,6 +308,27 @@ which we have no reliable signal for. So those two findings stay in
 extractor rule. An in-code `ANTI-PATTERN` comment at the exemption site warns against
 re-adding `|| clsIsStatic`.
 
+### What DID ship next to it (issue #228) — and why it is not the same thing
+
+The #201 sweep's MaterialDesign `App.xaml.cs` FP (an `App : Application` subscribing
+to `PaletteHelper().GetThemeManager()`, an app-scoped instance that is process-lived
+without being a literal `static` member) is cleared by a narrowing that inverts every
+property that made `clsIsStatic` unsound:
+
+- the **subscriber** gate is unchanged — byte-for-byte the existing `clsIsApp`
+  ("the subscriber IS the process-lived object", the property `clsIsStatic` lacked);
+- the **source** check loosens only to a **curated allowlist** of resolver methods
+  whose result is verified app-scoped (`PaletteHelper.GetThemeManager`, verified at
+  `PaletteHelper.cs:22-26`) — grown one confirmed sibling at a time, like the #223
+  weak-event list, never inferred;
+- the **handler** must be a method group of the App class itself — a lambda is
+  rejected outright, so the "captures a shorter-lived local and pins it" hole that
+  sank `clsIsStatic` (and would NOT have been closed by it anyway) cannot pass.
+
+Pinned by `AppScopedSourceSample.cs`: two silent positives (pattern-local and direct
+receiver) and three flagged controls (non-App subscriber, lambda handler, non-curated
+resolver), each edge of the gate.
+
 ## How the baseline stays honest
 
 - **Matched by name, not line** — `(repo, file-basename, OWN code,

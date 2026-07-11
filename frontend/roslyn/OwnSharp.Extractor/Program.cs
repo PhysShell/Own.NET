@@ -895,6 +895,120 @@ static bool IsProcessLivedApplication(TypeDeclarationSyntax cls)
         && cls.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
 }
 
+// P-004 / issue #228: the CURATED resolver allowlist whose call RESULT is app-scoped
+// (bound to Application-owned state, hence process-lived) without being a literal
+// `static` member. One entry per CONFIRMED real-world sibling — same policy as the
+// #223 weak-event allowlist, never an inference. Matched by (containing-type simple
+// name, method name), mirroring the [OwnIgnore] simple-name precedent: the declaring
+// package usually does not resolve on the Linux runner.
+//   - MaterialDesign PaletteHelper.GetThemeManager(): returns the IThemeManager bound
+//     to the app's own merged ResourceDictionary (PaletteHelper.cs:22-26, verified in
+//     the issue #201 sweep — MahMaterialDragablzMashUp App.xaml.cs FP).
+static bool IsAppScopedResolver(IMethodSymbol sym) =>
+    (sym.ContainingType?.Name, sym.Name) is ("PaletteHelper", "GetThemeManager");
+
+// #228: does this `+=` receiver resolve (directly, or through a local bound by a
+// `var x = ...` initializer or an `is`-pattern designation) to the RESULT of a curated
+// app-scoped resolver call? Any unprovable step returns false — the subscription then
+// keeps today's honest "injected" warning, never the other way around.
+static bool IsCuratedAppScopedSource(ExpressionSyntax left, SemanticModel model)
+    => left is MemberAccessExpressionSyntax m
+       && ResolvesToAppScopedCall(m.Expression, model, depth: 0);
+
+static bool ResolvesToAppScopedCall(ExpressionSyntax expr, SemanticModel model, int depth)
+{
+    if (depth > 3)
+        return false;
+    expr = StripCasts(expr);
+    if (expr is InvocationExpressionSyntax inv)
+    {
+        var info = model.GetSymbolInfo(inv);
+        var sym = info.Symbol as IMethodSymbol
+                  ?? info.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+        return sym is not null && IsAppScopedResolver(sym);
+    }
+    if (model.GetSymbolInfo(expr).Symbol is not ILocalSymbol local)
+        return false;
+    // The binding is only trustworthy if the local still HOLDS it at the `+=`:
+    // a reassignment anywhere in the enclosing member (or a ref/out escape that
+    // could rebind it) makes the initializer stale — no exemption (Codex P2).
+    if (!IsNeverReassigned(local, model))
+        return false;
+    foreach (var r in local.DeclaringSyntaxReferences)
+        switch (r.GetSyntax())
+        {
+            // var tm = helper.GetThemeManager();
+            case VariableDeclaratorSyntax { Initializer.Value: { } init }
+                when ResolvesToAppScopedCall(init, model, depth + 1):
+                return true;
+            // helper.GetThemeManager() is { } tm   /   is ThemeManagerLike tm
+            case SingleVariableDesignationSyntax des
+                when des.Ancestors().OfType<IsPatternExpressionSyntax>().FirstOrDefault()
+                     is { Expression: { } scrutinee }
+                     && ResolvesToAppScopedCall(scrutinee, model, depth + 1):
+                return true;
+        }
+    return false;
+}
+
+// #228 (Codex P2): the declaration-site binding proves the local's value at the
+// `+=` only if nothing rebinds it. Conservative whole-member scan: ANY assignment
+// whose LHS is this local, or ANY `ref`/`out` argument passing it, kills the proof
+// (even one after the subscription — cheaper than flow order and precision-safe:
+// the worst case is keeping today's honest warning).
+static bool IsNeverReassigned(ILocalSymbol local, SemanticModel model)
+{
+    foreach (var r in local.DeclaringSyntaxReferences)
+    {
+        var scope = r.GetSyntax().Ancestors().FirstOrDefault(n =>
+            n is MethodDeclarationSyntax or ConstructorDeclarationSyntax
+              or AccessorDeclarationSyntax or LocalFunctionStatementSyntax
+              or AnonymousFunctionExpressionSyntax);
+        if (scope is null)
+            return false;
+        foreach (var asg in scope.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            if (SymbolEqualityComparer.Default.Equals(
+                    model.GetSymbolInfo(asg.Left).Symbol, local))
+                return false;
+        foreach (var arg in scope.DescendantNodes().OfType<ArgumentSyntax>())
+            if (!arg.RefOrOutKeyword.IsKind(SyntaxKind.None)
+                && SymbolEqualityComparer.Default.Equals(
+                       model.GetSymbolInfo(arg.Expression).Symbol, local))
+                return false;
+    }
+    return true;
+}
+
+// #228: the handler must be a METHOD GROUP declared on the subscribing class itself —
+// its delegate target is then the App singleton (already process-lived, nothing to
+// promote). A lambda/anonymous method is rejected outright: it may capture an
+// enclosing LOCAL, and pinning that local to the app's lifetime is exactly the leak
+// the rejected `clsIsStatic` broadening would have swallowed (oracle-known-fps.md,
+// "Rejected approaches").
+static bool IsOwnMethodGroupHandler(ExpressionSyntax right, SemanticModel model,
+                                    INamedTypeSymbol? cls)
+{
+    if (cls is null)
+        return false;
+    // The delegate TARGET must be `this` — a bare identifier (implicit this) or an
+    // explicit `this.X`. A method group qualified with ANOTHER instance of the same
+    // App-derived type (`otherApp.OnTheme`) has the right ContainingType but pins
+    // that other instance, not the process-lived singleton (Codex P2).
+    var receiverIsThis = right switch
+    {
+        IdentifierNameSyntax => true,
+        MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } => true,
+        _ => false,
+    };
+    if (!receiverIsThis)
+        return false;
+    var info = model.GetSymbolInfo(right);
+    var sym = info.Symbol as IMethodSymbol
+              ?? info.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+    return sym is not null
+        && SymbolEqualityComparer.Default.Equals(sym.ContainingType, cls);
+}
+
 // P-004 WPF MVVM ownership: a field read from `this.DataContext`, optionally through
 // an `as`/cast (`DataContext as VM`, `(VM)DataContext`). Combined with a view whose
 // own XAML CONSTRUCTS its DataContext, such a field is the view's owned view-model.
@@ -4062,6 +4176,19 @@ foreach (var (file, tree) in parsed)
                 // resetEvent), so it stays in corpus/oracle-fp-baseline.txt instead. Full
                 // write-up: docs/notes/oracle-known-fps.md → "Rejected approaches".
                 if (!isTimer && source == "static" && clsIsApp)
+                    continue;
+                // P-004 / issue #228: the same `clsIsApp` subscriber, but the source is an
+                // APP-SCOPED RESOLVER RESULT (curated: PaletteHelper.GetThemeManager) rather
+                // than a literal static member — genuinely process-lived, just reached through
+                // a call, so SubscriptionSourceKind honestly says "injected". This loosens
+                // ONLY the source check; the subscriber gate stays byte-for-byte `clsIsApp`,
+                // and the handler must be a METHOD GROUP of the App class itself — a lambda
+                // is rejected because it may capture an enclosing local, the exact hole that
+                // sank the `clsIsStatic` broadening above (see that comment + the "Rejected
+                // approaches" write-up; this narrowing is documented alongside it).
+                if (!isTimer && source == "injected" && clsIsApp
+                    && IsOwnMethodGroupHandler(a.Right, model, clsSymbol)
+                    && IsCuratedAppScopedSource(a.Left, model))
                     continue;
                 // P-004 / issue #199: a NON-RETAINING handler on a static (process-lived)
                 // source promotes nothing, so OWN014's premise ("the subscriber is pinned
