@@ -136,13 +136,32 @@ maps back to the exact C# local. The **complete** op vocabulary:
 | `overspan` | `var` | `Overspan` (POOL005: a full-length view of a pooled buffer) |
 | `return` | optional `var` | `Return` (ownership transfer out) |
 | `alias_join` | `var`, `src` | a new owning handle joined to `src`'s alias set (wrap/adopt, D5.4) |
-| `call` | `callee`, `args`, optional `result` | a `Call` checked against the callee's contract; a `fresh`-returning callee mints an acquire for `result` (D5.2) |
+| `call` | `callee`, `args`, optional `result`, optional `sig` | a `Call` checked against the callee's contract; a `fresh`-returning callee mints an acquire for `result` (D5.2) |
 | `if` | `then`, `else` (sub-bodies) | an `If` with both branches lowered |
 | `while` | `body` (sub-body) | a `While` — a back-edge the core's worklist fixpoint converges over (A1) |
 
 Anything else is a hard error (§2, fail-loud). Overwriting a tracked local (a
 re-bound `call` result or `alias_join` target) kills its previous ownership
 binding, so a lost prior obligation leaks rather than reading as clean.
+
+### 5.1 Per-overload signature keys (`sig`, interprocedural stage 2)
+
+A `functions[]` record and a `call` op may both carry an **optional** `sig`: the
+method's canonical parameter-type list — fully-qualified names, comma-separated,
+no spaces, generic arity via backtick, `global::` stripped (e.g.
+`"System.IO.Stream,System.Boolean"`; `""` for a zero-parameter overload). When an
+**overloaded** name's records carry `sig`, the inference layer keys one summary
+per overload as `name(sig)` *beside* the name-merged conservative summary, and a
+`call`/forward edge whose `sig` matches resolves that overload's own contract —
+one borrow overload no longer dilutes its siblings' consume/fresh verdicts.
+
+The fallback rule is load-bearing: a `sig` missing or unmatched on **either**
+side of an edge resolves against the name-merged summary (the pre-stage-2
+behaviour) — degraded, never a wrong overload — and the `first_party` /
+`overloaded` suppressions stay keyed on the **bare** name regardless of `sig`
+(INV4). A producer without type information (ownts) simply omits the field.
+Additive/optional per §2: no `OWNIR_VERSION` bump; a present-but-non-string
+`sig` on a function record is rejected at load, on a flow op it reads as absent.
 
 ## 6. DI registration graph (`services[]`)
 

@@ -1162,9 +1162,11 @@ static string MethodName(BaseMethodDeclarationSyntax m) => m switch
 // `callee` matches the `functions[]` key `{TypeName}.{MethodName}`. A null/extern symbol,
 // a void/non-disposable return, or a dispose-optional return is rejected (no claim); an
 // overload (non-unique name) resolves to `unknown` in the core and is silently safe.
-static bool IsFirstPartyDisposableFactory(ExpressionSyntax? expr, SemanticModel model, out string callee)
+static bool IsFirstPartyDisposableFactory(ExpressionSyntax? expr, SemanticModel model,
+                                          out string callee, out string sig)
 {
     callee = "";
+    sig = "";
     if (expr is not InvocationExpressionSyntax inv)
         return false;
     if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol m)
@@ -1176,8 +1178,10 @@ static bool IsFirstPartyDisposableFactory(ExpressionSyntax? expr, SemanticModel 
     // Fully-qualified key (namespace + containing-type chain) so the call resolves to the
     // RIGHT summary: two `StreamFactory.Make` in different namespaces must not alias, or a
     // call to a non-fresh one could pick up a fresh one's summary and fabricate OWN001
-    // (Codex). Must match the `functions[]` name built by `FlowFunctionName`.
+    // (Codex). Must match the `functions[]` name built by `FlowFunctionName`; the stage-2
+    // `sig` narrows the same call to the resolved OVERLOAD's summary (spec §5.1).
     callee = $"{m.ContainingType.ToDisplayString()}.{m.Name}";
+    sig = CanonicalSig(m);
     return true;
 }
 
@@ -1190,6 +1194,40 @@ static string FlowFunctionName(BaseMethodDeclarationSyntax method, string fallba
     model.GetDeclaredSymbol(method) is IMethodSymbol ms
         ? $"{ms.ContainingType.ToDisplayString()}.{ms.Name}"
         : $"{fallbackType}.{MethodName(method)}";
+
+// Interprocedural stage 2 (spec/OwnIR.md §5.1): the canonical per-overload signature key —
+// the method's parameter TYPES, fully-qualified, comma-separated, no spaces, generic arity
+// via backtick (type arguments erased, so two same-arity `List<T>` overloads share a sig —
+// a collision merely merges those overloads' summaries, never mis-resolves), `global::`
+// stripped, "" for zero parameters. Both sides of an edge (the `functions[]` record and
+// the `call` op) derive it from the SAME resolved IMethodSymbol, so they agree by
+// construction; the bridge falls back to the name-merged summary whenever either side
+// lacks or mismatches it.
+// Canonicalize through the DECLARED definition (Codex P2 on #217): a call site
+// resolves the REDUCED form of an extension method (no `this` receiver in
+// Parameters) and/or a CONSTRUCTED generic (type args substituted), while the
+// `functions[]` record is stamped from the declaration — `ReducedFrom` restores
+// the receiver parameter, `OriginalDefinition` restores the open type params, so
+// both sides of the edge always produce the same string.
+static string CanonicalSig(IMethodSymbol m) =>
+    string.Join(",", (m.ReducedFrom ?? m).OriginalDefinition
+        .Parameters.Select(p => CanonicalTypeName(p.Type)));
+
+static string CanonicalTypeName(ITypeSymbol t) => t switch
+{
+    IArrayTypeSymbol a => CanonicalTypeName(a.ElementType)
+        + "[" + new string(',', a.Rank - 1) + "]",
+    IPointerTypeSymbol p => CanonicalTypeName(p.PointedAtType) + "*",
+    ITypeParameterSymbol tp => tp.Name,   // erased: `Wrap<T>(T x)` keys as "T"
+    // MetadataName carries the backtick arity (List`1) and drops nullable
+    // annotations (`string?` == `string` — C# overloads cannot differ there).
+    INamedTypeSymbol n when n.ContainingType is { } outer =>
+        CanonicalTypeName(outer) + "+" + n.MetadataName,
+    INamedTypeSymbol n => n.ContainingNamespace is { IsGlobalNamespace: false } ns
+        ? $"{ns.ToDisplayString()}.{n.MetadataName}"
+        : n.MetadataName,
+    _ => t.ToDisplayString().Replace("global::", ""),   // dynamic / error types
+};
 
 // P-005 D5.4 (T4 wrap/adopt): the set of OWNING fields a first-party type disposes
 // UNCONDITIONALLY in its `Dispose()` — i.e. a `_f.Dispose()` / `_f?.Dispose()` /
@@ -1592,7 +1630,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                     // acquire); the core mints the acquire only if it proves the callee returns
                     // `fresh`, so a non-fresh first-party call is never falsely owned.
                     else if (tracked.Contains(v.Identifier.Text)
-                             && IsFirstPartyDisposableFactory(v.Initializer?.Value, model, out var fpCallee))
+                             && IsFirstPartyDisposableFactory(v.Initializer?.Value, model,
+                                                              out var fpCallee, out var fpSig))
                     {
                         // Preserve the call's TRACKED identifier args (CodeRabbit) so the core
                         // can apply the callee's per-argument ownership effects (consume/borrow)
@@ -1611,7 +1650,8 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                                   .Where(tracked.Contains)
                                   .ToArray()
                             : Array.Empty<string>();
-                        nodes.Add(new { op = "call", callee = fpCallee, args = fpArgs,
+                        nodes.Add(new { op = "call", callee = fpCallee, sig = fpSig,
+                                        args = fpArgs,
                                         result = v.Identifier.Text, line = LineOf(v) });
                     }
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
@@ -4428,7 +4468,8 @@ foreach (var (file, tree) in parsed)
                             candidates.Add(v.Identifier.Text);
                         else if (IsMemoryPoolRent(v.Initializer?.Value, model))   // MemoryPool<T> IMemoryOwner (Dispose-released, NOT a poolBuffer)
                             candidates.Add(v.Identifier.Text);
-                        else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model, out _))
+                        else if (IsFirstPartyDisposableFactory(v.Initializer?.Value, model,
+                                                               out _, out _))
                             // P-005 D5.2: `var r = FirstPartyFactory()` — a candidate acquire
                             // IFF the core proves the callee returns `fresh` (it emits a `call`
                             // op, not an `acquire`; the core decides). Checked last so `new` /
@@ -4568,12 +4609,24 @@ foreach (var (file, tree) in parsed)
                     continue;
                 }
                 statMethodsAnalysed++;
-                flowFunctions.Add(new
-                {
-                    name = FlowFunctionName(method, cls.Identifier.Text, model),
-                    file,
-                    body = fbody,
-                });
+                // Stage 2 (spec §5.1): stamp the record's per-overload `sig` when the
+                // symbol resolves, so an overloaded method gets its own summary beside
+                // the name-merge; an unresolved symbol omits the field (the bridge then
+                // keeps the merged-fallback behaviour — degraded, never mis-keyed).
+                flowFunctions.Add(model.GetDeclaredSymbol(method) is IMethodSymbol msym
+                    ? new
+                    {
+                        name = $"{msym.ContainingType.ToDisplayString()}.{msym.Name}",
+                        file,
+                        sig = CanonicalSig(msym),
+                        body = fbody,
+                    }
+                    : (object)new
+                    {
+                        name = FlowFunctionName(method, cls.Identifier.Text, model),
+                        file,
+                        body = fbody,
+                    });
             }
 
         if (subs.Count > 0)

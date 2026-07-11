@@ -121,10 +121,13 @@ class ReturnSkeleton:
 
 @dataclass(frozen=True)
 class MethodSkeleton:
-    key: str  # method identity the call graph resolves on. NOT a full signature key: the
-    #           extractor names a callee `{Type}.{Method}` with no parameter signature, so
-    #           same-name overloads share a key and are merged conservatively before solving
-    #           (`_merge_skeletons` in ownir.py — note's open question 2, partially addressed).
+    key: str  # method identity the call graph resolves on — an opaque string to this
+    #           solver. The bridge (ownir.py) keys a method `{Type}.{Method}` and, since
+    #           interprocedural stage 2, ALSO emits one `{Type}.{Method}(sig)` skeleton per
+    #           overload whose record carries a canonical parameter-type `sig`; a forward
+    #           edge targets the per-overload key when its call op carries a matching `sig`,
+    #           else the bare-name key (same-name overloads merged conservatively there —
+    #           `_merge_skeletons`, the stage-2 fallback).
     params: tuple[ParamSkeleton, ...] = ()
     ret: ReturnSkeleton = field(default_factory=ReturnSkeleton)
     file: str = "?"
