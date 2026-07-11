@@ -462,6 +462,25 @@ construction through (or explicit registration into) the designer's `IContainer`
 is a release, exactly like `Controls.Add` — the container's `Dispose()` is the
 real sink.**
 
+**Shipped (issue #219 — covers both entries 12 and 13).** The field-disposal scan
+now credits both channels, but **only when the class reaches the framework disposal
+root** — a designer `Dispose(bool)` that calls `base.Dispose(disposing)`
+(`ClassReachesDisposalRoot`). A class with no such Dispose (the ShareX
+`HistoryItemManager` true-positive) is not rooted, so its owned controls stay
+flagged. (a) A `Control`/`ToolStripItem` field added to **this object's own**
+`Controls`/`Items` collection (`this.Controls.Add`/`AddRange`, or `this.<field>.
+Items.Add` where `<field>` itself reaches the root) is released transitively — a
+fixpoint so a `ToolStrip` added to `this.Controls` cascades to its items. An add
+into a **foreign** container (a parameter/local — resolved semantically, not by
+name) yields no credit and stays flagged. (b) A field **constructed with** the
+designer `IContainer` (`new T(components)`) or explicitly `components.Add(x)` is
+released by `components.Dispose()`; the sink is a disposed field of type
+`System.ComponentModel.IContainer`. A component **not** registered (a bare
+`new NotifyIcon()`) stays flagged. Extractor-only, no OwnIR change. Pinned by
+`frontend/roslyn/samples/WinFormsDisposalSample.cs` (six channel-disposed fields
+silent; `lblForeign`/`cms`/`item`/`unregisteredIcon` controls flagged) in the
+`wpf-extractor` CI job.
+
 ## 14. `using (field = new T())` — a field as the direct `using` acquisition target
 
 **Seen in:** ShareX `ShareX.HelpersLib/Cryptographic/HashChecker.cs:59`,

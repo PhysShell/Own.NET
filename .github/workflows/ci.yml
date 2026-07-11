@@ -213,6 +213,7 @@ jobs:
             frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs \
             frontend/roslyn/samples/EmptyDisposeSample.cs \
             frontend/roslyn/samples/AppScopedSourceSample.cs \
+            frontend/roslyn/samples/WinFormsDisposalSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -878,7 +879,30 @@ jobs:
           # curated initializer — the stale declaration binding must not exempt.
           echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignApp'" \
             || { echo "FAIL: expected OWN001 when the resolver-bound local is reassigned before the +="; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) at the C# location"
+          # issue #219 — WinForms disposal CHANNELS: (a) a Control/ToolStripItem field added to THIS's
+          # own Controls/Items collection is disposed transitively by base.Dispose(disposing); (b) a
+          # component built with `new T(components)` / registered via `components.Add(x)` is disposed by
+          # components.Dispose(). ~30 ShareX FPs. Both require the class to reach a disposal root.
+          # These fields must be SILENT: (a) direct Controls.Add, AddRange, a transitive ToolStrip
+          # Items add, and (b) both IContainer-registration shapes.
+          if echo "$out" | grep -qE "WinFormsDisposalSample\.cs.*'(lblStatus|btnOk|menu|menuItem|trayIcon|icon)'"; then
+            echo "FAIL: a WinForms Controls/Items-membership or IContainer-registered field was wrongly flagged (#219)"; exit 1
+          fi
+          # ...and the negative controls MUST stay flagged: an add into a FOREIGN (param) container;
+          # a plain owner with NO Dispose at all (owned container never disposed); and a component NOT
+          # container-registered.
+          echo "$out" | grep -qE "WinFormsDisposalSample\.cs:[0-9]+:.*\[OWN001\].*'lblForeign'" \
+            || { echo "FAIL: #219 (a): a control added to a FOREIGN container must stay flagged"; exit 1; }
+          echo "$out" | grep -qE "WinFormsDisposalSample\.cs:[0-9]+:.*\[OWN001\].*'item'" \
+            || { echo "FAIL: #219 (a): a control in an owned container with NO Dispose must stay flagged"; exit 1; }
+          echo "$out" | grep -qE "WinFormsDisposalSample\.cs:[0-9]+:.*\[OWN001\].*'unregisteredIcon'" \
+            || { echo "FAIL: #219 (b): a component NOT registered in the IContainer must stay flagged"; exit 1; }
+          # exactly 4 WinFormsDisposalSample findings (lblForeign, cms, item, unregisteredIcon) — the
+          # six channel-disposed fields are all silent; any leak of them pushes the count past 4.
+          nwf=$(echo "$out" | grep -cE "WinFormsDisposalSample\.cs:[0-9]+:.*\[OWN001\]")
+          [ "$nwf" = "4" ] \
+            || { echo "FAIL: #219 expected exactly 4 WinFormsDisposalSample findings (controls only), got $nwf"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #219 WinForms Controls/IContainer disposal channels (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
