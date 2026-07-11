@@ -45,30 +45,36 @@ fire on unprovable input.
 |---|---|---|
 | `--severity warning` | **works today** (P-013) | Global: downgrades every error-tier finding for that run to advisory. Per-run, not per-finding — an escape hatch for "show me everything, but don't fail the build yet," not a way to silence one specific site. |
 | `--fail-on-finding` set to off | **works today** (P-013) | Global: findings still print/annotate, but the process/step exit code stays 0. The CLI (`own-check.sh`) is off by default — you must pass the flag to make findings fail the shell. The GitHub Action inverts that for safety: its `fail-on-finding` input defaults to `"true"` (fails the step on a finding), so to get the "annotate but don't fail" behavior in CI you must explicitly set `fail-on-finding: "false"`. |
-| `[OwnIgnore("reason")]` | **designed, not implemented** (P-004) | Inline, per-site suppression attribute — the intended fine-grained escape hatch for a specific subscription/field the checker can't see enough context to clear. Referenced across P-001/P-004/P-010/P-014/P-017 as the standing design; there is no code behind it yet. If you need this today, the honest answer is: you don't have it — file the case so it informs the implementation. |
+| `[OwnIgnore("reason")]` | **works today** on `IDisposable` fields (P-004, #209) | Inline, per-site suppression attribute — the fine-grained escape hatch for a specific site the checker can't see enough context to clear. Put `[OwnIgnore("reason")]` on the field; the finding is then **silent-but-counted** — kept out of the exit code and the human findings stream, but tallied in the run summary and carried in SARIF `suppressions` (`kind: "inSource"`, your reason as the `justification`) so nothing is lost and a consumer can audit it. The **reason is mandatory**: a reason-less `[OwnIgnore]` (or an empty `[OwnIgnore("")]`) does **not** suppress — a suppression is a documented decision, never a silent accept. The attribute is matched by simple name, so you can declare your own `OwnIgnoreAttribute`. Currently reads on `IDisposable` **field** declarations (the clearest attribute site); other sites (subscriptions, timers) are follow-up increments. |
 | Project-wide config (`.ownrc`/`own.toml`) | **draft, not implemented** (P-015) | Per-check-category enable/disable + severity + per-path overrides (e.g. relax a category under `tests/`). Stub status — format (TOML vs INI vs JSON) and enforcement point are still open questions in the proposal. |
 | `corpus/oracle-fp-baseline.txt` | **exists, but not a user-facing suppression tool** | An allowlist the *oracle comparator* (`scripts/oracle_compare.py`, a dev/maintainer tool) uses to keep already-triaged false positives out of the `own-only` bucket on re-runs. It doesn't change what `own-check`/the Action reports — it only keeps the oracle's own triage queue from re-showing confirmed noise. |
 
-So today, honestly: there is no way to suppress **one specific finding** in
-your own repo. The two escape hatches for that (`[OwnIgnore]`, project config)
-are designed and drafted respectively, not shipped. What you have is a global
-severity dial and the extractor's own honest-skip behavior, which is why the
-precision bar above matters as much as the (currently thin) suppression
-surface — the fewer false positives reach you, the less suppression UX has to
-carry.
+So today: you **can** suppress one specific finding with an inline
+`[OwnIgnore("reason")]` on the field it fires on (shipped, #209) — the finding
+goes silent but stays counted (summary tally + SARIF `suppressions`). The
+project-wide counterpart (`.ownrc`/`own.toml`, P-015) is drafted, not shipped.
+Together with the global severity dial and the extractor's own honest-skip
+behavior, that covers per-site and per-run; the per-*category*, per-*path*
+config is the remaining gap. The precision bar above still matters as much as
+the suppression surface — the fewer false positives reach you, the less
+suppression UX has to carry.
 
-## The designed shape (so you know what's coming)
+## The full shape (`[OwnIgnore]` shipped; config still to come)
 
-Precedence, once both land (P-015's draft order):
+Precedence (P-015's draft order — the inline attribute half is shipped, #209;
+the config-file half is still draft):
 
 ```text
 CLI flag  >  inline [OwnIgnore]  >  config file  >  built-in default
 ```
 
-`[OwnIgnore("reason")]` (P-004) is a per-site attribute — the *reason* string
-is mandatory by design, so a suppression is a documented decision, not a
-silent one. Project config (P-015) is the per-category, project-wide
-counterpart — "treat subscriptions as warnings, keep disposables as errors,
+`[OwnIgnore("reason")]` (P-004, **shipped** #209) is a per-site attribute — the
+*reason* string is mandatory by design, so a suppression is a documented
+decision, not a silent one. It is consumed **core-side** (the extractor emits
+the finding fact with the reason marker; the core decides the verdict, keeps it
+out of the exit code, and stamps SARIF `suppressions`), so a suppression is
+counted, never a silent drop. Project config (P-015, draft) is the
+per-category, project-wide counterpart — "treat subscriptions as warnings, keep disposables as errors,
 skip pool checks under `tests/`" — discovered by walking up from the scanned
 path, the same convention as `.editorconfig`/`ruff.toml`. Both are consumed
 **core-side** ([P-013](proposals/P-013-distribution-surface.md)'s "one

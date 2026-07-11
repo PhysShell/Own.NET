@@ -129,6 +129,10 @@
         "source_provenance": {
           "description": "Interprocedural publisher provenance for an injected source (#146). The only routing value is \"returned_fresh\": every in-compilation caller passes a publisher it freshly constructs and lets escape only into this call or its own return, so the subscription is bounded by the returned publisher's lifetime (silent). Any other string keeps the honest OWN001 warning. Additive/optional.",
           "type": ["string", "null"]
+        },
+        "ignore_reason": {
+          "description": "The mandatory justification of an inline [OwnIgnore(\"reason\")] per-site suppression (P-004, #209). When present and non-empty the core marks this record's finding SUPPRESSED: excluded from the exit code and the human findings stream, but still counted and carried in SARIF `suppressions` (visibility over silence). An empty string does not suppress (never a silent accept). Additive/optional; an older core ignores it and reports the finding.",
+          "type": ["string", "null"]
         }
       }
     },
