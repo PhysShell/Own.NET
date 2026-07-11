@@ -69,4 +69,27 @@ namespace Own.Samples.SelfDetachingHandler
             ((PopupLike)sender!).Opened -= OnClosed;
         }
     }
+
+    // Negative control 3 (Codex P2 on PR #231): the handler detaches the CORRECT
+    // event name, but off an UNRELATED object (a different field) instead of the
+    // handler's own `sender` parameter — the actual object that raised the event. A
+    // same-named-event detach on the wrong receiver must NOT be credited as
+    // releasing the original subscription's source. Must STILL warn (OWN001).
+    public sealed class WrongReceiverDetachSubscriber
+    {
+        private readonly PopupLike content;
+        private readonly PopupLike other;
+
+        public WrongReceiverDetachSubscriber(PopupLike content, PopupLike other)
+        {
+            this.content = content;
+            this.other = other;
+            content.Closed += OnClosed;
+        }
+
+        private void OnClosed(object? sender, EventArgs e)
+        {
+            other.Closed -= OnClosed;   // detaches a DIFFERENT PopupLike, not `sender`
+        }
+    }
 }

@@ -62,6 +62,41 @@ namespace OwnSamples.TemplatePartLocals
         private void OnClick(object? sender, EventArgs e) { }
     }
 
+    // Precision regression control (Codex P2 on PR #231): a template-part LOCAL in one
+    // method must NOT exempt an UNRELATED same-named local (aliasing an injected source)
+    // in a DIFFERENT method of the same class — locals are self-owned by SYMBOL, never
+    // by name (a local's identifier is scoped to its own method; two methods can freely
+    // reuse the same name for two entirely different locals).
+    public sealed class SameNameDifferentScopeSubscriber : TemplatedControlStub
+    {
+        private readonly ButtonStub injectedButton;
+
+        public SameNameDifferentScopeSubscriber(ButtonStub injectedButton)
+        {
+            this.injectedButton = injectedButton;
+        }
+
+        // A template-part local named "sameName" -> legitimately self-owned. Must be SILENT.
+        public void WireTemplatePart()
+        {
+            ButtonStub sameName = (ButtonStub)Template.FindName("PART_X", this);
+            sameName.Click += OnTemplateClick;
+        }
+
+        // An UNRELATED local, ALSO named "sameName", aliasing an INJECTED field — must
+        // STILL warn (OWN001). A name-based (rather than symbol-based) exemption would
+        // wrongly treat this as self-owned because "sameName" is in the set from
+        // WireTemplatePart above.
+        public void WireInjected()
+        {
+            ButtonStub sameName = injectedButton;
+            sameName.Click += OnInjectedClick;
+        }
+
+        private void OnTemplateClick(object? sender, EventArgs e) { }
+        private void OnInjectedClick(object? sender, EventArgs e) { }
+    }
+
     public sealed class ButtonStub { public event EventHandler? Click; }
     public sealed class ContentControlStub { public event EventHandler? TransitionCompleted; }
 

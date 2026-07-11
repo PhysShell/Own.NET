@@ -497,14 +497,23 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 // — a *running* timer is rooted by the dispatcher regardless of who owns the field.
 static bool IsSelfOwnedSource(ExpressionSyntax left, IEventSymbol ev,
                               SemanticModel model, HashSet<string> owned,
-                              ISymbol? cls)
+                              HashSet<ISymbol> ownedLocals, ISymbol? cls)
 {
     if (left is not MemberAccessExpressionSyntax m)
         return !ev.IsStatic;   // bare event => an instance event on `this`
     if (m.Expression is ThisExpressionSyntax)
         return true;
     var recv = model.GetSymbolInfo(m.Expression).Symbol;
-    if ((recv is IFieldSymbol or ILocalSymbol) && owned.Contains(recv.Name))
+    // FIELD names are unique per class (two same-named fields wouldn't compile), so a
+    // name-based lookup is sound; a LOCAL's name is only unique within its own
+    // declaration space — an unrelated method can freely reuse the same identifier for a
+    // completely different (possibly injected) local. So locals are matched by SYMBOL
+    // (`ownedLocals`, keyed by SymbolEqualityComparer), never by name, else a same-named
+    // local aliasing an injected source in one method could wrongly borrow another
+    // method's template-part local's exemption (Codex P2).
+    if (recv is IFieldSymbol && owned.Contains(recv.Name))
+        return true;
+    if (recv is ILocalSymbol && ownedLocals.Contains(recv))
         return true;
     // A get-only PROPERTY over a member the class owns (`this.Child.Event += h`, Child a
     // `=> _owned` / `{ get; } = new()` property) is the SAME collectable self-cycle as the
@@ -679,19 +688,44 @@ static bool DeclaredWithin(ISymbol sym, SyntaxNode scope)
     return true;
 }
 
+// Strip parens/cast/`as`/null-forgiving (`!`) wrappers down to the base expression —
+// e.g. `((Popup)sender!)` -> `sender`. Shared by HandlerSelfDetaches to resolve a
+// `-=`'s receiver to the underlying symbol regardless of how it is cast back.
+static ExpressionSyntax UnwrapToBase(ExpressionSyntax e)
+{
+    while (true)
+    {
+        var next = e switch
+        {
+            ParenthesizedExpressionSyntax p => p.Expression,
+            CastExpressionSyntax c => c.Expression,
+            BinaryExpressionSyntax b when b.IsKind(SyntaxKind.AsExpression) => b.Left,
+            PostfixUnaryExpressionSyntax u
+                when u.IsKind(SyntaxKind.SuppressNullableWarningExpression) => u.Operand,
+            _ => e,
+        };
+        if (ReferenceEquals(next, e))
+            return e;
+        e = next;
+    }
+}
+
 // P-004 (issue #224): a subscribed handler that unsubscribes ITSELF, inside its own
 // body, the first time it runs ("do this once, then stop listening") needs no
 // external `-=` — by the time the event could fire again, the subscription is
-// already gone. Typical shape: cast the handler's own `sender` parameter back to the
-// source's type and `-=` the very same handler off it. Recognised by finding, inside
-// the candidate handler METHOD's own body, a `-=` whose LHS member name matches the
-// SUBSCRIBED event's name (not just any event) and whose RHS resolves to the SAME
-// method symbol (a true self-reference — a same-named handler on a different,
-// unrelated subscription cannot satisfy this, since matching is by symbol). Scoped to
-// a named METHOD-GROUP handler only: a lambda has no name to self-reference by, so it
-// is left exactly as before (still gets the "no '-=' handle" note). Mined: AvalonEdit
-// `Search/DropDownButton.cs` (`((Popup)sender).Closed -= DropDownContent_Closed;`
-// inside the very handler subscribed as `DropDownContent.Closed += DropDownContent_Closed`).
+// already gone. The ONLY expression inside the handler provably referring to the
+// actual runtime event source is its own `sender` parameter (whatever field/local/
+// property the ORIGINAL `+=` reached the source through, `sender` at invocation time
+// IS that same source) — so this requires the `-=`'s receiver, once a cast/`as`/`!`/
+// parens are stripped, to resolve to the handler's own first parameter. Matching only
+// the event NAME and handler METHOD (without checking the receiver at all) would
+// wrongly credit a self-detach that targets some OTHER, unrelated object exposing an
+// event of the same name (Codex P2 on PR #231) — the original subscription's source
+// would never actually be released. Scoped to a named METHOD-GROUP handler only: a
+// lambda has no name to self-reference by, so it is left exactly as before (still
+// gets the "no '-=' handle" note). Mined: AvalonEdit `Search/DropDownButton.cs`
+// (`((Popup)sender).Closed -= DropDownContent_Closed;` inside the very handler
+// subscribed as `DropDownContent.Closed += DropDownContent_Closed`).
 static bool HandlerSelfDetaches(ExpressionSyntax right, IEventSymbol ev,
                                 SemanticModel model, CSharpCompilation compilation)
 {
@@ -703,17 +737,24 @@ static bool HandlerSelfDetaches(ExpressionSyntax right, IEventSymbol ev,
         return false;
     foreach (var sref in handlerMethod.DeclaringSyntaxReferences)
     {
-        if (sref.GetSyntax() is not MethodDeclarationSyntax mdecl)
+        if (sref.GetSyntax() is not MethodDeclarationSyntax { ParameterList.Parameters: { Count: > 0 } ps } mdecl)
             continue;
         SyntaxNode? body = (SyntaxNode?)mdecl.Body ?? mdecl.ExpressionBody;
         if (body is null)
             continue;
         var bodyModel = compilation.GetSemanticModel(mdecl.SyntaxTree);
+        if (bodyModel.GetDeclaredSymbol(ps[0]) is not { } senderParam)
+            continue;
         foreach (var inner in body.DescendantNodes().OfType<AssignmentExpressionSyntax>())
         {
             if (!inner.IsKind(SyntaxKind.SubtractAssignmentExpression)
                 || inner.Left is not MemberAccessExpressionSyntax innerLeft
                 || innerLeft.Name.Identifier.Text != ev.Name)
+                continue;
+            // the receiver must resolve to the handler's OWN sender parameter — the
+            // only provable reference to the actual firing source.
+            var recvSym = bodyModel.GetSymbolInfo(UnwrapToBase(innerLeft.Expression)).Symbol;
+            if (!SymbolEqualityComparer.Default.Equals(recvSym, senderParam))
                 continue;
             var innerHandlerSym = bodyModel.GetSymbolInfo(NormalizeHandler(inner.Right)).Symbol;
             if (SymbolEqualityComparer.Default.Equals(innerHandlerSym, handlerMethod))
@@ -3788,23 +3829,23 @@ foreach (var (file, tree) in parsed)
         // as a plain LOCAL variable (`Button upButton = (Button)this.Template.FindName(
         // "PART_UP", this);`) or an `is T x` PATTERN variable (`if (this.GetTemplateChild(
         // ...) is T x)`), not only a field — same fetch, same template-owned lifetime,
-        // just not stored in a field. `IsSelfOwnedSource` already accepts an `ILocalSymbol`
-        // receiver via `owned.Contains(recv.Name)` (see its doc comment) — it only needed
-        // template-part LOCAL names folded into `selfOwned`, which is what these two loops
-        // do; no change to IsSelfOwnedSource itself. Mined: MahApps.Metro
-        // `Controls/MetroWindow.cs` (pattern-variable form), AvalonEdit
-        // `CodeCompletion/OverloadViewer.cs` (plain local-variable form).
+        // just not stored in a field. Tracked by SYMBOL (`selfOwnedLocals`), not name — a
+        // local's identifier is scoped to its own method, so two unrelated methods can
+        // reuse the same variable name for two entirely different locals (Codex P2).
+        // Mined: MahApps.Metro `Controls/MetroWindow.cs` (pattern-variable form),
+        // AvalonEdit `CodeCompletion/OverloadViewer.cs` (plain local-variable form).
+        var selfOwnedLocals = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var declr in cls.DescendantNodes().OfType<VariableDeclaratorSyntax>())
             if (declr.Initializer?.Value is { } declInit
                 && IsTemplatePartFetch(declInit)
                 && model.GetDeclaredSymbol(declr) is ILocalSymbol declLocal)
-                selfOwned.Add(declLocal.Name);
+                selfOwnedLocals.Add(declLocal);
         foreach (var isPat in cls.DescendantNodes().OfType<IsPatternExpressionSyntax>())
             if (IsTemplatePartFetch(isPat.Expression)
                 && isPat.Pattern is DeclarationPatternSyntax
                    { Designation: SingleVariableDesignationSyntax svd }
                 && model.GetDeclaredSymbol(svd) is ILocalSymbol patLocal)
-                selfOwned.Add(patLocal.Name);
+                selfOwnedLocals.Add(patLocal);
         //   * WPF MVVM view-model — `_vm = DataContext as VM`: when THIS view's own
         //     XAML constructs its DataContext (recorded in viewsOwningDataContext from
         //     the sibling `.xaml`), the view owns that VM, so the view<->VM cycle is
@@ -3848,7 +3889,7 @@ foreach (var (file, tree) in parsed)
                 //    intent, not a leak (mined: Npgsql PoolManager's `AppDomain.CurrentDomain.
                 //    ProcessExit += (_,_) => ClearAll()` shutdown hook). A handler that captures
                 //    instance state still pins it to the process, so it stays OWN014 (Codex).
-                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned, clsSymbol)
+                if (!isTimer && (IsSelfOwnedSource(a.Left, ev, model, selfOwned, selfOwnedLocals, clsSymbol)
                                  || IsStaticHandler(a.Right, model)
                                  || (IsProcessLifetimeAppDomainEvent(ev)
                                      && HandlerRetainsNoInstance(a.Right, model))))

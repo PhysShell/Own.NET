@@ -780,6 +780,11 @@ jobs:
           # as releasing the subscribed event -> must STILL warn.
           echo "$out" | grep -qE "SelfDetachingHandlerSample\.cs:[0-9]+: warning: \[OWN001\].*'WrongEventDetachSubscriber'" \
             || { echo "FAIL: expected OWN001 when the self-detach targets the wrong event name"; exit 1; }
+          # control 3 (Codex P2 on PR #231): the handler detaches the CORRECT event name
+          # but off an UNRELATED receiver, not its own `sender` parameter -> the actual
+          # subscribed source is never released -> must STILL warn.
+          echo "$out" | grep -qE "SelfDetachingHandlerSample\.cs:[0-9]+: warning: \[OWN001\].*'WrongReceiverDetachSubscriber'" \
+            || { echo "FAIL: expected OWN001 when the self-detach targets the wrong receiver (not sender)"; exit 1; }
           # issue #220 — `using (field = new T())`: the field IS the `using` acquisition
           # target, disposed at scope exit -> must be SILENT.
           if echo "$out" | grep -q "HashCheckerLike"; then
@@ -801,6 +806,16 @@ jobs:
           # an actual template-part fetch, not "any local-variable subscription is self-owned."
           echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'InjectedLocalSubscriber'" \
             || { echo "FAIL: expected OWN001 on the injected-local (non-template-part) subscriber"; exit 1; }
+          # control (Codex P2 on PR #231): a template-part local in one method must NOT
+          # exempt an UNRELATED same-named local (aliasing an injected source) in a
+          # DIFFERENT method of the same class — locals are self-owned by SYMBOL, not
+          # name. The template-part method's own subscription must stay silent...
+          if echo "$out" | grep -q "OnTemplateClick"; then
+            echo "FAIL: the legitimate template-part-local subscription was wrongly reported"; exit 1
+          fi
+          # ...while the same-named local in the OTHER method must still warn.
+          echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'SameNameDifferentScopeSubscriber'" \
+            || { echo "FAIL: expected OWN001 on the same-named-but-unrelated local in a different method"; exit 1; }
           echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
