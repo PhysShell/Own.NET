@@ -2129,3 +2129,159 @@ jobs:
           echo "$out" | grep -qi "OWN_PYTHON is deprecated" || { echo "FAIL: expected a deprecation note when OWN_PYTHON is used"; exit 1; }
           echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 in the output even via the legacy var"; exit 1; }
 
+      - name: Seed a same-content legacy cache and confirm it is reused (no ~/.owen copy)
+        # Review, PR #246 -- the fallback must trust DESTINATION content, not a
+        # marker's say-so. This is the legitimate case: exact byte-for-byte
+        # match with the just-packed core, reused in place.
+        run: |
+          rm -rf "$HOME/.owen" "$HOME/.ownsharp"
+          mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
+          cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' via the legacy cache"; exit 1; }
+          if [ -d "$HOME/.owen" ]; then
+            echo "FAIL: ~/.owen was created despite a legitimate matching legacy cache (fallback not reused in place)"; exit 1
+          fi
+          echo "OK: matching legacy cache reused in place, no unnecessary copy"
+      - name: Seed a legacy cache with an EXTRA (removed) file and confirm it is REJECTED
+        # The exact reproduction from review: an old cache holds a file the new
+        # source no longer has. A version-only marker would have missed this;
+        # the content fingerprint must not.
+        run: |
+          rm -rf "$HOME/.owen" "$HOME/.ownsharp"
+          mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
+          cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
+          echo "# stale leftover module" > "$HOME/.ownsharp/core/0.1.0/ownlang/removed_module.py"
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
+          [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (extra-file legacy cache should have been rejected)"; exit 1; }
+          if find "$HOME/.owen" -name "removed_module.py" | grep -q .; then
+            echo "FAIL: the stale extra file leaked into the fresh cache"; exit 1
+          fi
+          echo "OK: extra-file legacy cache correctly rejected, fresh cache is clean"
+      - name: Seed a legacy cache with MODIFIED content (same filenames, different bytes) and confirm rejection
+        # Same version, same file SET, different CONTENT -- the same-version
+        # class of bug this whole fingerprint mechanism exists to catch.
+        run: |
+          rm -rf "$HOME/.owen" "$HOME/.ownsharp"
+          mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
+          cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
+          echo "# tampered" >> "$HOME/.ownsharp/core/0.1.0/ownlang/ownir.py"
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
+          [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (modified-content legacy cache should have been rejected)"; exit 1; }
+          echo "OK: modified-content legacy cache correctly rejected"
+      - name: Directory containing only skipped files (bin/obj) -- exit 4, not a silent clean scan
+        run: |
+          rm -rf "$HOME/.owen" "$HOME/.ownsharp"
+          mkdir -p "$RUNNER_TEMP/owen-skip-only/bin" "$RUNNER_TEMP/owen-skip-only/obj"
+          cat > "$RUNNER_TEMP/owen-skip-only/bin/Ignored.cs" <<'EOF'
+          public class X { public void M() { var s = new System.IO.MemoryStream(); } }
+          EOF
+          cat > "$RUNNER_TEMP/owen-skip-only/obj/AlsoIgnored.cs" <<'EOF'
+          public class Y { public void M() { var s = new System.IO.MemoryStream(); } }
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-skip-only" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 4 ] || { echo "FAIL: expected exit 4 (bin/obj-only directory), got $rc"; exit 1; }
+          echo "$out" | grep -qi "no supported input" || { echo "FAIL: expected an explicit unsupported-input message"; exit 1; }
+      - name: Directory containing only generated files (*.g.cs) -- exit 4
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-generated-only"
+          cat > "$RUNNER_TEMP/owen-generated-only/Foo.g.cs" <<'EOF'
+          public class Gen { public void M() { var s = new System.IO.MemoryStream(); } }
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-generated-only" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 4 ] || { echo "FAIL: expected exit 4 (generated-only directory), got $rc"; exit 1; }
+          echo "$out" | grep -qi "no supported input" || { echo "FAIL: expected an explicit unsupported-input message"; exit 1; }
+      - name: Empty .csproj (no .cs files in its directory) -- exit 4
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-empty-proj"
+          cat > "$RUNNER_TEMP/owen-empty-proj/Empty.csproj" <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+          </Project>
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-empty-proj/Empty.csproj" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 4 ] || { echo "FAIL: expected exit 4 (empty .csproj), got $rc"; exit 1; }
+      - name: .sln with no usable projects -- exit 4
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-empty-sln"
+          cat > "$RUNNER_TEMP/owen-empty-sln/Empty.sln" <<'EOF'
+          Microsoft Visual Studio Solution File, Format Version 12.00
+          # no Project( lines at all
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-empty-sln/Empty.sln" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 4 ] || { echo "FAIL: expected exit 4 (.sln with no projects), got $rc"; exit 1; }
+      - name: Skipped files plus one real source -- the real one is still found, exit 1
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-mixed-skip/bin" "$RUNNER_TEMP/owen-mixed-skip/src"
+          cat > "$RUNNER_TEMP/owen-mixed-skip/bin/Ignored.cs" <<'EOF'
+          public class X { public void M() { var s = new System.IO.MemoryStream(); } }
+          EOF
+          cat > "$RUNNER_TEMP/owen-mixed-skip/src/Real.cs" <<'EOF'
+          using System.IO;
+          public class Leaky { public void Run() { var s = new MemoryStream(); s.WriteByte(1); } }
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-mixed-skip" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (real source found despite bin/ noise), got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001"; exit 1; }
+      - name: Inaccessible subtree plus one readable source -- tolerated, real source still found
+        # On these hosted runners the job does not run as an all-powerful admin/
+        # root account, so chmod/icacls genuinely restricts access (unlike a
+        # root-based local sandbox, where this same scenario cannot be exercised).
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-mixed-locked/locked" "$RUNNER_TEMP/owen-mixed-locked/readable"
+          cat > "$RUNNER_TEMP/owen-mixed-locked/locked/Secret.cs" <<'EOF'
+          public class X { public void M() { var s = new System.IO.MemoryStream(); } }
+          EOF
+          cat > "$RUNNER_TEMP/owen-mixed-locked/readable/Real.cs" <<'EOF'
+          using System.IO;
+          public class Leaky { public void Run() { var s = new MemoryStream(); s.WriteByte(1); } }
+          EOF
+          chmod 000 "$RUNNER_TEMP/owen-mixed-locked/locked" 2>/dev/null || true
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-mixed-locked" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          chmod 755 "$RUNNER_TEMP/owen-mixed-locked/locked" 2>/dev/null || true
+          echo "$out"
+          if echo "$out" | grep -qi "UnauthorizedAccess\|Unhandled exception"; then
+            echo "FAIL: crashed on the locked subdirectory instead of tolerating it"; exit 1
+          fi
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected the readable source's leak to still be found"; exit 1; }
+      - name: Uppercase extensions are accepted case-insensitively (Foo.CS)
+        run: |
+          mkdir -p "$RUNNER_TEMP/owen-uppercase"
+          cat > "$RUNNER_TEMP/owen-uppercase/Leak.CS" <<'EOF'
+          using System.IO;
+          public class Leaky { public void Run() { var s = new MemoryStream(); s.WriteByte(1); } }
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-uppercase/Leak.CS" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 for uppercase .CS extension, got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001"; exit 1; }
+      - name: Clean up cache state left by the edge-case tests above
+        run: rm -rf "$HOME/.owen" "$HOME/.ownsharp"

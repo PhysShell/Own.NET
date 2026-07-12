@@ -7,8 +7,13 @@ namespace OwnSharp.Cli;
 /// -> facts.json -> the vendored core (system Python) -> render. Flags mirror
 /// scripts/own-check.sh 1:1; the exit-code contract is the same one (own-check
 /// comment): 0 clean, 1 findings, &gt;=2 a hard error, plus --fail-on-finding.
-/// Exit 4 is `owen`'s own: no path resolved to anything the currently
-/// included frontend (.NET/C#) can analyze — see <see cref="HasSupportedInput"/>.
+/// Exit 4 means no analyzable input: either this preflight's cheap check
+/// rejects every path outright (<see cref="HasSupportedInput"/>), or every
+/// path existed but the EXTRACTOR's own expansion (which alone knows its
+/// skip rules — bin/obj, generated, vendor trees) found nothing after
+/// filtering, in which case the extractor itself returns 4 and this command
+/// simply propagates it (review, PR #246: the CLI must not duplicate the
+/// extractor's expansion/skip rules to guess that outcome itself).
 /// </summary>
 internal static class CheckCommand
 {
@@ -18,10 +23,14 @@ internal static class CheckCommand
     // The product (Owen) is language-neutral at the OwnIR/core level; this
     // distribution currently wires up only the .NET/C# frontend. Naming the
     // extensions here (instead of e.g. "just try everything and see") is
-    // what makes "unsupported input fails explicitly" possible at all -- a
-    // silent 0-finding scan on a .ts file or an empty directory would
-    // otherwise look identical to a genuinely clean C# scan.
-    private static readonly HashSet<string> SupportedExtensions = [".cs", ".csproj", ".sln"];
+    // what makes the CHEAP half of "unsupported input fails explicitly"
+    // possible: an obviously-wrong bare file (.ts, no extension at all,
+    // nonexistent path) is rejected here without spinning up the extractor
+    // at all. Case-insensitive (review, PR #246): Windows/macOS filesystems
+    // commonly are, and MSBuild itself treats `Foo.CS`/`App.CSPROJ` as the
+    // same file kinds as their lowercase spellings.
+    private static readonly HashSet<string> SupportedExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".cs", ".csproj", ".sln" };
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -158,24 +167,19 @@ internal static class CheckCommand
         return args[++i];
     }
 
-    // Mirrors the extractor's own Expand() walk (Program.cs): IgnoreInaccessible
-    // tolerates a locked/permission-denied subdirectory mid-walk instead of
-    // throwing. Without this, a preflight check using plain
-    // SearchOption.AllDirectories could crash on a tree the extractor itself
-    // would have scanned around just fine (review, PR #246).
-    private static readonly EnumerationOptions DirectoryWalkOptions = new()
-    {
-        RecurseSubdirectories = true,
-        IgnoreInaccessible = true,
-    };
-
-    /// <summary>True if at least one of <paramref name="paths"/> resolves to
-    /// something the currently included frontend can analyze: a file whose
-    /// extension is in <see cref="SupportedExtensions"/>, or a directory that
-    /// recursively contains at least one <c>.cs</c> file. A path that doesn't
-    /// exist on disk at all is also unsupported (not silently skipped) -- the
-    /// point is to never let "nothing to analyze" print as "0 findings,
-    /// clean".</summary>
+    /// <summary>True if at least one of <paramref name="paths"/> is CHEAPLY,
+    /// OBVIOUSLY plausible input for the currently included frontend: an
+    /// existing file whose extension is in <see cref="SupportedExtensions"/>,
+    /// or an existing directory. Deliberately NOT a full expansion — a
+    /// directory is accepted here even if every <c>.cs</c> file under it
+    /// turns out to be skipped (bin/obj, generated, vendor) once the
+    /// extractor actually walks it; duplicating that skip-list in the CLI
+    /// would drift from the extractor's real rules (review, PR #246). The
+    /// extractor itself is the sole authority on "found nothing after
+    /// expansion" and returns exit 4 for that case (Program.cs) — this
+    /// preflight only catches the cheaper "obviously not C# at all" case
+    /// (nonexistent path, or a bare file with the wrong extension) without
+    /// paying for an extractor invocation.</summary>
     private static bool HasSupportedInput(IReadOnlyList<string> paths, out string reason)
     {
         var problems = new List<string>();
@@ -183,14 +187,10 @@ internal static class CheckCommand
         {
             if (Directory.Exists(p))
             {
-                if (Directory.EnumerateFiles(p, "*.cs", DirectoryWalkOptions).Any())
-                {
-                    reason = "";
-                    return true;
-                }
-                problems.Add($"'{p}' is a directory with no .cs files");
+                reason = "";
+                return true;
             }
-            else if (File.Exists(p))
+            if (File.Exists(p))
             {
                 if (SupportedExtensions.Contains(Path.GetExtension(p)))
                 {
@@ -198,11 +198,9 @@ internal static class CheckCommand
                     return true;
                 }
                 problems.Add($"'{p}' has an unsupported extension ({Path.GetExtension(p)})");
+                continue;
             }
-            else
-            {
-                problems.Add($"'{p}' does not exist");
-            }
+            problems.Add($"'{p}' does not exist");
         }
         reason = string.Join("; ", problems);
         return false;

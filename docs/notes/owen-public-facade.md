@@ -87,43 +87,76 @@ Per the guardrail this rebrand was scoped to: no mass rename.
   the help text does not claim support that doesn't exist yet.
 - **Unsupported input fails explicitly.** Before this rebrand, pointing
   `check` at a `.ts` file or an empty/non-C# directory silently printed
-  "0 findings" — indistinguishable from a genuinely clean C# scan.
-  `CheckCommand.HasSupportedInput` now checks every given path resolves to
-  something the included frontend can read (a `.cs`/`.csproj`/`.sln` file,
-  or a directory containing at least one `.cs` file anywhere under it)
-  *before* running the extractor, and exits **4** with an explicit message
-  if none do. This is a new, additive exit-code tier — it does not change
-  any of the existing 0/1/`>=2`/3 contract. **Correction (review, PR #246):**
-  the directory walk in this preflight check now uses the same
-  `EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible =
-  true }` the extractor's own `Expand()` walk uses (`OwnSharp.Extractor/
-  Program.cs`) — the first version used a plain `SearchOption.AllDirectories`,
-  which throws on a locked/permission-denied subdirectory instead of
-  tolerating it and continuing, regressing a directory scan the extractor
-  itself would have handled fine.
+  "0 findings" — indistinguishable from a genuinely clean C# scan. The
+  explicit-failure behavior now has two layers, split across the two
+  components that each know a different half of the answer (review, PR
+  #246 round 2): `CheckCommand.HasSupportedInput` does only the CHEAP,
+  obvious check — an existing file with a recognized extension, or an
+  existing directory — *before* running the extractor at all, catching a
+  bare `.ts` file or a nonexistent path for free. `SupportedExtensions` is
+  compared with `StringComparer.OrdinalIgnoreCase` (review, PR #246 round
+  2: `Foo.CS`/`App.CSPROJ` are the same file kind as their lowercase
+  spellings, on Windows/macOS filesystems and to MSBuild itself). The CLI
+  does **not** also try to duplicate the extractor's directory-walk skip
+  rules to predict whether a directory will actually yield anything — a
+  directory containing only `bin/`, `obj/`, or generated (`.g.cs`,
+  `.Designer.cs`, `.AssemblyInfo.cs`) files passed the CLI's cheap check
+  fine but produced zero real extractor inputs, recreating the exact
+  silent-clean-scan bug this exit tier exists to prevent. Duplicating the
+  extractor's skip-list in the CLI would just drift from it over time
+  (review, PR #246 round 2 explicit instruction: "do not duplicate the
+  complete extractor expansion rules in the CLI"). Instead, the extractor
+  itself is now the sole authority on "found nothing after expansion":
+  `OwnSharp.Extractor/Program.cs` checks `Expand(rawInputs).Distinct()`
+  immediately after computing it and returns a new exit code **4** with an
+  explicit message if that list is empty — a `.csproj`/`.sln` with no
+  usable source resolves the same way, since project/solution resolution
+  is text/glob-based, not full MSBuild evaluation (see the `ProjectCsFiles`
+  comment). `CheckCommand.RunAsync`'s existing `extractRc != 0` early
+  return propagates that 4 unchanged, and `own-check.sh`'s existing `set
+  -e` does the same for the script/Action path — no extra code needed on
+  either side beyond the extractor's own check. This is a new, additive
+  exit-code tier; it does not change any of the existing 0/1/`>=2`/3
+  contract.
 - **`OWEN_PYTHON`** is the preferred env var; the legacy **`OWN_PYTHON`**
   name is still accepted as a temporary compatibility fallback (so existing
   internal use — CI, scripts, muscle memory — doesn't break outright) and
   prints a one-line deprecation note to stderr every time it's the variable
   actually used to resolve Python. `OWEN_PYTHON` takes priority when both
   are set.
-- **Cache directory** moved to `~/.owen/core/<version>/`. `CoreVendor` checks
-  the previous `~/.ownsharp/core/<version>/` location first — if that exact
-  version was already unpacked there by an older install, it's reused in
-  place rather than re-copied. This is a fallback read, not a migration
-  subsystem: the old location is never written to, moved, or deleted by the
-  new code. **Correction (review, PR #246):** the first version of this
-  fallback trusted a bare `.unpacked` marker file's *existence* — but the
-  CLI's own `<Version>` doesn't change every time the vendored core's
-  content does (this rebrand's own SARIF-driver-name change is the concrete
-  proof: same `0.1.0`, different core content), so an existence-only check
-  could silently reuse a stale, differently-vendored core from a machine
-  that had run a pre-rebrand `OwnSharp.Cli` install. `CoreVendor` now writes
-  a SHA-256 fingerprint of the bundled `ownlang/*.py` files as the marker's
-  content (both locations) and only trusts a cache whose marker's hash
-  matches the source this install would unpack right now — same "simple,
-  not a migration subsystem" shape, just content-aware instead of
-  version-only.
+- **Cache directory** moved to `~/.owen/core/<version>/<fingerprint>/`,
+  where `fingerprint` is a SHA-256 over every vendored file's name and
+  content (length-prefixed encoding, so e.g. name `"ab"` + content `"c"`
+  can't collide with name `"a"` + content `"bc"` by bare concatenation).
+  **Correction (review, PR #246 round 3):** the round-2 design (a
+  version-keyed directory with a separate marker file holding a source
+  fingerprint) had a gap the reviewer's reproduction demonstrated directly:
+  on a fingerprint mismatch, the fix copied new files over the existing
+  destination with `overwrite: true`, then rewrote the marker to match the
+  new source — but a file the new source no longer has (e.g. a module
+  deleted upstream) was never removed from the destination, so it survived
+  as an orphan while the rewritten marker now claimed the (polluted)
+  directory was valid. Round 3 removes the marker concept entirely and
+  makes cache identity content-addressed: the fingerprint *is* the last
+  path segment, so a content change is a different path, never an
+  in-place overwrite of an existing one. Publication into a fresh path is
+  atomic — build into a `.tmp-<guid>` sibling directory, recompute the
+  fingerprint of what was actually written there, confirm it equals the
+  source fingerprint, and only then `Directory.Move` it to the final
+  fingerprint-named path — so a reader can only ever observe nothing, or a
+  fully-written self-verified copy, never a partial one (a crash or a lost
+  race with a concurrent `owen` process mid-copy just leaves a harmless
+  orphaned temp directory that nothing consults). The previous flat
+  `~/.ownsharp/core/<version>/` location (pre-rebrand layout, no
+  fingerprint segment) is still checked first and used in place without
+  copying — but only after fingerprinting what is *actually on disk* there
+  right now and confirming it equals the current source fingerprint; a
+  destination with extra, missing, or modified files fails that check and
+  falls through to a fresh unpack instead of being trusted or patched.
+  This is still a plain fallback *read*: the legacy location is never
+  written to, moved, or deleted by this code — content-addressing didn't
+  change that guardrail, only how "is this destination actually still
+  correct" gets decided.
 
 ## Tests
 
@@ -144,6 +177,44 @@ does **not** contain the literal clean-scan phrase `0 findings.`),
 `"Own.NET"` to `"Owen"` to match — these are follow-on fixes made necessary
 by the driver-name change, not scope creep; they were caught by
 `python tests/run_tests.py` failing before the fix.
+
+**Added in review round 3** — the reviewer's stated concern was that both
+bugs (stale-cache pollution, cheap-preflight/extractor disagreement) were
+"sufficiently non-obvious that a future cleanup could reintroduce [them]
+while the ordinary fresh-install smoke remains green," so both
+reproductions from the review became committed `ci.yml` steps rather than
+staying local manual verification. All of the below ran locally first
+(pack -> isolated-feed install -> exercise -> confirm exit code/output)
+before being encoded as assertions:
+- **Matching legacy cache is reused in place** — the legitimate case: a
+  byte-for-byte-identical legacy `~/.ownsharp/...` unpack is used without
+  copying (`~/.owen` is asserted to *not* get created).
+- **Extra (removed-upstream) file in the legacy cache is rejected** — the
+  exact reproduction from the review: an old cache holds a file the new
+  source no longer has. A fresh, clean `~/.owen` unpack must result, with
+  the stale file absent from it.
+- **Modified-content legacy cache (same filenames, different bytes) is
+  rejected** — same version, same file set, different content: the
+  same-version class of bug the fingerprint exists to catch generally, not
+  just the removed-file case.
+- **Directory containing only skipped files** (`bin/`/`obj/`) and
+  **directory containing only generated files** (`*.g.cs`) both assert
+  exit 4 with an explicit "no supported input" message — the CLI's cheap
+  preflight passes these (a directory that exists), and only the
+  extractor's own zero-expanded-input check catches them.
+- **Empty `.csproj`** (no `Compile` items resolve to any `.cs` file) and
+  **`.sln` with no `Project(` lines** both assert exit 4 the same way.
+- **Skipped files alongside one real source file** asserts exit 1 with
+  `OWN001` still found — proving the skip rules don't over-reject a
+  directory that has genuine content alongside the noise.
+- **An inaccessible subtree alongside one readable source file** (`chmod
+  000` on a subdirectory, meaningful on the hosted runners' non-root
+  accounts unlike this session's root-based local sandbox) asserts no
+  crash and the readable source's finding is still reported — the
+  `EnumerationOptions { IgnoreInaccessible = true }` tolerance from review
+  round 2, now with a real permission-denied subdirectory to exercise it.
+- **Uppercase extension (`Leak.CS`)** asserts exit 1 with `OWN001` found —
+  the `StringComparer.OrdinalIgnoreCase` fix from review round 3.
 
 ## PR separation
 
