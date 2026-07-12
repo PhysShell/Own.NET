@@ -130,9 +130,13 @@ Three jobs, each gated on the previous succeeding:
    per-OS hint (never an auto-download); and a full **uninstall →
    reinstall** cycle reproduces a working install (reinstall is the same
    code path an upgrade takes).
-3. **`publish`** — `if: startsWith(github.ref, 'refs/tags/owen-cli-v')`,
-   so a `workflow_dispatch` run (no matching tag ref) can never reach this
-   job no matter what inputs are given. Additionally targets the
+3. **`publish`** — `if: github.event_name == 'push' && startsWith(github.ref,
+   'refs/tags/owen-cli-v')`, so neither a `workflow_dispatch` run nor a
+   `pull_request` run can ever reach this job no matter what inputs/ref are
+   given — a bare `startsWith(github.ref, ...)` alone would let
+   `workflow_dispatch --ref owen-cli-v0.1.0` through, since a manual
+   dispatch can be pointed at an existing tag ref too (Codex review, PR
+   #244). Additionally targets the
    `nuget-release` GitHub Environment — **a repo admin must configure that
    environment with required reviewers under Settings → Environments before
    this job can run unattended; it does not exist yet.** Reads
