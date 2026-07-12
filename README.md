@@ -13,11 +13,16 @@ release.
 
 ```yaml
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-- uses: PhysShell/own.net@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
+- uses: PhysShell/Own.NET@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
   with:
     format: github          # inline PR annotations; use "sarif" for the Security tab
     fail-on-finding: "true"
 ```
+
+Once a release ships, prefer a pinned tag (`@v0.1.0`) or the moving major tag
+(`@v0`) over `@main` — see
+[`docs/notes/action-marketplace-readiness.md`](docs/notes/action-marketplace-readiness.md)
+for the versioning policy.
 
 ## Or point it at a repo you already have
 

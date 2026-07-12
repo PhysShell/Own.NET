@@ -1,0 +1,182 @@
+name: Action Marketplace readiness
+
+# Marketplace-readiness pipeline for the composite action (action.yml) —
+# separate from ci.yml's own dog-fooding (`own-check-codescan`, which uses
+# `uses: ./` against Own.NET's own sample tree on every push/PR). This
+# workflow specifically proves the CONSUMER-facing surface: a real,
+# remote-style `uses: owner/repo@ref` resolution against a small fixture
+# that looks like an ordinary user's repo, plus the immutable-tag /
+# moving-major-tag release handling for that consumption model. See
+# docs/notes/action-marketplace-readiness.md.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "action.yml"
+      - "scripts/own-check.sh"
+      - "scripts/own-check.ps1"
+      - "fixtures/marketplace-consumer-demo/**"
+      - ".github/workflows/action-marketplace-readiness.yml"
+    tags:
+      - "v*.*.*"
+  pull_request:
+    paths:
+      - "action.yml"
+      - "scripts/own-check.sh"
+      - "scripts/own-check.ps1"
+      - "fixtures/marketplace-consumer-demo/**"
+      - ".github/workflows/action-marketplace-readiness.yml"
+  workflow_dispatch:
+    inputs:
+      move_major_tag_to:
+        description: >-
+          Release tag (e.g. v0.1.0) to point the moving major tag at. Leave
+          empty to just run the consumer-simulation checks.
+        required: false
+        default: ""
+
+jobs:
+  # The consumer-facing proof: reference the action the way an external repo
+  # would, resolved by the Actions runner's own action-fetch mechanism (NOT
+  # `uses: ./`), against a sparse checkout that has nothing else of Own.NET's
+  # source on disk. See fixtures/marketplace-consumer-demo/README.md for why
+  # this is an honest approximation of a separate repo, not a full substitute.
+  consumer-simulation:
+    name: consumer simulation — remote uses:, sparse checkout, real findings
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Sparse checkout — ONLY the consumer fixture, nothing else of Own.NET
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          sparse-checkout: |
+            fixtures/marketplace-consumer-demo
+          sparse-checkout-cone-mode: false
+
+      # Remote-style resolution: the exact commit under test, addressed as an
+      # external consumer would address any tag/sha of this repo. This is
+      # the meaningful difference from ci.yml's `uses: ./` dog-food job —
+      # it exercises the Actions runner's real action-fetch path, catching
+      # anything a same-workspace `uses: ./` could mask (missing files
+      # outside the sparse-checked-out action bundle, absolute-path
+      # assumptions, etc).
+      - name: "Own.NET check on the leak sample (uses: PhysShell/Own.NET@<this commit>)"
+        id: leak
+        uses: PhysShell/Own.NET@${{ github.sha }}
+        continue-on-error: true # expected to fail — asserted on explicitly below, not swallowed
+        with:
+          path: fixtures/marketplace-consumer-demo/Leaky.cs
+          format: github
+          fail-on-finding: "true"
+      - name: Assert the leak step actually failed (not silently green)
+        run: |
+          [ "${{ steps.leak.outcome }}" = "failure" ] \
+            || { echo "FAIL: expected the leak-sample step to fail (fail-on-finding), got '${{ steps.leak.outcome }}'"; exit 1; }
+          echo "OK: consumer-style invocation found the leak and failed the step as configured"
+
+      - name: Own.NET check on the clean sample (must NOT fail)
+        uses: PhysShell/Own.NET@${{ github.sha }}
+        with:
+          path: fixtures/marketplace-consumer-demo/Clean.cs
+          format: github
+          fail-on-finding: "true"
+
+      - name: Own.NET check, SARIF surface + upload-sarif wiring
+        id: sarif
+        uses: PhysShell/Own.NET@${{ github.sha }}
+        with:
+          path: fixtures/marketplace-consumer-demo
+          format: sarif
+          severity: warning
+          fail-on-finding: "false"
+      - name: The action exposes a non-empty sarif-file output
+        run: |
+          f="${{ steps.sarif.outputs.sarif-file }}"
+          test -n "$f" || { echo "FAIL: sarif-file output not set"; exit 1; }
+          test -s "$f" || { echo "FAIL: sarif-file '$f' missing or empty"; exit 1; }
+          echo "OK: $(wc -c < "$f") bytes of SARIF"
+      - name: Upload to GitHub code scanning (the real consumer path)
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
+        with:
+          sarif_file: ${{ steps.sarif.outputs.sarif-file }}
+          category: action-marketplace-consumer-demo
+
+  # Immutable version tag: a pushed vX.Y.Z is never mutated once pushed —
+  # this job only VALIDATES it (re-runs the consumer-simulation checks
+  # implicitly via `needs`, plus a metadata sanity pass). It never moves any
+  # tag itself.
+  validate-release-tag:
+    name: validate the pushed release tag
+    # event_name == 'push' required alongside the ref check (same class of
+    # gap Codex flagged on ownsharp-cli-release.yml, PR #244): github.ref
+    # alone doesn't prove the run was actually caused by a tag push, since a
+    # workflow_dispatch run can be pointed `--ref` at an existing tag too.
+    # This job only validates (never mutates/publishes), so the stakes are
+    # lower than the CLI's publish gate, but the fix is the same and free.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: consumer-simulation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: action.yml has the fields Marketplace publishing requires
+        run: |
+          python3 - <<'PY'
+          import sys, re
+          text = open("action.yml", encoding="utf-8").read()
+          # Cheap structural checks (no YAML+schema dependency in this repo's
+          # zero-dependency Python core) - enough to catch an accidental
+          # metadata regression before it reaches a real tag/publish.
+          for field in ("name:", "description:", "author:", "branding:", "icon:", "color:"):
+              assert field in text, f"action.yml missing '{field}'"
+          m = re.search(r'icon:\s*"([^"]+)"', text)
+          c = re.search(r'color:\s*"([^"]+)"', text)
+          assert m, "branding.icon not found"
+          assert c, "branding.color not found"
+          allowed_colors = {"white", "yellow", "blue", "green", "orange", "red", "purple", "gray-dark"}
+          assert c.group(1) in allowed_colors, f"branding.color '{c.group(1)}' not in Marketplace's allowed set {allowed_colors}"
+          print(f"OK: action.yml metadata present; icon={m.group(1)!r} color={c.group(1)!r}")
+          PY
+      - name: Tag is immutable from here — this job only validates, never mutates
+        run: echo "Tag ${{ github.ref_name }} at ${{ github.sha }} validated. Moving the major tag is a SEPARATE, explicit workflow_dispatch step — see move-major-tag."
+
+  # The ONLY place a major tag (e.g. v0) is ever moved. Deliberately
+  # `workflow_dispatch`-only with an explicit target — never runs from a
+  # plain tag push, so pushing v0.1.1 can never silently repoint v0 as a
+  # side effect. Force-moving a tag is a hard-to-reverse, externally-visible
+  # action (equivalent to a force-push), so it is gated behind the
+  # `action-major-tag-move` GitHub Environment, which a repo admin must
+  # configure with required reviewers before this can run unattended.
+  move-major-tag:
+    name: move the major tag (protected, manual only)
+    if: github.event_name == 'workflow_dispatch' && inputs.move_major_tag_to != ''
+    runs-on: ubuntu-latest
+    environment: action-major-tag-move
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Resolve and validate the target release tag
+        id: target
+        run: |
+          target="${{ inputs.move_major_tag_to }}"
+          git rev-parse "refs/tags/$target" >/dev/null 2>&1 \
+            || { echo "FAIL: tag '$target' does not exist — push it first, this job never creates release tags"; exit 1; }
+          major="${target%%.*}"   # "v0.1.0" -> "v0"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+      - name: Force-move the major tag to the target release commit
+        run: |
+          sha=$(git rev-parse "refs/tags/${{ steps.target.outputs.target }}")
+          echo "Moving ${{ steps.target.outputs.major }} -> ${{ steps.target.outputs.target }} ($sha)"
+          git tag -f "${{ steps.target.outputs.major }}" "$sha"
+          git push origin "${{ steps.target.outputs.major }}" --force
