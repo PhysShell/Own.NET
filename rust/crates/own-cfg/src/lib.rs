@@ -27,11 +27,20 @@ pub mod json;
 use own_syntax::ast::Module;
 
 pub use buffers::{validate_policies, BufferInfo, BufferMode, Policies, Policy};
+// Re-export the instruction effect type so downstream analyses read it through
+// the CFG seam (`own_cfg::Effect`) rather than depending on the parser crate
+// directly — keeps `own-analysis` off a production `own-syntax` edge (P-022 DAG).
 pub use builder::{
     build_cfg, collect_kinds, collect_policies, collect_resource_names, collect_signatures,
 };
 pub use ir::{Block, BlockId, Cfg, Instr, Kind, Signature, SymId, Symbol};
 pub use json::{canonical_json, module_cfg_value, python_dumps, CFG_JSON_VERSION};
+pub use own_syntax::ast::Effect;
+// Re-export the AST module so downstream analyses that are genuinely AST-level
+// (the lifetime/region analysis reads `lifetime` decls + `subscribe` statements,
+// which the CFG does not model) consume it through the CFG seam — same pattern
+// as `Effect`, keeping `own-analysis` off a direct `own-syntax` production edge.
+pub use own_syntax::ast;
 
 /// A flow-insensitive resolver diagnostic — its code and 1-based source line.
 ///

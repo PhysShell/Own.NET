@@ -15,10 +15,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88904434abc2901f197fe8cc55f0445e7ded921dba5911dad2e2b39b48e663c4"
 
 [[package]]
+name = "own-analysis"
+version = "0.1.0"
+dependencies = [
+ "own-cfg",
+ "own-diagnostics",
+ "own-syntax",
+ "serde_json",
+]
+
+[[package]]
 name = "own-cfg"
 version = "0.1.0"
 dependencies = [
  "own-syntax",
+ "serde_json",
+]
+
+[[package]]
+name = "own-diagnostics"
+version = "0.1.0"
+dependencies = [
+ "serde",
  "serde_json",
 ]
 

@@ -200,7 +200,13 @@ def join(a: State, b: State) -> State:
     # An explicit raise, not `assert`: `python -O` strips asserts, and a silently
     # mismatched loan set at a merge would defeat the invariant this locks (same as
     # `_join_handle_rid` above). Keep it loud in every build.
-    if set(a.loans) != set(b.loans):
+    # Full-map equality (owner + kind per binding), not just the key set: two
+    # merging paths that somehow carried the *same* binding with a different
+    # owner/kind must fail loudly, not silently pick a side. Block-scoped borrows
+    # make this a `{} == {}` check in practice (loans close within their block),
+    # so this tightening changes no output; it only closes an impossible-but-
+    # unguarded hole (mirrored in the Rust `State::join`).
+    if a.loans != b.loans:
         raise AssertionError(
             "active loans differ at a control-flow merge; this should be impossible "
             "for block-scoped borrows (they close within the scope that opened them)"

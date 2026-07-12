@@ -1,0 +1,28 @@
+[package]
+name = "own-analysis"
+description = "The analysis heart (P-022 step 4, #214): a generic monotone-lattice worklist solver plus the ownership/lifetime/effect/DI analyses, ported from ownlang and gated by the diagnostics differential oracle"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+# Per P-022 the solver CONSTRUCTS own-diagnostics verdicts (own-analysis ->
+# own-diagnostics) and consumes the own-cfg lowering (which re-exports own-syntax
+# / own-ir). It must never be depended on by own-diagnostics/own-cfg/own-ir. The
+# generic `solver` module lands first and is dependency-free; the domain analyses
+# (ownership next) add own-cfg / own-diagnostics. The DAG edge test
+# (own-diagnostics/tests/dag.rs) already allows that (reviewed) set.
+[dependencies]
+own-cfg = { path = "../own-cfg" }
+own-diagnostics = { path = "../own-diagnostics" }
+
+[dev-dependencies]
+# own-syntax is a TEST-only edge (parity/metamorphic tests call `parse`); the
+# production analysis reads the effect type through `own_cfg::Effect`, never the
+# parser — the DAG edge test asserts no production own-analysis -> own-syntax edge.
+own-syntax = { path = "../own-syntax" }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

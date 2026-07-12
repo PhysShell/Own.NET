@@ -59,8 +59,9 @@ impl BufferMode {
 
     /// Modes whose backing storage may live on the stack (so the buffer must not
     /// escape the function). `scratch` is included — at runtime it *might* be the
-    /// stack arm.
-    const fn stack_backed(self) -> bool {
+    /// stack arm. Mirrors the Python `STACK_BACKED` membership.
+    #[must_use]
+    pub const fn stack_backed(self) -> bool {
         matches!(self, Self::Stack | Self::Scratch | Self::Inline)
     }
 }
@@ -121,6 +122,16 @@ pub struct BufferInfo {
     pub counters: bool,
     pub policy_name: Option<String>,
     pub line: u32,
+}
+
+impl BufferInfo {
+    /// Whether this buffer's storage may live on the stack (the Python
+    /// `BufferInfo.stack_backed` property) — used by the ownership analysis to
+    /// reject an escaping stack-backed buffer (OWN015/OWN016).
+    #[must_use]
+    pub const fn stack_backed(&self) -> bool {
+        self.mode.stack_backed()
+    }
 }
 
 /// A named, reusable `policy { ... }` block of defaults (`buffers.Policy`).
