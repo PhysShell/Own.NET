@@ -551,12 +551,21 @@ exemption's real criterion is "does this object's lifetime start and end with th
 subscriber's" — a base-class accessor to the attached object, or an item of an
 owned collection, satisfies that just as well as a constructed field.**
 
-**Status (2026-07):** shapes **(a)** and **(c)** shipped.
+**Status (2026-07):** all three sub-shapes **(a)**, **(b)**, **(c)** shipped —
+parent issue #221 closed once all three landed.
 - **(a)** the `Behavior.AssociatedObject` self-owned source, shipped in #227 —
   extractor `IsAssociatedObjectSource`, gated on the `Behavior` base
   (`IsBehaviorSubscriber`) plus a same-class assignment-chain resolving to
   `this.AssociatedObject` (`ResolvesToAssociatedObject`); pinned by
   `frontend/roslyn/samples/AssociatedObjectSourceSample.cs`.
+- **(b)** the curated app-scoped source for an `Application`-derived
+  subscriber, shipped in #228 (PR #232) — extractor keeps the existing
+  `clsIsApp` subscriber gate byte-for-byte and only loosens the *source*
+  check to a curated resolver allowlist (`PaletteHelper.GetThemeManager`),
+  method-group handlers only (no lambdas); see
+  `docs/notes/oracle-known-fps.md` "What DID ship next to it (issue #228)"
+  for why this is not the rejected `clsIsStatic` broadening. Pinned by
+  `frontend/roslyn/samples/AppScopedSourceSample.cs`.
 - **(c)** the element of a self-populated collection, shipped in #229 — extractor
   `IsOwnedCollectionElementSource`: a `foreach` loop variable whose collection is a
   this-owned field/property populated ONLY from own construction / an own factory
@@ -693,6 +702,44 @@ the ClosedXML shape) and an empty `*Reader` (`ScratchReader`) stay silent. Two
 existing fixtures that had used an empty `Dispose()` as a modelling shortcut
 (`UnitOfWork`, `PixelOwner`) were made faithful (a real Dispose body) so they
 remain genuine leak fixtures.
+
+**Superseded by a soundness regression (issue #238) — gate narrowed to
+enumerators (issue #240 / PR #240).** The re-measure in
+`docs/notes/precision-remeasure-2026-07-11.md` (PR #235) ran the shipped \#225
+exemption above against real ClosedXML and found it unsound:
+`XLWorkbook.Dispose()` is empty **in source only** — `Janitor.Fody` (an IL
+weaver declared in ClosedXML's `FodyWeavers.xml`) rewrites the body at
+compile time to call real cleanup (`DisposeManaged()` →
+`Worksheets.ForEach(w => (w as XLWorksheet).Cleanup())`). `HasEmptyDisposeBody`
+read the source-level emptiness as proof of "nothing to release" and
+silently exempted 263 unrelated `XLWorkbook` locals across
+`ClosedXML.Examples` — a real leak class going quiet, not a false-positive
+fix. This inverts the analyzer's core doctrine (an exemption's worst case
+must stay "keeps today's honest warning," never "silently swallows a leak
+class"), so it was treated as a bug, not a precision tweak.
+
+The fix (#240) **narrowed** the gate rather than special-casing weavers:
+`HasEmptyDisposeBody`'s exemption now applies **only** to types that
+implement `IEnumerator`/`IEnumerator<T>` — the one interface that *forces*
+a (frequently no-op) `Dispose()` implementation, which was the entire
+motivating shape for #225 in the first place. `XLWorkbook` and every other
+weaver-augmented domain type fall outside the gate and keep the honest
+warning. Defense in depth: a `FodyWeavers.xml` found above the source (or
+above the owning project, for linked sources) disables the exemption even
+for a qualifying enumerator. Explicit-interface `Dispose()`/`DisposeAsync()`
+are now recognized as empty too (closing the coverage gap that left 3 of 5
+`Slice.cs` sites unexempted). Two review rounds closed further soundness
+holes: inherited `IAsyncDisposable` (via `AllInterfaces`), inherited bare
+`DisposeAsync` (via base-chain walk), a sticky static-registry cache, and a
+fail-open weaver-detection path (`File.GetAttributes` instead of
+`File.Exists`, which silently disabled the guard when the check itself
+errored). Confirmed on real ClosedXML (HEAD `4e89dce`, `--flow-locals`):
+121 of the swallowed findings restored, 0 removed. See issue #238 and PR \#240
+for the full record — this is a deliberate historical lesson, not
+cleaned up: **source-level emptiness is not a runtime no-op once a
+compile-time IL weaver is in play, and a broad "any empty Dispose" gate
+cannot rule that out — only a gate scoped to a specific
+compiler/language-forced shape (here: `IEnumerator`) can.**
 
 ---
 
