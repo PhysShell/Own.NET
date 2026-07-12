@@ -2292,5 +2292,29 @@ jobs:
           echo "$out"
           [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 for uppercase .CS extension, got $rc"; exit 1; }
           echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001"; exit 1; }
+      - name: A tampered CURRENT (fingerprint-named) cache is rejected and rebuilt
+        # Review, PR #246 round 4 -- the earlier fixes verified a LEGACY cache's
+        # actual content, but a hit at the current ~/.owen/core/<version>/<fingerprint>/
+        # path itself was still trusted on existence alone. Reproduction: run once
+        # to create it, then tamper the file content directly under that exact
+        # fingerprint-named path (not the legacy location) and add a stale extra
+        # file, then confirm the second run rejects it, rebuilds cleanly, and the
+        # stale file is gone from whatever cache directory actually got used.
+        run: |
+          rm -rf "$HOME/.owen" "$HOME/.ownsharp"
+          owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding > /dev/null 2>&1 || true
+          cache_dir=$(find "$HOME/.owen/core" -mindepth 2 -maxdepth 2 -type d)
+          [ -n "$cache_dir" ] || { echo "FAIL: first run did not create a current-cache directory"; exit 1; }
+          echo "# tampered" >> "$cache_dir/ownlang/ownir.py"
+          echo "# stale leftover module" > "$cache_dir/ownlang/stale_module.py"
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' after rebuild"; exit 1; }
+          if find "$HOME/.owen" -name "stale_module.py" | grep -q .; then
+            echo "FAIL: the stale extra file survived under a used cache directory"; exit 1
+          fi
+          if grep -q "# tampered" "$cache_dir/ownlang/ownir.py" 2>/dev/null; then
+            echo "FAIL: the tampered file content is still being served from the original path"; exit 1
+          fi
+          echo "OK: tampered current-cache destination rejected and rebuilt clean"
       - name: Clean up cache state left by the edge-case tests above
         run: rm -rf "$HOME/.owen" "$HOME/.ownsharp"

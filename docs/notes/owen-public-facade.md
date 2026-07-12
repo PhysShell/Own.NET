@@ -157,6 +157,23 @@ Per the guardrail this rebrand was scoped to: no mass rename.
   written to, moved, or deleted by this code — content-addressing didn't
   change that guardrail, only how "is this destination actually still
   correct" gets decided.
+  **Correction (review, PR #246 round 4):** round 3 still trusted a hit at
+  the CURRENT fingerprint-named path (`Directory.Exists(finalOwnlang)`) on
+  existence alone — the concurrent-publisher race checks did too. But a
+  path name is only ever a claim; nothing stopped a destination already
+  living at the "right" fingerprint from being modified, corrupted, or
+  hand-assembled after the fact, and that content would then be served as
+  if it were still the exact bytes the fingerprint names. Every current-
+  path hit (the initial check, and both concurrent-publisher checks around
+  the atomic move) now recomputes the fingerprint over what is actually on
+  disk there and only trusts it on an exact match, exactly like the legacy
+  fallback already did. A mismatch quarantines the invalid destination —
+  an atomic rename to a `.invalid-<guid>` sibling (so no concurrent reader
+  ever observes an in-place delete mid-way), then a best-effort recursive
+  delete of the renamed copy — and falls through to the same temp-
+  directory-plus-atomic-move rebuild a fresh unpack uses; since the source
+  didn't change, the rebuild lands back at the identical fingerprint-named
+  path, now holding a verified copy.
 
 ## Tests
 
@@ -215,6 +232,14 @@ before being encoded as assertions:
   round 2, now with a real permission-denied subdirectory to exercise it.
 - **Uppercase extension (`Leak.CS`)** asserts exit 1 with `OWN001` found —
   the `StringComparer.OrdinalIgnoreCase` fix from review round 3.
+- **A tampered CURRENT (fingerprint-named) cache is rejected and rebuilt**
+  (review round 4) — runs once to create `~/.owen/core/<version>/<fingerprint>/`,
+  tampers `ownlang/ownir.py`'s bytes and adds an `ownlang/stale_module.py`
+  directly under that exact path (not the legacy location the earlier
+  tests already covered), then asserts the second run's SARIF driver is
+  still `Owen`, `stale_module.py` is gone from whatever cache directory
+  actually got used, and `ownir.py` no longer contains the tampered
+  content anywhere under `~/.owen`.
 
 ## PR separation
 

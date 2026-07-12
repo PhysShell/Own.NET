@@ -35,6 +35,18 @@ namespace OwnSharp.Cli;
 /// falls through to a fresh unpack. This is still a plain fallback *read*,
 /// not a migration subsystem: the legacy location is never written to,
 /// moved, or deleted by this code.
+///
+/// A hit at the CURRENT (fingerprint-named) path is verified the same way
+/// (review, PR #246 round 4) — the path's name is only ever a claim, not
+/// proof; something could have modified, corrupted, or hand-assembled a
+/// directory that happens to sit at the "right" fingerprint since it was
+/// published. <see cref="Fingerprint"/> is recomputed over what is actually
+/// there on every hit (both the initial existence check and the
+/// concurrent-publisher race checks further down) and only trusted on an
+/// exact match; a mismatch quarantines the invalid destination (an atomic
+/// rename out of the way, then best-effort delete — never an in-place
+/// delete a concurrent reader could observe mid-way) and falls through to
+/// the same temp-directory + atomic-move rebuild used for a fresh unpack.
 /// </summary>
 internal static class CoreVendor
 {
@@ -62,12 +74,21 @@ internal static class CoreVendor
         var finalRoot = Path.Combine(versionRoot, fingerprint);
         var finalOwnlang = Path.Combine(finalRoot, "ownlang");
 
-        // Content-addressed: existence at the fingerprint-named path IS proof of
-        // validity (see the atomic-publish note below) -- no separate marker to
-        // go stale or drift from the directory's actual contents.
+        // Content-addressed cache hit: verify the DESTINATION's actual content,
+        // not just its existence at the fingerprint-named path (review, PR #246
+        // round 4) -- a directory living under the "right" path is not proof it
+        // still holds the exact bytes that path name claims; only recomputing
+        // the fingerprint over what is actually there is. A mismatch means this
+        // path is invalid -- content-addressing has no business trusting it (it
+        // is not a "different, still-valid" cache the way a different
+        // fingerprint would be) -- quarantine it and fall through to rebuild.
         if (Directory.Exists(finalOwnlang))
         {
-            return finalRoot;
+            if (DestinationMatches(finalOwnlang, fingerprint))
+            {
+                return finalRoot;
+            }
+            QuarantineInvalidDestination(finalRoot);
         }
 
         // Legacy fallback: verify the LEGACY DESTINATION's actual content, not a
@@ -75,14 +96,9 @@ internal static class CoreVendor
         // unpack happened here once", never that nothing since removed, added,
         // or modified a file in that directory.
         var legacyOwnlang = Path.Combine(userProfile, ".ownsharp", "core", ToolVersion.Current, "ownlang");
-        if (Directory.Exists(legacyOwnlang))
+        if (Directory.Exists(legacyOwnlang) && DestinationMatches(legacyOwnlang, fingerprint))
         {
-            var legacyFiles = SortedPyFiles(legacyOwnlang);
-            var legacyFingerprint = Fingerprint(legacyFiles);
-            if (legacyFingerprint == fingerprint)
-            {
-                return Path.Combine(userProfile, ".ownsharp", "core", ToolVersion.Current);
-            }
+            return Path.Combine(userProfile, ".ownsharp", "core", ToolVersion.Current);
         }
 
         // Fresh unpack: build into a temp sibling, verify the DESTINATION's own
@@ -111,10 +127,17 @@ internal static class CoreVendor
 
             if (Directory.Exists(finalOwnlang))
             {
-                // Lost a race with a concurrent `owen` process that published the
-                // same fingerprint first -- their content is provably identical
-                // (same fingerprint), so just use it.
-                return finalRoot;
+                // Possibly lost a race with a concurrent `owen` process that
+                // published the same fingerprint first -- but only trust that if
+                // ITS destination actually verifies (review, PR #246 round 4).
+                // Existence proves nothing about a path anyone (or anything)
+                // could have written to since; "same fingerprint-named path" is
+                // not the same claim as "same, provably identical content".
+                if (DestinationMatches(finalOwnlang, fingerprint))
+                {
+                    return finalRoot;
+                }
+                QuarantineInvalidDestination(finalRoot);
             }
             try
             {
@@ -125,10 +148,16 @@ internal static class CoreVendor
             {
                 // Narrower version of the same race (review, PR #246): a concurrent
                 // process created finalOwnlang between the check above and this
-                // Move. Same reasoning -- their content is provably identical
-                // (same fingerprint), so just use it instead of surfacing the
-                // IOException Move throws for an existing destination.
-                return finalRoot;
+                // Move. Same verification requirement as above -- only accept it
+                // if it actually matches; otherwise quarantine it and retry the
+                // move once with our own already-verified tempOwnlang copy.
+                if (DestinationMatches(finalOwnlang, fingerprint))
+                {
+                    return finalRoot;
+                }
+                QuarantineInvalidDestination(finalRoot);
+                Directory.CreateDirectory(finalRoot);
+                Directory.Move(tempOwnlang, finalOwnlang);
             }
             return finalRoot;
         }
@@ -143,6 +172,40 @@ internal static class CoreVendor
 
     private static List<string> SortedPyFiles(string dir) =>
         Directory.EnumerateFiles(dir, "*.py").OrderBy(f => Path.GetFileName(f), StringComparer.Ordinal).ToList();
+
+    /// <summary>True only if every <c>.py</c> file actually on disk under
+    /// <paramref name="ownlangDir"/> right now fingerprints to
+    /// <paramref name="expectedFingerprint"/> (review, PR #246 round 4). This
+    /// is the sole source of truth for "is this destination still valid" --
+    /// a directory's location (even a content-addressed, fingerprint-named
+    /// one) is only ever a claim about what was published there once, never
+    /// proof of what is there now.</summary>
+    private static bool DestinationMatches(string ownlangDir, string expectedFingerprint) =>
+        Fingerprint(SortedPyFiles(ownlangDir)) == expectedFingerprint;
+
+    /// <summary>Moves an invalid cache destination out of the way of a rebuild
+    /// (review, PR #246 round 4). Renames first -- an atomic same-volume
+    /// rename can't be observed half-done the way an in-place recursive
+    /// delete could -- then best-effort deletes the renamed copy; a failure
+    /// there just leaves inert garbage that is never consulted again (the
+    /// quarantined name is never re-derived by <see cref="EnsureUnpacked"/>),
+    /// same reasoning as the orphaned-temp-directory cleanup above.</summary>
+    private static void QuarantineInvalidDestination(string invalidRoot)
+    {
+        var quarantined = $"{invalidRoot}.invalid-{Guid.NewGuid():N}";
+        try
+        {
+            Directory.Move(invalidRoot, quarantined);
+        }
+        catch (IOException)
+        {
+            // Lost a race with something else already handling this exact path
+            // (e.g. a concurrent process's own quarantine of the same invalid
+            // directory) -- nothing more to do; the caller re-checks fresh.
+            return;
+        }
+        try { Directory.Delete(quarantined, recursive: true); } catch (IOException) { /* best-effort cleanup */ }
+    }
 
     /// <summary>SHA-256 over every file's name and content, each explicitly
     /// length-prefixed (review, PR #246) so two different (name, content) sets
