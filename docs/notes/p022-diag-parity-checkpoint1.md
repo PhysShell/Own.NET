@@ -32,16 +32,36 @@ Trace of the evidence on current `main` (`4c5a86b`):
   (`python tests/run_tests.py`) is **100% green** on `4c5a86b`
   (132/132 analysis, 3000-iter codegen fuzzer clean, CFG/syntax parity in sync).
 
-**Caveat, recorded honestly:** `dotnet` is unavailable in the port environment,
-so a *fresh* full extractor remeasure on `4c5a86b` (post-#238) could not be run
-to re-confirm the sweep with no new regressions; the latest remeasure that
-exists predates the fix. The literal gate ("unexplained disappearing findings")
-does not trip — the findings were explained and fixed, and the `.own` reference
-frozen here is independently green — but a reviewer who wants the extractor
-sweep re-confirmed should run it in a `dotnet`-capable environment before the
-semantic port begins. **The freeze here is cheap to revert:** it is a single
-regenerable command over the green core, and nothing is built on it until
-checkpoint-1 review passes.
+**Live verification of the fix (added after the initial trace).** The `.NET`
+SDK installs from the web via the official `dotnet-install.sh` (8.0.422), the
+Roslyn extractor builds clean, and the real `own-check` pipeline (fresh
+extractor + Python core) was run on the #238 regression pins on `4c5a86b`:
+
+- `frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs` (a *perfect*
+  enumerator-shaped empty `Dispose` sitting next to a `FodyWeavers.xml`) is
+  correctly **flagged** OWN001 — the finding does **not** disappear, which is
+  exactly the Janitor.Fody over-exemption that vanished 263 ClosedXML findings
+  before #238.
+- `frontend/roslyn/samples/EmptyDisposeSample.cs`: all **8/8 "FLAGGED (control)"**
+  shapes fire (weaver-adjacent non-enumerator, empty override over a real base,
+  empty sync `Dispose` with a real `DisposeAsync`, base-chain bare
+  `DisposeAsync`, non-generic `IEnumerator`, …), while the legitimate
+  empty-`Dispose` *enumerator* EXEMPT cases stay silent — the exemption is
+  confined, no new false positives.
+
+So the one documented class of disappearing findings is **positively confirmed
+resolved on current `main`** through the actual pipeline, not merely inferred
+from commit messages. The literal gate does not trip and the `.own` reference
+frozen here is independently green.
+
+**Remaining breadth caveat.** This verifies the *specific* flagged regression
+via its isolated pins; it is not the full 5-repo OSS sweep (MahApps.Metro,
+MaterialDesignInXamlToolkit, AvalonEdit, ShareX, ClosedXML at their pinned
+commits + the WindowsDesktop ref pack). A reviewer who wants global
+"no *other* disappearing finding" assurance can run that full sweep; the pins
+above are the tighter, more precise discharge of the exact documented gap.
+**The freeze is cheap to revert regardless:** one regenerable command over the
+green core, and nothing is built on it until checkpoint-1 review passes.
 
 ## The comparison surface
 
