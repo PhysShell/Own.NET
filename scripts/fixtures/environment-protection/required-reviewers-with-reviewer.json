@@ -1,0 +1,19 @@
+{
+  "protection_rules": [
+    {
+      "id": 4,
+      "node_id": "MDQ6R2F0ZTQ=",
+      "type": "required_reviewers",
+      "prevent_self_review": true,
+      "reviewers": [
+        {
+          "type": "User",
+          "reviewer": {
+            "login": "octocat",
+            "id": 1
+          }
+        }
+      ]
+    }
+  ]
+}

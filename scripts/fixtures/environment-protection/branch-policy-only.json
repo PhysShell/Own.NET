@@ -1,0 +1,9 @@
+{
+  "protection_rules": [
+    {
+      "id": 2,
+      "node_id": "MDQ6R2F0ZTI=",
+      "type": "branch_policy"
+    }
+  ]
+}
