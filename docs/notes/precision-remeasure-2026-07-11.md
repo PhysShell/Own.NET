@@ -1,7 +1,7 @@
 # Precision re-measure — 2026-07-11 (verifying #218/#220/#222/#223/#224 and #225/#228)
 
-Follow-up to [`oracle-sweep-2026-07-10.md`](oracle-sweep-2026-07-10.md) (issue
-#201), which drafted 8 precision-gap issues from real own-only findings in 5
+Follow-up to [`oracle-sweep-2026-07-10.md`](oracle-sweep-2026-07-10.md) (issue \#201),
+which drafted 8 precision-gap issues from real own-only findings in 5
 OSS repos: #218-#225. Four follow-up PRs have since shipped fixes:
 
 - [#230](https://github.com/PhysShell/Own.NET/pull/230) — Closes **#218**
@@ -19,7 +19,7 @@ OSS repos: #218-#225. Four follow-up PRs have since shipped fixes:
   exempt locals of user types whose `Dispose()` is provably empty in source.
 
 This note has two parts: **Part 1** formalizes yesterday's measurement of
-#230/#231 against the 2026-07-10 baseline (same method as before, now with
+\#230/\#231 against the 2026-07-10 baseline (same method as before, now with
 the #218/#219 numbering corrected). **Part 2** reruns the same method against
 today's fresh `main` (with #232/#233 also merged) for the two repos those
 fixes target, and checks the actual delta against the expected delta each
