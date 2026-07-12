@@ -175,17 +175,6 @@ enum StateFact {
     Reachable(State),
 }
 
-impl StateFact {
-    /// The concrete state, or a fresh empty one for `Bottom` (Python's `State()`
-    /// fallback when a block is reached with no evaluated predecessors).
-    fn into_state(self) -> State {
-        match self {
-            Self::Bottom => State::empty(),
-            Self::Reachable(s) => s,
-        }
-    }
-}
-
 impl Lattice for StateFact {
     fn bottom() -> Self {
         Self::Bottom
@@ -596,6 +585,27 @@ const fn instr_line(ins: &Instr) -> u32 {
     }
 }
 
+/// The converged concrete in-state of a graph-reachable block.
+///
+/// Invariant: a reachable block always converges to `Reachable(_)` — the entry
+/// seeds a concrete fact and it propagates along every reachable edge (each
+/// reachable non-entry block has a reachable predecessor whose out-fact it
+/// joins). A `Bottom` or missing fact here is a **solver regression**, not a real
+/// empty ownership state, so this aborts loudly in EVERY build rather than
+/// silently degrading to an empty state (which could mask a leak or a
+/// use-after-release). `#[allow(clippy::panic)]` is the deliberate fail-loud
+/// choice the checkpoint-2 review asked for.
+#[allow(clippy::panic)]
+fn converged_state(fact: Option<&StateFact>, bid: usize) -> State {
+    match fact {
+        Some(StateFact::Reachable(st)) => st.clone(),
+        Some(StateFact::Bottom) => {
+            panic!("reachable block {bid} remained at lattice bottom after convergence")
+        }
+        None => panic!("block {bid} was classified reachable but has no converged fact"),
+    }
+}
+
 /// Run the ownership analysis over one function's CFG.
 ///
 /// Returns its diagnostics in Python emission order (phase-2 block transfers,
@@ -618,13 +628,7 @@ pub fn analyze(cfg: &Cfg) -> Vec<Diagnostic> {
 
     // Phase 2a: one emitting transfer per block, on its converged in-state.
     for &bid in &reachable {
-        // A reachable block's converged in-fact is always `Reachable(_)`; the
-        // `Bottom`/`None` fallback is Python's `State()` (defensive, unreached).
-        let in_st = solution
-            .in_fact(bid)
-            .cloned()
-            .unwrap_or(StateFact::Bottom)
-            .into_state();
+        let in_st = converged_state(solution.in_fact(bid), bid);
         let mut emit = Emit::Collect(&mut diags);
         let out = own.transfer_block(bid, &in_st, &mut emit);
         out_states.insert(bid, out);
@@ -913,6 +917,54 @@ mod tests {
         }
         // And the emitting analysis (which uses the default schedule) is clean.
         assert!(analyze(cfg).is_empty(), "the loop program is well-formed");
+    }
+
+    #[test]
+    fn every_reachable_block_converges_to_a_reachable_fact() {
+        use super::Ownership;
+        use crate::solver::solve;
+
+        // The invariant `converged_state` relies on: after convergence, every
+        // graph-reachable block has a `Reachable(_)` fact — never `Bottom`. A
+        // program with a loop, a branch and multiple exits exercises the worklist.
+        let src = "module M\n\
+            resource Conn { acquire open release close }\n\
+            extern fn Hash(borrow Conn);\n\
+            fn f(n: int) {\n\
+                let c = acquire Conn(1);\n\
+                if (n) {\n\
+                    Hash(c);\n\
+                    release c;\n\
+                    return;\n\
+                }\n\
+                while (n) { Hash(c); }\n\
+                release c;\n\
+                return;\n\
+            }\n";
+        let module = own_syntax::parse(src).expect("parses");
+        let (cfgs, _d1) = own_cfg::build_module(&module);
+        let cfg = cfgs.first().expect("one function");
+        let own = Ownership::new(cfg);
+        let sol = solve(&own, &own);
+
+        let mut reachable = 0;
+        for b in 0..cfg.blocks.len() {
+            if sol.is_reachable(b) {
+                reachable += 1;
+                assert!(
+                    matches!(sol.in_fact(b), Some(StateFact::Reachable(_))),
+                    "reachable block {b} converged to a non-Reachable fact: {:?}",
+                    sol.in_fact(b)
+                );
+            } else {
+                // An unreachable block must carry no fact at all.
+                assert!(sol.in_fact(b).is_none(), "unreachable block {b} has a fact");
+            }
+        }
+        assert!(
+            reachable >= 4,
+            "the program should have several reachable blocks"
+        );
     }
 
     #[test]
