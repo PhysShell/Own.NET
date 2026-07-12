@@ -1515,6 +1515,85 @@ static bool ImplementsIDisposable(ITypeSymbol? t) =>
         || t.AllInterfaces.Any(i => i.Name == "IDisposable"
                                     && i.ContainingNamespace?.ToString() == "System"));
 
+// --- Issue #219: WinForms disposal CHANNELS ---
+
+// The class reaches the framework disposal root via a designer `Dispose(bool)` that calls
+// `base.Dispose(disposing)` — `Control.Dispose(bool)` recursively disposes its `Controls` collection
+// and the `IContainer components`. Only such a class is treated as rooted; a class with no Dispose at
+// all (the ShareX HistoryItemManager true-positive) is NOT, so its owned controls stay flagged.
+static bool ClassReachesDisposalRoot(ClassDeclarationSyntax cls)
+{
+    foreach (var m in cls.Members.OfType<MethodDeclarationSyntax>())
+        if (m.Identifier.Text == "Dispose")
+            foreach (var inv in m.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (inv.Expression is MemberAccessExpressionSyntax
+                    { Expression: BaseExpressionSyntax, Name.Identifier.Text: "Dispose" })
+                    return true;
+    return false;
+}
+
+// A type that is (or implements) `IContainer` — the designer `components` sink. Matched by simple
+// name (like the other WinForms type recognitions), so `System.ComponentModel.IContainer` and a
+// stand-in of the same name both resolve.
+static bool ImplementsIContainer(ITypeSymbol? t) =>
+    t is not null
+    && (t.Name == "IContainer" || t.AllInterfaces.Any(i => i.Name == "IContainer"));
+
+// The container an `X.Controls.Add(..)` / `X.Items.Add(..)` collection belongs to, given the
+// collection expression `X.Controls` / `X.Items` (or a bare inherited `Controls`/`Items`): "" (a
+// sentinel) for THIS object, the FIELD name for a `this.<field>`/`<field>` container, or null when it
+// is not a disposing collection, or its container is FOREIGN (a parameter / local / another
+// instance). A `Controls` collection (Control.ControlCollection) disposes its children, and a
+// ToolStrip's `Items` (ToolStripItemCollection) disposes its items — but a ComboBox/ListBox `Items`
+// (ObjectCollection) does NOT dispose arbitrary items, so an `Items` add is a channel only when the
+// collection's type is a ToolStripItemCollection (Codex). Semantic on the receiver so a parameter
+// named like a field is not mistaken for one.
+static string? CollectionContainerKey(ExpressionSyntax collExpr, SemanticModel model)
+{
+    string member;
+    ExpressionSyntax? containerObj;
+    switch (collExpr)
+    {
+        case IdentifierNameSyntax { Identifier.Text: "Controls" or "Items" } bare:
+            member = bare.Identifier.Text; containerObj = null; break;   // inherited member -> this
+        case MemberAccessExpressionSyntax { Name.Identifier.Text: "Controls" or "Items" } ma:
+            member = ma.Name.Identifier.Text; containerObj = ma.Expression; break;
+        default:
+            return null;
+    }
+    // `Items` disposes its items only for a ToolStripItemCollection; a ComboBox/ListBox
+    // ObjectCollection does not, so it is not a disposal channel.
+    if (member == "Items" && model.GetTypeInfo(collExpr).Type?.Name != "ToolStripItemCollection")
+        return null;
+    if (containerObj is null or ThisExpressionSyntax)
+        return "";
+    return model.GetSymbolInfo(containerObj).Symbol is IFieldSymbol { IsStatic: false } f ? f.Name : null;
+}
+
+// The THIS-field names added by an `.Add(this.child)` / `.AddRange(new T[]{ this.a, this.b })` call —
+// flattening an array-creation initializer (the designer `AddRange` form). Semantic (IFieldSymbol) so
+// only real fields of this object are credited.
+static IEnumerable<string> AddedFieldNames(ArgumentListSyntax args, SemanticModel model)
+{
+    foreach (var a in args.Arguments)
+    {
+        var items = a.Expression switch
+        {
+            ArrayCreationExpressionSyntax { Initializer: { } ai } => ai.Expressions,
+            ImplicitArrayCreationExpressionSyntax { Initializer: { } ii } => ii.Expressions,
+            _ => default,
+        };
+        if (items.Count > 0)
+        {
+            foreach (var e in items)
+                if (model.GetSymbolInfo(e).Symbol is IFieldSymbol { IsStatic: false } af)
+                    yield return af.Name;
+        }
+        else if (model.GetSymbolInfo(a.Expression).Symbol is IFieldSymbol { IsStatic: false } sf)
+            yield return sf.Name;
+    }
+}
+
 // The ignored result of a member `.Subscribe(...)` is a leakable IDisposable token (WPF004) only
 // when the call RETURNS an IDisposable — the Rx `IObservable<T>.Subscribe()` shape. A RESOLVED void
 // / non-IDisposable return has no token to leak: StackExchange.Redis's `ISubscriber.Subscribe(channel,
@@ -4550,6 +4629,83 @@ foreach (var (file, tree) in parsed)
                 && uae.IsKind(SyntaxKind.SimpleAssignmentExpression)
                 && ThisFieldName(uae.Left) is { } uf)
                 disposed.Add(uf);
+
+        // Issue #219 — WinForms disposal CHANNELS. Only when the class reaches the framework disposal
+        // root (a designer `Dispose(bool)` -> `base.Dispose(disposing)`): a class with no such Dispose
+        // (the HistoryItemManager true-positive shape) is never rooted, so its owned controls stay
+        // flagged.
+        if (ClassReachesDisposalRoot(cls))
+        {
+            // (b) IContainer registration. The sink is a field of type IContainer that is disposed in
+            // this class (already in `disposed` via `components.Dispose()` / `components?.Dispose()`).
+            // A field CONSTRUCTED with that sink (`new T(components)`) or explicitly `sink.Add(this.G)`
+            // is disposed by `components.Dispose()`.
+            var containerSinks = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                foreach (var v in fdecl.Declaration.Variables)
+                    if (disposed.Contains(v.Identifier.Text)
+                        && model.GetDeclaredSymbol(v) is IFieldSymbol fsym
+                        && ImplementsIContainer(fsym.Type))
+                        containerSinks.Add(v.Identifier.Text);
+            if (containerSinks.Count > 0)
+            {
+                bool CtorTakesSink(BaseObjectCreationExpressionSyntax oce) =>
+                    oce.ArgumentList is { } al && al.Arguments.Any(
+                        a => model.GetSymbolInfo(a.Expression).Symbol is IFieldSymbol af
+                             && containerSinks.Contains(af.Name));
+                // `G = new T(..., components, ...)` — assignment form.
+                foreach (var a in assigns)
+                    if (a.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                        && model.GetSymbolInfo(a.Left).Symbol is IFieldSymbol gf
+                        && a.Right is BaseObjectCreationExpressionSyntax gnew && CtorTakesSink(gnew))
+                        disposed.Add(gf.Name);
+                // ...and the field-initializer form `T G = new T(..., components, ...)`.
+                foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
+                    foreach (var v in fdecl.Declaration.Variables)
+                        if (v.Initializer?.Value is BaseObjectCreationExpressionSyntax inew
+                            && CtorTakesSink(inew))
+                            disposed.Add(v.Identifier.Text);
+                // explicit `components.Add(this.G)` — and the named overload `Add(this.G, "name")`
+                // (IContainer.Add(IComponent, string)); the FIRST argument is the registered component
+                // in both, so credit it whenever the receiver is a container sink (Codex).
+                foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                    if (inv.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: "Add" } addMa
+                        && inv.ArgumentList.Arguments.Count >= 1
+                        && model.GetSymbolInfo(addMa.Expression).Symbol is IFieldSymbol sinkf
+                        && containerSinks.Contains(sinkf.Name)
+                        && model.GetSymbolInfo(inv.ArgumentList.Arguments[0].Expression).Symbol is IFieldSymbol regf)
+                        disposed.Add(regf.Name);
+            }
+
+            // (a) Controls/Items membership. `Control.Dispose(bool)` disposes every child in its own
+            // `Controls` collection (and a ToolStrip disposes its `Items`). Collect each add edge
+            // `(containerKey, childField)`, then fixpoint from the rooted set — the child of a rooted
+            // container is itself rooted, so a ToolStrip added to `this.Controls` cascades to its items.
+            // An add into a FOREIGN container (param/local) yields no edge and stays flagged.
+            var edges = new List<(string container, string child)>();
+            foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (inv.Expression is MemberAccessExpressionSyntax { Name.Identifier.Text: "Add" or "AddRange" } addColl
+                    && CollectionContainerKey(addColl.Expression, model) is { } ckey)
+                    foreach (var child in AddedFieldNames(inv.ArgumentList, model))
+                        edges.Add((ckey, child));
+            if (edges.Count > 0)
+            {
+                // rooted = THIS ("") plus every field already released (direct dispose / registered above),
+                // any of which is a container whose Controls/Items disposal reaches the root.
+                var rooted = new HashSet<string>(disposed, StringComparer.Ordinal) { "" };
+                var changed = true;
+                while (changed)
+                {
+                    changed = false;
+                    foreach (var (container, child) in edges)
+                        if (rooted.Contains(container) && disposed.Add(child))
+                        {
+                            rooted.Add(child);   // the child is now itself a rooted container
+                            changed = true;
+                        }
+                }
+            }
+        }
 
         // P-004 EventSource counter exemption: inside an EventSource, a DiagnosticCounter field
         // constructed with `this` is registered to (and lifetime-owned by) the source — a
