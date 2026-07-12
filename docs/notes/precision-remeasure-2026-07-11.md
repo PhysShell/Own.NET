@@ -6,8 +6,9 @@ OSS repos: #218-#225. Four follow-up PRs have since shipped fixes:
 
 - [#230](https://github.com/PhysShell/Own.NET/pull/230) — Closes **#218**
   (not #219 — #219 is the separate WinForms `Controls`/`IContainer` disposal
-  channel gap, still open). DependencyProperty/property-changed old→new
-  subscription-rotation recognition.
+  channel gap, still open **as of this note**; shipped later via PR #236,
+  see `docs/notes/field-notes-patterns.md` entry 12/13). DependencyProperty/
+  property-changed old→new subscription-rotation recognition.
 - [#231](https://github.com/PhysShell/Own.NET/pull/231) — four smaller gaps
   in one PR: `CommandManager.RequerySuggested` allowlist (#223),
   `using (field = new T())` release (#220), template-part local/pattern-var
@@ -213,3 +214,20 @@ This note's own instructions were read-only with respect to the analyzer —
 no code was changed to investigate or produce the breakdown above; the
 breakdown is entirely from comparing old/new SARIF output and reading the
 target repos' real source.
+
+## Resolution addendum (2026-07-11 / 2026-07-12)
+
+Both follow-ups identified above were filed and shipped as a single unit:
+issue [#238](https://github.com/PhysShell/Own.NET/issues/238) (soundness
+regression — item 2 above, the ClosedXML 263-finding over-exemption) with
+the explicit-interface coverage gap (item 1 above) folded into the same
+fix, closed by [PR #240](https://github.com/PhysShell/Own.NET/pull/240).
+The shipped fix took the narrowing direction (confine the exemption to
+types implementing the generic `System.Collections.Generic.IEnumerator<T>`,
+not the non-generic `IEnumerator`) rather than the weaver-convention-sniffing
+heuristic sketched in item 2 — see
+`docs/notes/field-notes-patterns.md` entry 19 for the full account,
+including why the original "−5 Slice.cs points, 263 restored" acceptance
+target from #238 was itself corrected (ClosedXML's own `FodyWeavers.xml`
+covers `Slice.cs` too, so the sound outcome is "fully restored, nothing
+silently dropped," not a fixed `−5`).
