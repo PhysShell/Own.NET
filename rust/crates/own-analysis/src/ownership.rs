@@ -15,9 +15,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use own_cfg::{Cfg, Instr, Kind, SymId};
+use own_cfg::{Cfg, Effect, Instr, Kind, SymId};
 use own_diagnostics::{title, Diagnostic};
-use own_syntax::ast::Effect;
 
 use crate::solver::{solve, Analysis, ControlFlowGraph, Lattice};
 
@@ -73,6 +72,16 @@ impl State {
     fn states(&self, rid: u32) -> u8 {
         self.var.get(&rid).copied().unwrap_or(OWNED)
     }
+
+    /// Whether this is the ⊥ (bottom) element — empty on every field, i.e. equal
+    /// to [`Lattice::bottom`]. Used by `join` to satisfy the identity law.
+    fn is_bottom(&self) -> bool {
+        self.var.is_empty()
+            && self.loans.is_empty()
+            && self.handle_rid.is_empty()
+            && self.moved_at.is_empty()
+            && self.acquired_at.is_empty()
+    }
 }
 
 /// Merge two RID→(line, exact) provenance maps (`analysis._join_sites`): agree on
@@ -107,6 +116,19 @@ impl Lattice for State {
     }
 
     fn join(&mut self, other: &Self) -> bool {
+        // ⊥ identity, so `State` is a lawful [`Lattice`]: `⊥ ∨ x = x` and
+        // `x ∨ ⊥ = x` MUST hold even when `x` carries active loans (the generic
+        // solver may hand `bottom` to `join`). `bottom` has empty everything, so
+        // check exact-emptiness. This short-circuits before the merge invariant,
+        // which only governs two *real* predecessor states.
+        if other.is_bottom() {
+            return false;
+        }
+        if self.is_bottom() {
+            *self = other.clone();
+            return true;
+        }
+
         let before = self.clone();
 
         // var: union of the per-RID bitsets; absent key contributes ∅ (0).
@@ -119,11 +141,12 @@ impl Lattice for State {
 
         // Block-scoped borrows ⇒ identical active loans on both predecessors
         // (holds across loop back-edges: a borrow closes within its own scope).
-        // Locked as an invariant, exactly like the Python `join`.
-        let self_keys: BTreeSet<u32> = self.loans.keys().copied().collect();
-        let other_keys: BTreeSet<u32> = other.loans.keys().copied().collect();
+        // FULL-VALUE equality (owner + kind per binding), not just the key set,
+        // so a same-binding / different-owner-or-kind merge fails loudly instead
+        // of silently picking a side — matching the Python `join` (tightened in
+        // lockstep). In practice this is `{} == {}` (loans close within a block).
         assert!(
-            self_keys == other_keys,
+            self.loans == other.loans,
             "active loans differ at a control-flow merge; impossible for \
              block-scoped borrows (they close within the scope that opened them)"
         );
@@ -598,8 +621,20 @@ fn first_line(cfg: &Cfg) -> u32 {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    use super::{State, OWNED};
+    use super::{analyze, Loan, LoanKind, State, MOVED, OWNED, RELEASED};
     use crate::solver::Lattice;
+
+    /// A non-bottom state carrying one active loan (owner is OWNED), plus an
+    /// optional second RID's state — for exercising loan-carrying merges.
+    fn with_loan(binding: u32, owner: u32, kind: LoanKind, rid2: Option<(u32, u8)>) -> State {
+        let mut s = State::bottom();
+        s.var.insert(owner, OWNED);
+        s.loans.insert(binding, Loan { owner, kind });
+        if let Some((r, bits)) = rid2 {
+            s.var.insert(r, bits);
+        }
+        s
+    }
 
     /// A single-RID state whose var-set is the bitmask `bits` — the finite
     /// per-RID lattice `{OWNED, MOVED, RELEASED, ESCAPED}` is exactly `0..16`.
@@ -679,6 +714,138 @@ mod tests {
         b.var.insert(0, super::RELEASED);
         a.join(&b);
         assert_eq!(a.var.get(&0).copied(), Some(super::RELEASED));
+    }
+
+    #[test]
+    fn bottom_identity_holds_with_active_loans() {
+        // The Lattice contract `⊥ ∨ x = x` / `x ∨ ⊥ = x` MUST hold even when x
+        // carries an active loan (the generic solver may hand ⊥ to join).
+        let x = with_loan(7, 1, LoanKind::Mut, Some((2, OWNED)));
+        let mut b = State::bottom();
+        assert!(b.join(&x), "⊥ ∨ x grows from bottom");
+        assert_eq!(b, x, "⊥ ∨ x == x (loans preserved)");
+
+        let mut xx = x.clone();
+        assert!(!xx.join(&State::bottom()), "x ∨ ⊥ is no change");
+        assert_eq!(xx, x, "x ∨ ⊥ == x");
+    }
+
+    #[test]
+    fn compatible_loan_merge_is_commutative_and_associative() {
+        // Three states sharing the SAME loan (binding 7 → owner 1, Shared) but
+        // differing on a second RID — the shape of a loan held across a merge.
+        let mk = |bits2: u8| with_loan(7, 1, LoanKind::Shared, Some((2, bits2)));
+        let a = mk(OWNED);
+        let b = mk(MOVED);
+        let c = mk(RELEASED);
+
+        assert_eq!(
+            joined(&a, &b),
+            joined(&b, &a),
+            "commutative with equal loans"
+        );
+        let lhs = joined(&joined(&a, &b), &c);
+        let rhs = joined(&a, &joined(&b, &c));
+        assert_eq!(lhs, rhs, "associative with equal loans");
+
+        // x <= join(x, y)
+        let ab = joined(&a, &b);
+        let mut re = ab.clone();
+        assert!(!re.join(&a), "a <= join(a, b)");
+        assert_eq!(re, ab);
+        // The shared loan survives the merge unchanged.
+        assert_eq!(ab.loans.get(&7).map(|l| l.kind), Some(LoanKind::Shared));
+    }
+
+    #[test]
+    #[should_panic(expected = "active loans differ")]
+    fn same_binding_different_owner_or_kind_fails_loud() {
+        // Two real states carry binding 7 with a DIFFERENT owner AND kind — the
+        // full-value invariant must fail loudly (key-equality alone would miss it).
+        let a = with_loan(7, 1, LoanKind::Shared, None);
+        let b = with_loan(7, 2, LoanKind::Mut, None);
+        let _ = joined(&a, &b);
+    }
+
+    #[test]
+    fn ownership_fixpoint_is_schedule_independent() {
+        use super::Ownership;
+        use crate::solver::{solve_with, Schedule};
+
+        // A loop with an internal branch over a real resource — the fixpoint
+        // must converge to identical per-block in-states under every schedule
+        // (the State lattice, not just the toy TokenSet).
+        let src = "module M\n\
+            resource Conn { acquire open release close }\n\
+            extern fn Hash(borrow Conn);\n\
+            fn f(n: int) {\n\
+                let c = acquire Conn(1);\n\
+                while (n) {\n\
+                    if (n) { Hash(c); }\n\
+                    Hash(c);\n\
+                }\n\
+                release c;\n\
+                return;\n\
+            }\n";
+        let module = own_syntax::parse(src).expect("parses");
+        let (cfgs, _d1) = own_cfg::build_module(&module);
+        let cfg = cfgs.first().expect("one function");
+        let own = Ownership::new(cfg);
+
+        let schedules = [
+            Schedule::Rpo,
+            Schedule::Postorder,
+            Schedule::Fifo,
+            Schedule::Lifo,
+            Schedule::BlockOrder,
+        ];
+        let reference: Vec<Option<State>> = {
+            let sol = solve_with(&own, &own, Schedule::Rpo);
+            (0..cfg.blocks.len())
+                .map(|b| sol.in_fact(b).cloned())
+                .collect()
+        };
+        for sched in schedules {
+            let sol = solve_with(&own, &own, sched);
+            let got: Vec<Option<State>> = (0..cfg.blocks.len())
+                .map(|b| sol.in_fact(b).cloned())
+                .collect();
+            assert_eq!(
+                got, reference,
+                "ownership fixpoint diverged under schedule {sched:?}"
+            );
+        }
+        // And the emitting analysis (which uses the default schedule) is clean.
+        assert!(analyze(cfg).is_empty(), "the loop program is well-formed");
+    }
+
+    #[test]
+    fn loan_active_across_a_branch_merge_analyzes_cleanly() {
+        // A real CFG where a mutable borrow spans an internal `if`, so the loan
+        // is live on BOTH predecessors of the merge inside the borrow block.
+        // Python reports no diagnostics; the Rust merge must join two loan-
+        // carrying states (equal loans) without tripping the invariant.
+        let src = "module M\n\
+            resource Conn { acquire open release close }\n\
+            extern fn Fill(borrow_mut Conn);\n\
+            fn f(n: int) {\n\
+                let c = acquire Conn(1);\n\
+                borrow_mut c as m {\n\
+                    if (n) { Fill(m); }\n\
+                    Fill(m);\n\
+                }\n\
+                release c;\n\
+                return;\n\
+            }\n";
+        let module = own_syntax::parse(src).expect("parses");
+        let (cfgs, _d1) = own_cfg::build_module(&module);
+        let cfg = cfgs.first().expect("one function");
+        let diags = analyze(cfg);
+        assert!(
+            diags.is_empty(),
+            "a well-formed borrow spanning a branch is clean, got {:?}",
+            diags.iter().map(|d| (d.line, &d.code)).collect::<Vec<_>>()
+        );
     }
 
     #[test]

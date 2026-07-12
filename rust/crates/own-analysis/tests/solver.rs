@@ -12,6 +12,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use own_analysis::{solve, solve_with, Analysis, ControlFlowGraph, Lattice, Schedule};
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 
 // ---- a tiny concrete lattice: a set of u8 tokens under union ----------------
@@ -243,6 +244,171 @@ fn worklist_order_independence() {
                 "schedule {sched:?} diverged at block {b}"
             );
         }
+    }
+}
+
+// ---- the schedules are materially distinct orders ---------------------------
+
+/// A `Reaching` clone that records the block-visit sequence (interior mutability)
+/// so a test can prove two schedules visit in genuinely different orders — not
+/// merely that they agree on the result.
+struct Recording<'a> {
+    gen: Vec<TokenSet>,
+    entry: TokenSet,
+    order: &'a RefCell<Vec<usize>>,
+}
+
+impl Analysis for Recording<'_> {
+    type Fact = TokenSet;
+    fn entry_fact(&self) -> TokenSet {
+        self.entry.clone()
+    }
+    fn transfer(&self, block: usize, in_fact: &TokenSet) -> TokenSet {
+        self.order.borrow_mut().push(block);
+        let mut out = in_fact.clone();
+        if let Some(g) = self.gen.get(block) {
+            out.join(g);
+        }
+        out
+    }
+}
+
+#[test]
+fn schedules_are_materially_distinct_not_aliases() {
+    // A loop + diamond, so the visitation order genuinely diverges by schedule.
+    let g = Graph {
+        entry: 0,
+        succ: vec![
+            vec![1],
+            vec![2, 3],
+            vec![4],
+            vec![4],
+            vec![1, 5], // 4 -> 1 back-edge (loop) + exit
+            vec![],
+        ],
+    };
+    let gen = gens(&[&[0], &[1], &[2], &[3], &[4], &[5]]);
+    let entry = TokenSet::of(&[100]);
+
+    let schedules = [
+        Schedule::Rpo,
+        Schedule::Postorder,
+        Schedule::Fifo,
+        Schedule::Lifo,
+        Schedule::BlockOrder,
+    ];
+    let mut sequences: Vec<Vec<usize>> = Vec::new();
+    let mut solutions = Vec::new();
+    for sched in schedules {
+        let order = RefCell::new(Vec::new());
+        let rec = Recording {
+            gen: gen.clone(),
+            entry: entry.clone(),
+            order: &order,
+        };
+        let sol = solve_with(&g, &rec, sched);
+        let facts: Vec<Option<TokenSet>> = (0..g.num_blocks())
+            .map(|b| sol.in_fact(b).cloned())
+            .collect();
+        solutions.push(facts);
+        sequences.push(order.into_inner());
+    }
+
+    // Same fixpoint under every schedule.
+    let reference = solutions.first().expect("at least one schedule ran");
+    for s in &solutions {
+        assert_eq!(s, reference, "schedules must agree on the solution");
+    }
+    // But the visit ORDERS must be genuinely different — the old bug was that
+    // Fifo/Lifo/BlockOrder collapsed to the same order. Require at least three
+    // distinct sequences among the five.
+    let distinct: BTreeSet<Vec<usize>> = sequences.iter().cloned().collect();
+    assert!(
+        distinct.len() >= 3,
+        "expected >= 3 distinct visitation orders, got {} (schedules are aliasing): {sequences:?}",
+        distinct.len()
+    );
+    // Fifo pops the front (block 0 first); Lifo pops the back (highest-seeded
+    // block first) — so their first visited block differs.
+    assert_ne!(
+        sequences.get(2).and_then(|s| s.first()),
+        sequences.get(3).and_then(|s| s.first()),
+        "true FIFO and true LIFO must start at opposite ends"
+    );
+}
+
+// ---- structural permutations do not change the result -----------------------
+
+#[test]
+fn successor_order_permutation_is_invariant() {
+    // Same graph, but every block's successor list reversed. The join is
+    // commutative, so the converged solution must be identical.
+    let forward = Graph {
+        entry: 0,
+        succ: vec![vec![1, 2], vec![3], vec![3], vec![1, 4], vec![]],
+    };
+    let reversed = Graph {
+        entry: 0,
+        succ: vec![vec![2, 1], vec![3], vec![3], vec![4, 1], vec![]],
+    };
+    let a = Reaching {
+        gen: gens(&[&[0], &[1], &[2], &[3], &[4]]),
+        entry: TokenSet::bottom(),
+    };
+    let sf = solve(&forward, &a);
+    let sr = solve(&reversed, &a);
+    for b in 0..forward.num_blocks() {
+        assert_eq!(
+            sf.in_fact(b),
+            sr.in_fact(b),
+            "successor-order permutation changed block {b}"
+        );
+    }
+}
+
+#[test]
+fn block_id_permutation_is_invariant_when_mapped_back() {
+    // Relabel blocks by a permutation π, solve the relabelled graph, then map
+    // results back: in_fact(original b) must equal in_fact(π(b)) in the permuted
+    // solution. This also exercises a different seed/enqueue order.
+    let base = Graph {
+        entry: 0,
+        succ: vec![vec![1], vec![2, 3], vec![4], vec![4], vec![1, 5], vec![]],
+    };
+    let gen0 = gens(&[&[0], &[1], &[2], &[3], &[4], &[5]]);
+    let a0 = Reaching {
+        gen: gen0.clone(),
+        entry: TokenSet::of(&[7]),
+    };
+    let base_sol = solve(&base, &a0);
+
+    // π: 0->5, 1->4, 2->3, 3->2, 4->1, 5->0 (reverse relabelling).
+    let n = base.num_blocks();
+    let pi = |b: usize| n - 1 - b;
+    let mut succ = vec![Vec::new(); n];
+    let mut gen = vec![TokenSet::bottom(); n];
+    for b in 0..n {
+        let succ_b: Vec<usize> = base.successors(b).iter().map(|&s| pi(s)).collect();
+        if let Some(slot) = succ.get_mut(pi(b)) {
+            *slot = succ_b;
+        }
+        if let (Some(dst), Some(src)) = (gen.get_mut(pi(b)), gen0.get(b)) {
+            *dst = src.clone();
+        }
+    }
+    let permuted = Graph { entry: pi(0), succ };
+    let a1 = Reaching {
+        gen,
+        entry: TokenSet::of(&[7]),
+    };
+    let perm_sol = solve(&permuted, &a1);
+
+    for b in 0..n {
+        assert_eq!(
+            base_sol.in_fact(b),
+            perm_sol.in_fact(pi(b)),
+            "block-ID permutation changed the mapped-back fact of block {b}"
+        );
     }
 }
 

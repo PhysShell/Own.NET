@@ -24,7 +24,7 @@
 //! would otherwise spin forever. Monotone analyses over a finite lattice never
 //! approach it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, VecDeque};
 
 /// A join-semilattice element with a least (`bottom`) value.
 pub trait Lattice: Clone + PartialEq {
@@ -132,11 +132,12 @@ where
     let mut out: Vec<Option<A::Fact>> = vec![None; n];
     let mut in_facts: Vec<Option<A::Fact>> = vec![None; n];
 
-    let mut queued: Vec<bool> = vec![false; n];
-    let mut worklist: BTreeSet<(usize, usize)> = BTreeSet::new(); // (order-key, block)
-                                                                  // Seed every reachable block so unreachable ones are never touched.
+    // Seed every reachable block so unreachable ones are never touched. The seed
+    // order is ascending block id; the block-ID-permutation test proves the
+    // converged result does not depend on it.
+    let mut worklist = Worklist::new(schedule, n, &rpo_index);
     for &b in &reachable {
-        enqueue(&mut worklist, &mut queued, b, schedule, &rpo_index, n);
+        worklist.push(b);
     }
 
     // Convergence guard: a monotone analysis over a finite lattice re-visits each
@@ -149,7 +150,7 @@ where
         .saturating_add(1024);
     let mut visits: usize = 0;
 
-    while let Some(b) = dequeue(&mut worklist, &mut queued, schedule) {
+    while let Some(b) = worklist.pop() {
         visits = visits.saturating_add(1);
         assert!(
             visits <= visit_cap,
@@ -159,18 +160,33 @@ where
 
         // in[b] = entry boundary if b is the entry, else the join of predecessor
         // out-facts. The entry's boundary fact dominates even under a back-edge.
+        //
+        // The merge is **seeded from the first predecessor with an out-fact** and
+        // joins the rest — never `bottom.join(pred)`. This matches Python's
+        // `in_state_of` (`out[ps[0]].copy()` then join `ps[1:]`) and, crucially,
+        // means `join` is only ever called between two *real* predecessor states,
+        // so a domain whose `join` carries a merge invariant (e.g. ownership's
+        // block-scoped-loan equality) is never handed the empty `bottom` on one
+        // side. With no predecessor yet processed, the seed is `bottom` (used
+        // alone, unjoined) — the transient first-visit value, exactly like
+        // Python's `State()` fallback.
         let in_b = if b == entry {
             analysis.entry_fact()
         } else {
-            let mut acc = A::Fact::bottom();
+            let mut acc: Option<A::Fact> = None;
             if let Some(ps) = preds.get(b) {
                 for &p in ps {
                     if let Some(Some(op)) = out.get(p) {
-                        acc.join(op);
+                        match acc.as_mut() {
+                            None => acc = Some(op.clone()),
+                            Some(a) => {
+                                a.join(op);
+                            }
+                        }
                     }
                 }
             }
-            acc
+            acc.unwrap_or_else(A::Fact::bottom)
         };
 
         let out_b = analysis.transfer(b, &in_b);
@@ -188,7 +204,7 @@ where
             }
             for &s in graph.successors(b) {
                 if reachable.contains(&s) {
-                    enqueue(&mut worklist, &mut queued, s, schedule, &rpo_index, n);
+                    worklist.push(s);
                 }
             }
         }
@@ -197,57 +213,82 @@ where
     Solution { in_facts }
 }
 
-fn order_key(block: usize, schedule: Schedule, rpo_index: &[usize], n: usize) -> usize {
-    match schedule {
-        // Smallest RPO index first.
-        Schedule::Rpo | Schedule::Fifo | Schedule::Lifo | Schedule::BlockOrder => {
-            rpo_index.get(block).copied().unwrap_or(n)
-        }
-        // Largest RPO index first (postorder): invert the key.
-        Schedule::Postorder => n.saturating_sub(rpo_index.get(block).copied().unwrap_or(n)),
-    }
+/// The worklist backing store — a *materially distinct* container per schedule,
+/// with a `queued` bitset so a block is never enqueued twice.
+enum Queue {
+    /// Rpo / Postorder / `BlockOrder` — pop the smallest precomputed key.
+    Priority(BTreeSet<(usize, usize)>),
+    /// True FIFO: `push_back` / `pop_front` (visit in first-enqueued order).
+    Fifo(VecDeque<usize>),
+    /// True LIFO: `push` / `pop` (visit the most-recently-enqueued first).
+    Lifo(Vec<usize>),
 }
 
-fn enqueue(
-    worklist: &mut BTreeSet<(usize, usize)>,
-    queued: &mut [bool],
-    block: usize,
+struct Worklist<'r> {
+    queue: Queue,
+    queued: Vec<bool>,
     schedule: Schedule,
-    rpo_index: &[usize],
+    rpo_index: &'r [usize],
     n: usize,
-) {
-    if queued.get(block).copied() == Some(true) {
-        return;
-    }
-    if let Some(q) = queued.get_mut(block) {
-        *q = true;
-    }
-    let key = match schedule {
-        // For FIFO/LIFO/BlockOrder the primary key is the block id; the BTreeSet
-        // then breaks ties deterministically. For RPO/Postorder the key IS the
-        // (inverted) rpo index, so the smallest pops first.
-        Schedule::Fifo | Schedule::Lifo | Schedule::BlockOrder => block,
-        Schedule::Rpo | Schedule::Postorder => order_key(block, schedule, rpo_index, n),
-    };
-    worklist.insert((key, block));
 }
 
-fn dequeue(
-    worklist: &mut BTreeSet<(usize, usize)>,
-    queued: &mut [bool],
-    schedule: Schedule,
-) -> Option<usize> {
-    let entry = match schedule {
-        // LIFO pops the largest key; everything else pops the smallest.
-        Schedule::Lifo => worklist.iter().next_back().copied(),
-        _ => worklist.iter().next().copied(),
-    }?;
-    worklist.remove(&entry);
-    let (_, block) = entry;
-    if let Some(q) = queued.get_mut(block) {
-        *q = false;
+impl<'r> Worklist<'r> {
+    fn new(schedule: Schedule, n: usize, rpo_index: &'r [usize]) -> Self {
+        let queue = match schedule {
+            Schedule::Fifo => Queue::Fifo(VecDeque::new()),
+            Schedule::Lifo => Queue::Lifo(Vec::new()),
+            Schedule::Rpo | Schedule::Postorder | Schedule::BlockOrder => {
+                Queue::Priority(BTreeSet::new())
+            }
+        };
+        Self {
+            queue,
+            queued: vec![false; n],
+            schedule,
+            rpo_index,
+            n,
+        }
     }
-    Some(block)
+
+    /// The priority key for the `Priority` schedules (unused by Fifo/Lifo).
+    fn key(&self, block: usize) -> usize {
+        let rpo = self.rpo_index.get(block).copied().unwrap_or(self.n);
+        match self.schedule {
+            Schedule::Rpo => rpo,                              // smallest RPO first
+            Schedule::Postorder => self.n.saturating_sub(rpo), // largest RPO first
+            // BlockOrder pops smallest id; Fifo/Lifo don't consult the key.
+            Schedule::BlockOrder | Schedule::Fifo | Schedule::Lifo => block,
+        }
+    }
+
+    fn push(&mut self, block: usize) {
+        if self.queued.get(block).copied() == Some(true) {
+            return;
+        }
+        if let Some(q) = self.queued.get_mut(block) {
+            *q = true;
+        }
+        let key = self.key(block);
+        match &mut self.queue {
+            Queue::Priority(s) => {
+                s.insert((key, block));
+            }
+            Queue::Fifo(q) => q.push_back(block),
+            Queue::Lifo(v) => v.push(block),
+        }
+    }
+
+    fn pop(&mut self) -> Option<usize> {
+        let block = match &mut self.queue {
+            Queue::Priority(s) => s.pop_first().map(|(_, b)| b),
+            Queue::Fifo(q) => q.pop_front(),
+            Queue::Lifo(v) => v.pop(),
+        }?;
+        if let Some(q) = self.queued.get_mut(block) {
+            *q = false;
+        }
+        Some(block)
+    }
 }
 
 fn predecessors<G: ControlFlowGraph>(graph: &G) -> Vec<Vec<usize>> {

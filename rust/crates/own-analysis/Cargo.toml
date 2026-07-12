@@ -15,10 +15,13 @@ version = "0.1.0"
 # (own-diagnostics/tests/dag.rs) already allows that (reviewed) set.
 [dependencies]
 own-cfg = { path = "../own-cfg" }
-own-syntax = { path = "../own-syntax" }
 own-diagnostics = { path = "../own-diagnostics" }
 
 [dev-dependencies]
+# own-syntax is a TEST-only edge (parity/metamorphic tests call `parse`); the
+# production analysis reads the effect type through `own_cfg::Effect`, never the
+# parser — the DAG edge test asserts no production own-analysis -> own-syntax edge.
+own-syntax = { path = "../own-syntax" }
 serde_json = { workspace = true }
 
 [lints]

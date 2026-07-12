@@ -63,10 +63,43 @@ skipped whole (never half-asserted).
 - **Metamorphic** (`metamorphic.rs`): renaming a local preserves `(line, code)`;
   repeated analysis is identical (determinism); adding unreachable code never
   removes a finding; diagnostics survive a serde round-trip.
-- **Differential**: the frozen fixture *is* the differential oracle — Python
-  authors the goldens (`python tests/test_diag_fixtures.py --write`), Rust
-  replays them with zero Python at steady state. The 62-file corpus + 7 curated
-  cases exercise acquire/release/use/move/branch/loop/return combinations.
+- **Differential (generated)**: `tests/test_diff_gen_fixtures.py` deterministically
+  generates **160 seeded mini-programs** from the ownership primitives
+  (acquire/release/use/move/call(borrow|consume)/branch/loop/return), computes
+  the Python `(line, code)` goldens, and freezes `source + seed + diags` into
+  `tests/fixtures/diag_diff_gen.json`. `own-analysis/tests/diff_gen.rs` replays
+  them with **zero Python** and, on any divergence, prints the failing **seed +
+  source** so it becomes a permanent regression. 160/160 covered, exact match.
+  (The frozen 69-case corpus fixture is a second, curated differential.)
+
+## Review round 2 — the four checkpoint-2 blocking fixes
+
+- **B1 — `State` now satisfies the `Lattice` contract.** The solver seeds a merge
+  from the **first predecessor with an out-fact** (clone) and joins the rest —
+  matching Python's `in_state_of`, so `join` is only ever called between two real
+  predecessor states, never `bottom.join(loaded)`. `State::join` also handles the
+  ⊥ identity explicitly (`⊥ ∨ x = x` with active loans) and asserts **full
+  loan-map equality** (owner + kind per binding), not just key equality — a
+  same-binding/different-owner-or-kind merge now fails loudly. The Python `join`
+  was tightened to full-map equality **first** (a no-op: 132/132 green, fixture
+  byte-identical) so the invariant is identical on both sides. New tests:
+  bottom-identity-with-loans, compatible-loan commutativity/associativity,
+  same-key/different-value fail-loud, and a real CFG with a `borrow_mut` spanning
+  a branch merge (a loan live on both merge edges).
+- **B2 — the schedules are now materially distinct.** True FIFO (`VecDeque`
+  front/back) and true LIFO (`Vec` stack), not block-id-keyed aliases. A
+  visit-order recorder proves ≥3 distinct visitation orders across the five
+  schedules while all agree on the fixpoint; plus successor-order-permutation and
+  block-ID-permutation invariance, and an ownership-specific (real `State`
+  lattice) schedule-independence test over a loop+branch program.
+- **B3 — no production parser edge.** `own-analysis` reads the effect type through
+  `own_cfg::Effect` (re-exported by `own-cfg`); `own-syntax` moved to
+  dev-dependencies (parity/metamorphic/diff-gen tests). The DAG edge test now
+  filters to production (`kind: null`) deps and a dedicated assertion
+  (`own_analysis_has_no_production_parser_edge`) prevents the edge returning.
+- **B4 — generated differential battery** (above).
+
+The 66/66 covered parity result is unchanged after all four fixes.
 
 ## Deliberately preserved Python behaviors (matched, not "fixed")
 
@@ -78,18 +111,22 @@ skipped whole (never half-asserted).
   This is a message-text distinction, not a verdict distinction — it returns
   when message-text parity is added (step 5). No verdict is changed.
 
-## Integration gate (unchanged, restated)
+## Integration gate
 
-Per owner direction, checkpoint 1's provisional-approval gate stands: **final
-semantic-port merge is gated on the separate post-batch OSS remeasure** run by
-another agent; this checkpoint permits implementation to proceed but does not
-substitute for the broad oracle audit. If that sweep surfaces an unexplained
-disappearance, it is fixed **Python-first**, the golden fixture is regenerated
-explicitly, and Rust is re-brought to parity — never patched in Rust alone.
+The separate full OSS remeasure now exists as **PR #243**; it is not re-run here.
+**Final #214 merge remains gated on PR #243 being independently reviewed and
+accepted/merged.** If that sweep surfaces an unexplained disappearance, it is
+fixed **Python-first**, the golden fixture is regenerated explicitly, and Rust is
+re-brought to parity — never patched in Rust alone.
 
-## Not done here (checkpoint 3)
+## Checkpoint 3 scope (clarified per review)
 
-`check_lifetimes` (OWN014/OWN036 escape/region) and `validate_policies`
-(OWN019/OWN021/OWN023/OWN024 buffer policy) — which close the 3 deferred cases —
-then evidence-slice and SARIF parity (step 5), and the effects/DI fact surface
-(own-bridge, step 6).
+Checkpoint 3 ports **all remaining #214 analyses as independent `own-analysis`
+implementations**: **lifetime** (OWN014/OWN036 escape/region, `check_lifetimes`),
+**buffer policy** (OWN019/OWN021/OWN023/OWN024, `validate_policies`), **effect**
+(EFF\*), and **DI** (DI\*). `own-bridge` later *wires OwnIR facts into* the
+effect/DI analyses but does **not** own their algorithms — the algorithms live in
+`own-analysis`. The lifetime + buffer-policy ports close the 3 deferred cases and
+bring the `.own` corpus to full parity. **Evidence-text and SARIF parity remain
+later migration steps (step 5) and must not be pulled into #214** to make a
+checkpoint look more complete.

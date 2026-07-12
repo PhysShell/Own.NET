@@ -33,11 +33,12 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     m.insert("own-cfg", ["own-ir", "own-syntax"].into_iter().collect());
     // The invariant #214 is about: only the span leaf, never the solver/parser.
     m.insert("own-diagnostics", std::iter::once("own-ir").collect());
-    // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering; it may
-    // depend on the whole upstream core, but nothing downstream may depend on it.
+    // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
+    // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
+    // production own-syntax edge (own-syntax is a dev-only edge for its tests).
     m.insert(
         "own-analysis",
-        ["own-ir", "own-syntax", "own-cfg", "own-diagnostics"]
+        ["own-ir", "own-cfg", "own-diagnostics"]
             .into_iter()
             .collect(),
     );
@@ -87,6 +88,11 @@ fn workspace_edges() -> HashMap<String, BTreeSet<String>> {
             .and_then(Value::as_array)
             .expect("dependencies array")
             .iter()
+            // Only NORMAL (production) deps are architecture edges: cargo tags a
+            // dev-dependency's `kind` as "dev" and a build-dep as "build"; a
+            // normal dep has `kind: null`. Test-only edges (a crate using another
+            // crate's parser in its *tests*) do not constrain the runtime DAG.
+            .filter(|d| d.get("kind").map_or(true, Value::is_null))
             .filter_map(|d| d.get("name").and_then(Value::as_str))
             .filter(|d| members.contains(*d)) // only workspace-internal edges are architecture
             .map(str::to_owned)
@@ -133,6 +139,22 @@ fn own_diagnostics_never_depends_on_the_solver_or_parser() {
              (verdict/contract layer stays independent of the solver and parser)"
         );
     }
+}
+
+#[test]
+fn own_analysis_has_no_production_parser_edge() {
+    // The domain analyses read the effect type through `own_cfg::Effect`; a
+    // production dependency on the parser (`own-syntax`) must never return.
+    // (own-syntax stays a dev-dependency for the parity/metamorphic tests.)
+    let actual = workspace_edges();
+    let deps = actual
+        .get("own-analysis")
+        .expect("own-analysis is a member");
+    assert!(
+        !deps.contains("own-syntax"),
+        "own-analysis grew a PRODUCTION dependency on own-syntax; read the effect \
+         type via own_cfg::Effect and keep own-syntax a dev-dependency"
+    );
 }
 
 #[test]
