@@ -1173,6 +1173,174 @@ static bool IsAssociatedObjectSource(ExpressionSyntax left, SemanticModel model,
     => left is MemberAccessExpressionSyntax m
        && ResolvesToAssociatedObject(m.Expression, model, clsNode, depth: 0);
 
+// P-004 / issue #229: the `+=` receiver is an element of a collection the class OWNS —
+// a `foreach (var x in FieldOrProperty)` loop variable whose collection is a this-owned
+// field/property the class ITSELF populates (own construction / own factory / collection
+// initializer), never an injected or ctor-parameter value. The collection and its
+// elements then share the constructing object's lifetime, so the subscription is a
+// collectable self-cycle, not a leak. All checks are same-class and syntactic:
+//   * the receiver must bind to a `foreach` variable (matched by SYMBOL);
+//   * the loop's collection must be a bare/`this`-qualified member of THIS class;
+//   * that member's every population site must be an own-produced value (below) — a
+//     single injected/parameter assignment denies the proof (precision-first).
+static bool IsOwnedCollectionElementSource(ExpressionSyntax left, SemanticModel model,
+                                           INamedTypeSymbol? cls)
+{
+    if (cls is null || left is not MemberAccessExpressionSyntax m)
+        return false;
+    if (model.GetSymbolInfo(m.Expression).Symbol is not ILocalSymbol loopVar)
+        return false;
+    // The receiver's symbol must be the variable DECLARED by an enclosing `foreach`.
+    var forEach = m.Expression.Ancestors().OfType<ForEachStatementSyntax>()
+        .FirstOrDefault(f => SymbolEqualityComparer.Default.Equals(
+                                 model.GetDeclaredSymbol(f), loopVar));
+    if (forEach is null)
+        return false;
+    // The iterated collection must be a bare `Field` / `this.Field` of THIS class — a
+    // `other.Items` reaches another instance's collection (unknown element lifetime).
+    var collExpr = StripCasts(forEach.Expression);
+    if (collExpr is not (IdentifierNameSyntax
+                         or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
+        return false;
+    var member = model.GetSymbolInfo(collExpr).Symbol;
+    if (member is not (IFieldSymbol or IPropertySymbol))
+        return false;
+    if (!SymbolEqualityComparer.Default.Equals(member.ContainingType, cls))
+        return false;
+    return MemberPopulatedByOwnFactory(member, model, cls);
+}
+
+// #229: is EVERY population of this field/property an own-produced value — and is there
+// at least one? Scans EVERY partial declaration of the containing type (a disqualifying
+// injected assignment may live in a sibling partial FILE — the merged compilation makes
+// them all reachable through the symbol's DeclaringSyntaxReferences; CodeRabbit), each
+// with its own tree's semantic model. An initializer at a declaration, or any simple
+// assignment to the member in a ctor/method, is a population site. A single site we
+// cannot prove is own-produced (a ctor parameter, an injected field, a service-located
+// call) denies the proof, so an injected collection keeps today's honest warning.
+static bool MemberPopulatedByOwnFactory(ISymbol member, SemanticModel model,
+                                        INamedTypeSymbol cls)
+{
+    var any = false;
+    bool Note(ExpressionSyntax value, SemanticModel m)
+    {
+        any = true;
+        return IsOwnProducedValue(value, m, cls, depth: 0);
+    }
+    foreach (var decl in EnumerateTypeDeclarations(cls))
+    {
+        var m = model.Compilation.GetSemanticModel(decl.SyntaxTree);
+        // Declaration-site initializer: `= CreateData()` / `= new(){ ... }` on the field
+        // or auto-property.
+        foreach (var v in decl.DescendantNodes().OfType<VariableDeclaratorSyntax>())
+            if (v.Initializer is { } vi
+                && SymbolEqualityComparer.Default.Equals(m.GetDeclaredSymbol(v), member)
+                && !Note(vi.Value, m))
+                return false;
+        foreach (var p in decl.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+            if (p.Initializer is { } pi
+                && SymbolEqualityComparer.Default.Equals(m.GetDeclaredSymbol(p), member)
+                && !Note(pi.Value, m))
+                return false;
+        // Assignment sites: `Items1 = CreateData();`
+        foreach (var asg in decl.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            if (asg.IsKind(SyntaxKind.SimpleAssignmentExpression)
+                && SymbolEqualityComparer.Default.Equals(m.GetSymbolInfo(asg.Left).Symbol, member)
+                && !Note(asg.Right, m))
+                return false;
+    }
+    return any;
+}
+
+// #229: a value the class PRODUCES itself, not one that FLOWS IN — and whose ELEMENTS are
+// themselves own-produced (the subscribed events live on those elements, so a collection
+// object that is freshly `new`d but SEEDED with injected elements is NOT owned). Two
+// forms, checked recursively (Codex P1):
+//   * an object creation whose constructor arguments AND collection-initializer elements
+//     are each own-produced — `new List<Model>()`, `new() { new Model(), new Model() }`;
+//     `new List<Model>(injectedSource)` and `new() { injectedModel }` are rejected;
+//   * an invocation of an OWN factory (a method of THIS class with an implicit/`this`
+//     receiver) whose body PROVABLY returns an own-produced value — so a wrapper
+//     `List<Model> GetData() => _service.GetData()` that forwards injected elements is
+//     rejected. A call through any other receiver (`_service.GetData()`) is likewise out.
+// Casts/`!` are peeled first; depth-bounded so a self-referential factory cannot spin.
+static bool IsOwnProducedValue(ExpressionSyntax expr, SemanticModel model,
+                               INamedTypeSymbol cls, int depth)
+{
+    if (depth > 3)
+        return false;
+    expr = StripCasts(expr);
+    if (expr is BaseObjectCreationExpressionSyntax oce)
+    {
+        // Constructor arguments may SEED the collection with external elements.
+        if (oce.ArgumentList is { } al)
+            foreach (var arg in al.Arguments)
+                if (!IsOwnProducedValue(arg.Expression, model, cls, depth + 1))
+                    return false;
+        // A collection/object initializer's elements must each be own-produced.
+        if (oce.Initializer is { } init)
+            foreach (var e in init.Expressions)
+                if (!IsOwnProducedValue(e, model, cls, depth + 1))
+                    return false;
+        return true;
+    }
+    if (expr is InvocationExpressionSyntax inv)
+    {
+        var callee = model.GetSymbolInfo(inv).Symbol as IMethodSymbol;
+        if (callee is null
+            || !SymbolEqualityComparer.Default.Equals(callee.ContainingType, cls))
+            return false;
+        var receiverIsOwn = inv.Expression switch
+        {
+            IdentifierNameSyntax => true,                                       // CreateData()
+            MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } => true, // this.CreateData()
+            _ => false,
+        };
+        return receiverIsOwn && FactoryReturnsOwnProduced(callee, model, cls, depth);
+    }
+    return false;
+}
+
+// #229: does this own-class factory PROVABLY return only own-produced values? Inspects
+// its body (same-class, so within the class-level scan the guardrail allows): an
+// expression body `=> expr`, or every `return expr` in a block body, must be own-produced.
+// No visible body, a bodiless return, or any non-own-produced return denies the proof —
+// so a wrapper that forwards an injected/service-located collection keeps the warning.
+// (Returns nested in lambdas/local functions only make the check MORE conservative.)
+static bool FactoryReturnsOwnProduced(IMethodSymbol factory, SemanticModel model,
+                                      INamedTypeSymbol cls, int depth)
+{
+    if (factory.DeclaringSyntaxReferences.Length == 0)
+        return false;
+    var any = false;
+    foreach (var r in factory.DeclaringSyntaxReferences)
+    {
+        if (r.GetSyntax() is not MethodDeclarationSyntax md)
+            return false;
+        var m = model.Compilation.GetSemanticModel(md.SyntaxTree);
+        if (md.ExpressionBody is { } eb)
+        {
+            any = true;
+            if (!IsOwnProducedValue(eb.Expression, m, cls, depth + 1))
+                return false;
+            continue;
+        }
+        if (md.Body is null)
+            return false;
+        var returns = md.Body.DescendantNodes().OfType<ReturnStatementSyntax>().ToList();
+        if (returns.Count == 0)
+            return false;
+        foreach (var ret in returns)
+        {
+            any = true;
+            if (ret.Expression is null
+                || !IsOwnProducedValue(ret.Expression, m, cls, depth + 1))
+                return false;
+        }
+    }
+    return any;
+}
+
 // P-004 WPF MVVM ownership: a field read from `this.DataContext`, optionally through
 // an `as`/cast (`DataContext as VM`, `(VM)DataContext`). Combined with a view whose
 // own XAML CONSTRUCTS its DataContext, such a field is the view's owned view-model.
@@ -4399,6 +4567,16 @@ foreach (var (file, tree) in parsed)
                 // method keeps today's warning (its receiver does not resolve there).
                 if (!isTimer && clsIsBehavior
                     && IsAssociatedObjectSource(a.Left, model, cls))
+                    continue;
+                // P-004 / issue #229: the `+=` receiver is an element of a collection the
+                // class itself populated — a `foreach (var x in OwnField)` loop variable
+                // whose collection is a this-owned field/property assigned from the class's
+                // OWN construction/factory (not a ctor parameter, not an injected value).
+                // The collection and its elements share the constructing object's lifetime,
+                // so the subscription is the same collectable self-cycle as a constructed
+                // field; a `foreach` over an injected/parameter collection keeps today's
+                // warning (its population sites are not own-produced).
+                if (!isTimer && IsOwnedCollectionElementSource(a.Left, model, clsSymbol))
                     continue;
                 // P-004 (issue #223): the curated weak-referenced-static-event allowlist —
                 // unconditional (unlike the AppDomain exemption above, this does NOT gate on
