@@ -1,0 +1,386 @@
+{
+  "target": "ShareX",
+  "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+  "ownnet_commit": "4c5a86b176b04c42f7c1cc9e51aef545a3586cc9",
+  "ownnet_baseline_commit": "c029e8da59a60298eece7b1fbb5708a9886f55ee",
+  "command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning -- <ShareX checkout>",
+  "extractor_mode": "--flow-locals (own-check.sh default)",
+  "reference_resolution": "microsoft.windowsdesktop.app.ref 8.0.28/ref/net8.0 (47 dlls) via OWN_EXTRA_REF_DIRS, materialized identically to ci.yml corpus-benchmark job",
+  "baseline_source": "self-regenerated: OwnSharp.Extractor built at Own.NET commit c029e8da59a60298eece7b1fbb5708a9886f55ee (main, right after PR #226 merged the original oracle-sweep-2026-07-10.md sweep, before any of #218-#225's fixes), run with the identical command/flags against the same pinned target commit -- not copied from prose notes, to guarantee apples-to-apples inputs across the full #218-#240 batch",
+  "counts": {
+    "baseline_total": 350,
+    "current_total": 314,
+    "baseline_by_rule": {
+      "OWN001": 235,
+      "OWN050": 115
+    },
+    "current_by_rule": {
+      "OWN001": 199,
+      "OWN050": 115
+    }
+  },
+  "added": [],
+  "removed": [
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Colors/ColorPicker.cs",
+      "line": 84,
+      "message": "IDisposable field 'colorBox' (type 'ColorBox') is never disposed \u2014 its owner 'ColorPicker' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Colors/ColorPicker.cs",
+      "line": 85,
+      "message": "IDisposable field 'colorSlider' (type 'ColorSlider') is never disposed \u2014 its owner 'ColorPicker' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Cryptographic/HashChecker.cs",
+      "line": 42,
+      "message": "IDisposable field 'cts' (type 'CancellationTokenSource') is never disposed \u2014 its owner 'HashChecker' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#220",
+      "explained_by_pr": "#231",
+      "shape": "using (field = new T()) release"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ClipboardViewerForm.designer.cs",
+      "line": 107,
+      "message": "IDisposable field 'txtSelectedClipboardContent' (type 'System.Windows.Forms.TextBox') is never disposed \u2014 its owner 'ClipboardViewerForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ClipboardViewerForm.designer.cs",
+      "line": 108,
+      "message": "IDisposable field 'btnRefresh' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'ClipboardViewerForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ClipboardViewerForm.designer.cs",
+      "line": 109,
+      "message": "IDisposable field 'btnClearClipboard' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'ClipboardViewerForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ClipboardViewerForm.designer.cs",
+      "line": 110,
+      "message": "IDisposable field 'lvClipboardContentList' (type 'System.Windows.Forms.ListView') is never disposed \u2014 its owner 'ClipboardViewerForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ClipboardViewerForm.designer.cs",
+      "line": 112,
+      "message": "IDisposable field 'pbSelectedClipboardContent' (type 'MyPictureBox') is never disposed \u2014 its owner 'ClipboardViewerForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ImageViewer.cs",
+      "line": 396,
+      "message": "IDisposable field 'pbPreview' (type 'MyPictureBox') is never disposed \u2014 its owner 'ImageViewer' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ImageViewer.cs",
+      "line": 397,
+      "message": "IDisposable field 'lblStatus' (type 'Label') is never disposed \u2014 its owner 'ImageViewer' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ImageViewer.cs",
+      "line": 398,
+      "message": "IDisposable field 'lblLeft' (type 'Label') is never disposed \u2014 its owner 'ImageViewer' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/ImageViewer.cs",
+      "line": 399,
+      "message": "IDisposable field 'lblRight' (type 'Label') is never disposed \u2014 its owner 'ImageViewer' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/InputBox.cs",
+      "line": 145,
+      "message": "IDisposable field 'btnOK' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'InputBox' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/InputBox.cs",
+      "line": 146,
+      "message": "IDisposable field 'btnCancel' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'InputBox' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/InputBox.cs",
+      "line": 147,
+      "message": "IDisposable field 'txtInputText' (type 'System.Windows.Forms.TextBox') is never disposed \u2014 its owner 'InputBox' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/Forms/TrayForm.cs",
+      "line": 33,
+      "message": "IDisposable field 'TrayIcon' (type 'NotifyIcon') is never disposed \u2014 its owner 'TrayForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.HelpersLib/TaskEx.cs",
+      "line": 41,
+      "message": "IDisposable field 'cts' (type 'CancellationTokenSource') is never disposed \u2014 its owner 'TaskEx' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#220",
+      "explained_by_pr": "#231",
+      "shape": "using (field = new T()) release"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.IndexerLib/IndexerJson.cs",
+      "line": 35,
+      "message": "IDisposable field 'jsonWriter' (type 'JsonWriter') is never disposed \u2014 its owner 'IndexerJson' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#220",
+      "explained_by_pr": "#231",
+      "shape": "using (field = new T()) release"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.ScreenCaptureLib/Shapes/ShapeManager.cs",
+      "line": 369,
+      "message": "event 'control.MouseDown' is subscribed (handler '(sender, e) => Form.SetHandCursor(true)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShapeManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#229",
+      "explained_by_pr": "#239",
+      "shape": "self-populated owned-collection element (DrawableObjects)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.ScreenCaptureLib/Shapes/ShapeManager.cs",
+      "line": 370,
+      "message": "event 'control.MouseUp' is subscribed (handler '(sender, e) =>\r\n                {\r\n                    if (control.IsCursorHover)\r\n                    {\r\n                        Form.SetHandCursor(false);\r\n                    }\r\n                    else\r\n                    {\r\n                        Form.SetDefaultCursor();\r\n                    }\r\n                }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShapeManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#229",
+      "explained_by_pr": "#239",
+      "shape": "self-populated owned-collection element (DrawableObjects)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.ScreenCaptureLib/Shapes/ShapeManager.cs",
+      "line": 381,
+      "message": "event 'control.MouseEnter' is subscribed (handler '() => Form.SetHandCursor(false)') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShapeManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#229",
+      "explained_by_pr": "#239",
+      "shape": "self-populated owned-collection element (DrawableObjects)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX.ScreenCaptureLib/Shapes/ShapeManager.cs",
+      "line": 382,
+      "message": "event 'control.MouseLeave' is subscribed (handler '() => Form.SetDefaultCursor()') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'ShapeManager' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#229",
+      "explained_by_pr": "#239",
+      "shape": "self-populated owned-collection element (DrawableObjects)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/ActionsToolbarForm.cs",
+      "line": 56,
+      "message": "IDisposable field 'tsMain' (type 'ToolStripEx') is never disposed \u2014 its owner 'ActionsToolbarForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/ActionsToolbarForm.cs",
+      "line": 57,
+      "message": "IDisposable field 'ttMain' (type 'ToolTip') is never disposed \u2014 its owner 'ActionsToolbarForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/ActionsToolbarForm.cs",
+      "line": 58,
+      "message": "IDisposable field 'cmsTitle' (type 'ContextMenuStrip') is never disposed \u2014 its owner 'ActionsToolbarForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 150,
+      "message": "IDisposable field 'pbPreview' (type 'HelpersLib.MyPictureBox') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 151,
+      "message": "IDisposable field 'tmrClose' (type 'System.Windows.Forms.Timer') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 152,
+      "message": "IDisposable field 'btnOpenFolder' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 153,
+      "message": "IDisposable field 'btnCopyImage' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 154,
+      "message": "IDisposable field 'btnOpenLink' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 155,
+      "message": "IDisposable field 'btnCopyLink' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 156,
+      "message": "IDisposable field 'btnOpenFile' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 157,
+      "message": "IDisposable field 'btnClose' (type 'System.Windows.Forms.Button') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/AfterUploadForm.designer.cs",
+      "line": 158,
+      "message": "IDisposable field 'lvClipboardFormats' (type 'HelpersLib.MyListView') is never disposed \u2014 its owner 'AfterUploadForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms Controls.Add disposal channel"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/NotificationForm.cs",
+      "line": 430,
+      "message": "IDisposable field 'tDuration' (type 'Timer') is never disposed \u2014 its owner 'NotificationForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ShareX/Forms/NotificationForm.cs",
+      "line": 431,
+      "message": "IDisposable field 'tOpacity' (type 'Timer') is never disposed \u2014 its owner 'NotificationForm' leaks it (leak) [resource: disposable field]",
+      "explained_by_issue": "#219",
+      "explained_by_pr": "#236",
+      "shape": "WinForms IContainer registration (new T(components))"
+    }
+  ],
+  "changed": []
+}

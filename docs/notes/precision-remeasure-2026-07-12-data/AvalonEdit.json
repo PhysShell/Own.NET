@@ -1,0 +1,97 @@
+{
+  "target": "AvalonEdit",
+  "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+  "ownnet_commit": "4c5a86b176b04c42f7c1cc9e51aef545a3586cc9",
+  "ownnet_baseline_commit": "c029e8da59a60298eece7b1fbb5708a9886f55ee",
+  "command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning -- <AvalonEdit checkout>",
+  "extractor_mode": "--flow-locals (own-check.sh default)",
+  "reference_resolution": "microsoft.windowsdesktop.app.ref 8.0.28/ref/net8.0 (47 dlls) via OWN_EXTRA_REF_DIRS, materialized identically to ci.yml corpus-benchmark job",
+  "baseline_source": "self-regenerated: OwnSharp.Extractor built at Own.NET commit c029e8da59a60298eece7b1fbb5708a9886f55ee (main, right after PR #226 merged the original oracle-sweep-2026-07-10.md sweep, before any of #218-#225's fixes), run with the identical command/flags against the same pinned target commit -- not copied from prose notes, to guarantee apples-to-apples inputs across the full #218-#240 batch",
+  "counts": {
+    "baseline_total": 29,
+    "current_total": 22,
+    "baseline_by_rule": {
+      "OWN001": 23,
+      "OWN014": 1,
+      "OWN050": 5
+    },
+    "current_by_rule": {
+      "OWN001": 17,
+      "OWN050": 5
+    }
+  },
+  "added": [],
+  "removed": [
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/CodeCompletion/OverloadViewer.cs",
+      "line": 58,
+      "message": "event 'upButton.Click' is subscribed (handler '(sender, e) => {\n\t\t\t\te.Handled = true;\n\t\t\t\tChangeIndex(-1);\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'OverloadViewer' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#222",
+      "explained_by_pr": "#231",
+      "shape": "template-part local (FindName pattern-var)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/CodeCompletion/OverloadViewer.cs",
+      "line": 64,
+      "message": "event 'downButton.Click' is subscribed (handler '(sender, e) => {\n\t\t\t\te.Handled = true;\n\t\t\t\tChangeIndex(+1);\n\t\t\t}') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'OverloadViewer' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#222",
+      "explained_by_pr": "#231",
+      "shape": "template-part local (FindName pattern-var)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/Editing/AbstractMargin.cs",
+      "line": 99,
+      "message": "event 'newTextView.DocumentChanged' is subscribed (handler 'TextViewDocumentChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'AbstractMargin' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/Editing/LineNumberMargin.cs",
+      "line": 114,
+      "message": "event 'newTextView.VisualLinesChanged' is subscribed (handler 'TextViewVisualLinesChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'LineNumberMargin' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/Folding/FoldingMargin.cs",
+      "line": 218,
+      "message": "event 'newTextView.VisualLinesChanged' is subscribed (handler 'TextViewVisualLinesChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'FoldingMargin' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/Search/DropDownButton.cs",
+      "line": 78,
+      "message": "event 'DropDownContent.Closed' is subscribed (handler 'DropDownContent_Closed') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'DropDownButton' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#224",
+      "explained_by_pr": "#231",
+      "shape": "self-detaching handler"
+    },
+    {
+      "rule": "OWN014",
+      "level": "warning",
+      "path": "ICSharpCode.AvalonEdit/Editing/ImeSupport.cs",
+      "line": 47,
+      "message": "event 'CommandManager.RequerySuggested' is subscribed (handler 'requerySuggestedHandler') to a static (process-lived) event source that outlives 'ImeSupport'; the strong subscription promotes 'ImeSupport' to the source's lifetime, so it can never be collected \u2014 a region escape (leak, no release path) [resource: subscription token]",
+      "explained_by_issue": "#223",
+      "explained_by_pr": "#231",
+      "shape": "CommandManager.RequerySuggested weak-event allowlist"
+    }
+  ],
+  "changed": []
+}

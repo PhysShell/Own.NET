@@ -1,0 +1,76 @@
+{
+  "target": "MaterialDesignInXamlToolkit",
+  "target_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
+  "ownnet_commit": "4c5a86b176b04c42f7c1cc9e51aef545a3586cc9",
+  "ownnet_baseline_commit": "c029e8da59a60298eece7b1fbb5708a9886f55ee",
+  "command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning -- <MaterialDesignInXamlToolkit checkout>",
+  "extractor_mode": "--flow-locals (own-check.sh default)",
+  "reference_resolution": "microsoft.windowsdesktop.app.ref 8.0.28/ref/net8.0 (47 dlls) via OWN_EXTRA_REF_DIRS, materialized identically to ci.yml corpus-benchmark job",
+  "baseline_source": "self-regenerated: OwnSharp.Extractor built at Own.NET commit c029e8da59a60298eece7b1fbb5708a9886f55ee (main, right after PR #226 merged the original oracle-sweep-2026-07-10.md sweep, before any of #218-#225's fixes), run with the identical command/flags against the same pinned target commit -- not copied from prose notes, to guarantee apples-to-apples inputs across the full #218-#240 batch",
+  "counts": {
+    "baseline_total": 153,
+    "current_total": 148,
+    "baseline_by_rule": {
+      "OWN001": 23,
+      "OWN050": 130
+    },
+    "current_by_rule": {
+      "OWN001": 18,
+      "OWN050": 130
+    }
+  },
+  "added": [],
+  "removed": [
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MahMaterialDragablzMashUp/App.xaml.cs",
+      "line": 22,
+      "message": "event 'themeManager.ThemeChanged' is subscribed (handler 'ThemeManager_ThemeChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'App' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#228",
+      "explained_by_pr": "#232",
+      "shape": "curated app-scoped source (PaletteHelper.GetThemeManager)"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MaterialDesignThemes.Wpf/SmartHint.cs",
+      "line": 205,
+      "message": "event 'newHintProxy.IsVisibleChanged' is subscribed (handler 'smartHint.OnHintProxyIsVisibleChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SmartHint' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MaterialDesignThemes.Wpf/SmartHint.cs",
+      "line": 206,
+      "message": "event 'newHintProxy.ContentChanged' is subscribed (handler 'smartHint.OnHintProxyContentChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SmartHint' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MaterialDesignThemes.Wpf/SmartHint.cs",
+      "line": 207,
+      "message": "event 'newHintProxy.Loaded' is subscribed (handler 'smartHint.OnHintProxyContentChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SmartHint' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MaterialDesignThemes.Wpf/SmartHint.cs",
+      "line": 208,
+      "message": "event 'newHintProxy.FocusedChanged' is subscribed (handler 'smartHint.OnHintProxyFocusedChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'SmartHint' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    }
+  ],
+  "changed": []
+}
