@@ -215,6 +215,7 @@ jobs:
             frontend/roslyn/samples/AppScopedSourceSample.cs \
             frontend/roslyn/samples/WinFormsDisposalSample.cs \
             frontend/roslyn/samples/AssociatedObjectSourceSample.cs \
+            frontend/roslyn/samples/OwnedCollectionElementSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -946,7 +947,42 @@ jobs:
           # population scan must span every partial of the type.
           echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'PartialFieldBehavior'" \
             || { echo "FAIL: expected OWN001 when a sibling partial injects the AssociatedObject field (#227)"; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #227 self-owned Behavior.AssociatedObject source (silent; controls flagged) + #219 WinForms Controls/IContainer disposal channels (silent; controls flagged) at the C# location"
+          # issue #229 — subscribing to an element of a collection the class itself
+          # populated (a `foreach` over a this-owned field/property assigned from the
+          # class's OWN construction/factory) must be SILENT: the collection and its
+          # elements share the constructing object's lifetime (a collectable self-cycle,
+          # not a leak). Three population forms: an own factory into a property
+          # (OwnedFactoryViewModel), a collection-initializer field (InlineNewViewModel),
+          # and a `new` assigned in the ctor (DirectNewViewModel).
+          if echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+:.*('OwnedFactoryViewModel'|'InlineNewViewModel'|'DirectNewViewModel')"; then
+            echo "FAIL: a self-populated owned-collection element subscription was wrongly reported (#229)"; exit 1
+          fi
+          # ...and the exemption must NOT over-widen — four controls STAY flagged:
+          # (1, REQUIRED) the collection is a FIELD assigned from a ctor PARAMETER;
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'InjectedCollectionViewModel'" \
+            || { echo "FAIL: expected OWN001 on the injected-collection field (#229)"; exit 1; }
+          # (2, REQUIRED) the `foreach` iterates a ctor PARAMETER collection directly;
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'ParamCollectionViewModel'" \
+            || { echo "FAIL: expected OWN001 on the parameter-collection foreach (#229)"; exit 1; }
+          # (3) the member is populated from a SERVICE-LOCATED call (injected receiver);
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'ServiceLocatedViewModel'" \
+            || { echo "FAIL: expected OWN001 on the service-located collection source (#229)"; exit 1; }
+          # (4) the member is own-populated in the ctor but ALSO reassigned an injected
+          # value elsewhere — every population site must be own-produced.
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'MixedCollectionViewModel'" \
+            || { echo "FAIL: expected OWN001 when the collection is also assigned an injected value (#229)"; exit 1; }
+          # (5, Codex P1) a freshly-`new`d collection SEEDED from an injected parameter —
+          # the elements (which carry the events) are injected, so it is not owned;
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'SeededNewViewModel'" \
+            || { echo "FAIL: expected OWN001 on a new collection seeded from injected elements (#229)"; exit 1; }
+          # (6, Codex P1) an own-class factory that FORWARDS a service-located collection;
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'ForwardingFactoryViewModel'" \
+            || { echo "FAIL: expected OWN001 when the own factory forwards injected data (#229)"; exit 1; }
+          # (7, CodeRabbit) a PARTIAL class with a disqualifying injected assignment in a
+          # sibling partial — the population scan must span every partial of the type.
+          echo "$out" | grep -qE "OwnedCollectionElementSample\.cs:[0-9]+: warning: \[OWN001\].*'PartialInjectedViewModel'" \
+            || { echo "FAIL: expected OWN001 when a sibling partial injects the collection (#229)"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #227 self-owned Behavior.AssociatedObject source (silent; controls flagged) + #219 WinForms Controls/IContainer disposal channels (silent; controls flagged) + #229 self-populated owned-collection element (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1

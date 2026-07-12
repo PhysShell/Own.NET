@@ -551,12 +551,18 @@ exemption's real criterion is "does this object's lifetime start and end with th
 subscriber's" — a base-class accessor to the attached object, or an item of an
 owned collection, satisfies that just as well as a constructed field.**
 
-**Status (2026-07):** shape **(a)**, the `Behavior.AssociatedObject` self-owned
-source, shipped in #227 — extractor `IsAssociatedObjectSource`, gated on the
-`Behavior` base (`IsBehaviorSubscriber`) plus a same-class assignment-chain
-resolving to `this.AssociatedObject` (`ResolvesToAssociatedObject`); pinned by
-`frontend/roslyn/samples/AssociatedObjectSourceSample.cs`. Shape **(c)**, the
-owned-collection element, is tracked separately by #229.
+**Status (2026-07):** shapes **(a)** and **(c)** shipped.
+- **(a)** the `Behavior.AssociatedObject` self-owned source, shipped in #227 —
+  extractor `IsAssociatedObjectSource`, gated on the `Behavior` base
+  (`IsBehaviorSubscriber`) plus a same-class assignment-chain resolving to
+  `this.AssociatedObject` (`ResolvesToAssociatedObject`); pinned by
+  `frontend/roslyn/samples/AssociatedObjectSourceSample.cs`.
+- **(c)** the element of a self-populated collection, shipped in #229 — extractor
+  `IsOwnedCollectionElementSource`: a `foreach` loop variable whose collection is a
+  this-owned field/property populated ONLY from own construction / an own factory
+  (`MemberPopulatedByOwnFactory` + `IsOwnProducedValue`), never a ctor parameter or
+  an injected/service-located value; pinned by
+  `frontend/roslyn/samples/OwnedCollectionElementSample.cs`.
 
 ## 16. Template part fetched via `FindName`/`GetTemplateChild`, stored as a local
 
