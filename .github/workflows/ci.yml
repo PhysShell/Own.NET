@@ -840,14 +840,13 @@ jobs:
           # ...while the same-named local in the OTHER method must still warn.
           echo "$out" | grep -qE "TemplatePartLocalCaptureSample\.cs:[0-9]+: warning: \[OWN001\].*'SameNameDifferentScopeSubscriber'" \
             || { echo "FAIL: expected OWN001 on the same-named-but-unrelated local in a different method"; exit 1; }
-          # issue #225 — a user-defined type whose Dispose() body is provably EMPTY holds no resource,
-          # so a LOCAL of it never disposed is not a leak (extends the named-BCL no-op exemption to any
-          # type). Here the flat (non-flow) name path: a `*Reader`-named empty-Dispose local (ScratchReader)
-          # is silent, while a non-empty `*Reader` local (LeakyReader) still leaks. (The semantic enumerator
-          # form is exercised in the --flow-locals step below.)
-          if echo "$out" | grep -q "'ScratchReader'"; then
-            echo "FAIL: a local of a user type with a provably-empty Dispose() body was wrongly flagged (#225)"; exit 1
-          fi
+          # issue #225 (narrowed by #238) — the empty-Dispose exemption is confined to ENUMERATOR
+          # types: source emptiness proves nothing about the COMPILED body once an IL weaver is in
+          # play (Janitor.Fody wove real cleanup into ClosedXML's XLWorkbook.Dispose — 263 silently
+          # swallowed findings). ScratchReader (empty source Dispose, NOT an enumerator — the
+          # XLWorkbook shape) must therefore STAY flagged on the flat name path...
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'s'.*'ScratchReader'" \
+            || { echo "FAIL: #238: a NON-enumerator empty-source-Dispose local must stay flagged (weaver soundness)"; exit 1; }
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'lr'.*'LeakyReader'" \
             || { echo "FAIL: a non-empty-Dispose local (LeakyReader) must still leak (#225 stays scoped)"; exit 1; }
           # Codex P2: an empty SYNC Dispose but a real DisposeAsync (a `*Reader` here) must still leak.
@@ -1228,11 +1227,44 @@ jobs:
           # must NOT be exempted — the real cleanup is async and the flow detector treats it as a release.
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar' is never disposed" \
             || { echo "FAIL: #225 flow: a type with a real DisposeAsync (empty sync Dispose) must still leak"; exit 1; }
-          # exactly 4 EmptyDisposeSample findings -> the two provably-empty-Dispose locals (the enumerator
-          # and ScratchReader) are SILENT; any leak of them would push the count past 4.
+          # #240 review P1: an enumerator whose sync Dispose is empty but whose BASE owns a real
+          # DisposeAsync (inherited IAsyncDisposable) must still leak — inherited async cleanup was
+          # the same silent-false-negative class #238 exists to close.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ia' is never disposed" \
+            || { echo "FAIL: #240 flow: an inherited-IAsyncDisposable enumerator must still leak"; exit 1; }
+          # #240 review round 2: a BASE with a bare DisposeAsync (no IAsyncDisposable interface) must
+          # be caught by the base-chain scan -> still leak.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ba' is never disposed" \
+            || { echo "FAIL: #240 flow: a base-chain bare DisposeAsync enumerator must still leak"; exit 1; }
+          # #240 review round 2: a NON-generic IEnumerator (does not force IDisposable) must stay
+          # flagged -> pins the IEnumerator<T>-only narrowing.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ng' is never disposed" \
+            || { echo "FAIL: #240 flow: a non-generic-IEnumerator empty-Dispose local must still leak"; exit 1; }
+          # #238 soundness: ScratchReader (empty source Dispose, NOT an enumerator) must stay flagged
+          # in the flow path too — a weaver can rewrite a non-enumerator Dispose at build time.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'s' is never disposed" \
+            || { echo "FAIL: #238 flow: a NON-enumerator empty-source-Dispose local must stay flagged"; exit 1; }
+          # exactly 5 EmptyDisposeSample findings -> the two provably-empty-Dispose ENUMERATOR locals
+          # ('e' plain, 'x' explicit-interface — the #238 coverage fix) are SILENT; any leak of them
+          # would push the count past 8 (controls: s,r,lr,d,ar,ia,ba,ng).
           n225=$(echo "$out" | grep -cE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN00")
-          [ "$n225" = "4" ] \
-            || { echo "FAIL: #225 flow: expected exactly 4 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          [ "$n225" = "8" ] \
+            || { echo "FAIL: #225/#238 flow: expected exactly 8 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          # #238 weaver kill-switch: a directory carrying FodyWeavers.xml disables the exemption even
+          # for a perfect enumerator shape — the weaved fixture's local must be FLAGGED.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/weaved/WeavedEmptyDispose.cs --flow-locals -o "$RUNNER_TEMP/weaved.json"
+          wout=$(python -m ownlang ownir "$RUNNER_TEMP/weaved.json" || true)
+          echo "$wout" | grep -qE "WeavedEmptyDispose\.cs:[0-9]+:.*\[OWN001\].*'we' is never disposed" \
+            || { echo "FAIL: #238: FodyWeavers.xml present -> even an enumerator empty Dispose must stay flagged"; exit 1; }
+          # ...and the LINKED-source variant (Codex on #240): the shared file lives OUTSIDE the
+          # weaver project's directory (no FodyWeavers.xml above it) — analysed THROUGH the
+          # .csproj, the project's weaver config must still disable the exemption.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            frontend/roslyn/samples/weaved-linked/Proj/Linked.csproj --flow-locals -o "$RUNNER_TEMP/weavedlink.json"
+          lout=$(python -m ownlang ownir "$RUNNER_TEMP/weavedlink.json" || true)
+          echo "$lout" | grep -qE "SharedEnumerator\.cs:[0-9]+:.*\[OWN001\].*'se' is never disposed" \
+            || { echo "FAIL: #240: a linked source of a Fody-enabled project must not get the empty-Dispose exemption"; exit 1; }
           echo "OK: flow-sensitive OWN001/002/003 on real C# (path-sensitive, loops via while/foreach/for, try/finally sequential, never-vs-every-path wording, dispose-optional exempt, #225 empty-Dispose local exempt, beyond flat)"
       - name: Gallery C#-native bad/ok pairs (examples/gallery/cs/)
         run: |

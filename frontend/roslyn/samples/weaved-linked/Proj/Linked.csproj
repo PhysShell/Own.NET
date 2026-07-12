@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- #240 (Codex): a LINKED source outside the project tree — the weaver config lives
+         HERE, next to the .csproj, not above the shared file. -->
+    <Compile Include="../Shared/SharedEnumerator.cs" />
+  </ItemGroup>
+</Project>

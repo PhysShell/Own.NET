@@ -81,6 +81,10 @@ bool noProjectRefs = false;
 // run that did not request it (the other config — emitEvents/flowLocals/reportStats — are locals,
 // re-initialized each call, so they need no reset; only this static one does). CodeRabbit.
 BodyThrowEdges = false;
+// #240 (review P2): WeaverOwnedFiles is the other process-global mutable state — a file recorded
+// as belonging to a Fody-enabled project must not stay "weaver-owned" for an unrelated later
+// invocation in the same process (a sticky false positive). Same reset discipline as above.
+WeaverOwnedFiles.Clear();
 // `extract` verb: the tool's one job is extraction, so an optional leading `extract`
 // makes the advertised `ownsharp-extract extract --project App.csproj --out facts.json`
 // UX real while the bare form (no verb) stays the default and back-compatible. (The
@@ -308,6 +312,13 @@ static List<string> ProjectCsFiles(string csproj, EnumerationOptions opts)
         var rmMatch = removes.Select(s => SpecMatcher(s, dir)).ToList();
         result.RemoveAll(f => rmMatch.Any(m => m(f)));
     }
+
+    // #240: if THIS project is weaver-enabled (FodyWeavers.xml in its directory or above),
+    // EVERY file it compiles — including linked sources outside its tree — is weavable at
+    // build time; record them so the empty-Dispose kill-switch sees past the file's own path.
+    if (AncestorsHaveWeaverConfig(dir))
+        foreach (var f in result)
+            WeaverOwnedFiles.Add(Path.GetFullPath(f));
 
     return result.Distinct().ToList();
 }
@@ -1831,36 +1842,134 @@ static bool IsNoOpDisposeWrapper(BaseObjectCreationExpressionSyntax oce, Semanti
     return arg0 is not null && IsInMemoryDisposableBacking(model.GetTypeInfo(arg0).Type);
 }
 
-// Issue #225 — a user-defined type whose parameterless `Dispose()` body is provably EMPTY holds no
-// resource behind the interface: it implements IDisposable only to satisfy a contract (e.g.
-// `IEnumerator<T>`), so never calling Dispose() cannot leak. Recognised from SOURCE: the type
-// declares `void Dispose()` with a BLOCK body of ZERO statements, and no base in its chain carries a
-// Dispose to cascade to (the base is `object` / not IDisposable), so nothing real is skipped. A body
-// we cannot read (third-party metadata-only, or expression-bodied doing work) is NOT provably empty
-// and stays flagged — never a guessed drop. This generalises the named-BCL IsNoOpDisposeWrapper /
-// IsDisposeOptional idea to any type. Deliberately scoped to LOCAL disposables (the #201-sweep
+// Issue #225 (narrowed by #238) — a user-defined `IEnumerator<T>` whose parameterless `Dispose()`
+// body is provably EMPTY holds no resource behind the interface: `IEnumerator<T>` is the one
+// interface that FORCES IDisposable onto types that usually hold nothing, so never calling its
+// empty Dispose() cannot leak. Recognised from SOURCE: the type declares `void Dispose()` (plain or
+// explicit-interface) with a BLOCK body of ZERO statements, and no base in its chain carries a
+// Dispose to cascade to, no IAsyncDisposable / bare DisposeAsync anywhere in the type or its bases,
+// and no FodyWeavers.xml above it (an IL weaver could rewrite the "empty" body at build time — the
+// #238 soundness lesson). A body we cannot read (metadata-only, or expression-bodied doing work) is
+// NOT provably empty and stays flagged — never a guessed drop. Deliberately NOT "any type": that
+// over-broad framing was the #238 regression (263 silently-swallowed ClosedXML findings). Scoped to
+// LOCAL disposables (the #201-sweep
 // evidence — ClosedXML's `Slice.Enumerator` locals): a FIELD keeps its own disposal contract, so an
 // empty-Dispose field (the OwnIgnoreSample `Handle` stand-in) is unaffected.
 static bool HasEmptyDisposeBody(ITypeSymbol? t)
 {
     if (t is not INamedTypeSymbol nt)
         return false;
+    // Issue #238 SOUNDNESS gate: an empty SOURCE body proves nothing about the COMPILED body —
+    // IL weavers (Janitor.Fody wove the real cleanup into ClosedXML's XLWorkbook.Dispose(),
+    // 263 silently-swallowed findings) rewrite Dispose at build time, and source-level analysis
+    // cannot prove their absence. So the exemption is confined to the ONE shape whose empty
+    // Dispose is FORCED by the language, not authored: `IEnumerator<T>` — the generic enumerator
+    // interface is the only one that transitively requires IDisposable (IEnumerator<T> : IEnumerator,
+    // IDisposable). The non-generic System.Collections.IEnumerator does NOT extend IDisposable, so a
+    // type that pairs them coupled the two contracts itself — the motivating proof does not apply, and
+    // it keeps the honest warning (review #240).
+    // Matched by name/arity/namespace, not SpecialType: in the source-only extraction (no wired
+    // corelib reference) the well-known-type SpecialType is often unset, so `IEnumerator<T>` would
+    // slip through a SpecialType check. `System.Collections.Generic.IEnumerator`1` is the exact
+    // interface that transitively forces IDisposable.
+    if (!nt.AllInterfaces.Any(i => i.Name == "IEnumerator"
+                                   && i.TypeArguments.Length == 1
+                                   && i.ContainingNamespace?.ToString() == "System.Collections.Generic"))
+        return false;
     // The base must not own a Dispose we'd be silently skipping — only `object` / a non-IDisposable base.
     for (var b = nt.BaseType; b is not null && b.SpecialType != SpecialType.System_Object; b = b.BaseType)
         if (ImplementsIDisposable(b))
             return false;
     // A non-empty DisposeAsync() can do the REAL cleanup even when the sync Dispose() is an empty
-    // compatibility no-op (a type implementing both IDisposable AND IAsyncDisposable). The flow
-    // detector already treats DisposeAsync() as a release, so an undisposed local of such a type is a
-    // real leak — conservatively refuse to exempt any type that declares its own DisposeAsync (Codex).
-    if (nt.GetMembers("DisposeAsync").OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0))
+    // compatibility no-op. The flow detector treats DisposeAsync() as a release, so an undisposed
+    // local of such a type is a real leak. ANY IAsyncDisposable in the interface set — declared on
+    // this type OR INHERITED from a base (review #240 P1: the base's real DisposeAsync would
+    // otherwise be silently skipped, exactly the #238 false-negative class) — disqualifies the
+    // exemption: a type with async disposal is no longer the "simple enumerator holding nothing"
+    // this narrow rule is for.
+    if (nt.AllInterfaces.Any(i => i.Name == "IAsyncDisposable"
+                                  && i.ContainingNamespace?.ToString() == "System"))
         return false;
-    var dispose = nt.GetMembers("Dispose").OfType<IMethodSymbol>().FirstOrDefault(
-        m => m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0);
-    if (dispose is null || dispose.DeclaringSyntaxReferences.Length == 0)
+    // Belt-and-braces for a bare `DisposeAsync()` method that the flow detector may treat as a
+    // release without the type formally implementing IAsyncDisposable (declared or explicit-impl).
+    // Walk the ENTIRE base chain (review #240 round 2): GetMembers() returns only members declared
+    // on the current type, so a base with a bare DisposeAsync (no IAsyncDisposable, so AllInterfaces
+    // above misses it) would otherwise slip its real async cleanup through as an exemption.
+    for (var cur = nt; cur is not null && cur.SpecialType != SpecialType.System_Object; cur = cur.BaseType)
+        if (cur.GetMembers().OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0
+                && (m.Name == "DisposeAsync"
+                    || m.ExplicitInterfaceImplementations.Any(x => x.Name == "DisposeAsync"))))
+            return false;
+    // #238 coverage: `void IDisposable.Dispose() { }` (explicit interface implementation — the
+    // actual ClosedXML Slice.Enumerator spelling) is a Dispose too; GetMembers("Dispose") misses
+    // it because its metadata name is "System.IDisposable.Dispose".
+    var disposes = nt.GetMembers().OfType<IMethodSymbol>().Where(m =>
+            m.Parameters.Length == 0 && m.ReturnsVoid && m.TypeParameters.Length == 0
+            && (m.Name == "Dispose"
+                || m.ExplicitInterfaceImplementations.Any(
+                       x => x.ContainingType.SpecialType == SpecialType.System_IDisposable)))
+        .ToList();
+    if (disposes.Count == 0 || disposes.Any(d => d.DeclaringSyntaxReferences.Length == 0))
         return false;   // no readable source Dispose (metadata-only) -> cannot prove empty
-    return dispose.DeclaringSyntaxReferences.All(
-        sref => sref.GetSyntax() is MethodDeclarationSyntax { Body.Statements.Count: 0 });
+    if (!disposes.All(d => d.DeclaringSyntaxReferences.All(
+            sref => sref.GetSyntax() is MethodDeclarationSyntax { Body.Statements.Count: 0 })))
+        return false;
+    // #238 defense in depth: a FodyWeavers.xml anywhere above the type's source file means a
+    // weaver CAN rewrite this Dispose at build time — never exempt, even an enumerator.
+    return !SourceTreeHasWeaverConfig(nt);
+}
+
+// #238: walk up from the type's declaring source file looking for FodyWeavers.xml (the Fody
+// weaver manifest — Janitor/Costura/etc. rewrite method bodies after compilation). A type we
+// cannot locate on disk is conservatively treated as weavable (no exemption).
+static bool SourceTreeHasWeaverConfig(INamedTypeSymbol nt)
+{
+    var path = nt.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree.FilePath;
+    if (string.IsNullOrEmpty(path))
+        return true;
+    try
+    {
+        var full = Path.GetFullPath(path);
+        // A linked source compiled by a Fody-enabled project (Codex on #240): the weaver
+        // config sits next to the OWNING .csproj, not above the file — ProjectCsFiles
+        // recorded such files while expanding the project's <Compile> items.
+        if (WeaverOwnedFiles.Contains(full))
+            return true;
+        return AncestorsHaveWeaverConfig(Path.GetDirectoryName(full));
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+    {
+        return true;   // cannot inspect the tree -> cannot rule a weaver out -> no exemption
+    }
+}
+
+// #238/#240: FodyWeavers.xml in `startDir` or any ancestor. GENUINELY fail-closed on an
+// unreadable ancestor (review #240 P3): `File.Exists` returns false on access-denied — swallowing
+// exactly the case we must treat as "a weaver may be present" — so we probe with
+// `File.GetAttributes`, which THROWS on a permission error while still reporting a plain
+// not-found. Absent config -> keep walking; unreadable state -> withhold the exemption.
+static bool AncestorsHaveWeaverConfig(string? startDir)
+{
+    try
+    {
+        for (var dir = startDir; !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
+        {
+            var candidate = Path.Combine(dir, "FodyWeavers.xml");
+            try
+            {
+                _ = File.GetAttributes(candidate);
+                return true;   // present AND readable -> a weaver is configured here
+            }
+            catch (FileNotFoundException) { }        // no config in this dir — keep walking
+            catch (DirectoryNotFoundException) { }    // this ancestor is gone — keep walking
+        }
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                              or System.Security.SecurityException or ArgumentException)
+    {
+        return true;   // cannot prove the config is absent -> fail closed, no exemption
+    }
+    return false;
 }
 
 // A type that is System.Windows.Forms.Form or derives from it (semantic, walks the
@@ -5657,4 +5766,10 @@ return 0;
 partial class Program
 {
     internal static bool BodyThrowEdges;
+
+    // #240 (Codex review): full paths of files compiled by a Fody-enabled PROJECT, recorded
+    // while expanding its <Compile> items — a linked source outside the project directory
+    // would otherwise dodge the ancestor-walk weaver check (the FodyWeavers.xml lives next
+    // to the .csproj, not above the linked file).
+    internal static readonly HashSet<string> WeaverOwnedFiles = new(StringComparer.Ordinal);
 }
