@@ -213,6 +213,7 @@ jobs:
             frontend/roslyn/samples/TemplatePartLocalCaptureSample.cs \
             frontend/roslyn/samples/EmptyDisposeSample.cs \
             frontend/roslyn/samples/AppScopedSourceSample.cs \
+            frontend/roslyn/samples/AssociatedObjectSourceSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
       - name: Check facts through the core
@@ -878,7 +879,47 @@ jobs:
           # curated initializer — the stale declaration binding must not exempt.
           echo "$out" | grep -qE "AppScopedSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignApp'" \
             || { echo "FAIL: expected OWN001 when the resolver-bound local is reassigned before the +="; exit 1; }
-          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) at the C# location"
+          # issue #227 — a `Behavior`-derived subscriber whose event source is (an element
+          # reached from) its own base-class `AssociatedObject` must be SILENT: the
+          # behavior cannot outlive being attached, so the source is co-lifetimed with the
+          # subscriber (a collectable self-cycle, not a leak). Three receiver forms:
+          # an `is`-pattern local off a field assigned from AssociatedObject (TiltLikeBehavior),
+          # the direct `this.AssociatedObject.Event` (DirectAssociatedBehavior), and a
+          # bare-identifier local bound from AssociatedObject (LocalAssociatedBehavior).
+          if echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+:.*'panel\.Loaded'.*'TiltLikeBehavior'"; then
+            echo "FAIL: the AssociatedObject-derived subscription in the Behavior was wrongly reported (#227)"; exit 1
+          fi
+          if echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+:.*('DirectAssociatedBehavior'|'LocalAssociatedBehavior')"; then
+            echo "FAIL: a direct/local AssociatedObject subscription in the Behavior was wrongly reported (#227)"; exit 1
+          fi
+          # ...and the required negative control: an UNRELATED injected source subscribed
+          # in the SAME OnAttached stays flagged.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'_bus\.Changed'.*'TiltLikeBehavior'" \
+            || { echo "FAIL: expected OWN001 on the unrelated injected source in the same OnAttached (#227)"; exit 1; }
+          # ...and the exemption must NOT over-widen — three controls STAY flagged:
+          # (1) the same AssociatedObject shape from a NON-Behavior subscriber (the gate
+          # is the `Behavior` base, not the member name);
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'NotABehavior'" \
+            || { echo "FAIL: expected OWN001 on the non-Behavior subscriber (AssociatedObject name alone must not exempt)"; exit 1; }
+          # (2) a field assigned from AssociatedObject AND from an injected value elsewhere
+          # — every assignment must resolve to AssociatedObject;
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'MixedFieldBehavior'" \
+            || { echo "FAIL: expected OWN001 when the field is also assigned an injected value (#227)"; exit 1; }
+          # (3) the local starts as AssociatedObject but is REASSIGNED to an injected
+          # source before the `+=` — the stale declaration binding must not exempt.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ReassignedLocalBehavior'" \
+            || { echo "FAIL: expected OWN001 when the AssociatedObject-bound local is reassigned before the +="; exit 1; }
+          # (4, Codex P2) a PARAMETER named `AssociatedObject` SHADOWS the inherited base
+          # accessor — the name matches by text, but the symbol is an injected parameter,
+          # so the exemption must resolve the binding, not just the name.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'ShadowParamBehavior'" \
+            || { echo "FAIL: expected OWN001 when a shadowing parameter is named AssociatedObject (#227)"; exit 1; }
+          # (5) a PARTIAL behavior whose field is assigned from AssociatedObject in one
+          # declaration but from an injected value in the sibling partial — the field-
+          # population scan must span every partial of the type.
+          echo "$out" | grep -qE "AssociatedObjectSourceSample\.cs:[0-9]+: warning: \[OWN001\].*'PartialFieldBehavior'" \
+            || { echo "FAIL: expected OWN001 when a sibling partial injects the AssociatedObject field (#227)"; exit 1; }
+          echo "OK: real C# -> facts -> OWN001 (subscription + timer + field + Subscribe + pool + local) + OWN014 (static-event region escape) + DI001 (captive dependency) + DI002 (scoped captured weakly) + DI003 (transient IDisposable captured by a singleton) + DI004 (transient IDisposable service-located from the root provider) + DI005 (scoped service cached from a created scope) + [OwnIgnore] suppression (silent-but-counted, SARIF suppressions) + #218 DP old->new subscription rotation (silent; controls flagged) + #225 empty-Dispose local exemption (silent; controls flagged) + #228 curated app-scoped source in App (silent; controls flagged) + #227 self-owned Behavior.AssociatedObject source (silent; controls flagged) at the C# location"
       - name: Flow-sensitive local IDisposables (--flow-locals, P-016 B0b/B2)
         run: |
           # Path-sensitive flow analysis of local IDisposables — bugs the flat D1
