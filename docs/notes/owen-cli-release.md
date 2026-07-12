@@ -131,6 +131,17 @@ Three jobs, each gated on the previous succeeding:
    `secrets.NUGET_API_KEY` only as a `dotnet nuget push --api-key` argument
    (never `echo`ed; GitHub Actions also redacts any registered secret value
    that appears in a log line as defense in depth).
+   **Correction (Codex review):** GitHub auto-creates a referenced-but-
+   never-configured environment on first use, with zero protection rules —
+   `environment: nuget-release` alone is not proof a human ever approves
+   this job; if the environment is never actually set up and
+   `NUGET_API_KEY` already exists as a repository secret, a tag push could
+   reach `dotnet nuget push` with no approval at all, silently defeating
+   the safety story above. The job's first step now calls the GitHub API
+   (`gh api repos/.../environments/nuget-release`) and refuses to publish —
+   fails loudly, before the artifact is even downloaded — unless
+   `protection_rules` is non-empty. This converts "never configured" from a
+   silent bypass into a loud failure.
 
 `ci.yml`'s existing `ownsharp-cli-smoke` job (job key kept, content already
 Owen-branded by PR #246) is untouched by this workflow and keeps proving the
