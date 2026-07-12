@@ -33,6 +33,14 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     m.insert("own-cfg", ["own-ir", "own-syntax"].into_iter().collect());
     // The invariant #214 is about: only the span leaf, never the solver/parser.
     m.insert("own-diagnostics", std::iter::once("own-ir").collect());
+    // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering; it may
+    // depend on the whole upstream core, but nothing downstream may depend on it.
+    m.insert(
+        "own-analysis",
+        ["own-ir", "own-syntax", "own-cfg", "own-diagnostics"]
+            .into_iter()
+            .collect(),
+    );
     m
 }
 
