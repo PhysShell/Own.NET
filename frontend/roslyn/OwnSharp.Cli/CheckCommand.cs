@@ -158,6 +158,17 @@ internal static class CheckCommand
         return args[++i];
     }
 
+    // Mirrors the extractor's own Expand() walk (Program.cs): IgnoreInaccessible
+    // tolerates a locked/permission-denied subdirectory mid-walk instead of
+    // throwing. Without this, a preflight check using plain
+    // SearchOption.AllDirectories could crash on a tree the extractor itself
+    // would have scanned around just fine (review, PR #246).
+    private static readonly EnumerationOptions DirectoryWalkOptions = new()
+    {
+        RecurseSubdirectories = true,
+        IgnoreInaccessible = true,
+    };
+
     /// <summary>True if at least one of <paramref name="paths"/> resolves to
     /// something the currently included frontend can analyze: a file whose
     /// extension is in <see cref="SupportedExtensions"/>, or a directory that
@@ -172,7 +183,7 @@ internal static class CheckCommand
         {
             if (Directory.Exists(p))
             {
-                if (Directory.EnumerateFiles(p, "*.cs", SearchOption.AllDirectories).Any())
+                if (Directory.EnumerateFiles(p, "*.cs", DirectoryWalkOptions).Any())
                 {
                     reason = "";
                     return true;

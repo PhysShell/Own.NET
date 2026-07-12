@@ -93,19 +93,37 @@ Per the guardrail this rebrand was scoped to: no mass rename.
   or a directory containing at least one `.cs` file anywhere under it)
   *before* running the extractor, and exits **4** with an explicit message
   if none do. This is a new, additive exit-code tier — it does not change
-  any of the existing 0/1/`>=2`/3 contract.
+  any of the existing 0/1/`>=2`/3 contract. **Correction (review, PR #246):**
+  the directory walk in this preflight check now uses the same
+  `EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible =
+  true }` the extractor's own `Expand()` walk uses (`OwnSharp.Extractor/
+  Program.cs`) — the first version used a plain `SearchOption.AllDirectories`,
+  which throws on a locked/permission-denied subdirectory instead of
+  tolerating it and continuing, regressing a directory scan the extractor
+  itself would have handled fine.
 - **`OWEN_PYTHON`** is the preferred env var; the legacy **`OWN_PYTHON`**
   name is still accepted as a temporary compatibility fallback (so existing
   internal use — CI, scripts, muscle memory — doesn't break outright) and
   prints a one-line deprecation note to stderr every time it's the variable
   actually used to resolve Python. `OWEN_PYTHON` takes priority when both
   are set.
-- **Cache directory** moved to `~/.owen/core/<version>/`. `CoreVendor` reads
-  a plain existence check against the previous `~/.ownsharp/core/<version>/`
-  location first — if that exact version was already unpacked there by an
-  older install, it's reused in place rather than re-copied. This is a
-  fallback read, not a migration subsystem: the old location is never
-  written to, moved, or deleted by the new code.
+- **Cache directory** moved to `~/.owen/core/<version>/`. `CoreVendor` checks
+  the previous `~/.ownsharp/core/<version>/` location first — if that exact
+  version was already unpacked there by an older install, it's reused in
+  place rather than re-copied. This is a fallback read, not a migration
+  subsystem: the old location is never written to, moved, or deleted by the
+  new code. **Correction (review, PR #246):** the first version of this
+  fallback trusted a bare `.unpacked` marker file's *existence* — but the
+  CLI's own `<Version>` doesn't change every time the vendored core's
+  content does (this rebrand's own SARIF-driver-name change is the concrete
+  proof: same `0.1.0`, different core content), so an existence-only check
+  could silently reuse a stale, differently-vendored core from a machine
+  that had run a pre-rebrand `OwnSharp.Cli` install. `CoreVendor` now writes
+  a SHA-256 fingerprint of the bundled `ownlang/*.py` files as the marker's
+  content (both locations) and only trusts a cache whose marker's hash
+  matches the source this install would unpack right now — same "simple,
+  not a migration subsystem" shape, just content-aware instead of
+  version-only.
 
 ## Tests
 
