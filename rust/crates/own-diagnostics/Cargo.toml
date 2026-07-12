@@ -1,0 +1,25 @@
+[package]
+name = "own-diagnostics"
+description = "Diagnostic/Evidence verdict data types (an exact data-only port of ownlang/diagnostics.py); the presentation/SARIF projection is a later P-022 step"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+# Per P-022 §crate-topology this crate is UPSTREAM of the solver: `own-analysis`
+# *constructs* these types, so it depends on `own-diagnostics`, never the
+# reverse. `own-diagnostics` itself may depend only on the span/location leaf
+# (`own-ir`) — never on `own-syntax` (the parser) or `own-analysis` (the
+# solver). It carries no workspace dependency today (the verdict `line` is a
+# plain source line, matching the Python `Diagnostic`); `own-ir`'s `Span` enters
+# only with the SARIF/evidence projection (step 5). The DAG edge test
+# (`tests/dag.rs`) locks the allowed set.
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
