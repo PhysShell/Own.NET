@@ -2076,7 +2076,7 @@ jobs:
       - name: owen check --format sarif -- Owen-branded SARIF driver name
         run: |
           out=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif)
-          echo "$out" | python3 -c "
+          echo "$out" | python -c "
           import json, sys
           d = json.load(sys.stdin)
           n = d['runs'][0]['tool']['driver']['name']
@@ -2137,7 +2137,7 @@ jobs:
           rm -rf "$HOME/.owen" "$HOME/.ownsharp"
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver' via the legacy cache"; exit 1; }
           if [ -d "$HOME/.owen" ]; then
             echo "FAIL: ~/.owen was created despite a legitimate matching legacy cache (fallback not reused in place)"; exit 1
@@ -2152,7 +2152,7 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# stale leftover module" > "$HOME/.ownsharp/core/0.1.0/ownlang/removed_module.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (extra-file legacy cache should have been rejected)"; exit 1; }
           if find "$HOME/.owen" -name "removed_module.py" | grep -q .; then
@@ -2167,7 +2167,7 @@ jobs:
           mkdir -p "$HOME/.ownsharp/core/0.1.0/ownlang"
           cp ownlang/*.py "$HOME/.ownsharp/core/0.1.0/ownlang/"
           echo "# tampered" >> "$HOME/.ownsharp/core/0.1.0/ownlang/ownir.py"
-          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python3 -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
+          driver=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif | python -c "import json,sys; print(json.load(sys.stdin)['runs'][0]['tool']['driver']['name'])")
           [ "$driver" = "Owen" ] || { echo "FAIL: driver name '$driver'"; exit 1; }
           [ -d "$HOME/.owen" ] || { echo "FAIL: expected a fresh ~/.owen unpack (modified-content legacy cache should have been rejected)"; exit 1; }
           echo "OK: modified-content legacy cache correctly rejected"
@@ -2246,9 +2246,14 @@ jobs:
           [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (real source found despite bin/ noise), got $rc"; exit 1; }
           echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001"; exit 1; }
       - name: Inaccessible subtree plus one readable source -- tolerated, real source still found
-        # On these hosted runners the job does not run as an all-powerful admin/
-        # root account, so chmod/icacls genuinely restricts access (unlike a
-        # root-based local sandbox, where this same scenario cannot be exercised).
+        # On these hosted Linux runners the job does not run as an all-powerful
+        # admin/root account, so chmod genuinely restricts access (unlike a
+        # root-based local sandbox, where this same scenario cannot be exercised,
+        # and unlike Windows runners, where chmod 000 does not reliably lock out
+        # the job's own account -- review, PR #246: restricted to Linux so the
+        # assertions below are actually exercising the locked path, not silently
+        # passing because both files got analyzed).
+        if: runner.os == 'Linux'
         run: |
           mkdir -p "$RUNNER_TEMP/owen-mixed-locked/locked" "$RUNNER_TEMP/owen-mixed-locked/readable"
           cat > "$RUNNER_TEMP/owen-mixed-locked/locked/Secret.cs" <<'EOF'
@@ -2258,17 +2263,21 @@ jobs:
           using System.IO;
           public class Leaky { public void Run() { var s = new MemoryStream(); s.WriteByte(1); } }
           EOF
-          chmod 000 "$RUNNER_TEMP/owen-mixed-locked/locked" 2>/dev/null || true
+          chmod 000 "$RUNNER_TEMP/owen-mixed-locked/locked"
           set +e
           out=$(owen check "$RUNNER_TEMP/owen-mixed-locked" --fail-on-finding 2>&1)
           rc=$?
           set -e
-          chmod 755 "$RUNNER_TEMP/owen-mixed-locked/locked" 2>/dev/null || true
+          chmod 755 "$RUNNER_TEMP/owen-mixed-locked/locked"
           echo "$out"
           if echo "$out" | grep -qi "UnauthorizedAccess\|Unhandled exception"; then
             echo "FAIL: crashed on the locked subdirectory instead of tolerating it"; exit 1
           fi
-          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected the readable source's leak to still be found"; exit 1; }
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (the readable source's leak), got $rc"; exit 1; }
+          echo "$out" | grep -q "Real.cs" || { echo "FAIL: readable source was not analyzed"; exit 1; }
+          if echo "$out" | grep -q "Secret.cs"; then
+            echo "FAIL: the inaccessible source was unexpectedly analyzed -- chmod 000 did not actually lock it out, so this run proves nothing"; exit 1
+          fi
       - name: Uppercase extensions are accepted case-insensitively (Foo.CS)
         run: |
           mkdir -p "$RUNNER_TEMP/owen-uppercase"

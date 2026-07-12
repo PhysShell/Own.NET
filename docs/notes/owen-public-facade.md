@@ -79,7 +79,7 @@ Per the guardrail this rebrand was scoped to: no mass rename.
   language-neutral at the product level ("Owen finds lifetime and
   resource-contract bugs") while explicitly listing what this distribution
   actually wires up today:
-  ```
+  ```text
   Included frontend:
     .NET / C# (.cs, .csproj, .sln)
   ```

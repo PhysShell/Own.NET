@@ -116,8 +116,20 @@ internal static class CoreVendor
                 // (same fingerprint), so just use it.
                 return finalRoot;
             }
-            Directory.CreateDirectory(finalRoot);
-            Directory.Move(tempOwnlang, finalOwnlang);
+            try
+            {
+                Directory.CreateDirectory(finalRoot);
+                Directory.Move(tempOwnlang, finalOwnlang);
+            }
+            catch (IOException) when (Directory.Exists(finalOwnlang))
+            {
+                // Narrower version of the same race (review, PR #246): a concurrent
+                // process created finalOwnlang between the check above and this
+                // Move. Same reasoning -- their content is provably identical
+                // (same fingerprint), so just use it instead of surfacing the
+                // IOException Move throws for an existing destination.
+                return finalRoot;
+            }
             return finalRoot;
         }
         finally
@@ -154,6 +166,7 @@ internal static class CoreVendor
             writer.Write(contentBytes);
         }
         writer.Flush();
-        return Convert.ToHexString(sha.ComputeHash(buffer.ToArray()));
+        buffer.Position = 0;
+        return Convert.ToHexString(sha.ComputeHash(buffer));
     }
 }
