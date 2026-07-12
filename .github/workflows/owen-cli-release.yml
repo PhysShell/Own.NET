@@ -12,10 +12,16 @@ name: Owen.Cli release
 # Publish safety (two independent gates, both required):
 #   1. `publish` only runs when the trigger is a pushed tag matching
 #      `owen-cli-v*` — a `workflow_dispatch` run (no such tag ref) can
-#      build/test/pack/smoke-test but can never reach the publish job.
+#      build/test/pack/smoke-test but can never reach the publish job. A
+#      `pull_request` run (below) has neither a tag ref nor `push` as its
+#      event_name, so the same condition also skips it there.
 #   2. `publish` targets the `nuget-release` GitHub Environment, which a repo
 #      admin must configure with required reviewers (Settings -> Environments)
-#      before this can ever run unattended — see the release checklist.
+#      before this can ever run unattended — see the release checklist. The
+#      job additionally self-checks that the environment actually has a
+#      required_reviewers rule (scripts/check_environment_protection.sh)
+#      before doing anything else, since GitHub auto-creates a referenced-
+#      but-never-configured environment with zero protection rules.
 # The workflow never echoes secrets.NUGET_API_KEY; `dotnet nuget push` takes
 # it as a CLI argument (not printed by the tool) and Actions' own log
 # redaction masks any accidental echo of a registered secret value.
@@ -27,6 +33,18 @@ on:
   push:
     tags:
       - "owen-cli-v*"
+  # Review: the green PR check on this workflow's own PRs never actually ran
+  # build-test-pack -> smoke-test (ubuntu + windows) -- only the tag-push
+  # trigger did, and no tag is ever pushed from a PR. `publish` stays fully
+  # skipped on a pull_request event (gate 1 above), so this only exercises
+  # the pack/inspect/install/smoke path, never the publish path.
+  pull_request:
+    paths:
+      - "frontend/roslyn/OwnSharp.Cli/**"
+      - "frontend/roslyn/OwnSharp.Extractor/**"
+      - "ownlang/**"
+      - ".github/workflows/owen-cli-release.yml"
+      - "scripts/check_environment_protection.sh"
   workflow_dispatch: {}
 
 env:
@@ -246,7 +264,17 @@ jobs:
     environment: nuget-release
     permissions:
       contents: read
+      # Required to call GET /repos/.../environments/{name} below (Codex
+      # review: "the environment-read API requires Actions read permission
+      # for fine-grained repository tokens") -- contents:read alone is not
+      # enough for that specific endpoint.
+      actions: read
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            scripts
       # GitHub auto-creates a REFERENCED-BUT-NEVER-CONFIGURED environment on
       # first use, with NO protection rules (Codex review: "referencing a
       # missing environment creates it and the newly created environment has
@@ -256,19 +284,19 @@ jobs:
       # any step runs already let this run through if the environment was
       # never actually configured with required reviewers. This step is the
       # loud, fail-closed check for that: it runs first, before the artifact
-      # is even downloaded, and refuses to publish if the environment
-      # currently has zero protection rules, rather than silently letting an
-      # unconfigured "protected" environment behave like no gate at all.
+      # is even downloaded, and refuses to publish unless the environment
+      # has a REQUIRED_REVIEWERS rule with at least one reviewer (Codex
+      # review: a bare protection_rules count also accepts a wait_timer- or
+      # branch_policy-only environment, neither of which waits for a
+      # human) -- scripts/check_environment_protection.sh is the single
+      # source of truth for that predicate, fixture-tested in ci.yml.
       - name: Refuse to publish unless nuget-release actually has protection rules
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rules=$(gh api "repos/${{ github.repository }}/environments/nuget-release" --jq '.protection_rules | length')
-          if [ "$rules" -eq 0 ]; then
-            echo "::error::the 'nuget-release' GitHub Environment has no protection rules (required reviewers) configured -- a repo admin must set that up under Settings -> Environments before a tag push can safely reach 'dotnet nuget push'. Refusing to publish."
-            exit 1
-          fi
-          echo "OK: nuget-release environment has $rules protection rule(s) configured"
+          gh api "repos/${{ github.repository }}/environments/nuget-release" > "$RUNNER_TEMP/nuget-release-env.json"
+          ./scripts/check_environment_protection.sh "$RUNNER_TEMP/nuget-release-env.json" \
+            || { echo "::error::the 'nuget-release' GitHub Environment does not have a required_reviewers rule with at least one reviewer -- a repo admin must set that up under Settings -> Environments before a tag push can safely reach 'dotnet nuget push'. Refusing to publish."; exit 1; }
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: "8.0.x"

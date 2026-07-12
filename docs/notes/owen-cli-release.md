@@ -97,8 +97,16 @@ cannot be missed.
 
 Three jobs, each gated on the previous succeeding:
 
-1. **`build-test-pack`** (always runs, on a push of an `owen-cli-v*` tag
-   or a manual `workflow_dispatch`) — the standard repo gates
+1. **`build-test-pack`** (runs on a push of an `owen-cli-v*` tag, a manual
+   `workflow_dispatch`, **or a pull request** touching
+   `frontend/roslyn/OwnSharp.Cli/**`, `frontend/roslyn/OwnSharp.Extractor/**`,
+   `ownlang/**`, this workflow file, or the environment-protection script —
+   **correction (review):** the `pull_request` trigger was missing entirely
+   at first, so a green PR check on *this workflow's own PRs* never actually
+   ran `build-test-pack` → `smoke-test` — only a real tag push did, and no
+   PR ever pushes a tag. The `publish` job's existing tag-push condition
+   (item 3 below) is untouched, so it stays skipped on a `pull_request`
+   event exactly as it already was on `workflow_dispatch`.) — the standard repo gates
    (`run_tests.py`, `ruff`, `mypy`), `dotnet build`, the tag/version-match
    assertion above (skipped on manual dispatch, since there's no tag),
    `dotnet pack`, then **inspects the packed `.nupkg` contents** and fails
@@ -142,6 +150,18 @@ Three jobs, each gated on the previous succeeding:
    fails loudly, before the artifact is even downloaded — unless
    `protection_rules` is non-empty. This converts "never configured" from a
    silent bypass into a loud failure.
+   **Second correction (review):** a bare `protection_rules` count is too
+   permissive — GitHub's `protection_rules` array can also hold `wait_timer`
+   and `branch_policy` rules, neither of which waits for a human, and a
+   `required_reviewers` rule can itself be saved with zero reviewers (also
+   not a real gate). The check now calls
+   `scripts/check_environment_protection.sh` — a small, shared, fixture-
+   tested predicate (also used by `action-marketplace-readiness.yml`'s
+   `move-major-tag` job) that only accepts a `required_reviewers` rule with
+   at least one actual reviewer. The job's `permissions:` also gained
+   `actions: read`, which the environment-read endpoint requires alongside
+   `contents: read`. See "Testing the environment-protection predicate"
+   below.
 
 `ci.yml`'s existing `ownsharp-cli-smoke` job (job key kept, content already
 Owen-branded by PR #246) is untouched by this workflow and keeps proving the
@@ -149,6 +169,35 @@ packaging shape on every push/PR (fast feedback); this workflow is the
 release-specific path (slower, gated, gives the "did the *actual release
 artifact* survive a clean install on both OSes" answer right before
 publish).
+
+## Testing the environment-protection predicate
+
+`scripts/check_environment_protection.sh <environment-json-file>` is the
+single source of truth both release workflows' environment-gate checks call
+(`owen-cli-release.yml`'s `publish` job here; `action-marketplace-readiness.yml`'s
+`move-major-tag` job for the Action's own `action-major-tag-move`
+environment). It takes a GitHub "Get an environment" API response and exits
+0 only if `protection_rules` contains a `required_reviewers` rule with at
+least one reviewer — rejecting a `wait_timer`-only or `branch_policy`-only
+environment, and rejecting a `required_reviewers` rule saved with zero
+reviewers, both of which a bare `protection_rules | length` check would
+have wrongly accepted as "protected."
+
+Tested entirely offline, no GitHub API call and no real Environment needed:
+`ci.yml`'s `environment-protection-selftest` job runs the script against
+five fixtures under `scripts/fixtures/environment-protection/` and asserts
+the expected accept/reject outcome for each —
+
+| Fixture | Expected |
+|---|---|
+| `zero-rules.json` | reject |
+| `wait-timer-only.json` | reject |
+| `branch-policy-only.json` | reject |
+| `required-reviewers-empty.json` | reject |
+| `required-reviewers-with-reviewer.json` | accept |
+
+— so this predicate is exercised on every ordinary push/PR, not only when a
+real release or major-tag move actually runs.
 
 ## Release checklist
 

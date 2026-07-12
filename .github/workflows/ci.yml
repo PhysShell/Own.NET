@@ -97,6 +97,44 @@ jobs:
           python audit/static/run_static.py --selftest
           python audit/runtime/ingest.py --selftest
 
+  environment-protection-selftest:
+    name: release-workflow environment-protection predicate (fixture-driven)
+    runs-on: ubuntu-latest
+    # No GitHub API call, no real Environment needed here -- this tests only
+    # the accept/reject PREDICATE the owen-cli-release.yml `publish` job and
+    # action-marketplace-readiness.yml `move-major-tag` job both call
+    # (scripts/check_environment_protection.sh) against fixture "Get an
+    # environment" API responses, entirely offline. Review: a bare
+    # `.protection_rules | length` check would have accepted a wait_timer-
+    # or branch_policy-only environment, or a required_reviewers rule with
+    # zero actual reviewers, as if it were a real human-approval gate.
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: zero protection rules -> reject
+        run: |
+          if ./scripts/check_environment_protection.sh scripts/fixtures/environment-protection/zero-rules.json; then
+            echo "FAIL: expected rejection (zero rules)"; exit 1
+          fi
+      - name: wait_timer only -> reject
+        run: |
+          if ./scripts/check_environment_protection.sh scripts/fixtures/environment-protection/wait-timer-only.json; then
+            echo "FAIL: expected rejection (wait_timer only)"; exit 1
+          fi
+      - name: branch_policy only -> reject
+        run: |
+          if ./scripts/check_environment_protection.sh scripts/fixtures/environment-protection/branch-policy-only.json; then
+            echo "FAIL: expected rejection (branch_policy only)"; exit 1
+          fi
+      - name: required_reviewers with zero users -> reject
+        run: |
+          if ./scripts/check_environment_protection.sh scripts/fixtures/environment-protection/required-reviewers-empty.json; then
+            echo "FAIL: expected rejection (required_reviewers, zero reviewers)"; exit 1
+          fi
+      - name: required_reviewers with a reviewer -> accept
+        run: |
+          ./scripts/check_environment_protection.sh scripts/fixtures/environment-protection/required-reviewers-with-reviewer.json \
+            || { echo "FAIL: expected acceptance (required_reviewers with a reviewer)"; exit 1; }
+
   tests:
     name: tests (py${{ matrix.python-version }})
     runs-on: ubuntu-latest

@@ -1,0 +1,10 @@
+{
+  "protection_rules": [
+    {
+      "id": 1,
+      "node_id": "MDQ6R2F0ZTE=",
+      "type": "wait_timer",
+      "wait_timer": 30
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "protection_rules": [
+    {
+      "id": 3,
+      "node_id": "MDQ6R2F0ZTM=",
+      "type": "required_reviewers",
+      "prevent_self_review": true,
+      "reviewers": []
+    }
+  ]
+}
