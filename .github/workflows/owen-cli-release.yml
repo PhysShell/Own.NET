@@ -1,0 +1,261 @@
+name: Owen.Cli release
+
+# Release pipeline for the `owen` dotnet tool (public package Owen.Cli,
+# internal project OwnSharp.Cli — public facade rebrand, PR #246; alpha gate
+# A / issue #202). Separate from ci.yml's `ownsharp-cli-smoke` job on
+# purpose: that job proves the packaging shape works on every push/PR; this
+# workflow is specifically the RELEASE process — build, test, pack, prove
+# the packed artifact installs clean on both OSes, then publish ONLY behind
+# an explicit gate. See docs/notes/owen-cli-release.md for the versioning
+# policy and the release checklist this workflow implements.
+#
+# Publish safety (two independent gates, both required):
+#   1. `publish` only runs when the trigger is a pushed tag matching
+#      `owen-cli-v*` — a `workflow_dispatch` run (no such tag ref) can
+#      build/test/pack/smoke-test but can never reach the publish job.
+#   2. `publish` targets the `nuget-release` GitHub Environment, which a repo
+#      admin must configure with required reviewers (Settings -> Environments)
+#      before this can ever run unattended — see the release checklist.
+# The workflow never echoes secrets.NUGET_API_KEY; `dotnet nuget push` takes
+# it as a CLI argument (not printed by the tool) and Actions' own log
+# redaction masks any accidental echo of a registered secret value.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "owen-cli-v*"
+  workflow_dispatch: {}
+
+env:
+  CLI_PROJECT: frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj
+
+jobs:
+  build-test-pack:
+    name: build + test + pack
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Standard repo gates (run_tests.py, ruff, mypy)
+        run: |
+          python tests/run_tests.py
+          pip install --quiet ruff mypy
+          ruff check .
+          mypy
+
+      - name: dotnet build (extractor + CLI)
+        run: dotnet build "$CLI_PROJECT" -c Release
+
+      # Versioning policy (docs/notes/owen-cli-release.md): the csproj
+      # <Version> is the single source of truth. On a tag push, the tag's
+      # version suffix must match it byte-for-byte, or this fails loudly
+      # instead of silently publishing the wrong version.
+      - name: Read the csproj Version
+        id: version
+        run: |
+          v=$(grep -oP '(?<=<Version>)[^<]+' "$CLI_PROJECT")
+          [ -n "$v" ] || { echo "FAIL: could not read <Version> from $CLI_PROJECT"; exit 1; }
+          echo "csproj Version: $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: On a tag push, assert the tag matches the csproj Version
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/owen-cli-v')
+        run: |
+          tag_version="${GITHUB_REF_NAME#owen-cli-v}"
+          csproj_version="${{ steps.version.outputs.version }}"
+          if [ "$tag_version" != "$csproj_version" ]; then
+            echo "FAIL: tag owen-cli-v$tag_version does not match csproj Version $csproj_version"
+            echo "Bump <Version> in $CLI_PROJECT to match the tag (or retag) before releasing."
+            exit 1
+          fi
+          echo "OK: tag matches csproj Version ($csproj_version)"
+
+      - name: dotnet pack
+        run: dotnet pack "$CLI_PROJECT" -c Release -o "$RUNNER_TEMP/nupkg"
+      - name: Inspect package contents (bundled runtime/core assets present)
+        run: |
+          set -euo pipefail
+          nupkg=$(ls "$RUNNER_TEMP"/nupkg/Owen.Cli.*.nupkg)
+          echo "package: $nupkg"
+          mkdir -p "$RUNNER_TEMP/nupkg-inspect"
+          unzip -q "$nupkg" -d "$RUNNER_TEMP/nupkg-inspect"
+          find "$RUNNER_TEMP/nupkg-inspect" -name "*.nuspec" -exec cat {} \;
+          # "ownsharp.dll"/"ownsharp-extract.dll" are the real, unrenamed
+          # internal filenames (AssemblyName, public facade rebrand PR #246)
+          # -- what actually ships, not a stale pre-rebrand reference.
+          test -f "$RUNNER_TEMP/nupkg-inspect/tools/net8.0/any/ownsharp.dll" \
+            || { echo "FAIL: ownsharp.dll (the CLI itself) missing from the package"; exit 1; }
+          test -f "$RUNNER_TEMP/nupkg-inspect/tools/net8.0/any/ownsharp-extract.dll" \
+            || { echo "FAIL: bundled extractor (ownsharp-extract.dll) missing from the package"; exit 1; }
+          core_py_count=$(find "$RUNNER_TEMP/nupkg-inspect/tools/net8.0/any/ownlang-core/ownlang" -name "*.py" 2>/dev/null | wc -l)
+          [ "$core_py_count" -gt 0 ] \
+            || { echo "FAIL: vendored ownlang core .py files missing from the package"; exit 1; }
+          echo "OK: package contains the CLI, the bundled extractor, and $core_py_count vendored core .py files"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: owen-cli-nupkg
+          path: ${{ runner.temp }}/nupkg/*.nupkg
+          retention-days: 14
+
+  smoke-test:
+    name: install from the packed artifact — clean install -> check -> findings
+    needs: build-test-pack
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: owen-cli-nupkg
+          path: ${{ runner.temp }}/nupkg
+      - name: Put the dotnet global-tools shim dir on PATH
+        run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # Critical test rule (docs/notes/owen-cli-release.md): this MUST
+      # install and run the packed .nupkg from build-test-pack, never a
+      # project reference or `dotnet run` — that would only prove the source
+      # exists, not that the package works for an end user. No checkout of
+      # this repo happens on this job at all: it only has the artifact.
+      #
+      # --add-source is NOT enough on its own (Codex review, PR #244):
+      # `dotnet tool install` queries every configured source (the machine's
+      # default nuget.org feed included) IN PARALLEL and takes whichever
+      # answers first — once a same-numbered version is ever actually on
+      # nuget.org (e.g. a rerun after a real publish), this install could
+      # silently resolve from there instead of the local artifact, defeating
+      # the whole point of this job. An isolated nuget.config with `<clear/>`
+      # removes the ambiguity: the ONLY source this install can see is the
+      # local artifact directory.
+      - name: Isolated NuGet.config — the packed artifact is the ONLY visible source
+        run: |
+          cat > "$RUNNER_TEMP/isolated-nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local-artifact" value="$RUNNER_TEMP/nupkg" />
+            </packageSources>
+          </configuration>
+          EOF
+      - name: dotnet tool install --global from the packed artifact (isolated source)
+        run: dotnet tool install --global Owen.Cli --version "${{ needs.build-test-pack.outputs.version }}" --configfile "$RUNNER_TEMP/isolated-nuget.config"
+      - name: A minimal leak, in a scratch dir with no Own.NET checkout anywhere
+        run: |
+          mkdir -p "$RUNNER_TEMP/sample"
+          cat > "$RUNNER_TEMP/sample/Leak.cs" <<'EOF'
+          using System.IO;
+          public class Leaky
+          {
+              public void Run()
+              {
+                  var s = new MemoryStream();
+                  s.WriteByte(1);
+              }
+          }
+          EOF
+      - name: owen --version reports the released version
+        run: |
+          out=$(owen --version)
+          [ "$out" = "${{ needs.build-test-pack.outputs.version }}" ] \
+            || { echo "FAIL: owen --version printed '$out', expected '${{ needs.build-test-pack.outputs.version }}'"; exit 1; }
+      - name: owen check finds the leak (--fail-on-finding exits 1, OWN001 present)
+        run: |
+          set +e
+          out=$(owen check "$RUNNER_TEMP/sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1, got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 in the output"; exit 1; }
+      - name: owen check on clean code exits 0
+        run: |
+          mkdir -p "$RUNNER_TEMP/clean"
+          cat > "$RUNNER_TEMP/clean/Clean.cs" <<'EOF'
+          using System.IO;
+          public class Tidy
+          {
+              public void Run()
+              {
+                  using var s = new MemoryStream();
+                  s.WriteByte(1);
+              }
+          }
+          EOF
+          set +e
+          out=$(owen check "$RUNNER_TEMP/clean" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      - name: No Python found -> fast actionable failure (never an auto-download)
+        run: |
+          set +e
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 3 ] || { echo "FAIL: expected exit 3 (Python not found), got $rc"; exit 1; }
+          echo "$out" | grep -qi "OWEN_PYTHON" || { echo "FAIL: expected the OWEN_PYTHON-specific message"; exit 1; }
+      - name: Reinstall/update behavior — uninstall, then reinstall clean
+        run: |
+          dotnet tool uninstall --global Owen.Cli
+          if command -v owen >/dev/null 2>&1; then
+            echo "FAIL: owen still on PATH after uninstall"; exit 1
+          fi
+          dotnet tool install --global Owen.Cli --version "${{ needs.build-test-pack.outputs.version }}" --configfile "$RUNNER_TEMP/isolated-nuget.config"
+          out=$(owen --version)
+          [ "$out" = "${{ needs.build-test-pack.outputs.version }}" ] \
+            || { echo "FAIL: reinstalled owen --version printed '$out'"; exit 1; }
+          echo "OK: uninstall -> reinstall reproduces a working install"
+
+  publish:
+    name: publish to nuget.org (protected)
+    needs: [build-test-pack, smoke-test]
+    # Both conditions are required (Codex review, PR #244): `github.ref` alone
+    # is not proof of a tag PUSH — `gh workflow run --ref owen-cli-v0.1.0`
+    # (a workflow_dispatch) sets github.ref to that same tag ref, which would
+    # satisfy a bare startsWith() check and let a manual dispatch reach
+    # publish after smoke/environment approval, contradicting the safety
+    # gate this workflow documents ("a workflow_dispatch run can never reach
+    # publish"). Requiring event_name == 'push' closes that hole.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/owen-cli-v')
+    runs-on: ubuntu-latest
+    environment: nuget-release
+    steps:
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: owen-cli-nupkg
+          path: ${{ runner.temp }}/nupkg
+      - name: dotnet nuget push (secret never echoed; Actions also masks it in logs)
+        run: |
+          nupkg=$(ls "$RUNNER_TEMP"/nupkg/Owen.Cli.*.nupkg)
+          dotnet nuget push "$nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

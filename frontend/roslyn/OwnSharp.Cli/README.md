@@ -79,6 +79,15 @@ Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `>=2` a
 core hard error (bad facts, a drifted contract), `3` no usable Python found,
 `4` no supported input found (nothing matching the included frontend).
 
+## Release process
+
+Versioning policy, the release pipeline (`.github/workflows/owen-cli-release.yml`),
+the deterministic-pack verification, package-metadata audit, and the release
+checklist live in
+[`docs/notes/owen-cli-release.md`](../../../docs/notes/owen-cli-release.md) —
+not published to nuget.org yet; that note tracks exactly what's still needed
+(a license, a maintainer-approved publish) before it can be.
+
 ## CI proof
 
 `ownsharp-cli-smoke` in `.github/workflows/ci.yml` (matrix: `ubuntu-latest` +
