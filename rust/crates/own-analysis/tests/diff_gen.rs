@@ -17,18 +17,11 @@ const FIXTURE: &str = concat!(
     "/../../../tests/fixtures/diag_diff_gen.json"
 );
 
-fn is_unported(code: &str) -> bool {
-    const UNPORTED: &[&str] = &[
-        "OWN014", "OWN019", "OWN021", "OWN023", "OWN024", "OWN036", "OWN030", "OWN031",
-    ];
-    UNPORTED.contains(&code)
-        || code.starts_with("DI")
-        || code.starts_with("EFF")
-        || code.starts_with("OBL")
+fn is_fact_only(code: &str) -> bool {
+    code.starts_with("DI") || code.starts_with("EFF") || code.starts_with("OBL")
 }
 
-/// The Rust `check` surface at checkpoint 2 (parse → resolver `d1` → ownership
-/// `d2`, stable-sorted by `(line, code)`; parse error → OWN020 at the line).
+/// The full Rust `check` surface (parse → `check_module`; parse error → OWN020).
 fn rust_check(source: &str) -> Vec<(u32, String)> {
     match own_syntax::parse(source) {
         Err(e) => {
@@ -38,18 +31,10 @@ fn rust_check(source: &str) -> Vec<(u32, String)> {
             };
             vec![(line, "OWN020".to_owned())]
         }
-        Ok(module) => {
-            let (cfgs, d1) = own_cfg::build_module(&module);
-            let mut all: Vec<(u32, String)> =
-                d1.iter().map(|d| (d.line, d.code.to_owned())).collect();
-            for cfg in &cfgs {
-                for d in own_analysis::analyze(cfg) {
-                    all.push((d.line, d.code));
-                }
-            }
-            all.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
-            all
-        }
+        Ok(module) => own_analysis::check_module(&module)
+            .into_iter()
+            .map(|d| (d.line, d.code))
+            .collect(),
     }
 }
 
@@ -92,7 +77,7 @@ fn generated_ownership_programs_match_python() {
         let source = case.get("source").and_then(Value::as_str).expect("source");
         let py = golden(case);
 
-        if py.iter().any(|(_, c)| is_unported(c)) {
+        if py.iter().any(|(_, c)| is_fact_only(c)) {
             deferred += 1;
             continue;
         }

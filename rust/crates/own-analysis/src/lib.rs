@@ -12,8 +12,12 @@
 //! (`tests/parity.rs`, replaying `tests/fixtures/diag_parity.json`) pins the
 //! Rust output to it on `(path, line, code)`.
 
+pub mod check;
+pub mod lifetime;
 pub mod ownership;
 pub mod solver;
 
+pub use check::check_module;
+pub use lifetime::check_lifetimes;
 pub use ownership::analyze;
 pub use solver::{solve, solve_with, Analysis, ControlFlowGraph, Lattice, Schedule, Solution};
