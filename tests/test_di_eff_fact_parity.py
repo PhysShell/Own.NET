@@ -178,6 +178,16 @@ _DI_CASES: list[tuple[str, list[dict]]] = [
       _svc("Db2", "scoped", "z.cs", 4),
       _svc("A1", "singleton", "a.cs", 9, deps=["Db1"]),
       _svc("Db1", "scoped", "a.cs", 10)]),
+    # duplicate site records for the SAME entry type are LAST-WINS (Python builds
+    # the site lookup with a dict comprehension); the verdict anchors at second.*.
+    ("di004_duplicate_entry_sites_last_wins",
+     [_svc("App", "singleton", "reg.cs", 5, root_resolves=["Conn"],
+           root_resolve_sites=[["Conn", "first.cs", 10], ["Conn", "second.cs", 20]]),
+      _svc("Conn", "transient", "reg.cs", 6, disposable=True)]),
+    ("di005_duplicate_entry_sites_last_wins",
+     [_svc("App", "singleton", "reg.cs", 5, scope_cached=["Db"],
+           scope_cache_sites=[["Db", "first.cs", 30], ["Db", "second.cs", 40]]),
+      _svc("Db", "scoped", "reg.cs", 6)]),
 ]
 
 

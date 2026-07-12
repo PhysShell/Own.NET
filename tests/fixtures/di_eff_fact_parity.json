@@ -719,6 +719,85 @@
           "DI001"
         ]
       ]
+    },
+    {
+      "name": "di004_duplicate_entry_sites_last_wins",
+      "services": [
+        {
+          "name": "App",
+          "lifetime": "singleton",
+          "file": "reg.cs",
+          "line": 5,
+          "root_resolves": [
+            "Conn"
+          ],
+          "root_resolve_sites": [
+            [
+              "Conn",
+              "first.cs",
+              10
+            ],
+            [
+              "Conn",
+              "second.cs",
+              20
+            ]
+          ]
+        },
+        {
+          "name": "Conn",
+          "lifetime": "transient",
+          "file": "reg.cs",
+          "line": 6,
+          "disposable": true
+        }
+      ],
+      "expected": [
+        [
+          "second.cs",
+          20,
+          "DI004"
+        ]
+      ]
+    },
+    {
+      "name": "di005_duplicate_entry_sites_last_wins",
+      "services": [
+        {
+          "name": "App",
+          "lifetime": "singleton",
+          "file": "reg.cs",
+          "line": 5,
+          "scope_cached": [
+            "Db"
+          ],
+          "scope_cache_sites": [
+            [
+              "Db",
+              "first.cs",
+              30
+            ],
+            [
+              "Db",
+              "second.cs",
+              40
+            ]
+          ]
+        },
+        {
+          "name": "Db",
+          "lifetime": "scoped",
+          "file": "reg.cs",
+          "line": 6
+        }
+      ],
+      "expected": [
+        [
+          "second.cs",
+          40,
+          "DI005"
+        ]
+      ]
     }
   ]
 }

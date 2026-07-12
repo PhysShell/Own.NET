@@ -132,12 +132,15 @@ fn primary_from_site(
     reg_file: &str,
     reg_line: u32,
 ) -> (String, u32) {
-    for (ty, f, ln) in sites {
-        if ty == entry && *ln >= 1 {
-            return (f.clone(), *ln);
-        }
+    // Python builds `{t: (f, ln) for (t, f, ln) in sites}` — a duplicate entry
+    // type is **last-wins** — then `.get(entry)` and uses it only when its line
+    // is >= 1 (registration fallback otherwise). Take the LAST matching site
+    // (iterate reversed, match on type), then apply the same `>= 1` guard, so a
+    // trailing line-0 site falls back exactly as Python does.
+    match sites.iter().rev().find(|(ty, _, _)| ty == entry) {
+        Some((_, file, line)) if *line >= 1 => (file.clone(), *line),
+        _ => (reg_file.to_owned(), reg_line),
     }
-    (reg_file.to_owned(), reg_line)
 }
 
 fn is_singleton(s: &Service) -> bool {
