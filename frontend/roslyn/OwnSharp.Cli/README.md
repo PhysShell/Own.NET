@@ -75,6 +75,15 @@ no usable Python was found.
   working exactly as before — this tool is a third surface alongside them, not
   a replacement (P-013 §Scope).
 
+## Release process
+
+Versioning policy, the release pipeline (`.github/workflows/ownsharp-cli-release.yml`),
+the deterministic-pack verification, package-metadata audit, and the release
+checklist live in
+[`docs/notes/ownsharp-cli-release.md`](../../../docs/notes/ownsharp-cli-release.md) —
+not published to nuget.org yet; that note tracks exactly what's still needed
+(a license, a maintainer-approved publish) before it can be.
+
 ## CI proof
 
 `ownsharp-cli-smoke` in `.github/workflows/ci.yml` (matrix: `ubuntu-latest` +

@@ -31,12 +31,36 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>ownsharp</ToolCommandName>
     <PackageId>OwnSharp.Cli</PackageId>
+    <!-- Versioning policy (docs/notes/ownsharp-cli-release.md): this Version is
+         the single source of truth. A publish only runs off a git tag
+         `ownsharp-cli-vMAJOR.MINOR.PATCH` whose suffix matches this value
+         byte-for-byte — the release workflow asserts that and fails loudly on
+         drift instead of guessing which one is right. Bump here first, then tag. -->
     <Version>0.1.0</Version>
     <Description>Own.NET's single command: `ownsharp check &lt;path|.sln&gt;` wraps the Roslyn extractor and the Python core (run on system Python) into one dotnet tool install.</Description>
+    <Authors>PhysShell</Authors>
+    <PackageProjectUrl>https://github.com/PhysShell/Own.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PhysShell/Own.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>roslyn;static-analysis;dispose;memory-leak;wpf;lifetime</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- NOTE: no PackageLicenseExpression/PackageLicenseFile — the repository
+         has no LICENSE file yet (checked: none at root, none referenced from
+         README.md). NuGet will warn (NU5125-class) on pack without one; that
+         warning is accurate and must not be silenced by guessing a license.
+         This is a real pre-publish blocker — see the release checklist. -->
+
+    <!-- Reproducible/deterministic pack (P-013 release-readiness): stable
+         across two builds of the same source, and CI builds additionally
+         strip local absolute paths from the PDB (ContinuousIntegrationBuild)
+         so a CI-built package doesn't embed this runner's temp path. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OwnSharp.Extractor\OwnSharp.Extractor.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
