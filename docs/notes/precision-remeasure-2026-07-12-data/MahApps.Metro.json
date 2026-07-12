@@ -1,0 +1,55 @@
+{
+  "target": "MahApps.Metro",
+  "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+  "ownnet_commit": "4c5a86b176b04c42f7c1cc9e51aef545a3586cc9",
+  "ownnet_baseline_commit": "c029e8da59a60298eece7b1fbb5708a9886f55ee",
+  "command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning -- <MahApps.Metro checkout>",
+  "extractor_mode": "--flow-locals (own-check.sh default)",
+  "reference_resolution": "microsoft.windowsdesktop.app.ref 8.0.28/ref/net8.0 (47 dlls) via OWN_EXTRA_REF_DIRS, materialized identically to ci.yml corpus-benchmark job",
+  "baseline_source": "self-regenerated: OwnSharp.Extractor built at Own.NET commit c029e8da59a60298eece7b1fbb5708a9886f55ee (main, right after PR #226 merged the original oracle-sweep-2026-07-10.md sweep, before any of #218-#225's fixes), run with the identical command/flags against the same pinned target commit -- not copied from prose notes, to guarantee apples-to-apples inputs across the full #218-#240 batch",
+  "counts": {
+    "baseline_total": 63,
+    "current_total": 60,
+    "baseline_by_rule": {
+      "OWN001": 3,
+      "OWN050": 60
+    },
+    "current_by_rule": {
+      "OWN050": 60
+    }
+  },
+  "added": [],
+  "removed": [
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MahApps.Metro/Actions/CommandTriggerAction.cs",
+      "line": 116,
+      "message": "event 'newCommand.CanExecuteChanged' is subscribed (handler 'action.OnCommandCanExecuteChanged') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'CommandTriggerAction' alive (possible leak) [resource: subscription token]",
+      "explained_by_issue": "#218",
+      "explained_by_pr": "#230",
+      "shape": "DP/property-changed old->new subscription rotation"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MahApps.Metro/Behaviors/TiltBehavior.cs",
+      "line": 70,
+      "message": "event 'panel.Loaded' is subscribed (handler '(sl, el) =>\n                    {\n                        var elements = panel.Children.OfType<UIElement>().ToList();\n\n                        elements.ForEach(element =>\n                                             Interaction.GetBehaviors(element).Add(\n                                                 new TiltBehavior\n                                                 {\n                                                     KeepDragging = this.KeepDragging,\n                                                     TiltFactor = this.TiltFactor\n                                                 }));\n                    }') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'TiltBehavior' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#227",
+      "explained_by_pr": "#237",
+      "shape": "Behavior.AssociatedObject self-owned source"
+    },
+    {
+      "rule": "OWN001",
+      "level": "warning",
+      "path": "src/MahApps.Metro/Controls/MetroWindow.cs",
+      "line": 1448,
+      "message": "event 'metroContentControl.TransitionCompleted' is subscribed (handler '(_, _) => this.RaiseEvent(new RoutedEventArgs(WindowTransitionCompletedEvent))') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'MetroWindow' alive (possible leak \u2014 and being an inline lambda it has no '-=' handle, so it could never be detached) [resource: subscription token]",
+      "explained_by_issue": "#222",
+      "explained_by_pr": "#231",
+      "shape": "template-part local (GetTemplateChild pattern-var)"
+    }
+  ],
+  "changed": []
+}

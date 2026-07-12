@@ -1,0 +1,23 @@
+{
+  "target": "ClosedXML",
+  "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+  "ownnet_commit": "4c5a86b176b04c42f7c1cc9e51aef545a3586cc9",
+  "ownnet_baseline_commit": "c029e8da59a60298eece7b1fbb5708a9886f55ee",
+  "command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning -- <ClosedXML checkout>",
+  "extractor_mode": "--flow-locals (own-check.sh default)",
+  "reference_resolution": "microsoft.windowsdesktop.app.ref 8.0.28/ref/net8.0 (47 dlls) via OWN_EXTRA_REF_DIRS, materialized identically to ci.yml corpus-benchmark job",
+  "baseline_source": "self-regenerated: OwnSharp.Extractor built at Own.NET commit c029e8da59a60298eece7b1fbb5708a9886f55ee (main, right after PR #226 merged the original oracle-sweep-2026-07-10.md sweep, before any of #218-#225's fixes), run with the identical command/flags against the same pinned target commit -- not copied from prose notes, to guarantee apples-to-apples inputs across the full #218-#240 batch",
+  "counts": {
+    "baseline_total": 270,
+    "current_total": 270,
+    "baseline_by_rule": {
+      "OWN001": 270
+    },
+    "current_by_rule": {
+      "OWN001": 270
+    }
+  },
+  "added": [],
+  "removed": [],
+  "changed": []
+}
