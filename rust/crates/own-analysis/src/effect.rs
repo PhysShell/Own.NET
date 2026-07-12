@@ -45,24 +45,31 @@ pub struct Binding {
     pub line: u32,
 }
 
-/// One `useEffect`: the deps it declares, whether its body does IO, and the
-/// render-scope bindings visible to it. Mirrors `effects.Effect`.
+/// One `useEffect`, mirroring `effects.Effect`.
+///
+/// The deps it declares, whether its body does IO, and the render-scope bindings
+/// visible to it. `file`/`line` are the effect's call site — the finding's
+/// primary `(path, line)`.
 #[derive(Debug, Clone)]
 pub struct Effect {
     pub component: String,
     pub deps: Vec<String>,
     pub io: bool,
     pub bindings: Vec<Binding>,
+    pub file: String,
     pub line: u32,
 }
 
-/// An EFF001 finding: the effect whose IO re-fires and the unstable dependency
-/// (with the upstream `origin` binding whose fresh identity is the root cause).
+/// An EFF001 finding: the effect whose IO re-fires and the unstable dependency.
+///
+/// `origin` is the upstream binding whose fresh identity is the root cause;
+/// `file`/`line` are the verdict's primary `(path, line)` — the effect call site.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectStorm {
     pub component: String,
     pub dep: String,
     pub origin: String,
+    pub file: String,
     pub line: u32,
 }
 
@@ -196,13 +203,31 @@ pub fn find_effect_storms(effects: &[Effect]) -> Vec<EffectStorm> {
                 component: e.component.clone(),
                 dep: dep.clone(),
                 origin: lat.origin_of(dep),
+                file: e.file.clone(),
                 line: e.line,
             });
             break; // one finding per effect
         }
     }
-    out.sort_by(|a, b| a.line.cmp(&b.line).then_with(|| a.dep.cmp(&b.dep)));
+    // Python sorts by (file, line, dep) — file is verdict identity, not metadata.
+    out.sort_by(|a, b| {
+        a.file
+            .cmp(&b.file)
+            .then_with(|| a.line.cmp(&b.line))
+            .then_with(|| a.dep.cmp(&b.dep))
+    });
     out
+}
+
+/// The EFF001 verdicts as `(path, line, code)` — the #214 comparison surface.
+/// `path` is the effect's file (a fact-set can span files), so it is part of the
+/// verdict identity, not presentation.
+#[must_use]
+pub fn effect_verdicts(effects: &[Effect]) -> Vec<(String, u32, &'static str)> {
+    find_effect_storms(effects)
+        .into_iter()
+        .map(|s| (s.file, s.line, "EFF001"))
+        .collect()
 }
 
 /// Project the effect storms to `(line, EFF001)` diagnostics — the #214 verdict
@@ -244,6 +269,7 @@ mod tests {
             deps: deps.iter().map(|s| (*s).to_owned()).collect(),
             io,
             bindings,
+            file: "C.tsx".to_owned(),
             line: 10,
         }
     }

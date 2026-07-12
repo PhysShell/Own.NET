@@ -75,6 +75,32 @@ Both are **data-only** on the control-flow-relevant facts; presentation metadata
 out of #214). The parity/differential tests flag any `.own` case that grows a
 DI/EFF/OBL code (the corpus has none) so the boundary can't drift silently.
 
+## 3b review round — verdict path/line anchors + fact-level differential
+
+The checkpoint-2 `(path, line, code)` contract applies to effect/DI too: the
+**file** and the **primary line** are verdict identity, not presentation.
+
+- **Anchors matched to the bridge** (`ownir.py`): DI001/002/003 → the singleton
+  registration site; **DI004** → the root-resolution **call site** of the entry
+  type (`_di004_primary`, registration fallback); **DI005** → the field-store
+  **cache site** of the cached entry (`_di005_primary`, registration fallback);
+  EFF001 → the effect's own `(file, line)`. `Service` now carries `file`,
+  `root_resolve_sites`, `scope_cache_sites`; `Effect`/`EffectStorm` carry `file`.
+  `di_verdicts` / `effect_verdicts` return the exact primary `(path, line, code)`;
+  DI is combined in the bridge append order then sorted `(file, line, code)`,
+  effect sorted `(file, line, dep)`. The analysis selects the anchor — the bridge
+  will only map, not repair.
+- **Python-authored fact-level differential** — `tests/test_di_eff_fact_parity.py`
+  freezes normalized effect/DI **fact inputs** and the expected `(path, line,
+  code)` computed by the real `ownlang.effects`/`ownlang.di` finders + the bridge
+  anchor rules into `tests/fixtures/di_eff_fact_parity.json`.
+  `own-analysis/tests/fact_parity.rs` replays with **zero Python**. **8 effect
+  cases / 13 DI cases** covering: direct + transitive DI001–005, DI004 transitive
+  disposable with the **entry call-site** anchor, DI005 transitive scoped with
+  the **entry cache-site** anchor, duplicate/reported suppression, cycles,
+  unknown lifetimes, multi-file ordering (DI + effect equal-line-different-file).
+  All exact.
+
 ## Status
 
 All four #214 analyses are now ported as independent `own-analysis`

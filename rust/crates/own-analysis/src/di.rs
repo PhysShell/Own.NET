@@ -48,46 +48,63 @@ impl Lifetime {
 /// Mirrors the control-flow-relevant fields of `di.Service`; presentation-only
 /// metadata (ctor/site tuples, used for evidence text) is omitted — evidence and
 /// SARIF are a later step, out of #214.
+/// A `(type, file, line)` call/store site (a `root_resolve` or `scope_cache`
+/// site), the DI004/DI005 primary anchor.
+pub type SiteTriple = (String, String, u32);
+
 #[derive(Debug, Clone)]
 pub struct Service {
     pub name: String,
     pub lifetime: Option<Lifetime>,
     pub deps: Vec<String>,
     pub disposable: bool,
+    /// The **registration** site — the DI001/002/003 primary `(path, line)` and
+    /// the DI004/DI005 fallback when the call/store site is unknown.
+    pub file: String,
     pub line: u32,
     /// Services injected via `WeakReference<T>` (DI002).
     pub weak_deps: Vec<String>,
     /// Types hand-resolved from an injected root `IServiceProvider` (DI004).
     pub root_resolves: Vec<String>,
+    /// `(type, file, line)` of each `root_resolves` call site — the DI004 primary.
+    pub root_resolve_sites: Vec<SiteTriple>,
     /// Types resolved from a self-created scope and cached into a field (DI005).
     pub scope_cached: Vec<String>,
+    /// `(type, file, line)` of each `scope_cached` field store — the DI005 primary.
+    pub scope_cache_sites: Vec<SiteTriple>,
 }
 
 impl Service {
-    /// A minimal service with only a name + lifetime (deps/flags default empty).
+    /// A minimal service with a name + lifetime + registration `(file, line)`.
     #[must_use]
-    pub fn new(name: &str, lifetime: Lifetime, line: u32) -> Self {
+    pub fn new(name: &str, lifetime: Lifetime, file: &str, line: u32) -> Self {
         Self {
             name: name.to_owned(),
             lifetime: Some(lifetime),
             deps: Vec::new(),
             disposable: false,
+            file: file.to_owned(),
             line,
             weak_deps: Vec::new(),
             root_resolves: Vec::new(),
+            root_resolve_sites: Vec::new(),
             scope_cached: Vec::new(),
+            scope_cache_sites: Vec::new(),
         }
     }
 }
 
-/// A DI finding: which singleton captures which service, the dependency path,
-/// the code and the anchor line.
+/// A DI finding, carrying the **primary** verdict anchor `(file, line, code)`.
+///
+/// The registration site for DI001/002/003, the resolve call site for DI004, the
+/// field-store site for DI005 (each with the registration fallback Python uses).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiFinding {
     pub code: &'static str,
     pub singleton: String,
     pub subject: String,
     pub path: Vec<String>,
+    pub file: String,
     pub line: u32,
 }
 
@@ -96,12 +113,31 @@ fn by_name(services: &[Service]) -> BTreeMap<&str, &Service> {
 }
 
 fn sort_findings(f: &mut [DiFinding]) {
+    // Python sorts each finder's output by (file, line, singleton, captured).
     f.sort_by(|a, b| {
-        a.line
-            .cmp(&b.line)
+        a.file
+            .cmp(&b.file)
+            .then_with(|| a.line.cmp(&b.line))
             .then_with(|| a.singleton.cmp(&b.singleton))
             .then_with(|| a.subject.cmp(&b.subject))
     });
+}
+
+/// The DI004/DI005 primary anchor: the call/store `site` for the entry `type`
+/// when its line ≥ 1, else the registration `(file, line)` fallback (Python's
+/// `_di004_primary` / `_di005_primary`).
+fn primary_from_site(
+    sites: &[SiteTriple],
+    entry: &str,
+    reg_file: &str,
+    reg_line: u32,
+) -> (String, u32) {
+    for (ty, f, ln) in sites {
+        if ty == entry && *ln >= 1 {
+            return (f.clone(), *ln);
+        }
+    }
+    (reg_file.to_owned(), reg_line)
 }
 
 fn is_singleton(s: &Service) -> bool {
@@ -136,6 +172,7 @@ pub fn find_captive_dependencies(services: &[Service]) -> Vec<DiFinding> {
                                 singleton: s.name.clone(),
                                 subject: dep.clone(),
                                 path: npath,
+                                file: s.file.clone(),
                                 line: s.line,
                             });
                         }
@@ -179,6 +216,7 @@ pub fn find_weak_captive_dependencies(services: &[Service]) -> Vec<DiFinding> {
                             singleton: s.name.clone(),
                             subject: cur.clone(),
                             path,
+                            file: s.file.clone(),
                             line: s.line,
                         });
                     }
@@ -227,6 +265,7 @@ pub fn find_captured_transient_disposables(services: &[Service]) -> Vec<DiFindin
                         singleton: s.name.clone(),
                         subject: dep.clone(),
                         path: npath.clone(),
+                        file: s.file.clone(),
                         line: s.line,
                     });
                 }
@@ -262,12 +301,18 @@ pub fn find_explicit_root_resolutions(services: &[Service]) -> Vec<DiFinding> {
                 continue; // only transients are root-built/tracked (scoped is DI001's)
             }
             if node.disposable && reported.insert(cur.clone()) {
+                // DI004 anchors at the root-resolution call site of the ENTRY type
+                // (path[1]), even when the disposable is dragged in transitively;
+                // registration is the fallback when the site is unknown.
+                let entry = path.get(1).map_or("", String::as_str);
+                let (pf, pl) = primary_from_site(&s.root_resolve_sites, entry, &s.file, s.line);
                 findings.push(DiFinding {
                     code: "DI004",
                     singleton: s.name.clone(),
                     subject: cur.clone(),
                     path: path.clone(),
-                    line: s.line,
+                    file: pf,
+                    line: pl,
                 });
             }
             if visited.insert(cur.clone()) {
@@ -305,12 +350,17 @@ pub fn find_scope_cached_captives(services: &[Service]) -> Vec<DiFinding> {
                 match node.lifetime {
                     Some(Lifetime::Scoped) => {
                         reported.insert(entry.clone());
+                        // DI005 anchors at the field-store site of the cached ENTRY
+                        // (registration fallback when unknown).
+                        let (pf, pl) =
+                            primary_from_site(&s.scope_cache_sites, entry, &s.file, s.line);
                         findings.push(DiFinding {
                             code: "DI005",
                             singleton: s.name.clone(),
                             subject: cur.clone(),
                             path,
-                            line: s.line,
+                            file: pf,
+                            line: pl,
                         });
                         break; // first scoped reached — one finding per cached entry
                     }
@@ -330,24 +380,50 @@ pub fn find_scope_cached_captives(services: &[Service]) -> Vec<DiFinding> {
     findings
 }
 
-/// Run every DI captive-dependency analysis and project to `(line, code)`
-/// diagnostics — the #214 verdict surface (own-bridge feeds the facts at step 6).
+/// All DI findings, combined in the bridge's append order (DI001, DI003, DI002,
+/// DI004, DI005) — used by [`di_verdicts`] before the final `(file, line, code)`
+/// sort. Mirrors `ownir._di_findings`.
 #[must_use]
-pub fn check_di(services: &[Service]) -> Vec<Diagnostic> {
+pub fn all_di_findings(services: &[Service]) -> Vec<DiFinding> {
     let mut findings = find_captive_dependencies(services);
-    findings.extend(find_weak_captive_dependencies(services));
     findings.extend(find_captured_transient_disposables(services));
+    findings.extend(find_weak_captive_dependencies(services));
     findings.extend(find_explicit_root_resolutions(services));
     findings.extend(find_scope_cached_captives(services));
+    findings
+}
 
+/// The DI verdicts as `(path, line, code)`, sorted by `(file, line, code)`.
+///
+/// The #214 comparison surface. `path` is the finding's primary file
+/// (registration / resolve site / cache site), part of the verdict identity.
+#[must_use]
+pub fn di_verdicts(services: &[Service]) -> Vec<(String, u32, &'static str)> {
+    let mut out: Vec<(String, u32, &'static str)> = all_di_findings(services)
+        .into_iter()
+        .map(|f| (f.file, f.line, f.code))
+        .collect();
+    out.sort_by(|a, b| {
+        a.0.cmp(&b.0)
+            .then_with(|| a.1.cmp(&b.1))
+            .then_with(|| a.2.cmp(b.2))
+    });
+    out
+}
+
+/// Project the DI verdicts to `own-diagnostics` values (code + line).
+///
+/// Kept for the eventual bridge integration; `(path, line, code)` parity uses
+/// [`di_verdicts`] since `Diagnostic` does not carry the path.
+#[must_use]
+pub fn check_di(services: &[Service]) -> Vec<Diagnostic> {
     let mut out = Vec::new();
-    for f in findings {
-        let msg = title(f.code).unwrap_or(f.code);
-        if let Ok(d) = Diagnostic::new(f.code, msg, f.line) {
+    for (_file, line, code) in di_verdicts(services) {
+        let msg = title(code).unwrap_or(code);
+        if let Ok(d) = Diagnostic::new(code, msg, line) {
             out.push(d);
         }
     }
-    out.sort_by(|a, b| a.line.cmp(&b.line).then_with(|| a.code.cmp(&b.code)));
     out
 }
 
@@ -366,7 +442,7 @@ mod tests {
     };
 
     fn svc(name: &str, lt: Lifetime, deps: &[&str]) -> Service {
-        let mut s = Service::new(name, lt, 1);
+        let mut s = Service::new(name, lt, "reg.cs", 1);
         s.deps = deps.iter().map(|d| (*d).to_owned()).collect();
         s
     }
@@ -413,7 +489,7 @@ mod tests {
 
     #[test]
     fn di002_weak_scoped_capture() {
-        let mut app = Service::new("App", Lifetime::Singleton, 1);
+        let mut app = Service::new("App", Lifetime::Singleton, "reg.cs", 1);
         app.weak_deps = vec!["Db".to_owned()];
         let services = vec![app, svc("Db", Lifetime::Scoped, &[])];
         let f = find_weak_captive_dependencies(&services);
@@ -433,7 +509,7 @@ mod tests {
 
     #[test]
     fn di004_root_resolved_transient_disposable() {
-        let mut app = Service::new("App", Lifetime::Singleton, 1);
+        let mut app = Service::new("App", Lifetime::Singleton, "reg.cs", 1);
         app.root_resolves = vec!["Conn".to_owned()];
         let mut disp = svc("Conn", Lifetime::Transient, &[]);
         disp.disposable = true;
@@ -445,7 +521,7 @@ mod tests {
 
     #[test]
     fn di005_scope_cached_scoped_service() {
-        let mut app = Service::new("App", Lifetime::Singleton, 1);
+        let mut app = Service::new("App", Lifetime::Singleton, "reg.cs", 1);
         app.scope_cached = vec!["Db".to_owned()];
         let services = vec![app, svc("Db", Lifetime::Scoped, &[])];
         let f = find_scope_cached_captives(&services);

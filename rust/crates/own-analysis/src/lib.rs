@@ -20,8 +20,8 @@ pub mod ownership;
 pub mod solver;
 
 pub use check::check_module;
-pub use di::check_di;
-pub use effect::{effect_diagnostics, find_effect_storms};
+pub use di::{check_di, di_verdicts};
+pub use effect::{effect_diagnostics, effect_verdicts, find_effect_storms};
 pub use lifetime::check_lifetimes;
 pub use ownership::analyze;
 pub use solver::{solve, solve_with, Analysis, ControlFlowGraph, Lattice, Schedule, Solution};
