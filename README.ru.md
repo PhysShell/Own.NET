@@ -14,11 +14,15 @@
 
 ```yaml
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-- uses: PhysShell/own.net@main  # пре-релиз: тегов ещё нет — для воспроизводимости пиньте commit SHA
+- uses: PhysShell/Own.NET@main  # пре-релиз: тегов ещё нет — для воспроизводимости пиньте commit SHA
   with:
     format: github          # инлайн-аннотации в PR; "sarif" — для вкладки Security
     fail-on-finding: "true"
 ```
+
+После первого релиза предпочитайте закреплённый тег (`@v0.1.0`) или
+подвижный major-тег (`@v0`) вместо `@main` — политика версионирования в
+[`docs/notes/action-marketplace-readiness.md`](docs/notes/action-marketplace-readiness.md).
 
 ## Или локально, на репозитории, который уже есть
 
