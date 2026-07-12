@@ -61,23 +61,42 @@ artifact a tag names):
 not representative of an ordinary consumer's code): one file with an
 unambiguous leak (`Leaky.cs`, `OWN001`), one clean negative control
 (`Clean.cs`). `action-marketplace-readiness.yml`'s `consumer-simulation` job
-references the action the way an external repository actually would —
-`uses: PhysShell/Own.NET@${{ github.sha }}`, resolved through the Actions
-runner's own action-fetch mechanism, **not** `uses: ./` — against a *sparse
-checkout* containing only the fixture, so the job's own workspace has no
-other Own.NET source on disk either. Verifies: the leak sample fails the
-step (`fail-on-finding: true`, asserted via `steps.leak.outcome`), the clean
-sample does not, and the SARIF surface produces a non-empty `sarif-file`
-output that `github/codeql-action/upload-sarif` accepts.
+runs the action against it via `uses: ./`.
 
-**Honest limitation:** this is a rigorous approximation, not a full
-substitute for a genuinely separate consumer repository (which would
-additionally prove resolution against an entirely different git remote/
-identity). A second public repository was not created for this — creating a
-new public repo is a visible, user-facing action, not this session's call
-to make without being asked. If a maintainer wants that stronger proof,
-cloning `fixtures/marketplace-consumer-demo/` into a throwaway public repo
-and pointing the 6-line README snippet at it is a five-minute follow-up.
+**Correction (Codex review, PR #245):** an earlier version of this job tried
+`uses: PhysShell/Own.NET@${{ github.sha }}`, intending a genuinely remote,
+resolved-by-the-runner reference instead of a local path. That does not
+work: GitHub Actions does not evaluate expressions in
+`jobs.<job_id>.steps.uses` at all (it is not among the fields the
+context-availability docs list as expression-capable, unlike `with`/`env`/
+`if`/`run`) — the string would have been passed through literally and the
+job would never have resolved an action, let alone run one. There is no
+mechanism to parameterize `uses:` with "the commit currently under test";
+a genuinely dynamic remote-ref proof is not automatable in a pre-tag
+workflow. `uses: ./` is the correct, honest mechanism — the same one
+`ci.yml`'s `own-check-codescan` job already relies on. The meaningful
+difference from that job is the fixture (a small consumer-style pair, not
+the precision-test corpus) and the release/tag-validation wiring around it,
+not the resolution mechanism, which was never a real option here.
+
+Verifies: the leak sample fails the step (`fail-on-finding: true`, asserted
+via `steps.leak.outcome`), the clean sample does not, and the SARIF surface
+produces a non-empty `sarif-file` output that `github/codeql-action/upload-sarif`
+accepts (skipped on fork PRs, which get a read-only `GITHUB_TOKEN` that can
+never satisfy `security-events: write` — same guard `own-check-codescan`
+already uses, applied here after Codex flagged the same gap on this job).
+
+**Honest limitation:** even `uses: ./` is not a full substitute for a
+genuinely separate consumer repository (which would additionally prove
+resolution against an entirely different git remote/identity, and would be
+the only way to actually exercise a real `owner/repo@vX.Y.Z` reference).
+A second public repository was not created for this — creating a new public
+repo is a visible, user-facing action, not this session's call to make
+without being asked. If a maintainer wants that stronger proof, cloning
+`fixtures/marketplace-consumer-demo/` into a throwaway public repo and
+pointing the 6-line README snippet at a real pushed tag is a five-minute
+follow-up — and the only way to genuinely exercise dynamic remote `uses:`
+resolution at all, pre-tag CI or not.
 
 `ci.yml`'s pre-existing `own-check-codescan` job (dog-fooding via `uses: ./`
 against `frontend/roslyn/samples` on every push/PR) is untouched — this

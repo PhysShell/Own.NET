@@ -7,11 +7,12 @@ which mixes many deliberate positive/negative cases and is not
 representative of an ordinary consumer's code).
 
 Used by `.github/workflows/action-marketplace-readiness.yml`'s
-`consumer-simulation` job, which references the action the way a real
-external repository would — `uses: PhysShell/Own.NET@<ref>` (resolved by
-the Actions runner's own action-fetch mechanism, not `uses: ./`) — against
-a sparse checkout containing *only* this directory, so the job's own
-workspace does not have the rest of Own.NET's source on disk either.
+`consumer-simulation` job, via `uses: ./` (GitHub Actions does not evaluate
+expressions in `steps.uses`, so a dynamic `uses: PhysShell/Own.NET@<this
+commit>` isn't achievable — see `docs/notes/action-marketplace-readiness.md`
+for the full account). The meaningful difference from `ci.yml`'s own
+`uses: ./` dog-food job is this fixture: small and consumer-shaped, not
+Own.NET's own precision-test corpus.
 
 - `Leaky.cs` — one intentional, unambiguous leak (`OWN001`): a
   `MemoryStream` local that is never disposed. Exists to prove the action

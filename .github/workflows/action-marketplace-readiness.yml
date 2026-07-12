@@ -3,11 +3,13 @@ name: Action Marketplace readiness
 # Marketplace-readiness pipeline for the composite action (action.yml) —
 # separate from ci.yml's own dog-fooding (`own-check-codescan`, which uses
 # `uses: ./` against Own.NET's own sample tree on every push/PR). This
-# workflow specifically proves the CONSUMER-facing surface: a real,
-# remote-style `uses: owner/repo@ref` resolution against a small fixture
-# that looks like an ordinary user's repo, plus the immutable-tag /
-# moving-major-tag release handling for that consumption model. See
-# docs/notes/action-marketplace-readiness.md.
+# workflow proves the CONSUMER-facing surface against a small dedicated
+# fixture that looks like an ordinary user's repo (not the precision-test
+# corpus), plus the immutable-tag / moving-major-tag release handling. Also
+# uses `uses: ./` — GitHub Actions does not evaluate expressions in
+# `steps.uses`, so a genuinely dynamic remote `owner/repo@<this commit>`
+# reference isn't achievable pre-tag; see docs/notes/action-marketplace-readiness.md
+# for the full account of what that leaves unproven and why.
 
 permissions:
   contents: read
@@ -40,34 +42,41 @@ on:
         default: ""
 
 jobs:
-  # The consumer-facing proof: reference the action the way an external repo
-  # would, resolved by the Actions runner's own action-fetch mechanism (NOT
-  # `uses: ./`), against a sparse checkout that has nothing else of Own.NET's
-  # source on disk. See fixtures/marketplace-consumer-demo/README.md for why
-  # this is an honest approximation of a separate repo, not a full substitute.
+  # The consumer-facing proof, against a small dedicated fixture instead of
+  # Own.NET's own precision-test corpus (ci.yml's `own-check-codescan` dog-food
+  # job already covers that against frontend/roslyn/samples).
+  #
+  # Uses `uses: ./`, NOT a dynamic `uses: PhysShell/Own.NET@${{ github.sha }}`
+  # (Codex review, PR #245): `jobs.<job_id>.steps.uses` does not evaluate
+  # expressions — GitHub's own context-availability docs don't list it as a
+  # field expressions may appear in (unlike `with`/`env`/`if`/`run`), so that
+  # ref would have been treated as a literal (and-broken) string and the job
+  # would never have run at all. There is no way to parameterize `uses:` with
+  # "the commit currently under test" — a genuinely dynamic remote-ref proof
+  # isn't automatable pre-tag. `uses: ./` is the correct, honest mechanism
+  # here (same one ci.yml's dog-food job already relies on); the meaningful
+  # difference from that job is the fixture, not the resolution mechanism.
+  # See docs/notes/action-marketplace-readiness.md for the full account,
+  # including what a genuinely separate consumer repo would additionally
+  # prove and why one wasn't created here.
   consumer-simulation:
-    name: consumer simulation — remote uses:, sparse checkout, real findings
+    name: consumer simulation — dedicated fixture, real findings
     runs-on: ubuntu-latest
+    # security-events:write is required by upload-sarif (Codex review, PR
+    # #245: `security-events: write` is REQUIRED for every workflow that
+    # calls it, not just push events) — every other step only needs the
+    # default contents:read.
     permissions:
       contents: read
+      security-events: write
     steps:
-      - name: Sparse checkout — ONLY the consumer fixture, nothing else of Own.NET
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          sparse-checkout: |
-            fixtures/marketplace-consumer-demo
-          sparse-checkout-cone-mode: false
+          persist-credentials: false
 
-      # Remote-style resolution: the exact commit under test, addressed as an
-      # external consumer would address any tag/sha of this repo. This is
-      # the meaningful difference from ci.yml's `uses: ./` dog-food job —
-      # it exercises the Actions runner's real action-fetch path, catching
-      # anything a same-workspace `uses: ./` could mask (missing files
-      # outside the sparse-checked-out action bundle, absolute-path
-      # assumptions, etc).
-      - name: "Own.NET check on the leak sample (uses: PhysShell/Own.NET@<this commit>)"
+      - name: Own.NET check on the leak sample (fails as configured)
         id: leak
-        uses: PhysShell/Own.NET@${{ github.sha }}
+        uses: ./
         continue-on-error: true # expected to fail — asserted on explicitly below, not swallowed
         with:
           path: fixtures/marketplace-consumer-demo/Leaky.cs
@@ -80,27 +89,36 @@ jobs:
           echo "OK: consumer-style invocation found the leak and failed the step as configured"
 
       - name: Own.NET check on the clean sample (must NOT fail)
-        uses: PhysShell/Own.NET@${{ github.sha }}
+        uses: ./
         with:
           path: fixtures/marketplace-consumer-demo/Clean.cs
           format: github
           fail-on-finding: "true"
 
+      # Fork PRs get a read-only GITHUB_TOKEN (GitHub's fork-PR token policy),
+      # so security-events:write is never actually granted no matter what
+      # this job requests — skip the SARIF/upload steps there instead of
+      # failing red for external contributors through no fault of their own
+      # (Codex review, PR #245; mirrors ci.yml's own-check-codescan guard).
+      # Same-repo pushes/PRs and tag pushes still run it.
       - name: Own.NET check, SARIF surface + upload-sarif wiring
         id: sarif
-        uses: PhysShell/Own.NET@${{ github.sha }}
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./
         with:
           path: fixtures/marketplace-consumer-demo
           format: sarif
           severity: warning
           fail-on-finding: "false"
       - name: The action exposes a non-empty sarif-file output
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           f="${{ steps.sarif.outputs.sarif-file }}"
           test -n "$f" || { echo "FAIL: sarif-file output not set"; exit 1; }
           test -s "$f" || { echo "FAIL: sarif-file '$f' missing or empty"; exit 1; }
           echo "OK: $(wc -c < "$f") bytes of SARIF"
       - name: Upload to GitHub code scanning (the real consumer path)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: ${{ steps.sarif.outputs.sarif-file }}
@@ -165,18 +183,31 @@ jobs:
         with:
           persist-credentials: true
           fetch-depth: 0
+      # Inputs flow through the environment (data), not template-interpolated
+      # into the script body (code) — same pattern action.yml itself already
+      # follows (its own CodeRabbit #10 fix) and CodeRabbit flagged here too
+      # (PR #245): a `move_major_tag_to` containing shell metacharacters would
+      # otherwise expand before bash parses the script. The SemVer format
+      # check below is a second, independent guard, not a substitute for it.
       - name: Resolve and validate the target release tag
         id: target
+        env:
+          MOVE_MAJOR_TAG_TO: ${{ inputs.move_major_tag_to }}
         run: |
-          target="${{ inputs.move_major_tag_to }}"
+          target="$MOVE_MAJOR_TAG_TO"
+          echo "$target" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' \
+            || { echo "FAIL: '$target' is not a valid vX.Y.Z tag"; exit 1; }
           git rev-parse "refs/tags/$target" >/dev/null 2>&1 \
             || { echo "FAIL: tag '$target' does not exist — push it first, this job never creates release tags"; exit 1; }
           major="${target%%.*}"   # "v0.1.0" -> "v0"
           echo "target=$target" >> "$GITHUB_OUTPUT"
           echo "major=$major" >> "$GITHUB_OUTPUT"
       - name: Force-move the major tag to the target release commit
+        env:
+          TARGET: ${{ steps.target.outputs.target }}
+          MAJOR: ${{ steps.target.outputs.major }}
         run: |
-          sha=$(git rev-parse "refs/tags/${{ steps.target.outputs.target }}")
-          echo "Moving ${{ steps.target.outputs.major }} -> ${{ steps.target.outputs.target }} ($sha)"
-          git tag -f "${{ steps.target.outputs.major }}" "$sha"
-          git push origin "${{ steps.target.outputs.major }}" --force
+          sha=$(git rev-parse "refs/tags/$TARGET")
+          echo "Moving $MAJOR -> $TARGET ($sha)"
+          git tag -f "$MAJOR" "$sha"
+          git push origin "$MAJOR" --force
