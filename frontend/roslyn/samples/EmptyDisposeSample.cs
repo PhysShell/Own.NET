@@ -4,12 +4,13 @@ using System.Collections.Generic;
 
 namespace Own.Samples;
 
-// Issue #225 — a user-defined type whose Dispose() body is provably EMPTY holds no resource behind
-// the interface (it implements IDisposable only to satisfy a contract, e.g. IEnumerator<T>), so a
-// LOCAL of it that is never disposed cannot leak. Generalises the named-BCL no-op exemption
-// (field-notes entry 9 / IsNoOpDisposeWrapper) to any type. Mirrors ClosedXML's Slice.Enumerator.
-// Negative controls prove it does not over-widen. A FIELD keeps its own disposal contract (out of
-// scope here), so the OwnIgnoreSample `Handle` field stand-in is unaffected.
+// Issue #225 (narrowed by #238) — a user-defined `IEnumerator<T>` whose Dispose() body is provably
+// EMPTY holds no resource behind the interface (IEnumerator<T> is the one interface that FORCES
+// IDisposable onto a type that usually holds nothing), so a LOCAL of it never disposed cannot leak.
+// Mirrors ClosedXML's Slice.Enumerator. The exemption is deliberately NOT "any type" (that was the
+// #238 regression) and NOT the non-generic IEnumerator (which does not extend IDisposable). The
+// negative controls below pin every edge of the narrowing. A FIELD keeps its own disposal contract
+// (out of scope here), so the OwnIgnoreSample `Handle` field stand-in is unaffected.
 
 // EMPTY Dispose — implements IDisposable only because IEnumerator<T> requires it (the ClosedXML
 // shape). Its Dispose does literally nothing.
@@ -112,6 +113,40 @@ public sealed class InheritedAsyncEnumerator : AsyncOwnerBase, IEnumerator<int>
     public void Dispose() { }   // empty sync, but the base owns a real DisposeAsync
 }
 
+// #240 review round 2 P2 — the base owns a BARE DisposeAsync() and does NOT implement
+// IAsyncDisposable, so neither AllInterfaces nor a current-type-only member scan catches it; only
+// walking the whole base chain does. An empty sync Dispose here must STILL leak.
+public abstract class BareAsyncBase
+{
+    private readonly System.Threading.CancellationTokenSource _cts = new();
+    public System.Threading.Tasks.ValueTask DisposeAsync()           // bare, no interface, on the BASE
+    {
+        _cts.Dispose();
+        return default;
+    }
+}
+public sealed class BareInheritedAsyncEnumerator : BareAsyncBase, IEnumerator<int>
+{
+    private int _i;
+    public int Current => _i;
+    object IEnumerator.Current => Current;
+    public bool MoveNext() => ++_i <= 3;
+    public void Reset() => _i = 0;
+    public void Dispose() { }   // empty sync, but the base owns a bare real DisposeAsync
+}
+
+// #240 review round 2 P2 — a NON-generic System.Collections.IEnumerator does NOT extend IDisposable,
+// so pairing it with IDisposable is author-chosen, not forced: the motivating proof does not apply
+// and an empty-Dispose local must STAY flagged. Pins the IEnumerator<T>-only narrowing.
+public sealed class LegacyEnumerator : IEnumerator, IDisposable
+{
+    private int _i;
+    public object Current => _i;
+    public bool MoveNext() => ++_i <= 3;
+    public void Reset() => _i = 0;
+    public void Dispose() { }   // empty, but the type was not FORCED to implement IDisposable
+}
+
 public sealed class EmptyDisposeConsumers
 {
     // SILENT: an empty-Dispose enumerator local, iterated and never disposed (the ClosedXML shape).
@@ -176,6 +211,26 @@ public sealed class EmptyDisposeConsumers
         var ia = new InheritedAsyncEnumerator();
         var n = 0;
         while (ia.MoveNext()) n++; // base DisposeAsync is real -> LEAK
+        return n;
+    }
+
+    // FLAGGED (control, #240 review round 2): base owns a BARE DisposeAsync (no interface) -> the
+    // base-chain scan must catch it -> LEAK.
+    public int LeakBareInheritedAsync()
+    {
+        var ba = new BareInheritedAsyncEnumerator();
+        var n = 0;
+        while (ba.MoveNext()) n++; // base bare DisposeAsync is real -> LEAK
+        return n;
+    }
+
+    // FLAGGED (control, #240 review round 2): non-generic IEnumerator + IDisposable is not forced ->
+    // the IEnumerator<T>-only narrowing must keep it flagged -> LEAK.
+    public int LeakLegacy()
+    {
+        var ng = new LegacyEnumerator();
+        var n = 0;
+        while (ng.MoveNext()) n++; // non-generic enumerator, author-coupled IDisposable -> LEAK
         return n;
     }
 }

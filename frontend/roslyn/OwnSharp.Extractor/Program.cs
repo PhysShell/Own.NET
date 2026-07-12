@@ -1431,14 +1431,17 @@ static bool IsNoOpDisposeWrapper(BaseObjectCreationExpressionSyntax oce, Semanti
     return arg0 is not null && IsInMemoryDisposableBacking(model.GetTypeInfo(arg0).Type);
 }
 
-// Issue #225 — a user-defined type whose parameterless `Dispose()` body is provably EMPTY holds no
-// resource behind the interface: it implements IDisposable only to satisfy a contract (e.g.
-// `IEnumerator<T>`), so never calling Dispose() cannot leak. Recognised from SOURCE: the type
-// declares `void Dispose()` with a BLOCK body of ZERO statements, and no base in its chain carries a
-// Dispose to cascade to (the base is `object` / not IDisposable), so nothing real is skipped. A body
-// we cannot read (third-party metadata-only, or expression-bodied doing work) is NOT provably empty
-// and stays flagged — never a guessed drop. This generalises the named-BCL IsNoOpDisposeWrapper /
-// IsDisposeOptional idea to any type. Deliberately scoped to LOCAL disposables (the #201-sweep
+// Issue #225 (narrowed by #238) — a user-defined `IEnumerator<T>` whose parameterless `Dispose()`
+// body is provably EMPTY holds no resource behind the interface: `IEnumerator<T>` is the one
+// interface that FORCES IDisposable onto types that usually hold nothing, so never calling its
+// empty Dispose() cannot leak. Recognised from SOURCE: the type declares `void Dispose()` (plain or
+// explicit-interface) with a BLOCK body of ZERO statements, and no base in its chain carries a
+// Dispose to cascade to, no IAsyncDisposable / bare DisposeAsync anywhere in the type or its bases,
+// and no FodyWeavers.xml above it (an IL weaver could rewrite the "empty" body at build time — the
+// #238 soundness lesson). A body we cannot read (metadata-only, or expression-bodied doing work) is
+// NOT provably empty and stays flagged — never a guessed drop. Deliberately NOT "any type": that
+// over-broad framing was the #238 regression (263 silently-swallowed ClosedXML findings). Scoped to
+// LOCAL disposables (the #201-sweep
 // evidence — ClosedXML's `Slice.Enumerator` locals): a FIELD keeps its own disposal contract, so an
 // empty-Dispose field (the OwnIgnoreSample `Handle` stand-in) is unaffected.
 static bool HasEmptyDisposeBody(ITypeSymbol? t)
@@ -1478,10 +1481,14 @@ static bool HasEmptyDisposeBody(ITypeSymbol? t)
         return false;
     // Belt-and-braces for a bare `DisposeAsync()` method that the flow detector may treat as a
     // release without the type formally implementing IAsyncDisposable (declared or explicit-impl).
-    if (nt.GetMembers().OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0
-            && (m.Name == "DisposeAsync"
-                || m.ExplicitInterfaceImplementations.Any(x => x.Name == "DisposeAsync"))))
-        return false;
+    // Walk the ENTIRE base chain (review #240 round 2): GetMembers() returns only members declared
+    // on the current type, so a base with a bare DisposeAsync (no IAsyncDisposable, so AllInterfaces
+    // above misses it) would otherwise slip its real async cleanup through as an exemption.
+    for (var cur = nt; cur is not null && cur.SpecialType != SpecialType.System_Object; cur = cur.BaseType)
+        if (cur.GetMembers().OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0
+                && (m.Name == "DisposeAsync"
+                    || m.ExplicitInterfaceImplementations.Any(x => x.Name == "DisposeAsync"))))
+            return false;
     // #238 coverage: `void IDisposable.Dispose() { }` (explicit interface implementation — the
     // actual ClosedXML Slice.Enumerator spelling) is a Dispose too; GetMembers("Dispose") misses
     // it because its metadata name is "System.IDisposable.Dispose".

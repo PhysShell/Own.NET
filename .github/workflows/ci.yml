@@ -1128,16 +1128,24 @@ jobs:
           # the same silent-false-negative class #238 exists to close.
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ia' is never disposed" \
             || { echo "FAIL: #240 flow: an inherited-IAsyncDisposable enumerator must still leak"; exit 1; }
+          # #240 review round 2: a BASE with a bare DisposeAsync (no IAsyncDisposable interface) must
+          # be caught by the base-chain scan -> still leak.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ba' is never disposed" \
+            || { echo "FAIL: #240 flow: a base-chain bare DisposeAsync enumerator must still leak"; exit 1; }
+          # #240 review round 2: a NON-generic IEnumerator (does not force IDisposable) must stay
+          # flagged -> pins the IEnumerator<T>-only narrowing.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ng' is never disposed" \
+            || { echo "FAIL: #240 flow: a non-generic-IEnumerator empty-Dispose local must still leak"; exit 1; }
           # #238 soundness: ScratchReader (empty source Dispose, NOT an enumerator) must stay flagged
           # in the flow path too — a weaver can rewrite a non-enumerator Dispose at build time.
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'s' is never disposed" \
             || { echo "FAIL: #238 flow: a NON-enumerator empty-source-Dispose local must stay flagged"; exit 1; }
           # exactly 5 EmptyDisposeSample findings -> the two provably-empty-Dispose ENUMERATOR locals
           # ('e' plain, 'x' explicit-interface — the #238 coverage fix) are SILENT; any leak of them
-          # would push the count past 6.
+          # would push the count past 8 (controls: s,r,lr,d,ar,ia,ba,ng).
           n225=$(echo "$out" | grep -cE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN00")
-          [ "$n225" = "6" ] \
-            || { echo "FAIL: #225/#238 flow: expected exactly 6 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          [ "$n225" = "8" ] \
+            || { echo "FAIL: #225/#238 flow: expected exactly 8 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
           # #238 weaver kill-switch: a directory carrying FodyWeavers.xml disables the exemption even
           # for a perfect enumerator shape — the weaved fixture's local must be FLAGGED.
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
