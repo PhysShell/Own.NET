@@ -12,6 +12,14 @@
          pieces (extractor -> core) the same way scripts/own-check.sh already
          does, so they ship as ONE `dotnet tool install`.
 
+         Public facade (docs/notes/owen-public-facade.md): the PROJECT stays
+         "OwnSharp.Cli" internally (not mass-renamed — that would be an
+         internal refactor, not what this is), but the PUBLISHED package ID,
+         command name, and all user-facing output are "Owen"/"owen". Product
+         "Owen" is language-neutral at the OwnIR/core level; this NuGet
+         package is specifically the .NET/C# frontend distribution of it —
+         see Program.cs's help text for the exact honest framing.
+
          Packaging shape (design decision recorded in issue #202):
          - The Roslyn extractor (OwnSharp.Extractor, unmodified, P-013) is
            pulled in via ProjectReference below; its build output (dll +
@@ -23,16 +31,22 @@
            a bundled binary instead of running the extractor from source.
          - The Python core (ownlang/, zero-dependency pure Python, see
            ../../../pyproject.toml) is vendored as loose *.py content below
-           and unpacked to ~/.ownsharp/core/<version>/ on first run; it is
-           executed by the machine's own Python (>=3.11), never embedded or
-           compiled. See Program.cs for the resolution/unpack/fail-fast
-           logic and the rejected alternatives on record in issue #202.
+           and unpacked to ~/.owen/core/<version>/ on first run (falling back
+           to a previous ~/.ownsharp/core/<version>/ if already unpacked
+           there — see CoreVendor.cs); it is executed by the machine's own
+           Python (>=3.11), never embedded or compiled. See Program.cs for
+           the resolution/unpack/fail-fast logic and the rejected
+           alternatives on record in issue #202.
     -->
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>ownsharp</ToolCommandName>
-    <PackageId>OwnSharp.Cli</PackageId>
+    <!-- User-facing command: "owen". AssemblyName above stays "ownsharp";
+         it names the internal .dll the shim launches, never typed or seen by
+         a user, so changing it would add no user value (the "may remain
+         internal" case). -->
+    <ToolCommandName>owen</ToolCommandName>
+    <PackageId>Owen.Cli</PackageId>
     <Version>0.1.0</Version>
-    <Description>Own.NET's single command: `ownsharp check &lt;path|.sln&gt;` wraps the Roslyn extractor and the Python core (run on system Python) into one dotnet tool install.</Description>
+    <Description>Owen finds lifetime and resource-contract bugs. This distribution currently includes the .NET/C# frontend: `owen check &lt;path|.sln&gt;` wraps the Roslyn extractor and the Python core (run on system Python) into one dotnet tool install.</Description>
   </PropertyGroup>
 
   <ItemGroup>

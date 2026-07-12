@@ -13,9 +13,13 @@ internal sealed class PythonNotFoundException(string message) : Exception(messag
 internal sealed record ResolvedPython(string FileName, IReadOnlyList<string> LeadingArgs);
 
 /// <summary>
-/// Resolution order (design decision, issue #202): <c>OWN_PYTHON</c> env var
-/// (used exactly as given, no fallback if it doesn't work — an explicit
-/// override that fails is a configuration error, not a "keep guessing" case),
+/// Resolution order (design decision, issue #202; env var renamed for the
+/// Owen public facade, see docs/notes/owen-public-facade.md):
+/// <c>OWEN_PYTHON</c> env var (used exactly as given, no fallback if it
+/// doesn't work — an explicit override that fails is a configuration error,
+/// not a "keep guessing" case); else the legacy <c>OWN_PYTHON</c> name (a
+/// temporary compatibility fallback so existing internal use doesn't break —
+/// prints a deprecation note to stderr whenever it's the one actually used);
 /// else the platform default (<c>py -3</c> on Windows, <c>python3</c>
 /// elsewhere). No auto-download, ever: a miss is a fast, actionable failure.
 /// </summary>
@@ -26,17 +30,37 @@ internal static class PythonResolver
 
     public static ResolvedPython Resolve()
     {
-        var ownPython = Environment.GetEnvironmentVariable("OWN_PYTHON");
-        if (!string.IsNullOrWhiteSpace(ownPython))
+        var owenPython = Environment.GetEnvironmentVariable("OWEN_PYTHON");
+        if (!string.IsNullOrWhiteSpace(owenPython))
         {
-            var candidate = new ResolvedPython(ownPython, Array.Empty<string>());
+            var candidate = new ResolvedPython(owenPython, Array.Empty<string>());
             if (TryGetVersion(candidate, out var version) && IsSupported(version))
             {
                 return candidate;
             }
             throw new PythonNotFoundException(
-                $"ownsharp: OWN_PYTHON='{ownPython}' did not resolve to Python >={MinMajor}.{MinMinor} " +
+                $"owen: OWEN_PYTHON='{owenPython}' did not resolve to Python >={MinMajor}.{MinMinor} " +
                 $"(found: {version ?? "not runnable"}). {InstallHint()}");
+        }
+
+        // Legacy fallback (temporary): OWN_PYTHON predates the Owen public
+        // facade and some existing/internal use still sets it. Honored so
+        // that doesn't silently break, but flagged every time it's the
+        // variable actually used, so it doesn't quietly become permanent.
+        var legacyOwnPython = Environment.GetEnvironmentVariable("OWN_PYTHON");
+        if (!string.IsNullOrWhiteSpace(legacyOwnPython))
+        {
+            var candidate = new ResolvedPython(legacyOwnPython, Array.Empty<string>());
+            if (TryGetVersion(candidate, out var version) && IsSupported(version))
+            {
+                Console.Error.WriteLine(
+                    "owen: OWN_PYTHON is deprecated — set OWEN_PYTHON instead (OWN_PYTHON is a " +
+                    "temporary compatibility fallback and may be removed in a future release).");
+                return candidate;
+            }
+            throw new PythonNotFoundException(
+                $"owen: OWN_PYTHON='{legacyOwnPython}' did not resolve to Python >={MinMajor}.{MinMinor} " +
+                $"(found: {version ?? "not runnable"}). {InstallHint()} (OWN_PYTHON is deprecated — use OWEN_PYTHON.)");
         }
 
         var defaultCandidate = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -64,8 +88,8 @@ internal static class PythonResolver
         }
 
         throw new PythonNotFoundException(
-            $"ownsharp: no Python >={MinMajor}.{MinMinor} found on PATH. {InstallHint()} " +
-            "(or set OWN_PYTHON to an interpreter's path).");
+            $"owen: no Python >={MinMajor}.{MinMinor} found on PATH. {InstallHint()} " +
+            "(or set OWEN_PYTHON to an interpreter's path).");
     }
 
     private static bool IsSupported(string? version)

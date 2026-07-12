@@ -462,6 +462,24 @@ if (!noProjectRefs)
 
 var inputs = Expand(rawInputs).Distinct().ToList();
 
+// Every raw input resolved to nothing analyzable — every path either doesn't
+// exist, or every .cs file under it was filtered out by IsSkipped (bin/obj,
+// generated, vendor trees; review, PR #246). Distinct from the "no inputs
+// GIVEN at all" usage error above (exit 2): this is "inputs were given, but
+// none of them contain anything this frontend can read" — the same shape a
+// caller (owen check, own-check.sh) must not read as "0 findings, clean".
+// Exit 4 deliberately matches the CLI's own no-supported-input contract
+// (CheckCommand.cs) so a caller never needs to special-case which layer
+// caught it; own-check.sh/action.yml propagate any non-zero extractor exit
+// as-is (no python-core stage 2 is reached), same as the existing exit-2 path.
+if (inputs.Count == 0)
+{
+    Console.Error.WriteLine(
+        "extractor: no supported input found — every given path either does not exist " +
+        "or contains no .cs file after skipping bin/obj/generated/vendor trees.");
+    return 4;
+}
+
 static bool IsHandler(ExpressionSyntax rhs) =>
     rhs is IdentifierNameSyntax || rhs is MemberAccessExpressionSyntax;
 

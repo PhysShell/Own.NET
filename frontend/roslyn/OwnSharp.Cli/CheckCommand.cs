@@ -3,15 +3,34 @@ using System.Diagnostics;
 namespace OwnSharp.Cli;
 
 /// <summary>
-/// `ownsharp check` — extract (bundled Roslyn extractor, in a child process)
+/// `owen check` — extract (bundled Roslyn extractor, in a child process)
 /// -> facts.json -> the vendored core (system Python) -> render. Flags mirror
 /// scripts/own-check.sh 1:1; the exit-code contract is the same one (own-check
 /// comment): 0 clean, 1 findings, &gt;=2 a hard error, plus --fail-on-finding.
+/// Exit 4 means no analyzable input: either this preflight's cheap check
+/// rejects every path outright (<see cref="HasSupportedInput"/>), or every
+/// path existed but the EXTRACTOR's own expansion (which alone knows its
+/// skip rules — bin/obj, generated, vendor trees) found nothing after
+/// filtering, in which case the extractor itself returns 4 and this command
+/// simply propagates it (review, PR #246: the CLI must not duplicate the
+/// extractor's expansion/skip rules to guess that outcome itself).
 /// </summary>
 internal static class CheckCommand
 {
     private static readonly HashSet<string> ValidFormats = ["human", "github", "msbuild", "sarif"];
     private static readonly HashSet<string> ValidSeverities = ["error", "warning"];
+
+    // The product (Owen) is language-neutral at the OwnIR/core level; this
+    // distribution currently wires up only the .NET/C# frontend. Naming the
+    // extensions here (instead of e.g. "just try everything and see") is
+    // what makes the CHEAP half of "unsupported input fails explicitly"
+    // possible: an obviously-wrong bare file (.ts, no extension at all,
+    // nonexistent path) is rejected here without spinning up the extractor
+    // at all. Case-insensitive (review, PR #246): Windows/macOS filesystems
+    // commonly are, and MSBuild itself treats `Foo.CS`/`App.CSPROJ` as the
+    // same file kinds as their lowercase spellings.
+    private static readonly HashSet<string> SupportedExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".cs", ".csproj", ".sln" };
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -36,18 +55,27 @@ internal static class CheckCommand
         if (!ValidFormats.Contains(format))
         {
             Console.Error.WriteLine(
-                $"ownsharp check: unknown --format '{format}' (choose: {string.Join(", ", ValidFormats)})");
+                $"owen check: unknown --format '{format}' (choose: {string.Join(", ", ValidFormats)})");
             return 2;
         }
         if (!ValidSeverities.Contains(severity))
         {
             Console.Error.WriteLine(
-                $"ownsharp check: unknown --severity '{severity}' (choose: {string.Join(", ", ValidSeverities)})");
+                $"owen check: unknown --severity '{severity}' (choose: {string.Join(", ", ValidSeverities)})");
             return 2;
         }
         if (paths.Count == 0)
         {
             paths.Add(".");
+        }
+
+        if (!HasSupportedInput(paths, out var reason))
+        {
+            Console.Error.WriteLine($"owen check: no supported input found — {reason}");
+            Console.Error.WriteLine(
+                "Included frontend: .NET / C# (.cs, .csproj, .sln). " +
+                "This is not a clean scan: nothing was analyzed.");
+            return 4;
         }
 
         // Resolve Python FIRST: no point extracting facts just to fail on stage 2.
@@ -134,9 +162,48 @@ internal static class CheckCommand
     {
         if (i + 1 >= args.Length)
         {
-            throw new InvalidOperationException($"ownsharp check: {flag} requires a value");
+            throw new InvalidOperationException($"owen check: {flag} requires a value");
         }
         return args[++i];
+    }
+
+    /// <summary>True if at least one of <paramref name="paths"/> is CHEAPLY,
+    /// OBVIOUSLY plausible input for the currently included frontend: an
+    /// existing file whose extension is in <see cref="SupportedExtensions"/>,
+    /// or an existing directory. Deliberately NOT a full expansion — a
+    /// directory is accepted here even if every <c>.cs</c> file under it
+    /// turns out to be skipped (bin/obj, generated, vendor) once the
+    /// extractor actually walks it; duplicating that skip-list in the CLI
+    /// would drift from the extractor's real rules (review, PR #246). The
+    /// extractor itself is the sole authority on "found nothing after
+    /// expansion" and returns exit 4 for that case (Program.cs) — this
+    /// preflight only catches the cheaper "obviously not C# at all" case
+    /// (nonexistent path, or a bare file with the wrong extension) without
+    /// paying for an extractor invocation.</summary>
+    private static bool HasSupportedInput(IReadOnlyList<string> paths, out string reason)
+    {
+        var problems = new List<string>();
+        foreach (var p in paths)
+        {
+            if (Directory.Exists(p))
+            {
+                reason = "";
+                return true;
+            }
+            if (File.Exists(p))
+            {
+                if (SupportedExtensions.Contains(Path.GetExtension(p)))
+                {
+                    reason = "";
+                    return true;
+                }
+                problems.Add($"'{p}' has an unsupported extension ({Path.GetExtension(p)})");
+                continue;
+            }
+            problems.Add($"'{p}' does not exist");
+        }
+        reason = string.Join("; ", problems);
+        return false;
     }
 
     /// <summary>Stage 1: run the bundled extractor as a child process. All of its
@@ -145,12 +212,15 @@ internal static class CheckCommand
     private static async Task<int> RunExtractorAsync(
         IReadOnlyList<string> paths, string factsPath, bool legacy, bool stats, bool bodyThrowEdges)
     {
+        // "ownsharp-extract.dll" is OwnSharp.Extractor's own real AssemblyName/output
+        // filename (internal project name, unchanged by the Owen public facade) —
+        // this is the file that actually ships, not a stale reference.
         var extractorDll = Path.Combine(AppContext.BaseDirectory, "ownsharp-extract.dll");
         if (!File.Exists(extractorDll))
         {
             Console.Error.WriteLine(
-                $"ownsharp: bundled extractor not found at '{extractorDll}' — a corrupt or " +
-                "incomplete tool install. Try `dotnet tool uninstall --global OwnSharp.Cli` and reinstall.");
+                $"owen: bundled extractor not found at '{extractorDll}' — a corrupt or " +
+                "incomplete tool install. Try `dotnet tool uninstall --global Owen.Cli` and reinstall.");
             return 2;
         }
 
@@ -182,7 +252,7 @@ internal static class CheckCommand
         }
 
         using var proc = Process.Start(psi)
-            ?? throw new InvalidOperationException("ownsharp: failed to start the extractor process");
+            ?? throw new InvalidOperationException("owen: failed to start the extractor process");
         var stdoutTask = proc.StandardOutput.ReadToEndAsync();
         var stderrTask = proc.StandardError.ReadToEndAsync();
         await proc.WaitForExitAsync().ConfigureAwait(false);
@@ -199,8 +269,8 @@ internal static class CheckCommand
     /// lookup is the reliable default; DOTNET_ROOT (set by some CI/sandboxed
     /// installs) is honored first when present. Deliberately NOT
     /// Process.GetCurrentProcess().MainModule — on Windows a `dotnet tool`
-    /// shim is a native apphost, so that would resolve to ownsharp.exe itself,
-    /// not the dotnet muxer.</summary>
+    /// shim is a native apphost, so that would resolve to owen.exe itself
+    /// (the ToolCommandName-based shim), not the dotnet muxer.</summary>
     private static string ResolveDotnetMuxer()
     {
         var root = Environment.GetEnvironmentVariable("DOTNET_ROOT");
@@ -245,7 +315,7 @@ internal static class CheckCommand
         psi.EnvironmentVariables["PYTHONPATH"] = cacheRoot;
 
         using var proc = Process.Start(psi)
-            ?? throw new InvalidOperationException("ownsharp: failed to start the Python core process");
+            ?? throw new InvalidOperationException("owen: failed to start the Python core process");
         await proc.WaitForExitAsync().ConfigureAwait(false);
         return proc.ExitCode;
     }

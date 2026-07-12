@@ -96,7 +96,7 @@ def run() -> int:
     expect(esc["$schema"].endswith("sarif-schema-2.1.0.json") and esc["version"]
            == "2.1.0", "SARIF log must declare the 2.1.0 schema/version")
     driver = esc["runs"][0]["tool"]["driver"]
-    expect(driver["name"] == "Own.NET", "tool driver must be Own.NET")
+    expect(driver["name"] == "Owen", "tool driver must be Owen")
     expect([r["id"] for r in driver["rules"]] == ["OWN015"],
            f"rules catalogue must list the codes present: {driver['rules']}")
 
