@@ -49,13 +49,37 @@ The full frozen corpus now passes end-to-end:
 Both Python fixtures are unchanged (no fixture or acceptance change). `.own`
 diagnostic parity for #214 is now **complete**.
 
-## 3b — effect + DI (next)
+## 3b — effect + DI (ported)
 
 `effects.py` (EFF001 render-time IO storm) and `di.py` (DI001–005 captive
-dependency) are **OwnIR-fact sidecar families**: `check_facts` (the bridge)
-feeds them facts; they are never invoked by the `.own` `check_module`. They will
-be ported as independent `own-analysis` modules with unit tests; their
-end-to-end diagnostic parity needs the fact surface and lands with `own-bridge`
-(migration step 6). The parity/differential tests flag any `.own` case that
-grows a DI/EFF/OBL code (the corpus has none) so the boundary can't drift
-silently.
+dependency) are **OwnIR-fact sidecar families**: the bridge feeds them facts;
+they are never invoked by the `.own` `check_module`. Ported as independent
+`own-analysis` modules with unit tests; end-to-end diagnostic parity needs the
+fact surface and lands with `own-bridge` (step 6).
+
+- **`own-analysis::effect`** — exact port of `effects.py`: the stability lattice
+  (`Stable < Unknown < Unstable`) resolved to a fixpoint over the render-scope
+  binding graph with memoization + a cycle guard; `find_effect_storms` flags an
+  IO effect with a provably `Unstable` dependency (EFF001). 7 unit tests: fresh
+  object → storm, memoised → clean, no-IO → silent, derivation-chain propagation,
+  opaque-call → Unknown, plain-identifier stable, identity cycle safe.
+- **`own-analysis::di`** — exact port of `di.py`: the `Service` registration
+  graph + all five DFS analyses (DI001 captive scoped, DI002 weak capture, DI003
+  captured transient `IDisposable`, DI004 root service-location, DI005
+  scope-cached captive), each with the transient-follow / singleton-stop / cycle
+  guards. 8 unit tests, one per code plus the "all-singleton is clean" and
+  "inner-singleton reported on its own pass" controls.
+
+Both are **data-only** on the control-flow-relevant facts; presentation metadata
+(ctor/site tuples for evidence text) is omitted (evidence/SARIF is a later step,
+out of #214). The parity/differential tests flag any `.own` case that grows a
+DI/EFF/OBL code (the corpus has none) so the boundary can't drift silently.
+
+## Status
+
+All four #214 analyses are now ported as independent `own-analysis`
+implementations (ownership, lifetime, effect, DI) plus buffer-policy wiring. The
+`.own` diagnostic parity is complete (69/69 + 160/160 generated); effect/DI
+diagnostic parity is unit-pinned and completes end-to-end with `own-bridge`
+(step 6). Evidence-text and SARIF (step 5) remain out of #214. Final merge stays
+gated on merged **PR #243**.

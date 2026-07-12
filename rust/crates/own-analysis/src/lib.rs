@@ -13,11 +13,15 @@
 //! Rust output to it on `(path, line, code)`.
 
 pub mod check;
+pub mod di;
+pub mod effect;
 pub mod lifetime;
 pub mod ownership;
 pub mod solver;
 
 pub use check::check_module;
+pub use di::check_di;
+pub use effect::{effect_diagnostics, find_effect_storms};
 pub use lifetime::check_lifetimes;
 pub use ownership::analyze;
 pub use solver::{solve, solve_with, Analysis, ControlFlowGraph, Lattice, Schedule, Solution};
