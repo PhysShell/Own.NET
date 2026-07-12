@@ -720,15 +720,22 @@ class"), so it was treated as a bug, not a precision tweak.
 
 The fix (#240) **narrowed** the gate rather than special-casing weavers:
 `HasEmptyDisposeBody`'s exemption now applies **only** to types that
-implement `IEnumerator`/`IEnumerator<T>` — the one interface that *forces*
-a (frequently no-op) `Dispose()` implementation, which was the entire
-motivating shape for #225 in the first place. `XLWorkbook` and every other
-weaver-augmented domain type fall outside the gate and keep the honest
-warning. Defense in depth: a `FodyWeavers.xml` found above the source (or
-above the owning project, for linked sources) disables the exemption even
-for a qualifying enumerator. Explicit-interface `Dispose()`/`DisposeAsync()`
-are now recognized as empty too (closing the coverage gap that left 3 of 5
-`Slice.cs` sites unexempted). Two review rounds closed further soundness
+implement the *generic* `System.Collections.Generic.IEnumerator<T>` — the
+one interface that *forces* a (frequently no-op) `Dispose()` implementation
+via `IEnumerator<T> : IEnumerator, IDisposable`, which was the entire
+motivating shape for #225 in the first place. The non-generic
+`System.Collections.IEnumerator` does **not** extend `IDisposable`, so it
+does not qualify. `XLWorkbook` and every other weaver-augmented domain type
+fall outside the gate and keep the honest warning. Defense in depth: a
+`FodyWeavers.xml` found above the source (or above the owning project, for
+linked sources) disables the exemption even for a qualifying enumerator.
+Explicit-interface `Dispose()` is now recognized as empty too (closing the
+coverage gap that left 3 of 5 `Slice.cs` sites unexempted) — `DisposeAsync()`
+is the opposite of an exemption: ANY `IAsyncDisposable` (declared or
+inherited) or bare `DisposeAsync()` method (declared, explicit-impl, or
+inherited from a base) unconditionally **disqualifies** the exemption, since
+async disposal means the type is no longer the "simple enumerator holding
+nothing" the rule is scoped to. Two review rounds closed further soundness
 holes: inherited `IAsyncDisposable` (via `AllInterfaces`), inherited bare
 `DisposeAsync` (via base-chain walk), a sticky static-registry cache, and a
 fail-open weaver-detection path (`File.GetAttributes` instead of
@@ -739,7 +746,7 @@ for the full record — this is a deliberate historical lesson, not
 cleaned up: **source-level emptiness is not a runtime no-op once a
 compile-time IL weaver is in play, and a broad "any empty Dispose" gate
 cannot rule that out — only a gate scoped to a specific
-compiler/language-forced shape (here: `IEnumerator`) can.**
+compiler/language-forced shape (here: `IEnumerator<T>`) can.**
 
 ---
 

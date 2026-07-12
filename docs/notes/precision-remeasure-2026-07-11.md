@@ -223,7 +223,8 @@ regression — item 2 above, the ClosedXML 263-finding over-exemption) with
 the explicit-interface coverage gap (item 1 above) folded into the same
 fix, closed by [PR #240](https://github.com/PhysShell/Own.NET/pull/240).
 The shipped fix took the narrowing direction (confine the exemption to
-`IEnumerator`-implementing types) rather than the weaver-convention-sniffing
+types implementing the generic `System.Collections.Generic.IEnumerator<T>`,
+not the non-generic `IEnumerator`) rather than the weaver-convention-sniffing
 heuristic sketched in item 2 — see
 `docs/notes/field-notes-patterns.md` entry 19 for the full account,
 including why the original "−5 Slice.cs points, 263 restored" acceptance
