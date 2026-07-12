@@ -1842,6 +1842,23 @@ jobs:
       # below: it is not part of the "install -> check" claim being proven.
       - name: Pack OwnSharp.Cli (pulls in the extractor via ProjectReference)
         run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/ownsharp-nupkg"
+      # --add-source alone is not enough (Codex review, PR #244): `dotnet tool
+      # install` queries every configured source (nuget.org included) IN
+      # PARALLEL and takes whichever answers first — once a same-numbered
+      # version is ever actually on nuget.org, this install could silently
+      # resolve from there instead of the just-packed artifact. An isolated
+      # nuget.config with <clear/> removes the ambiguity.
+      - name: Isolated NuGet.config — the packed artifact is the ONLY visible source
+        run: |
+          cat > "$RUNNER_TEMP/isolated-nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local-artifact" value="$RUNNER_TEMP/ownsharp-nupkg" />
+            </packageSources>
+          </configuration>
+          EOF
       - name: A minimal leak, in a scratch dir OUTSIDE the repo
         # Proves the tool needs nothing but itself + Python -- not the Own.NET
         # checkout (a real end user obviously won't have this repo on disk).
@@ -1861,7 +1878,7 @@ jobs:
       - name: Start the clean-machine timer (install -> check -> findings)
         run: echo "SMOKE_START=$(date +%s)" >> "$GITHUB_ENV"
       - name: dotnet tool install --global (the one install the user runs)
-        run: dotnet tool install --global OwnSharp.Cli --version 0.1.0 --add-source "$RUNNER_TEMP/ownsharp-nupkg"
+        run: dotnet tool install --global OwnSharp.Cli --version 0.1.0 --configfile "$RUNNER_TEMP/isolated-nuget.config"
       - name: ownsharp check finds the leak
         run: |
           set +e

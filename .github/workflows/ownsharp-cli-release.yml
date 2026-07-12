@@ -70,7 +70,7 @@ jobs:
           echo "csproj Version: $v"
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: On a tag push, assert the tag matches the csproj Version
-        if: startsWith(github.ref, 'refs/tags/ownsharp-cli-v')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ownsharp-cli-v')
         run: |
           tag_version="${GITHUB_REF_NAME#ownsharp-cli-v}"
           csproj_version="${{ steps.version.outputs.version }}"
@@ -135,8 +135,29 @@ jobs:
       # project reference or `dotnet run` — that would only prove the source
       # exists, not that the package works for an end user. No checkout of
       # this repo happens on this job at all: it only has the artifact.
-      - name: dotnet tool install --global from the packed artifact
-        run: dotnet tool install --global OwnSharp.Cli --version "${{ needs.build-test-pack.outputs.version }}" --add-source "$RUNNER_TEMP/nupkg"
+      #
+      # --add-source is NOT enough on its own (Codex review, PR #244):
+      # `dotnet tool install` queries every configured source (the machine's
+      # default nuget.org feed included) IN PARALLEL and takes whichever
+      # answers first — once a same-numbered version is ever actually on
+      # nuget.org (e.g. a rerun after a real publish), this install could
+      # silently resolve from there instead of the local artifact, defeating
+      # the whole point of this job. An isolated nuget.config with `<clear/>`
+      # removes the ambiguity: the ONLY source this install can see is the
+      # local artifact directory.
+      - name: Isolated NuGet.config — the packed artifact is the ONLY visible source
+        run: |
+          cat > "$RUNNER_TEMP/isolated-nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local-artifact" value="$RUNNER_TEMP/nupkg" />
+            </packageSources>
+          </configuration>
+          EOF
+      - name: dotnet tool install --global from the packed artifact (isolated source)
+        run: dotnet tool install --global OwnSharp.Cli --version "${{ needs.build-test-pack.outputs.version }}" --configfile "$RUNNER_TEMP/isolated-nuget.config"
       - name: A minimal leak, in a scratch dir with no Own.NET checkout anywhere
         run: |
           mkdir -p "$RUNNER_TEMP/sample"
@@ -200,7 +221,7 @@ jobs:
           if command -v ownsharp >/dev/null 2>&1; then
             echo "FAIL: ownsharp still on PATH after uninstall"; exit 1
           fi
-          dotnet tool install --global OwnSharp.Cli --version "${{ needs.build-test-pack.outputs.version }}" --add-source "$RUNNER_TEMP/nupkg"
+          dotnet tool install --global OwnSharp.Cli --version "${{ needs.build-test-pack.outputs.version }}" --configfile "$RUNNER_TEMP/isolated-nuget.config"
           out=$(ownsharp --version)
           [ "$out" = "${{ needs.build-test-pack.outputs.version }}" ] \
             || { echo "FAIL: reinstalled ownsharp --version printed '$out'"; exit 1; }
@@ -209,7 +230,14 @@ jobs:
   publish:
     name: publish to nuget.org (protected)
     needs: [build-test-pack, smoke-test]
-    if: startsWith(github.ref, 'refs/tags/ownsharp-cli-v')
+    # Both conditions are required (Codex review, PR #244): `github.ref` alone
+    # is not proof of a tag PUSH — `gh workflow run --ref ownsharp-cli-v0.1.0`
+    # (a workflow_dispatch) sets github.ref to that same tag ref, which would
+    # satisfy a bare startsWith() check and let a manual dispatch reach
+    # publish after smoke/environment approval, contradicting the safety
+    # gate this workflow documents ("a workflow_dispatch run can never reach
+    # publish"). Requiring event_name == 'push' closes that hole.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ownsharp-cli-v')
     runs-on: ubuntu-latest
     environment: nuget-release
     steps:
