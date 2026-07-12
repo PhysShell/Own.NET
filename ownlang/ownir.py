@@ -465,7 +465,7 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
 
 def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, Any]:
     """Render the findings as a single SARIF 2.1.0 log: one `run` whose
-    `tool.driver` is Own.NET (with a `rules` catalogue of the OWN codes present and
+    `tool.driver` is Owen (with a `rules` catalogue of the OWN codes present and
     their titles) and whose `results` carry each finding's code, C# location,
     message and resource kind. `severity` is the same presentation choice as the
     other surfaces (it only sets each result's `level`).
@@ -487,7 +487,7 @@ def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, A
             {
                 "tool": {
                     "driver": {
-                        "name": "Own.NET",
+                        "name": "Owen",
                         "informationUri": _SARIF_INFO_URI,
                         "rules": rules,
                         "properties": {"ownirSchemaVersion": OWNIR_VERSION},

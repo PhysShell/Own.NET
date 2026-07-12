@@ -5,7 +5,12 @@ namespace OwnSharp.Cli;
 /// own nupkg under <c>ownlang-core/ownlang/*.py</c>, see the .csproj) into a
 /// stable, per-version cache directory outside the tool's own (versioned,
 /// nested) install path — and, per the design decision in issue #202, never
-/// into the repository being analyzed.
+/// into the repository being analyzed. Cache root renamed to
+/// <c>~/.owen/core/&lt;version&gt;/</c> for the Owen public facade (see
+/// docs/notes/owen-public-facade.md); a version already unpacked under the
+/// previous <c>~/.ownsharp/core/&lt;version&gt;/</c> location is reused as-is
+/// (a plain existence check, not a migration — the old location is never
+/// written to or deleted).
 /// </summary>
 internal static class CoreVendor
 {
@@ -17,10 +22,8 @@ internal static class CoreVendor
     /// </summary>
     public static string EnsureUnpacked()
     {
-        var cacheRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".ownsharp", "core", ToolVersion.Current);
-        var destOwnlang = Path.Combine(cacheRoot, "ownlang");
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var cacheRoot = Path.Combine(userProfile, ".owen", "core", ToolVersion.Current);
         var marker = Path.Combine(cacheRoot, ".unpacked");
 
         if (File.Exists(marker))
@@ -28,12 +31,25 @@ internal static class CoreVendor
             return cacheRoot;
         }
 
+        // Simple fallback read from the previous ~/.ownsharp location (same
+        // version already unpacked there by an older install of this same
+        // tool) — reuse it in place rather than re-copying, no migration
+        // subsystem. Only a same-version marker counts: a different version
+        // there is irrelevant (each version gets its own cache directory).
+        var legacyCacheRoot = Path.Combine(userProfile, ".ownsharp", "core", ToolVersion.Current);
+        var legacyMarker = Path.Combine(legacyCacheRoot, ".unpacked");
+        if (File.Exists(legacyMarker))
+        {
+            return legacyCacheRoot;
+        }
+
+        var destOwnlang = Path.Combine(cacheRoot, "ownlang");
         var sourceOwnlang = Path.Combine(AppContext.BaseDirectory, "ownlang-core", "ownlang");
         if (!Directory.Exists(sourceOwnlang))
         {
             throw new InvalidOperationException(
-                $"ownsharp: vendored core not found at '{sourceOwnlang}' — a corrupt or " +
-                "incomplete tool install. Try `dotnet tool uninstall --global OwnSharp.Cli` " +
+                $"owen: vendored core not found at '{sourceOwnlang}' — a corrupt or " +
+                "incomplete tool install. Try `dotnet tool uninstall --global Owen.Cli` " +
                 "and reinstall.");
         }
 

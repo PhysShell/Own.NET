@@ -10,7 +10,7 @@ This is the missing consumer. It maps each ``Diagnostic`` to a SARIF ``result``
 and projects its evidence through the SAME ``ownlang.evidence`` builders the OwnIR
 path uses (``relatedLocations`` for the unordered anchors, ``codeFlows`` for the
 ordered slice), so both paths speak one SARIF vocabulary. The log shape mirrors
-``ownir.build_sarif``: one ``run`` whose ``tool.driver`` is Own.NET with a
+``ownir.build_sarif``: one ``run`` whose ``tool.driver`` is Owen with a
 ``rules`` catalogue of the OWN codes present, and one ``result`` per diagnostic.
 """
 
@@ -70,7 +70,7 @@ def _result(d: Diagnostic, filename: str, severity: str) -> dict[str, Any]:
 def build_sarif(diags: list[Diagnostic], filename: str,
                 severity: str = "error") -> dict[str, Any]:
     """Render flow diagnostics as a single SARIF 2.1.0 log: one ``run`` whose
-    ``tool.driver`` is Own.NET (with a ``rules`` catalogue of the OWN codes present
+    ``tool.driver`` is Owen (with a ``rules`` catalogue of the OWN codes present
     and their titles) and whose ``results`` carry each diagnostic's code, location,
     message and evidence slice. ``severity`` only sets each result's ``level``."""
     codes = sorted({d.code for d in diags})
@@ -85,7 +85,7 @@ def build_sarif(diags: list[Diagnostic], filename: str,
             {
                 "tool": {
                     "driver": {
-                        "name": "Own.NET",
+                        "name": "Owen",
                         "informationUri": _SARIF_INFO_URI,
                         "rules": rules,
                     },

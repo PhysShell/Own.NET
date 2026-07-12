@@ -36,7 +36,7 @@ The bar for "showable": a person can reproduce the wow in ~3 minutes
 
 | | Item | Status (2026-06-27) | Gap to close |
 |---|------|--------------------|--------------|
-| **A** | `dotnet tool` one-command CLI | ◑ **mostly built** (issue #202) — `OwnSharp.Cli` wraps extractor+core into one `dotnet tool install` → `ownsharp check <path\|.sln>`, proven install→check→findings on a clean ubuntu/windows runner in CI (`ownsharp-cli-smoke`). See [`frontend/roslyn/OwnSharp.Cli/README.md`](../../frontend/roslyn/OwnSharp.Cli/README.md). | Not published to nuget.org yet — today it's build-and-install-from-source only. Publishing (+ a real version scheme beyond `0.1.0`) is the remaining step. |
+| **A** | `dotnet tool` one-command CLI | ◑ **mostly built** (issue #202) — `OwnSharp.Cli` (public facade: package `Owen.Cli`, command `owen`) wraps extractor+core into one `dotnet tool install` → `owen check <path\|.sln>`, proven install→check→findings on a clean ubuntu/windows runner in CI (`ownsharp-cli-smoke`). See [`frontend/roslyn/OwnSharp.Cli/README.md`](../../frontend/roslyn/OwnSharp.Cli/README.md). | Not published to nuget.org yet — today it's build-and-install-from-source only. Publishing (+ a real version scheme beyond `0.1.0`) is the remaining step. |
 | **B** | GitHub Action | ✅ **built** — `action.yml`: `path`/`severity`/`format` (`github` / `msbuild` / `human` / `sarif`), purple shield branding. Matches the "stupidly simple YAML" bar. | Publish to Marketplace; pin the 6-line usage in the README. |
 | **C** | SARIF / PR annotations | ✅ **built** — SARIF 2.1.0 + GitHub annotations + reachability/evidence (P-015). | — |
 | **D** | 5 core diagnostics | ✅ **built, well past** — OWN001/002/003, OWN014, DI001–005, POOL001–005, WPF001–005 (catalog). The comment's `SUB001/SUB002/TMR001/DISP001/DI001` all exist *semantically*; the `SUB/TMR/DISP` catalog rename is the deferred consolidation item, not new work. | (naming only) land the catalog rename with the OwnIR-v1/profile-label work. |
@@ -58,13 +58,13 @@ suppression → "why not Sonar/CodeQL"), every step of that path now exists.
 front door, and now A have all closed too — what's left is publishing, not
 building:**
 
-1. ~~a single `ownsharp check MyApp.sln` tool (**A**)~~ — **built**, not yet published to nuget.org;
+1. ~~a single `owen check MyApp.sln` tool (**A**)~~ — **built**, not yet published to nuget.org;
 2. ~~a wedge landing README + copy-paste quickstart (front door)~~ — **done**;
 3. ~~three packaged case studies from finds we already have (**F**)~~ — **done**;
 4. ~~one consolidated suppression / false-positive page (**G**)~~ — **done**.
 
 None of those is research; all are the difference between "interesting PoC" and
-"people install it." Publishing `OwnSharp.Cli` to nuget.org is now the one item
+"people install it." Publishing `Owen.Cli` to nuget.org is now the one item
 standing between here and the day 1–30 milestone being *literally* copy-paste
 for a stranger.
 
@@ -87,7 +87,7 @@ until the .NET alpha above is delicious. Do not let the spike exceed 20%.
 
 ## 90-day shape (sequencing, not a schedule)
 
-- **Days 1–30 — make the .NET alpha tasty:** publish `OwnSharp.Cli` to
+- **Days 1–30 — make the .NET alpha tasty:** publish `Owen.Cli` to
   nuget.org (A/B/C/D/E/F/G and the README front door are all otherwise done).
   Suppression UX + bad/ok corpus polish continue as bug-driven follow-ups, not
   a blocking gate.

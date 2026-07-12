@@ -1717,15 +1717,15 @@ jobs:
         run: |
           # The contract GitHub's code-scanning ingest enforces, checked locally so
           # the upload (own-check-codescan job) is never the first place a drift is
-          # found: a single-run 2.1.0 log, the Own.NET driver, and every result
+          # found: a single-run 2.1.0 log, the Owen driver, and every result
           # carrying a catalogue ruleId + a located file. No upload, no permissions.
           out="$RUNNER_TEMP/own.sarif"
           scripts/own-check.sh --format sarif --severity warning -- frontend/roslyn/samples > "$out"
           echo "wrote $(wc -c < "$out") bytes"
           jq -e '.version == "2.1.0" and ((.runs | length) == 1)' "$out" >/dev/null \
             || { echo "FAIL: not a single-run SARIF 2.1.0 log"; exit 1; }
-          jq -e '.runs[0].tool.driver.name == "Own.NET"' "$out" >/dev/null \
-            || { echo "FAIL: tool.driver.name is not Own.NET"; exit 1; }
+          jq -e '.runs[0].tool.driver.name == "Owen"' "$out" >/dev/null \
+            || { echo "FAIL: tool.driver.name is not Owen"; exit 1; }
           # A dangling ruleId or an unlocated result is the #1 reason GitHub rejects
           # a SARIF; startLine is optional (a file-level finding omits it -> // 1).
           jq -e '
@@ -1739,7 +1739,7 @@ jobs:
                   and ((.locations[0].physicalLocation.region.startLine // 1) | type == "number"))
           ' "$out" >/dev/null \
             || { echo "FAIL: a result is unlocated or references an undeclared rule"; exit 1; }
-          echo "OK: SARIF 2.1.0 — Own.NET driver, every result rule-backed + located"
+          echo "OK: SARIF 2.1.0 — Owen driver, every result rule-backed + located"
       - name: The composite action runs end-to-end (non-failing)
         uses: ./
         with:
@@ -1942,7 +1942,10 @@ jobs:
 
   # Alpha gate A (issue #202): the single delightful command, proven end-to-end
   # on a clean runner — install -> check -> findings. Packaging only, no
-  # analysis-behaviour change: OwnSharp.Cli bundles the *unmodified* extractor
+  # analysis-behaviour change: the underlying project stays OwnSharp.Cli
+  # internally (P-013; not mass-renamed), but the PUBLISHED identity is the
+  # Owen public facade (docs/notes/owen-public-facade.md) — package ID
+  # Owen.Cli, command `owen`. Bundles the *unmodified* extractor
   # (ProjectReference; invoked as a child process, same shape own-check.sh
   # already uses) and vendors the *unmodified* ownlang/ core, run by the
   # machine's own Python. Both ubuntu AND windows matter here specifically
@@ -1950,7 +1953,7 @@ jobs:
   # Windows and a shell script on Unix, so they exercise genuinely different
   # process-launch mechanics; ubuntu-only would not prove the Windows path.
   ownsharp-cli-smoke:
-    name: ownsharp CLI (gate A) — clean install -> check -> findings
+    name: owen CLI (gate A) — clean install -> check -> findings
     strategy:
       fail-fast: false
       matrix:
@@ -1959,7 +1962,7 @@ jobs:
     defaults:
       run:
         # bash (git-bash on Windows runners) so one script works on both legs;
-        # the thing under test is the ownsharp/dotnet/python binaries, not the
+        # the thing under test is the owen/dotnet/python binaries, not the
         # shell driving them.
         shell: bash
     steps:
@@ -1976,14 +1979,31 @@ jobs:
       # published there yet, see P-013's Non-goals) -- pack from the source
       # this job already checked out. Deliberately OUTSIDE the timed window
       # below: it is not part of the "install -> check" claim being proven.
-      - name: Pack OwnSharp.Cli (pulls in the extractor via ProjectReference)
-        run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/ownsharp-nupkg"
-      - name: A minimal leak, in a scratch dir OUTSIDE the repo
+      - name: Pack Owen.Cli (pulls in the extractor via ProjectReference)
+        run: dotnet pack frontend/roslyn/OwnSharp.Cli/OwnSharp.Cli.csproj -c Release -o "$RUNNER_TEMP/owen-nupkg"
+      # --add-source alone is not enough (Codex review, PR #244): `dotnet tool
+      # install` queries every configured source (nuget.org included) IN
+      # PARALLEL and takes whichever answers first — once a same-numbered
+      # version is ever actually on nuget.org, this install could silently
+      # resolve from there instead of the just-packed artifact. An isolated
+      # nuget.config with <clear/> removes the ambiguity.
+      - name: Isolated NuGet.config — the packed artifact is the ONLY visible source
+        run: |
+          cat > "$RUNNER_TEMP/isolated-nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local-artifact" value="$RUNNER_TEMP/owen-nupkg" />
+            </packageSources>
+          </configuration>
+          EOF
+      - name: Seed a leak sample, a clean sample, and an unsupported-input sample -- all OUTSIDE the repo
         # Proves the tool needs nothing but itself + Python -- not the Own.NET
         # checkout (a real end user obviously won't have this repo on disk).
         run: |
-          mkdir -p "$RUNNER_TEMP/ownsharp-sample"
-          cat > "$RUNNER_TEMP/ownsharp-sample/Leak.cs" <<'EOF'
+          mkdir -p "$RUNNER_TEMP/owen-sample" "$RUNNER_TEMP/owen-clean" "$RUNNER_TEMP/owen-unsupported"
+          cat > "$RUNNER_TEMP/owen-sample/Leak.cs" <<'EOF'
           using System.IO;
           public class Leaky
           {
@@ -1994,19 +2014,90 @@ jobs:
               }
           }
           EOF
+          cat > "$RUNNER_TEMP/owen-clean/Clean.cs" <<'EOF'
+          using System.IO;
+          public class Tidy
+          {
+              public void Run()
+              {
+                  using var s = new MemoryStream();
+                  s.WriteByte(1);
+              }
+          }
+          EOF
+          cat > "$RUNNER_TEMP/owen-unsupported/app.ts" <<'EOF'
+          console.log("not C# -- the .NET/C# frontend is the only one wired in today");
+          EOF
       - name: Start the clean-machine timer (install -> check -> findings)
         run: echo "SMOKE_START=$(date +%s)" >> "$GITHUB_ENV"
-      - name: dotnet tool install --global (the one install the user runs)
-        run: dotnet tool install --global OwnSharp.Cli --version 0.1.0 --add-source "$RUNNER_TEMP/ownsharp-nupkg"
-      - name: ownsharp check finds the leak
+      - name: dotnet tool install --global (the one install the user runs) -- pins the package ID
+        run: dotnet tool install --global Owen.Cli --version 0.1.0 --configfile "$RUNNER_TEMP/isolated-nuget.config"
+      - name: owen --help -- language-neutral product framing, explicit included-frontend list, no TypeScript claim
+        run: |
+          out=$(owen --help)
+          echo "$out"
+          echo "$out" | grep -qi "^owen " || { echo "FAIL: --help should open with the owen product line"; exit 1; }
+          echo "$out" | grep -q "Included frontend" || { echo "FAIL: --help should list the included frontend explicitly"; exit 1; }
+          echo "$out" | grep -q '\.cs, \.csproj, \.sln' || { echo "FAIL: --help should name the .NET/C# frontend's extensions"; exit 1; }
+          if echo "$out" | grep -qi "typescript"; then
+            echo "FAIL: --help must not claim TypeScript support before it's actually wired in"; exit 1
+          fi
+      - name: owen --version -- pins the command name via PATH resolution alone
+        run: |
+          out=$(owen --version)
+          [ -n "$out" ] || { echo "FAIL: --version printed nothing"; exit 1; }
+          echo "OK: owen --version -> $out"
+      - name: "owen <unknown command> -- prefix is owen:, not the pre-rebrand ownsharp:"
         run: |
           set +e
-          out=$(ownsharp check "$RUNNER_TEMP/ownsharp-sample" --fail-on-finding 2>&1)
+          out=$(owen bogus-command 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -ge 2 ] || { echo "FAIL: expected a non-zero exit for an unknown command, got $rc"; exit 1; }
+          echo "$out" | grep -q "^owen: unknown command" || { echo "FAIL: expected an 'owen: unknown command' prefix"; exit 1; }
+      - name: owen check finds the leak (installed execution, outside any checkout)
+        run: |
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
           rc=$?
           set -e
           echo "$out"
           [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (findings), got $rc"; exit 1; }
           echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 in the output"; exit 1; }
+      - name: owen check on clean code exits 0 (negative control)
+        run: |
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-clean" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      - name: owen check --format sarif -- Owen-branded SARIF driver name
+        run: |
+          out=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif)
+          echo "$out" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          n = d['runs'][0]['tool']['driver']['name']
+          assert n == 'Owen', f'SARIF driver name is {n!r}, expected Owen'
+          print('OK: SARIF driver name is Owen')
+          "
+      - name: owen check on unsupported input fails explicitly -- never a silent clean scan
+        run: |
+          set +e
+          out=$(owen check "$RUNNER_TEMP/owen-unsupported" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 4 ] || { echo "FAIL: expected exit 4 (no supported input), got $rc"; exit 1; }
+          echo "$out" | grep -qi "no supported input" || { echo "FAIL: expected an explicit unsupported-input message"; exit 1; }
+          # The exact phrase a genuinely clean C# scan would print (own-check's
+          # core render, e.g. "0 findings.") must NOT appear here -- that would
+          # mean unsupported input silently looked like a successful clean scan.
+          if echo "$out" | grep -q "^0 findings\.$"; then
+            echo "FAIL: must not report a clean 0-findings scan for unsupported input"; exit 1
+          fi
       - name: Stop the timer -- report it, and gate on a generous regression ceiling
         # A hard ceiling, not a precision claim: CI timing varies with runner
         # load, so this is a regression guard (catch "it now takes 20 minutes"),
@@ -2015,14 +2106,26 @@ jobs:
           elapsed=$(( $(date +%s) - SMOKE_START ))
           echo "install -> check -> findings: ${elapsed}s"
           [ "$elapsed" -lt 240 ] || { echo "FAIL: took ${elapsed}s (ceiling 240s) — see alpha-readiness.md gate A"; exit 1; }
-      - name: No Python found -> a fast, actionable failure (never an auto-download)
+      - name: No Python found via OWEN_PYTHON -> a fast, actionable failure (never an auto-download)
         run: |
           set +e
-          out=$(OWN_PYTHON=/definitely/does/not/exist/python3 ownsharp check "$RUNNER_TEMP/ownsharp-sample" 2>&1)
+          out=$(OWEN_PYTHON=/definitely/does/not/exist/python3 owen check "$RUNNER_TEMP/owen-sample" 2>&1)
           rc=$?
           set -e
           echo "$out"
           [ "$rc" -eq 3 ] || { echo "FAIL: expected exit 3 (Python not found), got $rc"; exit 1; }
-          echo "$out" | grep -qi "OWN_PYTHON" || { echo "FAIL: expected the OWN_PYTHON-specific message"; exit 1; }
+          echo "$out" | grep -q "OWEN_PYTHON" || { echo "FAIL: expected the OWEN_PYTHON-specific message"; exit 1; }
           echo "$out" | grep -Eiq "winget|apt|brew|python.org" || { echo "FAIL: expected an actionable install hint"; exit 1; }
+      - name: Legacy OWN_PYTHON still works as a temporary fallback, with a deprecation note
+        run: |
+          own_python="$(command -v python3 || command -v python)"
+          [ -n "$own_python" ] || { echo "FAIL: could not find a python3/python on PATH to test the fallback with"; exit 1; }
+          set +e
+          out=$(OWN_PYTHON="$own_python" owen check "$RUNNER_TEMP/owen-sample" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: expected exit 1 (findings, via the legacy var), got $rc"; exit 1; }
+          echo "$out" | grep -qi "OWN_PYTHON is deprecated" || { echo "FAIL: expected a deprecation note when OWN_PYTHON is used"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: expected OWN001 in the output even via the legacy var"; exit 1; }
 

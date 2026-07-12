@@ -4,8 +4,9 @@ namespace OwnSharp.Cli;
 
 /// <summary>
 /// The running tool's own version — doubles as the vendored-core cache key
-/// (<c>~/.ownsharp/core/&lt;version&gt;/</c>), so a core mismatch between two
-/// installed tool versions can never share a cache directory.
+/// (<c>~/.owen/core/&lt;version&gt;/</c>, see <see cref="CoreVendor"/>), so a
+/// core mismatch between two installed tool versions can never share a cache
+/// directory.
 /// </summary>
 internal static class ToolVersion
 {

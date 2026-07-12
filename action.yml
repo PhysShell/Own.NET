@@ -1,4 +1,4 @@
-name: "Own.NET resource-leak check"
+name: "Owen lifetime/resource check"
 description: >-
   Scan C# for lifetime/resource leaks the compiler cannot express — event/timer
   subscription leaks, undisposed IDisposable fields/locals, ignored Subscribe()
@@ -29,7 +29,7 @@ inputs:
     required: false
     default: "true"
   python-version:
-    description: "Python version for the Own.NET core."
+    description: "Python version for the Owen core."
     required: false
     default: "3.13"
   dotnet-version:
@@ -39,7 +39,7 @@ inputs:
   sarif-file:
     description: >-
       Where to write the SARIF log when format: sarif (default:
-      $RUNNER_TEMP/own-net.sarif). The chosen path is echoed back as the
+      $RUNNER_TEMP/owen.sarif). The chosen path is echoed back as the
       sarif-file output regardless.
     required: false
     default: ""
@@ -54,7 +54,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python (Own.NET core)
+    - name: Set up Python (Owen core)
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -64,7 +64,7 @@ runs:
       with:
         dotnet-version: ${{ inputs.dotnet-version }}
 
-    - name: Own.NET leak check
+    - name: Owen leak check
       id: own
       shell: bash
       env:
@@ -88,16 +88,16 @@ runs:
           # passed so the true exit code (0 clean / 1 findings / >=2 hard error) is
           # captured *after* the file is written; whether a finding fails the step
           # is the action's own fail-on-finding (default: let code scanning gate).
-          sarif="${OWN_SARIF_FILE:-$RUNNER_TEMP/own-net.sarif}"
+          sarif="${OWN_SARIF_FILE:-$RUNNER_TEMP/owen.sarif}"
           set +e
           "$check" --root "${{ github.action_path }}" --format sarif \
             --severity "$OWN_SEVERITY" --fail-on-finding -- "$OWN_PATH" > "$sarif"
           rc=$?
           set -e
           echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
-          echo "Own.NET wrote SARIF to $sarif ($(wc -c < "$sarif" 2>/dev/null || echo 0) bytes; own-check rc=$rc)"
+          echo "Owen wrote SARIF to $sarif ($(wc -c < "$sarif" 2>/dev/null || echo 0) bytes; own-check rc=$rc)"
           if [ "$rc" -ge 2 ]; then
-            echo "::error::Own.NET hard error (bad facts / drifted contract)"
+            echo "::error::Owen hard error (bad facts / drifted contract)"
             cat "$sarif" >&2 || true
             exit "$rc"
           fi
@@ -107,7 +107,7 @@ runs:
           # fails the redirection (exit 1, outside own-check's 0/1/>=2 contract).
           # Surface it; never let it pass as a gated-off finding with no SARIF.
           if [ ! -s "$sarif" ]; then
-            echo "::error::Own.NET produced no SARIF at $sarif (own-check rc=$rc) — the run or its redirection failed"
+            echo "::error::Owen produced no SARIF at $sarif (own-check rc=$rc) — the run or its redirection failed"
             exit 1
           fi
           if [ "$OWN_FAIL_ON_FINDING" = "true" ] && [ "$rc" -eq 1 ]; then

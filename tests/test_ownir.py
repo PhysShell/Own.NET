@@ -3084,7 +3084,7 @@ def run() -> int:
         fails.append(f"SARIF envelope wrong: version={sf.get('version')!r}")
     driver = sf["runs"][0]["tool"]["driver"]
     checks += 1
-    if driver.get("name") != "Own.NET":
+    if driver.get("name") != "Owen":
         fails.append(f"SARIF tool.driver.name wrong: {driver.get('name')!r}")
     checks += 1
     if [(r["id"], r["shortDescription"]["text"]) for r in driver["rules"]] != \
