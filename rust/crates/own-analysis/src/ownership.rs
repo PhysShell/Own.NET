@@ -59,6 +59,20 @@ struct State {
 }
 
 impl State {
+    /// A concrete, reachable state with no facts yet — the initial-state seed and
+    /// the Python `State()` fallback. This is **not** the lattice ⊥ (that is
+    /// [`StateFact::Bottom`]); a reachable block whose data is empty is a real,
+    /// distinct value that still enforces the merge invariant.
+    const fn empty() -> Self {
+        Self {
+            var: BTreeMap::new(),
+            loans: BTreeMap::new(),
+            handle_rid: BTreeMap::new(),
+            moved_at: BTreeMap::new(),
+            acquired_at: BTreeMap::new(),
+        }
+    }
+
     fn rid_of(&self, sym: SymId) -> u32 {
         self.handle_rid.get(&sym.0).copied().unwrap_or(sym.0)
     }
@@ -71,16 +85,6 @@ impl State {
     /// The variable-state of `rid` on read — **defaults to `OWNED`** when absent.
     fn states(&self, rid: u32) -> u8 {
         self.var.get(&rid).copied().unwrap_or(OWNED)
-    }
-
-    /// Whether this is the ⊥ (bottom) element — empty on every field, i.e. equal
-    /// to [`Lattice::bottom`]. Used by `join` to satisfy the identity law.
-    fn is_bottom(&self) -> bool {
-        self.var.is_empty()
-            && self.loans.is_empty()
-            && self.handle_rid.is_empty()
-            && self.moved_at.is_empty()
-            && self.acquired_at.is_empty()
     }
 }
 
@@ -104,31 +108,13 @@ fn join_sites(out: &mut BTreeMap<u32, (u32, bool)>, other: &BTreeMap<u32, (u32, 
     }
 }
 
-impl Lattice for State {
-    fn bottom() -> Self {
-        Self {
-            var: BTreeMap::new(),
-            loans: BTreeMap::new(),
-            handle_rid: BTreeMap::new(),
-            moved_at: BTreeMap::new(),
-            acquired_at: BTreeMap::new(),
-        }
-    }
-
-    fn join(&mut self, other: &Self) -> bool {
-        // ⊥ identity, so `State` is a lawful [`Lattice`]: `⊥ ∨ x = x` and
-        // `x ∨ ⊥ = x` MUST hold even when `x` carries active loans (the generic
-        // solver may hand `bottom` to `join`). `bottom` has empty everything, so
-        // check exact-emptiness. This short-circuits before the merge invariant,
-        // which only governs two *real* predecessor states.
-        if other.is_bottom() {
-            return false;
-        }
-        if self.is_bottom() {
-            *self = other.clone();
-            return true;
-        }
-
+impl State {
+    /// Merge another concrete predecessor state into this one (the real join over
+    /// two *reachable* states), returning whether `self` changed. **No** bottom
+    /// special-casing lives here — that is [`StateFact`]'s job — so the merge
+    /// invariant is enforced unconditionally, even when one side is concretely
+    /// empty (a real empty predecessor with mismatched loans still fails loudly).
+    fn join_data(&mut self, other: &Self) -> bool {
         let before = self.clone();
 
         // var: union of the per-RID bitsets; absent key contributes ∅ (0).
@@ -142,9 +128,10 @@ impl Lattice for State {
         // Block-scoped borrows ⇒ identical active loans on both predecessors
         // (holds across loop back-edges: a borrow closes within its own scope).
         // FULL-VALUE equality (owner + kind per binding), not just the key set,
-        // so a same-binding / different-owner-or-kind merge fails loudly instead
-        // of silently picking a side — matching the Python `join` (tightened in
-        // lockstep). In practice this is `{} == {}` (loans close within a block).
+        // so a same-binding / different-owner-or-kind merge — OR an empty-loan vs
+        // non-empty-loan merge — fails loudly instead of silently picking a side,
+        // matching the Python `join` (tightened in lockstep). In practice this is
+        // `{} == {}` (loans close within a block).
         assert!(
             self.loans == other.loans,
             "active loans differ at a control-flow merge; impossible for \
@@ -169,6 +156,53 @@ impl Lattice for State {
         join_sites(&mut self.acquired_at, &other.acquired_at);
 
         *self != before
+    }
+}
+
+/// The dataflow **fact** — an EXPLICIT lattice with `Bottom` kept *separate* from
+/// a concrete (reachable) state, so structural emptiness never masquerades as ⊥.
+///
+/// This is the load-bearing distinction: `Reachable(State::empty())` is a real
+/// predecessor value, **not** the lattice bottom, so joining it with a
+/// loan-carrying state still runs the merge invariant (rather than short-
+/// circuiting as an identity). `Bottom` is only ever the seed for a block none of
+/// whose predecessors have been evaluated yet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum StateFact {
+    /// ⊥ — no predecessor evaluated yet. The identity for [`Lattice::join`].
+    Bottom,
+    /// A concrete, reachable dataflow state.
+    Reachable(State),
+}
+
+impl StateFact {
+    /// The concrete state, or a fresh empty one for `Bottom` (Python's `State()`
+    /// fallback when a block is reached with no evaluated predecessors).
+    fn into_state(self) -> State {
+        match self {
+            Self::Bottom => State::empty(),
+            Self::Reachable(s) => s,
+        }
+    }
+}
+
+impl Lattice for StateFact {
+    fn bottom() -> Self {
+        Self::Bottom
+    }
+
+    fn join(&mut self, other: &Self) -> bool {
+        match (&mut *self, other) {
+            // x ∨ ⊥ = x  (no change)
+            (_, Self::Bottom) => false,
+            // ⊥ ∨ x = x  (grows from bottom, even when x carries active loans)
+            (Self::Bottom, o) => {
+                *self = o.clone();
+                true
+            }
+            // Concrete ∨ Concrete: the real merge, invariant always enforced.
+            (Self::Reachable(a), Self::Reachable(b)) => a.join_data(b),
+        }
     }
 }
 
@@ -311,7 +345,7 @@ impl<'a> Ownership<'a> {
     }
 
     fn initial_state(&self) -> State {
-        let mut s = State::bottom();
+        let mut s = State::empty();
         for &pid in &self.cfg.params {
             if self.cfg.symbol(pid).kind == Kind::Owned {
                 let rid = s.mint(pid);
@@ -528,13 +562,21 @@ impl ControlFlowGraph for Ownership<'_> {
 }
 
 impl Analysis for Ownership<'_> {
-    type Fact = State;
-    fn entry_fact(&self) -> State {
-        self.initial_state()
+    type Fact = StateFact;
+    fn entry_fact(&self) -> StateFact {
+        StateFact::Reachable(self.initial_state())
     }
-    fn transfer(&self, block: usize, in_fact: &State) -> State {
-        // Phase-1 fixpoint transfer: state evolves, no diagnostics.
-        self.transfer_block(block, in_fact, &mut Emit::Silent)
+    fn transfer(&self, block: usize, in_fact: &StateFact) -> StateFact {
+        // Phase-1 fixpoint transfer: state evolves, no diagnostics. `Bottom` (a
+        // block reached before any predecessor is evaluated) transfers to
+        // `Bottom` — no information in, no information out; it is overwritten once
+        // a real predecessor arrives, so it never reaches a converged in-state.
+        match in_fact {
+            StateFact::Bottom => StateFact::Bottom,
+            StateFact::Reachable(st) => {
+                StateFact::Reachable(self.transfer_block(block, st, &mut Emit::Silent))
+            }
+        }
     }
 }
 
@@ -576,7 +618,13 @@ pub fn analyze(cfg: &Cfg) -> Vec<Diagnostic> {
 
     // Phase 2a: one emitting transfer per block, on its converged in-state.
     for &bid in &reachable {
-        let in_st = solution.in_fact(bid).cloned().unwrap_or_else(State::bottom);
+        // A reachable block's converged in-fact is always `Reachable(_)`; the
+        // `Bottom`/`None` fallback is Python's `State()` (defensive, unreached).
+        let in_st = solution
+            .in_fact(bid)
+            .cloned()
+            .unwrap_or(StateFact::Bottom)
+            .into_state();
         let mut emit = Emit::Collect(&mut diags);
         let out = own.transfer_block(bid, &in_st, &mut emit);
         out_states.insert(bid, out);
@@ -621,13 +669,13 @@ fn first_line(cfg: &Cfg) -> u32 {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    use super::{analyze, Loan, LoanKind, State, MOVED, OWNED, RELEASED};
+    use super::{analyze, Loan, LoanKind, State, StateFact, MOVED, OWNED, RELEASED};
     use crate::solver::Lattice;
 
-    /// A non-bottom state carrying one active loan (owner is OWNED), plus an
+    /// A concrete state carrying one active loan (owner is OWNED), plus an
     /// optional second RID's state — for exercising loan-carrying merges.
     fn with_loan(binding: u32, owner: u32, kind: LoanKind, rid2: Option<(u32, u8)>) -> State {
-        let mut s = State::bottom();
+        let mut s = State::empty();
         s.var.insert(owner, OWNED);
         s.loans.insert(binding, Loan { owner, kind });
         if let Some((r, bits)) = rid2 {
@@ -639,14 +687,15 @@ mod tests {
     /// A single-RID state whose var-set is the bitmask `bits` — the finite
     /// per-RID lattice `{OWNED, MOVED, RELEASED, ESCAPED}` is exactly `0..16`.
     fn one(bits: u8) -> State {
-        let mut s = State::bottom();
+        let mut s = State::empty();
         s.var.insert(0, bits);
         s
     }
 
+    /// The concrete data merge (two reachable predecessors).
     fn joined(a: &State, b: &State) -> State {
         let mut out = a.clone();
-        out.join(b);
+        out.join_data(b);
         out
     }
 
@@ -654,13 +703,13 @@ mod tests {
     fn ownership_lattice_laws_exhaustive_per_rid() {
         // Exhaustive over the finite per-RID state space (16 values), matching
         // the #214 requirement: idempotent, commutative, associative join, and
-        // x <= join(x, y). Loans/handle_rid are empty so `join`'s block-scoped-
-        // loan invariant holds for every pair (the merge case the solver hits).
+        // x <= join(x, y). Loans/handle_rid are empty so the merge invariant
+        // holds for every pair (the concrete-merge case the solver hits).
         for x in 0u8..16 {
             let sx = one(x);
             // idempotent: join(x, x) == x, and reports no change.
             let mut xx = sx.clone();
-            assert!(!xx.join(&sx), "join(x,x) reports no change");
+            assert!(!xx.join_data(&sx), "join(x,x) reports no change");
             assert_eq!(xx, sx, "join(x, x) == x");
 
             for y in 0u8..16 {
@@ -671,7 +720,7 @@ mod tests {
 
                 // x <= join(x, y): joining x into (x∨y) does not change it.
                 let mut re = xy.clone();
-                assert!(!re.join(&sx), "x <= join(x,y): {x},{y}");
+                assert!(!re.join_data(&sx), "x <= join(x,y): {x},{y}");
                 assert_eq!(re, xy);
 
                 for z in 0u8..16 {
@@ -685,49 +734,96 @@ mod tests {
     }
 
     #[test]
-    fn bottom_is_identity() {
-        let s = one(OWNED | super::MOVED);
-        assert_eq!(joined(&State::bottom(), &s), s, "bottom ∨ x == x");
-        assert_eq!(joined(&s, &State::bottom()), s, "x ∨ bottom == x");
+    fn statefact_bottom_is_the_lattice_identity() {
+        // The LATTICE identity lives on StateFact, not on the concrete data.
+        let s = StateFact::Reachable(one(OWNED | MOVED));
+        let mut a = StateFact::Bottom;
+        a.join(&s);
+        assert_eq!(a, s, "⊥ ∨ x == x");
+        let mut b = s.clone();
+        assert!(!b.join(&StateFact::Bottom), "x ∨ ⊥ reports no change");
+        assert_eq!(b, s, "x ∨ ⊥ == x");
     }
 
     #[test]
     fn join_reports_growth_only_when_the_set_actually_grows() {
         let mut owned = one(OWNED);
-        let released = one(super::RELEASED);
+        let released = one(RELEASED);
         // OWNED ∨ RELEASED = {OWNED, RELEASED} — a strict growth.
-        assert!(owned.join(&released), "adding a new state bit is a change");
-        assert_eq!(owned.var.get(&0).copied(), Some(OWNED | super::RELEASED));
+        assert!(
+            owned.join_data(&released),
+            "adding a new state bit is a change"
+        );
+        assert_eq!(owned.var.get(&0).copied(), Some(OWNED | RELEASED));
         // Re-joining a subset changes nothing.
-        assert!(!owned.join(&released), "re-join of a subset is no change");
+        assert!(
+            !owned.join_data(&released),
+            "re-join of a subset is no change"
+        );
     }
 
     #[test]
     fn absent_rid_reads_as_owned_but_joins_as_empty() {
         // Read default is OWNED (Python st.var.get(rid, {OWNED})).
-        let empty = State::bottom();
+        let empty = State::empty();
         assert_eq!(empty.states(0), OWNED);
         // Join default is ∅: joining a state that has rid=RELEASED with one that
         // omits it yields exactly RELEASED (∅ ∪ RELEASED), NOT OWNED|RELEASED.
-        let mut a = State::bottom();
-        let mut b = State::bottom();
-        b.var.insert(0, super::RELEASED);
-        a.join(&b);
-        assert_eq!(a.var.get(&0).copied(), Some(super::RELEASED));
+        let mut a = State::empty();
+        let mut b = State::empty();
+        b.var.insert(0, RELEASED);
+        a.join_data(&b);
+        assert_eq!(a.var.get(&0).copied(), Some(RELEASED));
     }
 
+    // ---- the explicit Bottom / concrete-empty distinction (round-2 blocker) --
+
     #[test]
-    fn bottom_identity_holds_with_active_loans() {
-        // The Lattice contract `⊥ ∨ x = x` / `x ∨ ⊥ = x` MUST hold even when x
-        // carries an active loan (the generic solver may hand ⊥ to join).
-        let x = with_loan(7, 1, LoanKind::Mut, Some((2, OWNED)));
-        let mut b = State::bottom();
+    fn bottom_join_loan_state_is_identity() {
+        // ⊥ ∨ Concrete(with_loan) = Concrete(with_loan), even with active loans —
+        // and it must NOT run the merge invariant (bottom carries no loans to
+        // compare). This is what the generic solver relies on for its seed.
+        let x = StateFact::Reachable(with_loan(7, 1, LoanKind::Mut, Some((2, OWNED))));
+        let mut b = StateFact::Bottom;
         assert!(b.join(&x), "⊥ ∨ x grows from bottom");
         assert_eq!(b, x, "⊥ ∨ x == x (loans preserved)");
 
         let mut xx = x.clone();
-        assert!(!xx.join(&State::bottom()), "x ∨ ⊥ is no change");
+        assert!(!xx.join(&StateFact::Bottom), "x ∨ ⊥ is no change");
         assert_eq!(xx, x, "x ∨ ⊥ == x");
+    }
+
+    #[test]
+    #[should_panic(expected = "active loans differ")]
+    fn concrete_empty_join_loan_state_fails_loud() {
+        // Concrete(empty) ∨ Concrete(with_loan): a real empty predecessor is NOT
+        // bottom, so the merge invariant runs and fails on {} vs {loan}.
+        let empty = StateFact::Reachable(State::empty());
+        let loaned = StateFact::Reachable(with_loan(7, 1, LoanKind::Shared, None));
+        let mut a = empty;
+        let _ = a.join(&loaned);
+    }
+
+    #[test]
+    #[should_panic(expected = "active loans differ")]
+    fn loan_state_join_concrete_empty_fails_loud() {
+        // The symmetric direction: Concrete(with_loan) ∨ Concrete(empty) also
+        // fails loudly — the invariant is not order-dependently bypassable.
+        let empty = StateFact::Reachable(State::empty());
+        let mut loaned = StateFact::Reachable(with_loan(7, 1, LoanKind::Shared, None));
+        let _ = loaned.join(&empty);
+    }
+
+    #[test]
+    fn concrete_empty_is_not_lattice_bottom() {
+        // The load-bearing distinction: a reachable empty state is a distinct
+        // value from ⊥ (so structural emptiness never masquerades as bottom).
+        assert_ne!(
+            StateFact::Reachable(State::empty()),
+            StateFact::Bottom,
+            "Concrete(empty) must not equal lattice Bottom"
+        );
+        assert_eq!(<StateFact as Lattice>::bottom(), StateFact::Bottom);
     }
 
     #[test]
@@ -751,7 +847,7 @@ mod tests {
         // x <= join(x, y)
         let ab = joined(&a, &b);
         let mut re = ab.clone();
-        assert!(!re.join(&a), "a <= join(a, b)");
+        assert!(!re.join_data(&a), "a <= join(a, b)");
         assert_eq!(re, ab);
         // The shared loan survives the merge unchanged.
         assert_eq!(ab.loans.get(&7).map(|l| l.kind), Some(LoanKind::Shared));
@@ -799,7 +895,7 @@ mod tests {
             Schedule::Lifo,
             Schedule::BlockOrder,
         ];
-        let reference: Vec<Option<State>> = {
+        let reference: Vec<Option<StateFact>> = {
             let sol = solve_with(&own, &own, Schedule::Rpo);
             (0..cfg.blocks.len())
                 .map(|b| sol.in_fact(b).cloned())
@@ -807,7 +903,7 @@ mod tests {
         };
         for sched in schedules {
             let sol = solve_with(&own, &own, sched);
-            let got: Vec<Option<State>> = (0..cfg.blocks.len())
+            let got: Vec<Option<StateFact>> = (0..cfg.blocks.len())
                 .map(|b| sol.in_fact(b).cloned())
                 .collect();
             assert_eq!(
@@ -852,11 +948,11 @@ mod tests {
     fn state_serialization_is_not_required_but_var_map_is_deterministic() {
         // A BTreeMap iterates in key order, so two equal states compare equal and
         // hash-independent — the property the fixpoint's `!=` convergence relies on.
-        let mut a = State::bottom();
+        let mut a = State::empty();
         a.var.insert(2, OWNED);
-        a.var.insert(1, super::RELEASED);
-        let mut b = State::bottom();
-        b.var.insert(1, super::RELEASED);
+        a.var.insert(1, RELEASED);
+        let mut b = State::empty();
+        b.var.insert(1, RELEASED);
         b.var.insert(2, OWNED);
         assert_eq!(a, b, "insertion order must not affect State equality");
         let keys: Vec<u32> = a.var.keys().copied().collect();

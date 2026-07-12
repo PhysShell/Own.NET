@@ -101,6 +101,37 @@ skipped whole (never half-asserted).
 
 The 66/66 covered parity result is unchanged after all four fixes.
 
+## Review round 3 — explicit lattice bottom (the one remaining blocker)
+
+Round 2's `State::is_bottom()` inferred ⊥ from *structural emptiness* (all maps
+empty), which conflated the lattice bottom with a **real reachable predecessor
+that happens to carry an empty state**. That let `join(Concrete(empty),
+Concrete(with_loan))` short-circuit as an identity and bypass the loan
+invariant — order-independently.
+
+Fixed by making bottom an **explicit variant**, never inferred:
+
+```rust
+enum StateFact { Bottom, Reachable(State) }
+```
+
+- `StateFact` is the solver's `Lattice::Fact`; `Bottom` is the identity, only
+  ever the seed for a block none of whose predecessors are evaluated yet.
+- `State::join_data` (concrete ∨ concrete) enforces the full loan invariant
+  **unconditionally** — no bottom special-casing lives there.
+- `join`: `⊥ ∨ x = x`, `x ∨ ⊥ = x`; `Concrete(empty) ∨ Concrete(with_loan)` (and
+  the symmetric direction) **fail loudly**; `Concrete(empty) ≠ Bottom`.
+- `transfer(Bottom) = Bottom` (no info in → no info out; a transient that is
+  overwritten once a real predecessor arrives — a reachable block's converged
+  in-fact is always `Reachable`).
+
+New tests: `bottom_join_loan_state_is_identity`,
+`concrete_empty_join_loan_state_fails_loud`,
+`loan_state_join_concrete_empty_fails_loud`,
+`concrete_empty_is_not_lattice_bottom`. Verified unchanged after the fix:
+66/66 curated parity, 160/160 generated differential, schedule/permutation
+tests, and both Python fixtures byte-identical.
+
 ## Deliberately preserved Python behaviors (matched, not "fixed")
 
 - **OWN020 for syntax errors** (from checkpoint 1) — still matched.
