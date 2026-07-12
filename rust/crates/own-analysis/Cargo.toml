@@ -14,8 +14,12 @@ version = "0.1.0"
 # (ownership next) add own-cfg / own-diagnostics. The DAG edge test
 # (own-diagnostics/tests/dag.rs) already allows that (reviewed) set.
 [dependencies]
+own-cfg = { path = "../own-cfg" }
+own-syntax = { path = "../own-syntax" }
+own-diagnostics = { path = "../own-diagnostics" }
 
 [dev-dependencies]
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

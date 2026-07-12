@@ -12,6 +12,8 @@
 //! (`tests/parity.rs`, replaying `tests/fixtures/diag_parity.json`) pins the
 //! Rust output to it on `(path, line, code)`.
 
+pub mod ownership;
 pub mod solver;
 
+pub use ownership::analyze;
 pub use solver::{solve, solve_with, Analysis, ControlFlowGraph, Lattice, Schedule, Solution};
