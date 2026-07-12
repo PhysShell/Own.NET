@@ -89,6 +89,29 @@ public sealed class AsyncReader : IDisposable, IAsyncDisposable
     }
 }
 
+// #240 review P1 — the real async cleanup lives in a BASE class's DisposeAsync, and the base does
+// NOT implement IDisposable (so the base-cascade check alone lets it through). An empty sync
+// Dispose on the derived enumerator must STILL leak: an IAsyncDisposable ANYWHERE in the interface
+// set (inherited included) disqualifies the exemption.
+public abstract class AsyncOwnerBase : IAsyncDisposable
+{
+    private readonly System.Threading.CancellationTokenSource _cts = new();
+    public System.Threading.Tasks.ValueTask DisposeAsync()           // REAL cleanup, on the BASE
+    {
+        _cts.Dispose();
+        return default;
+    }
+}
+public sealed class InheritedAsyncEnumerator : AsyncOwnerBase, IEnumerator<int>
+{
+    private int _i;
+    public int Current => _i;
+    object IEnumerator.Current => Current;
+    public bool MoveNext() => ++_i <= 3;
+    public void Reset() => _i = 0;
+    public void Dispose() { }   // empty sync, but the base owns a real DisposeAsync
+}
+
 public sealed class EmptyDisposeConsumers
 {
     // SILENT: an empty-Dispose enumerator local, iterated and never disposed (the ClosedXML shape).
@@ -144,5 +167,15 @@ public sealed class EmptyDisposeConsumers
     {
         var ar = new AsyncReader();
         return ar.Read();          // never disposed (sync or async) -> LEAK
+    }
+
+    // FLAGGED (control, #240 review P1): the enumerator's own sync Dispose is empty, but its BASE
+    // owns a real DisposeAsync -> an inherited IAsyncDisposable must still leak.
+    public int LeakInheritedAsync()
+    {
+        var ia = new InheritedAsyncEnumerator();
+        var n = 0;
+        while (ia.MoveNext()) n++; // base DisposeAsync is real -> LEAK
+        return n;
     }
 }

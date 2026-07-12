@@ -81,6 +81,10 @@ bool noProjectRefs = false;
 // run that did not request it (the other config — emitEvents/flowLocals/reportStats — are locals,
 // re-initialized each call, so they need no reset; only this static one does). CodeRabbit.
 BodyThrowEdges = false;
+// #240 (review P2): WeaverOwnedFiles is the other process-global mutable state — a file recorded
+// as belonging to a Fody-enabled project must not stay "weaver-owned" for an unrelated later
+// invocation in the same process (a sticky false positive). Same reset discipline as above.
+WeaverOwnedFiles.Clear();
 // `extract` verb: the tool's one job is extraction, so an optional leading `extract`
 // makes the advertised `ownsharp-extract extract --project App.csproj --out facts.json`
 // UX real while the bare form (no verb) stays the default and back-compatible. (The
@@ -1444,23 +1448,36 @@ static bool HasEmptyDisposeBody(ITypeSymbol? t)
     // Issue #238 SOUNDNESS gate: an empty SOURCE body proves nothing about the COMPILED body —
     // IL weavers (Janitor.Fody wove the real cleanup into ClosedXML's XLWorkbook.Dispose(),
     // 263 silently-swallowed findings) rewrite Dispose at build time, and source-level analysis
-    // cannot prove their absence. So the exemption is confined to the shape that motivated
-    // #225 and is idiomatically stubbed, not woven: ENUMERATORS (IEnumerator forces IDisposable
-    // onto types that usually hold nothing). Everything else keeps the honest warning.
-    if (!nt.AllInterfaces.Any(i => i.SpecialType
-            is SpecialType.System_Collections_IEnumerator
-            or SpecialType.System_Collections_Generic_IEnumerator_T))
+    // cannot prove their absence. So the exemption is confined to the ONE shape whose empty
+    // Dispose is FORCED by the language, not authored: `IEnumerator<T>` — the generic enumerator
+    // interface is the only one that transitively requires IDisposable (IEnumerator<T> : IEnumerator,
+    // IDisposable). The non-generic System.Collections.IEnumerator does NOT extend IDisposable, so a
+    // type that pairs them coupled the two contracts itself — the motivating proof does not apply, and
+    // it keeps the honest warning (review #240).
+    // Matched by name/arity/namespace, not SpecialType: in the source-only extraction (no wired
+    // corelib reference) the well-known-type SpecialType is often unset, so `IEnumerator<T>` would
+    // slip through a SpecialType check. `System.Collections.Generic.IEnumerator`1` is the exact
+    // interface that transitively forces IDisposable.
+    if (!nt.AllInterfaces.Any(i => i.Name == "IEnumerator"
+                                   && i.TypeArguments.Length == 1
+                                   && i.ContainingNamespace?.ToString() == "System.Collections.Generic"))
         return false;
     // The base must not own a Dispose we'd be silently skipping — only `object` / a non-IDisposable base.
     for (var b = nt.BaseType; b is not null && b.SpecialType != SpecialType.System_Object; b = b.BaseType)
         if (ImplementsIDisposable(b))
             return false;
     // A non-empty DisposeAsync() can do the REAL cleanup even when the sync Dispose() is an empty
-    // compatibility no-op (a type implementing both IDisposable AND IAsyncDisposable). The flow
-    // detector already treats DisposeAsync() as a release, so an undisposed local of such a type is a
-    // real leak — conservatively refuse to exempt any type that declares its own DisposeAsync (Codex).
-    // #238: an EXPLICIT `IAsyncDisposable.DisposeAsync` has metadata name "…DisposeAsync", so match
-    // by simple name OR explicit-implementation target.
+    // compatibility no-op. The flow detector treats DisposeAsync() as a release, so an undisposed
+    // local of such a type is a real leak. ANY IAsyncDisposable in the interface set — declared on
+    // this type OR INHERITED from a base (review #240 P1: the base's real DisposeAsync would
+    // otherwise be silently skipped, exactly the #238 false-negative class) — disqualifies the
+    // exemption: a type with async disposal is no longer the "simple enumerator holding nothing"
+    // this narrow rule is for.
+    if (nt.AllInterfaces.Any(i => i.Name == "IAsyncDisposable"
+                                  && i.ContainingNamespace?.ToString() == "System"))
+        return false;
+    // Belt-and-braces for a bare `DisposeAsync()` method that the flow detector may treat as a
+    // release without the type formally implementing IAsyncDisposable (declared or explicit-impl).
     if (nt.GetMembers().OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0
             && (m.Name == "DisposeAsync"
                 || m.ExplicitInterfaceImplementations.Any(x => x.Name == "DisposeAsync"))))
@@ -1508,19 +1525,31 @@ static bool SourceTreeHasWeaverConfig(INamedTypeSymbol nt)
     }
 }
 
-// #238/#240: FodyWeavers.xml in `startDir` or any ancestor. Unreadable filesystem state is
-// treated as "a weaver may be present" — the callers then withhold the exemption.
+// #238/#240: FodyWeavers.xml in `startDir` or any ancestor. GENUINELY fail-closed on an
+// unreadable ancestor (review #240 P3): `File.Exists` returns false on access-denied — swallowing
+// exactly the case we must treat as "a weaver may be present" — so we probe with
+// `File.GetAttributes`, which THROWS on a permission error while still reporting a plain
+// not-found. Absent config -> keep walking; unreadable state -> withhold the exemption.
 static bool AncestorsHaveWeaverConfig(string? startDir)
 {
     try
     {
         for (var dir = startDir; !string.IsNullOrEmpty(dir); dir = Path.GetDirectoryName(dir))
-            if (File.Exists(Path.Combine(dir, "FodyWeavers.xml")))
-                return true;
+        {
+            var candidate = Path.Combine(dir, "FodyWeavers.xml");
+            try
+            {
+                _ = File.GetAttributes(candidate);
+                return true;   // present AND readable -> a weaver is configured here
+            }
+            catch (FileNotFoundException) { }        // no config in this dir — keep walking
+            catch (DirectoryNotFoundException) { }    // this ancestor is gone — keep walking
+        }
     }
-    catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException)
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                              or System.Security.SecurityException or ArgumentException)
     {
-        return true;
+        return true;   // cannot prove the config is absent -> fail closed, no exemption
     }
     return false;
 }

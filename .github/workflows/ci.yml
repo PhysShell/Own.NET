@@ -1123,16 +1123,21 @@ jobs:
           # must NOT be exempted — the real cleanup is async and the flow detector treats it as a release.
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ar' is never disposed" \
             || { echo "FAIL: #225 flow: a type with a real DisposeAsync (empty sync Dispose) must still leak"; exit 1; }
+          # #240 review P1: an enumerator whose sync Dispose is empty but whose BASE owns a real
+          # DisposeAsync (inherited IAsyncDisposable) must still leak — inherited async cleanup was
+          # the same silent-false-negative class #238 exists to close.
+          echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'ia' is never disposed" \
+            || { echo "FAIL: #240 flow: an inherited-IAsyncDisposable enumerator must still leak"; exit 1; }
           # #238 soundness: ScratchReader (empty source Dispose, NOT an enumerator) must stay flagged
           # in the flow path too — a weaver can rewrite a non-enumerator Dispose at build time.
           echo "$out" | grep -qE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN001\].*'s' is never disposed" \
             || { echo "FAIL: #238 flow: a NON-enumerator empty-source-Dispose local must stay flagged"; exit 1; }
           # exactly 5 EmptyDisposeSample findings -> the two provably-empty-Dispose ENUMERATOR locals
           # ('e' plain, 'x' explicit-interface — the #238 coverage fix) are SILENT; any leak of them
-          # would push the count past 5.
+          # would push the count past 6.
           n225=$(echo "$out" | grep -cE "EmptyDisposeSample\.cs:[0-9]+:.*\[OWN00")
-          [ "$n225" = "5" ] \
-            || { echo "FAIL: #225/#238 flow: expected exactly 5 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
+          [ "$n225" = "6" ] \
+            || { echo "FAIL: #225/#238 flow: expected exactly 6 EmptyDisposeSample findings (controls only), got $n225"; exit 1; }
           # #238 weaver kill-switch: a directory carrying FodyWeavers.xml disables the exemption even
           # for a perfect enumerator shape — the weaved fixture's local must be FLAGGED.
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
