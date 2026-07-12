@@ -54,14 +54,31 @@ resolved on current `main`** through the actual pipeline, not merely inferred
 from commit messages. The literal gate does not trip and the `.own` reference
 frozen here is independently green.
 
-**Remaining breadth caveat.** This verifies the *specific* flagged regression
-via its isolated pins; it is not the full 5-repo OSS sweep (MahApps.Metro,
-MaterialDesignInXamlToolkit, AvalonEdit, ShareX, ClosedXML at their pinned
-commits + the WindowsDesktop ref pack). A reviewer who wants global
-"no *other* disappearing finding" assurance can run that full sweep; the pins
-above are the tighter, more precise discharge of the exact documented gap.
-**The freeze is cheap to revert regardless:** one regenerable command over the
-green core, and nothing is built on it until checkpoint-1 review passes.
+**Real-repo confirmation on ClosedXML itself.** Beyond the isolated pins, the
+actual sweep target was cloned and re-measured on current `main`
+(`4e89dced`, the exact commit from the remeasure note): `ClosedXML/ClosedXML.csproj`
++ `ClosedXML.Examples/ClosedXML.Examples.csproj` built (net8.0), then
+`scripts/own-check.sh --flow-locals -- ClosedXML.Examples.csproj`. The
+`XLWorkbook.Dispose()` at `ClosedXML/Excel/XLWorkbook.cs:874` is still empty in
+source ("Leave this empty so that Janitor.Fody can do its work") with
+`ClosedXML/FodyWeavers.xml` present — the exact weaved shape. Result: **119
+OWN001 findings, every one an undisposed `XLWorkbook` `wb`/`workbook` local**.
+Under the #233 over-exemption those were the locals silenced (the repo collapsed
+to ~5); on current `main` they are **flagged again** — the disappearing findings
+have *returned* on the real repository. (119 vs the note's "263 call sites" is a
+scope difference — Examples project only, net8.0 TFM, path-sensitive
+`--flow-locals` — not a discrepancy in the conclusion: the over-exemption is
+gone.)
+
+**Remaining breadth caveat.** This confirms the documented regression on its
+real source and its isolated pins; it is not the full 5-repo sweep (the four WPF/
+WinForms repos — MahApps.Metro, MaterialDesignInXamlToolkit, AvalonEdit, ShareX —
+additionally need the WindowsDesktop ref pack to build on Linux). A reviewer who
+wants global "no *other* disappearing finding" assurance can run those four; the
+ClosedXML re-measure above is the precise discharge of the one gap the last
+remeasure actually flagged. **The freeze is cheap to revert regardless:** one
+regenerable command over the green core, and nothing is built on it until
+checkpoint-1 review passes.
 
 ## The comparison surface
 
