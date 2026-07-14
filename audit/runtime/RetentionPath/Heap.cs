@@ -253,6 +253,12 @@ namespace OwnNet.Audit.Runtime
             return string.Equals(simple, wanted, StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// The dominator tree of the whole live graph, with retained sizes. This is the well-posed
+        /// version of "who holds it": not a path, but the one reference whose removal frees the object.
+        /// </summary>
+        public DominatorTree Dominate() => DominatorTree.Build(Heap);
+
         public void Dispose()
         {
             _runtime.Dispose();

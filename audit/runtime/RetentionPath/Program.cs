@@ -42,6 +42,11 @@ namespace OwnNet.Audit.Runtime
             if (args.Length == 0) return Usage();
             string verb = args[0].ToLowerInvariant();
 
+            // The algorithm, checked against graphs whose dominators are known by hand. No target,
+            // no Windows, no ClrMD — so it can be run anywhere, including by a reviewer.
+            if (verb == "selftest")
+                return DominatorTree.SelfTest(Console.WriteLine) ? 0 : 1;
+
             int pid = ArgInt(args, "--pid", 0);
             string? dump = Arg(args, "--dump");
             if (pid == 0 && dump == null)
@@ -60,6 +65,7 @@ namespace OwnNet.Audit.Runtime
                 {
                     case "census": return Census(walker, args);
                     case "roots": return Roots(walker, args);
+                    case "dominators": return Dominators(walker, args);
                     default: return Usage();
                 }
             }
@@ -211,6 +217,73 @@ namespace OwnNet.Audit.Runtime
             return 1;   // retention found
         }
 
+        /// <summary>
+        /// The question `roots` cannot answer: which single reference, if cut, frees the object —
+        /// and how much memory does cutting it free. Dominance answers it; a path walk cannot.
+        /// </summary>
+        private static int Dominators(RetentionWalker walker, string[] args)
+        {
+            int top = ArgInt(args, "--top", 15);
+            long minMb = ArgInt(args, "--min-mb", 1);
+
+            Console.WriteLine("building the object graph and dominating it (Cooper-Harvey-Kennedy)...");
+            var tree = walker.Dominate();
+            Console.WriteLine($"{tree.Count - 1:N0} reachable objects, " +
+                              $"{Mb(tree.TotalRetained):N0} MB retained in total");
+            Console.WriteLine();
+
+            var hits = tree.Top(top, minMb * 1024 * 1024);
+
+            Console.WriteLine("DOMINATORS — cut this ONE reference and the retained bytes go away:");
+            Console.WriteLine();
+            if (hits.Count == 0)
+            {
+                Console.WriteLine($"    (none: no single object dominates as much as {minMb} MB)");
+            }
+            else
+            {
+                Console.WriteLine($"{"retained MB",13}{"own B",10}  {"type",-50}");
+                foreach (var h in hits)
+                    Console.WriteLine($"{Mb(h.RetainedBytes),13:N1}{h.OwnBytes,10:N0}  {Short(tree.TypeOf(h.Node)),-50}");
+            }
+
+            // THE headline, and the reason this verb exists. If the biggest single dominator accounts
+            // for a sliver of the retained heap, then the memory is held from SEVERAL places at once —
+            // no one reference dominates it, and cutting any one of them frees nothing. A shortest-path
+            // walk cannot tell you that; it will happily name one path and send you off to cut it.
+            long biggest = hits.Count > 0 ? hits[0].RetainedBytes : 0;
+            double explained = tree.TotalRetained == 0 ? 0 : 100.0 * biggest / tree.TotalRetained;
+            Console.WriteLine();
+            if (explained >= 25)
+            {
+                Console.WriteLine($">>> ONE reference holds {explained:N1}% of the retained heap " +
+                                  $"({Mb(biggest):N0} MB of {Mb(tree.TotalRetained):N0} MB). Cut it and that memory returns.");
+                Console.WriteLine();
+                Console.WriteLine("its dominator chain (root -> … -> it):");
+                foreach (var t in tree.ChainTo(hits[0].Node, 24))
+                    Console.WriteLine("    " + Short(t));
+            }
+            else
+            {
+                Console.WriteLine($">>> NO single reference holds this memory — the biggest dominator accounts for " +
+                                  $"only {explained:N1}% ({Mb(biggest):N0} MB of {Mb(tree.TotalRetained):N0} MB).");
+                Console.WriteLine("    The objects are reachable from SEVERAL roots at once, so cutting any one of");
+                Console.WriteLine("    them frees nothing. The fix must detach all of them. (A shortest-path walk");
+                Console.WriteLine("    would have named one and been confidently wrong.)");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("RETAINED BY DOMINATOR TYPE — which class of object owns the subtrees.");
+            Console.WriteLine("NB this is STRUCTURE, not blame: a GTDGoody dominating its own fields is not a leak.");
+            Console.WriteLine("Read it as 'where the bytes live', then ask `roots` who keeps that alive.");
+            Console.WriteLine();
+            Console.WriteLine($"{"retained MB",13}{"dominated",11}  {"dominator type",-50}");
+            foreach (var (type, retained, n) in tree.ByDominatorType(12))
+                Console.WriteLine($"{Mb(retained),13:N1}{n,11:N0}  {Short(type),-50}");
+
+            return hits.Count > 0 ? 1 : 0;
+        }
+
         private static double Mb(long bytes) => bytes / 1024.0 / 1024.0;
 
         private static string Short(string t) =>
@@ -231,8 +304,13 @@ namespace OwnNet.Audit.Runtime
         private static int Usage()
         {
             Console.Error.WriteLine("usage:");
-            Console.Error.WriteLine("  RetentionPath census --pid <n> | --dump <path> [--out runtime.json] [--top 25]");
-            Console.Error.WriteLine("  RetentionPath roots  --pid <n> | --dump <path> --type <TypeName> [--sample 200] [--max-hops 40] [--out runtime.json]");
+            Console.Error.WriteLine("  RetentionPath census     --pid <n> | --dump <path> [--out runtime.json] [--top 25]");
+            Console.Error.WriteLine("  RetentionPath roots      --pid <n> | --dump <path> --type <TypeName> [--sample 200] [--max-hops 40] [--out runtime.json]");
+            Console.Error.WriteLine("  RetentionPath dominators --pid <n> | --dump <path> [--top 15] [--min-mb 1]");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("  census      is there anything retained at all, or is the heap just uncollected garbage?");
+            Console.Error.WriteLine("  roots       what holds the TYPICAL instance of a type (sampled, ranked)");
+            Console.Error.WriteLine("  dominators  which ONE reference, if cut, frees the memory — and how much");
             return 2;
         }
     }

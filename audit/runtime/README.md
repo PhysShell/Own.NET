@@ -112,18 +112,62 @@ Output is the **`runtime.json` contract** (`OwnAudit/docs/runtime-contract.md`),
 as retained is `confirmed`; retention with **nothing static to explain it** is `runtime-only` — the
 analyzer's blind spot, and therefore a rule request.
 
+### `dominators` — which ONE reference, if cut, frees the memory
+
+`roots` tells you what the *typical* path is. It cannot tell you that **cutting** that path would free
+anything, because an object held by two references at once is attributed to whichever is nearer. That is
+not a shortcoming of the implementation; the question "who holds it" is simply ill-posed. The well-posed
+question is:
+
+> which single reference, if cut, makes this object collectable — and how much memory does that free?
+
+Dominance answers it. `D` dominates `X` when **every** path from a root to `X` goes through `D`, so `X`'s
+immediate dominator is its one true retainer, and `D`'s **retained size** — everything it dominates — is
+what you get back by dropping the reference to `D`. This is what Eclipse MAT and dotMemory are built on,
+and it is why they can say *"detach this and you get 1.4 GB back"* while a path walk cannot.
+
+```powershell
+RetentionPath.exe dominators --pid 1234 --top 8
+
+3 727 278 reachable objects, 361 MB retained in total
+
+DOMINATORS — cut this ONE reference and the retained bytes go away:
+  retained MB     own B  type
+         24,2    74 584  System.Object[]
+         21,5        48  BaseDict.DictionaryList
+          9,5    16 344  System.Object[]
+
+>>> NO single reference holds this memory — the biggest dominator accounts for only 6,7%
+    (24 MB of 361 MB). The objects are reachable from SEVERAL roots at once, so cutting any
+    one of them frees nothing. The fix must detach all of them.
+```
+
+**That verdict is the point of the verb.** On the SectorTS leak, `roots` names the static
+`PropertyChanged` event and it is not wrong — but `dominators` shows that detaching it *alone* frees
+nothing, because the same documents are also held by a static `List<Object>`. And that is exactly what
+the real fix turned out to be: `UnregisterEventHandlers(false)` detaches **several** references at once.
+A shortest-path walk would have named one of them, confidently, and the fix would not have worked.
+
+Algorithm: **Cooper–Harvey–Kennedy**, *"A Simple, Fast Dominance Algorithm"* (2001) — the iterative
+formulation, a page of code, converging in a couple of passes on real graphs. (PerfView, MIT, is the
+closest .NET reference; note it computes a *spanning tree* with inclusive sizes, which approximates
+this.) The graph is held as CSR — a 4M-object heap will not fit in `List<List<int>>`.
+
+Correctness is not taken on faith:
+
+* `RetentionPath selftest` — no target, no Windows, no ClrMD — checks the algorithm against graphs whose
+  dominators are known by hand: a **diamond** (an object reachable through both branches is dominated by
+  neither — the exact case a path walk gets wrong), a **chain** (retained size accumulates), and a
+  **cycle** (a gate dominates a reference cycle, which reference counting can never free).
+* At run time the super-root's retained size must equal the total size of the reachable graph, or the
+  walk **refuses to report**. A wrong dominator tree does not fail loudly — it just tells you to cut the
+  wrong reference.
+
+Cost: ~48 s and ~600 MB of analyzer memory for a 3.7 M-object heap, attached live. A 40 M-object heap
+will not fit; take a dump, or sample with `roots`.
+
 ### What it does not do (read this before trusting it)
 
-* **It cannot tell you that cutting the top retainer would free the object.** This is the important
-  one. The histogram partitions instances by their *shortest* path, so when an object is held by two
-  references at once, it is attributed to whichever is nearer — and the run above shows exactly that:
-  50 % of the GTDs come out under the static event and 44 % under a static `List<Object>`, which most
-  likely means many are held by **both**. Detach the event and they still will not collect.
-  The question *"which single reference, if cut, frees this object — and how much memory does that
-  free"* is well-posed, and it has a standard answer this tool does not implement: a **dominator tree**
-  with retained sizes (Lengauer–Tarjan, or the iterative Cooper–Harvey–Kennedy formulation; it is what
-  Eclipse MAT and dotMemory are built on). That is the honest next step, and it is a feature, not a
-  tweak.
 * **A `[stack]` root is not retention.** It means the object is live in a frame *right now*. The tool
   labels it as such precisely so it is not mistaken for a leak; the same is true of `[finalizer]`.
 * **It matches the TYPE, not the type's spelling.** Asking for `GTDGoody` will not match
