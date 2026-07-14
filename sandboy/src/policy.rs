@@ -26,6 +26,15 @@ pub struct Policy {
     /// curated `DEFAULT_DENY` below is used.
     #[serde(default)]
     pub seccomp_deny: Option<Vec<String>>,
+    /// Environment variable NAMES passed through from the launcher's own
+    /// environment to the wrapped command. Every other variable is cleared
+    /// before exec. Default (empty): the wrapped command gets no inherited
+    /// environment at all — deny-all is the safe default for an untrusted
+    /// command, since the launcher's environment is where CI credentials
+    /// (`GITHUB_TOKEN`, cloud/package-registry secrets, `SSH_AUTH_SOCK`, …)
+    /// live. Allowlist by name, not by stripping a denylist of known-bad ones.
+    #[serde(default)]
+    pub env_allow: Vec<String>,
 }
 
 impl Policy {
@@ -127,4 +136,62 @@ fn syscall_number(name: &str) -> Option<i64> {
         _ => return None,
     };
     Some(nr as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `env_allow` deny-all-by-default: an older policy file written before
+    /// this field existed must still parse, with `env_allow` defaulting to
+    /// empty — i.e. the wrapped command gets NO inherited environment, not
+    /// "whatever it used to get" (there was no env handling before, so this
+    /// is the conservative direction: adding the field can only narrow what
+    /// a pre-existing policy grants, never widen it).
+    #[test]
+    fn env_allow_defaults_to_empty_when_absent() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert!(policy.env_allow.is_empty());
+    }
+
+    #[test]
+    fn env_allow_parses_explicit_names() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            env_allow = ["PATH", "HOME"]
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert_eq!(
+            policy.env_allow,
+            vec!["PATH".to_string(), "HOME".to_string()]
+        );
+    }
+
+    #[test]
+    fn seccomp_deny_default_is_nonempty_and_includes_ptrace() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        let numbers = policy.seccomp_deny_numbers().unwrap();
+        assert!(!numbers.is_empty());
+        assert!(numbers.contains(&{ libc::SYS_ptrace }));
+    }
+
+    #[test]
+    fn seccomp_deny_explicit_unknown_name_is_a_hard_error() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            seccomp_deny = ["not_a_real_syscall_name"]
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert!(policy.seccomp_deny_numbers().is_err());
+    }
 }
