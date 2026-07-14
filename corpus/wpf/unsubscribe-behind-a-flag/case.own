@@ -1,0 +1,26 @@
+// OwnLang model of SectorTS `BrokerDataClasses/GTD.cs` — a document that subscribes to a STATIC
+// publisher in its constructor (`:5192`) and whose `-=` lives behind a parameter, in a method that
+// is not a teardown (`UnregisterEventHandlers(bool UnregOnlyGoodys)`, `:5259`). Callers pass `true`;
+// one whole subsystem (DocCloud) never calls it at all.
+//
+// `acquire` == `AppSettings.Options.PropertyChanged += h`, `release` == the matching `-=`.
+// The flag is modelled as the branch that returns before the release — the path that skips cleanup —
+// so the core flags the un-released subscription as OWN001.
+//
+// NOTE what this reduction proves: **the core already gets this right.** Give it a release that is
+// not reached on every path and it says so. The bug is upstream, in the extractor's release-matching,
+// which emits `released: true` from the mere *existence* of a matching `-=` in the class
+// (`OwnSharp.Extractor/Program.cs:13`) and never asks whether it runs. See notes.md and #278.
+module Corpus
+resource Subscription {
+  acquire Subscribe
+  release Dispose
+  kind "subscription token"
+}
+fn Document(options: int, unregOnlyChildren: int) {
+  let sub = acquire Subscription(options);   // ctor: `+=` on the process-wide static publisher
+  if (unregOnlyChildren) {
+    return;                                   // caller passed `true` -> the static `-=` is skipped
+  }
+  release sub;                                // the `-=` only a caller passing `false` ever reaches
+}
