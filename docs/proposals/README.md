@@ -54,6 +54,7 @@ proposal is marked `done` with a pointer.
 | [P-032](P-032-own-arch-facts.md) | Own.Arch facts & intent model: deterministic architecture-fact extractor/evaluator core (deepens P-023) | draft |
 | [P-033](P-033-probabilistic-data-structures.md) | In-process sketches & bitmap indexes for legacy .NET diagnostics (Top-K, CMS, t-digest, Bloom) | draft |
 | [P-034](P-034-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
+| [P-035](P-035-proof-carrying-findings.md) | Proof-carrying findings: replayable derivation certificates checked by a small independent verifier | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
