@@ -44,7 +44,67 @@ audit/runtime/
   PropertyChangedStorm/  # C# PropertyChanged-storm profiler — Windows/build-required, NOT CI-gated
     PropertyChangedStorm.csproj  # net472; Microsoft.Diagnostics.Tracing.TraceEvent
     Program.cs         # TraceEvent over an .etl: per-property raise frequency, storm findings
+  RetentionPath/       # C# retention paths — Windows/build-required, NOT CI-gated
+    RetentionPath.csproj  # net472; Microsoft.Diagnostics.Runtime
+    Heap.cs            # ClrMD: mark from the GC roots; root -> object path with field names
+    Program.cs         # `census` (is it retained at all?) and `roots` (who holds it?)
 ```
+
+## Retention paths — is it retained, and by whom (Plan.md §4)
+
+`HeapCounter` answers *"how many instances of T are on the heap"*. That is **not** the same question as
+*"how many are retained"*, and conflating them is how a leak hunt goes wrong:
+`ClrHeap.EnumerateObjects()` walks the heap segments linearly and returns everything allocated —
+**including garbage the GC has not collected yet**. A big heap is not evidence of a leak. `HeapCounter`
+mitigates this by forcing a GC in the target first (SematixTrace), which works when you can drive the
+target; `RetentionPath` does not need to, because marking from the roots answers it directly.
+
+```powershell
+# 1. Is there anything to hunt? (attaches to a LIVE process — no procdump needed)
+RetentionPath.exe census --pid 1234 --out runtime.json
+
+roots                :          308 objects
+on the heap          :    4 270 155 objects          573 MB
+REACHABLE from roots :    4 144 653 objects          403 MB
+uncollected garbage  :      125 502 objects          170 MB
+>>> 70,4% of the heap is genuinely RETAINED — something holds it; run `roots`
+```
+
+If that share is low, stop: there is no reference to hunt, and the next question is about GC timing, not
+about who holds what.
+
+```powershell
+# 2. Who holds it? Every hop names the field it traverses.
+RetentionPath.exe roots --pid 1234 --type GTDGoody
+
+=== BrokerDataClasses.GTDGoody — retained via [static-field], 4 hops ===
+    [PinnedHandle] System.Object[]
+    BrokerDataClasses.GTD
+    BrokerDataClasses.CalcProcentGTD  (.<CalcProcentGTD>k__BackingField)
+    BrokerDataClasses.GTDGoody  (.fMainObject)
+```
+
+A dump works too (`--dump target.dmp`) and is the right choice when the target must not be paused.
+Output is the **`runtime.json` contract** (`OwnAudit/docs/runtime-contract.md`), so OwnAudit's
+`runtime/correlate.py` consumes it with no adapter: a static leak finding whose type also shows up here
+as retained is `confirmed`; retention with **nothing static to explain it** is `runtime-only` — the
+analyzer's blind spot, and therefore a rule request.
+
+### What it does not do (read this before trusting it)
+
+* **The path it reports is the SHORTEST one, not necessarily the most explanatory one.** An object with
+  many retainers has many paths; breadth-first returns the nearest root. That may be a prototype, a
+  cache, or the stack — while the *interesting* retainer is eight hops away through a delegate's
+  invocation list. Pass `--max-paths 3` and read them all. "Which retainer holds *most* of the N
+  instances" is the obviously-next feature and is not built.
+* **A `[stack]` root is not retention.** It means the object is live in a frame *right now*. The tool
+  labels it as such precisely so it is not mistaken for a leak; the same is true of `[finalizer]`.
+* **It matches the TYPE, not the type's spelling.** Asking for `GTDGoody` will not match
+  `System.Func<BrokerDataClasses.GTDGoody, System.Boolean>` — a cached lambda whose generic *argument*
+  mentions it. (It used to, and confidently reported a 2-hop path to the wrong object. A tool that
+  points at the wrong culprit is worse than no tool.)
+* Attaching **suspends** the target for the duration of the walk. On a multi-GB heap that is minutes,
+  not seconds — take a dump instead.
 
 ## How the leak-harness works (Plan.md §4.1)
 
