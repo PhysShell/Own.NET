@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Microsoft.Diagnostics.Runtime;
 
 namespace OwnNet.Audit.Runtime
 {
     /// <summary>
-    /// Mark-from-roots over a target's managed heap, and the root -> object path for a
+    /// Mark-from-roots over a target's managed heap, and the root -> object paths for a
     /// suspect type.
     ///
     /// WHY THIS IS NOT HeapCounter. <see cref="HeapCounter"/> answers "how many instances
@@ -14,14 +15,23 @@ namespace OwnNet.Audit.Runtime
     /// because <c>ClrHeap.EnumerateObjects()</c> walks the heap segments linearly and
     /// returns everything allocated — including garbage the GC has not collected yet. A
     /// big heap is not evidence of a leak. HeapCounter mitigates this by forcing a GC in
-    /// the target first, which works when you can (SematixTrace); this type does not need
-    /// to, because marking from the roots answers the question directly:
+    /// the target first (SematixTrace), which works when you can drive the target; this
+    /// type does not need to, because marking from the roots answers the question:
     ///
     ///   reachable ≈ heap   -> genuinely retained; something holds it
     ///   reachable &lt;&lt; heap  -> not a leak; the GC simply has not collected yet
     ///
-    /// That distinction is the difference between a leak hunt and a wild goose chase, and
-    /// it is cheap: one mark pass.
+    /// WHY IT SAMPLES. "Who holds this object" is ill-posed for an object reachable from
+    /// many roots — there are as many answers as there are paths, and the shortest one is
+    /// an arbitrary pick, not an explanation. Ask instead: **what holds the typical
+    /// instance?** So the walk takes a SAMPLE of the retained instances, computes each
+    /// one's shortest path in a single BFS, and reports the paths as a HISTOGRAM. The
+    /// retainer that accounts for 129,900 of 130,000 instances is the leak; the three that
+    /// hang off the stack or a prototype are noise, and reading one of them as "the answer"
+    /// is how a leak hunt goes wrong.
+    ///
+    /// The principled version of this is a dominator tree (which single reference, if cut,
+    /// frees the object — and how much memory that frees). See the README.
     /// </summary>
     internal sealed class RetentionWalker : IDisposable
     {
@@ -95,68 +105,133 @@ namespace OwnNet.Audit.Runtime
         }
 
         /// <summary>
-        /// The GC-root path to instances whose type name contains <paramref name="typeSubstring"/>.
-        /// Breadth-first from the roots, so the path returned is the SHORTEST one — the most
-        /// legible explanation of who is holding the object, not merely a valid one.
+        /// Sample up to <paramref name="sample"/> retained instances of <paramref name="typeName"/>,
+        /// compute every one's shortest root path in a SINGLE breadth-first pass (BFS from the whole
+        /// root set gives each node its shortest path for free), then group the paths by shape.
         ///
-        /// The hops name the FIELD they traverse (ClrMD's EnumerateReferencesWithFields), which
-        /// is what turns "a byte[] is reachable" into "AppData.Properties.GBProperty.PropertyChanged
-        /// holds it" — the sentence a developer can act on.
+        /// The result is ranked: the shape that retains the most instances comes first. That is the
+        /// answer to "what is holding all of this", as opposed to "here is a path to one of them".
         /// </summary>
-        public IReadOnlyList<RetentionPathResult> FindRootPaths(string typeName, int maxPaths, int maxHops)
+        public RetentionReport FindRetainers(string typeName, int sample, int maxHops)
         {
+            // ---- 1. the targets ---------------------------------------------------------
             // Match the TYPE, not the type's spelling. A naive substring match on the type name
             // matches `System.Func<BrokerDataClasses.GTDGoody, System.Boolean>` when you asked for
-            // `GTDGoody` — a cached lambda whose *generic argument* happens to mention it — and
-            // then confidently reports a 2-hop path to the wrong object. A tool that points at the
-            // wrong culprit is worse than no tool. So compare the simple name with the generic
-            // arguments stripped.
+            // `GTDGoody` — a cached lambda whose *generic argument* happens to mention it — and then
+            // confidently reports a path to the wrong object. A tool that points at the wrong culprit
+            // is worse than no tool.
             var targets = new Dictionary<ulong, string>();
+            long totalOfType = 0;
             foreach (var o in Heap.EnumerateObjects())
             {
                 if (!o.IsValid || o.Type?.Name == null) continue;
                 if (!IsType(o.Type.Name, typeName)) continue;
-                targets[o.Address] = o.Type.Name;
-                if (targets.Count >= maxPaths) break;
+                totalOfType++;
+                if (targets.Count < sample) targets[o.Address] = o.Type.Name;
             }
-            if (targets.Count == 0) return Array.Empty<RetentionPathResult>();
+            if (targets.Count == 0)
+                return new RetentionReport(typeName, 0, 0, new List<Retainer>());
 
-            var found = new List<RetentionPathResult>();
-            var seen = new HashSet<ulong>();
-            var queue = new Queue<Node>();
+            // ---- 2. one BFS from every root; parent pointers only (no strings) ------------
+            // Storing a label per node would cost hundreds of MB on a 4M-object heap. Store the
+            // parent address, and resolve type/field names later, for the sampled paths only.
+            var parent = new Dictionary<ulong, ulong>();      // child -> parent (0 = root)
+            var rootKind = new Dictionary<ulong, ClrRootKind>();
+            var queue = new Queue<ulong>();
 
             foreach (var root in Heap.EnumerateRoots())
             {
                 var o = root.Object;
-                if (!o.IsValid || !seen.Add(o.Address)) continue;
-                queue.Enqueue(new Node(o.Address, null, Describe(root, o), root.RootKind));
+                if (!o.IsValid || parent.ContainsKey(o.Address)) continue;
+                parent[o.Address] = 0;
+                rootKind[o.Address] = root.RootKind;
+                queue.Enqueue(o.Address);
             }
 
-            while (queue.Count > 0 && found.Count < maxPaths)
+            int reachedTargets = 0;
+            while (queue.Count > 0 && reachedTargets < targets.Count)
             {
-                var node = queue.Dequeue();
+                ulong addr = queue.Dequeue();
+                if (targets.ContainsKey(addr)) reachedTargets++;
 
-                if (targets.TryGetValue(node.Address, out var hitType))
-                {
-                    found.Add(new RetentionPathResult(hitType, Unwind(node), node.RootKind));
-                    continue;
-                }
-
-                var obj = Heap.GetObject(node.Address);
+                var obj = Heap.GetObject(addr);
                 if (!obj.IsValid || obj.Type == null) continue;
-                if (Depth(node) > maxHops) continue;
 
-                // WithFields so a hop reads "GBProperty.PropertyChanged", not just "GBProperty".
-                foreach (var reference in obj.EnumerateReferencesWithFields())
+                foreach (var child in obj.EnumerateReferences())
                 {
-                    var child = reference.Object;
-                    if (!child.IsValid || !seen.Add(child.Address)) continue;
-                    string hop = child.Type?.Name ?? "?";
-                    if (reference.Field?.Name is string f && f.Length > 0) hop = hop + "  (." + f + ")";
-                    queue.Enqueue(new Node(child.Address, node, hop, node.RootKind));
+                    if (!child.IsValid || parent.ContainsKey(child.Address)) continue;
+                    parent[child.Address] = addr;
+                    queue.Enqueue(child.Address);
                 }
             }
-            return found;
+
+            // ---- 3. unwind each sampled target, and group the paths by shape --------------
+            var groups = new Dictionary<string, Retainer>();
+            long retainedSampled = 0;
+            foreach (var kv in targets)
+            {
+                if (!parent.ContainsKey(kv.Key)) continue;   // not reachable — genuinely garbage
+                retainedSampled++;
+
+                var hops = Unwind(kv.Key, parent, rootKind, maxHops, out ClrRootKind kind);
+                string signature = string.Join(" -> ", hops.Select(h => h.Type));
+
+                if (!groups.TryGetValue(signature, out var retainer))
+                {
+                    retainer = new Retainer(hops, kind);
+                    groups[signature] = retainer;
+                }
+                retainer.Instances++;
+            }
+
+            var ranked = groups.Values.OrderByDescending(r => r.Instances).ToList();
+            return new RetentionReport(targets.Values.First(), totalOfType, retainedSampled, ranked);
+        }
+
+        /// <summary>
+        /// Walk the parent chain back to a root, naming the field traversed at every hop. The field
+        /// name is what turns "this object is alive" into "THIS FIELD is holding it" — the sentence a
+        /// developer can act on — so it is resolved here (by re-reading the parent's references),
+        /// rather than carried through the BFS at the cost of hundreds of megabytes.
+        /// </summary>
+        private List<Hop> Unwind(ulong target, Dictionary<ulong, ulong> parent,
+                                 Dictionary<ulong, ClrRootKind> rootKind, int maxHops,
+                                 out ClrRootKind kind)
+        {
+            var chain = new List<ulong>();
+            ulong cur = target;
+            while (true)
+            {
+                chain.Add(cur);
+                if (!parent.TryGetValue(cur, out ulong p) || p == 0) break;
+                cur = p;
+                if (chain.Count > maxHops) break;
+            }
+            kind = rootKind.TryGetValue(cur, out var k) ? k : ClrRootKind.None;
+            chain.Reverse();
+
+            var hops = new List<Hop>(chain.Count);
+            for (int i = 0; i < chain.Count; i++)
+            {
+                var obj = Heap.GetObject(chain[i]);
+                string type = obj.Type?.Name ?? "?";
+                string? field = null;
+                if (i > 0)
+                {
+                    var owner = Heap.GetObject(chain[i - 1]);
+                    if (owner.IsValid && owner.Type != null)
+                    {
+                        foreach (var r in owner.EnumerateReferencesWithFields())
+                        {
+                            if (r.Object.Address != chain[i]) continue;
+                            field = r.Field?.Name;
+                            break;
+                        }
+                    }
+                }
+                hops.Add(new Hop(type, field));
+            }
+            return hops;
         }
 
         /// <summary>
@@ -169,34 +244,13 @@ namespace OwnNet.Audit.Runtime
         {
             if (string.Equals(heapType, wanted, StringComparison.Ordinal)) return true;
 
-            // strip generic arguments: `Func<A, B>` -> `Func`, `BindingList<T>` -> `BindingList`
-            int lt = heapType.IndexOf('<');
+            int lt = heapType.IndexOf('<');                         // Func<A,B> -> Func
             string bare = lt >= 0 ? heapType.Substring(0, lt) : heapType;
-
             if (string.Equals(bare, wanted, StringComparison.Ordinal)) return true;
 
-            // allow the simple name: `GTDGoody` matches `BrokerDataClasses.GTDGoody`
-            int dot = bare.LastIndexOf('.');
+            int dot = bare.LastIndexOf('.');                        // Ns.GTDGoody -> GTDGoody
             string simple = dot >= 0 ? bare.Substring(dot + 1) : bare;
             return string.Equals(simple, wanted, StringComparison.Ordinal);
-        }
-
-        private static string Describe(ClrRoot root, ClrObject o) =>
-            "[" + root.RootKind + "] " + (o.Type?.Name ?? "?");
-
-        private static int Depth(Node n)
-        {
-            int d = 0;
-            for (var p = n.Parent; p != null; p = p.Parent) d++;
-            return d;
-        }
-
-        private static IReadOnlyList<string> Unwind(Node n)
-        {
-            var path = new List<string>();
-            for (var p = n; p != null; p = p.Parent) path.Add(p.Label);
-            path.Reverse();
-            return path;
         }
 
         public void Dispose()
@@ -204,28 +258,106 @@ namespace OwnNet.Audit.Runtime
             _runtime.Dispose();
             _target.Dispose();
         }
-
-        private sealed class Node
-        {
-            public readonly ulong Address;
-            public readonly Node? Parent;
-            public readonly string Label;
-            public readonly ClrRootKind RootKind;
-
-            public Node(ulong address, Node? parent, string label, ClrRootKind rootKind)
-            {
-                Address = address;
-                Parent = parent;
-                Label = label;
-                RootKind = rootKind;
-            }
-        }
     }
 
     internal struct TypeTally
     {
         public long Count;
         public long Bytes;
+    }
+
+    internal sealed class Hop
+    {
+        public readonly string Type;
+        public readonly string? Field;
+
+        public Hop(string type, string? field)
+        {
+            Type = type;
+            Field = field;
+        }
+
+        public override string ToString() =>
+            Field == null ? Type : Type + "  (." + Field + ")";
+    }
+
+    /// <summary>One distinct retention shape, and how many of the sampled instances it holds.</summary>
+    internal sealed class Retainer
+    {
+        public readonly IReadOnlyList<Hop> Path;
+        public readonly ClrRootKind RootKind;
+        public long Instances;
+
+        public Retainer(IReadOnlyList<Hop> path, ClrRootKind rootKind)
+        {
+            Path = path;
+            RootKind = rootKind;
+        }
+
+        /// <summary>
+        /// Map a ClrMD root kind onto the `runtime.json` kinds (OwnAudit/docs/runtime-contract.md:
+        /// static-field, static-event, gc-handle, thread-local, timer).
+        ///
+        /// Note there is no `StaticVar` root kind: on .NET Framework a class's statics live in a
+        /// pinned `System.Object[]` handed to the runtime as a **PinnedHandle**, which is why a
+        /// static-field leak surfaces as `[PinnedHandle] System.Object[] -> …`. A **delegate hop**
+        /// further down the path is what makes it a static *event* rather than a plain static field —
+        /// the distinction correlate.py's `high` tier keys on.
+        ///
+        /// `Stack` and `FinalizerQueue` are reported as themselves, deliberately: an object rooted
+        /// only by the stack is merely *live right now*, not retained, and reading it as a leak is how
+        /// a leak hunt goes wrong.
+        /// </summary>
+        public string ContractKind()
+        {
+            bool viaDelegate = Path.Any(h =>
+                h.Type.IndexOf("EventHandler", StringComparison.Ordinal) >= 0 ||
+                h.Type.IndexOf("MulticastDelegate", StringComparison.Ordinal) >= 0 ||
+                (h.Field != null && h.Field.IndexOf("invocationList", StringComparison.OrdinalIgnoreCase) >= 0));
+
+            switch (RootKind)
+            {
+                case ClrRootKind.Stack:
+                    return "stack";            // live in a frame right now — not retention
+                case ClrRootKind.FinalizerQueue:
+                    return "finalizer";        // awaiting finalization — a stall, not a reference leak
+                case ClrRootKind.PinnedHandle:
+                    return viaDelegate ? "static-event" : "static-field";
+                default:
+                    return viaDelegate ? "static-event" : "gc-handle";
+            }
+        }
+
+        /// <summary>The object one hop above the target — the thing actually holding the reference.</summary>
+        public string Holder => Path.Count >= 2 ? Path[Path.Count - 2].Type : Path[0].Type;
+
+        /// <summary>The field on that object, when the reference came from a named field.</summary>
+        public string? Member => Path.Count >= 1 ? Path[Path.Count - 1].Field : null;
+
+        public string Render()
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < Path.Count; i++)
+                sb.Append("    ").Append(Path[i]).Append(Environment.NewLine);
+            return sb.ToString();
+        }
+    }
+
+    internal sealed class RetentionReport
+    {
+        public readonly string TypeName;
+        public readonly long TotalOnHeap;
+        public readonly long SampledRetained;
+        public readonly IReadOnlyList<Retainer> Retainers;
+
+        public RetentionReport(string typeName, long totalOnHeap, long sampledRetained,
+                               IReadOnlyList<Retainer> retainers)
+        {
+            TypeName = typeName;
+            TotalOnHeap = totalOnHeap;
+            SampledRetained = sampledRetained;
+            Retainers = retainers;
+        }
     }
 
     internal sealed class HeapCensus
@@ -251,53 +383,5 @@ namespace OwnNet.Audit.Runtime
 
         /// <summary>The number that decides whether this is a leak hunt at all.</summary>
         public double RetainedShare => HeapBytes == 0 ? 0 : 100.0 * RetainedBytes / HeapBytes;
-    }
-
-    internal sealed class RetentionPathResult
-    {
-        public readonly string TypeName;
-        public readonly IReadOnlyList<string> Path;
-        public readonly ClrRootKind RootKind;
-
-        public RetentionPathResult(string typeName, IReadOnlyList<string> path, ClrRootKind rootKind)
-        {
-            TypeName = typeName;
-            Path = path;
-            RootKind = rootKind;
-        }
-
-        /// <summary>
-        /// Map a ClrMD root kind onto the `runtime.json` kinds (OwnAudit/docs/runtime-contract.md:
-        /// static-field, static-event, gc-handle, thread-local, timer).
-        ///
-        /// Note there is no `StaticVar` root kind: on .NET Framework a class's statics live in a
-        /// pinned `System.Object[]` handed to the runtime as a **PinnedHandle**, which is why a
-        /// static-field leak surfaces as `[PinnedHandle] System.Object[] -> …`. So PinnedHandle is
-        /// where statics show up, and a **delegate hop** anywhere further down the path is what
-        /// makes it a static *event* rather than a plain static field — the distinction
-        /// correlate.py's `high` tier keys on.
-        ///
-        /// `Stack` and `FinalizerQueue` are reported as themselves. They are not contract kinds
-        /// and deliberately so: an object rooted only by the stack is merely *live right now*, not
-        /// retained, and reading it as a leak is how a leak hunt goes wrong.
-        /// </summary>
-        public string ContractKind()
-        {
-            bool viaDelegate = Path.Any(p =>
-                p.IndexOf("EventHandler", StringComparison.Ordinal) >= 0 ||
-                p.IndexOf("MulticastDelegate", StringComparison.Ordinal) >= 0);
-
-            switch (RootKind)
-            {
-                case ClrRootKind.Stack:
-                    return "stack";            // live in a frame right now — not retention
-                case ClrRootKind.FinalizerQueue:
-                    return "finalizer";        // awaiting finalization — a stall, not a reference leak
-                case ClrRootKind.PinnedHandle:
-                    return viaDelegate ? "static-event" : "static-field";
-                default:
-                    return viaDelegate ? "static-event" : "gc-handle";
-            }
-        }
     }
 }

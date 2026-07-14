@@ -74,15 +74,37 @@ If that share is low, stop: there is no reference to hunt, and the next question
 about who holds what.
 
 ```powershell
-# 2. Who holds it? Every hop names the field it traverses.
-RetentionPath.exe roots --pid 1234 --type GTDGoody
+# 2. What holds the TYPICAL instance? Sampled, ranked, every hop naming its field.
+RetentionPath.exe roots --pid 1234 --type GTD --sample 200
 
-=== BrokerDataClasses.GTDGoody — retained via [static-field], 4 hops ===
-    [PinnedHandle] System.Object[]
-    BrokerDataClasses.GTD
-    BrokerDataClasses.CalcProcentGTD  (.<CalcProcentGTD>k__BackingField)
-    BrokerDataClasses.GTDGoody  (.fMainObject)
+BrokerDataClasses.GTD: 50 on the heap, 50 of a 200-instance sample retained
+
+RETAINERS, ranked — what holds the TYPICAL instance, not merely one of them:
+
+#1  25/50 (50,0%) — via [static-event], 7 hops
+    System.Object[]
+    BrokerDataClasses.Property.KernelProperty
+    BrokerDataClasses.Property.GBProperty                (.fGBProperty)
+    System.ComponentModel.PropertyChangedEventHandler    (.PropertyChanged)
+    System.Object[]                                      (._invocationList)
+    System.ComponentModel.PropertyChangedEventHandler
+    BrokerDataClasses.GTD                                (._target)
+
+#4  1/50 (2,0%) — via [stack], 2 hops
+    SerializerSim.TInfo
+    BrokerDataClasses.GTD  (.Proto)
+
+>>> 50,0% of the retained instances hang off ONE reference:
+    System.ComponentModel.PropertyChangedEventHandler._target  [static-event]
 ```
+
+**Why it samples.** *"Who holds this object"* is ill-posed for an object reachable from many roots:
+there are as many answers as there are paths, and the shortest is an arbitrary pick, not an
+explanation. The question worth asking is *"what holds the **typical** instance"*. So the walk samples
+the retained instances, computes each one's shortest path in a single BFS (breadth-first from the whole
+root set gives every node its shortest path for free), and reports the paths as a **ranked histogram**.
+The retainer that accounts for 129,900 of 130,000 instances is the leak; the one hanging off the stack
+is noise — and reading *that* one as "the answer" is exactly how a leak hunt goes wrong.
 
 A dump works too (`--dump target.dmp`) and is the right choice when the target must not be paused.
 Output is the **`runtime.json` contract** (`OwnAudit/docs/runtime-contract.md`), so OwnAudit's
@@ -92,11 +114,16 @@ analyzer's blind spot, and therefore a rule request.
 
 ### What it does not do (read this before trusting it)
 
-* **The path it reports is the SHORTEST one, not necessarily the most explanatory one.** An object with
-  many retainers has many paths; breadth-first returns the nearest root. That may be a prototype, a
-  cache, or the stack — while the *interesting* retainer is eight hops away through a delegate's
-  invocation list. Pass `--max-paths 3` and read them all. "Which retainer holds *most* of the N
-  instances" is the obviously-next feature and is not built.
+* **It cannot tell you that cutting the top retainer would free the object.** This is the important
+  one. The histogram partitions instances by their *shortest* path, so when an object is held by two
+  references at once, it is attributed to whichever is nearer — and the run above shows exactly that:
+  50 % of the GTDs come out under the static event and 44 % under a static `List<Object>`, which most
+  likely means many are held by **both**. Detach the event and they still will not collect.
+  The question *"which single reference, if cut, frees this object — and how much memory does that
+  free"* is well-posed, and it has a standard answer this tool does not implement: a **dominator tree**
+  with retained sizes (Lengauer–Tarjan, or the iterative Cooper–Harvey–Kennedy formulation; it is what
+  Eclipse MAT and dotMemory are built on). That is the honest next step, and it is a feature, not a
+  tweak.
 * **A `[stack]` root is not retention.** It means the object is live in a frame *right now*. The tool
   labels it as such precisely so it is not mistaken for a leak; the same is true of `[finalizer]`.
 * **It matches the TYPE, not the type's spelling.** Asking for `GTDGoody` will not match

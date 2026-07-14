@@ -21,12 +21,19 @@ namespace OwnNet.Audit.Runtime
     /// analyzer's blind spot, i.e. a rule request.
     ///
     /// Usage:
-    ///   RetentionPath census   --pid N | --dump D  [--out runtime.json] [--top 25]
-    ///   RetentionPath roots    --pid N | --dump D  --type Substring [--max-paths 3] [--max-hops 40]
+    ///   RetentionPath census  --pid N | --dump D  [--out runtime.json] [--top 25]
+    ///   RetentionPath roots   --pid N | --dump D  --type TypeName [--sample 200] [--max-hops 40]
     ///
     /// `census` prints the retained SHARE first, on purpose: if only 5% of the heap is
     /// reachable, there is no leak to hunt and the next step is a GC question, not a
     /// reference question.
+    ///
+    /// `roots` SAMPLES the instances and reports the paths as a ranked histogram, because
+    /// "who holds this object" is ill-posed for an object reachable from many roots — there
+    /// are as many answers as there are paths, and the shortest is an arbitrary pick. The
+    /// question worth asking is "what holds the TYPICAL instance": the retainer that
+    /// accounts for 129,900 of 130,000 is the leak, and the three hanging off the stack or a
+    /// prototype are noise.
     /// </summary>
     internal static class Program
     {
@@ -119,24 +126,55 @@ namespace OwnNet.Audit.Runtime
             string? type = Arg(args, "--type");
             if (type == null)
             {
-                Console.Error.WriteLine("retention-path roots: need --type <substring>");
+                Console.Error.WriteLine("retention-path roots: need --type <TypeName>");
                 return 2;
             }
-            int maxPaths = ArgInt(args, "--max-paths", 3);
+            int sample = ArgInt(args, "--sample", 200);
             int maxHops = ArgInt(args, "--max-hops", 40);
 
-            var paths = walker.FindRootPaths(type, maxPaths, maxHops);
-            if (paths.Count == 0)
+            var report = walker.FindRetainers(type, sample, maxHops);
+            if (report.TotalOnHeap == 0)
             {
-                Console.WriteLine($"no live instance of *{type}* is reachable from a GC root");
+                Console.WriteLine($"no instance of {type} is on the heap");
+                return 0;
+            }
+            if (report.SampledRetained == 0)
+            {
+                Console.WriteLine($"{report.TotalOnHeap:N0} instance(s) of {type} on the heap, but NONE of the " +
+                                  "sample is reachable from a GC root — that is garbage, not a leak");
                 return 0;
             }
 
-            foreach (var p in paths)
+            Console.WriteLine($"{report.TypeName}: {report.TotalOnHeap:N0} on the heap, " +
+                              $"{report.SampledRetained:N0} of a {sample:N0}-instance sample retained");
+            Console.WriteLine();
+            Console.WriteLine("RETAINERS, ranked — what holds the TYPICAL instance, not merely one of them:");
+
+            int rank = 0;
+            foreach (var r in report.Retainers)
             {
+                rank++;
+                double share = 100.0 * r.Instances / report.SampledRetained;
                 Console.WriteLine();
-                Console.WriteLine($"=== {p.TypeName} — retained via [{p.ContractKind()}], {p.Path.Count} hops ===");
-                foreach (var hop in p.Path) Console.WriteLine("    " + hop);
+                Console.WriteLine($"#{rank}  {r.Instances:N0}/{report.SampledRetained:N0} ({share:N1}%) " +
+                                  $"— via [{r.ContractKind()}], {r.Path.Count} hops");
+                Console.Write(r.Render());
+                if (rank >= 5) break;   // the tail is noise; raise --sample for resolution
+            }
+
+            Console.WriteLine();
+            var dominant = report.Retainers[0];
+            double dominantShare = 100.0 * dominant.Instances / report.SampledRetained;
+            if (dominantShare >= 50 && dominant.ContractKind() != "stack")
+            {
+                string member = dominant.Member != null ? "." + dominant.Member : "";
+                Console.WriteLine($">>> {dominantShare:N1}% of the retained instances hang off ONE reference: " +
+                                  $"{dominant.Holder}{member}  [{dominant.ContractKind()}]");
+            }
+            else
+            {
+                Console.WriteLine(">>> no single dominant retainer in this sample — raise --sample, or the type " +
+                                  "really is held from many places");
             }
 
             string? outPath = Arg(args, "--out");
@@ -145,23 +183,25 @@ namespace OwnNet.Audit.Runtime
                 var doc = new Dictionary<string, object>
                 {
                     ["schema"] = "own-runtime/1",
-                    ["retained"] = paths.Select(p => new Dictionary<string, object>
+                    ["retained"] = new object[]
                     {
-                        ["type"] = p.TypeName,
-                        ["count"] = 1,
-                        ["expected"] = 0,
-                        ["bytes"] = 0,
-                        ["roots"] = new object[]
+                        new Dictionary<string, object>
                         {
-                            new Dictionary<string, object>
+                            ["type"] = report.TypeName,
+                            ["count"] = report.TotalOnHeap,
+                            ["expected"] = 0,
+                            ["bytes"] = 0,
+                            ["roots"] = report.Retainers.Take(5).Select(r => new Dictionary<string, object>
                             {
-                                ["kind"] = p.ContractKind(),
-                                ["holder"] = p.Path.Count > 1 ? p.Path[1] : p.Path[0],
-                                ["via"] = "reference",
-                                ["path"] = p.Path,
-                            },
+                                ["kind"] = r.ContractKind(),
+                                ["holder"] = r.Holder,
+                                ["member"] = r.Member ?? "",
+                                ["via"] = r.ContractKind() == "static-event" ? "delegate" : "reference",
+                                ["instances"] = r.Instances,
+                                ["path"] = r.Path.Select(h => h.ToString()).ToList(),
+                            }).ToList(),
                         },
-                    }).ToList(),
+                    },
                 };
                 File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
                 Console.WriteLine();
@@ -192,7 +232,7 @@ namespace OwnNet.Audit.Runtime
         {
             Console.Error.WriteLine("usage:");
             Console.Error.WriteLine("  RetentionPath census --pid <n> | --dump <path> [--out runtime.json] [--top 25]");
-            Console.Error.WriteLine("  RetentionPath roots  --pid <n> | --dump <path> --type <substring> [--max-paths 3] [--max-hops 40] [--out runtime.json]");
+            Console.Error.WriteLine("  RetentionPath roots  --pid <n> | --dump <path> --type <TypeName> [--sample 200] [--max-hops 40] [--out runtime.json]");
             return 2;
         }
     }
