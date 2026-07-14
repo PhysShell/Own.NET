@@ -1,0 +1,95 @@
+name: Sandboy S0 — GitHub-Hosted Runner Feasibility Gate
+
+# Capability probe only (Sandboy S0, part of the QODEC Scope N2 sourcing
+# addendum). Determines whether the EXISTING Sandboy commit (Landlock +
+# seccomp, no VM — sandboy/docs is Layer 2 of
+# ../docs/notes/sandboy-isolation-adr.md) actually confines a hostile process
+# tree on a standard `ubuntu-24.04` GitHub-hosted runner, which supplies the
+# disposable-VM boundary this gate assumes rather than builds.
+#
+# This workflow explicitly does NOT: execute any third-party repository,
+# build RepoLogMiner, start the N2 18-case corpus, touch qodec/ or any frozen
+# Benchmark v2 file, or implement a microVM/new isolation mechanism. Only
+# synthetic hostile fixtures committed under sandboy/tests/feasibility/ run
+# here.
+#
+# Least privilege: read-only checkout, no secrets, no OIDC, no package
+# publishing, no cache write. Every third-party `uses:` is pinned to a commit
+# SHA (matching this repo's existing ci.yml convention).
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "sandboy/**"
+      - ".github/workflows/sandboy-feasibility-gate.yml"
+  workflow_dispatch:
+
+jobs:
+  feasibility-gate:
+    name: Sandboy S0 feasibility gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+
+      - name: cargo test (policy unit tests — env_allow, seccomp_deny)
+        working-directory: sandboy
+        run: cargo test --release --locked
+
+      - name: Build sandboy (release, locked)
+        working-directory: sandboy
+        run: cargo build --release --locked
+
+      - name: Run Sandboy S0 feasibility gate
+        id: gate
+        working-directory: sandboy
+        # Fake canary credentials injected into the OUTER job env, per the N2
+        # Sandboy-dogfooding addendum §8. Values are unmistakably fake; no
+        # real secret, token, or credential is used or present anywhere in
+        # this job. The gate asserts these never reach the sandboxed process
+        # tree (tests/feasibility/run_gate.py env_tests + a universal
+        # canary-leak scan over every sandboxed invocation's stdout/stderr).
+        env:
+          GITHUB_TOKEN: fake-canary-github-token
+          AZURE_DEVOPS_PAT: fake-canary-azure-token
+          NUGET_AUTH_TOKEN: fake-canary-nuget-token
+          AWS_SECRET_ACCESS_KEY: fake-canary-aws-key
+          SSH_AUTH_SOCK: /tmp/fake-ssh-agent
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/sandboy-s0-reports"
+          python3 tests/feasibility/run_gate.py \
+            --sandboy-bin "$(pwd)/target/release/sandboy" \
+            --out-dir "$RUNNER_TEMP/sandboy-s0-reports"
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0  # never fail this step itself — artifacts must still upload
+
+      - name: Upload S0 feasibility reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sandboy-s0-feasibility-reports
+          path: |
+            ${{ runner.temp }}/sandboy-s0-reports/sandboy-host-capabilities.json
+            ${{ runner.temp }}/sandboy-s0-reports/sandboy-feasibility-report.json
+            ${{ runner.temp }}/sandboy-s0-reports/sandbox-enforcement-matrix.json
+            ${{ runner.temp }}/sandboy-s0-reports/sandboy-feasibility-summary.md
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce gate result
+        if: always()
+        run: |
+          if [ "${{ steps.gate.outputs.exit_code }}" != "0" ]; then
+            echo "::error::Sandboy S0 feasibility gate FAILED (or Landlock/seccomp unavailable on this runner) — see the sandboy-s0-feasibility-reports artifact, especially sandboy-feasibility-summary.md"
+            exit 1
+          fi
+          echo "Sandboy S0 feasibility gate PASSED on this ubuntu-24.04 runner."

@@ -21,6 +21,7 @@ everything it spawns — inherits the cage.
 | **Filesystem** | Landlock | read+exec / read+write allowlists of paths; everything else `EACCES` |
 | **TCP ports** | Landlock ABI v4 | connect/bind only to allowlisted ports (e.g. 443, 22) |
 | **Syscalls** | seccomp-bpf | denylist of dangerous syscalls (ptrace, mount, bpf, kexec, …) → `EPERM`; everything else allowed |
+| **Environment** | `env_clear()` + allowlist | wrapped command inherits ONLY the variable names in `env_allow`; everything else (host credentials included) is cleared before exec |
 
 The seccomp model is a **denylist** on purpose: the goal is *broad freedom*
 inside a box, so we strip the clearly-dangerous rather than allowlist a minimal
@@ -48,8 +49,17 @@ fs_ro       = ["/usr", "/bin", "/lib", "/lib64", "/etc"]
 fs_rw       = ["/home/user/work/worktree", "/tmp"]
 tcp_connect = [443, 22]          # https + ssh; [] = no outbound TCP
 tcp_bind    = []
+env_allow   = ["PATH"]           # names passed through; [] (default) = fully cleared env
 # omit seccomp_deny to use the curated default denylist
 ```
+
+`env_allow` is a **name** allowlist, resolved against the launcher's own
+environment right before `exec`. Omitting it (or leaving it `[]`, the default)
+means the wrapped command gets **no** inherited environment at all — the
+launcher's environment is exactly where CI/agent credentials
+(`GITHUB_TOKEN`, cloud/package-registry secrets, `SSH_AUTH_SOCK`, …) live, so
+deny-all is the only safe default for an untrusted command. Allowlist by name
+rather than maintaining a denylist of known-bad variables.
 
 This TOML is the file Sandboy actually reads, and it should stay exactly this
 plain. Once there's more than one profile (`no-net`, `worktree-only`, a Windows
@@ -69,7 +79,23 @@ Sandboy's runtime never needs to know CUE exists. Full rationale and the
 ```bash
 cargo build --release        # needs Linux; the crates are Linux-only
 ./tests/demo.sh              # four probes: 1 allowed, 3 denied
+./target/release/sandboy probe   # host capability report (JSON), see below
 ```
+
+### `sandboy probe`
+
+A second, diagnostic-only subcommand alongside `run`: applies the exact same
+enforcement code (`landlock_status`, `apply_seccomp`) against a synthetic
+default policy, then prints what THIS host actually did with it as JSON —
+Landlock ABI/ruleset status (via the same crate call `run` uses, plus a raw
+`landlock_create_ruleset(..., LANDLOCK_CREATE_RULESET_VERSION)` probe syscall
+for the kernel's own ABI number), whether seccomp installed, `no_new_privs`,
+`close_range`, kernel release, euid/egid, and a couple of cheap
+container/VM signals (`/.dockerenv`, first `/proc/self/cgroup` line). `probe`
+always exits `0` — finding "Landlock not enforced" is data, not a probe
+failure; a caller (a CI gate, `tests/feasibility/run_gate.py`) decides
+pass/fail from the JSON. It never applies to or execs a target command, and
+never appears in a `sandbox_policy` step — that's `run`.
 
 `demo.sh` shows a write inside the worktree succeeding, and a write to `$HOME`,
 a `ptrace`, and a connect to a non-allowlisted port all being denied.
@@ -120,14 +146,18 @@ exists yet** — both are Floor-1 work, not current behaviour:
   `bypassPermissions` mode applies to the agent phase, not gate steps). Relying
   on unknown-field tolerance here would fail *open*. See
   `007/docs/loop-canvas.md`.
-- **sandboy side — `--report <json>`.** A flag emitting enforcement status /
-  exit code / duration, the machine-readable evidence the Observability field
-  asks for. **Not implemented today:** `parse_args` (`src/main.rs`) accepts only
-  `run`, `--policy <file>`, and `--`, so passing `--report` now is a usage error
-  (exit 2). Enforcement status *is* already surfaced, but only to **stderr**
-  (`FullyEnforced` silently / `PARTIALLY enforced` warning / `NOT enforced`
-  refusal); `--report` would make it structured so 007 can persist it into
-  `gate/<step>.sandbox.json`.
+- **sandboy side — `--report <json>` on `run`.** A flag emitting per-invocation
+  enforcement status / exit code / duration for one wrapped step, the
+  machine-readable evidence the Observability field asks for. **Still not
+  implemented:** `run` only accepts `--policy <file>` and `--`, so passing
+  `--report` is a usage error (exit 2). Enforcement status *is* already
+  surfaced, but only to **stderr** (`FullyEnforced` silently / `PARTIALLY
+  enforced` warning / `NOT enforced` refusal). This is distinct from the
+  `probe` subcommand added for the Sandboy S0 feasibility gate (below):
+  `probe` reports host *capability*, once, with no target command; the
+  `gate/<step>.sandbox.json` use case here is per-step *outcome*, for every
+  wrapped invocation. Wiring `run` --report into 007's gate runner is still
+  Floor-1 work, out of scope here.
 
 ## Kernel requirements
 
@@ -135,3 +165,33 @@ exists yet** — both are Floor-1 work, not current behaviour:
 - Landlock TCP-port scoping: kernel ≥ 6.7 (ABI v4). On older kernels sandboy
   runs **best-effort** and prints a `PARTIALLY enforced` warning; it refuses to
   run only if Landlock is entirely absent (`NOT enforced`).
+
+## Sandboy S0 — GitHub-hosted runner feasibility gate
+
+`tests/feasibility/` is a capability probe, not a repository miner: it proves
+(or disproves) that *this* Sandboy commit actually confines a hostile process
+tree on a standard `ubuntu-24.04` GitHub-hosted runner — Landlock FS/port
+scoping, seccomp, fork/exec inheritance, credential-canary isolation via
+`env_allow`, and the two structural network gaps (no UDP coverage; TCP is
+scoped by port only, never by destination address, so a policy allowing e.g.
+port 443 cannot distinguish a real destination from a cloud metadata
+endpoint on the same port — that's the unbuilt Layer 3). It never executes
+third-party repository code; every fixture under `tests/feasibility/fixtures/`
+is a small first-party Python probe run via a plain argv (never a shell
+string).
+
+```bash
+cargo build --release
+python3 tests/feasibility/run_gate.py \
+  --sandboy-bin "$(pwd)/target/release/sandboy" \
+  --out-dir /tmp/sandboy-s0-reports
+```
+
+Writes `sandboy-host-capabilities.json`, `sandboy-feasibility-report.json`,
+`sandbox-enforcement-matrix.json`, and `sandboy-feasibility-summary.md`, and
+exits non-zero if the S0 acceptance criteria aren't met (e.g. this host has no
+Landlock at all — the case in most container-based dev sandboxes, which is
+exactly why this gate targets a real `ubuntu-24.04` runner in CI:
+`.github/workflows/sandboy-feasibility-gate.yml`). A gate failure because
+Landlock/seccomp is unavailable on the runner is a real finding to report,
+not something to route around by weakening `run`'s fail-closed refusal.

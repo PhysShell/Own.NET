@@ -28,3 +28,10 @@ tcp_bind = []
 # seccomp: omit `seccomp_deny` to use the curated default denylist
 # (ptrace, mount, bpf, kexec, …). Override here only to widen/narrow it, e.g.:
 # seccomp_deny = ["ptrace", "mount", "bpf", "kexec_load", "kexec_file_load"]
+
+# Environment: NAMES passed through from the launcher's own environment.
+# Everything else is cleared before exec. Omit (or leave empty) to give the
+# wrapped command NO inherited environment at all — the launcher's env is
+# exactly where CI/agent credentials (GITHUB_TOKEN, cloud/registry secrets,
+# SSH_AUTH_SOCK, ...) live, so deny-all is the only safe default.
+env_allow = ["PATH"]
