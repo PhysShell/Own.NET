@@ -1,0 +1,24 @@
+module WpfCustomWeakWrapper
+
+// A settings subscription: `PropertyChanged += h` acquires it; a matching `-=`
+// releases it. A project-declared WEAK-subscribe wrapper (P-035) is meant to be an
+// accepted release too — recognised by its declared (containing-type, method) name,
+// the same allowlist shape as the #223 weak-referenced-static-event predicate.
+// `kind` tags the resource so the generic finding carries a domain-flavoured note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "event subscription"
+}
+
+// The ViewModel modelled as one scope: its "constructor" subscribes to the
+// process-lived settings publisher; the end of the scope is its (absent) teardown.
+// Acquiring the subscription without releasing it = the publisher keeps the VM
+// alive => leak (OWN001). The real fix converts the `+=` to a weak-subscribe
+// wrapper whose name a repo declares under [weak-subscription] (see
+// docs/proposals/P-035-custom-weak-subscription.md); once recognised, that acquire
+// counts as an accepted release and this becomes silent.
+fn DocumentViewModel(settings: int) {
+    let sub = acquire Subscription(settings);
+    // no `release sub;` -> zombie ViewModel (strong subscription never torn down)
+}
