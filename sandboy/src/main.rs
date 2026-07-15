@@ -161,10 +161,22 @@ fn landlock_status(policy: &Policy) -> Result<RulesetStatus> {
     // ABI::V4 adds TCP bind/connect scoping (kernel 6.7+). Best-effort compat
     // means: on an older kernel, unsupported bits are dropped, not fatal.
     let abi = ABI::V4;
-    let mut ruleset = Ruleset::default()
-        .handle_access(AccessFs::from_all(abi))?
-        .handle_access(AccessNet::BindTcp | AccessNet::ConnectTcp)?
-        .create()?;
+    // network_enforcement_mode = "outer-netns-loopback-only" (validated by
+    // Policy::landlock_network_mediation_enabled, incl. requiring empty port
+    // lists) is the ONE narrow, explicit way to skip Landlock's own TCP
+    // mediation entirely: some tools (a JVM build daemon's own client<->
+    // daemon IPC) need an OS-chosen ephemeral port Landlock's fixed-port-list
+    // model cannot express. Never called unless the caller has ALREADY
+    // placed this process inside a network namespace with no route beyond
+    // loopback -- real external reachability stays blocked there regardless
+    // of this flag. Filesystem, seccomp, and env_clear mediation below are
+    // completely unaffected by this switch.
+    let mediate_network = policy.landlock_network_mediation_enabled()?;
+    let mut builder = Ruleset::default().handle_access(AccessFs::from_all(abi))?;
+    if mediate_network {
+        builder = builder.handle_access(AccessNet::BindTcp | AccessNet::ConnectTcp)?;
+    }
+    let mut ruleset = builder.create()?;
 
     // Read+execute paths (binaries, libs, source to analyze).
     for p in &policy.fs_ro {
@@ -177,12 +189,16 @@ fn landlock_status(policy: &Policy) -> Result<RulesetStatus> {
             .with_context(|| format!("fs_rw {}", p.display()))?;
     }
     // TCP port allowlists. Landlock scopes *ports*, not addresses — host-level
-    // egress by CIDR/domain is Layer 3 (see README).
-    for &port in &policy.tcp_connect {
-        ruleset = ruleset.add_rule(NetPort::new(port, AccessNet::ConnectTcp))?;
-    }
-    for &port in &policy.tcp_bind {
-        ruleset = ruleset.add_rule(NetPort::new(port, AccessNet::BindTcp))?;
+    // egress by CIDR/domain is Layer 3 (see README). Only reachable when
+    // network mediation is enabled -- landlock_network_mediation_enabled()
+    // already asserted both lists are empty otherwise.
+    if mediate_network {
+        for &port in &policy.tcp_connect {
+            ruleset = ruleset.add_rule(NetPort::new(port, AccessNet::ConnectTcp))?;
+        }
+        for &port in &policy.tcp_bind {
+            ruleset = ruleset.add_rule(NetPort::new(port, AccessNet::BindTcp))?;
+        }
     }
 
     Ok(ruleset
@@ -366,6 +382,7 @@ fn probe_capabilities() -> Vec<Field> {
         tcp_bind: Vec::new(),
         seccomp_deny: None,
         env_allow: Vec::new(),
+        network_enforcement_mode: None,
     };
 
     let landlock = landlock_status(&probe_policy);

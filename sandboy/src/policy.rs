@@ -35,12 +35,62 @@ pub struct Policy {
     /// live. Allowlist by name, not by stripping a denylist of known-bad ones.
     #[serde(default)]
     pub env_allow: Vec<String>,
+    /// Narrow, explicit escape hatch from Landlock's own TCP-port mediation,
+    /// for tools whose IPC needs an OS-chosen ephemeral port Landlock's
+    /// fixed-port-list model cannot express (e.g. a JVM build tool's own
+    /// client<->daemon loopback protocol). The ONLY accepted value is
+    /// `"outer-netns-loopback-only"`, asserting the caller has ALREADY
+    /// placed this process inside a network namespace with no interface or
+    /// route beyond loopback (real external reachability stays fully
+    /// blocked there, independent of this field). When set: Landlock's
+    /// filesystem, seccomp, and env_clear mediation are UNCHANGED — this
+    /// disables ONLY Landlock's own TCP bind/connect ruleset, since
+    /// Landlock has no loopback-wildcard rule to fall back to. Left unset
+    /// (the default, `None`): identical to every prior policy, TCP is
+    /// mediated by the `tcp_connect`/`tcp_bind` port allowlists exactly as
+    /// before. Any other string is a hard config error, not a silent
+    /// fallback to the default.
+    #[serde(default)]
+    pub network_enforcement_mode: Option<String>,
 }
+
+/// The one accepted value for `network_enforcement_mode`.
+pub const OUTER_NETNS_LOOPBACK_ONLY: &str = "outer-netns-loopback-only";
 
 impl Policy {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path)?;
         Ok(toml::from_str(&text)?)
+    }
+
+    /// Whether Landlock should mediate TCP bind/connect for this policy.
+    /// `Ok(true)` (the default, `network_enforcement_mode` unset) means
+    /// mediate as before via `tcp_connect`/`tcp_bind`. `Ok(false)` means the
+    /// caller has authorized `outer-netns-loopback-only` AND declared no
+    /// port allowlist (a nonempty allowlist alongside this mode is
+    /// contradictory -- which port list would even apply? -- and is a hard
+    /// error, not silently ignored). Any other `network_enforcement_mode`
+    /// string is a hard error: fail closed on a typo/unrecognized mode
+    /// rather than silently keep (or silently drop) Landlock's own
+    /// mediation.
+    pub fn landlock_network_mediation_enabled(&self) -> anyhow::Result<bool> {
+        match self.network_enforcement_mode.as_deref() {
+            None => Ok(true),
+            Some(OUTER_NETNS_LOOPBACK_ONLY) => {
+                if !self.tcp_connect.is_empty() || !self.tcp_bind.is_empty() {
+                    anyhow::bail!(
+                        "network_enforcement_mode = \"{OUTER_NETNS_LOOPBACK_ONLY}\" requires tcp_connect \
+                         and tcp_bind to both be empty -- a fixed port allowlist alongside a loopback-only \
+                         mode declaration is contradictory"
+                    );
+                }
+                Ok(false)
+            }
+            Some(other) => anyhow::bail!(
+                "unrecognized network_enforcement_mode {other:?} -- the only accepted value is \
+                 \"{OUTER_NETNS_LOOPBACK_ONLY}\", refusing to silently fall back to a default"
+            ),
+        }
     }
 
     /// Resolve the effective denylist to raw syscall numbers for this arch.
@@ -193,5 +243,56 @@ mod tests {
         "#;
         let policy: Policy = toml::from_str(toml).unwrap();
         assert!(policy.seccomp_deny_numbers().is_err());
+    }
+
+    /// A policy file written before `network_enforcement_mode` existed must
+    /// still parse, with the field defaulting to `None` -- i.e. Landlock's
+    /// TCP mediation is unchanged from every prior policy (widening network
+    /// access is never the silent-default direction here, mirroring
+    /// `env_allow`'s own conservative default).
+    #[test]
+    fn network_enforcement_mode_defaults_to_none_and_mediation_stays_enabled() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            tcp_bind = [8080]
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert_eq!(policy.network_enforcement_mode, None);
+        assert!(policy.landlock_network_mediation_enabled().unwrap());
+    }
+
+    #[test]
+    fn outer_netns_loopback_only_with_empty_port_lists_disables_landlock_network_mediation() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            network_enforcement_mode = "outer-netns-loopback-only"
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert!(!policy.landlock_network_mediation_enabled().unwrap());
+    }
+
+    #[test]
+    fn outer_netns_loopback_only_with_a_nonempty_port_list_is_a_hard_error() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            tcp_bind = [8080]
+            network_enforcement_mode = "outer-netns-loopback-only"
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert!(policy.landlock_network_mediation_enabled().is_err());
+    }
+
+    #[test]
+    fn unrecognized_network_enforcement_mode_is_a_hard_error_not_a_silent_default() {
+        let toml = r#"
+            fs_ro = ["/usr"]
+            fs_rw = ["/tmp"]
+            network_enforcement_mode = "loopback-and-also-the-moon"
+        "#;
+        let policy: Policy = toml::from_str(toml).unwrap();
+        assert!(policy.landlock_network_mediation_enabled().is_err());
     }
 }
