@@ -47,14 +47,15 @@ def _weak_subscribe_from(data: dict[str, object], path: str) -> list[str]:
     if not isinstance(table, dict):
         raise ConfigError(f"{path}: [weak-subscription] must be a table")
 
-    # Only `subscribe` is honoured in this slice. Reject any other key so a typo
+    # Only `subscribe` (P-035 recognition) and `target` (the S0 fix target, read by
+    # `load_target_subscribe`) are honoured. Reject any other key so a typo
     # (`subscribes`, `unsubscribe` before it is designed, ...) is a hard error, not
     # a silently-ignored no-op that hides a caller mistake.
-    unknown = sorted(set(table) - {"subscribe"})
+    unknown = sorted(set(table) - {"subscribe", "target"})
     if unknown:
         raise ConfigError(
             f"{path}: [weak-subscription] has unsupported key(s): "
-            f"{', '.join(unknown)} (only `subscribe` is supported in this slice)"
+            f"{', '.join(unknown)} (only `subscribe` and `target` are supported)"
         )
 
     entries = table.get("subscribe", [])
@@ -65,6 +66,43 @@ def _weak_subscribe_from(data: dict[str, object], path: str) -> list[str]:
     for entry in entries:
         _validate_entry(entry, path)
     return list(entries)
+
+
+def load_target_subscribe(path: str) -> str:
+    """Return the ONE weak-subscribe wrapper the fixer should emit (S0 `target_api`).
+
+    Pinned explicitly, never guessed: either ``[weak-subscription].target`` (a single
+    ``"SimpleType.Method"``), or — as a convenience when there is no ambiguity — the sole
+    ``subscribe`` entry when the list has exactly one. Zero or several ``subscribe`` entries
+    with no explicit ``target`` is a :class:`ConfigError`: silently taking the first would
+    bake an unintended API into a public candidates contract.
+    """
+    try:
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+    except FileNotFoundError as exc:
+        raise ConfigError(f"config file not found: {path}") from exc
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"{path}: invalid TOML: {exc}") from exc
+
+    table = data.get("weak-subscription")
+    if not isinstance(table, dict):
+        raise ConfigError(
+            f"{path}: a [weak-subscription] table is required to pin a fix target"
+        )
+    target = table.get("target")
+    if target is not None:
+        if not isinstance(target, str):
+            raise ConfigError(f"{path}: [weak-subscription].target must be a string")
+        _validate_entry(target, path)
+        return target
+    subscribe = _weak_subscribe_from(data, path)
+    if len(subscribe) == 1:
+        return subscribe[0]
+    raise ConfigError(
+        f"{path}: cannot pin a fix target: set [weak-subscription].target, or declare "
+        f"exactly one [weak-subscription].subscribe entry (found {len(subscribe)})"
+    )
 
 
 def _validate_entry(entry: str, path: str) -> None:

@@ -1632,6 +1632,50 @@ jobs:
           fi
           echo "OK: fix-candidate metadata correct; flag-off is byte-identical to the pre-S0 golden"
 
+      # S0 Part B: the `own-fix subscriptions candidates` collector turns the fix
+      # metadata into a deterministic candidates.json (analysis-only). Reuses fc_on.json.
+      - name: S0 fix-candidates — own-fix collector (Part B)
+        run: |
+          on="$RUNNER_TEMP/fc_on.json"
+          printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/fix.toml"
+          # A leaky INotifyPropertyChanged subscription -> one candidate, convert_acquire allowed.
+          python -m ownlang own-fix subscriptions candidates "$on" \
+            --config "$RUNNER_TEMP/fix.toml" \
+            --class Own.Samples.FixCandidates.InpcNoTeardown \
+            --output "$RUNNER_TEMP/cand.json" --root .
+          python -c "
+          import json, sys
+          d = json.load(open(sys.argv[1]))
+          assert d['target_api'] == {'subscribe': 'WeakEvents.AddPropertyChanged'}, d['target_api']
+          assert len(d['candidates']) == 1, d['candidates']
+          c = d['candidates'][0]
+          assert c['allowed_actions'] == ['convert_acquire', 'manual_review'], c['allowed_actions']
+          assert c['event_contract'] == 'inotify_property_changed'
+          assert c['finding_id'].startswith('OWN001:sha256:'), c['finding_id']
+          assert d['source_files'][0]['sha256'].startswith('sha256:')
+          assert d['selection']['constraints']['max_types_changed'] == 1
+          print('OK: candidate bundle well-formed')
+          " "$RUNNER_TEMP/cand.json"
+          # A name_only event -> manual_review only.
+          python -m ownlang own-fix subscriptions candidates "$on" \
+            --config "$RUNNER_TEMP/fix.toml" \
+            --class Own.Samples.FixCandidates.NameOnlySubscriber \
+            --output "$RUNNER_TEMP/cand2.json" --root .
+          python -c "import json,sys; a=json.load(open(sys.argv[1]))['candidates'][0]['allowed_actions']; sys.exit(0 if a==['manual_review'] else 1)" "$RUNNER_TEMP/cand2.json" \
+            || { echo "FAIL: name_only should be manual_review only"; exit 1; }
+          # A nested class -> hard error.
+          if python -m ownlang own-fix subscriptions candidates "$on" --config "$RUNNER_TEMP/fix.toml" \
+              --class Own.Samples.FixCandidates.OuterWithNested.Nested --output "$RUNNER_TEMP/x.json" --root . 2>/dev/null; then
+            echo "FAIL: a nested class must be refused"; exit 1
+          fi
+          # An unknown finding-id -> hard error.
+          if python -m ownlang own-fix subscriptions candidates "$on" --config "$RUNNER_TEMP/fix.toml" \
+              --class Own.Samples.FixCandidates.InpcNoTeardown --finding-id OWN001:sha256:deadbeef \
+              --output "$RUNNER_TEMP/x.json" --root . 2>/dev/null; then
+            echo "FAIL: an unknown finding-id must be refused"; exit 1
+          fi
+          echo "OK: own-fix collector — bundle, permission tiering, and hard rejections"
+
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
   # acquire (timer / subscribe / listener) with no cleanup return is the core's
