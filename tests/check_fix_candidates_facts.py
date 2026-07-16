@@ -13,8 +13,29 @@ Usage:
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
+
+_ADDITIVE_COMPONENT_KEYS = (
+    "qualified_name",
+    "is_partial",
+    "is_nested",
+    "declaration_count",
+    "is_generated",
+)
+
+
+def _strip_additive(facts: dict) -> dict:
+    """The flag-ON facts with every S0-additive field removed."""
+    f = copy.deepcopy(facts)
+    f.pop("fix_candidates_version", None)
+    for c in f.get("components", []):
+        for k in _ADDITIVE_COMPONENT_KEYS:
+            c.pop(k, None)
+        for s in c.get("subscriptions") or []:
+            s.pop("fix", None)
+    return f
 
 
 def _load(path: str) -> dict[str, object]:
@@ -53,12 +74,16 @@ def main(on_path: str, off_path: str | None) -> int:
         check(len(fx) == 1, f"{name}: expected exactly one fix block, got {len(fx)}")
         return fx[0] if fx else None
 
-    # INPC + exact teardown.
+    # INPC + exact teardown (stable source + stable handler, stable candidate match).
     f = only_fix("InpcExactTeardown")
     if f:
         check(f["event_contract"] == "inotify_property_changed", "InpcExactTeardown: contract")
         check(f["teardown"]["status"] == "exact", "InpcExactTeardown: teardown exact")
-        check(len(f["teardown"]["candidates"]) == 1, "InpcExactTeardown: one teardown candidate")
+        cands = f["teardown"]["candidates"]
+        check(len(cands) == 1, "InpcExactTeardown: one teardown candidate")
+        check(f["source_identity_kind"] == "stable_symbol", "InpcExactTeardown: source stable")
+        check(f["handler_identity_kind"] == "stable_symbol", "InpcExactTeardown: handler stable")
+        check(bool(cands) and cands[0]["match"] == "stable", "InpcExactTeardown: candidate stable")
 
     # INPC + no teardown.
     f = only_fix("InpcNoTeardown")
@@ -120,6 +145,48 @@ def main(on_path: str, off_path: str | None) -> int:
         "InpcExactTeardown: qualified_name must be the FQN",
     )
 
+    # Blocker-1: a computed/unresolved receiver or handler must NEVER be exact.
+    b1 = [
+        ("ComputedReceiverInvocation", "ambiguous", "computed", "stable_symbol"),
+        ("ComputedReceiverProperty", "ambiguous", "computed", "stable_symbol"),
+        ("DifferentRoots", "none", "computed", "stable_symbol"),
+        ("ComputedHandler", "ambiguous", "stable_symbol", "computed"),
+    ]
+    for name, status, srck, hk in b1:
+        f = only_fix(name)
+        if f:
+            check(f["teardown"]["status"] == status, f"{name}: teardown must be {status}")
+            check(f["teardown"]["status"] != "exact", f"{name}: must NOT be exact")
+            check(f["source_identity_kind"] == srck, f"{name}: source_identity_kind {srck}")
+            check(f["handler_identity_kind"] == hk, f"{name}: handler_identity_kind {hk}")
+
+    # Blocker-2: occurrence_ordinal is scoped by enclosing member.
+    across = _fixes(on, "OrdinalAcrossMembers")
+    check(len(across) == 2, f"OrdinalAcrossMembers: expected 2 fixes, got {len(across)}")
+    if len(across) == 2:
+        check(all(x["occurrence_ordinal"] == 0 for x in across), "OrdinalAcrossMembers: each ord 0")
+        check(
+            across[0]["enclosing_member"] != across[1]["enclosing_member"],
+            "OrdinalAcrossMembers: distinct enclosing members",
+        )
+    within = _fixes(on, "OrdinalWithinMember")
+    check(len(within) == 2, f"OrdinalWithinMember: expected 2 fixes, got {len(within)}")
+    if len(within) == 2:
+        check(
+            {x["occurrence_ordinal"] for x in within} == {0, 1},
+            "OrdinalWithinMember: ordinals must be 0 and 1",
+        )
+        check(
+            within[0]["enclosing_member"] == within[1]["enclosing_member"],
+            "OrdinalWithinMember: same enclosing member",
+        )
+    refov = _fixes(on, "RefOverloadEnclosing")
+    check(len(refov) == 2, f"RefOverloadEnclosing: expected 2 fixes, got {len(refov)}")
+    if len(refov) == 2:
+        encls = {x["enclosing_member"] for x in refov}
+        check(len(encls) == 2, "RefOverloadEnclosing: ref/value overloads need distinct signatures")
+        check(any("ref " in e for e in encls), "RefOverloadEnclosing: a signature must show `ref`")
+
     # Off-run must carry NO fix metadata at all.
     if off_path is not None:
         off = _load(off_path)
@@ -128,6 +195,10 @@ def main(on_path: str, off_path: str | None) -> int:
             check("qualified_name" not in c, f"flag-off: {c.get('name')} has qualified_name")
             for s in c.get("subscriptions") or []:
                 check("fix" not in s, "flag-off: a subscription carries a fix block")
+        # Additivity, positively: strip every additive field from the flag-ON facts and
+        # the result must EQUAL the flag-off facts (same records, same order, same old
+        # values) -- enabling the metadata changed nothing pre-existing.
+        check(_strip_additive(on) == off, "flag-on minus additive fields must equal flag-off")
 
     if fails:
         for fmsg in fails:

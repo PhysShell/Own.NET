@@ -111,4 +111,106 @@ namespace Own.Samples.FixCandidates
             private void OnNested(object s, PropertyChangedEventArgs e) { }
         }
     }
+
+    // --- Blocker-1 regressions: a computed receiver/handler must NOT be exact ---
+
+    // Receiver is an INVOCATION: two GetPublisher() calls can return different
+    // instances even though the method symbol is identical -> ambiguous, not exact.
+    public sealed class ComputedReceiverInvocation
+    {
+        private IPub GetPublisher() => null!;
+
+        public ComputedReceiverInvocation() => GetPublisher().PropertyChanged += OnChanged;
+        public void Dispose() => GetPublisher().PropertyChanged -= OnChanged;
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    // Receiver is a PROPERTY: the getter may return different instances -> ambiguous.
+    public sealed class ComputedReceiverProperty
+    {
+        private IPub Pub => null!;
+
+        public ComputedReceiverProperty() => Pub.PropertyChanged += OnChanged;
+        public void Dispose() => Pub.PropertyChanged -= OnChanged;
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    public sealed class Holder
+    {
+        public IPub Publisher = null!;
+    }
+
+    // Different ROOT objects, same final field member: `_a.Publisher` != `_b.Publisher`
+    // as instances -> the -= is not even a candidate -> none (certainly not exact).
+    public sealed class DifferentRoots
+    {
+        private readonly Holder _a;
+        private readonly Holder _b;
+
+        public DifferentRoots(Holder a, Holder b)
+        {
+            _a = a;
+            _b = b;
+            _a.Publisher.PropertyChanged += OnChanged;
+        }
+
+        public void Dispose() => _b.Publisher.PropertyChanged -= OnChanged;
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    // Handler is a PROPERTY returning a delegate: not stable even though both += and -=
+    // resolve to the same IPropertySymbol -> ambiguous.
+    public sealed class ComputedHandler
+    {
+        private readonly IPub _pub;
+        private PropertyChangedEventHandler H => (_, __) => { };
+
+        public ComputedHandler(IPub pub)
+        {
+            _pub = pub;
+            _pub.PropertyChanged += H;
+        }
+
+        public void Dispose() => _pub.PropertyChanged -= H;
+    }
+
+    // --- Blocker-2 regressions: occurrence ordinal is scoped by enclosing member ---
+
+    // The SAME identity tuple in two different members -> each ordinal 0.
+    public sealed class OrdinalAcrossMembers
+    {
+        private readonly IPub _pub;
+
+        public OrdinalAcrossMembers(IPub pub)
+        {
+            _pub = pub;
+            _pub.PropertyChanged += OnChanged;
+        }
+
+        public void Reattach() => _pub.PropertyChanged += OnChanged;
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    // Two identical acquires in ONE member -> ordinals 0 and 1.
+    public sealed class OrdinalWithinMember
+    {
+        public OrdinalWithinMember(IPub pub)
+        {
+            pub.PropertyChanged += OnChanged;
+            pub.PropertyChanged += OnChanged;
+        }
+
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    // Value vs ref overload -> DISTINCT enclosing_member signatures (IncludeParamsRefOut).
+    public sealed class RefOverloadEnclosing
+    {
+        private readonly IPub _pub;
+
+        public RefOverloadEnclosing(IPub pub) => _pub = pub;
+        public void Attach(int x) => _pub.PropertyChanged += OnChanged;
+        public void Attach(ref int x) => _pub.PropertyChanged += OnChanged;
+        private void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
 }

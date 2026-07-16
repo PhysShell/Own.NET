@@ -543,7 +543,10 @@ static SymbolDisplayFormat FixFqnFormat() => new SymbolDisplayFormat(
     typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
     genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
     memberOptions: SymbolDisplayMemberOptions.IncludeContainingType | SymbolDisplayMemberOptions.IncludeParameters,
-    parameterOptions: SymbolDisplayParameterOptions.IncludeType,
+    // IncludeParamsRefOut so `M(T)` and `M(ref T)` — legal C# overloads — get DISTINCT
+    // signatures; without it the enclosing-member component of a finding identity could
+    // collide across ref/value overloads.
+    parameterOptions: SymbolDisplayParameterOptions.IncludeType | SymbolDisplayParameterOptions.IncludeParamsRefOut,
     miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
 // Whitespace-normalized syntax fingerprint (collapse runs of whitespace to single
@@ -630,48 +633,95 @@ static string FixEnclosingMemberSignature(SyntaxNode node, SemanticModel model)
     return sym?.ToDisplayString(FixFqnFormat()) ?? FixNormWs(member.ToString());
 }
 
-// Do two identities (symbol-first, syntax-text fallback) name the same thing? `resolved`
-// is true only when BOTH sides resolved to a symbol — an exact teardown match requires a
-// resolved match, so a text-only agreement never earns `exact`.
-static bool FixIdentityMatch(ISymbol? aSym, string aText, ISymbol? bSym, string bText, out bool resolved)
+// Strip enclosing parentheses so `(x)` classifies like `x`.
+static ExpressionSyntax FixStripParens(ExpressionSyntax e) =>
+    e is ParenthesizedExpressionSyntax p ? FixStripParens(p.Expression) : e;
+
+// Conservative RECEIVER (event-source) identity. Only a receiver that names a
+// definitely-stable instance may ground an `exact` teardown; a receiver whose runtime
+// instance is computed per evaluation must not — two `GetPublisher()` calls, or a
+// property getter, can return different objects even though the SYMBOL is identical.
+//   "stable_symbol": `this` / local / parameter / instance field of `this` / static
+//                    field — the same syntactic reference is the same instance;
+//   "computed":      invocation / property / indexer / conditional access / a field of
+//                    some OTHER value (`a.Publisher`) — instance identity not proven;
+//   "unresolved":    no symbol bound.
+static (string Kind, ISymbol? Sym) FixReceiverIdentity(
+    ExpressionSyntax? recv, SemanticModel model, INamedTypeSymbol? clsSymbol)
 {
-    if (aSym is not null && bSym is not null)
+    if (recv is null)
+        return ("stable_symbol", clsSymbol); // bare event => implicit `this`
+    recv = FixStripParens(recv);
+    if (recv is ThisExpressionSyntax)
+        return ("stable_symbol", clsSymbol);
+    var sym = model.GetSymbolInfo(recv).Symbol;
+    switch (recv)
     {
-        resolved = true;
-        return SymbolEqualityComparer.Default.Equals(aSym, bSym);
+        case IdentifierNameSyntax:
+            // bare identifier: local / parameter / instance-field-of-`this` / static field
+            if (sym is ILocalSymbol or IParameterSymbol or IFieldSymbol)
+                return ("stable_symbol", sym);
+            return sym is null ? ("unresolved", null) : ("computed", sym);
+        case MemberAccessExpressionSyntax ma:
+            // only `this._field` or a static field is a proven-stable instance; a field
+            // of another value (`a.Publisher`) or a property/method is computed.
+            if (sym is IFieldSymbol f
+                && (f.IsStatic || FixStripParens(ma.Expression) is ThisExpressionSyntax))
+                return ("stable_symbol", sym);
+            return sym is null ? ("unresolved", null) : ("computed", sym);
+        default:
+            return sym is null ? ("unresolved", null) : ("computed", sym);
     }
-    resolved = false;
-    return FixNormWs(aText) == FixNormWs(bText);
 }
 
-// Build the namespaced `fix` block for one eligible `+=` acquire `a` (event `ev`). The
-// occurrence ordinal disambiguates otherwise-identical acquires and is tracked in `occ`
-// (per containing type). Teardown matching is symbol-based and scoped to `a`'s IMMEDIATE
-// containing type (never a nested/outer type). Returns an anonymous object serialized as
-// the `fix` value.
+// Conservative HANDLER identity, same discipline. A method group is stable (its target is
+// `this` / a type, fixed for the class); a delegate held in a local / parameter / field is
+// allowed; a lambda (a fresh delegate each evaluation) or a computed delegate expression
+// (property / indexer / invocation) is not stable and can never ground an `exact`.
+static (string Kind, ISymbol? Sym) FixHandlerIdentity(ExpressionSyntax handler, SemanticModel model)
+{
+    var nh = NormalizeHandler(handler);
+    if (nh is AnonymousFunctionExpressionSyntax)
+        return ("computed", null);
+    var info = model.GetSymbolInfo(nh);
+    var sym = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
+    if (sym is IMethodSymbol or ILocalSymbol or IParameterSymbol or IFieldSymbol)
+        return ("stable_symbol", sym);
+    return sym is null ? ("unresolved", null) : ("computed", sym);
+}
+
+// Build the namespaced `fix` block for one eligible `+=` acquire `a` (event `ev`). An
+// `exact` teardown requires a single `-=` site whose event symbol, RECEIVER identity, and
+// HANDLER identity all match by STABLE symbol — a computed/unresolved identity, or a
+// text-only agreement, tops out at `ambiguous`. The occurrence ordinal is keyed by the
+// FULL identity INCLUDING the enclosing member (so a subscription added to a different
+// member never shifts an existing one's ordinal). Teardown scan is scoped to `a`'s
+// IMMEDIATE containing type.
 static object FixBuildSubscriptionFix(
     AssignmentExpressionSyntax a, IEventSymbol ev, SemanticModel model, Compilation compilation,
-    ClassDeclarationSyntax cls, Dictionary<string, int> occ)
+    INamedTypeSymbol? clsSymbol, ClassDeclarationSyntax cls, Dictionary<string, int> occ)
 {
-    // --- event identity + INPC contract ---
     var eventId = ev.OriginalDefinition.ToDisplayString(FixFqnFormat());
     var contract = FixEventContract(ev, compilation);
+    var enclosing = FixEnclosingMemberSignature(a, model);
 
-    // --- source (receiver) identity ---
     var recv = FixEventReceiver(a.Left);
-    ISymbol? sourceSym = recv is null ? model.GetDeclaredSymbol(cls) : model.GetSymbolInfo(recv).Symbol;
     var sourceText = recv is null ? "this" : recv.ToString();
-    var sourceId = sourceSym is not null ? sourceSym.ToDisplayString(FixFqnFormat()) : FixNormWs(sourceText);
+    var (srcKind, srcSym) = FixReceiverIdentity(recv, model, clsSymbol);
+    var sourceId = srcKind == "stable_symbol" && srcSym is not null
+        ? srcSym.ToDisplayString(FixFqnFormat())
+        : FixNormWs(sourceText);
 
-    // --- handler identity (method symbol, else lambda/expr syntax fingerprint) ---
-    var normHandler = NormalizeHandler(a.Right);
-    var handlerSym = model.GetSymbolInfo(normHandler).Symbol;
-    var handlerText = normHandler.ToString();
-    var handlerId = handlerSym is not null ? handlerSym.ToDisplayString(FixFqnFormat()) : FixNormWs(handlerText);
+    var handlerText = NormalizeHandler(a.Right).ToString();
+    var (hKind, hSym) = FixHandlerIdentity(a.Right, model);
+    var handlerId = hKind == "stable_symbol" && hSym is not null
+        ? hSym.ToDisplayString(FixFqnFormat())
+        : FixNormWs(handlerText);
 
-    // --- teardown: symbol-based `-=` sites in the SAME immediate type ---
+    var acquireStable = srcKind == "stable_symbol" && hKind == "stable_symbol";
+
     var candidates = new List<object>();
-    var anyUnresolved = !(sourceSym is not null && handlerSym is not null);
+    var anyNonStable = false;
     foreach (var t in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
     {
         if (!t.IsKind(SyntaxKind.SubtractAssignmentExpression))
@@ -682,42 +732,48 @@ static object FixBuildSubscriptionFix(
             || !SymbolEqualityComparer.Default.Equals(tev, ev))
             continue; // must be the same event symbol
         var tRecv = FixEventReceiver(t.Left);
-        ISymbol? tSourceSym = tRecv is null ? model.GetDeclaredSymbol(cls) : model.GetSymbolInfo(tRecv).Symbol;
         var tSourceText = tRecv is null ? "this" : tRecv.ToString();
-        var tNormHandler = NormalizeHandler(t.Right);
-        var tHandlerSym = model.GetSymbolInfo(tNormHandler).Symbol;
-        var tHandlerText = tNormHandler.ToString();
+        var (tSrcKind, tSrcSym) = FixReceiverIdentity(tRecv, model, clsSymbol);
+        var tHandlerText = NormalizeHandler(t.Right).ToString();
+        var (tHKind, tHSym) = FixHandlerIdentity(t.Right, model);
 
-        var sourceMatch = FixIdentityMatch(sourceSym, sourceText, tSourceSym, tSourceText, out var sr);
-        var handlerMatch = FixIdentityMatch(handlerSym, handlerText, tHandlerSym, tHandlerText, out var hr);
-        if (!sourceMatch || !handlerMatch)
+        var srcStableEq = srcKind == "stable_symbol" && tSrcKind == "stable_symbol"
+                          && SymbolEqualityComparer.Default.Equals(srcSym, tSrcSym);
+        var hStableEq = hKind == "stable_symbol" && tHKind == "stable_symbol"
+                        && SymbolEqualityComparer.Default.Equals(hSym, tHSym);
+        var srcAgree = srcStableEq || FixNormWs(sourceText) == FixNormWs(tSourceText);
+        var hAgree = hStableEq || FixNormWs(handlerText) == FixNormWs(tHandlerText);
+        if (!srcAgree || !hAgree)
             continue;
-        if (!sr || !hr)
-            anyUnresolved = true; // a matched-by-text site cannot ground an `exact`
+
+        var stableMatch = srcStableEq && hStableEq;
+        if (!stableMatch)
+            anyNonStable = true; // a text-only match cannot ground an `exact`
         candidates.Add(new
         {
             source = tSourceText,
             handler = tHandlerText,
+            match = stableMatch ? "stable" : "text",
             span = FixSpanOf(t),
         });
     }
     var status = candidates.Count == 0 ? "none"
-               : (candidates.Count == 1 && !anyUnresolved) ? "exact"
+               : (candidates.Count == 1 && acquireStable && !anyNonStable) ? "exact"
                : "ambiguous";
 
-    // --- occurrence ordinal (per identity, per type; document order) ---
-    var key = $"{eventId}\0{sourceId}\0{handlerId}";
+    var key = $"{enclosing}\0{eventId}\0{sourceId}\0{handlerId}";
     var ordinal = occ.TryGetValue(key, out var seen) ? seen : 0;
     occ[key] = ordinal + 1;
 
     return new
     {
-        enclosing_member = FixEnclosingMemberSignature(a, model),
+        enclosing_member = enclosing,
         event_identity = eventId,
         event_contract = contract,
         source_identity = sourceId,
+        source_identity_kind = srcKind,
         handler_identity = handlerId,
-        handler_is_symbol = handlerSym is not null,
+        handler_identity_kind = hKind,
         occurrence_ordinal = ordinal,
         span = FixSpanOf(a),
         teardown = new { status, candidates },
@@ -5096,7 +5152,7 @@ foreach (var (file, tree) in parsed)
                             source,
                             lambda = IsLambdaHandler(a.Right),
                             source_provenance = "returned_fresh",
-                            fix = FixBuildSubscriptionFix(a, ev, model, compilation, cls, fixOcc),
+                            fix = FixBuildSubscriptionFix(a, ev, model, compilation, clsSymbol, cls, fixOcc),
                         });
                     else
                         subs.Add(new
@@ -5121,7 +5177,7 @@ foreach (var (file, tree) in parsed)
                         resource = source == "static" ? "capture" : "subscription",
                         source,
                         lambda = IsLambdaHandler(a.Right),
-                        fix = FixBuildSubscriptionFix(a, ev, model, compilation, cls, fixOcc),
+                        fix = FixBuildSubscriptionFix(a, ev, model, compilation, clsSymbol, cls, fixOcc),
                     });
                 else
                     subs.Add(new
