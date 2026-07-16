@@ -61,6 +61,14 @@ var weakSubscribe = new HashSet<(string Type, string Method)>();
 // (e.g. to run only the disposable/pool detectors); it is the first instance of
 // the broader check-selection surface tracked in P-015.
 bool emitEvents = true;
+// --fix-candidates (S0, internal, default off): emit ADDITIVE fix-candidate metadata
+// for the `own-fix subscriptions candidates` collector — a namespaced `fix` block on
+// each eligible `+=` subscription fact, a `qualified_name` + type-shape metadata on the
+// component, and a top-level `fix_candidates_version`. STRICTLY additive: with the flag
+// OFF the facts JSON is byte-for-byte identical (no `fix`, no `qualified_name`, no
+// `fix_candidates_version`), and `ownir_version` is unchanged either way. It changes NO
+// existing field and NOT the `released` computation — only new optional metadata.
+bool emitFixCandidates = false;
 // --flow-locals (P-016 B0b/B2, EXPERIMENTAL, default off): emit per-method flow
 // facts for non-escaping local IDisposables (acquire/use/release/if/return over a
 // CFG) so the core checks them path-sensitively (OWN001/002/003). Supersedes the
@@ -128,6 +136,9 @@ Options:
                      --config own.toml, not by hand; own.toml is the public surface.
   --no-project-refs  don't auto-add a .csproj/.sln project's bin/ output to the references
   --no-event-leaks   skip event-subscription detection (run only disposable/pool detectors)
+  --fix-candidates   emit additive S0 fix-candidate metadata (namespaced `fix` block +
+                     component `qualified_name`/shape + top-level `fix_candidates_version`);
+                     facts are byte-identical without it, `ownir_version` unchanged
   --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
   --stats            print flow-locals coverage (requires --flow-locals)
   --body-throw-edges treat escaping body-level may-throw as a dispose-on-throw point (needs --flow-locals)
@@ -159,6 +170,7 @@ for (int i = 0; i < args0.Length; i++)
     }
     else if (args0[i] == "--no-project-refs") noProjectRefs = true;
     else if (args0[i] == "--no-event-leaks") emitEvents = false;
+    else if (args0[i] == "--fix-candidates") emitFixCandidates = true;
     else if (args0[i] == "--flow-locals") flowLocals = true;
     else if (args0[i] == "--body-throw-edges") BodyThrowEdges = true;
     else if (args0[i] == "--stats") reportStats = true;
@@ -520,6 +532,271 @@ static ExpressionSyntax NormalizeHandler(ExpressionSyntax e)
 
 static int LineOf(SyntaxNode node) =>
     node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+
+// ---- S0 fix-candidate metadata (--fix-candidates only; strictly additive) ----
+
+// The one documented FQN format for `qualified_name` and every symbol identity the
+// fix block emits: fully-qualified with namespaces + nested-type path, no `global::`,
+// generic type parameters included, special types spelled (`int`, not `System.Int32`).
+static SymbolDisplayFormat FixFqnFormat() => new SymbolDisplayFormat(
+    globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+    typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+    genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+    memberOptions: SymbolDisplayMemberOptions.IncludeContainingType | SymbolDisplayMemberOptions.IncludeParameters,
+    // IncludeParamsRefOut so `M(T)` and `M(ref T)` — legal C# overloads — get DISTINCT
+    // signatures; without it the enclosing-member component of a finding identity could
+    // collide across ref/value overloads.
+    parameterOptions: SymbolDisplayParameterOptions.IncludeType | SymbolDisplayParameterOptions.IncludeParamsRefOut,
+    miscellaneousOptions: SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+
+// Whitespace-normalized syntax fingerprint (collapse runs of whitespace to single
+// spaces, trim) — used as the identity of a lambda handler / an unresolved receiver,
+// where no symbol exists to name it. Deterministic; no regex.
+static string FixNormWs(string s) =>
+    string.Join(" ", s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+// A full Roslyn TextSpan for `node`: absolute UTF-16 (start,length) for a future
+// rewriter, plus 1-based line/column for humans and diagnostics UI.
+static object FixSpanOf(SyntaxNode node)
+{
+    var span = node.Span;
+    var ls = node.GetLocation().GetLineSpan();
+    return new
+    {
+        start = span.Start,
+        length = span.Length,
+        start_line = ls.StartLinePosition.Line + 1,
+        start_column = ls.StartLinePosition.Character + 1,
+        end_line = ls.EndLinePosition.Line + 1,
+        end_column = ls.EndLinePosition.Character + 1,
+    };
+}
+
+// The receiver expression of an event access (`source` in `source.PropertyChanged`),
+// or null when the event is named bare (`Changed += h`, an implicit `this`).
+static ExpressionSyntax? FixEventReceiver(ExpressionSyntax eventAccess) =>
+    eventAccess is MemberAccessExpressionSyntax m ? m.Expression : null;
+
+// Semantic INotifyPropertyChanged classification — NEVER by the name alone. Only the
+// actual `INotifyPropertyChanged.PropertyChanged` member, or a symbol that provably
+// implements it, is `inotify_property_changed`; a same-named event on an unrelated
+// type is `name_only`; anything else is `other`. (The `unresolved` category is for the
+// unresolved-subscription lane where no event symbol binds, not reached here.)
+static string FixEventContract(IEventSymbol ev, Compilation compilation)
+{
+    var inpc = compilation.GetTypeByMetadataName("System.ComponentModel.INotifyPropertyChanged");
+    var inpcEvent = inpc?.GetMembers("PropertyChanged").OfType<IEventSymbol>().FirstOrDefault();
+    if (inpcEvent is not null)
+    {
+        if (SymbolEqualityComparer.Default.Equals(ev.OriginalDefinition, inpcEvent))
+            return "inotify_property_changed";
+        var impl = ev.ContainingType?.FindImplementationForInterfaceMember(inpcEvent);
+        if (impl is not null && SymbolEqualityComparer.Default.Equals(impl, ev))
+            return "inotify_property_changed";
+    }
+    return ev.Name == "PropertyChanged" ? "name_only" : "other";
+}
+
+// Best-effort "did this file reach the extractor already generated?" — a name marker
+// (`.g.cs`/`.g.i.cs`/`.designer.cs`/`.generated.cs`) or an `<auto-generated>` header.
+static bool FixIsGeneratedFile(SyntaxTree tree, string file)
+{
+    var lower = file.Replace('\\', '/').ToLowerInvariant();
+    var name = lower.Substring(lower.LastIndexOf('/') + 1);
+    if (name.EndsWith(".g.cs", StringComparison.Ordinal)
+        || name.EndsWith(".g.i.cs", StringComparison.Ordinal)
+        || name.EndsWith(".designer.cs", StringComparison.Ordinal)
+        || name.EndsWith(".generated.cs", StringComparison.Ordinal))
+        return true;
+    foreach (var tr in tree.GetRoot().GetFirstToken(includeZeroWidth: true).LeadingTrivia)
+        if (tr.IsKind(SyntaxKind.SingleLineCommentTrivia) || tr.IsKind(SyntaxKind.MultiLineCommentTrivia))
+        {
+            var t = tr.ToString().ToLowerInvariant();
+            if (t.Contains("<auto-generated") || t.Contains("auto-generated") || t.Contains("autogenerated"))
+                return true;
+        }
+    return false;
+}
+
+// The signature of the member (method/ctor/accessor/property) that lexically encloses
+// `node` — part of the fix finding-identity (a subscription is identified by WHERE it
+// is declared, not by its line). Symbol signature when resolvable, else a syntax
+// fallback.
+static string FixEnclosingMemberSignature(SyntaxNode node, SemanticModel model)
+{
+    var member = node.Ancestors().FirstOrDefault(n =>
+        n is BaseMethodDeclarationSyntax or AccessorDeclarationSyntax
+          or PropertyDeclarationSyntax or EventDeclarationSyntax or IndexerDeclarationSyntax);
+    if (member is null)
+        return "<none>";
+    var sym = model.GetDeclaredSymbol(member);
+    return sym?.ToDisplayString(FixFqnFormat()) ?? FixNormWs(member.ToString());
+}
+
+// Strip enclosing parentheses so `(x)` classifies like `x`.
+static ExpressionSyntax FixStripParens(ExpressionSyntax e) =>
+    e is ParenthesizedExpressionSyntax p ? FixStripParens(p.Expression) : e;
+
+// Conservative RECEIVER (event-source) identity. Only a receiver that names a
+// definitely-stable instance may ground an `exact` teardown; a receiver whose runtime
+// instance is computed per evaluation must not — two `GetPublisher()` calls, or a
+// property getter, can return different objects even though the SYMBOL is identical.
+//   "stable_symbol": `this` / local / parameter / instance field of `this` / static
+//                    field — the same syntactic reference is the same instance;
+//   "computed":      invocation / property / indexer / conditional access / a field of
+//                    some OTHER value (`a.Publisher`) — instance identity not proven;
+//   "unresolved":    no symbol bound.
+static (string Kind, ISymbol? Sym) FixReceiverIdentity(
+    ExpressionSyntax? recv, SemanticModel model, INamedTypeSymbol? clsSymbol)
+{
+    if (recv is null)
+        return ("stable_symbol", clsSymbol); // bare event => implicit `this`
+    recv = FixStripParens(recv);
+    if (recv is ThisExpressionSyntax)
+        return ("stable_symbol", clsSymbol);
+    var sym = model.GetSymbolInfo(recv).Symbol;
+    switch (recv)
+    {
+        case IdentifierNameSyntax:
+            // bare identifier: local / parameter / instance-field-of-`this` / static field
+            if (sym is ILocalSymbol or IParameterSymbol or IFieldSymbol)
+                return ("stable_symbol", sym);
+            return sym is null ? ("unresolved", null) : ("computed", sym);
+        case MemberAccessExpressionSyntax ma:
+            // only `this._field` or a static field is a proven-stable instance; a field
+            // of another value (`a.Publisher`) or a property/method is computed.
+            if (sym is IFieldSymbol f
+                && (f.IsStatic || FixStripParens(ma.Expression) is ThisExpressionSyntax))
+                return ("stable_symbol", sym);
+            return sym is null ? ("unresolved", null) : ("computed", sym);
+        default:
+            return sym is null ? ("unresolved", null) : ("computed", sym);
+    }
+}
+
+// Conservative HANDLER identity. A method SYMBOL is not a delegate identity, and a
+// storage SYMBOL is not its (mutable) value — so `stable_symbol` is limited to the two
+// forms whose delegate is provably fixed for the class WITHOUT dataflow:
+//   * a STATIC method group (null target); or
+//   * an INSTANCE method group on `this` — bare `OnChanged` or `this.OnChanged`.
+// A method group on any OTHER receiver (`left.OnChanged`) binds to that receiver's
+// instance — `left.OnChanged` and `right.OnChanged` are the same IMethodSymbol but
+// different delegates. A delegate held in a local / parameter / field / property is a
+// storage location that can be reassigned between the `+=` and the `-=` (same symbol,
+// different value). A lambda is a fresh delegate each evaluation. All of these are
+// `computed` — none may ground an `exact` (proving them stable is dataflow, out of S0).
+static (string Kind, ISymbol? Sym) FixHandlerIdentity(ExpressionSyntax handler, SemanticModel model)
+{
+    var nh = NormalizeHandler(handler);
+    if (nh is AnonymousFunctionExpressionSyntax)
+        return ("computed", null);
+    var info = model.GetSymbolInfo(nh);
+    var sym = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
+    if (sym is IMethodSymbol method)
+    {
+        if (method.IsStatic)
+            return ("stable_symbol", sym); // static method group: null target
+        if (nh is IdentifierNameSyntax)
+            return ("stable_symbol", sym); // bare `OnChanged` => implicit `this`
+        if (nh is MemberAccessExpressionSyntax ma
+            && FixStripParens(ma.Expression) is ThisExpressionSyntax)
+            return ("stable_symbol", sym); // `this.OnChanged`
+        return ("computed", sym); // method group on some other receiver instance
+    }
+    // A local / parameter / field / property / indexer delegate: a storage location or a
+    // computed value, not a proven-immutable delegate.
+    return sym is null ? ("unresolved", null) : ("computed", sym);
+}
+
+// Build the namespaced `fix` block for one eligible `+=` acquire `a` (event `ev`). An
+// `exact` teardown requires a single `-=` site whose event symbol, RECEIVER identity, and
+// HANDLER identity all match by STABLE symbol — a computed/unresolved identity, or a
+// text-only agreement, tops out at `ambiguous`. The occurrence ordinal is keyed by the
+// FULL identity INCLUDING the enclosing member (so a subscription added to a different
+// member never shifts an existing one's ordinal). Teardown scan is scoped to `a`'s
+// IMMEDIATE containing type.
+static object FixBuildSubscriptionFix(
+    AssignmentExpressionSyntax a, IEventSymbol ev, SemanticModel model, Compilation compilation,
+    INamedTypeSymbol? clsSymbol, ClassDeclarationSyntax cls, Dictionary<string, int> occ)
+{
+    var eventId = ev.OriginalDefinition.ToDisplayString(FixFqnFormat());
+    var contract = FixEventContract(ev, compilation);
+    var enclosing = FixEnclosingMemberSignature(a, model);
+
+    var recv = FixEventReceiver(a.Left);
+    var sourceText = recv is null ? "this" : recv.ToString();
+    var (srcKind, srcSym) = FixReceiverIdentity(recv, model, clsSymbol);
+    var sourceId = srcKind == "stable_symbol" && srcSym is not null
+        ? srcSym.ToDisplayString(FixFqnFormat())
+        : FixNormWs(sourceText);
+
+    var handlerText = NormalizeHandler(a.Right).ToString();
+    var (hKind, hSym) = FixHandlerIdentity(a.Right, model);
+    var handlerId = hKind == "stable_symbol" && hSym is not null
+        ? hSym.ToDisplayString(FixFqnFormat())
+        : FixNormWs(handlerText);
+
+    var acquireStable = srcKind == "stable_symbol" && hKind == "stable_symbol";
+
+    var candidates = new List<object>();
+    var anyNonStable = false;
+    foreach (var t in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+    {
+        if (!t.IsKind(SyntaxKind.SubtractAssignmentExpression))
+            continue;
+        if (!ReferenceEquals(t.FirstAncestorOrSelf<TypeDeclarationSyntax>(), cls))
+            continue; // nested-type boundary: only this immediate type's teardown sites
+        if (model.GetSymbolInfo(t.Left).Symbol is not IEventSymbol tev
+            || !SymbolEqualityComparer.Default.Equals(tev, ev))
+            continue; // must be the same event symbol
+        var tRecv = FixEventReceiver(t.Left);
+        var tSourceText = tRecv is null ? "this" : tRecv.ToString();
+        var (tSrcKind, tSrcSym) = FixReceiverIdentity(tRecv, model, clsSymbol);
+        var tHandlerText = NormalizeHandler(t.Right).ToString();
+        var (tHKind, tHSym) = FixHandlerIdentity(t.Right, model);
+
+        var srcStableEq = srcKind == "stable_symbol" && tSrcKind == "stable_symbol"
+                          && SymbolEqualityComparer.Default.Equals(srcSym, tSrcSym);
+        var hStableEq = hKind == "stable_symbol" && tHKind == "stable_symbol"
+                        && SymbolEqualityComparer.Default.Equals(hSym, tHSym);
+        var srcAgree = srcStableEq || FixNormWs(sourceText) == FixNormWs(tSourceText);
+        var hAgree = hStableEq || FixNormWs(handlerText) == FixNormWs(tHandlerText);
+        if (!srcAgree || !hAgree)
+            continue;
+
+        var stableMatch = srcStableEq && hStableEq;
+        if (!stableMatch)
+            anyNonStable = true; // a text-only match cannot ground an `exact`
+        candidates.Add(new
+        {
+            source = tSourceText,
+            handler = tHandlerText,
+            match = stableMatch ? "stable" : "text",
+            span = FixSpanOf(t),
+        });
+    }
+    var status = candidates.Count == 0 ? "none"
+               : (candidates.Count == 1 && acquireStable && !anyNonStable) ? "exact"
+               : "ambiguous";
+
+    var key = $"{enclosing}\0{eventId}\0{sourceId}\0{handlerId}";
+    var ordinal = occ.TryGetValue(key, out var seen) ? seen : 0;
+    occ[key] = ordinal + 1;
+
+    return new
+    {
+        enclosing_member = enclosing,
+        event_identity = eventId,
+        event_contract = contract,
+        source_identity = sourceId,
+        source_identity_kind = srcKind,
+        handler_identity = handlerId,
+        handler_identity_kind = hKind,
+        occurrence_ordinal = ordinal,
+        span = FixSpanOf(a),
+        teardown = new { status, candidates },
+    };
+}
 
 // The receiver of `target.Member` ("_timer" for `_timer.Tick`), or null when the
 // left side is a bare identifier (`Changed += h`).
@@ -4717,6 +4994,9 @@ foreach (var (file, tree) in parsed)
         var clsIsBehavior = IsBehaviorSubscriber(cls);
 
         var subs = new List<object>();
+        // S0 (--fix-candidates): per-identity occurrence counter, scoped to THIS type,
+        // so two otherwise-identical acquires get distinct finding identities.
+        var fixOcc = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var a in assigns)
         {
             if (!emitEvents || !a.IsKind(SyntaxKind.AddAssignmentExpression))
@@ -4871,17 +5151,51 @@ foreach (var (file, tree) in parsed)
                 // unknown source stays a token `subscription` (OWN001,
                 // severity-tiered); timers are their own kind. (P-004 WPF005;
                 // see ownlang/ownir.py `capture`.)
+                // S0: attach a `fix` block only for a non-timer `+=` whose IMMEDIATE
+                // containing type is THIS class (a nested-class acquire is fixed by that
+                // nested class's own iteration, never the outer's). Purely additive; the
+                // no-fix shapes below are byte-for-byte the pre-S0 facts.
+                var ownAcquire = ReferenceEquals(a.FirstAncestorOrSelf<TypeDeclarationSyntax>(), cls);
+                var wantFix = emitFixCandidates && !isTimer && ownAcquire;
                 if (returnedFresh)
+                {
+                    if (wantFix)
+                        subs.Add(new
+                        {
+                            @event = a.Left.ToString(),
+                            handler = a.Right.ToString(),
+                            line = LineOf(a.Left),
+                            released,
+                            resource = "subscription",
+                            source,
+                            lambda = IsLambdaHandler(a.Right),
+                            source_provenance = "returned_fresh",
+                            fix = FixBuildSubscriptionFix(a, ev, model, compilation, clsSymbol, cls, fixOcc),
+                        });
+                    else
+                        subs.Add(new
+                        {
+                            @event = a.Left.ToString(),
+                            handler = a.Right.ToString(),
+                            line = LineOf(a.Left),
+                            released,
+                            resource = "subscription",
+                            source,
+                            lambda = IsLambdaHandler(a.Right),
+                            source_provenance = "returned_fresh",
+                        });
+                }
+                else if (wantFix)
                     subs.Add(new
                     {
                         @event = a.Left.ToString(),
                         handler = a.Right.ToString(),
                         line = LineOf(a.Left),
                         released,
-                        resource = "subscription",
+                        resource = source == "static" ? "capture" : "subscription",
                         source,
                         lambda = IsLambdaHandler(a.Right),
-                        source_provenance = "returned_fresh",
+                        fix = FixBuildSubscriptionFix(a, ev, model, compilation, clsSymbol, cls, fixOcc),
                     });
                 else
                     subs.Add(new
@@ -5841,29 +6155,64 @@ foreach (var (file, tree) in parsed)
             }
 
         if (subs.Count > 0)
-            components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
+        {
+            if (emitFixCandidates)
+                components.Add(new
+                {
+                    name = cls.Identifier.Text,
+                    qualified_name = clsSymbol?.ToDisplayString(FixFqnFormat()) ?? cls.Identifier.Text,
+                    is_partial = clsSymbol is not null
+                        ? clsSymbol.DeclaringSyntaxReferences.Length > 1
+                          || cls.Modifiers.Any(SyntaxKind.PartialKeyword)
+                        : cls.Modifiers.Any(SyntaxKind.PartialKeyword),
+                    is_nested = clsSymbol?.ContainingType is not null,
+                    declaration_count = clsSymbol?.DeclaringSyntaxReferences.Length ?? 1,
+                    is_generated = FixIsGeneratedFile(tree, file),
+                    file,
+                    subscriptions = subs,
+                });
+            else
+                components.Add(new { name = cls.Identifier.Text, file, subscriptions = subs });
+        }
     }
 }
 
 // ownir_version stamps the fact-schema vocabulary; the Python core rejects a
 // mismatch loudly (ownlang/ownir.py OWNIR_VERSION) rather than mis-reading facts.
 // `stats` is additive coverage metadata — the core's load() ignores unknown keys.
-var facts = new
+// P-006: the DI registration + ctor graph (empty when the scan has no
+// Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
+var factServices = ExtractServices(parsed);
+var factStats = new
 {
-    ownir_version = 0,
-    module = "Extracted",
-    components,
-    // P-006: the DI registration + ctor graph (empty when the scan has no
-    // Add{Singleton,Scoped,Transient} calls). ownlang/di.py turns it into DI001.
-    services = ExtractServices(parsed),
-    functions = flowFunctions,
-    stats = new
-    {
-        methods_with_local = statMethodsWithLocal,
-        methods_flow_analysed = statMethodsAnalysed,
-        methods_skipped_unmodelled = statMethodsSkipped,
-    },
+    methods_with_local = statMethodsWithLocal,
+    methods_flow_analysed = statMethodsAnalysed,
+    methods_skipped_unmodelled = statMethodsSkipped,
 };
+// `fix_candidates_version` is a top-level ADDITIVE metadata field, present ONLY under
+// --fix-candidates; `ownir_version` stays 0 (the fact-schema vocabulary is unchanged —
+// no new resource-kind or analysis-routing value). Without the flag the object is
+// byte-for-byte the pre-S0 shape.
+object facts = emitFixCandidates
+    ? new
+    {
+        ownir_version = 0,
+        fix_candidates_version = 1,
+        module = "Extracted",
+        components,
+        services = factServices,
+        functions = flowFunctions,
+        stats = factStats,
+    }
+    : new
+    {
+        ownir_version = 0,
+        module = "Extracted",
+        components,
+        services = factServices,
+        functions = flowFunctions,
+        stats = factStats,
+    };
 var json = JsonSerializer.Serialize(facts, new JsonSerializerOptions { WriteIndented = true });
 
 if (reportStats)

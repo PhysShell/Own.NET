@@ -1,0 +1,328 @@
+{
+  "ownir_version": 0,
+  "module": "Extracted",
+  "components": [
+    {
+      "name": "InpcExactTeardown",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 24,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "InpcNoTeardown",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 34,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "InpcAmbiguousTeardown",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 45,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "NameOnlySubscriber",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "p.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 61,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "OtherEventSubscriber",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "p.Clicked",
+          "handler": "OnClick",
+          "line": 73,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "TwoOnOneLine",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "a.PropertyChanged",
+          "handler": "OnA",
+          "line": 81,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        },
+        {
+          "event": "b.PropertyChanged",
+          "handler": "OnB",
+          "line": 81,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "WrappedDelegate",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "new PropertyChangedEventHandler(OnChanged)",
+          "line": 94,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "OuterWithNested",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnOuter",
+          "line": 105,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        },
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnNested",
+          "line": 110,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "Nested",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnNested",
+          "line": 110,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "ComputedReceiverInvocation",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "GetPublisher().PropertyChanged",
+          "handler": "OnChanged",
+          "line": 123,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "ComputedReceiverProperty",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "Pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 133,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "DifferentRoots",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_a.Publisher.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 154,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "ComputedHandler",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "H",
+          "line": 171,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "OrdinalAcrossMembers",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 187,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        },
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 190,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "OrdinalWithinMember",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 199,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        },
+        {
+          "event": "pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 200,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "RefOverloadEnclosing",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 212,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        },
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "OnChanged",
+          "line": 213,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "HandlerDifferentTarget",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "_left.OnChanged",
+          "line": 237,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "HandlerReassignedField",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "_handler",
+          "line": 254,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    }
+  ],
+  "services": [],
+  "functions": [],
+  "stats": {
+    "methods_with_local": 0,
+    "methods_flow_analysed": 0,
+    "methods_skipped_unmodelled": 0
+  }
+}

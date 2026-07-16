@@ -403,6 +403,95 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     return 1 if leaks else 0
 
 
+def cmd_own_fix(rest: list[str]) -> int:
+    """`own-fix subscriptions candidates <facts.json> --config <own.toml>
+    --class <FQN> [--finding-id <ID>]... --output <candidates.json> [--root <dir>]`."""
+    import json
+
+    usage = (
+        "usage: python -m ownlang own-fix subscriptions candidates <facts.json> "
+        "--config <own.toml> --class <FQN> [--finding-id <ID>]... "
+        "--output <candidates.json> [--root <dir>]"
+    )
+    if len(rest) < 2 or rest[0] != "subscriptions" or rest[1] != "candidates":
+        print(usage, file=sys.stderr)
+        return 2
+
+    args = rest[2:]
+    facts_path: str | None = None
+    config_path: str | None = None
+    class_fqn: str | None = None
+    output: str | None = None
+    root = "."
+    finding_ids: list[str] = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a.startswith("--"):
+            if i + 1 >= len(args):
+                print(f"own-fix: {a} requires a value", file=sys.stderr)
+                return 2
+            value = args[i + 1]
+            i += 2
+            if a == "--config":
+                config_path = value
+            elif a == "--class":
+                class_fqn = value
+            elif a == "--output":
+                output = value
+            elif a == "--root":
+                root = value
+            elif a == "--finding-id":
+                finding_ids.append(value)
+            else:
+                print(f"own-fix: unknown flag {a}", file=sys.stderr)
+                return 2
+        elif facts_path is None:
+            facts_path = a
+            i += 1
+        else:
+            print(f"own-fix: unexpected argument {a!r}", file=sys.stderr)
+            return 2
+
+    if not (facts_path and config_path and class_fqn and output):
+        print(
+            "own-fix: a facts.json, --config, --class and --output are all required",
+            file=sys.stderr,
+        )
+        print(usage, file=sys.stderr)
+        return 2
+
+    from ownlang.config import ConfigError, load_target_subscribe
+    from ownlang.fix_candidates import CollectError, collect_candidates
+
+    try:
+        target = load_target_subscribe(config_path)
+    except ConfigError as exc:
+        print(f"own-fix: {exc}", file=sys.stderr)
+        return 2
+    try:
+        with open(facts_path, encoding="utf-8") as fh:
+            facts = json.load(fh)
+    except (OSError, ValueError) as exc:
+        print(f"own-fix: cannot read facts {facts_path}: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        envelope = collect_candidates(facts, target, class_fqn, finding_ids or None, root)
+    except CollectError as exc:
+        print(f"own-fix: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(envelope, indent=2, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        print(f"own-fix: cannot write {output}: {exc}", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote {len(envelope['candidates'])} candidate(s) -> {output}")
+    return 0
+
+
 _FORMATS = {"human", "github", "msbuild", "sarif", "json"}
 _SEVERITIES = {"error", "warning"}
 _VERBOSITY = {"quiet", "normal", "verbose"}
@@ -410,10 +499,15 @@ _VERBOSITY = {"quiet", "normal", "verbose"}
 
 def main(argv: list[str]) -> int:
     if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir",
-                                   "summaries", "explain", "config"}:
+                                   "summaries", "explain", "config", "own-fix"}:
         print(__doc__)
         return 2
     cmd = argv[0]
+    # `own-fix subscriptions candidates` (S0 Part B): analysis-only candidate export
+    # for the subscription-autofix pipeline. Has its own nested shape, so it is handled
+    # before the single-positional path below.
+    if cmd == "own-fix":
+        return cmd_own_fix(argv[1:])
     # `config` is the minimal P-015 carrier (P-035): read an explicit own.toml and
     # print the declared weak-subscribe "SimpleType.Method" names, one per line, for
     # own-check.sh to forward to the extractor. A malformed config is a HARD error
