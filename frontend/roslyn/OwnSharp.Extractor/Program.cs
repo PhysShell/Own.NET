@@ -50,6 +50,12 @@ string? outPath = null;
 // metadata only, so it resolves a .NET Framework `bin/` exactly as a modern-.NET one — only the
 // DLLs differ. First simple-name wins, so a TPA/framework reference is never double-added.
 var refDirs = new List<string>();
+// P-035: the project-declared weak-subscribe wrapper API, as exact
+// (containing-type simple name, method name) pairs. Populated ONLY from the
+// `--weak-subscribe` transport flag (own-check.sh forwards `[weak-subscription].
+// subscribe` from own.toml). Empty set => the detector below is inert and facts
+// are byte-for-byte unchanged. A data allowlist, never an inference.
+var weakSubscribe = new HashSet<(string Type, string Method)>();
 // Event-subscription detection is on by default now that it is type-aware
 // (P-014 Tier A graduates it from the interim off). `--no-event-leaks` opts out
 // (e.g. to run only the disposable/pool detectors); it is the first instance of
@@ -117,6 +123,9 @@ Options:
   --solution FILE    add a .sln input
   --ref-dir DIR      add DIR's DLLs (recursively) to the reference set, so third-party
                      events bind to real symbols instead of OWN050 (repeatable)
+  --weak-subscribe T.M  internal transport (repeatable): a declared weak-subscribe
+                     wrapper "SimpleType.Method" (P-035). Pass it via own-check
+                     --config own.toml, not by hand; own.toml is the public surface.
   --no-project-refs  don't auto-add a .csproj/.sln project's bin/ output to the references
   --no-event-leaks   skip event-subscription detection (run only disposable/pool detectors)
   --flow-locals      path-sensitive flow analysis of non-escaping local IDisposables
@@ -139,6 +148,15 @@ for (int i = 0; i < args0.Length; i++)
     // the positional form keeps the command unambiguous next to dotnet's own `run --project`.
     else if ((args0[i] == "--project" || args0[i] == "--solution") && i + 1 < args0.Length) rawInputs.Add(args0[++i]);
     else if (args0[i] == "--ref-dir" && i + 1 < args0.Length) refDirs.Add(args0[++i]);
+    // P-035 transport flag (repeatable): "SimpleType.Method" — one declared weak-
+    // subscribe wrapper. own.toml is parsed/validated by the Python config carrier
+    // (own-check.sh); this only splits the already-validated pair.
+    else if (args0[i] == "--weak-subscribe" && i + 1 < args0.Length)
+    {
+        var parts = args0[++i].Split('.');
+        if (parts.Length == 2 && parts[0].Length > 0 && parts[1].Length > 0)
+            weakSubscribe.Add((parts[0], parts[1]));
+    }
     else if (args0[i] == "--no-project-refs") noProjectRefs = true;
     else if (args0[i] == "--no-event-leaks") emitEvents = false;
     else if (args0[i] == "--flow-locals") flowLocals = true;
@@ -774,6 +792,43 @@ static bool IsWeakReferencedStaticEvent(IEventSymbol ev) =>
     ev.Name == "RequerySuggested"
     && ev.ContainingType is { Name: "CommandManager" } ct
     && IsInNamespace(ct, "System", "Windows", "Input");
+
+// P-035: does `inv` call a project-DECLARED weak-subscribe wrapper — an exact
+// (containing-type simple name, method name) pair — under the MVP (source, handler)
+// positional argument contract? The declaring type is taken from the resolved method
+// symbol; when the wrapper lives in an external package that does not resolve on the
+// runner, it falls back to the syntactic receiver name. `source`/`handler` carry the
+// first two positional arguments. This is the single match definition, used both to
+// emit the accepted-release subscription and to suppress the generic Rx `Subscribe`
+// matcher on the same call (so a wrapper method named `Subscribe` is not double-counted).
+static bool MatchesDeclaredWeakSubscribe(
+    InvocationExpressionSyntax inv, SemanticModel model,
+    HashSet<(string Type, string Method)> declared,
+    out ExpressionSyntax? source, out ExpressionSyntax? handler)
+{
+    source = null;
+    handler = null;
+    if (declared.Count == 0 || inv.Expression is not MemberAccessExpressionSyntax ma)
+        return false;   // only `Receiver.Method(...)`; a general AddHandler heuristic is out of scope
+    var methodName = ma.Name.Identifier.Text;
+    var info = model.GetSymbolInfo(inv);
+    var sym = info.Symbol as IMethodSymbol
+              ?? info.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+    string? typeName = sym?.ContainingType?.Name
+        ?? (ma.Expression is IdentifierNameSyntax rid ? rid.Identifier.Text
+            : ma.Expression is MemberAccessExpressionSyntax rma ? rma.Name.Identifier.Text
+            : null);
+    if (typeName is null || !declared.Contains((typeName, methodName)))
+        return false;   // exact (type, method) only -- nothing else (acceptance #3/#5/#9)
+    var callArgs = inv.ArgumentList.Arguments;
+    // MVP argument contract: the first two POSITIONAL args are (source, handler); a call
+    // with fewer, or with either of the first two passed by name, is not recognised (#7).
+    if (callArgs.Count < 2 || callArgs[0].NameColon is not null || callArgs[1].NameColon is not null)
+        return false;
+    source = callArgs[0].Expression;
+    handler = callArgs[1].Expression;
+    return true;
+}
 
 // Does this handler retain NO subscriber instance? A static method group has a null delegate
 // target; a lambda / anonymous method retains nothing only when it captures neither `this`
@@ -4844,6 +4899,28 @@ foreach (var (file, tree) in parsed)
             }
         }
 
+        // P-035: a call to a project-DECLARED weak-subscribe wrapper (exact simple
+        // containing-type + method name) is a first-class, ALREADY-RELEASED
+        // subscription -- the wrapper holds the listener weakly, so it can never pin
+        // the subscriber. Only declared pairs match; an empty allowlist makes this
+        // loop inert (facts byte-for-byte unchanged). This is the subscriber-side
+        // sibling of the #223 weak-referenced-static-event allowlist, but declared in
+        // config rather than curated, because a project's own wrapper cannot be
+        // "independently confirmed" in this tree.
+        if (weakSubscribe.Count > 0)
+            foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
+                if (MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out var wsSource, out var wsHandler))
+                    subs.Add(new
+                    {
+                        @event = wsSource!.ToString(),
+                        handler = wsHandler!.ToString(),
+                        line = LineOf(inv),
+                        released = true,          // accepted release: weak, cannot leak (acceptance #2)
+                        resource = "subscription",
+                        source = "injected",
+                        lambda = IsLambdaHandler(wsHandler!),
+                    });
+
         // WPF003: an IDisposable field the class constructs (`new`) but never
         // disposes. Owned (not injected) = in `constructed` (computed above);
         // released = a `<field>.Dispose()` call somewhere in the class.
@@ -5378,7 +5455,11 @@ foreach (var (file, tree) in parsed)
             if (inv.Expression is MemberAccessExpressionSyntax m
                 && m.Name.Identifier.Text == "Subscribe"
                 && inv.Parent is ExpressionStatementSyntax
-                && SubscribeResultIsDisposable(model.GetTypeInfo(inv).Type))
+                && SubscribeResultIsDisposable(model.GetTypeInfo(inv).Type)
+                // P-035: a DECLARED weak-subscribe wrapper named `Subscribe` is already
+                // handled above as an accepted release; it must not ALSO be counted as a
+                // dropped Rx token (that would double-emit and false-flag a leak).
+                && !MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _))
                 subs.Add(new
                 {
                     @event = m.ToString(),

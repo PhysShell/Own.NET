@@ -410,10 +410,27 @@ _VERBOSITY = {"quiet", "normal", "verbose"}
 
 def main(argv: list[str]) -> int:
     if not argv or argv[0] not in {"check", "emit", "cfg", "report", "ownir",
-                                   "summaries", "explain"}:
+                                   "summaries", "explain", "config"}:
         print(__doc__)
         return 2
     cmd = argv[0]
+    # `config` is the minimal P-015 carrier (P-035): read an explicit own.toml and
+    # print the declared weak-subscribe "SimpleType.Method" names, one per line, for
+    # own-check.sh to forward to the extractor. A malformed config is a HARD error
+    # (exit 2), never a silent empty list.
+    if cmd == "config":
+        rest = argv[1:]
+        if len(rest) != 1:
+            print("usage: python -m ownlang config <own.toml>", file=sys.stderr)
+            return 2
+        from ownlang.config import ConfigError, load_weak_subscribe
+        try:
+            for name in load_weak_subscribe(rest[0]):
+                print(name)
+        except ConfigError as exc:
+            print(f"own-check: {exc}", file=sys.stderr)
+            return 2
+        return 0
     # `explain` has its own shape — zero-or-more code positionals plus an optional
     # `--json <file>` — so it is handled before the single-positional path below.
     if cmd == "explain":

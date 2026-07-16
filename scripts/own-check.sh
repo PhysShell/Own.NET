@@ -13,7 +13,12 @@
 # Usage:
 #   scripts/own-check.sh [--format human|github|msbuild|sarif] [--severity error|warning]
 #                        [--fail-on-finding] [--legacy] [--stats] [--body-throw-edges]
-#                        [--emit-facts <path>] [--root <own.net checkout>] [--] <path|file> [more ...]
+#                        [--emit-facts <path>] [--config <own.toml>] [--root <own.net checkout>]
+#                        [--] <path|file> [more ...]
+#
+# --config <own.toml> reads the project's [weak-subscription].subscribe wrapper
+# names (P-035) and teaches the extractor to treat those calls as already-released
+# weak subscriptions. A malformed config is a hard error.
 #
 # --emit-facts copies the OwnIR facts the extractor produced to <path> (the audit's
 # XAML Phase-2 join consumes them alongside xaml-facts.json); the verdict is unchanged.
@@ -42,6 +47,7 @@ legacy=0
 stats=0
 body_throw_edges=0
 emit_facts=""
+config=""
 paths=()
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +64,9 @@ while [[ $# -gt 0 ]]; do
     --emit-facts)
       [[ $# -ge 2 ]] || { echo "own-check: --emit-facts requires a value" >&2; exit 2; }
       emit_facts="$2"; shift 2 ;;
+    --config)
+      [[ $# -ge 2 ]] || { echo "own-check: --config requires a value" >&2; exit 2; }
+      config="$2"; shift 2 ;;
     --fail-on-finding) fail_on_finding=1; shift ;;
     --legacy)          legacy=1; shift ;;
     --stats)           stats=1; shift ;;
@@ -90,6 +99,18 @@ extractor_args=("${paths[@]}" -o "$facts")
 # Opt-in P-016 throw tier: also flag body-level (no-try) dispose-not-called-on-throw — CodeQL
 # cs/dispose-not-called-on-throw parity. CA2000-noisy, so off by default (oracle recall measurement).
 [[ "$body_throw_edges" -eq 1 ]] && extractor_args+=(--body-throw-edges)
+# P-035 / minimal P-015 (--config own.toml): read the project's declared
+# weak-subscribe wrapper names ([weak-subscription].subscribe) and forward each to
+# the extractor as an internal transport flag. The Python carrier is the one place
+# that parses/validates the config; a malformed config is a hard error here.
+if [[ -n "$config" ]]; then
+  if ! weak_pairs="$(PYTHONPATH="$root" python -m ownlang config "$config")"; then
+    exit 2
+  fi
+  while IFS= read -r pair; do
+    [[ -n "$pair" ]] && extractor_args+=(--weak-subscribe "$pair")
+  done <<< "$weak_pairs"
+fi
 dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
 
 # Optional: persist the OwnIR facts (the audit's XAML Phase-2 join consumes them
