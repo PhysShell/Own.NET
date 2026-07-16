@@ -125,9 +125,52 @@ def run() -> int:
         check(ctx["source_file"] == _REL
               and ctx["target_subscribe"] == "WeakEvents.AddPropertyChanged",
               "context carries source + target")
-        check(ctx["convert_acquire"][0]["source"] == "_pub"
-              and ctx["convert_acquire"][0]["handler"] == "OnChanged",
-              "convert target carries candidate identity")
+        target0 = ctx["convert_acquire"][0]
+        check(target0["source"] == "_pub" and target0["handler"] == "OnChanged",
+              "convert target carries candidate display identity")
+        check(set(target0) >= {"source_identity", "source_identity_kind", "handler_identity",
+                               "handler_identity_kind", "event_identity", "containing_type"},
+              "convert target carries the FULL identity contract")
+
+        # Blocker 1: the plan envelope must be the canonical projection of candidates.
+        def vgood() -> dict:
+            return _vplan(cands, [_decision(_FID_A, "convert_acquire", 100),
+                                  _decision(_FID_B, "manual_review", 200)])
+        v = vgood()
+        v["selection"]["allowed_types"][0]["full_name"] = "Other.Type"
+        check(raises(v, cands, root), "wrong selected type refused")
+        v = vgood()
+        v["selection"]["allowed_types"][0]["file"] = "N/Other.cs"
+        check(raises(v, cands, root), "wrong selected type file refused")
+        v = vgood()
+        v["selection"]["constraints"]["max_types_changed"] = 2
+        check(raises(v, cands, root), "wrong constraints refused")
+        v = vgood()
+        v["selection"]["selected_findings"] = [_FID_A]
+        check(raises(v, cands, root), "selected_findings mismatch refused")
+        v = vgood()
+        v["target_api"]["extra"] = 1
+        check(raises(v, cands, root), "unknown nested target_api field refused")
+        v = vgood()
+        v["selection"]["extra"] = 1
+        check(raises(v, cands, root), "unknown nested selection field refused")
+        v = vgood()
+        v["source_files"][0]["extra"] = 1
+        check(raises(v, cands, root), "unknown nested source_files field refused")
+
+        # Blocker 2: a candidate missing an identity field is a controlled ApplyError.
+        for missing in ("event_identity", "source_identity", "handler_identity",
+                        "handler_identity_kind"):
+            bc_cand = _cand(_FID_A, inpc, "inotify_property_changed", 100)
+            del bc_cand[missing]
+            bc = _bundle([bc_cand], sha)
+            bv = _vplan(bc, [_decision(_FID_A, "convert_acquire", 100)])
+            check(raises(bv, bc, root), f"candidate missing {missing} -> ApplyError")
+        bad_type_cand = _cand(_FID_A, inpc, "inotify_property_changed", 100)
+        bad_type_cand["source_identity"] = 42
+        bt = _bundle([bad_type_cand], sha)
+        btv = _vplan(bt, [_decision(_FID_A, "convert_acquire", 100)])
+        check(raises(btv, bt, root), "candidate identity of wrong type -> ApplyError")
 
         # hash binding: mutate candidates after the plan was built
         mutated = _bundle([_cand(_FID_A, inpc, "inotify_property_changed", 100),
@@ -201,6 +244,28 @@ def run() -> int:
         ev = _vplan(esc, [_decision(_FID_A, "convert_acquire", 100)])
         # the file does not exist under root2 -> _resolve_source refuses (not a regular file)
         check(raises(ev, esc, root2), "missing/uncontained source refused")
+
+    # Blocker 3: an OSError reading the source (perms) is normalized to ApplyError.
+    with tempfile.TemporaryDirectory() as root3:
+        p = os.path.join(root3, "N", "C.cs")
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        body = b"class C {}\n"
+        with open(p, "wb") as fh:
+            fh.write(body)
+        os.chmod(p, 0)
+        unreadable = True
+        try:
+            with open(p, "rb"):
+                unreadable = False  # perms not enforced (Windows / running as root) -> skip
+        except OSError:
+            pass
+        if unreadable:
+            sha3 = "sha256:" + hashlib.sha256(body).hexdigest()
+            oc = _bundle([_cand(_FID_A, ("convert_acquire", "manual_review"),
+                                "inotify_property_changed", 100)], sha3)
+            ov = _vplan(oc, [_decision(_FID_A, "convert_acquire", 100)])
+            check(raises(ov, oc, root3), "source read OSError -> ApplyError")
+        os.chmod(p, 0o644)  # restore so the tempdir cleans up
 
     print(f"fix-apply (S2 slice 1): {ok} ok, {bad} bad")
     return bad

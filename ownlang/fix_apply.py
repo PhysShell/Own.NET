@@ -114,10 +114,32 @@ def validate_apply_inputs(
     # Hash binding: the candidates are the plan's own input.
     if bundle_sha256(candidates) != validated_plan["input_bundle_sha256"]:
         raise ApplyError("candidates sha256 does not match validated-plan.input_bundle_sha256")
-    if validated_plan["target_api"] != candidates["target_api"]:
-        raise ApplyError("validated-plan.target_api does not match candidates.target_api")
-    if validated_plan["source_files"] != candidates["source_files"]:
-        raise ApplyError("validated-plan.source_files does not match candidates.source_files")
+
+    # The plan's materialized authority envelope must EQUAL the canonical projection of
+    # the candidates' known keys — not a raw dict copy. This rejects a self-consistent
+    # forged pair that smuggled extra nested fields, a wrong type/file, wrong constraints,
+    # or mismatched selected_findings into the plan.
+    the_type = candidates["selection"]["allowed_types"][0]
+    the_source = candidates["source_files"][0]
+    expected_target_api = {"subscribe": candidates["target_api"]["subscribe"]}
+    expected_selection = {
+        "allowed_types": [{"full_name": the_type["full_name"], "file": the_type["file"]}],
+        "selected_findings": candidates["selection"].get("selected_findings"),
+        "constraints": {
+            "max_types_changed": 1,
+            "max_files_changed": 1,
+            "allow_helper_changes": False,
+            "allow_config_changes": False,
+            "allow_suppressions": False,
+        },
+    }
+    expected_source_files = [{"path": the_source["path"], "sha256": the_source["sha256"]}]
+    if validated_plan["target_api"] != expected_target_api:
+        raise ApplyError("validated-plan.target_api is not the canonical projection of candidates")
+    if validated_plan["selection"] != expected_selection:
+        raise ApplyError("validated-plan.selection is not the canonical projection of candidates")
+    if validated_plan["source_files"] != expected_source_files:
+        raise ApplyError("validated-plan.source_files is not the canonical projection")
 
     candidate_by_id = {c["finding_id"]: c for c in candidates["candidates"]}
     seen: set[str] = set()
@@ -142,6 +164,9 @@ def validate_apply_inputs(
                 raise ApplyError(
                     f"{fid}: convert_acquire requires an inotify_property_changed contract"
                 )
+            # The FULL identity contract the future span-node guard needs (not just the
+            # human display). validate_candidates_bundle guarantees all are present + str,
+            # so the direct index cannot KeyError.
             convert.append({
                 "finding_id": fid,
                 "file": c["file"],
@@ -150,7 +175,11 @@ def validate_apply_inputs(
                 "event": c["event"],
                 "event_identity": c["event_identity"],
                 "source": c["source"],
+                "source_identity": c["source_identity"],
+                "source_identity_kind": c["source_identity_kind"],
                 "handler": c["handler"],
+                "handler_identity": c["handler_identity"],
+                "handler_identity_kind": c["handler_identity_kind"],
             })
         else:
             manual.append(fid)
@@ -167,13 +196,18 @@ def validate_apply_inputs(
         if start_b < end_a:
             raise ApplyError("overlapping convert_acquire spans")
 
-    # Source guard: confine to root, then match the pristine preimage SHA.
+    # Source guard: confine to root, then match the pristine preimage SHA. A read that
+    # fails between the confinement check and the hash (file vanished / permission /
+    # replaced) is normalized to ApplyError, never a leaked OSError.
     source = candidates["source_files"][0]
     try:
         canonical, abs_path = _resolve_source(root, source["path"])
+        actual_sha = _sha_file(abs_path)
     except CollectError as exc:
         raise ApplyError(f"source path: {exc}") from exc
-    if _sha_file(abs_path) != source["sha256"]:
+    except OSError as exc:
+        raise ApplyError(f"cannot read source file: {exc}") from exc
+    if actual_sha != source["sha256"]:
         raise ApplyError(f"STALE SOURCE / PREIMAGE MISMATCH for {canonical}")
 
     return {
