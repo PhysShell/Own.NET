@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "operation": "fix-subscriptions",
+  "input_bundle_sha256": "sha256:ae4f11a7d8cff23c0518d3ed457d2c09b68821bd58eebb1165d74075026f77b7",
+  "target_api": {
+    "subscribe": "WeakEvents.AddPropertyChanged"
+  },
+  "selection": {
+    "allowed_types": [
+      {
+        "full_name": "Sample.ViewModels.FooViewModel",
+        "file": "Sample/ViewModels/FooViewModel.cs"
+      }
+    ],
+    "selected_findings": null,
+    "constraints": {
+      "max_types_changed": 1,
+      "max_files_changed": 1,
+      "allow_helper_changes": false,
+      "allow_config_changes": false,
+      "allow_suppressions": false
+    }
+  },
+  "source_files": [
+    {
+      "path": "Sample/ViewModels/FooViewModel.cs",
+      "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "decisions": [
+    {
+      "finding_id": "OWN001:sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "action": "convert_acquire",
+      "file": "Sample/ViewModels/FooViewModel.cs",
+      "acquire_span": {
+        "start": 412,
+        "length": 46,
+        "start_line": 14,
+        "start_column": 13,
+        "end_line": 14,
+        "end_column": 59
+      }
+    },
+    {
+      "finding_id": "OWN001:sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "action": "manual_review",
+      "file": "Sample/ViewModels/FooViewModel.cs",
+      "acquire_span": {
+        "start": 690,
+        "length": 30,
+        "start_line": 22,
+        "start_column": 13,
+        "end_line": 22,
+        "end_column": 43
+      }
+    }
+  ]
+}
