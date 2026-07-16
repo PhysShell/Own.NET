@@ -18,7 +18,7 @@ import hashlib
 import json
 from typing import Any
 
-from ownlang.fix_candidates import S1_ACTIONS, validate_candidates_bundle
+from ownlang.fix_candidates import S1_ACTIONS, CollectError, validate_candidates_bundle
 
 
 class PlanError(Exception):
@@ -81,20 +81,24 @@ def render(bundle: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         for c in candidates
     ]
     count = len(candidates)
+    # A zero-candidate bundle is legitimate (a class with no unreleased subscriptions).
+    # An empty `oneOf` is not valid Draft 2020-12, so emit `items: false` (a 0-length
+    # array is the only valid instance) instead of `{"oneOf": []}`.
+    if count == 0:
+        decisions_schema: dict[str, Any] = {
+            "type": "array", "minItems": 0, "maxItems": 0, "items": False,
+        }
+    else:
+        decisions_schema = {
+            "type": "array", "minItems": count, "maxItems": count,
+            "items": {"oneOf": decision_schemas},
+        }
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "additionalProperties": False,
         "required": ["version", "decisions"],
-        "properties": {
-            "version": {"const": 1},
-            "decisions": {
-                "type": "array",
-                "minItems": count,
-                "maxItems": count,
-                "items": {"oneOf": decision_schemas},
-            },
-        },
+        "properties": {"version": {"const": 1}, "decisions": decisions_schema},
     }
     return prompt, schema
 
@@ -104,7 +108,13 @@ def validate_plan(bundle: dict[str, Any], plan: Any) -> dict[str, Any]:
     executable validated plan. A full bijection between candidate and decision finding
     ids is required; `action` is the only model-authored field; every other field is
     copied from the candidates. Raises PlanError on any violation."""
-    validate_candidates_bundle(bundle)
+    # The function contract is "raises PlanError"; a malformed candidates bundle raises
+    # CollectError, so normalize it here rather than leak a second exception type to the
+    # CLI (which would surface as an uncontrolled traceback).
+    try:
+        validate_candidates_bundle(bundle)
+    except CollectError as exc:
+        raise PlanError(f"invalid candidates bundle: {exc}") from exc
 
     if not isinstance(plan, dict):
         raise PlanError("fix-plan must be an object")
@@ -155,12 +165,28 @@ def validate_plan(bundle: dict[str, Any], plan: Any) -> dict[str, Any]:
         }
         for c in bundle["candidates"]
     ]
+    # Canonical projection: rebuild target_api / selection / source_files from their
+    # KNOWN keys (validated above) rather than copying the input dicts, so no unknown
+    # nested field the model or an edited bundle slipped in can ride into the executable
+    # artifact. input_bundle_sha256 still hashes the ORIGINAL input bytes.
+    the_type = bundle["selection"]["allowed_types"][0]
+    the_source = bundle["source_files"][0]
     return {
         "version": 1,
         "operation": "fix-subscriptions",
         "input_bundle_sha256": bundle_sha256(bundle),
-        "target_api": bundle["target_api"],
-        "selection": bundle["selection"],
-        "source_files": bundle["source_files"],
+        "target_api": {"subscribe": bundle["target_api"]["subscribe"]},
+        "selection": {
+            "allowed_types": [{"full_name": the_type["full_name"], "file": the_type["file"]}],
+            "selected_findings": bundle["selection"].get("selected_findings"),
+            "constraints": {
+                "max_types_changed": 1,
+                "max_files_changed": 1,
+                "allow_helper_changes": False,
+                "allow_config_changes": False,
+                "allow_suppressions": False,
+            },
+        },
+        "source_files": [{"path": the_source["path"], "sha256": the_source["sha256"]}],
         "decisions": materialized,
     }

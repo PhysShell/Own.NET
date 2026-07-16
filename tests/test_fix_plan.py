@@ -181,6 +181,48 @@ def run() -> int:
     # 19. input_bundle_sha256
     check(v["input_bundle_sha256"] == bundle_sha256(b1), "input_bundle_sha256 correct")
 
+    # Blocker 1: a valid plan over an INVALID candidates bundle is a normalized PlanError
+    # (not a leaked CollectError). plan_raises catches both; the CLI leg is below.
+    check(plan_raises(_bundle([_cand(_FID_A)], version=2),
+                      _plan([{"finding_id": _FID_A, "action": "manual_review"}])),
+          "invalid candidates bundle -> normalized error")
+
+    # Blocker 2: strict one-type / one-file envelope, exact (type,file) pair, tiering, paths.
+    only = _plan([{"finding_id": _FID_A, "action": "manual_review"}])
+    b = _bundle([_cand(_FID_A)])
+    b["selection"]["allowed_types"] = b["selection"]["allowed_types"] * 2
+    check(plan_raises(b, only), "two allowed_types refused")
+    b = _bundle([_cand(_FID_A)])
+    b["source_files"] = b["source_files"] + [{"path": "N/D.cs", "sha256": "sha256:" + "0" * 64}]
+    check(plan_raises(b, only), "two source_files refused")
+    b = _bundle([_cand(_FID_A)])
+    b["selection"]["allowed_types"][0]["file"] = "N/OTHER.cs"
+    check(plan_raises(b, only), "allowed_type file != source path refused")
+    b = _bundle([_cand(_FID_A)])
+    b["selection"]["allowed_types"][0]["file"] = "N/D.cs"
+    b["source_files"][0]["path"] = "N/D.cs"
+    check(plan_raises(b, only), "candidate file != the single source file refused")
+    b = _bundle([_cand(_FID_A, actions=("convert_acquire", "manual_review"), contract="name_only")])
+    check(plan_raises(b, only), "convert_acquire on a non-INPC contract refused")
+    b = _bundle([_cand(_FID_A)])
+    b["selection"]["selected_findings"] = [_FID_B]
+    check(plan_raises(b, only), "selected_findings != candidate id set refused")
+    for badpath in ("", ".", "./N/C.cs", "N//C.cs", "N/."):
+        b = _bundle([_cand(_FID_A)])
+        b["selection"]["allowed_types"][0]["file"] = badpath
+        b["source_files"][0]["path"] = badpath
+        b["candidates"][0]["file"] = badpath
+        check(plan_raises(b, only), f"non-canonical path {badpath!r} refused")
+
+    # Blocker 3: a zero-candidate bundle renders a valid schema + validates an empty plan.
+    empty = _bundle([])
+    _, se = render(empty)
+    check(se["properties"]["decisions"]["items"] is False
+          and se["properties"]["decisions"]["maxItems"] == 0,
+          "zero-candidate schema uses items:false (valid Draft 2020-12)")
+    check(validate_plan(empty, _plan([]))["decisions"] == [],
+          "zero-candidate validates to an empty plan")
+
     # 20. canned o7-result fixture -> expected validated plan
     fx = os.path.join(
         os.path.dirname(__file__), "fixtures", "o7-invoke", "subscription-fix-plan-v1"
@@ -206,6 +248,17 @@ def run() -> int:
         outp = os.path.join(d, "validated.json")
         rc = main(["own-fix", "subscriptions", "validate-plan", cpath, badplan, "--output", outp])
         check(rc == 2 and not os.path.exists(outp), "failed validate leaves no output (atomic)")
+        # Blocker 1 CLI: a valid plan over an INVALID candidates bundle -> clean exit 2.
+        badcand = os.path.join(d, "badcand.json")
+        with open(badcand, "w", encoding="utf-8") as fh:
+            json.dump(_bundle([_cand(_FID_A)], version=2), fh)
+        vplan = os.path.join(d, "vp.json")
+        with open(vplan, "w", encoding="utf-8") as fh:
+            json.dump(_plan([{"finding_id": _FID_A, "action": "manual_review"}]), fh)
+        outp2 = os.path.join(d, "out2.json")
+        rc = main(["own-fix", "subscriptions", "validate-plan", badcand, vplan, "--output", outp2])
+        check(rc == 2 and not os.path.exists(outp2),
+              "invalid candidates via CLI -> exit 2, no output")
         # mock glue: render (schema/prompt) then feed a canned matching plan through validate
         pr = os.path.join(d, "prompt.txt")
         sc = os.path.join(d, "schema.json")

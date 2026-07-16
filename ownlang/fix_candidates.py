@@ -46,6 +46,9 @@ _FIX_VERSION = 1
 # The only remediation actions S1 exposes. `convert_exact_teardown` and the rest of the
 # arbiter enum are deferred (S2), so a candidate's allowed_actions is a subset of this.
 S1_ACTIONS = ("convert_acquire", "manual_review")
+# The event-contract vocabulary the extractor emits; convert_acquire is permitted only
+# for the first.
+_CONTRACTS = ("inotify_property_changed", "name_only", "other", "unresolved")
 
 
 def _field(obj: dict[str, Any], key: str, kind: str, ctx: str) -> Any:
@@ -338,7 +341,12 @@ def _require_finding_id(v: str, ctx: str) -> None:
 
 
 def _require_canonical_relpath(v: str, ctx: str) -> None:
-    if v.startswith("/") or "\\" in v or (len(v) > 1 and v[1] == ":") or ".." in v.split("/"):
+    # Canonical = non-empty, forward-slash, relative, with only real segments: no
+    # absolute / drive / backslash, and no "" (empty / "//" / trailing "/"), "." or ".."
+    # segment (rejects "", ".", "./Foo", "A//Foo", "A/.", "A/").
+    if not v or v.startswith("/") or "\\" in v or (len(v) > 1 and v[1] == ":"):
+        raise CollectError(f"{ctx}: {v!r} is not a canonical root-relative path")
+    if any(seg in ("", ".", "..") for seg in v.split("/")):
         raise CollectError(f"{ctx}: {v!r} is not a canonical root-relative path")
 
 
@@ -359,14 +367,18 @@ def validate_candidates_bundle(bundle: Any) -> None:
     _field(target, "subscribe", "str", "candidates.target_api")
 
     sel = _field(bundle, "selection", "dict", "candidates")
+    # Frozen one-type / one-file envelope: EXACTLY one allowed_type and one source_file,
+    # and they name the same path. max_types_changed==1 alone does not forbid a two-entry
+    # allowed_types list, so the count is enforced directly.
     allowed_types = _field(sel, "allowed_types", "list", "candidates.selection")
-    type_names = set()
-    for i, t in enumerate(allowed_types):
-        tctx = f"candidates.selection.allowed_types[{i}]"
-        if not isinstance(t, dict):
-            raise CollectError(f"{tctx}: must be an object")
-        type_names.add(_field(t, "full_name", "str", tctx))
-        _require_canonical_relpath(_field(t, "file", "str", tctx), tctx)
+    if len(allowed_types) != 1:
+        raise CollectError("candidates.selection.allowed_types must have exactly one entry")
+    the_type = allowed_types[0]
+    if not isinstance(the_type, dict):
+        raise CollectError("candidates.selection.allowed_types[0]: must be an object")
+    type_name = _field(the_type, "full_name", "str", "candidates.selection.allowed_types[0]")
+    type_file = _field(the_type, "file", "str", "candidates.selection.allowed_types[0]")
+    _require_canonical_relpath(type_file, "candidates.selection.allowed_types[0].file")
     cons = _field(sel, "constraints", "dict", "candidates.selection")
     if cons.get("max_types_changed") != 1 or cons.get("max_files_changed") != 1:
         raise CollectError(
@@ -376,15 +388,18 @@ def validate_candidates_bundle(bundle: Any) -> None:
         if cons.get(k) is not False:
             raise CollectError(f"candidates.selection.constraints.{k} must be false")
 
-    source_paths = set()
-    for i, sf in enumerate(_field(bundle, "source_files", "list", "candidates")):
-        sctx = f"candidates.source_files[{i}]"
-        if not isinstance(sf, dict):
-            raise CollectError(f"{sctx}: must be an object")
-        path = _field(sf, "path", "str", sctx)
-        _require_canonical_relpath(path, sctx)
-        _require_sha256(_field(sf, "sha256", "str", sctx), sctx)
-        source_paths.add(path)
+    source_files = _field(bundle, "source_files", "list", "candidates")
+    if len(source_files) != 1:
+        raise CollectError("candidates.source_files must have exactly one entry")
+    sf = source_files[0]
+    if not isinstance(sf, dict):
+        raise CollectError("candidates.source_files[0]: must be an object")
+    sfctx = "candidates.source_files[0]"
+    source_path = _field(sf, "path", "str", sfctx)
+    _require_canonical_relpath(source_path, sfctx)
+    _require_sha256(_field(sf, "sha256", "str", sfctx), sfctx)
+    if type_file != source_path:
+        raise CollectError("candidates: the allowed_type file and the source_files path must match")
 
     seen_ids: set[str] = set()
     for i, c in enumerate(_field(bundle, "candidates", "list", "candidates")):
@@ -396,11 +411,16 @@ def validate_candidates_bundle(bundle: Any) -> None:
         if fid in seen_ids:
             raise CollectError(f"{cctx}: duplicate finding_id {fid!r}")
         seen_ids.add(fid)
-        ctype = _field(c, "containing_type", "str", cctx)
-        cfile = _field(c, "file", "str", cctx)
-        _require_canonical_relpath(cfile, cctx)
-        for k in ("event", "event_contract", "source", "handler"):
+        # Exact (type, file) pair — not two independent membership tests.
+        if _field(c, "containing_type", "str", cctx) != type_name:
+            raise CollectError(f"{cctx}: containing_type must be {type_name!r}")
+        if _field(c, "file", "str", cctx) != source_path:
+            raise CollectError(f"{cctx}: file must be {source_path!r}")
+        for k in ("event", "source", "handler"):
             _field(c, k, "str", cctx)
+        contract = _field(c, "event_contract", "str", cctx)
+        if contract not in _CONTRACTS:
+            raise CollectError(f"{cctx}: unknown event_contract {contract!r}")
         _validate_span(c.get("acquire_span"), cctx)
         _validate_teardown(c.get("teardown"), cctx)
         actions = _field(c, "allowed_actions", "list", cctx)
@@ -408,9 +428,18 @@ def validate_candidates_bundle(bundle: Any) -> None:
             raise CollectError(
                 f"{cctx}: allowed_actions must be a non-empty subset of {list(S1_ACTIONS)}"
             )
-        if cfile not in source_paths:
-            raise CollectError(f"{cctx}: file {cfile!r} is not in source_files")
-        if ctype not in type_names:
+        # Frozen S0 permission tiering: convert_acquire ONLY for a proven INPC contract.
+        if "convert_acquire" in actions and contract != "inotify_property_changed":
             raise CollectError(
-                f"{cctx}: containing_type {ctype!r} is not in selection.allowed_types"
+                f"{cctx}: convert_acquire is only permitted for inotify_property_changed"
             )
+
+    # selected_findings: null, or a list of unique ids whose SET is exactly the candidates'.
+    selected = sel.get("selected_findings")
+    if selected is not None:
+        if not isinstance(selected, list) or any(not isinstance(x, str) for x in selected):
+            raise CollectError("selected_findings must be null or a list of strings")
+        if len(set(selected)) != len(selected):
+            raise CollectError("selected_findings has duplicate ids")
+        if set(selected) != seen_ids:
+            raise CollectError("selected_findings must equal the candidate id set")

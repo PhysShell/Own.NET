@@ -49,9 +49,9 @@ if [ ! -f "$result" ]; then
   exit 1
 fi
 
-# 3. Own.NET: validate the UNTRUSTED result against the candidates + materialize. Written
-#    inside the work dir first, then moved into place, so a failure leaves no partial out.
+# 3. Own.NET: validate the UNTRUSTED result against the candidates + materialize. The
+#    --output writer writes a temp ADJACENT to $out then os.replace()s it, so the final
+#    artifact is atomic even when $work is on another filesystem. No trailing `mv`.
 python -m ownlang own-fix subscriptions validate-plan "$candidates" "$result" \
-  --output "$work/validated-plan.json"
-mv "$work/validated-plan.json" "$out"
+  --output "$out"
 echo "own-fix-plan: validated plan -> $out"
