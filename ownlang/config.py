@@ -85,6 +85,11 @@ def load_target_subscribe(path: str) -> str:
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(f"{path}: invalid TOML: {exc}") from exc
 
+    # Validate the WHOLE table first (unknown keys, a malformed `subscribe`, ...) so an
+    # explicit `target` can never smuggle a broken sibling key past the fail-loud
+    # contract. `_weak_subscribe_from` raises on any table malformation and returns [] if
+    # the table is absent.
+    subscribe = _weak_subscribe_from(data, path)
     table = data.get("weak-subscription")
     if not isinstance(table, dict):
         raise ConfigError(
@@ -95,8 +100,7 @@ def load_target_subscribe(path: str) -> str:
         if not isinstance(target, str):
             raise ConfigError(f"{path}: [weak-subscription].target must be a string")
         _validate_entry(target, path)
-        return target
-    subscribe = _weak_subscribe_from(data, path)
+        return target  # an explicit target wins over the (already-validated) subscribe list
     if len(subscribe) == 1:
         return subscribe[0]
     raise ConfigError(

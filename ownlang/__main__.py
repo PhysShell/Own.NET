@@ -482,8 +482,12 @@ def cmd_own_fix(rest: list[str]) -> int:
         print(f"own-fix: {exc}", file=sys.stderr)
         return 2
 
-    with open(output, "w", encoding="utf-8") as fh:
-        fh.write(json.dumps(envelope, indent=2, ensure_ascii=False) + "\n")
+    try:
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(envelope, indent=2, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        print(f"own-fix: cannot write {output}: {exc}", file=sys.stderr)
+        return 2
     print(f"own-fix: wrote {len(envelope['candidates'])} candidate(s) -> {output}")
     return 0
 

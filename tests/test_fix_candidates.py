@@ -54,14 +54,19 @@ def _sub(fix: dict | None, released: bool = False, event: str = "_pub.PropertyCh
     return s
 
 
+_OMIT = object()
+
+
 def _facts(subs: list[dict], qn: str = "N.C", file: str = "N/C.cs",
            is_partial: bool = False, is_nested: bool = False, is_generated: bool = False,
-           extra: list[dict] | None = None) -> dict:
+           extra: list[dict] | None = None, version: object = 1) -> dict:
     comp = {"name": qn.rsplit(".", 1)[-1], "qualified_name": qn, "is_partial": is_partial,
             "is_nested": is_nested, "declaration_count": 1, "is_generated": is_generated,
             "file": file, "subscriptions": subs}
-    return {"ownir_version": 0, "fix_candidates_version": 1,
-            "components": [comp, *(extra or [])]}
+    facts: dict = {"ownir_version": 0, "components": [comp, *(extra or [])]}
+    if version is not _OMIT:
+        facts["fix_candidates_version"] = version
+    return facts
 
 
 def run() -> int:
@@ -179,6 +184,46 @@ def run() -> int:
         starts = [c["acquire_span"]["start"] for c in e1["candidates"]]
         check(starts == sorted(starts) == [100, 300], "candidates ordered by span.start")
 
+        # --- Blocker 1: schema/version + shape validation -> CollectError ---
+        check(raises(collect_candidates, _facts([_sub(_fix())], version=_OMIT),
+                     "W.X", "N.C", None, root), "missing fix_candidates_version refused")
+        check(raises(collect_candidates, _facts([_sub(_fix())], version=True),
+                     "W.X", "N.C", None, root), "boolean version refused")
+        check(raises(collect_candidates, _facts([_sub(_fix())], version=2),
+                     "W.X", "N.C", None, root), "future version 2 refused")
+        bad_fix = _fix()
+        del bad_fix["event_identity"]
+        check(raises(collect_candidates, _facts([_sub(bad_fix)]),
+                     "W.X", "N.C", None, root), "missing identity field refused")
+        check(raises(collect_candidates, _facts([_sub(_fix(span={"length": 5}))]),
+                     "W.X", "N.C", None, root), "malformed span refused")
+        check(raises(collect_candidates,
+                     _facts([_sub(_fix(teardown={"status": 7, "candidates": []}))]),
+                     "W.X", "N.C", None, root), "malformed teardown refused")
+
+        # --- Blocker 3: a source path must stay inside --root ---
+        check(raises(collect_candidates, _facts([_sub(_fix())], file="../escape.cs"),
+                     "W.X", "N.C", None, root), "../ escape refused")
+        outside_abs = os.path.join(os.path.dirname(os.path.realpath(root)), "outside.cs")
+        check(raises(collect_candidates, _facts([_sub(_fix())], file=outside_abs),
+                     "W.X", "N.C", None, root), "absolute path outside root refused")
+        with tempfile.TemporaryDirectory() as outside:
+            secret = os.path.join(outside, "secret.cs")
+            with open(secret, "wb") as fh:
+                fh.write(b"secret")
+            link = os.path.join(root, "link.cs")
+            try:
+                os.symlink(secret, link)
+                has_symlink = True
+            except (OSError, NotImplementedError):
+                has_symlink = False
+            if has_symlink:
+                check(
+                    raises(collect_candidates, _facts([_sub(_fix())], file="link.cs"),
+                           "W.X", "N.C", None, root),
+                    "symlink escape refused",
+                )
+
     # --- config: target-API pinning rules ---
     def _pin(text: str) -> str:
         with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as fh:
@@ -204,7 +249,16 @@ def run() -> int:
     check(
         _pin('[weak-subscription]\ntarget = "WeakEvents.AddPropertyChanged"\n'
              'subscribe = ["A.B", "C.D"]\n') == "WeakEvents.AddPropertyChanged",
-        "explicit target wins over the subscribe list",
+        "explicit target wins over a valid multi-entry subscribe list",
+    )
+    # An explicit target must NOT smuggle a broken sibling key past table validation.
+    check(
+        _pin_raises('[weak-subscription]\ntarget = "A.B"\nsubscribes = ["C.D"]\n'),
+        "target + unsupported key -> hard error",
+    )
+    check(
+        _pin_raises('[weak-subscription]\ntarget = "A.B"\nsubscribe = "not-a-list"\n'),
+        "target + malformed subscribe -> hard error",
     )
     check(
         _pin_raises('[weak-subscription]\nsubscribe = ["A.B", "C.D"]\n'),
