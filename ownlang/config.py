@@ -40,7 +40,7 @@ def load_weak_subscribe(path: str) -> list[str]:
     return _weak_subscribe_from(data, path)
 
 
-def _weak_subscribe_from(data: dict, path: str) -> list[str]:
+def _weak_subscribe_from(data: dict[str, object], path: str) -> list[str]:
     table = data.get("weak-subscription")
     if table is None:
         return []
