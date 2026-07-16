@@ -825,12 +825,15 @@ static bool MatchesDeclaredWeakSubscribe(
     // with fewer, or with either of the first two passed by name, is not recognised (#7).
     if (callArgs.Count < 2 || callArgs[0].NameColon is not null || callArgs[1].NameColon is not null)
         return false;
-    // The second argument must actually be a HANDLER (method group / delegate / `new
-    // H(...)` / lambda), through the same IsHandler shape the `+=` path uses. A declared
-    // overload whose second parameter is not a delegate -- `AddPropertyChanged(source, 42)`
-    // -- is NOT a subscription and must not be minted as a released one.
+    // The second argument must actually be a HANDLER: a method group / delegate / `new
+    // H(...)` (IsHandler, after NormalizeHandler peels the delegate-creation) OR a lambda
+    // (IsLambdaHandler) -- exactly the two handler shapes the `+=` detector accepts (the
+    // main path counts a lambda RHS; IsHandler gates only its unresolved fallback). A
+    // declared overload whose second parameter is not a delegate at all --
+    // `AddPropertyChanged(source, 42)` -- is NOT a subscription and must not be minted as a
+    // released one, and (crucially) must not be suppressed from the Rx dropped-token matcher.
     var normalizedHandler = NormalizeHandler(callArgs[1].Expression);
-    if (!IsHandler(normalizedHandler))
+    if (!IsHandler(normalizedHandler) && !IsLambdaHandler(normalizedHandler))
         return false;
     source = callArgs[0].Expression;
     handler = normalizedHandler;
