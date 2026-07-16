@@ -151,6 +151,9 @@ def main(on_path: str, off_path: str | None) -> int:
         ("ComputedReceiverProperty", "ambiguous", "computed", "stable_symbol"),
         ("DifferentRoots", "none", "computed", "stable_symbol"),
         ("ComputedHandler", "ambiguous", "stable_symbol", "computed"),
+        # handler half: method symbol != delegate identity, storage symbol != value
+        ("HandlerDifferentTarget", "none", "stable_symbol", "computed"),
+        ("HandlerReassignedField", "ambiguous", "stable_symbol", "computed"),
     ]
     for name, status, srck, hk in b1:
         f = only_fix(name)

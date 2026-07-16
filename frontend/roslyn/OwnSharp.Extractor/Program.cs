@@ -674,10 +674,17 @@ static (string Kind, ISymbol? Sym) FixReceiverIdentity(
     }
 }
 
-// Conservative HANDLER identity, same discipline. A method group is stable (its target is
-// `this` / a type, fixed for the class); a delegate held in a local / parameter / field is
-// allowed; a lambda (a fresh delegate each evaluation) or a computed delegate expression
-// (property / indexer / invocation) is not stable and can never ground an `exact`.
+// Conservative HANDLER identity. A method SYMBOL is not a delegate identity, and a
+// storage SYMBOL is not its (mutable) value — so `stable_symbol` is limited to the two
+// forms whose delegate is provably fixed for the class WITHOUT dataflow:
+//   * a STATIC method group (null target); or
+//   * an INSTANCE method group on `this` — bare `OnChanged` or `this.OnChanged`.
+// A method group on any OTHER receiver (`left.OnChanged`) binds to that receiver's
+// instance — `left.OnChanged` and `right.OnChanged` are the same IMethodSymbol but
+// different delegates. A delegate held in a local / parameter / field / property is a
+// storage location that can be reassigned between the `+=` and the `-=` (same symbol,
+// different value). A lambda is a fresh delegate each evaluation. All of these are
+// `computed` — none may ground an `exact` (proving them stable is dataflow, out of S0).
 static (string Kind, ISymbol? Sym) FixHandlerIdentity(ExpressionSyntax handler, SemanticModel model)
 {
     var nh = NormalizeHandler(handler);
@@ -685,8 +692,19 @@ static (string Kind, ISymbol? Sym) FixHandlerIdentity(ExpressionSyntax handler, 
         return ("computed", null);
     var info = model.GetSymbolInfo(nh);
     var sym = info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
-    if (sym is IMethodSymbol or ILocalSymbol or IParameterSymbol or IFieldSymbol)
-        return ("stable_symbol", sym);
+    if (sym is IMethodSymbol method)
+    {
+        if (method.IsStatic)
+            return ("stable_symbol", sym); // static method group: null target
+        if (nh is IdentifierNameSyntax)
+            return ("stable_symbol", sym); // bare `OnChanged` => implicit `this`
+        if (nh is MemberAccessExpressionSyntax ma
+            && FixStripParens(ma.Expression) is ThisExpressionSyntax)
+            return ("stable_symbol", sym); // `this.OnChanged`
+        return ("computed", sym); // method group on some other receiver instance
+    }
+    // A local / parameter / field / property / indexer delegate: a storage location or a
+    // computed value, not a proven-immutable delegate.
     return sym is null ? ("unresolved", null) : ("computed", sym);
 }
 

@@ -213,4 +213,50 @@ namespace Own.Samples.FixCandidates
         public void Attach(ref int x) => _pub.PropertyChanged += OnChanged;
         private void OnChanged(object s, PropertyChangedEventArgs e) { }
     }
+
+    // --- Blocker-1 (handler half): a method symbol is not a delegate identity ---
+
+    public sealed class Sibling
+    {
+        public void OnChanged(object s, PropertyChangedEventArgs e) { }
+    }
+
+    // Method group on a DIFFERENT receiver instance: `_left.OnChanged` and
+    // `_right.OnChanged` are the SAME IMethodSymbol but different delegates -> not exact.
+    public sealed class HandlerDifferentTarget
+    {
+        private readonly IPub _pub;
+        private readonly Sibling _left;
+        private readonly Sibling _right;
+
+        public HandlerDifferentTarget(IPub pub, Sibling left, Sibling right)
+        {
+            _pub = pub;
+            _left = left;
+            _right = right;
+            _pub.PropertyChanged += _left.OnChanged;
+        }
+
+        public void Dispose() => _pub.PropertyChanged -= _right.OnChanged;
+    }
+
+    // Delegate held in a FIELD reassigned between += and -=: same IFieldSymbol, different
+    // delegate values -> not exact.
+    public sealed class HandlerReassignedField
+    {
+        private readonly IPub _pub;
+        private PropertyChangedEventHandler _handler;
+
+        public HandlerReassignedField(IPub pub)
+        {
+            _pub = pub;
+            _handler = OnFirst;
+            _pub.PropertyChanged += _handler;
+            _handler = OnSecond;
+            _pub.PropertyChanged -= _handler;
+        }
+
+        private void OnFirst(object s, PropertyChangedEventArgs e) { }
+        private void OnSecond(object s, PropertyChangedEventArgs e) { }
+    }
 }

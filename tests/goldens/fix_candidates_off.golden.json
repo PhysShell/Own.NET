@@ -286,6 +286,36 @@
           "lambda": false
         }
       ]
+    },
+    {
+      "name": "HandlerDifferentTarget",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "_left.OnChanged",
+          "line": 237,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
+    },
+    {
+      "name": "HandlerReassignedField",
+      "file": "frontend/roslyn/samples/FixCandidatesSample.cs",
+      "subscriptions": [
+        {
+          "event": "_pub.PropertyChanged",
+          "handler": "_handler",
+          "line": 254,
+          "released": true,
+          "resource": "subscription",
+          "source": "injected",
+          "lambda": false
+        }
+      ]
     }
   ],
   "services": [],
