@@ -1699,6 +1699,48 @@ jobs:
             || { echo 'FAIL: glue-produced plan != expected'; exit 1; }
           echo 'OK: render -> (fake o7) -> validate produces the expected validated plan'
 
+      # S2 (deterministic apply) — the Owen.CSharp.Rewriter core over the full chain:
+      # extractor --fix-candidates -> own-fix candidates -> validate_plan -> owen-rewrite.
+      # Asserts the postimage carries the converted wrappers, the SOURCE TREE is never
+      # touched, and a stale preimage SHA is a hard refusal that writes nothing.
+      - name: S2 owen-rewrite core (postimage + guards)
+        run: |
+          cls=Own.Samples.FixCandidates.TwoOnOneLine
+          sample=frontend/roslyn/samples/FixCandidatesSample.cs
+          printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/s2.toml"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- "$sample" --fix-candidates \
+            -o "$RUNNER_TEMP/s2_facts.json"
+          python -m ownlang own-fix subscriptions candidates "$RUNNER_TEMP/s2_facts.json" \
+            --config "$RUNNER_TEMP/s2.toml" --class "$cls" \
+            --output "$RUNNER_TEMP/s2_candidates.json" --root .
+          python -c "
+          import json, sys
+          sys.path.insert(0, '.')
+          from ownlang.fix_plan import validate_plan
+          c = json.load(open(sys.argv[1]))
+          d = [{'finding_id': x['finding_id'], 'action': 'convert_acquire'} for x in c['candidates']]
+          json.dump(validate_plan(c, {'version': 1, 'decisions': d}), open(sys.argv[2], 'w'))
+          " "$RUNNER_TEMP/s2_candidates.json" "$RUNNER_TEMP/s2_plan.json"
+          dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter -- \
+            --plan "$RUNNER_TEMP/s2_plan.json" --candidates "$RUNNER_TEMP/s2_candidates.json" \
+            --root . --out "$RUNNER_TEMP/s2_out"
+          post="$RUNNER_TEMP/s2_out/postimage/$sample"
+          grep -q 'WeakEvents.AddPropertyChanged(a, OnA)' "$post" \
+            && grep -q 'WeakEvents.AddPropertyChanged(b, OnB)' "$post" \
+            || { echo 'FAIL: postimage missing the converted wrappers'; exit 1; }
+          git diff --quiet -- "$sample" \
+            || { echo 'FAIL: owen-rewrite modified the source tree'; exit 1; }
+          # stale preimage SHA -> hard refusal, nothing written
+          zero=$(printf '0%.0s' $(seq 1 64))
+          sed "s/sha256:[0-9a-f]\{64\}/sha256:$zero/g" "$RUNNER_TEMP/s2_plan.json" > "$RUNNER_TEMP/s2_stale.json"
+          if dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter -- \
+              --plan "$RUNNER_TEMP/s2_stale.json" --candidates "$RUNNER_TEMP/s2_candidates.json" \
+              --root . --out "$RUNNER_TEMP/s2_stale_out" 2>/dev/null; then
+            echo 'FAIL: a stale preimage SHA must be refused'; exit 1
+          fi
+          [ ! -d "$RUNNER_TEMP/s2_stale_out" ] || { echo 'FAIL: a refused run left an output dir'; exit 1; }
+          echo 'OK: owen-rewrite converts the acquires, leaves the source tree untouched, refuses a stale SHA'
+
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
   # acquire (timer / subscribe / listener) with no cleanup return is the core's

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>owen-rewrite</AssemblyName>
+
+    <!-- The S2 deterministic subscription rewriter. Reads a hash-bound
+         (validated-plan.json, candidates.json) pair + a source root and emits an
+         edited postimage + apply-manifest for the ONE allowed file — it never
+         writes back into the source tree. Roslyn-based but syntax-only: the
+         span-node guard matches the acquire against the hash-bound candidate by
+         normalized text, so no SemanticModel (and no shared FixCore) is needed yet.
+         The Extractor stays strictly read-only; this is a SEPARATE entry point. -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>owen-rewrite</ToolCommandName>
+    <PackageId>Owen.CSharp.Rewriter</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Owen S2 deterministic C# subscription rewriter: converts a validated convert_acquire plan's `event += handler` acquires to the project's weak wrapper, producing an isolated postimage + manifest (never modifying the source tree).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+  </ItemGroup>
+
+</Project>
