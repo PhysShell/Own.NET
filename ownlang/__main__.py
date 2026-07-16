@@ -38,9 +38,11 @@ Exit code is non-zero if any error-level diagnostic was produced.
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .cfg import Instr
@@ -403,93 +405,176 @@ def cmd_ownir(path: str, fmt: str = "human", severity: str = "error",
     return 1 if leaks else 0
 
 
-def cmd_own_fix(rest: list[str]) -> int:
-    """`own-fix subscriptions candidates <facts.json> --config <own.toml>
-    --class <FQN> [--finding-id <ID>]... --output <candidates.json> [--root <dir>]`."""
-    import json
-
-    usage = (
-        "usage: python -m ownlang own-fix subscriptions candidates <facts.json> "
-        "--config <own.toml> --class <FQN> [--finding-id <ID>]... "
-        "--output <candidates.json> [--root <dir>]"
-    )
-    if len(rest) < 2 or rest[0] != "subscriptions" or rest[1] != "candidates":
-        print(usage, file=sys.stderr)
-        return 2
-
-    args = rest[2:]
-    facts_path: str | None = None
-    config_path: str | None = None
-    class_fqn: str | None = None
-    output: str | None = None
-    root = "."
-    finding_ids: list[str] = []
+def _own_fix_parse(
+    args: list[str], flags: set[str], multi: set[str]
+) -> tuple[list[str], dict[str, Any]] | None:
+    """Split `--flag value` (flags/multi) from positionals; None on any arg error."""
+    positional: list[str] = []
+    opts: dict[str, Any] = {m: [] for m in multi}
     i = 0
     while i < len(args):
         a = args[i]
         if a.startswith("--"):
+            if a not in flags and a not in multi:
+                print(f"own-fix: unknown flag {a}", file=sys.stderr)
+                return None
             if i + 1 >= len(args):
                 print(f"own-fix: {a} requires a value", file=sys.stderr)
-                return 2
-            value = args[i + 1]
-            i += 2
-            if a == "--config":
-                config_path = value
-            elif a == "--class":
-                class_fqn = value
-            elif a == "--output":
-                output = value
-            elif a == "--root":
-                root = value
-            elif a == "--finding-id":
-                finding_ids.append(value)
+                return None
+            if a in multi:
+                opts[a].append(args[i + 1])
             else:
-                print(f"own-fix: unknown flag {a}", file=sys.stderr)
-                return 2
-        elif facts_path is None:
-            facts_path = a
-            i += 1
+                opts[a] = args[i + 1]
+            i += 2
         else:
-            print(f"own-fix: unexpected argument {a!r}", file=sys.stderr)
-            return 2
+            positional.append(a)
+            i += 1
+    return positional, opts
 
-    if not (facts_path and config_path and class_fqn and output):
-        print(
-            "own-fix: a facts.json, --config, --class and --output are all required",
-            file=sys.stderr,
-        )
-        print(usage, file=sys.stderr)
+
+def _read_json(path: str) -> Any:
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _write_atomic(path: str, obj: Any) -> int:
+    """Write only after the object is fully built; a bad path is a clean exit 2."""
+    tmp = f"{path}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(obj, indent=2, ensure_ascii=False) + "\n")
+        os.replace(tmp, path)
+    except OSError as exc:
+        print(f"own-fix: cannot write {path}: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def _cmd_candidates(rest: list[str]) -> int:
+    parsed = _own_fix_parse(
+        rest, {"--config", "--class", "--output", "--root"}, {"--finding-id"}
+    )
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    if (len(positional) != 1 or not opts.get("--config")
+            or not opts.get("--class") or not opts.get("--output")):
+        print("usage: own-fix subscriptions candidates <facts.json> --config <own.toml> "
+              "--class <FQN> [--finding-id <ID>]... --output <candidates.json> [--root <dir>]",
+              file=sys.stderr)
         return 2
 
     from ownlang.config import ConfigError, load_target_subscribe
     from ownlang.fix_candidates import CollectError, collect_candidates
 
     try:
-        target = load_target_subscribe(config_path)
+        target = load_target_subscribe(opts["--config"])
     except ConfigError as exc:
         print(f"own-fix: {exc}", file=sys.stderr)
         return 2
     try:
-        with open(facts_path, encoding="utf-8") as fh:
-            facts = json.load(fh)
+        facts = _read_json(positional[0])
     except (OSError, ValueError) as exc:
-        print(f"own-fix: cannot read facts {facts_path}: {exc}", file=sys.stderr)
+        print(f"own-fix: cannot read facts {positional[0]}: {exc}", file=sys.stderr)
         return 2
-
     try:
-        envelope = collect_candidates(facts, target, class_fqn, finding_ids or None, root)
+        envelope = collect_candidates(
+            facts, target, opts["--class"], opts["--finding-id"] or None, opts.get("--root", ".")
+        )
     except CollectError as exc:
         print(f"own-fix: {exc}", file=sys.stderr)
         return 2
+    rc = _write_atomic(opts["--output"], envelope)
+    if rc == 0:
+        print(f"own-fix: wrote {len(envelope['candidates'])} candidate(s) -> {opts['--output']}")
+    return rc
+
+
+def _cmd_render(rest: list[str]) -> int:
+    parsed = _own_fix_parse(rest, {"--prompt", "--schema"}, set())
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    if len(positional) != 1 or not opts.get("--prompt") or not opts.get("--schema"):
+        print("usage: own-fix subscriptions render <candidates.json> --prompt <prompt.txt> "
+              "--schema <fix-plan.schema.json>", file=sys.stderr)
+        return 2
+
+    from ownlang.fix_candidates import CollectError
+    from ownlang.fix_plan import render
 
     try:
-        with open(output, "w", encoding="utf-8") as fh:
-            fh.write(json.dumps(envelope, indent=2, ensure_ascii=False) + "\n")
-    except OSError as exc:
-        print(f"own-fix: cannot write {output}: {exc}", file=sys.stderr)
+        bundle = _read_json(positional[0])
+    except (OSError, ValueError) as exc:
+        print(f"own-fix: cannot read candidates {positional[0]}: {exc}", file=sys.stderr)
         return 2
-    print(f"own-fix: wrote {len(envelope['candidates'])} candidate(s) -> {output}")
-    return 0
+    try:
+        prompt, schema = render(bundle)
+    except CollectError as exc:
+        print(f"own-fix: {exc}", file=sys.stderr)
+        return 2
+    try:
+        with open(opts["--prompt"], "w", encoding="utf-8") as fh:
+            fh.write(prompt)
+    except OSError as exc:
+        print(f"own-fix: cannot write {opts['--prompt']}: {exc}", file=sys.stderr)
+        return 2
+    rc = _write_atomic(opts["--schema"], schema)
+    if rc == 0:
+        count = len(bundle.get("candidates", []))
+        print(f"own-fix: rendered prompt + schema for {count} candidate(s)")
+    return rc
+
+
+def _cmd_validate_plan(rest: list[str]) -> int:
+    parsed = _own_fix_parse(rest, {"--output"}, set())
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    if len(positional) != 2 or not opts.get("--output"):
+        print("usage: own-fix subscriptions validate-plan <candidates.json> <fix-plan.json> "
+              "--output <validated-plan.json>", file=sys.stderr)
+        return 2
+
+    from ownlang.fix_plan import PlanError, validate_plan
+
+    try:
+        bundle = _read_json(positional[0])
+    except (OSError, ValueError) as exc:
+        print(f"own-fix: cannot read candidates {positional[0]}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        plan = _read_json(positional[1])
+    except (OSError, ValueError) as exc:
+        print(f"own-fix: cannot read fix-plan {positional[1]}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        validated = validate_plan(bundle, plan)
+    except PlanError as exc:
+        print(f"own-fix: {exc}", file=sys.stderr)
+        return 2
+    rc = _write_atomic(opts["--output"], validated)
+    if rc == 0:
+        print(f"own-fix: validated {len(validated['decisions'])} decision(s) -> {opts['--output']}")
+    return rc
+
+
+def cmd_own_fix(rest: list[str]) -> int:
+    """`own-fix subscriptions {candidates|render|validate-plan} ...`."""
+    if len(rest) < 2 or rest[0] != "subscriptions":
+        print("usage: python -m ownlang own-fix subscriptions "
+              "{candidates|render|validate-plan} ...", file=sys.stderr)
+        return 2
+    verb, args = rest[1], rest[2:]
+    if verb == "candidates":
+        return _cmd_candidates(args)
+    if verb == "render":
+        return _cmd_render(args)
+    if verb == "validate-plan":
+        return _cmd_validate_plan(args)
+    print(f"own-fix: unknown subcommand {verb!r} "
+          "(candidates | render | validate-plan)", file=sys.stderr)
+    return 2
 
 
 _FORMATS = {"human", "github", "msbuild", "sarif", "json"}

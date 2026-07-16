@@ -1676,6 +1676,29 @@ jobs:
           fi
           echo "OK: own-fix collector — bundle, permission tiering, and hard rejections"
 
+      # S1 orchestration (glue): render -> o7 invoke -> validate-plan, exercised with a
+      # FAKE o7 that drops the canned fixture result into --out, so the shell wiring is
+      # tested without a live model. The pure render/validate logic + fixture conformance
+      # run in the "tests" job (tests/test_fix_plan.py).
+      - name: S1 own-fix-plan orchestration (fake o7)
+        run: |
+          fx=tests/fixtures/o7-invoke/subscription-fix-plan-v1
+          bin="$RUNNER_TEMP/bin"; mkdir -p "$bin"
+          export O7_FAKE_RESULT="$PWD/$fx/o7-result.json"
+          cat > "$bin/o7" <<'SH'
+          #!/usr/bin/env bash
+          out=""
+          while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift 2;; *) shift;; esac; done
+          mkdir -p "$out"; cp "$O7_FAKE_RESULT" "$out/result.json"
+          SH
+          chmod +x "$bin/o7"
+          PATH="$bin:$PATH" scripts/own-fix-plan.sh "$fx/candidates.json" \
+            "$RUNNER_TEMP/validated.json" --o7 o7
+          python -c "import json,sys; a=json.load(open(sys.argv[1])); b=json.load(open(sys.argv[2])); sys.exit(0 if a==b else 1)" \
+            "$RUNNER_TEMP/validated.json" "$fx/expected-validated-plan.json" \
+            || { echo 'FAIL: glue-produced plan != expected'; exit 1; }
+          echo 'OK: render -> (fake o7) -> validate produces the expected validated plan'
+
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
   # acquire (timer / subscribe / listener) with no cleanup return is the core's
