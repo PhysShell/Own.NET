@@ -1,6 +1,11 @@
 # P-015 — Configuration surface: check selection & per-category severity
 
-- **Status:** draft (**stub** — to be fleshed out; P2, quality-of-life, not blocking)
+- **Status:** draft — but a **first minimal slice has shipped** (via P-035, PR #284):
+  an **explicit `own-check --config own.toml`** (no auto-discovery) that reads **only**
+  the `[weak-subscription].subscribe` table, in **TOML** (`ownlang/config.py`,
+  `tomllib`; a malformed config is a hard error). Everything else below —
+  auto-discovery, per-category enable/severity, per-path overrides, env — remains
+  **deferred**. The format question is therefore **settled: TOML.**
 - **Origin:** [P-014](P-014-semantic-resolution.md) Open Question 2. P-014 ships a
   single `--event-leaks` gate as *instance #1* of the need this proposal generalises.
 - **Depends on / reconciles with:**
@@ -96,10 +101,11 @@ is the central implementation question.
 
 ## Open questions
 
-1. **File format.** TOML (`own.toml`, typed, ecosystem-standard) vs an
-   `.editorconfig`-style INI vs JSON. Leaning TOML.
-2. **Discovery & precedence.** Nearest-file-up vs explicit `--config PATH`;
-   exact precedence vs CLI and vs `[OwnIgnore]` (draft order above).
+1. **File format — RESOLVED: TOML.** Shipped as `own.toml` (`tomllib`) in the P-035
+   slice; not reopening INI/JSON.
+2. **Discovery & precedence.** The shipped slice is **explicit `--config PATH` only**
+   (no discovery), so nearest-file-up walking and CLI/`[OwnIgnore]` precedence remain
+   open for when a broader surface lands.
 3. **Enforcement point.** Core-side only (clean "one checker") vs extractor-side
    skip for disabled categories (cheaper) — likely both, with the core
    authoritative.

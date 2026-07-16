@@ -13,6 +13,14 @@ inputs:
     description: "File(s) or directory to scan (directories are walked for *.cs)."
     required: false
     default: "."
+  config:
+    description: >-
+      Explicit Owen configuration file (own.toml). Today it carries the P-035
+      [weak-subscription].subscribe allowlist of your project's own weak-subscribe
+      wrapper API ("SimpleType.Method"); a matching call is treated as an already-
+      released subscription. Left empty, no config is read.
+    required: false
+    default: ""
   format:
     description: >-
       Finding surface: github (PR annotations), msbuild, human, or sarif — a SARIF
@@ -77,8 +85,15 @@ runs:
         OWN_SEVERITY: ${{ inputs.severity }}
         OWN_FAIL_ON_FINDING: ${{ inputs.fail-on-finding }}
         OWN_SARIF_FILE: ${{ inputs.sarif-file }}
+        OWN_CONFIG: ${{ inputs.config }}
       run: |
         check="${{ github.action_path }}/scripts/own-check.sh"
+        # P-035: forward an explicit own.toml to own-check when the caller set one.
+        # Passed as data via OWN_CONFIG (never interpolated into the script body).
+        config_args=()
+        if [ -n "$OWN_CONFIG" ]; then
+          config_args+=(--config "$OWN_CONFIG")
+        fi
         if [ "$OWN_FORMAT" = "sarif" ]; then
           # The code-scanning surface: write a SARIF 2.1.0 log to a file and expose
           # its path as an output, so the caller hands it to
@@ -91,7 +106,7 @@ runs:
           sarif="${OWN_SARIF_FILE:-$RUNNER_TEMP/owen.sarif}"
           set +e
           "$check" --root "${{ github.action_path }}" --format sarif \
-            --severity "$OWN_SEVERITY" --fail-on-finding -- "$OWN_PATH" > "$sarif"
+            --severity "$OWN_SEVERITY" "${config_args[@]}" --fail-on-finding -- "$OWN_PATH" > "$sarif"
           rc=$?
           set -e
           echo "sarif-file=$sarif" >> "$GITHUB_OUTPUT"
@@ -115,7 +130,7 @@ runs:
           fi
           exit 0
         fi
-        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT" --severity "$OWN_SEVERITY")
+        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT" --severity "$OWN_SEVERITY" "${config_args[@]}")
         if [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
           args+=(--fail-on-finding)
         fi

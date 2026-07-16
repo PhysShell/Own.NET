@@ -1550,6 +1550,63 @@ jobs:
           python -m ownlang explain --json "$RUNNER_TEMP/proj.sarif" | grep -q "OWN001" \
             || { echo "FAIL: explain --json did not harvest OWN001 from the SARIF log"; exit 1; }
           echo "OK: explain answers a code and harvests codes from a real findings/SARIF file"
+      # P-035 (Increment B0+B1): a project-DECLARED weak-subscribe wrapper is a
+      # first-class, already-released subscription. own.toml is the surface
+      # (own-check --config); the extractor's --weak-subscribe is internal transport.
+      - name: P-035 weak-subscribe — declared wrapper is an accepted release
+        run: |
+          sample=frontend/roslyn/samples/WeakSubscribeAllowlistSample.cs
+          unresolved=frontend/roslyn/samples/WeakSubscribeUnresolvedSample.cs
+          rxsample=frontend/roslyn/samples/WeakSubscribeRxNoEventsSample.cs
+          decl="WeakEvents.AddPropertyChanged"
+          # WITH the declared wrapper; WITHOUT (byte-for-byte baseline); WITH but
+          # --no-event-leaks (event analysis off); and the unresolved-external sample.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$sample" --weak-subscribe "$decl" -o "$RUNNER_TEMP/ws_on.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$sample" -o "$RUNNER_TEMP/ws_off.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$sample" --weak-subscribe "$decl" --no-event-leaks -o "$RUNNER_TEMP/ws_noev.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$unresolved" --weak-subscribe "$decl" -o "$RUNNER_TEMP/ws_unres.json"
+          # Rx-collision regression: a declared `Subscribe`-named IDisposable wrapper under
+          # --no-event-leaks must stay fully silent (suppression is unconditional).
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$rxsample" --weak-subscribe "WeakBus.Subscribe" --no-event-leaks -o "$RUNNER_TEMP/ws_rxnoev.json"
+          # The Increment-B acceptance contract, at the fact level.
+          python tests/check_weak_subscribe_facts.py \
+            "$RUNNER_TEMP/ws_on.json" "$RUNNER_TEMP/ws_off.json" \
+            "$RUNNER_TEMP/ws_noev.json" "$RUNNER_TEMP/ws_unres.json" \
+            "$RUNNER_TEMP/ws_rxnoev.json"
+          # Contrast that proves it is the DECLARATION (not --no-event-leaks) doing the
+          # suppression: the same sample under --no-event-leaks with NO declaration still
+          # emits the Rx dropped-token subscription for RxCollisionSubscriber.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$rxsample" --no-event-leaks -o "$RUNNER_TEMP/ws_rxbase.json"
+          python -c "import json,sys; d=json.load(open(sys.argv[1])); c=[x for x in d['components'] if x['name']=='RxCollisionSubscriber']; subs=(c[0].get('subscriptions') or []) if c else []; sys.exit(0 if any(s.get('resource')=='subscribe' for s in subs) else 1)" \
+            "$RUNNER_TEMP/ws_rxbase.json" \
+            || { echo "FAIL: without a declaration, --no-event-leaks should still leave the Rx dropped-token finding (regression baseline broken)"; exit 1; }
+          # End-to-end through the core: the ordinary += still surfaces (OWN001); the
+          # declared wrapper does not.
+          out=$(python -m ownlang ownir "$RUNNER_TEMP/ws_on.json" || true)
+          echo "$out" | grep -q "OrdinaryPlusEquals" \
+            || { echo "FAIL: ordinary += leak not flagged"; exit 1; }
+          ! echo "$out" | grep -q "WeaklySubscribed" \
+            || { echo "FAIL: declared weak wrapper was flagged as a leak"; exit 1; }
+          # Action plumbing: own-check --config own.toml parses [weak-subscription] and
+          # forwards it to the extractor, so the wrapper is silent end-to-end.
+          printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/own.toml"
+          cout=$(scripts/own-check.sh --config "$RUNNER_TEMP/own.toml" "$sample" || true)
+          ! echo "$cout" | grep -q "WeaklySubscribed" \
+            || { echo "FAIL: own-check --config did not silence the declared wrapper"; exit 1; }
+          echo "$cout" | grep -q "OrdinaryPlusEquals" \
+            || { echo "FAIL: own-check --config lost the ordinary += leak"; exit 1; }
+          # A malformed config is a hard error (non-zero), never a silent skip.
+          printf '[weak-subscription]\nsubscribe = ["bad_no_dot"]\n' > "$RUNNER_TEMP/bad.toml"
+          if scripts/own-check.sh --config "$RUNNER_TEMP/bad.toml" "$sample" >/dev/null 2>&1; then
+            echo "FAIL: malformed --config was silently accepted"; exit 1
+          fi
+          echo "OK: declared weak-subscribe wrapper = accepted release; += unaffected; own.toml plumbed; malformed config is a hard error"
 
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect

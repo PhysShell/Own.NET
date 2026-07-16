@@ -97,6 +97,45 @@ jobs:
           format: github
           fail-on-finding: "true"
 
+      # P-035: the `config:` input must reach the extractor through the Action border.
+      # The weak-wrapper fixture is a real finding WITHOUT a declaration and silent WITH
+      # one, so the pair of runs proves the input plumbs (an Action-level test, not a
+      # direct scripts/own-check.sh call).
+      - name: Owen check — weak wrapper, NO config (finds the dropped token)
+        id: weaknocfg
+        uses: ./
+        continue-on-error: true # expected to fail — asserted below
+        with:
+          path: fixtures/marketplace-consumer-demo/WeakSubscribeConsumer.cs
+          format: github
+          fail-on-finding: "true"
+      - name: Assert the un-declared weak wrapper WAS flagged
+        run: |
+          [ "${{ steps.weaknocfg.outcome }}" = "failure" ] \
+            || { echo "FAIL: weak wrapper without --config should be a finding, got '${{ steps.weaknocfg.outcome }}'"; exit 1; }
+          echo "OK: without a [weak-subscription] declaration the wrapper is a finding"
+      - name: Owen check — weak wrapper, WITH config (recognised, silent)
+        uses: ./
+        with:
+          path: fixtures/marketplace-consumer-demo/WeakSubscribeConsumer.cs
+          config: fixtures/marketplace-consumer-demo/own.toml
+          format: github
+          fail-on-finding: "true"
+      - name: Owen check — a malformed config is a hard error through the Action
+        id: badcfg
+        uses: ./
+        continue-on-error: true # expected to fail — asserted below
+        with:
+          path: fixtures/marketplace-consumer-demo/Clean.cs
+          config: fixtures/marketplace-consumer-demo/own-bad.toml
+          format: github
+          fail-on-finding: "false"
+      - name: Assert the malformed config failed the Action step
+        run: |
+          [ "${{ steps.badcfg.outcome }}" = "failure" ] \
+            || { echo "FAIL: a malformed --config must hard-error through the Action, got '${{ steps.badcfg.outcome }}'"; exit 1; }
+          echo "OK: own.toml plumbs through the Action; a malformed config is a hard error"
+
       # Fork PRs get a read-only GITHUB_TOKEN (GitHub's fork-PR token policy),
       # so security-events:write is never actually granted no matter what
       # this job requests — skip the SARIF/upload steps there instead of
