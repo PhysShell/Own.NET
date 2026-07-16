@@ -1608,6 +1608,26 @@ jobs:
           fi
           echo "OK: declared weak-subscribe wrapper = accepted release; += unaffected; own.toml plumbed; malformed config is a hard error"
 
+      # S0 (--fix-candidates, Part A): ADDITIVE fix-candidate metadata — a
+      # namespaced `fix` block on each `+=` subscription, component
+      # `qualified_name`/shape, and a top-level `fix_candidates_version`. With the
+      # flag OFF the facts are byte-identical (the extractor fact tests above run
+      # flag-off and would break otherwise); this step asserts the metadata is
+      # correct and that the off-run leaks none of it.
+      - name: S0 fix-candidates — extractor metadata (Part A)
+        run: |
+          fc=frontend/roslyn/samples/FixCandidatesSample.cs
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$fc" --fix-candidates -o "$RUNNER_TEMP/fc_on.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$fc" -o "$RUNNER_TEMP/fc_off.json"
+          python tests/check_fix_candidates_facts.py "$RUNNER_TEMP/fc_on.json" "$RUNNER_TEMP/fc_off.json"
+          # Byte-level additivity: the flag-off output must contain NONE of the new keys.
+          if grep -qE '"(fix|qualified_name|fix_candidates_version)"' "$RUNNER_TEMP/fc_off.json"; then
+            echo "FAIL: flag-off output leaked fix-candidate metadata"; exit 1
+          fi
+          echo "OK: fix-candidate metadata correct; flag-off is additive-clean"
+
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
   # acquire (timer / subscribe / listener) with no cleanup return is the core's
