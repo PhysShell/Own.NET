@@ -1,0 +1,3 @@
+# Malformed on purpose (entry has no dot) -> own-check must hard-error.
+[weak-subscription]
+subscribe = ["not_dotted"]

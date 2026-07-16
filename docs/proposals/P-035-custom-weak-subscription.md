@@ -1,6 +1,11 @@
 # P-035 — Project-declared weak-subscription conventions
 
-- **Status:** draft.
+- **Status:** partially implemented. **B0+B1 shipped** — a project declares its
+  weak-subscribe wrapper API in `own.toml` (`[weak-subscription].subscribe`), read via
+  `own-check --config`, and the extractor mints a matching call as a first-class,
+  already-released subscription. **Increment A** (unsubscribe wrapper — needs event
+  identity first) and **Increment C** (project-aware fix text / 007 wiring) remain
+  **deferred**, as does a general `AddHandler` heuristic.
 - **Depends on / reconciles with:**
   - [P-004](P-004-wpf-lifetime-profile.md) — the WPF lifetime profile. Its Open
     Question #4 (P-004:142-143) proposes recognising *"`WeakEventManager` / weak
@@ -66,19 +71,27 @@ weakly here."*
   whose publisher holds subscribers weakly (one entry: `CommandManager.RequerySuggested`).
   Deliberately curated and compiled-in — "extend only when another sibling's
   weak-reference implementation is independently confirmed."
-- **Subscription detection** — only the C# `event += handler` operator mints an
-  `acquire` (`Program.cs:3491-3502`, P-014 Tier A). A method call such as
-  `Mgr.AddHandler(src, h)` or `WeakEvents.AddPropertyChanged(src, h)` is **invisible**
-  to the subscription detector; the only recognised method-call subscription is the
-  Rx `X.Subscribe(…)` IDisposable-token shape.
+- **Subscription detection** — the C# `event += handler` operator mints an `acquire`
+  (P-014 Tier A). In addition, **B1** now mints one for a **declared** weak-subscribe
+  wrapper *method call* (`MatchesDeclaredWeakSubscribe`): an exact `(containing-type
+  simple name, method name)` on the allowlist, with the MVP `(source, handler)`
+  positional contract and a real handler second argument (`IsHandler`), resolved via
+  the method symbol or a syntactic receiver-name fallback for an unresolved external
+  package. A non-declared method call is still invisible; there is **no** general
+  `AddHandler` heuristic. The Rx `X.Subscribe(…)` IDisposable-token shape is unchanged,
+  and a declared wrapper named `Subscribe` is suppressed there so it is not
+  double-counted.
 - **Per-site suppression** — `[OwnIgnore("reason")]` is read from source
   (`OwnIgnoreReason`, `Program.cs:4388`, issue #209).
-- **No project-wide config is consumed yet** — the only external extractor inputs are
-  assembly-reference dirs (`--ref-dir` / `OWN_EXTRA_REF_DIRS`), not semantic-role
-  declarations. P-015's config file is still a draft.
+- **A project-wide config is now consumed (B0)** — `own-check --config own.toml` reads
+  the `[weak-subscription].subscribe` allowlist (`ownlang/config.py`, `tomllib`; a
+  malformed table is a hard error) and forwards it to the extractor via the internal
+  `--weak-subscribe` transport flag. This is the first, deliberately narrow slice of
+  P-015; discovery / severity / per-path / env stay deferred there. The composite
+  Action exposes it as the optional `config:` input.
 
-So the two things this proposal needs are: (1) a place to *declare* the convention
-(P-015's config), and (2) two small consumers of it (recognition + fix text).
+The two consumers this proposal named — recognition (shipped, B1) and fix text
+(deferred, Increment C) — now sit on that config seam.
 
 ## Design
 
@@ -151,13 +164,23 @@ regression fixture for the recognition half.
 - **Shipping a weak-events helper.** Own.NET recommends a shape; the project owns the
   implementation (cf. P-027's stance that Own.NET ships no mandated fix type).
 
-## Open questions
+## Resolved decisions
 
-1. Config format & discovery — deferred to P-015 (`.ownrc` vs `own.toml`), this is
-   one more table in it.
-2. Should a declared `unsubscribe` also be recognised as a release for a *`+=`*
-   subscription (i.e. a project that hides `-=` behind `WeakEvents.RemovePropertyChanged`)?
-   Probably yes, via the same `(type, method)` match feeding the `unsub` set
-   (`Program.cs:3401`).
-3. Method-call subscription detection is a prerequisite for the recognition half and
-   is itself a P-014 increment; sequence it there or fold it in here?
+1. **Config format & discovery — RESOLVED.** The carrier is an **explicit
+   `own-check --config own.toml`** (no auto-discovery). Format is **TOML**
+   (`tomllib`), the minimal P-015 slice — see [P-015](P-015-configuration-surface.md).
+2. **Method-call subscription detection — RESOLVED: folded into P-035**, not carved
+   out as a separate P-014 increment. It has *no* standalone behaviour — it fires only
+   for an explicitly declared `(type, method)` pair, so it cannot exist without a
+   P-035 declaration.
+
+## Open questions (deferred)
+
+- **Increment A** — should a declared `unsubscribe` also be recognised as a release
+  for a *`+=`* subscription (a project that hides `-=` behind
+  `WeakEvents.RemovePropertyChanged`)? **Deferred**: `(source, handler)` alone cannot
+  pin the release to a specific `event +=` on the same source, so a sound design needs
+  event identity first (arbiter). Not implemented.
+- **Increment C** — the project-aware fix text (the OWN001 explanation naming the
+  declared API instead of `WeakEventManager`) and the 007 fix-agent wiring. **Deferred**
+  to a separate scope with write-capable remediation plumbing.

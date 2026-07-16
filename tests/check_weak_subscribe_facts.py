@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Assert the P-035 weak-subscribe extractor facts (run from the .NET-backed
 "C# leak extractor" CI job; NOT auto-discovered by run_tests.py — it needs the SDK
-to produce the facts, so it is not named ``test_*`` and takes the two facts paths).
+to produce the facts, so it is not named ``test_*`` and takes the facts paths).
 
 Usage:
-    python tests/check_weak_subscribe_facts.py <facts_on.json> <facts_off.json>
+    python tests/check_weak_subscribe_facts.py \
+        <on.json> <off.json> <no_events.json> <unresolved.json>
 
-  facts_on  = extractor over WeakSubscribeAllowlistSample.cs WITH
-              --weak-subscribe "WeakEvents.AddPropertyChanged"
-  facts_off = the SAME sample with NO flag.
+  on          = WeakSubscribeAllowlistSample.cs WITH --weak-subscribe WeakEvents.AddPropertyChanged
+  off         = the SAME sample with NO flag
+  no_events   = the SAME sample WITH --weak-subscribe AND --no-event-leaks
+  unresolved  = WeakSubscribeUnresolvedSample.cs WITH --weak-subscribe WeakEvents.AddPropertyChanged
+                (the wrapper type is unresolved -> exercises the syntactic fallback)
 
 Encodes the Increment-B acceptance contract at the fact level. Exits non-zero on any
 violation.
@@ -20,18 +23,23 @@ import json
 import sys
 
 
-def _subs(facts: dict, component: str) -> list[dict]:
-    for c in facts.get("components", []):
+def _subs(facts: dict[str, object], component: str) -> list[dict[str, object]]:
+    for c in facts.get("components", []):  # type: ignore[union-attr]
         if c.get("name") == component:
             return c.get("subscriptions", []) or []
     return []
 
 
-def main(on_path: str, off_path: str) -> int:
-    with open(on_path) as fh:
-        on = json.load(fh)
-    with open(off_path) as fh:
-        off = json.load(fh)
+def _load(path: str) -> dict[str, object]:
+    with open(path) as fh:
+        return json.load(fh)
+
+
+def main(on_path: str, off_path: str, noev_path: str, unres_path: str) -> int:
+    on = _load(on_path)
+    off = _load(off_path)
+    noev = _load(noev_path)
+    unres = _load(unres_path)
 
     fails: list[str] = []
 
@@ -66,6 +74,12 @@ def main(on_path: str, off_path: str) -> int:
         "TooFewArgs: a call with <2 positional args must NOT be recognised",
     )
 
+    # handler shape: declared wrapper, two args, but the 2nd is not a handler (an int)
+    check(
+        _subs(on, "NonHandlerSecondArgument") == [],
+        "NonHandlerSecondArgument: a non-handler 2nd arg must NOT be minted as a subscription",
+    )
+
     # #1 no flag -> the wrapper call is invisible, so the class carries no subscription
     check(
         _subs(off, "WeaklySubscribed") == [],
@@ -74,6 +88,28 @@ def main(on_path: str, off_path: str) -> int:
     check(
         len(_subs(off, "OrdinaryPlusEquals")) == 1,
         "OrdinaryPlusEquals (no flag): the ordinary += is unaffected by the feature",
+    )
+
+    # #2 --no-event-leaks must silence BOTH the weak detector AND the ordinary += detector
+    check(
+        _subs(noev, "WeaklySubscribed") == [],
+        "WeaklySubscribed (--no-event-leaks): the weak detector must be off",
+    )
+    check(
+        _subs(noev, "OrdinaryPlusEquals") == [],
+        "OrdinaryPlusEquals (--no-event-leaks): the += detector must be off too",
+    )
+
+    # #8 syntax fallback for an unresolved external wrapper
+    uw = _subs(unres, "UnresolvedWrapperSubscriber")
+    check(
+        len(uw) == 1 and uw[0].get("released") is True,
+        "UnresolvedWrapperSubscriber: an unresolved External.WeakEvents.AddPropertyChanged "
+        "must be recognised via the receiver-name fallback (one released=true)",
+    )
+    check(
+        _subs(unres, "UnresolvedDifferentReceiver") == [],
+        "UnresolvedDifferentReceiver: a different final receiver name must NOT match",
     )
 
     if fails:
@@ -85,7 +121,7 @@ def main(on_path: str, off_path: str) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 5:
         print(__doc__, file=sys.stderr)
         raise SystemExit(2)
-    raise SystemExit(main(sys.argv[1], sys.argv[2]))
+    raise SystemExit(main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))

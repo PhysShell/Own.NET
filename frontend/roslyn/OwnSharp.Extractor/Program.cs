@@ -825,8 +825,15 @@ static bool MatchesDeclaredWeakSubscribe(
     // with fewer, or with either of the first two passed by name, is not recognised (#7).
     if (callArgs.Count < 2 || callArgs[0].NameColon is not null || callArgs[1].NameColon is not null)
         return false;
+    // The second argument must actually be a HANDLER (method group / delegate / `new
+    // H(...)` / lambda), through the same IsHandler shape the `+=` path uses. A declared
+    // overload whose second parameter is not a delegate -- `AddPropertyChanged(source, 42)`
+    // -- is NOT a subscription and must not be minted as a released one.
+    var normalizedHandler = NormalizeHandler(callArgs[1].Expression);
+    if (!IsHandler(normalizedHandler))
+        return false;
     source = callArgs[0].Expression;
-    handler = callArgs[1].Expression;
+    handler = normalizedHandler;
     return true;
 }
 
@@ -4906,8 +4913,10 @@ foreach (var (file, tree) in parsed)
         // loop inert (facts byte-for-byte unchanged). This is the subscriber-side
         // sibling of the #223 weak-referenced-static-event allowlist, but declared in
         // config rather than curated, because a project's own wrapper cannot be
-        // "independently confirmed" in this tree.
-        if (weakSubscribe.Count > 0)
+        // "independently confirmed" in this tree. Gated on `emitEvents`, exactly like the
+        // `+=` detector above: `--no-event-leaks` turns OFF event-subscription analysis,
+        // so it must silence this pass too.
+        if (emitEvents && weakSubscribe.Count > 0)
             foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out var wsSource, out var wsHandler))
                     subs.Add(new
@@ -5458,8 +5467,10 @@ foreach (var (file, tree) in parsed)
                 && SubscribeResultIsDisposable(model.GetTypeInfo(inv).Type)
                 // P-035: a DECLARED weak-subscribe wrapper named `Subscribe` is already
                 // handled above as an accepted release; it must not ALSO be counted as a
-                // dropped Rx token (that would double-emit and false-flag a leak).
-                && !MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _))
+                // dropped Rx token (that would double-emit and false-flag a leak). Suppress
+                // it only when the weak detector actually ran (emitEvents on) -- under
+                // `--no-event-leaks` that pass is off, so leave this Rx token detector alone.
+                && !(emitEvents && MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _)))
                 subs.Add(new
                 {
                     @event = m.ToString(),

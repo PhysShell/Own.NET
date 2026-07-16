@@ -1556,14 +1556,22 @@ jobs:
       - name: P-035 weak-subscribe — declared wrapper is an accepted release
         run: |
           sample=frontend/roslyn/samples/WeakSubscribeAllowlistSample.cs
-          # WITH the declared wrapper, and WITHOUT (the byte-for-byte baseline).
+          unresolved=frontend/roslyn/samples/WeakSubscribeUnresolvedSample.cs
+          decl="WeakEvents.AddPropertyChanged"
+          # WITH the declared wrapper; WITHOUT (byte-for-byte baseline); WITH but
+          # --no-event-leaks (event analysis off); and the unresolved-external sample.
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
-            "$sample" --weak-subscribe "WeakEvents.AddPropertyChanged" \
-            -o "$RUNNER_TEMP/ws_on.json"
+            "$sample" --weak-subscribe "$decl" -o "$RUNNER_TEMP/ws_on.json"
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             "$sample" -o "$RUNNER_TEMP/ws_off.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$sample" --weak-subscribe "$decl" --no-event-leaks -o "$RUNNER_TEMP/ws_noev.json"
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$unresolved" --weak-subscribe "$decl" -o "$RUNNER_TEMP/ws_unres.json"
           # The Increment-B acceptance contract, at the fact level.
-          python tests/check_weak_subscribe_facts.py "$RUNNER_TEMP/ws_on.json" "$RUNNER_TEMP/ws_off.json"
+          python tests/check_weak_subscribe_facts.py \
+            "$RUNNER_TEMP/ws_on.json" "$RUNNER_TEMP/ws_off.json" \
+            "$RUNNER_TEMP/ws_noev.json" "$RUNNER_TEMP/ws_unres.json"
           # End-to-end through the core: the ordinary += still surfaces (OWN001); the
           # declared wrapper does not.
           out=$(python -m ownlang ownir "$RUNNER_TEMP/ws_on.json" || true)

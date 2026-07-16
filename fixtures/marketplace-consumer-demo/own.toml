@@ -1,0 +1,3 @@
+# P-035 demo: declare this project's weak-subscribe wrapper API.
+[weak-subscription]
+subscribe = ["WeakBus.Subscribe"]

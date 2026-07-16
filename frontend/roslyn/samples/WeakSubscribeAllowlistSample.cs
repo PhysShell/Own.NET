@@ -28,6 +28,9 @@ namespace Own.Samples.WeakSubscribe
         public static void AddPropertyChanged(INotifyPropertyChanged source, PropertyChangedEventHandler handler) { }
         // A one-argument overload so the too-few-args call below binds cleanly.
         public static void AddPropertyChanged(INotifyPropertyChanged source) { }
+        // A two-argument overload whose second parameter is NOT a delegate, so a
+        // (source, non-handler) call binds but is not a subscription.
+        public static void AddPropertyChanged(INotifyPropertyChanged source, int options) { }
         public static void RemovePropertyChanged(INotifyPropertyChanged source, PropertyChangedEventHandler handler) { }
     }
 
@@ -82,6 +85,17 @@ namespace Own.Samples.WeakSubscribe
         public TooFewArgs(ISettings settings)
         {
             WeakEvents.AddPropertyChanged(settings);
+        }
+    }
+
+    // NEGATIVE CONTROL (handler shape): the declared wrapper with two args, but the
+    // second is NOT a handler (an int). There is no subscription here, so it must NOT
+    // be minted as a released one.
+    public sealed class NonHandlerSecondArgument
+    {
+        public NonHandlerSecondArgument(ISettings settings)
+        {
+            WeakEvents.AddPropertyChanged(settings, 42);
         }
     }
 }
