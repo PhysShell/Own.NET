@@ -416,7 +416,10 @@ def validate_candidates_bundle(bundle: Any) -> None:
             raise CollectError(f"{cctx}: containing_type must be {type_name!r}")
         if _field(c, "file", "str", cctx) != source_path:
             raise CollectError(f"{cctx}: file must be {source_path!r}")
-        for k in ("event", "source", "handler"):
+        # Display + full identity set — required so downstream (S2 apply) can index them
+        # without a KeyError and the span-node guard gets the real identity contract.
+        for k in ("event", "source", "handler", "event_identity", "source_identity",
+                  "source_identity_kind", "handler_identity", "handler_identity_kind"):
             _field(c, k, "str", cctx)
         contract = _field(c, "event_contract", "str", cctx)
         if contract not in _CONTRACTS:
