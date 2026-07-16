@@ -5465,12 +5465,15 @@ foreach (var (file, tree) in parsed)
                 && m.Name.Identifier.Text == "Subscribe"
                 && inv.Parent is ExpressionStatementSyntax
                 && SubscribeResultIsDisposable(model.GetTypeInfo(inv).Type)
-                // P-035: a DECLARED weak-subscribe wrapper named `Subscribe` is already
-                // handled above as an accepted release; it must not ALSO be counted as a
-                // dropped Rx token (that would double-emit and false-flag a leak). Suppress
-                // it only when the weak detector actually ran (emitEvents on) -- under
-                // `--no-event-leaks` that pass is off, so leave this Rx token detector alone.
-                && !(emitEvents && MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _)))
+                // P-035: a DECLARED weak-subscribe wrapper named `Subscribe` is a project
+                // weak subscription, not a dropped Rx token -- so this Rx matcher must never
+                // flag it. The declaration classifies the API regardless of whether event-
+                // fact emission is on, so the suppression is UNCONDITIONAL: gating it on
+                // `emitEvents` would make `--no-event-leaks` INVENT a finding that event
+                // analysis suppresses (the OFF switch turning a check ON). The weak-fact pass
+                // itself stays `emitEvents`-gated above; only this misclassification-guard is
+                // always active.
+                && !MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _))
                 subs.Add(new
                 {
                     @event = m.ToString(),

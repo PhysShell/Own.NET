@@ -1557,6 +1557,7 @@ jobs:
         run: |
           sample=frontend/roslyn/samples/WeakSubscribeAllowlistSample.cs
           unresolved=frontend/roslyn/samples/WeakSubscribeUnresolvedSample.cs
+          rxsample=frontend/roslyn/samples/WeakSubscribeRxNoEventsSample.cs
           decl="WeakEvents.AddPropertyChanged"
           # WITH the declared wrapper; WITHOUT (byte-for-byte baseline); WITH but
           # --no-event-leaks (event analysis off); and the unresolved-external sample.
@@ -1568,10 +1569,23 @@ jobs:
             "$sample" --weak-subscribe "$decl" --no-event-leaks -o "$RUNNER_TEMP/ws_noev.json"
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
             "$unresolved" --weak-subscribe "$decl" -o "$RUNNER_TEMP/ws_unres.json"
+          # Rx-collision regression: a declared `Subscribe`-named IDisposable wrapper under
+          # --no-event-leaks must stay fully silent (suppression is unconditional).
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$rxsample" --weak-subscribe "WeakBus.Subscribe" --no-event-leaks -o "$RUNNER_TEMP/ws_rxnoev.json"
           # The Increment-B acceptance contract, at the fact level.
           python tests/check_weak_subscribe_facts.py \
             "$RUNNER_TEMP/ws_on.json" "$RUNNER_TEMP/ws_off.json" \
-            "$RUNNER_TEMP/ws_noev.json" "$RUNNER_TEMP/ws_unres.json"
+            "$RUNNER_TEMP/ws_noev.json" "$RUNNER_TEMP/ws_unres.json" \
+            "$RUNNER_TEMP/ws_rxnoev.json"
+          # Contrast that proves it is the DECLARATION (not --no-event-leaks) doing the
+          # suppression: the same sample under --no-event-leaks with NO declaration still
+          # emits the Rx dropped-token subscription for RxCollisionSubscriber.
+          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
+            "$rxsample" --no-event-leaks -o "$RUNNER_TEMP/ws_rxbase.json"
+          python -c "import json,sys; d=json.load(open(sys.argv[1])); c=[x for x in d['components'] if x['name']=='RxCollisionSubscriber']; subs=(c[0].get('subscriptions') or []) if c else []; sys.exit(0 if any(s.get('resource')=='subscribe' for s in subs) else 1)" \
+            "$RUNNER_TEMP/ws_rxbase.json" \
+            || { echo "FAIL: without a declaration, --no-event-leaks should still leave the Rx dropped-token finding (regression baseline broken)"; exit 1; }
           # End-to-end through the core: the ordinary += still surfaces (OWN001); the
           # declared wrapper does not.
           out=$(python -m ownlang ownir "$RUNNER_TEMP/ws_on.json" || true)

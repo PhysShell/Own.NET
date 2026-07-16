@@ -127,11 +127,12 @@ when it is absent):
   — it is config-extensible rather than curated, because a project's own wrapper
   cannot be "independently confirmed" in Own.NET's tree.
 
-> Note: for a project that has *already* converted (STS after the fix), the code is
-> a method call, so today's `+=`-only detector is silent anyway — no false positive
-> exists **yet**. Recognition earns its keep the moment method-call subscriptions are
-> detected (so mixed `+=`/wrapper codebases don't get half-flagged), and it makes the
-> wrapper a first-class, auditable release instead of an invisible one.
+> Note: **before B1** a converted call was silent only by accident — the extractor saw
+> only `event += handler`, so a method-call wrapper was *invisible* (no fact at all).
+> **B1 (shipped in this PR) removes that**: the extractor now detects a declared wrapper
+> call and emits it as a first-class, `released:true` subscription. So the wrapper is
+> silent-and-**recognised** (an auditable release), not silent-and-invisible — and a
+> mixed `+=`/wrapper codebase is no longer half-analysed.
 
 ### 3. Fix-text / autofix consumer (suggest the *project's* weak API)
 
@@ -139,9 +140,12 @@ Own.NET does not ship a code-fix (by policy — the fix is applied by an agent u
 the 007 harness's `o7 run`). Two touch-points:
 
 - **The OWN001 explanation** (`ownlang/diagnostics.py:122-130`) currently offers a
-  fixed *"unsubscribe (`-=`) in Dispose/Unloaded, or WeakEventManager"* text. When a
-  `[weak-subscription]` convention is configured, the weak alternative it names
-  should be the **declared** `subscribe` API, not the BCL manager.
+  fixed *"unsubscribe (`-=`) in Dispose/Unloaded, dispose the owned field in the
+  owner's Dispose, or capture and dispose the IDisposable a `Subscribe()` returns"*
+  text — it names **no** weak-events manager at all today. Increment C would make it
+  name the project's **declared** `subscribe` API as the weak alternative when a
+  `[weak-subscription]` convention is configured (rather than hard-coding the BCL
+  `WeakEventManager`, which the STS case proves may not fit).
 - **The agent fix task** (007) should be handed the convention so a converting agent
   emits `WeakEvents.AddPropertyChanged`, not a `WeakEventManager` that — as the STS
   case proves — may not compile or may not work in that layer.

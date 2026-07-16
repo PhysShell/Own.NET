@@ -5,13 +5,16 @@ to produce the facts, so it is not named ``test_*`` and takes the facts paths).
 
 Usage:
     python tests/check_weak_subscribe_facts.py \
-        <on.json> <off.json> <no_events.json> <unresolved.json>
+        <on.json> <off.json> <no_events.json> <unresolved.json> <rx_no_events.json>
 
   on          = WeakSubscribeAllowlistSample.cs WITH --weak-subscribe WeakEvents.AddPropertyChanged
   off         = the SAME sample with NO flag
   no_events   = the SAME sample WITH --weak-subscribe AND --no-event-leaks
   unresolved  = WeakSubscribeUnresolvedSample.cs WITH --weak-subscribe WeakEvents.AddPropertyChanged
                 (the wrapper type is unresolved -> exercises the syntactic fallback)
+  rx_no_events = WeakSubscribeRxNoEventsSample.cs WITH --weak-subscribe WeakBus.Subscribe
+                AND --no-event-leaks (a declared `Subscribe`-named IDisposable wrapper:
+                the Rx suppression must hold even with event analysis off)
 
 Encodes the Increment-B acceptance contract at the fact level. Exits non-zero on any
 violation.
@@ -35,11 +38,18 @@ def _load(path: str) -> dict[str, object]:
         return json.load(fh)
 
 
-def main(on_path: str, off_path: str, noev_path: str, unres_path: str) -> int:
+def main(
+    on_path: str,
+    off_path: str,
+    noev_path: str,
+    unres_path: str,
+    rx_noev_path: str,
+) -> int:
     on = _load(on_path)
     off = _load(off_path)
     noev = _load(noev_path)
     unres = _load(unres_path)
+    rx_noev = _load(rx_noev_path)
 
     fails: list[str] = []
 
@@ -112,6 +122,16 @@ def main(on_path: str, off_path: str, noev_path: str, unres_path: str) -> int:
         "UnresolvedDifferentReceiver: a different final receiver name must NOT match",
     )
 
+    # Rx-collision regression (arbiter round 2): a declared `Subscribe`-named IDisposable
+    # wrapper under --no-event-leaks must produce NEITHER a weak fact (the pass is off)
+    # NOR an Rx dropped-token fact (the declaration suppresses it unconditionally). The OFF
+    # switch must not invent a finding that event analysis suppresses.
+    check(
+        _subs(rx_noev, "RxCollisionSubscriber") == [],
+        "RxCollisionSubscriber (declared WeakBus.Subscribe + --no-event-leaks): must have "
+        "ZERO subscriptions -- no weak fact and no Rx dropped-token fact",
+    )
+
     if fails:
         for f in fails:
             print("FAIL:", f, file=sys.stderr)
@@ -121,7 +141,9 @@ def main(on_path: str, off_path: str, noev_path: str, unres_path: str) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         print(__doc__, file=sys.stderr)
         raise SystemExit(2)
-    raise SystemExit(main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))
+    raise SystemExit(
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    )
