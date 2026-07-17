@@ -132,31 +132,49 @@ _DELTA_IH_KEYS = ("input_bundle_sha256", "validated_plan_sha256", "candidates_sh
                   "apply_manifest_sha256", "patch_sha256", "pre_sha256", "post_sha256")
 _DELTA_RID_KEYS = ("framework_name", "tfm", "requested_framework_version",
                    "selected_framework_version", "runtime_manifest_sha256")
+_DELTA_SCOPE_KEYS = ("source_file", "selected_class", "closure_kind", "reference_dir_count",
+                     "target_file_identity")
+_DELTA_TAPI_KEYS = ("subscribe",)
+_DELTA_EXP_KEYS = ("convert_acquire_ids", "manual_review_ids")
+_DELTA_RC_KEYS = ("ordinal", "source_dir_ordinal", "relative_path", "sha256")
 
 
 def _bind_delta_shapes(d: dict[str, Any], cat: str) -> None:
-    """Validate the exact frozen shapes of the Step 10 delta fields Step 11 consumes, so a
-    malformed/missing field is DELTA_BINDING rather than a KeyError/INFRASTRUCTURE (H4)."""
+    """Validate the EXACT frozen shapes of the Step 10 delta fields Step 11 consumes — closed key
+    sets, so an extra/missing/wrong-typed nested field is DELTA_BINDING, never a KeyError or an
+    accidental INFRASTRUCTURE (K2). This validates Step 10's actual frozen schema; it does not
+    modify the frozen producer."""
     ih = d["input_hashes"]
-    if not isinstance(ih, dict) or not all(isinstance(ih.get(k), str) for k in _DELTA_IH_KEYS):
+    if not isinstance(ih, dict) or set(ih) != set(_DELTA_IH_KEYS) \
+            or not all(isinstance(ih[k], str) for k in _DELTA_IH_KEYS):
         raise TargetError(cat, "delta-result.json input_hashes shape is wrong")
     scope = d["analysis_scope"]
-    if not isinstance(scope, dict) or not isinstance(scope.get("source_file"), str) \
-            or not isinstance(scope.get("target_file_identity"), str):
+    if not isinstance(scope, dict) or set(scope) != set(_DELTA_SCOPE_KEYS) \
+            or not isinstance(scope["source_file"], str) \
+            or not isinstance(scope["target_file_identity"], str):
         raise TargetError(cat, "delta-result.json analysis_scope shape is wrong")
     tfp = d["toolchain_fingerprint"]
     rid = tfp.get("resolved_runtime_identity") if isinstance(tfp, dict) else None
-    if not isinstance(rid, dict) or not all(isinstance(rid.get(k), str) for k in _DELTA_RID_KEYS):
+    if not isinstance(rid, dict) or set(rid) != set(_DELTA_RID_KEYS) \
+            or not all(isinstance(rid[k], str) for k in _DELTA_RID_KEYS):
         raise TargetError(cat, "delta-result.json resolved_runtime_identity shape is wrong")
     tapi = d["target_api"]
-    if not isinstance(tapi, dict) or not isinstance(tapi.get("subscribe"), str):
+    if not isinstance(tapi, dict) or set(tapi) != set(_DELTA_TAPI_KEYS) \
+            or not isinstance(tapi["subscribe"], str):
         raise TargetError(cat, "delta-result.json target_api shape is wrong")
     exp = d["expected"]
-    if not isinstance(exp, dict) or not isinstance(exp.get("convert_acquire_ids"), list) \
-            or not isinstance(exp.get("manual_review_ids"), list):
+    if not isinstance(exp, dict) or set(exp) != set(_DELTA_EXP_KEYS) \
+            or not isinstance(exp["convert_acquire_ids"], list) \
+            or not isinstance(exp["manual_review_ids"], list):
         raise TargetError(cat, "delta-result.json expected shape is wrong")
-    if not isinstance(d["reference_closure"], list):
+    rc = d["reference_closure"]
+    if not isinstance(rc, list):
         raise TargetError(cat, "delta-result.json reference_closure shape is wrong")
+    for ent in rc:
+        if not isinstance(ent, dict) or set(ent) != set(_DELTA_RC_KEYS) \
+                or not _is_int(ent["ordinal"]) or not _is_int(ent["source_dir_ordinal"]) \
+                or not isinstance(ent["relative_path"], str) or not isinstance(ent["sha256"], str):
+            raise TargetError(cat, "delta-result.json reference_closure entry is malformed")
 
 
 def bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes,
@@ -460,7 +478,7 @@ def _validate_binding_result(obj: Any, convert_ids: list[str]) -> None:
     inf = INFRASTRUCTURE
     if not isinstance(obj, dict) or set(obj) != set(_BINDING_KEYS):
         raise TargetError(inf, "binding-result.json is not the exact schema")
-    if obj["version"] != 1 or obj["operation"] != "weak-target-bind":
+    if not _is_int(obj["version"]) or obj["version"] != 1 or obj["operation"] != "weak-target-bind":
         raise TargetError(inf, "binding-result.json version/operation wrong")
     if not _is_int(obj["converted_callsites"]):
         raise TargetError(inf, "converted_callsites must be an int")
@@ -578,7 +596,9 @@ _UNSUPPORTED_KEYS = ("version", "operation", "attempt", "runtime_unsupported", "
 def _validate_unsupported_result(obj: Any, attempt: int) -> None:
     if not isinstance(obj, dict) or set(obj) != set(_UNSUPPORTED_KEYS):
         raise TargetError(INFRASTRUCTURE, "runtime-unsupported result is not the exact schema")
-    if obj["version"] != 1 or obj["operation"] != "weak-target-probe" or obj["attempt"] != attempt:
+    if not _is_int(obj["version"]) or obj["version"] != 1 \
+            or obj["operation"] != "weak-target-probe" \
+            or not _is_int(obj["attempt"]) or obj["attempt"] != attempt:
         raise TargetError(INFRASTRUCTURE, "runtime-unsupported result version/operation/attempt")
     if obj["runtime_unsupported"] is not True or not isinstance(obj["reason"], str):
         raise TargetError(INFRASTRUCTURE, "runtime-unsupported result flag/reason wrong")
@@ -587,7 +607,9 @@ def _validate_unsupported_result(obj: Any, attempt: int) -> None:
 def _validate_probe_result(obj: Any, attempt: int) -> None:
     if not isinstance(obj, dict) or set(obj) != set(_PROBE_KEYS):
         raise TargetError(INFRASTRUCTURE, "probe-result.json is not the exact schema")
-    if obj["version"] != 1 or obj["operation"] != "weak-target-probe" or obj["attempt"] != attempt:
+    if not _is_int(obj["version"]) or obj["version"] != 1 \
+            or obj["operation"] != "weak-target-probe" \
+            or not _is_int(obj["attempt"]) or obj["attempt"] != attempt:
         raise TargetError(INFRASTRUCTURE, "probe-result.json version/operation/attempt wrong")
     for k in ("strong_delivered_once", "strong_retained", "weak_control_collected",
               "threw_on_subscribe", "threw_on_first_raise", "subscriber_collected",
@@ -805,7 +827,10 @@ def _reval_inputs(plan_path: str, candidates_path: str, delta_path: str, root: s
                   rel: str, plan_bytes: bytes, candidates_bytes: bytes, delta_bytes: bytes,
                   input_hashes: dict[str, str]) -> None:
     """Revalidate every authoritative input still equals what was bound — before constructing the
-    published evidence (G5): plan, candidates, delta, source, patch, manifest, postimage."""
+    published evidence (G5). The locked drift categories: plan/candidates -> AUTHORITY_BINDING, the
+    delta -> DELTA_BINDING, and the pristine source / patch / manifest / accepted postimage changing
+    AFTER the initial binding -> ISOLATION (the initial hash mismatch, in bind_bundle, stays
+    DELTA_BINDING; here we are proving nothing drifted while we executed)."""
     if _snapshot(plan_path, INPUT_LAYOUT, "--plan") != plan_bytes:
         raise TargetError(AUTHORITY_BINDING, "--plan changed during verification")
     if _snapshot(candidates_path, INPUT_LAYOUT, "--candidates") != candidates_bytes:
@@ -820,8 +845,8 @@ def _reval_inputs(plan_path: str, candidates_path: str, delta_path: str, root: s
         (manifest_path, "apply_manifest_sha256", "apply-manifest.json"),
         (post_path, "post_sha256", "the accepted postimage"),
     ):
-        if _sha_bytes(_snapshot(path, DELTA_BINDING, label)) != input_hashes[key]:
-            raise TargetError(DELTA_BINDING, f"{label} changed during verification")
+        if _sha_bytes(_snapshot(path, ISOLATION, label)) != input_hashes[key]:
+            raise TargetError(ISOLATION, f"{label} changed after the initial binding")
 
 
 def _execution_root(protected: list[str]) -> str:
