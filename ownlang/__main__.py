@@ -597,6 +597,40 @@ def _cmd_apply(rest: list[str]) -> int:
     return 0
 
 
+def _cmd_gate(rest: list[str]) -> int:
+    """S2 step 9: `own-fix subscriptions gate` — the structural self-gate. Re-validates a
+    canonical step 8 bundle against its plan + candidates and proves the patch's semantics
+    with an INDEPENDENT host Git in a hermetic throwaway repo, then publishes a
+    byte-deterministic gate-result.json. No model, no o7, no analyzer, no target tests; the
+    real checkout / index / config are never touched. There is deliberately no `--git`
+    override — evidence of an INDEPENDENT apply cannot come from a caller-supplied stand-in."""
+    from ownlang.fix_gate import GateError, run_gate
+
+    flags = {"--bundle", "--plan", "--candidates", "--root", "--out"}
+    parsed = _own_fix_parse(rest, flags, set())
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    if positional or not all(opts.get(k) for k in
+                             ("--bundle", "--plan", "--candidates", "--out")):
+        print("usage: own-fix subscriptions gate --bundle <step8-bundle> "
+              "--plan <validated-plan.json> --candidates <candidates.json> "
+              "--root <pristine-source-root> --out <gate-evidence-dir>", file=sys.stderr)
+        return 2
+    try:
+        published = run_gate(opts["--bundle"], opts["--plan"], opts["--candidates"],
+                             opts.get("--root") or ".", opts["--out"])
+    except GateError as exc:
+        print(f"own-fix: refuse: {exc.category}: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # fail closed: any surprise is a refusal, not a traceback
+        print(f"own-fix: refuse: INFRASTRUCTURE: internal error "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote gate-result.json -> {published}")
+    return 0
+
+
 def cmd_own_fix(rest: list[str]) -> int:
     """`own-fix subscriptions {candidates|render|validate-plan|apply} ...`."""
     if len(rest) < 2 or rest[0] != "subscriptions":
@@ -612,8 +646,10 @@ def cmd_own_fix(rest: list[str]) -> int:
         return _cmd_validate_plan(args)
     if verb == "apply":
         return _cmd_apply(args)
+    if verb == "gate":
+        return _cmd_gate(args)
     print(f"own-fix: unknown subcommand {verb!r} "
-          "(candidates | render | validate-plan | apply)", file=sys.stderr)
+          "(candidates | render | validate-plan | apply | gate)", file=sys.stderr)
     return 2
 
 
