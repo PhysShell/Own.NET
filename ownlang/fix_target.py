@@ -22,10 +22,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
 import tempfile
+import threading
 from typing import Any, cast
 
 from ownlang.fix_delta import (
@@ -121,6 +123,42 @@ def load_authority(plan_bytes: bytes, candidates_bytes: bytes) -> tuple[Any, Any
     return auth, plan, candidates
 
 
+_DELTA_TOP_KEYS = frozenset({
+    "schema", "operation", "status", "analysis_scope", "input_hashes", "gate_binding",
+    "toolchain_fingerprint", "reference_closure", "target_api", "expected", "baseline",
+    "postimage", "delta", "semantic_idempotence", "checks",
+})
+_DELTA_IH_KEYS = ("input_bundle_sha256", "validated_plan_sha256", "candidates_sha256",
+                  "apply_manifest_sha256", "patch_sha256", "pre_sha256", "post_sha256")
+_DELTA_RID_KEYS = ("framework_name", "tfm", "requested_framework_version",
+                   "selected_framework_version", "runtime_manifest_sha256")
+
+
+def _bind_delta_shapes(d: dict[str, Any], cat: str) -> None:
+    """Validate the exact frozen shapes of the Step 10 delta fields Step 11 consumes, so a
+    malformed/missing field is DELTA_BINDING rather than a KeyError/INFRASTRUCTURE (H4)."""
+    ih = d["input_hashes"]
+    if not isinstance(ih, dict) or not all(isinstance(ih.get(k), str) for k in _DELTA_IH_KEYS):
+        raise TargetError(cat, "delta-result.json input_hashes shape is wrong")
+    scope = d["analysis_scope"]
+    if not isinstance(scope, dict) or not isinstance(scope.get("source_file"), str) \
+            or not isinstance(scope.get("target_file_identity"), str):
+        raise TargetError(cat, "delta-result.json analysis_scope shape is wrong")
+    tfp = d["toolchain_fingerprint"]
+    rid = tfp.get("resolved_runtime_identity") if isinstance(tfp, dict) else None
+    if not isinstance(rid, dict) or not all(isinstance(rid.get(k), str) for k in _DELTA_RID_KEYS):
+        raise TargetError(cat, "delta-result.json resolved_runtime_identity shape is wrong")
+    tapi = d["target_api"]
+    if not isinstance(tapi, dict) or not isinstance(tapi.get("subscribe"), str):
+        raise TargetError(cat, "delta-result.json target_api shape is wrong")
+    exp = d["expected"]
+    if not isinstance(exp, dict) or not isinstance(exp.get("convert_acquire_ids"), list) \
+            or not isinstance(exp.get("manual_review_ids"), list):
+        raise TargetError(cat, "delta-result.json expected shape is wrong")
+    if not isinstance(d["reference_closure"], list):
+        raise TargetError(cat, "delta-result.json reference_closure shape is wrong")
+
+
 def bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes,
                candidates_bytes: bytes) -> dict[str, Any]:
     """Bind the Step 10 delta-result.json as the upstream authority (canonical bytes, exact
@@ -134,6 +172,9 @@ def bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes,
         raise TargetError(cat, f"delta-result.json is not valid JSON ({exc})") from exc
     if _canonical_bytes(d) != delta_bytes:
         raise TargetError(cat, "delta-result.json is not canonical bytes")
+    if not isinstance(d, dict) or set(d) != _DELTA_TOP_KEYS:
+        raise TargetError(cat, "delta-result.json has unknown or missing top-level keys")
+    _bind_delta_shapes(d, cat)
     if d.get("schema") != 1 or d.get("operation") != "verify-subscription-analyzer-delta" \
             or d.get("status") != "pass":
         raise TargetError(cat, "delta-result.json schema/operation/status is wrong")
@@ -268,7 +309,6 @@ def resolve_probe_runtime(dll_dst: str, dotnet_host: str,
 def _peel_handler(handler: str) -> str:
     """The frozen Step 8 handler peel + whitespace normalization, mirrored for bind-params:
     `new H(M)` / `new(M)` -> M, then collapse whitespace."""
-    import re
     s = handler.strip()
     while True:
         m = re.fullmatch(r"new\s+[^\s(]+\s*\(\s*(.*)\s*\)", s) or re.fullmatch(
@@ -303,9 +343,63 @@ _BIND_EXIT = {11: CALLSITE_BINDING, 12: WRAPPER_BINDING, 13: TOOLCHAIN_BINDING,
               14: WRAPPER_RUNTIME_UNSUPPORTED}
 
 
+def _run_child(argv: list[str], cwd: str, env: dict[str, str],
+               timeout: int) -> tuple[int, bytes, bytes, str | None]:
+    """One shared bounded runner for the bind and probe children (H4). It enforces the fixed
+    timeout, caps each of stdout/stderr at _OUT_LIMIT bytes WHILE the child runs, kills the DIRECT
+    child on timeout or overflow (no descendant-containment claim), and returns bounded diagnostics.
+    Returns (returncode, stdout, stderr, reason) where reason is None on a clean exit, else
+    'timeout' / 'stdout_overflow' / 'stderr_overflow'."""
+    proc = subprocess.Popen(argv, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    bufs = {"stdout": bytearray(), "stderr": bytearray()}
+    over: dict[str, str | None] = {"which": None}
+    lock = threading.Lock()
+
+    def pump(name: str, pipe: Any) -> None:
+        try:
+            while True:
+                chunk = pipe.read(4096)
+                if not chunk:
+                    return
+                with lock:
+                    buf = bufs[name]
+                    room = _OUT_LIMIT - len(buf)
+                    if room > 0:
+                        buf.extend(chunk[:room])
+                    if len(chunk) > room:
+                        over["which"] = over["which"] or name
+                        try:
+                            proc.kill()
+                        except OSError:
+                            pass
+                        return
+        except (OSError, ValueError):
+            return
+
+    threads = [threading.Thread(target=pump, args=(n, p), daemon=True)
+               for n, p in (("stdout", proc.stdout), ("stderr", proc.stderr))]
+    for t in threads:
+        t.start()
+    reason: str | None = None
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        reason = "timeout"
+        try:
+            proc.kill()
+        except OSError:
+            pass
+        proc.wait()
+    for t in threads:
+        t.join(2)
+    if reason is None and over["which"]:
+        reason = f"{over['which']}_overflow"
+    return proc.returncode, bytes(bufs["stdout"]), bytes(bufs["stderr"]), reason
+
+
 def run_bind(work: str, dotnet_host: str, probe_dll: str, selected_ver: str, rel: str,
-             preimage: str, postimage: str, slots_dir: str, target: str,
-             selected_class: str, bind_params: dict[str, Any]) -> dict[str, Any]:
+             preimage: str, postimage: str, slots_dir: str, target: str, selected_class: str,
+             bind_params: dict[str, Any], convert_ids: list[str]) -> dict[str, Any]:
     core = os.path.join(work, "bind")
     os.makedirs(core, exist_ok=True)
     pre_path = os.path.join(core, "pre.cs")
@@ -322,22 +416,90 @@ def run_bind(work: str, dotnet_host: str, probe_dll: str, selected_ver: str, rel
             probe_dll, "bind", "--preimage", pre_path, "--postimage", post_path,
             "--slots-dir", slots_dir, "--target", target, "--selected-class", selected_class,
             "--source-file", rel, "--bind-params", params_path, "--out", out_path]
-    proc = subprocess.run(argv, cwd=core, env=_probe_env(work, core),
-                          capture_output=True, text=True, check=False)
-    if proc.returncode in _BIND_EXIT:
-        raise TargetError(_BIND_EXIT[proc.returncode], f"bind: {proc.stderr.strip()[:300]}")
-    if proc.returncode != 0:
-        raise TargetError(INFRASTRUCTURE, f"bind failed (rc={proc.returncode}): "
-                                          f"{proc.stderr.strip()[:300]}")
+    rc, _out, err, reason = _run_child(argv, core, _probe_env(work, core), _CHILD_TIMEOUT_SECONDS)
+    if reason is not None:
+        raise TargetError(INFRASTRUCTURE, f"bind {reason}")
+    err_text = err.decode("utf-8", "replace").strip()[:300]
+    if rc in _BIND_EXIT:
+        raise TargetError(_BIND_EXIT[rc], f"bind: {err_text}")
+    if rc != 0:
+        raise TargetError(INFRASTRUCTURE, f"bind failed (rc={rc}): {err_text}")
     try:
         with open(out_path, "rb") as fh:
             raw = fh.read()
-        binding = json.loads(raw)
-    except (OSError, ValueError) as exc:
+    except OSError as exc:
         raise TargetError(INFRASTRUCTURE, f"binding-result.json unreadable ({exc})") from exc
+    if len(raw) > _OUT_LIMIT:
+        raise TargetError(INFRASTRUCTURE, "binding-result.json too large")
+    try:
+        binding = json.loads(raw)
+    except ValueError as exc:
+        raise TargetError(INFRASTRUCTURE, f"binding-result.json is not valid JSON ({exc})") from exc
     if _canonical_bytes(binding) != raw:
         raise TargetError(INFRASTRUCTURE, "binding-result.json is not canonical bytes")
+    _validate_binding_result(binding, convert_ids)
     return cast("dict[str, Any]", binding)
+
+
+_BINDING_KEYS = ("version", "operation", "converted_callsites", "derived_wrapper_ordinal",
+                 "resolved_wrapper", "callsite_binding", "callsites")
+_BINDING_RW_KEYS = ("assembly_simple_name", "module_mvid", "metadata_token", "resolved_signature")
+_BINDING_CB_KEYS = ("all_callsites_same_symbol", "target_is_source_defined")
+_BINDING_CS_KEYS = ("finding_id", "preimage_span", "postimage_span", "assembly_simple_name",
+                    "module_mvid", "metadata_token", "resolved_signature")
+
+
+def _is_int(x: Any) -> bool:
+    return isinstance(x, int) and not isinstance(x, bool)
+
+
+def _validate_binding_result(obj: Any, convert_ids: list[str]) -> None:
+    """Strict canonical binding-result.json validation (H4). A malformed shape/type is
+    INFRASTRUCTURE; a well-formed but semantically incomplete / non-bijective binding is
+    CALLSITE_BINDING."""
+    inf = INFRASTRUCTURE
+    if not isinstance(obj, dict) or set(obj) != set(_BINDING_KEYS):
+        raise TargetError(inf, "binding-result.json is not the exact schema")
+    if obj["version"] != 1 or obj["operation"] != "weak-target-bind":
+        raise TargetError(inf, "binding-result.json version/operation wrong")
+    if not _is_int(obj["converted_callsites"]):
+        raise TargetError(inf, "converted_callsites must be an int")
+    if not _is_int(obj["derived_wrapper_ordinal"]) or obj["derived_wrapper_ordinal"] < 0:
+        raise TargetError(inf, "derived_wrapper_ordinal must be a non-negative int")
+    rw = obj["resolved_wrapper"]
+    if not isinstance(rw, dict) or set(rw) != set(_BINDING_RW_KEYS) \
+            or not all(isinstance(rw[k], str) for k in _BINDING_RW_KEYS):
+        raise TargetError(inf, "resolved_wrapper is not the exact schema")
+    cb = obj["callsite_binding"]
+    if not isinstance(cb, dict) or set(cb) != set(_BINDING_CB_KEYS) \
+            or not all(isinstance(cb[k], bool) for k in _BINDING_CB_KEYS):
+        raise TargetError(inf, "callsite_binding is not the exact schema")
+    cs = obj["callsites"]
+    if not isinstance(cs, list):
+        raise TargetError(inf, "callsites must be a list")
+    fids, spans = [], []
+    for c in cs:
+        if not isinstance(c, dict) or set(c) != set(_BINDING_CS_KEYS):
+            raise TargetError(inf, "a callsite is not the exact schema")
+        if not isinstance(c["finding_id"], str):
+            raise TargetError(inf, "callsite finding_id must be a string")
+        for sk in ("preimage_span", "postimage_span"):
+            sp = c[sk]
+            if not isinstance(sp, list) or len(sp) != 2 \
+                    or not all(_is_int(v) and v >= 0 for v in sp):
+                raise TargetError(inf, f"callsite {sk} must be two non-negative ints")
+        if any(c[k] != rw[k] for k in _BINDING_RW_KEYS):
+            raise TargetError(inf, "a callsite identity does not equal resolved_wrapper")
+        fids.append(c["finding_id"])
+        spans.append((c["postimage_span"][0], c["postimage_span"][1]))
+    if fids != sorted(fids):
+        raise TargetError(inf, "callsites are not sorted by finding_id")
+    want = set(convert_ids)
+    if obj["converted_callsites"] != len(want) or len(cs) != len(want) \
+            or set(fids) != want or len(set(fids)) != len(fids):
+        raise TargetError(CALLSITE_BINDING, "callsites are not a bijection onto the converted ids")
+    if len(set(spans)) != len(spans):
+        raise TargetError(CALLSITE_BINDING, "two callsites share a postimage span")
 
 
 def _probe_env(work: str, cwd_dir: str) -> dict[str, str]:
@@ -377,29 +539,49 @@ def run_probe_attempt(work: str, dotnet_host: str, probe_dll: str, selected_ver:
             probe_dll, "probe", "--wrapper-ordinal", str(wrapper_ordinal),
             "--slots-dir", slots_dir, "--runtime-dir", runtime_dir, "--attempt", str(attempt),
             "--target", target, "--out", out_path]
-    try:
-        proc = subprocess.run(argv, cwd=os.path.join(work, "probe"), env=_probe_env(work, adir),
-                              capture_output=True, timeout=_CHILD_TIMEOUT_SECONDS, check=False)
-    except subprocess.TimeoutExpired:
-        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} timed out") from None
-    if len(proc.stdout) > _OUT_LIMIT or len(proc.stderr) > _OUT_LIMIT:
-        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} output overflow")
-    if proc.returncode == 10:
+    rc, _out, _err, reason = _run_child(argv, os.path.join(work, "probe"),
+                                        _probe_env(work, adir), _CHILD_TIMEOUT_SECONDS)
+    if reason is not None:
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} {reason}")
+    if rc not in (0, 10):
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} rc={rc}")
+    obj = _read_probe_json(out_path, attempt)
+    if rc == 10:
+        _validate_unsupported_result(obj, attempt)  # exit 10 needs the exact unsupported schema
         return 10, None
-    if proc.returncode != 0:
-        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} rc={proc.returncode}")
+    _validate_probe_result(obj, attempt)
+    return 0, obj
+
+
+def _read_probe_json(out_path: str, attempt: int) -> Any:
     try:
         with open(out_path, "rb") as fh:
             raw = fh.read()
-        if len(raw) > _OUT_LIMIT:
-            raise TargetError(INFRASTRUCTURE, "probe-result.json too large")
+    except OSError as exc:
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} result unreadable ({exc})") \
+            from exc
+    if len(raw) > _OUT_LIMIT:
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} result too large")
+    try:
         obj = json.loads(raw)
-    except (OSError, ValueError) as exc:
-        raise TargetError(INFRASTRUCTURE, f"probe-result.json unreadable ({exc})") from exc
+    except ValueError as exc:
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} result not JSON ({exc})") \
+            from exc
     if _canonical_bytes(obj) != raw:
-        raise TargetError(INFRASTRUCTURE, "probe-result.json is not canonical bytes")
-    _validate_probe_result(obj, attempt)
-    return 0, obj
+        raise TargetError(INFRASTRUCTURE, f"probe attempt {attempt} result not canonical")
+    return obj
+
+
+_UNSUPPORTED_KEYS = ("version", "operation", "attempt", "runtime_unsupported", "reason")
+
+
+def _validate_unsupported_result(obj: Any, attempt: int) -> None:
+    if not isinstance(obj, dict) or set(obj) != set(_UNSUPPORTED_KEYS):
+        raise TargetError(INFRASTRUCTURE, "runtime-unsupported result is not the exact schema")
+    if obj["version"] != 1 or obj["operation"] != "weak-target-probe" or obj["attempt"] != attempt:
+        raise TargetError(INFRASTRUCTURE, "runtime-unsupported result version/operation/attempt")
+    if obj["runtime_unsupported"] is not True or not isinstance(obj["reason"], str):
+        raise TargetError(INFRASTRUCTURE, "runtime-unsupported result flag/reason wrong")
 
 
 def _validate_probe_result(obj: Any, attempt: int) -> None:
@@ -412,11 +594,24 @@ def _validate_probe_result(obj: Any, attempt: int) -> None:
               "threw_on_post_collection_raise"):
         if not isinstance(obj[k], bool):
             raise TargetError(INFRASTRUCTURE, f"probe-result.{k} must be a boolean")
-    if not isinstance(obj["delivered_count"], int) or isinstance(obj["delivered_count"], bool):
+    if not _is_int(obj["delivered_count"]):
         raise TargetError(INFRASTRUCTURE, "probe-result.delivered_count must be an int")
     rw = obj["resolved_wrapper"]
     if not isinstance(rw, dict) or set(rw) != set(_RESOLVED_KEYS):
         raise TargetError(INFRASTRUCTURE, "probe-result.resolved_wrapper is not the exact schema")
+    if not _is_int(rw["ordinal"]) or rw["ordinal"] < 0:
+        raise TargetError(INFRASTRUCTURE, "resolved_wrapper.ordinal must be a non-negative int")
+    for k in ("slot_sha256", "assembly_simple_name", "module_mvid", "metadata_token",
+              "resolved_signature"):
+        if not isinstance(rw[k], str):
+            raise TargetError(INFRASTRUCTURE, f"resolved_wrapper.{k} must be a string")
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", rw["slot_sha256"]):
+        raise TargetError(INFRASTRUCTURE, "resolved_wrapper.slot_sha256 is not a lowercase sha256")
+    if not re.fullmatch(r"0x[0-9a-f]{8}", rw["metadata_token"]):
+        raise TargetError(INFRASTRUCTURE, "resolved_wrapper.metadata_token is malformed")
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                        rw["module_mvid"]):
+        raise TargetError(INFRASTRUCTURE, "resolved_wrapper.module_mvid is not a GUID")
 
 
 def _attempt_verdict(p: dict[str, Any]) -> str:
@@ -739,9 +934,7 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
                          dotnet_host, dotnet_host_sha)  # before bind
         binding = run_bind(work, dotnet_host, probe_dll_dst, selected_ver, rel,
                            bundle_info["preimage"], bundle_info["postimage"], slots_root,
-                           target, class_fqn, bind_params)
-        if binding["converted_callsites"] != len(convert_ids):
-            raise TargetError(CALLSITE_BINDING, "bound callsite count != converted candidates")
+                           target, class_fqn, bind_params, convert_ids)
         if not (0 <= wrapper_ordinal < len(slot_evidence)):
             raise TargetError(INPUT_LAYOUT, "--wrapper-ordinal is out of range")
         if binding["derived_wrapper_ordinal"] != wrapper_ordinal:
