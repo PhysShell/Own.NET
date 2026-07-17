@@ -478,6 +478,50 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
     check(_raises(fd.GATE_BINDING, bg, json.dumps(good, indent=2).encode("utf-8") + b"\n"),
           "gate: non-canonical bytes -> GATE_BINDING")
 
+    # --- slice 6: reference-closure snapshot + evidence assembly + bundle layout
+    with tempfile.TemporaryDirectory() as tmp:
+        work = os.path.join(tmp, "w")
+        os.makedirs(work)
+        r0, r1 = os.path.join(tmp, "r0"), os.path.join(tmp, "r1")
+        os.makedirs(os.path.join(r0, "sub"))
+        os.makedirs(r1)
+        for p, data in ((os.path.join(r0, "B.dll"), b"B0"),
+                        (os.path.join(r0, "sub", "A.dll"), b"A0"),
+                        (os.path.join(r0, "note.txt"), b"skip"),
+                        (os.path.join(r1, "C.dll"), b"C1")):
+            with open(p, "wb") as fh:
+                fh.write(data)
+        slots, ev = fd.snapshot_reference_closure(work, [r0, r1])
+        check([e["relative_path"] for e in ev] == ["B.dll", "sub/A.dll", "C.dll"],
+              "ref closure: caller-dir then byte-order")
+        check([e["source_dir_ordinal"] for e in ev] == [0, 0, 1], "ref closure: dir ordinals")
+        check(all(len(os.listdir(s)) == 1 for s in slots), "ref closure: one dll per slot")
+        check(os.listdir(slots[1]) == ["A.dll"], "ref closure: original basename preserved")
+
+    classified = {"baseline": {"subscription_own001_ids": [], "all_own001": [], "own050": []},
+                  "postimage": {"subscription_own001_ids": [], "all_own001": [], "own050": []},
+                  "delta": {"removed_all_own001": []},
+                  "semantic_idempotence": {"converted_ids_still_actionable": [], "pass": True}}
+    ev = fd.build_evidence("Own/X.cs", "N.X", 2, {"a": 1}, {"b": 2}, {"c": 3}, [], "T",
+                           {"convert_acquire_ids": [], "manual_review_ids": []}, classified)
+    check(set(ev["checks"]) == set(fd._CHECK_NAMES) and len(fd._CHECK_NAMES) == 17,
+          "evidence: exactly seventeen check names")
+    check(all(v == "pass" for v in ev["checks"].values()), "evidence: every check passes")
+    check(ev["schema"] == 1 and ev["operation"] == "verify-subscription-analyzer-delta",
+          "evidence: schema + operation")
+    check(ev["analysis_scope"]["closure_kind"] == "single-file+refdirs",
+          "evidence: closure_kind with ref dirs")
+    canon = fd.canonical_evidence(ev)
+    check(canon.endswith(b"\n") and b'"schema":1' in canon, "evidence: canonical bytes")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        b = os.path.join(tmp, "bundle")
+        os.makedirs(b)
+        with open(os.path.join(b, "change.patch"), "wb") as fh:
+            fh.write(b"")
+        check(_raises(fd.INPUT_LAYOUT, fd._require_bundle_layout, b),
+              "bundle layout incomplete -> INPUT_LAYOUT")
+
     # --- slices 3-5: the real fresh core subprocess (no dotnet) ---------------
     fchecks, ffails = _fixture_core_fails()
     ok += fchecks - len(ffails)

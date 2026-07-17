@@ -34,6 +34,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 from collections import Counter
 from typing import Any
 
@@ -752,3 +753,330 @@ def check_target_identity(core: dict[str, Any], rel: str, cat: str) -> None:
     for e in core["fix_eligible_subscriptions"]:
         if e["record"]["file"] != rel or e["bridge_key"]["file"] != rel:
             raise DeltaError(cat, f"candidate attributed to a file != target {rel!r}")
+
+
+# --- the extractor toolchain + hermetic reference/runtime snapshots (LA2/LA4/LA5) --
+
+
+def _walk_regular_files(root: str, cat: str, suffix: str | None = None) -> list[str]:
+    """Every regular file under `root` (optionally by suffix), canonical '/'-relative,
+    sorted by byte order. Rejects any symlink/reparse or non-regular entry."""
+    out: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        for d in dirnames:
+            if _is_link(os.lstat(os.path.join(dirpath, d))):
+                raise DeltaError(cat, "a symlinked subdirectory")
+        for fn in filenames:
+            if suffix is not None and not fn.lower().endswith(suffix):
+                continue
+            full = os.path.join(dirpath, fn)
+            st = os.lstat(full)
+            if _is_link(st):
+                raise DeltaError(cat, f"{fn} is a symlink / reparse point")
+            if not stat.S_ISREG(st.st_mode):
+                raise DeltaError(cat, f"{fn} is not a regular file")
+            out.append(os.path.relpath(full, root).replace(os.sep, "/"))
+    out.sort()
+    return out
+
+
+def snapshot_reference_closure(work: str,
+                               ref_dirs: list[str]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Snapshot the reference closure into ordered one-DLL-per-slot directories (LA F2):
+    caller directory order first, canonical relative path second. Returns (slot_dirs in
+    ordinal order, reference_closure evidence). First-simple-name-wins order is preserved by
+    the slot sequence; nothing about filesystem enumeration order leaks into the analyzer."""
+    refs_root = os.path.join(work, "references")
+    os.makedirs(refs_root)
+    ordered: list[tuple[int, str, bytes, str]] = []
+    for di, rd in enumerate(ref_dirs):
+        rd_abs = os.path.abspath(rd)
+        try:
+            lst = os.lstat(rd_abs)
+        except OSError as exc:
+            raise DeltaError(INPUT_LAYOUT, f"--ref-dir {rd!r}: cannot stat ({exc})") from exc
+        if _is_link(lst):
+            raise DeltaError(ANALYSIS_SCOPE, f"--ref-dir {rd!r} is a symlink / reparse point")
+        if not stat.S_ISDIR(lst.st_mode):
+            raise DeltaError(INPUT_LAYOUT, f"--ref-dir {rd!r} is not a directory")
+        for rel in _walk_regular_files(rd_abs, ANALYSIS_SCOPE, suffix=".dll"):
+            data = _snapshot(os.path.join(rd_abs, rel.replace("/", os.sep)),
+                             ANALYSIS_SCOPE, f"reference {rel}")
+            ordered.append((di, rel, data, _sha_bytes(data)))
+    slot_dirs: list[str] = []
+    evidence: list[dict[str, Any]] = []
+    for ordinal, (di, rel, data, sha) in enumerate(ordered):
+        slot = os.path.join(refs_root, f"{ordinal:06d}")
+        os.makedirs(slot)
+        with open(os.path.join(slot, rel.rsplit("/", 1)[-1]), "wb") as fh:
+            fh.write(data)
+        slot_dirs.append(slot)
+        evidence.append({"ordinal": ordinal, "source_dir_ordinal": di,
+                         "relative_path": rel, "sha256": sha})
+    return slot_dirs, evidence
+
+
+def snapshot_extractor_deployment(work: str,
+                                  extractor_dll: str) -> tuple[str, dict[str, Any]]:
+    """Snapshot the whole extractor deployment closure into WORK/toolchain and return the
+    copied DLL path + the extractor fingerprint (ordered deployment manifest). Execute the
+    COPY, never the caller's original path (TOCTOU-closed)."""
+    dll_abs = os.path.abspath(extractor_dll)
+    root = os.path.dirname(dll_abs)
+    name = os.path.basename(dll_abs)
+    if _is_link(os.lstat(root)):
+        raise DeltaError(TOOLCHAIN_BINDING, "the extractor deployment root is a link")
+    dst_root = os.path.join(work, "toolchain")
+    os.makedirs(dst_root)
+    manifest: list[dict[str, str]] = []
+    for rel in _walk_regular_files(root, TOOLCHAIN_BINDING):
+        data = _snapshot(os.path.join(root, rel.replace("/", os.sep)),
+                         TOOLCHAIN_BINDING, f"extractor {rel}")
+        dst = os.path.join(dst_root, rel.replace("/", os.sep))
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(dst, "wb") as fh:
+            fh.write(data)
+        manifest.append({"path": rel, "sha256": _sha_bytes(data)})
+    manifest.sort(key=lambda m: m["path"])
+    if name not in {m["path"] for m in manifest}:
+        raise DeltaError(TOOLCHAIN_BINDING, f"the extractor DLL {name!r} is not in its deployment")
+    fingerprint = {"extractor_deployment_manifest_sha256": _sha_bytes(_canonical_json(manifest)),
+                   "extractor_files": manifest}
+    return os.path.join(dst_root, name), fingerprint
+
+
+def _read_runtimeconfig(dll_dst: str) -> tuple[str, str, str]:
+    """(tfm, framework_name, framework_version) from the snapshotted runtimeconfig.json."""
+    base = dll_dst[:-4] if dll_dst.lower().endswith(".dll") else dll_dst
+    data = _snapshot(base + ".runtimeconfig.json", TOOLCHAIN_BINDING, "runtimeconfig.json")
+    try:
+        rc = json.loads(data)
+    except ValueError as exc:
+        raise DeltaError(TOOLCHAIN_BINDING, f"runtimeconfig.json is invalid ({exc})") from exc
+    opts = rc.get("runtimeOptions") if isinstance(rc, dict) else None
+    fw = opts.get("framework") if isinstance(opts, dict) else None
+    if not isinstance(fw, dict):
+        raise DeltaError(TOOLCHAIN_BINDING, "runtimeconfig.json has no single framework object")
+    tfm, fname, fver = opts.get("tfm"), fw.get("name"), fw.get("version")
+    if not (isinstance(tfm, str) and isinstance(fname, str) and isinstance(fver, str)):
+        raise DeltaError(TOOLCHAIN_BINDING, "runtimeconfig framework tuple is incomplete")
+    return tfm, fname, fver
+
+
+def _run_capture(argv: list[str], cat: str, what: str) -> str:
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise DeltaError(cat, f"{what}: cannot run ({exc})") from exc
+    if proc.returncode != 0:
+        raise DeltaError(cat, f"{what}: rc={proc.returncode} {proc.stderr.strip()[:200]}")
+    return proc.stdout
+
+
+def resolve_runtime(dotnet_host: str, tfm: str, fname: str,
+                    fver: str) -> tuple[dict[str, Any], str, str]:
+    """Prove the EXACT requested runtime is installed (roll-forward disabled), snapshot its
+    file manifest, and return (resolved_runtime_identity, dotnet_version, dotnet_host_sha256).
+    An unavailable / ambiguous / malformed runtime is TOOLCHAIN_BINDING (LA D4)."""
+    host_data = _snapshot(dotnet_host, TOOLCHAIN_BINDING, "dotnet host")
+    dotnet_host_sha256 = _sha_bytes(host_data)
+    dotnet_version = _run_capture([dotnet_host, "--version"], TOOLCHAIN_BINDING,
+                                  "dotnet --version").strip()
+    listing = _run_capture([dotnet_host, "--list-runtimes"], TOOLCHAIN_BINDING,
+                           "dotnet --list-runtimes")
+    matches: list[str] = []
+    for line in listing.splitlines():
+        parts = line.strip().split(" ", 2)
+        if len(parts) == 3 and parts[0] == fname and parts[1] == fver:
+            path = parts[2].strip()
+            if path.startswith("[") and path.endswith("]"):
+                path = path[1:-1]
+            matches.append(os.path.join(path, fver))
+    if len(matches) != 1:
+        raise DeltaError(TOOLCHAIN_BINDING,
+                         f"expected exactly one {fname} {fver} runtime, found {len(matches)}")
+    rt_dir = matches[0]
+    if not os.path.isdir(rt_dir):
+        raise DeltaError(TOOLCHAIN_BINDING, "the resolved runtime directory does not exist")
+    manifest: list[dict[str, str]] = []
+    for rel in _walk_regular_files(rt_dir, TOOLCHAIN_BINDING):
+        data = _snapshot(os.path.join(rt_dir, rel.replace("/", os.sep)),
+                         TOOLCHAIN_BINDING, f"runtime {rel}")
+        manifest.append({"path": rel, "sha256": _sha_bytes(data)})
+    manifest.sort(key=lambda m: m["path"])
+    identity = {"framework_name": fname, "framework_version": fver, "tfm": tfm,
+                "runtime_manifest_sha256": _sha_bytes(_canonical_json(manifest))}
+    return identity, dotnet_version, dotnet_host_sha256
+
+
+def _dotnet_env(work: str, image_dir: str) -> dict[str, str]:
+    env: dict[str, str] = {}
+    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "HOME", "LANG", "LC_ALL"):
+        if k in os.environ:
+            env[k] = os.environ[k]
+    env["DOTNET_ROLL_FORWARD"] = "Disable"
+    env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
+    env["DOTNET_NOLOGO"] = "1"
+    env["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1"
+    env["HOME"] = os.path.join(work, "home")
+    env["DOTNET_CLI_HOME"] = os.path.join(work, "home")
+    env["NUGET_PACKAGES"] = os.path.join(work, "nuget")
+    env["TMPDIR"] = image_dir
+    env["TEMP"] = image_dir
+    env["TMP"] = image_dir
+    return env
+
+
+def extract_image(work: str, dll_dst: str, dotnet_host: str, image_dir: str, rel: str,
+                  target: str, slot_dirs: list[str], cat: str) -> bytes:
+    """Run the fixed `dotnet exec <dll> extract ...` over the materialized target file and
+    return the facts.json bytes. The image workspace root is the process CWD."""
+    argv = [dotnet_host, "exec", dll_dst, "extract", rel, "--out", "facts.json",
+            "--fix-candidates", "--weak-subscribe", target]
+    for slot in slot_dirs:
+        argv += ["--ref-dir", slot]
+    os.makedirs(os.path.join(work, "home"), exist_ok=True)
+    os.makedirs(os.path.join(work, "nuget"), exist_ok=True)
+    proc = subprocess.run(argv, cwd=image_dir, env=_dotnet_env(work, image_dir),
+                          capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        raise DeltaError(cat, f"extractor failed (rc={proc.returncode}): "
+                              f"{proc.stderr.strip()[:300]}")
+    return _snapshot(os.path.join(image_dir, "facts.json"), cat, "facts.json")
+
+
+# --- evidence assembly + the full orchestration ------------------------------------
+
+
+def build_evidence(rel: str, class_fqn: str, ref_count: int, input_hashes: dict[str, Any],
+                   gate_binding: dict[str, Any], toolchain_fp: dict[str, Any],
+                   reference_closure: list[dict[str, Any]], target_subscribe: str,
+                   expected: dict[str, Any], classified: dict[str, Any]) -> dict[str, Any]:
+    """Assemble the full delta-result.json object (Section 14) — every check is 'pass' in a
+    published artifact, and the check-name set is exactly the fixed seventeen names."""
+    return {
+        "schema": 1,
+        "operation": "verify-subscription-analyzer-delta",
+        "status": "pass",
+        "analysis_scope": {
+            "source_file": rel, "selected_class": class_fqn,
+            "closure_kind": "single-file+refdirs" if ref_count else "single-file",
+            "reference_dir_count": ref_count, "target_file_identity": rel,
+        },
+        "input_hashes": input_hashes,
+        "gate_binding": gate_binding,
+        "toolchain_fingerprint": toolchain_fp,
+        "reference_closure": reference_closure,
+        "target_api": {"subscribe": target_subscribe},
+        "expected": expected,
+        "baseline": classified["baseline"],
+        "postimage": classified["postimage"],
+        "delta": classified["delta"],
+        "semantic_idempotence": classified["semantic_idempotence"],
+        "checks": {name: "pass" for name in _CHECK_NAMES},
+    }
+
+
+def _require_bundle_layout(bundle: str) -> None:
+    try:
+        names = set(os.listdir(bundle))
+    except OSError as exc:
+        raise DeltaError(INPUT_LAYOUT, f"cannot list --bundle ({exc})") from exc
+    if names != {"change.patch", "apply-manifest.json", "postimage"}:
+        raise DeltaError(INPUT_LAYOUT, f"--bundle holds {sorted(names)}, not the step 8 layout")
+
+
+def _resolve_dotnet_host() -> str:
+    host = shutil.which("dotnet")
+    if not host:
+        raise DeltaError(INFRASTRUCTURE, "no 'dotnet' host on PATH")
+    return host
+
+
+def run_verify_delta(bundle: str, plan_path: str, candidates_path: str, root: str,
+                     gate_path: str, extractor_dll: str, out: str,
+                     ref_dirs: list[str]) -> str:
+    """The full step 10 orchestration: snapshot every input, restate the authority + the
+    OWN001-only guard, bind the Step 9 evidence, snapshot the extractor + core toolchains,
+    analyze the pristine preimage and the accepted postimage in hermetic workspaces, verify
+    the delta, and publish delta-result.json atomically. Returns the published path."""
+    plan_bytes = _snapshot(plan_path, INPUT_LAYOUT, "--plan")
+    candidates_bytes = _snapshot(candidates_path, INPUT_LAYOUT, "--candidates")
+    gate_bytes = _snapshot(gate_path, INPUT_LAYOUT, "--gate")
+    auth, _plan, candidates = load_authority(plan_bytes, candidates_bytes)
+    rel = auth.rel
+    class_fqn = candidates["selection"]["allowed_types"][0]["full_name"]
+    target = auth.target_subscribe
+
+    _require_bundle_layout(bundle)
+    manifest_bytes = _snapshot(os.path.join(bundle, "apply-manifest.json"),
+                               INPUT_LAYOUT, "apply-manifest.json")
+    patch_bytes = _snapshot(os.path.join(bundle, "change.patch"), INPUT_LAYOUT, "change.patch")
+    postimage_bytes = _snapshot(os.path.join(bundle, "postimage", *rel.split("/")),
+                                INPUT_LAYOUT, "postimage")
+    preimage_bytes = _snapshot(os.path.join(root, *rel.split("/")), INPUT_LAYOUT, "preimage")
+    pre_sha, post_sha = _sha_bytes(preimage_bytes), _sha_bytes(postimage_bytes)
+
+    gate_sha = bind_gate(gate_bytes, auth, plan_bytes, manifest_bytes, patch_bytes,
+                         pre_sha, post_sha)
+    git_status = "not_applicable" if not auth.applied else "pass"
+
+    work = tempfile.mkdtemp(prefix="owen-delta-")
+    try:
+        core_dir, runner_path, runner_sha, core_fp = materialize_core(work)
+        python_exe, python_fp = resolve_python()
+        dll_dst, ext_fp = snapshot_extractor_deployment(work, extractor_dll)
+        tfm, fname, fver = _read_runtimeconfig(dll_dst)
+        dotnet_host = _resolve_dotnet_host()
+        runtime_identity, dotnet_version, dotnet_host_sha = resolve_runtime(
+            dotnet_host, tfm, fname, fver)
+        slot_dirs, ref_evidence = snapshot_reference_closure(work, ref_dirs)
+
+        def analyze(label: str, image_bytes: bytes, cat: str) -> dict[str, Any]:
+            _verify_runner(runner_path, runner_sha)
+            image_dir = os.path.join(work, label)
+            src = os.path.join(image_dir, *rel.split("/"))
+            os.makedirs(os.path.dirname(src), exist_ok=True)
+            with open(src, "wb") as fh:
+                fh.write(image_bytes)
+            facts_bytes = extract_image(work, dll_dst, dotnet_host, image_dir, rel, target,
+                                        slot_dirs, cat)
+            params = {"root": image_dir, "target_subscribe": target, "class_fqn": class_fqn}
+            core = run_core(core_dir, runner_path, python_exe, runner_sha, image_dir,
+                            facts_bytes, params, cat)
+            check_target_identity(core, rel, cat)
+            return core
+
+        base_core = analyze("baseline", preimage_bytes, BASELINE_ANALYSIS)
+        post_core = analyze("postimage", postimage_bytes, POSTIMAGE_ANALYSIS)
+        _verify_runner(runner_path, runner_sha)  # after the postimage run (LA1)
+
+        check_baseline_authority(candidates, base_core)
+        classified = classify_delta(
+            {"convert_acquire_ids": auth.applied, "manual_review_ids": auth.manual},
+            base_core, post_core)
+
+        toolchain_fp = {
+            **ext_fp,
+            "dotnet_host_sha256": dotnet_host_sha,
+            "dotnet_version": dotnet_version,
+            "resolved_runtime_identity": runtime_identity,
+            "core_analyzer": {**core_fp, **python_fp},
+        }
+        input_hashes = {
+            "input_bundle_sha256": auth.input_bundle_sha256,
+            "validated_plan_sha256": _sha_bytes(plan_bytes),
+            "apply_manifest_sha256": _sha_bytes(manifest_bytes),
+            "patch_sha256": _sha_bytes(patch_bytes),
+            "candidates_sha256": _sha_bytes(candidates_bytes),
+            "pre_sha256": pre_sha, "post_sha256": post_sha,
+        }
+        gate_binding = {"gate_result_sha256": gate_sha, "step9_operation": _STEP9_OPERATION,
+                        "step9_version": 1, "git_gates_status": git_status, "bound": True}
+        expected = {"convert_acquire_ids": sorted(auth.applied),
+                    "manual_review_ids": sorted(auth.manual)}
+        evidence = build_evidence(rel, class_fqn, len(ref_dirs), input_hashes, gate_binding,
+                                  toolchain_fp, ref_evidence, target, expected, classified)
+        return _publish_delta(out, root, canonical_evidence(evidence))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
