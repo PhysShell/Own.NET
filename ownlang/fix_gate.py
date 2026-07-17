@@ -98,12 +98,23 @@ def _canonical_bytes(obj: Any) -> bytes:
     return _canonical_json(obj) + b"\n"
 
 
+def _norm(path: str) -> str:
+    return os.path.normcase(os.path.normpath(path))
+
+
+def _same_path(a: str, b: str) -> bool:
+    """Platform-aware path equality — the SAME rule as _same_or_inside (normcase is
+    identity on POSIX, case-fold on Windows), so `C:\\R\\x` and `c:\\r\\x` compare equal on
+    Windows. A raw string `==` would give a casing-only false refusal."""
+    return _norm(a) == _norm(b)
+
+
 def _same_or_inside(parent: str, path: str) -> bool:
     """Is `path` the directory `parent` itself, or under it? Both must be physical.
     Case sensitivity is a PLATFORM property (normcase is identity on POSIX), so `C:\\Repo`
     and `c:\\repo` are one directory on Windows and two elsewhere."""
-    p = os.path.normcase(os.path.normpath(parent))
-    c = os.path.normcase(os.path.normpath(path))
+    p = _norm(parent)
+    c = _norm(path)
     if c == p:
         return True
     return c.startswith(p if p.endswith(os.sep) else p + os.sep)
@@ -572,10 +583,13 @@ def parse_step8_patch(patch: bytes, rel: str, preimage: bytes) -> None:
     i = 3
     prev_old_end = 0
     saw_hunk = False
-    while i < len(recs):
+    saw_marker = False   # FILE-level: a no-newline marker means EOF-without-newline, so no
+    while i < len(recs):  # further hunk may follow it — the marked line is the file's last.
         rec = recs[i]
         if not (rec.startswith(b"@@ -") and rec.endswith(b" @@")):
             raise GateError(PATCH_STRUCTURE, f"patch: expected a hunk header, got {rec[:40]!r}")
+        if saw_marker:
+            raise GateError(PATCH_STRUCTURE, "patch: a hunk after a no-newline-at-EOF marker")
         body = rec[len(b"@@ -"):-len(b" @@")]
         try:
             old_part, new_part = body.split(b" +", 1)
@@ -614,6 +628,7 @@ def parse_step8_patch(patch: bytes, rel: str, preimage: bytes) -> None:
                     raise GateError(PATCH_STRUCTURE, "patch: duplicate no-newline marker")
                 old_closed = old_closed or marks_old
                 new_closed = new_closed or marks_new
+                saw_marker = True
                 last_head = None
                 i += 1
                 continue
@@ -827,8 +842,11 @@ def _out_parent(out: str, root: str) -> tuple[str, str, str]:
 def _claim_workdir(parent_phys: str) -> str:
     """CLAIM an unpredictable working directory: create it here and now (owner-only on
     POSIX, as part of the mkdir), then PROVE we own it — not a link/reparse, resolving to
-    itself under a platform-aware comparison, and empty. A name that is merely checked and
-    then written into is a window; this closes it."""
+    itself under a PLATFORM-AWARE comparison, and empty. A name that is merely checked and
+    then written into is a window; this closes it. If any proof AFTER the mkdir fails, the
+    directory we just created is removed before raising — no leftover."""
+    import shutil
+
     for _ in range(8):
         path = os.path.join(parent_phys, f".owen-gate-{os.urandom(16).hex()}")
         if os.path.exists(path) or os.path.islink(path):
@@ -840,14 +858,19 @@ def _claim_workdir(parent_phys: str) -> str:
         except OSError as exc:
             raise GateError(PUBLICATION,
                             f"cannot claim a work directory ({exc.strerror or exc})") from exc
-        lst = os.lstat(path)
-        if _is_link(lst):
-            raise GateError(PUBLICATION, "the claimed work directory is a link")
-        if not stat.S_ISDIR(lst.st_mode) or os.path.realpath(path) != path \
-                or not _same_or_inside(parent_phys, os.path.realpath(path)):
-            raise GateError(PUBLICATION, "the claimed work directory does not resolve to itself")
-        if any(os.scandir(path)):
-            raise GateError(PUBLICATION, "the claimed work directory is not empty")
+        try:
+            lst = os.lstat(path)
+            if _is_link(lst):
+                raise GateError(PUBLICATION, "the claimed work directory is a link")
+            if not stat.S_ISDIR(lst.st_mode) or not _same_path(os.path.realpath(path), path) \
+                    or not _same_or_inside(parent_phys, os.path.realpath(path)):
+                raise GateError(PUBLICATION,
+                                "the claimed work directory does not resolve to itself")
+            if any(os.scandir(path)):
+                raise GateError(PUBLICATION, "the claimed work directory is not empty")
+        except BaseException:
+            shutil.rmtree(path, ignore_errors=True)
+            raise
         return path
     raise GateError(PUBLICATION, "could not claim a work directory")
 
@@ -860,7 +883,7 @@ def _publish(staging: str, out_phys: str, evidence: bytes, root_phys: str) -> No
     parent = os.path.dirname(out_phys)
     if not os.path.isdir(parent):
         raise GateError(PUBLICATION, "the out-dir parent vanished before publication")
-    if os.path.realpath(parent) != os.path.dirname(out_phys) \
+    if not _same_path(os.path.realpath(parent), os.path.dirname(out_phys)) \
             or _same_or_inside(root_phys, os.path.realpath(parent)):
         raise GateError(PUBLICATION, "the out-dir parent changed to resolve inside the root")
     if os.path.exists(out_phys) or os.path.islink(out_phys):

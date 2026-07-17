@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import sys
+import tempfile
 from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,7 +26,9 @@ from ownlang.fix_gate import (
     PATCH_STRUCTURE,
     GateError,
     _bundle_sha256,
+    _claim_workdir,
     _same_or_inside,
+    _same_path,
     parse_step8_patch,
     validate_gate_authority,
     validate_manifest_shape,
@@ -381,10 +385,16 @@ refuses(lambda: parse_step8_patch(
     small(b"@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n"
           b"\\ No newline at end of file\n+z\n"), X, PRE3),
     PATCH_STRUCTURE, "patch: a duplicate no-newline marker")
-# A marker on a line that is NOT the last of its side.
+# A marker on a line that is NOT the last of its side (within the hunk).
 refuses(lambda: parse_step8_patch(
     small(b"@@ -1,2 +1,1 @@\n-a\n\\ No newline at end of file\n-b\n+z\n"), X, PRE3),
     PATCH_STRUCTURE, "patch: marker with more of the same side after it")
+# A marker in an EARLIER hunk: the no-newline is EOF, so no later hunk may follow it. This
+# is the file-level invariant (a per-hunk reset would wrongly accept it).
+refuses(lambda: parse_step8_patch(
+    small(b"@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+x\n"
+          b"@@ -3,1 +3,1 @@\n-c\n+z\n"), X, PRE3),
+    PATCH_STRUCTURE, "patch: a second hunk after a no-newline marker")
 # A zero-length (insertion) range whose start is past the preimage.
 refuses(lambda: parse_step8_patch(small(b"@@ -99,0 +4,1 @@\n+z\n"), X, PRE3),
         PATCH_STRUCTURE, "patch: an insertion range past the preimage")
@@ -394,6 +404,35 @@ refuses(lambda: parse_step8_patch(small(b"@@ -0,1 +1,1 @@\n-a\n+z\n"), X, PRE3),
 # A valid pure insertion at the top (old range -0,0).
 parse_step8_patch(small(b"@@ -0,0 +1,1 @@\n+z\n"), X, PRE3)
 check(True, "patch: a pure insertion at the top parses")
+
+
+# --- claim cleanup + platform-aware path equality -----------------------------------
+
+check(_same_path("/a/b", "/a/b"), "same_path: identical")
+check(not _same_path("/a/b", "/a/c"), "same_path: different")
+if os.name == "nt":
+    check(_same_path("C:\\A\\B", "c:\\a\\b"), "same_path: Windows case-insensitive")
+else:
+    check(not _same_path("/a/B", "/a/b"), "same_path: POSIX case-sensitive")
+
+# A claim whose self-resolution proof fails (a symlinked parent, so realpath(path) != path)
+# must REMOVE the directory it just created — no leftover. Symlink-capable platforms only.
+_tmp = tempfile.mkdtemp()
+_real = os.path.join(_tmp, "real")
+_link = os.path.join(_tmp, "link")
+os.mkdir(_real)
+try:
+    os.symlink(_real, _link, target_is_directory=True)
+    _have_symlink = True
+except (OSError, NotImplementedError):
+    _have_symlink = False
+if _have_symlink:
+    _before = set(os.listdir(_real))
+    refuses(lambda: _claim_workdir(_link), "PUBLICATION",
+            "claim: a non-self-resolving parent is refused")
+    check(set(os.listdir(_real)) == _before,
+          "claim: a failed proof leaves no directory behind")
+shutil.rmtree(_tmp, ignore_errors=True)
 
 
 # --- containment platform rule -----------------------------------------------------
