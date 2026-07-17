@@ -1699,6 +1699,64 @@ jobs:
             || { echo 'FAIL: glue-produced plan != expected'; exit 1; }
           echo 'OK: render -> (fake o7) -> validate produces the expected validated plan'
 
+      # S2 (deterministic apply) — the Owen.CSharp.Rewriter core over the full chain:
+      # extractor --fix-candidates -> own-fix candidates -> validate_plan -> owen-rewrite.
+      # The rewriter is the LOAD-BEARING step, so its regressions assert the guarantees it
+      # must hold on its own, without assuming the Python gate ever ran: hash/root/input
+      # validation, the strict UTF-8 decoder, the target-API grammar, extractor-compatible
+      # identity normalization, transactional publication, and — throughout — that the
+      # source tree is never written to and a refusal writes nothing at all.
+      - name: S2 owen-rewrite core (guards + regressions)
+        run: bash tests/rewriter_regressions.sh "$RUNNER_TEMP/s2"
+
+      # S2 step 8 — the canonical patch bundle over the same real chain, ending in
+      # `own-fix subscriptions apply`. Asserts the three-part bundle, canonical patch
+      # headers with no temp/absolute path or timestamp, the exact byte-deterministic
+      # manifest, a `git apply` round-trip that reproduces the postimage byte for byte,
+      # the mixed-action partition, the empty-patch contract, and that a refusal leaves
+      # no output. (The transport-tampering cases are pure-function tests in
+      # tests/test_patch_bundle.py — forging a report must not need a hook in the rewriter.)
+      - name: S2 step 8 — canonical patch bundle (patch + manifest + postimage)
+        run: bash tests/patch_bundle_regressions.sh "$RUNNER_TEMP/s8"
+
+      # A stale preimage SHA is the one refusal worth pinning in the workflow itself: it is
+      # the invariant the whole hash-bound chain rests on.
+      - name: S2 owen-rewrite — a stale preimage SHA is a hard refusal
+        run: |
+          # The preimage SHA must be stale ON ITS OWN: change it in BOTH files and re-bind
+          # the bundle hash, so the envelope still matches and the binding still holds.
+          # Rewriting every sha256-looking value instead would break the hash binding, and
+          # the refusal would come from there — the right exit code for the wrong reason.
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          sys.path.insert(0, ".")
+          from ownlang.fix_plan import bundle_sha256
+
+          t = os.environ["RUNNER_TEMP"] + "/s2"
+          bundle = json.load(open(f"{t}/fc-candidates.json"))
+          plan = json.load(open(f"{t}/fc-plan.json"))
+          stale = "sha256:" + "0" * 64
+          bundle["source_files"][0]["sha256"] = stale
+          plan["source_files"][0]["sha256"] = stale
+          plan["input_bundle_sha256"] = bundle_sha256(bundle)
+          json.dump(bundle, open(f"{t}/stale-candidates.json", "w"))
+          json.dump(plan, open(f"{t}/stale-plan.json", "w"))
+          PY
+          if dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter --no-build -- \
+              --plan "$RUNNER_TEMP/s2/stale-plan.json" \
+              --candidates "$RUNNER_TEMP/s2/stale-candidates.json" \
+              --root . --out "$RUNNER_TEMP/s2/stale_out" 2>"$RUNNER_TEMP/s2/stale.err"; then
+            echo 'FAIL: a stale preimage SHA must be refused'; exit 1
+          fi
+          grep -q 'STALE SOURCE / PREIMAGE MISMATCH' "$RUNNER_TEMP/s2/stale.err" \
+            || { echo "FAIL: refused for the wrong reason: $(cat "$RUNNER_TEMP/s2/stale.err")"; exit 1; }
+          [ ! -d "$RUNNER_TEMP/s2/stale_out" ] || { echo 'FAIL: a refused run left an output dir'; exit 1; }
+          git diff --quiet -- frontend/roslyn/samples/ || { echo 'FAIL: the source tree was modified'; exit 1; }
+          echo 'OK: STALE SOURCE / PREIMAGE MISMATCH; nothing written; the source tree is untouched'
+
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
   # acquire (timer / subscribe / listener) with no cleanup return is the core's

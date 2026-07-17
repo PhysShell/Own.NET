@@ -559,11 +559,49 @@ def _cmd_validate_plan(rest: list[str]) -> int:
     return rc
 
 
+def _cmd_apply(rest: list[str]) -> int:
+    """S2 step 8: `own-fix subscriptions apply` — the canonical patch bundle. Thin
+    orchestration only: re-run the apply gate, invoke the accepted Owen.CSharp.Rewriter
+    (as an argv vector, never a shell string), verify its transport output, and publish
+    change.patch + apply-manifest.json + postimage/ as ONE atomic bundle. No model, no o7."""
+    from ownlang.fix_apply import ApplyError
+    from ownlang.fix_bundle import apply_bundle, split_rewriter_command
+
+    flags = {"--plan", "--candidates", "--root", "--out", "--rewriter"}
+    parsed = _own_fix_parse(rest, flags, set())
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    if positional or not all(opts.get(k) for k in ("--plan", "--candidates", "--out")):
+        print("usage: own-fix subscriptions apply --plan <validated-plan.json> "
+              "--candidates <candidates.json> --root <source-root> --out <artifact-dir> "
+              "[--rewriter <owen-rewrite-command>]", file=sys.stderr)
+        return 2
+    try:
+        rewriter = split_rewriter_command(opts.get("--rewriter") or "owen-rewrite")
+    except ValueError as exc:
+        print(f"own-fix: refuse: --rewriter is not a parseable command ({exc}); it is "
+              "split with POSIX shell rules, so quote a path containing spaces or "
+              "backslashes", file=sys.stderr)
+        return 2
+    if not rewriter:
+        print("own-fix: refuse: --rewriter is empty", file=sys.stderr)
+        return 2
+    try:
+        published = apply_bundle(opts["--plan"], opts["--candidates"],
+                                 opts.get("--root") or ".", opts["--out"], rewriter)
+    except ApplyError as exc:
+        print(f"own-fix: refuse: {exc}", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote change.patch + apply-manifest.json + postimage -> {published}")
+    return 0
+
+
 def cmd_own_fix(rest: list[str]) -> int:
-    """`own-fix subscriptions {candidates|render|validate-plan} ...`."""
+    """`own-fix subscriptions {candidates|render|validate-plan|apply} ...`."""
     if len(rest) < 2 or rest[0] != "subscriptions":
         print("usage: python -m ownlang own-fix subscriptions "
-              "{candidates|render|validate-plan} ...", file=sys.stderr)
+              "{candidates|render|validate-plan|apply} ...", file=sys.stderr)
         return 2
     verb, args = rest[1], rest[2:]
     if verb == "candidates":
@@ -572,8 +610,10 @@ def cmd_own_fix(rest: list[str]) -> int:
         return _cmd_render(args)
     if verb == "validate-plan":
         return _cmd_validate_plan(args)
+    if verb == "apply":
+        return _cmd_apply(args)
     print(f"own-fix: unknown subcommand {verb!r} "
-          "(candidates | render | validate-plan)", file=sys.stderr)
+          "(candidates | render | validate-plan | apply)", file=sys.stderr)
     return 2
 
 
