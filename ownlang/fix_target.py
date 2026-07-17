@@ -139,24 +139,32 @@ _DELTA_EXP_KEYS = ("convert_acquire_ids", "manual_review_ids")
 _DELTA_RC_KEYS = ("ordinal", "source_dir_ordinal", "relative_path", "sha256")
 
 
+def _is_sha(v: Any) -> bool:
+    return isinstance(v, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", v) is not None
+
+
 def _bind_delta_shapes(d: dict[str, Any], cat: str) -> None:
     """Validate the EXACT frozen shapes of the Step 10 delta fields Step 11 consumes — closed key
-    sets, so an extra/missing/wrong-typed nested field is DELTA_BINDING, never a KeyError or an
-    accidental INFRASTRUCTURE (K2). This validates Step 10's actual frozen schema; it does not
+    sets, exact value types, exact-int (a bool is not an int) for every consumed integer, the
+    `sha256:<64 hex>` form for every consumed digest, and reference-closure entries in exact ordinal
+    order with no duplicate ordinal. Any violation is DELTA_BINDING, never a KeyError or an
+    accidental INFRASTRUCTURE (K2 / L2). This validates Step 10's actual frozen schema; it does not
     modify the frozen producer."""
     ih = d["input_hashes"]
     if not isinstance(ih, dict) or set(ih) != set(_DELTA_IH_KEYS) \
-            or not all(isinstance(ih[k], str) for k in _DELTA_IH_KEYS):
+            or not all(_is_sha(ih[k]) for k in _DELTA_IH_KEYS):
         raise TargetError(cat, "delta-result.json input_hashes shape is wrong")
     scope = d["analysis_scope"]
     if not isinstance(scope, dict) or set(scope) != set(_DELTA_SCOPE_KEYS) \
-            or not isinstance(scope["source_file"], str) \
-            or not isinstance(scope["target_file_identity"], str):
+            or not all(isinstance(scope[k], str) for k in
+                       ("source_file", "selected_class", "closure_kind", "target_file_identity")) \
+            or not _is_int(scope["reference_dir_count"]) or scope["reference_dir_count"] < 0:
         raise TargetError(cat, "delta-result.json analysis_scope shape is wrong")
     tfp = d["toolchain_fingerprint"]
     rid = tfp.get("resolved_runtime_identity") if isinstance(tfp, dict) else None
     if not isinstance(rid, dict) or set(rid) != set(_DELTA_RID_KEYS) \
-            or not all(isinstance(rid[k], str) for k in _DELTA_RID_KEYS):
+            or not all(isinstance(rid[k], str) for k in _DELTA_RID_KEYS) \
+            or not _is_sha(rid["runtime_manifest_sha256"]):
         raise TargetError(cat, "delta-result.json resolved_runtime_identity shape is wrong")
     tapi = d["target_api"]
     if not isinstance(tapi, dict) or set(tapi) != set(_DELTA_TAPI_KEYS) \
@@ -164,17 +172,20 @@ def _bind_delta_shapes(d: dict[str, Any], cat: str) -> None:
         raise TargetError(cat, "delta-result.json target_api shape is wrong")
     exp = d["expected"]
     if not isinstance(exp, dict) or set(exp) != set(_DELTA_EXP_KEYS) \
-            or not isinstance(exp["convert_acquire_ids"], list) \
-            or not isinstance(exp["manual_review_ids"], list):
+            or not all(isinstance(exp[k], list) and all(isinstance(x, str) for x in exp[k])
+                       for k in _DELTA_EXP_KEYS):
         raise TargetError(cat, "delta-result.json expected shape is wrong")
     rc = d["reference_closure"]
     if not isinstance(rc, list):
         raise TargetError(cat, "delta-result.json reference_closure shape is wrong")
-    for ent in rc:
+    for i, ent in enumerate(rc):
         if not isinstance(ent, dict) or set(ent) != set(_DELTA_RC_KEYS) \
-                or not _is_int(ent["ordinal"]) or not _is_int(ent["source_dir_ordinal"]) \
-                or not isinstance(ent["relative_path"], str) or not isinstance(ent["sha256"], str):
+                or not _is_int(ent["ordinal"]) or ent["ordinal"] < 0 \
+                or not _is_int(ent["source_dir_ordinal"]) or ent["source_dir_ordinal"] < 0 \
+                or not isinstance(ent["relative_path"], str) or not _is_sha(ent["sha256"]):
             raise TargetError(cat, "delta-result.json reference_closure entry is malformed")
+        if ent["ordinal"] != i:  # exact ordinal order, no duplicate / gap / reorder
+            raise TargetError(cat, "delta-result.json reference_closure ordinal is out of order")
 
 
 def bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes,
@@ -193,7 +204,8 @@ def bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes,
     if not isinstance(d, dict) or set(d) != _DELTA_TOP_KEYS:
         raise TargetError(cat, "delta-result.json has unknown or missing top-level keys")
     _bind_delta_shapes(d, cat)
-    if d.get("schema") != 1 or d.get("operation") != "verify-subscription-analyzer-delta" \
+    if not _is_int(d["schema"]) or d["schema"] != 1 \
+            or d.get("operation") != "verify-subscription-analyzer-delta" \
             or d.get("status") != "pass":
         raise TargetError(cat, "delta-result.json schema/operation/status is wrong")
     checks = d.get("checks")
@@ -862,22 +874,16 @@ def _execution_root(protected: list[str]) -> str:
     rp = os.path.realpath(root)
     for pr in prots:
         if _same_or_inside(rp, pr):
-            _discard_root(root)
+            _remove_root_strict(root)  # cleanup failure -> PUBLICATION (chained); else ISOLATION
             raise TargetError(ISOLATION, "a protected root resolves inside the execution root")
     return root
 
 
-def _discard_root(work: str) -> None:
-    """Best-effort cleanup on the FAILURE path (never masks the original refusal)."""
-    try:
-        shutil.rmtree(work)
-    except OSError:
-        pass
-
-
-def _remove_root(work: str) -> None:
-    """Strict cleanup on the SUCCESS path, before publication: a failure is PUBLICATION and the
-    out-dir stays absent (G5)."""
+def _remove_root_strict(work: str) -> None:
+    """The ONLY execution-root removal (L3) — used by the success path, the isolation-after-creation
+    path, and the failure path. It removes EXECUTION_WORK_ROOT without swallowing OSError; a cleanup
+    failure is PUBLICATION, chained from the cleanup error, with the out-dir left absent (private
+    residue may remain, but no public partial artifact exists). No ignore_errors / except pass."""
     try:
         shutil.rmtree(work)
     except OSError as exc:
@@ -938,7 +944,7 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
             passed.add("publication")
             evidence_bytes = _canonical(
                 build_manual_only_result(input_hashes, delta_bytes, delta, target, passed))
-            _remove_root(work)
+            _remove_root_strict(work)
             work_removed = True
             return _publish_target(out, publish_protected, evidence_bytes)
 
@@ -989,12 +995,15 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
         evidence_bytes = _canonical(build_converted_result(
             input_hashes, delta_bytes, delta, target, slot_evidence, wrapper_ordinal, binding,
             probe_fp, dotnet_host_sha, dotnet_version, runtime_identity, attempts, passed))
-        _remove_root(work)  # G5: remove EXECUTION_WORK_ROOT before publication
+        _remove_root_strict(work)  # G5: remove EXECUTION_WORK_ROOT before publication
         work_removed = True
         # one atomic rename; NO filesystem operation runs after it succeeds.
         return _publish_target(out, publish_protected, evidence_bytes)
     except BaseException:
+        # L3: on any pre-publication failure, remove the work root strictly. If cleanup succeeds the
+        # original controlled refusal is re-raised; if cleanup FAILS, _remove_root_strict raises
+        # PUBLICATION (chained from the cleanup error) and the out-dir stays absent. No swallowing.
         if not work_removed:
-            _discard_root(work)
+            _remove_root_strict(work)
         raise
 
