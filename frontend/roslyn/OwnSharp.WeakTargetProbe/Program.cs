@@ -319,11 +319,12 @@ internal static class BindMode
     }
 
     // Symbol == null: choose the refusal category WITHOUT ever promoting a candidate to the bound
-    // symbol. With exactly one candidate wrapper slot: a wrong frozen shape is WRAPPER_BINDING; a
-    // shape that is correct by name yet still fails to bind means the wrapper's metadata/types do
-    // NOT unify with the fixed probe runtime (e.g. a net9 / .NET-Framework-only wrapper), which is
-    // WRAPPER_RUNTIME_UNSUPPORTED (never TARGET_RETAINS). Anything else — ambiguous, multiple, or
-    // otherwise unresolved — is CALLSITE_BINDING.
+    // symbol. With exactly one candidate wrapper slot: a wrong frozen shape is WRAPPER_BINDING;
+    // WRAPPER_RUNTIME_UNSUPPORTED is returned ONLY when a POSITIVE predicate establishes the wrapper
+    // targets a core framework NEWER than the selected probe runtime (metadata/runtime
+    // incompatibility) — never inferred from "one candidate + correct textual shape". Every other
+    // unresolved callsite (argument conversion failure, method-group ambiguity, multiple / ambiguous
+    // assemblies, source-compilation failure) is CALLSITE_BINDING.
     private static int RefuseUnbound(string fid, SymbolInfo si, CSharpCompilation comp,
         Dictionary<string, References.Slot> slotByPath, string target)
     {
@@ -338,12 +339,33 @@ internal static class BindMode
         {
             var path = (comp.GetMetadataReference(asms[0]) as PortableExecutableReference)?.FilePath ?? "";
             if (slotByPath.ContainsKey(path))
-                return TargetBinding.Validate(asms[0], target) is not null
-                    ? Refuse("WRAPPER_BINDING", $"{fid}: the wrapper target has the wrong frozen shape")
-                    : Refuse("WRAPPER_RUNTIME_UNSUPPORTED",
-                             $"{fid}: the wrapper target does not unify with the selected probe runtime");
+            {
+                if (TargetBinding.Validate(asms[0], target) is not null)
+                    return Refuse("WRAPPER_BINDING", $"{fid}: the wrapper target has the wrong frozen shape");
+                if (RuntimeIncompatible(comp, asms[0]))
+                    return Refuse("WRAPPER_RUNTIME_UNSUPPORTED",
+                        $"{fid}: the wrapper targets a core framework newer than the selected probe runtime");
+            }
         }
         return Refuse("CALLSITE_BINDING", $"{fid}: the invocation does not bind to a single wrapper symbol");
+    }
+
+    // The POSITIVE runtime-incompatibility predicate (K3): the wrapper assembly references a core
+    // framework assembly at a version STRICTLY NEWER than the one the selected probe runtime provides
+    // to this compilation. This is a deterministic metadata comparison, not an inference from a
+    // failed overload — a shape-correct wrapper that merely fails to bind for another reason is NOT
+    // runtime-incompatible.
+    private static readonly HashSet<string> CoreFramework = new(StringComparer.OrdinalIgnoreCase)
+        { "System.Runtime", "System.Private.CoreLib", "netstandard", "mscorlib" };
+
+    private static bool RuntimeIncompatible(CSharpCompilation comp, IAssemblySymbol wrapperAsm)
+    {
+        var compCore = comp.GetSpecialType(SpecialType.System_Object).ContainingAssembly.Identity.Version;
+        foreach (var mod in wrapperAsm.Modules)
+            foreach (var r in mod.ReferencedAssemblies)
+                if (CoreFramework.Contains(r.Name) && r.Version > compCore)
+                    return true;
+        return false;
     }
 
     private static int Refuse(string category, string message)
