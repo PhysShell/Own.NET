@@ -207,7 +207,12 @@ jobs:
           python-version: "3.13"
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
-          dotnet-version: "8.0.x"
+          # 8.0.x runs the pinned net8.0 extractor/probe; 9.0.x is only needed to BUILD the
+          # deliberately-incompatible net9 wrapper fixture in the step 11 Tier B suite (which
+          # then proves it is refused WRAPPER_RUNTIME_UNSUPPORTED under the fixed net8 probe).
+          dotnet-version: |
+            8.0.x
+            9.0.x
       - name: Extract OwnIR facts from sample C#
         run: |
           dotnet run --project frontend/roslyn/OwnSharp.Extractor -- \
@@ -260,6 +265,10 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_verify_delta_tierb.py
+      - name: S2 step 11 verified-target-wrapper gate (Tier B, full public CLI)
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_verify_target_tierb.py
       - name: Check facts through the core
         run: |
           out=$(python -m ownlang ownir "$RUNNER_TEMP/facts.json" || true)
