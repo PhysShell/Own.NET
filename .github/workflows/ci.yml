@@ -1701,45 +1701,29 @@ jobs:
 
       # S2 (deterministic apply) — the Owen.CSharp.Rewriter core over the full chain:
       # extractor --fix-candidates -> own-fix candidates -> validate_plan -> owen-rewrite.
-      # Asserts the postimage carries the converted wrappers, the SOURCE TREE is never
-      # touched, and a stale preimage SHA is a hard refusal that writes nothing.
-      - name: S2 owen-rewrite core (postimage + guards)
+      # The rewriter is the LOAD-BEARING step, so its regressions assert the guarantees it
+      # must hold on its own, without assuming the Python gate ever ran: hash/root/input
+      # validation, the strict UTF-8 decoder, the target-API grammar, extractor-compatible
+      # identity normalization, transactional publication, and — throughout — that the
+      # source tree is never written to and a refusal writes nothing at all.
+      - name: S2 owen-rewrite core (guards + regressions)
+        run: bash tests/rewriter_regressions.sh "$RUNNER_TEMP/s2"
+
+      # A stale preimage SHA is the one refusal worth pinning in the workflow itself: it is
+      # the invariant the whole hash-bound chain rests on.
+      - name: S2 owen-rewrite — a stale preimage SHA is a hard refusal
         run: |
-          cls=Own.Samples.FixCandidates.TwoOnOneLine
-          sample=frontend/roslyn/samples/FixCandidatesSample.cs
-          printf '[weak-subscription]\nsubscribe = ["WeakEvents.AddPropertyChanged"]\n' > "$RUNNER_TEMP/s2.toml"
-          dotnet run --project frontend/roslyn/OwnSharp.Extractor -- "$sample" --fix-candidates \
-            -o "$RUNNER_TEMP/s2_facts.json"
-          python -m ownlang own-fix subscriptions candidates "$RUNNER_TEMP/s2_facts.json" \
-            --config "$RUNNER_TEMP/s2.toml" --class "$cls" \
-            --output "$RUNNER_TEMP/s2_candidates.json" --root .
-          python -c "
-          import json, sys
-          sys.path.insert(0, '.')
-          from ownlang.fix_plan import validate_plan
-          c = json.load(open(sys.argv[1]))
-          d = [{'finding_id': x['finding_id'], 'action': 'convert_acquire'} for x in c['candidates']]
-          json.dump(validate_plan(c, {'version': 1, 'decisions': d}), open(sys.argv[2], 'w'))
-          " "$RUNNER_TEMP/s2_candidates.json" "$RUNNER_TEMP/s2_plan.json"
-          dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter -- \
-            --plan "$RUNNER_TEMP/s2_plan.json" --candidates "$RUNNER_TEMP/s2_candidates.json" \
-            --root . --out "$RUNNER_TEMP/s2_out"
-          post="$RUNNER_TEMP/s2_out/postimage/$sample"
-          grep -q 'WeakEvents.AddPropertyChanged(a, OnA)' "$post" \
-            && grep -q 'WeakEvents.AddPropertyChanged(b, OnB)' "$post" \
-            || { echo 'FAIL: postimage missing the converted wrappers'; exit 1; }
-          git diff --quiet -- "$sample" \
-            || { echo 'FAIL: owen-rewrite modified the source tree'; exit 1; }
-          # stale preimage SHA -> hard refusal, nothing written
           zero=$(printf '0%.0s' $(seq 1 64))
-          sed "s/sha256:[0-9a-f]\{64\}/sha256:$zero/g" "$RUNNER_TEMP/s2_plan.json" > "$RUNNER_TEMP/s2_stale.json"
-          if dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter -- \
-              --plan "$RUNNER_TEMP/s2_stale.json" --candidates "$RUNNER_TEMP/s2_candidates.json" \
-              --root . --out "$RUNNER_TEMP/s2_stale_out" 2>/dev/null; then
+          sed "s/sha256:[0-9a-f]\{64\}/sha256:$zero/g" "$RUNNER_TEMP/s2/fc-plan.json" \
+            > "$RUNNER_TEMP/s2/stale.json"
+          if dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter --no-build -- \
+              --plan "$RUNNER_TEMP/s2/stale.json" --candidates "$RUNNER_TEMP/s2/fc-candidates.json" \
+              --root . --out "$RUNNER_TEMP/s2/stale_out" 2>/dev/null; then
             echo 'FAIL: a stale preimage SHA must be refused'; exit 1
           fi
-          [ ! -d "$RUNNER_TEMP/s2_stale_out" ] || { echo 'FAIL: a refused run left an output dir'; exit 1; }
-          echo 'OK: owen-rewrite converts the acquires, leaves the source tree untouched, refuses a stale SHA'
+          [ ! -d "$RUNNER_TEMP/s2/stale_out" ] || { echo 'FAIL: a refused run left an output dir'; exit 1; }
+          git diff --quiet -- frontend/roslyn/samples/ || { echo 'FAIL: the source tree was modified'; exit 1; }
+          echo 'OK: a stale preimage SHA is refused; nothing written; the source tree is untouched'
 
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
