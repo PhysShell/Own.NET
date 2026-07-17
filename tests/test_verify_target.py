@@ -302,9 +302,190 @@ def run() -> int:
     check(ft._peel_handler("new PropertyChangedEventHandler(OnA)") == "OnA", "peel: new H(M)")
     check(ft._peel_handler("new(OnA)") == "OnA", "peel: new(M)")
 
+    _h3_isolation(check)
+    _h3_revalidation(check)
+    _h3_cleanup_and_publish(check)
+
     total = ok + bad
     print(f"verify-target (Tier A): {ok}/{total} checks pass")
     return 1 if bad else 0
+
+
+def _reads(p: str) -> bytes:
+    with open(p, "rb") as fh:
+        return fh.read()
+
+
+def _h3_isolation(check) -> None:
+    """G5: EXECUTION_WORK_ROOT is created under a temp parent physically outside every protected
+    root (TMPDIR inside the source / bundle / output parent is ISOLATION)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        for name in ("src", "bundle", "outp"):
+            prot = os.path.join(tmp, name)
+            inside = os.path.join(prot, "t")
+            os.makedirs(inside)
+            orig = ft.tempfile.gettempdir
+            try:
+                ft.tempfile.gettempdir = lambda p=inside: p
+                check(_raises(ft.ISOLATION, ft._execution_root, [prot]),
+                      f"exec-root: TMPDIR inside {name} -> ISOLATION")
+            finally:
+                ft.tempfile.gettempdir = orig
+        # a temp parent outside every protected root yields a fresh, contained execution root.
+        safe, prot = os.path.join(tmp, "safe"), os.path.join(tmp, "prot")
+        os.makedirs(safe)
+        os.makedirs(prot)
+        orig = ft.tempfile.gettempdir
+        try:
+            ft.tempfile.gettempdir = lambda: safe
+            wr = ft._execution_root([prot])
+            check(os.path.isdir(wr) and ft._same_or_inside(os.path.realpath(safe), wr),
+                  "exec-root: a safe parent yields a fresh contained root")
+            ft.shutil.rmtree(wr)
+        finally:
+            ft.tempfile.gettempdir = orig
+
+
+def _h3_revalidation(check) -> None:
+    from ownlang.fix_delta import _manifest_sha, _runtime_manifest, _walk_regular_files
+
+    # --- _reval_inputs: any authoritative input changing after binding is a refusal ---
+    with tempfile.TemporaryDirectory() as tmp:
+        root, bundle, paths, delta_bytes = _manual_fixture(tmp)
+        plan_b, cand_b = _reads(paths["plan.json"]), _reads(paths["candidates.json"])
+        parts = _REL.split("/")
+        man = os.path.join(bundle, "apply-manifest.json")
+        ih = {"pre_sha256": _sha_bytes(_reads(os.path.join(root, *parts))),
+              "patch_sha256": _sha_bytes(_reads(os.path.join(bundle, "change.patch"))),
+              "apply_manifest_sha256": _sha_bytes(_reads(man)),
+              "post_sha256": _sha_bytes(_reads(os.path.join(bundle, "postimage", *parts)))}
+        args = (paths["plan.json"], paths["candidates.json"], paths["delta.json"], root, bundle,
+                _REL, plan_b, cand_b, delta_bytes, ih)
+        try:
+            ft._reval_inputs(*args)
+            check(True, "reval-inputs: no drift passes")
+        except ft.TargetError:
+            check(False, "reval-inputs: false drift")
+        drifts = [(paths["plan.json"], ft.AUTHORITY_BINDING, "plan"),
+                  (paths["candidates.json"], ft.AUTHORITY_BINDING, "candidates"),
+                  (paths["delta.json"], ft.DELTA_BINDING, "delta"),
+                  (os.path.join(root, *parts), ft.DELTA_BINDING, "source"),
+                  (os.path.join(bundle, "change.patch"), ft.DELTA_BINDING, "patch"),
+                  (os.path.join(bundle, "apply-manifest.json"), ft.DELTA_BINDING, "manifest"),
+                  (os.path.join(bundle, "postimage", *parts), ft.DELTA_BINDING, "postimage")]
+        for path, cat, label in drifts:
+            original = _reads(path)
+            with open(path, "ab") as fh:
+                fh.write(b"// drift\n")
+            check(_raises(cat, ft._reval_inputs, *args), f"reval-inputs: {label} drift -> {cat}")
+            with open(path, "wb") as fh:
+                fh.write(original)
+
+    # --- _reval_toolchain: probe deployment / slot / host / runtime drift ---
+    with tempfile.TemporaryDirectory() as tmp:
+        work = os.path.join(tmp, "work")
+        pdir = os.path.join(work, "probe")
+        os.makedirs(pdir)
+        with open(os.path.join(pdir, "probe.dll"), "wb") as fh:
+            fh.write(b"PROBE")
+        probe_fp = {"probe_deployment_manifest_sha256":
+                    _manifest_sha(pdir, _walk_regular_files(pdir, ft.TOOLCHAIN_BINDING),
+                                  ft.TOOLCHAIN_BINDING)}
+        slotd = os.path.join(work, "references", "000000")
+        os.makedirs(slotd)
+        with open(os.path.join(slotd, "W.dll"), "wb") as fh:
+            fh.write(b"WDLL")
+        slot_ev = [{"ordinal": 0, "relative_path": "W.dll", "sha256": _sha_bytes(b"WDLL")}]
+        rt = os.path.join(tmp, "rt")
+        os.makedirs(rt)
+        with open(os.path.join(rt, "System.Private.CoreLib.dll"), "wb") as fh:
+            fh.write(b"RT")
+        rid = {"selected_runtime_manifest_sha256": _runtime_manifest(rt)}
+        host = sys.executable
+        host_sha = ft._hash_resolved(host, ft.TOOLCHAIN_BINDING, "dotnet host")
+        base = (work, probe_fp, slot_ev, [slotd], rt, rid, host, host_sha)
+        try:
+            ft._reval_toolchain(*base)
+            check(True, "reval-toolchain: no drift passes")
+        except ft.TargetError:
+            check(False, "reval-toolchain: false drift")
+        with open(os.path.join(pdir, "probe.dll"), "ab") as fh:
+            fh.write(b"X")
+        check(_raises(ft.TOOLCHAIN_BINDING, ft._reval_toolchain, *base),
+              "reval-toolchain: probe deployment drift -> TOOLCHAIN_BINDING")
+        with open(os.path.join(pdir, "probe.dll"), "wb") as fh:
+            fh.write(b"PROBE")
+        with open(os.path.join(slotd, "W.dll"), "ab") as fh:
+            fh.write(b"X")
+        check(_raises(ft.REFERENCE_BINDING, ft._reval_toolchain, *base),
+              "reval-toolchain: slot drift -> REFERENCE_BINDING")
+        with open(os.path.join(slotd, "W.dll"), "wb") as fh:
+            fh.write(b"WDLL")
+        drifted_host = (work, probe_fp, slot_ev, [slotd], rt, rid, host, "sha256:" + "0" * 64)
+        check(_raises(ft.TOOLCHAIN_BINDING, ft._reval_toolchain, *drifted_host),
+              "reval-toolchain: dotnet host drift -> TOOLCHAIN_BINDING")
+        with open(os.path.join(rt, "System.Private.CoreLib.dll"), "ab") as fh:
+            fh.write(b"X")
+        check(_raises(ft.TOOLCHAIN_BINDING, ft._reval_toolchain, *base),
+              "reval-toolchain: selected runtime drift -> TOOLCHAIN_BINDING")
+
+
+def _h3_cleanup_and_publish(check) -> None:
+    # --- _remove_root: a cleanup failure is PUBLICATION ---
+    with tempfile.TemporaryDirectory() as tmp:
+        d = os.path.join(tmp, "work")
+        os.makedirs(d)
+        orig = ft.shutil.rmtree
+
+        def _boom(*_a, **_k):
+            raise OSError("locked")
+
+        try:
+            ft.shutil.rmtree = _boom
+            check(_raises(ft.PUBLICATION, ft._remove_root, d),
+                  "remove-root: cleanup failure -> PUBLICATION")
+        finally:
+            ft.shutil.rmtree = orig
+
+    # --- no filesystem operation runs after the publication rename; no private residue ---
+    with tempfile.TemporaryDirectory() as tmp:
+        root, bundle, paths, _delta = _manual_fixture(tmp)
+        outdir = os.path.join(tmp, "pub", "target")
+        os.makedirs(os.path.join(tmp, "pub"))
+        state = {"renamed": False, "after": []}
+        real_rename, real_rmtree = ft.os.rename, ft.shutil.rmtree
+        real_scandir, real_stat = ft.os.scandir, ft.os.stat
+
+        def rename_spy(a, b):
+            real_rename(a, b)
+            state["renamed"] = True
+
+        def guard(name, real):
+            def _f(*a, **k):
+                if state["renamed"]:
+                    state["after"].append(name)
+                return real(*a, **k)
+            return _f
+        try:
+            ft.os.rename = rename_spy
+            ft.shutil.rmtree = guard("rmtree", real_rmtree)
+            ft.os.scandir = guard("scandir", real_scandir)
+            ft.os.stat = guard("stat", real_stat)
+            before = {n for n in os.listdir(ft.tempfile.gettempdir())
+                      if n.startswith("owen-target-")}
+            published = ft.run_verify_target(bundle, root, paths["plan.json"],
+                                             paths["candidates.json"], paths["delta.json"], None,
+                                             outdir, [], None)
+            after = {n for n in os.listdir(ft.tempfile.gettempdir())
+                     if n.startswith("owen-target-")}
+        finally:
+            ft.os.rename, ft.shutil.rmtree = real_rename, real_rmtree
+            ft.os.scandir, ft.os.stat = real_scandir, real_stat
+        check(state["renamed"] and state["after"] == [],
+              "publish: no filesystem op after the rename")
+        check(after == before, "publish: no EXECUTION_WORK_ROOT residue after success")
+        check(os.path.isfile(os.path.join(published, "target-result.json")),
+              "publish: the artifact exists after a clean run")
 
 
 if __name__ == "__main__":
