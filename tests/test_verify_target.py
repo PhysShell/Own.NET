@@ -71,7 +71,9 @@ def _make_delta(cands_bytes: bytes, plan_bytes: bytes, auth, manifest_sha: str, 
                 pre_sha: str, post_sha: str, ref_closure: list) -> bytes:
     d = {
         "schema": 1, "operation": "verify-subscription-analyzer-delta", "status": "pass",
-        "analysis_scope": {"source_file": _REL, "target_file_identity": _REL},
+        "analysis_scope": {"source_file": _REL, "selected_class": "N.A",
+                           "closure_kind": "single-file", "reference_dir_count": 0,
+                           "target_file_identity": _REL},
         "input_hashes": {
             "input_bundle_sha256": auth.input_bundle_sha256,
             "validated_plan_sha256": _sha_bytes(plan_bytes),
@@ -308,6 +310,7 @@ def run() -> int:
     _h3_isolation(check)
     _h3_revalidation(check)
     _h3_cleanup_and_publish(check)
+    _k1_initial_vs_drift(check)
     _h4_validators(check)
     _h4_run_child(check)
     _h4_bind_delta(check)
@@ -372,13 +375,15 @@ def _h3_revalidation(check) -> None:
             check(True, "reval-inputs: no drift passes")
         except ft.TargetError:
             check(False, "reval-inputs: false drift")
+        # locked K1 categories: plan/candidates drift -> AUTHORITY_BINDING, delta -> DELTA_BINDING,
+        # source/patch/manifest/postimage drift AFTER binding -> ISOLATION.
         drifts = [(paths["plan.json"], ft.AUTHORITY_BINDING, "plan"),
                   (paths["candidates.json"], ft.AUTHORITY_BINDING, "candidates"),
                   (paths["delta.json"], ft.DELTA_BINDING, "delta"),
-                  (os.path.join(root, *parts), ft.DELTA_BINDING, "source"),
-                  (os.path.join(bundle, "change.patch"), ft.DELTA_BINDING, "patch"),
-                  (os.path.join(bundle, "apply-manifest.json"), ft.DELTA_BINDING, "manifest"),
-                  (os.path.join(bundle, "postimage", *parts), ft.DELTA_BINDING, "postimage")]
+                  (os.path.join(root, *parts), ft.ISOLATION, "source"),
+                  (os.path.join(bundle, "change.patch"), ft.ISOLATION, "patch"),
+                  (os.path.join(bundle, "apply-manifest.json"), ft.ISOLATION, "manifest"),
+                  (os.path.join(bundle, "postimage", *parts), ft.ISOLATION, "postimage")]
         for path, cat, label in drifts:
             original = _reads(path)
             with open(path, "ab") as fh:
@@ -523,6 +528,43 @@ def _probe_result(**over) -> dict:
     return r
 
 
+def _k1_initial_vs_drift(check) -> None:
+    """K1: a startup mismatch against the accepted delta is DELTA_BINDING (bind_bundle); the same
+    file changing AFTER the initial binding is ISOLATION (_reval_inputs)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root, bundle, paths, delta_bytes = _manual_fixture(tmp)
+        with open(paths["candidates.json"], encoding="utf-8") as fh:
+            cands = json.load(fh)
+        with open(paths["plan.json"], encoding="utf-8") as fh:
+            plan = json.load(fh)
+        auth = validate_gate_authority(plan, cands)
+        plan_b, cand_b = _reads(paths["plan.json"]), _reads(paths["candidates.json"])
+        delta = ft.bind_delta(delta_bytes, auth, plan_b, cand_b)
+        parts = _REL.split("/")
+        man = os.path.join(bundle, "apply-manifest.json")
+        ih = {"pre_sha256": _sha_bytes(_reads(os.path.join(root, *parts))),
+              "patch_sha256": _sha_bytes(_reads(os.path.join(bundle, "change.patch"))),
+              "apply_manifest_sha256": _sha_bytes(_reads(man)),
+              "post_sha256": _sha_bytes(_reads(os.path.join(bundle, "postimage", *parts)))}
+        args = (paths["plan.json"], paths["candidates.json"], paths["delta.json"], root, bundle,
+                _REL, plan_b, cand_b, delta_bytes, ih)
+        for path, label in ((os.path.join(root, *parts), "source"),
+                            (os.path.join(bundle, "change.patch"), "patch"),
+                            (man, "manifest"),
+                            (os.path.join(bundle, "postimage", *parts), "postimage")):
+            original = _reads(path)
+            with open(path, "ab") as fh:
+                fh.write(b"// x\n")
+            # startup: the accepted bundle no longer binds the delta -> DELTA_BINDING
+            check(_raises(ft.DELTA_BINDING, ft.bind_bundle, bundle, root, _REL, delta),
+                  f"{label}: initial hash mismatch -> DELTA_BINDING")
+            # after binding: the same drift during execution -> ISOLATION
+            check(_raises(ft.ISOLATION, ft._reval_inputs, *args),
+                  f"{label}: post-binding drift -> ISOLATION")
+            with open(path, "wb") as fh:
+                fh.write(original)
+
+
 def _h4_validators(check) -> None:
     ids = ["OWN001:sha256:" + "1" * 64, "OWN001:sha256:" + "2" * 64]
     try:
@@ -547,6 +589,10 @@ def _h4_validators(check) -> None:
     b["callsites"][0]["module_mvid"] = "different"
     check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
           "binding-result: callsite identity != resolved_wrapper -> INFRASTRUCTURE")
+    b = _binding_result(ids)
+    b["version"] = True
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
+          "binding-result: version=true (bool) -> INFRASTRUCTURE")
     # well-formed but non-bijective / duplicate span -> CALLSITE_BINDING
     check(_raises(ft.CALLSITE_BINDING, ft._validate_binding_result, _binding_result(ids), ids[:1]),
           "binding-result: not a bijection -> CALLSITE_BINDING")
@@ -577,6 +623,10 @@ def _h4_validators(check) -> None:
     bad["resolved_wrapper"]["module_mvid"] = "not-a-guid"
     check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, bad, 0),
           "probe-result: malformed mvid -> INFRASTRUCTURE")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, _probe_result(version=True), 0),
+          "probe-result: version=true (bool) -> INFRASTRUCTURE")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, _probe_result(attempt=False), 0),
+          "probe-result: attempt=false for attempt 0 -> INFRASTRUCTURE")
 
     # runtime-unsupported result schema (gate for accepting child exit 10)
     good = {"version": 1, "operation": "weak-target-probe", "attempt": 0,
@@ -593,6 +643,9 @@ def _h4_validators(check) -> None:
           "unsupported-result: flag not true -> INFRASTRUCTURE")
     check(_raises(ft.INFRASTRUCTURE, ft._validate_unsupported_result, good, 1),
           "unsupported-result: wrong attempt -> INFRASTRUCTURE")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_unsupported_result,
+                  {**good, "attempt": True}, 1),
+          "unsupported-result: attempt=true for attempt 1 -> INFRASTRUCTURE")
 
 
 def _h4_run_child(check) -> None:
@@ -641,6 +694,27 @@ def _h4_bind_delta(check) -> None:
         d["toolchain_fingerprint"]["resolved_runtime_identity"]["tfm"] = 9
         check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
               "bind_delta: wrong-typed runtime identity -> DELTA_BINDING")
+        # exact closed nested key sets: an extra key in a consumed nested object is DELTA_BINDING.
+        for pointer, label in (
+            (("input_hashes",), "input_hashes"),
+            (("target_api",), "target_api"),
+            (("toolchain_fingerprint", "resolved_runtime_identity"), "runtime-identity"),
+            (("analysis_scope",), "analysis_scope"),
+            (("expected",), "expected"),
+        ):
+            d = json.loads(delta_bytes)
+            node = d
+            for key in pointer:
+                node = node[key]
+            node["surprise"] = 1
+            check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d),
+                         auth, plan_b, cand_b),
+                  f"bind_delta: extra {label} key -> DELTA_BINDING")
+        # a malformed reference_closure entry (missing keys) is DELTA_BINDING, not a KeyError.
+        d = json.loads(delta_bytes)
+        d["reference_closure"] = [{"ordinal": 0, "relative_path": "W.dll"}]
+        check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
+              "bind_delta: malformed reference_closure entry -> DELTA_BINDING")
 
 
 if __name__ == "__main__":
