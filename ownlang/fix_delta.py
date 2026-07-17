@@ -248,8 +248,23 @@ def _validate_record(rec: Any, cat: str, where: str) -> dict[str, Any]:
     td = rec["teardown"]
     if not isinstance(td, dict) or set(td) != {"status", "candidates"}:
         raise DeltaError(cat, f"{where}.teardown is not {{status, candidates}}")
-    if td["status"] not in ("none", "exact", "ambiguous") or not isinstance(td["candidates"], list):
-        raise DeltaError(cat, f"{where}.teardown has a bad status/candidates")
+    if td["status"] not in ("none", "exact", "ambiguous"):
+        raise DeltaError(cat, f"{where}.teardown.status is unknown")
+    if not isinstance(td["candidates"], list):
+        raise DeltaError(cat, f"{where}.teardown.candidates must be a list")
+    for i, tc in enumerate(td["candidates"]):  # C2: the closed nested teardown-candidate shape
+        tctx = f"{where}.teardown.candidates[{i}]"
+        if not isinstance(tc, dict) or set(tc) != {"source", "handler", "match", "span"}:
+            raise DeltaError(cat, f"{tctx} is not {{source, handler, match, span}}")
+        for k in ("source", "handler", "match"):
+            if not isinstance(tc[k], str):
+                raise DeltaError(cat, f"{tctx}.{k} must be a string")
+        tsp = tc["span"]
+        if not isinstance(tsp, dict) or set(tsp) != set(_SPAN_KEYS):
+            raise DeltaError(cat, f"{tctx}.span is not the frozen six-key span")
+        for k in _SPAN_KEYS:
+            if not isinstance(tsp[k], int) or isinstance(tsp[k], bool):
+                raise DeltaError(cat, f"{tctx}.span.{k} must be an int")
     actions = rec["allowed_actions"]
     if not isinstance(actions, list) or not actions \
             or any(a not in _ACTIONS for a in actions) or len(set(actions)) != len(actions):
@@ -771,14 +786,18 @@ def resolve_python() -> tuple[str, dict[str, Any]]:
     }
 
 
-def _core_env(image_dir: str) -> dict[str, str]:
+def _core_env(work: str, image_dir: str) -> dict[str, str]:
     """A minimal environment for the core subprocess. `-E` ignores every PYTHON* variable;
-    only the host bits the interpreter needs to start are forwarded, and the caches / temp
-    are redirected into the image workspace."""
+    only the host bits the interpreter needs to start are forwarded. The caller's HOME is NOT
+    inherited (C1): HOME / XDG_CACHE_HOME are redirected under the work root and temp under the
+    image workspace, so a core run leaves no artifact under the real user home."""
     env: dict[str, str] = {}
-    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "HOME", "LANG", "LC_ALL"):
+    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "LANG", "LC_ALL"):
         if k in os.environ:
             env[k] = os.environ[k]
+    home = os.path.join(work, "home")
+    env["HOME"] = home
+    env["XDG_CACHE_HOME"] = os.path.join(home, ".cache")
     env["TMPDIR"] = image_dir
     env["TEMP"] = image_dir
     env["TMP"] = image_dir
@@ -793,6 +812,8 @@ def run_core(core_dir: str, runner_path: str, python_exe: str, core_runner_sha25
     escape (exit 3) is TOOLCHAIN_BINDING; any other failure or a malformed core.json is the
     per-image analysis category `cat`."""
     _verify_runner(runner_path, core_runner_sha256)
+    work = os.path.dirname(core_dir)  # materialize_core put core at WORK/core
+    os.makedirs(os.path.join(work, "home", ".cache"), exist_ok=True)
     facts_path = os.path.join(image_dir, "facts.json")
     core_path = os.path.join(image_dir, "core.json")
     params_path = os.path.join(image_dir, "params.json")
@@ -802,7 +823,7 @@ def run_core(core_dir: str, runner_path: str, python_exe: str, core_runner_sha25
         fh.write(_canonical_json(params))
     proc = subprocess.run(
         [python_exe, "-S", "-B", "-E", runner_path, facts_path, core_path, params_path],
-        cwd=core_dir, env=_core_env(image_dir), capture_output=True, text=True, check=False)
+        cwd=core_dir, env=_core_env(work, image_dir), capture_output=True, text=True, check=False)
     if proc.returncode == 3:
         raise DeltaError(TOOLCHAIN_BINDING,
                          f"core runner self-fingerprint failed: {proc.stderr.strip()[:300]}")

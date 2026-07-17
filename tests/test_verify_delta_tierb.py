@@ -216,6 +216,43 @@ def _schema_ok(path: str) -> None:
         raise Fail("resolved_runtime_identity missing requested/selected versions")
 
 
+def _assert_case(obj: dict, tag: str, check) -> None:
+    """Case-specific semantics of the published delta-result.json (C3)."""
+    d = obj["delta"]
+    conv = obj["expected"]["convert_acquire_ids"]
+    man = obj["expected"]["manual_review_ids"]
+    git = obj["gate_binding"]["git_gates_status"]
+    if tag == "mixed":
+        check(len(conv) == 1 and len(man) == 1, "Tier B mixed: 1 convert + 1 manual")
+        check(d["removed_subscription_own001_ids"] == conv, "Tier B mixed: removed == convert")
+        check(d["preserved_subscription_own001_ids"] == man, "Tier B mixed: preserved == manual")
+        check(len(d["removed_all_own001"]) == 1, "Tier B mixed: exactly one core removed")
+        check(git == "pass", "Tier B mixed: git_gates_status pass")
+    elif tag == "allconv":
+        check(len(conv) == 2 and man == [], "Tier B all-convert: 2 convert + 0 manual")
+        check(d["removed_subscription_own001_ids"] == conv,
+              "Tier B all-convert: removed == convert")
+        check(d["preserved_subscription_own001_ids"] == [], "Tier B all-convert: preserved empty")
+        check(obj["postimage"]["subscription_own001_ids"] == [],
+              "Tier B all-convert: postimage subscription ids empty")
+        check(len(d["removed_all_own001"]) == 2, "Tier B all-convert: two core removed")
+        check(git == "pass", "Tier B all-convert: git_gates_status pass")
+    else:  # manual-only
+        check(conv == [] and len(man) == 2, "Tier B manual-only: 0 convert + 2 manual")
+        check(d["removed_subscription_own001_ids"] == [], "Tier B manual-only: removed empty")
+        check(d["preserved_subscription_own001_ids"] == man,
+              "Tier B manual-only: preserved == manual")
+        check(d["removed_all_own001"] == [], "Tier B manual-only: nothing removed")
+        b, pi = obj["baseline"], obj["postimage"]
+        check(b["subscription_own001_ids"] == pi["subscription_own001_ids"]
+              and b["all_own001"] == pi["all_own001"],
+              "Tier B manual-only: baseline == postimage")
+        check(git == "not_applicable", "Tier B manual-only: git_gates_status not_applicable")
+        si = obj["semantic_idempotence"]
+        check(si["pass"] is True and si["converted_ids_still_actionable"] == [],
+              "Tier B manual-only: idempotence passes vacuously")
+
+
 def run() -> int:
     required = os.environ.get("OWN_TIERB_REQUIRED") == "1"
     if not required:
@@ -254,6 +291,8 @@ def run() -> int:
                 if p.returncode == 0:
                     _schema_ok(os.path.join(out, "delta-result.json"))
                     check(True, f"Tier B: {tag} published schema valid")
+                    with open(os.path.join(out, "delta-result.json"), encoding="utf-8") as fh:
+                        _assert_case(json.load(fh), tag, check)
 
             # determinism: two independent invocations of the mixed case -> identical bytes
             plan = _plan(cands, work, {"OnA"})

@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import tempfile
 
@@ -426,6 +427,55 @@ def _amendment_regressions() -> tuple[int, list[str]]:
             fh.write(b"idx-v2")
         cf(_raises(fd.ISOLATION, fd._isolation_verify, snap, tmp, rel),
            "R2: .git/index mutation -> ISOLATION")
+
+    # --- C1: core subprocess HOME / cache redirected under the work root ---------
+    with tempfile.TemporaryDirectory() as work:
+        img = os.path.join(work, "img")
+        os.makedirs(img)
+        env = fd._core_env(work, img)
+        cf(env["HOME"] == os.path.join(work, "home"), "C1: HOME redirected to work/home")
+        cf(env["XDG_CACHE_HOME"] == os.path.join(work, "home", ".cache"),
+           "C1: XDG_CACHE_HOME under work/home")
+        cf(env["TMPDIR"] == img and env["TEMP"] == img and env["TMP"] == img,
+           "C1: temp under the image workspace")
+        cf(env["HOME"] != os.environ.get("HOME"), "C1: host HOME not copied into the core env")
+        os.makedirs(os.path.join(work, "home", ".cache"), exist_ok=True)
+        p = subprocess.run([sys.executable, "-S", "-B", "-E", "-c",
+                            "import os,sys;sys.stdout.write(os.environ.get('HOME','<none>'))"],
+                           env=env, capture_output=True, text=True, check=False)
+        cf(p.stdout.strip() == os.path.join(work, "home"), "C1: runner sees workspace-local HOME")
+        cf("<none>" != p.stdout.strip(), "C1: HOME is present (workspace-local) in the child")
+
+    # --- C2: deep teardown-candidate validation ---------------------------------
+    good_tc = {"source": "a", "handler": "OnA", "match": "a.PropertyChanged", "span": dict(_SPAN)}
+
+    def _rec_td(td: dict) -> dict:
+        r = _record(_FIDA)
+        r["teardown"] = td
+        return r
+
+    fd._validate_record(_rec_td({"status": "exact", "candidates": [good_tc]}),
+                        fd.BASELINE_ANALYSIS, "rec")
+    cf(True, "C2: a valid teardown candidate is accepted")
+
+    def _bad_td(td: dict) -> bool:
+        return _raises(fd.BASELINE_ANALYSIS, fd._validate_record, _rec_td(td),
+                       fd.BASELINE_ANALYSIS, "rec")
+
+    cf(_bad_td({"status": "exact", "candidates": ["nope"]}),
+       "C2: teardown candidate not an object -> refuse")
+    cf(_bad_td({"status": "exact",
+                "candidates": [{k: good_tc[k] for k in ("handler", "match", "span")}]}),
+       "C2: missing source -> refuse")
+    cf(_bad_td({"status": "exact", "candidates": [{**good_tc, "extra": 1}]}),
+       "C2: extra key -> refuse")
+    cf(_bad_td({"status": "exact", "candidates": [{**good_tc, "source": 5}]}),
+       "C2: non-string source -> refuse")
+    cf(_bad_td({"status": "exact", "candidates": [{**good_tc, "span": {"start": 1}}]}),
+       "C2: malformed span -> refuse")
+    cf(_bad_td({"status": "exact",
+                "candidates": [{**good_tc, "span": {**_SPAN, "start": True}}]}),
+       "C2: boolean span value -> refuse")
 
     return checks, fails
 
