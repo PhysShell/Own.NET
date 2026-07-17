@@ -1709,6 +1709,16 @@ jobs:
       - name: S2 owen-rewrite core (guards + regressions)
         run: bash tests/rewriter_regressions.sh "$RUNNER_TEMP/s2"
 
+      # S2 step 8 — the canonical patch bundle over the same real chain, ending in
+      # `own-fix subscriptions apply`. Asserts the three-part bundle, canonical patch
+      # headers with no temp/absolute path or timestamp, the exact byte-deterministic
+      # manifest, a `git apply` round-trip that reproduces the postimage byte for byte,
+      # the mixed-action partition, the empty-patch contract, and that a refusal leaves
+      # no output. (The transport-tampering cases are pure-function tests in
+      # tests/test_patch_bundle.py — forging a report must not need a hook in the rewriter.)
+      - name: S2 step 8 — canonical patch bundle (patch + manifest + postimage)
+        run: bash tests/patch_bundle_regressions.sh "$RUNNER_TEMP/s8"
+
       # A stale preimage SHA is the one refusal worth pinning in the workflow itself: it is
       # the invariant the whole hash-bound chain rests on.
       - name: S2 owen-rewrite — a stale preimage SHA is a hard refusal
