@@ -994,6 +994,18 @@ def helper_and_report_smoke() -> list[str]:
 
 
 def run() -> int:
+    # PREFLIGHT — BEFORE importing any test module. A test_*.py that ends the process at
+    # import (sys.exit / raise SystemExit outside its `__main__` guard) would silently
+    # truncate this run, and it can sort before whatever module is meant to police it, so
+    # the check must happen here, first, over the source rather than by importing.
+    from _preflight import check_test_files
+    _here = os.path.dirname(os.path.abspath(__file__))
+    preflight = check_test_files(_here)
+    for problem in preflight:
+        print(f"PREFLIGHT FAIL: {problem}")
+    if preflight:
+        return 1
+
     passed = 0
     failed = 0
     for name, body, expected in CASES:
