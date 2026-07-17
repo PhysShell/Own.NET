@@ -470,6 +470,7 @@ def run() -> int:
                 _run_case(dotnet, ext, probe, work, c, check)
             _determinism(dotnet, ext, probe, work, check)
             _run_ambiguous(dotnet, ext, probe, work, check)
+            _run_bind_unit_cases(dotnet, ext, probe, work, check)
             _run_dep_cases(dotnet, ext, probe, work, check)
             _run_two_slot_versions(dotnet, ext, probe, work, check)
     except Fail as exc:
@@ -596,6 +597,63 @@ def _run_ambiguous(dotnet: str, ext: str, probe: str, work: str, check) -> None:
     out = os.path.join(w, "target")
     p = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, out, [da, db], 0, True)
     _expect_result(p, out, ("refuse", "CALLSITE_BINDING"), check, "ambiguous")
+
+
+# K3: an exact-shape net8 wrapper with a callsite that cannot bind for a NON-runtime reason must be
+# CALLSITE_BINDING (never WRAPPER_RUNTIME_UNSUPPORTED). These are bind-unit cases: the postimage is
+# crafted so Roslyn's SemanticModel returns a null Symbol, exercising the positive-predicate branch.
+_PRE_OBJ = ("using System.ComponentModel;\npublic class S { public S(object a) "
+            "{ a.PropertyChanged += OnA; } void OnA(object s, PropertyChangedEventArgs e){} }\n")
+_POST_OBJ = ("using System.ComponentModel;\npublic class S { public S(object a) "
+             "{ WeakEvents.AddPropertyChanged(a, OnA); } "
+             "void OnA(object s, PropertyChangedEventArgs e){} }\n")
+_PRE_BADH = ("using System.ComponentModel;\npublic class S { public S(INotifyPropertyChanged a) "
+             "{ a.PropertyChanged += OnA; } void OnA(int x){} void OnA(string y){} }\n")
+_POST_BADH = ("using System.ComponentModel;\npublic class S { public S(INotifyPropertyChanged a) "
+              "{ WeakEvents.AddPropertyChanged(a, OnA); } "
+              "void OnA(int x){} void OnA(string y){} }\n")
+
+
+def _bind_unit(dotnet: str, probe: str, work: str, name: str, pre: str, post: str,
+               wrapper: str, expect_cat: str, check) -> None:
+    from ownlang.fix_delta import _select_runtime
+    from ownlang.fix_target import TargetError, run_bind
+    try:
+        dll = _compile(dotnet, work, f"bu-{name}", wrapper, "net8.0", "WeakEvents")
+        slot = os.path.join(work, f"buslots-{name}", "000000")
+        os.makedirs(slot)
+        shutil.copy(dll, os.path.join(slot, "WeakEvents.dll"))
+        slots_root = os.path.dirname(slot)
+        listing = _run([dotnet, "--list-runtimes"]).stdout
+        selected_ver, _rt = _select_runtime(listing, "Microsoft.NETCore.App", "8.0.0")
+        start = pre.index("a.PropertyChanged += OnA")
+        fid = "OWN001:sha256:" + "a" * 64
+        bind_params = {"converted": [{"finding_id": fid, "occurrence_ordinal": 0, "file": "S.cs",
+                                      "containing_type": "S", "event": "PropertyChanged",
+                                      "source": "a", "handler": "OnA", "normalized_handler": "OnA",
+                                      "acquire_span": {"start": start,
+                                                       "length": len("a.PropertyChanged += OnA")}}]}
+        w = os.path.join(work, f"buw-{name}")
+        os.makedirs(w)
+    except Fail as exc:
+        check(False, f"bind-unit {name}: setup failed ({exc})")
+        return
+    try:
+        run_bind(w, dotnet, probe, selected_ver, "S.cs", pre, post, slots_root,
+                 "WeakEvents.AddPropertyChanged", "S", bind_params, [fid])
+        check(False, f"bind-unit {name}: expected {expect_cat} but bind passed")
+    except TargetError as exc:
+        check(exc.category == expect_cat,
+              f"bind-unit {name}: {exc.category} (want {expect_cat})")
+
+
+def _run_bind_unit_cases(dotnet: str, ext: str, probe: str, work: str, check) -> None:
+    # exact-shape net8 wrapper, receiver cannot convert to INPC -> CALLSITE_BINDING (not runtime)
+    _bind_unit(dotnet, probe, work, "argconv", _PRE_OBJ, _POST_OBJ, _WEAK,
+               "CALLSITE_BINDING", check)
+    # exact-shape net8 wrapper, ambiguous / non-convertible handler method group -> CALLSITE_BINDING
+    _bind_unit(dotnet, probe, work, "badhandler", _PRE_BADH, _POST_BADH, _WEAK,
+               "CALLSITE_BINDING", check)
 
 
 def _run_dep_cases(dotnet: str, ext: str, probe: str, work: str, check) -> None:
