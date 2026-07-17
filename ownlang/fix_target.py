@@ -299,7 +299,8 @@ def build_bind_params(candidates: Any, convert_ids: list[str], rel: str) -> dict
     return {"converted": conv}
 
 
-_BIND_EXIT = {11: CALLSITE_BINDING, 12: WRAPPER_BINDING, 13: TOOLCHAIN_BINDING}
+_BIND_EXIT = {11: CALLSITE_BINDING, 12: WRAPPER_BINDING, 13: TOOLCHAIN_BINDING,
+              14: WRAPPER_RUNTIME_UNSUPPORTED}
 
 
 def run_bind(work: str, dotnet_host: str, probe_dll: str, selected_ver: str, rel: str,

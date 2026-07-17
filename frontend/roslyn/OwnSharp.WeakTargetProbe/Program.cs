@@ -145,6 +145,11 @@ internal static class BindMode
         for (var i = 1; i < edits.Count; i++)
             if (edits[i].PreStart < edits[i - 1].PreStart + edits[i - 1].PreLen)
                 return Refuse("CALLSITE_BINDING", "overlapping converted acquire spans");
+        // every converted finding id appears exactly once.
+        var convertedFids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in edits)
+            if (!convertedFids.Add(e.Fid))
+                return Refuse("CALLSITE_BINDING", $"{e.Fid}: converted finding id appears more than once");
         long delta = 0;
         var callsites = new List<IReadOnlyDictionary<string, object>>();
         IMethodSymbol? firstSym = null;
@@ -168,14 +173,21 @@ internal static class BindMode
                 || Rewrite.NormalizeHandler(argList[1].Expression).ToString() != e.NormalizedHandler)
                 return Refuse("CALLSITE_BINDING", $"{e.Fid}: invocation arguments do not match the candidate");
 
-            // 7: resolve the IMethodSymbol. A failed overload still yields the CANDIDATE wrapper
-            // method, so a wrong-signature / overloaded wrapper is a TARGET_BINDING (WRAPPER_BINDING)
-            // refusal — not an unresolved callsite. Every converted callsite must resolve to one symbol.
+            // the invocation must sit in the accepted source tree/file and inside the selected class.
+            if (inv.SyntaxTree != postTree || inv.SyntaxTree.FilePath != sourceFile)
+                return Refuse("CALLSITE_BINDING", $"{e.Fid}: invocation is not in the accepted source file");
+            var enclosingType = postModel.GetEnclosingSymbol(inv.SpanStart)?.ContainingType;
+            if (enclosingType is null || FQ(enclosingType) != selectedType)
+                return Refuse("CALLSITE_BINDING", $"{e.Fid}: invocation is not inside the selected class");
+
+            // 7: a converted callsite may pass ONLY on a cleanly bound Symbol that is an
+            // IMethodSymbol. Symbol == null is ALWAYS a refusal — CandidateSymbols are inspected only
+            // to choose the category: exactly one candidate wrapper slot of the wrong frozen shape is
+            // WRAPPER_BINDING; anything else (ambiguous / multiple / otherwise unresolved) is
+            // CALLSITE_BINDING. A candidate method is never promoted to the bound symbol.
             var si = postModel.GetSymbolInfo(inv);
-            var sym = si.Symbol as IMethodSymbol
-                      ?? si.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
-            if (sym is null)
-                return Refuse("CALLSITE_BINDING", $"{e.Fid}: cannot resolve the invocation symbol");
+            if (si.Symbol is not IMethodSymbol sym)
+                return RefuseUnbound(e.Fid, si, comp, slotByPath, target);
             if (SymbolEqualityComparer.Default.Equals(sym.ContainingAssembly, comp.Assembly))
                 return Refuse("CALLSITE_BINDING", $"{e.Fid}: target is source-defined, not a reference wrapper");
             if (firstSym is null)
@@ -214,6 +226,20 @@ internal static class BindMode
             });
         }
         callsites.Sort((x, y) => string.CompareOrdinal((string)x["finding_id"], (string)y["finding_id"]));
+
+        // the emitted callsites are a total bijection onto the converted findings with distinct
+        // postimage spans (defence in depth; the Python parent re-checks the canonical bytes).
+        var emitted = callsites.Select(c => (string)c["finding_id"]).ToList();
+        if (emitted.Count != edits.Count || !convertedFids.SetEquals(emitted)
+            || new HashSet<string>(emitted, StringComparer.Ordinal).Count != emitted.Count)
+            return Refuse("CALLSITE_BINDING", "callsites are not a bijection onto the converted findings");
+        var spanKeys = callsites.Select(c =>
+        {
+            var s = (List<object>)c["postimage_span"];
+            return $"{s[0]}:{s[1]}";
+        }).ToList();
+        if (new HashSet<string>(spanKeys, StringComparer.Ordinal).Count != spanKeys.Count)
+            return Refuse("CALLSITE_BINDING", "two callsites share a derived postimage span");
 
         var outObj = new Dictionary<string, object>
         {
@@ -292,6 +318,34 @@ internal static class BindMode
         return mr.GetGuid(mr.GetModuleDefinition().Mvid).ToString("D");
     }
 
+    // Symbol == null: choose the refusal category WITHOUT ever promoting a candidate to the bound
+    // symbol. With exactly one candidate wrapper slot: a wrong frozen shape is WRAPPER_BINDING; a
+    // shape that is correct by name yet still fails to bind means the wrapper's metadata/types do
+    // NOT unify with the fixed probe runtime (e.g. a net9 / .NET-Framework-only wrapper), which is
+    // WRAPPER_RUNTIME_UNSUPPORTED (never TARGET_RETAINS). Anything else — ambiguous, multiple, or
+    // otherwise unresolved — is CALLSITE_BINDING.
+    private static int RefuseUnbound(string fid, SymbolInfo si, CSharpCompilation comp,
+        Dictionary<string, References.Slot> slotByPath, string target)
+    {
+        var asms = new List<IAssemblySymbol>();
+        foreach (var m in si.CandidateSymbols.OfType<IMethodSymbol>())
+        {
+            if (SymbolEqualityComparer.Default.Equals(m.ContainingAssembly, comp.Assembly)) continue;
+            if (!asms.Any(x => SymbolEqualityComparer.Default.Equals(x, m.ContainingAssembly)))
+                asms.Add(m.ContainingAssembly);
+        }
+        if (asms.Count == 1)
+        {
+            var path = (comp.GetMetadataReference(asms[0]) as PortableExecutableReference)?.FilePath ?? "";
+            if (slotByPath.ContainsKey(path))
+                return TargetBinding.Validate(asms[0], target) is not null
+                    ? Refuse("WRAPPER_BINDING", $"{fid}: the wrapper target has the wrong frozen shape")
+                    : Refuse("WRAPPER_RUNTIME_UNSUPPORTED",
+                             $"{fid}: the wrapper target does not unify with the selected probe runtime");
+        }
+        return Refuse("CALLSITE_BINDING", $"{fid}: the invocation does not bind to a single wrapper symbol");
+    }
+
     private static int Refuse(string category, string message)
     {
         Console.Error.WriteLine($"{category}: {message}");
@@ -300,6 +354,7 @@ internal static class BindMode
             "CALLSITE_BINDING" => 11,
             "WRAPPER_BINDING" => 12,
             "TOOLCHAIN_BINDING" => 13,
+            "WRAPPER_RUNTIME_UNSUPPORTED" => 14,
             _ => 2,
         };
     }
