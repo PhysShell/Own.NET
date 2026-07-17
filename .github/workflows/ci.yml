@@ -256,7 +256,9 @@ jobs:
             frontend/roslyn/samples/OwnedCollectionElementSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
-      - name: S2 step 10 analyzer-delta verifier (Tier B, real extractor + core)
+      - name: S2 step 10 analyzer-delta verifier (Tier B, full public CLI)
+        env:
+          OWN_TIERB_REQUIRED: "1"
         run: python tests/test_verify_delta_tierb.py
       - name: Check facts through the core
         run: |
