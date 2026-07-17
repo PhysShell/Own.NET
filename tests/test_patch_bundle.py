@@ -292,7 +292,14 @@ except ValueError:
     pass  # the CLI maps this to `own-fix: refuse:` + exit 2, never a traceback
 checks += 1
 
-print(f"patch bundle (S2 step 8): {checks - len(failures)}/{checks} checks pass")
-for f in failures:
-    print(f"  FAIL: {f}")
-sys.exit(1 if failures else 0)
+def run() -> int:
+    """The aggregate contract run_tests.py expects: report + an int rc, NEVER a
+    process-ending sys.exit at import time (which would silence every later module)."""
+    print(f"patch bundle (S2 step 8): {checks - len(failures)}/{checks} checks pass")
+    for f in failures:
+        print(f"  FAIL: {f}")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

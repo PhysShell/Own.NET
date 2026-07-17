@@ -1719,6 +1719,16 @@ jobs:
       - name: S2 step 8 — canonical patch bundle (patch + manifest + postimage)
         run: bash tests/patch_bundle_regressions.sh "$RUNNER_TEMP/s8"
 
+      # S2 step 9 — the structural self-gate over a step 8 bundle, ending in an INDEPENDENT
+      # git apply --check → apply in a hermetic throwaway repo that reproduces the postimage
+      # byte for byte. Asserts the ten gates, deterministic evidence, and — via forged
+      # fixtures rebound to reach the intended gate — the full APPLY_CHECK / APPLY_MISMATCH /
+      # HASH_MISMATCH / BUNDLE_LAYOUT / PRISTINE_SOURCE / PUBLICATION taxonomy, with the real
+      # checkout, index and config never touched. (The pure-function + byte-tampering cases
+      # are in tests/test_gate_patch.py, in the dotnet-free `tests` job.)
+      - name: S2 step 9 — structural self-gate (git apply verification)
+        run: bash tests/gate_regressions.sh "$RUNNER_TEMP/s9"
+
       # A stale preimage SHA is the one refusal worth pinning in the workflow itself: it is
       # the invariant the whole hash-bound chain rests on.
       - name: S2 owen-rewrite — a stale preimage SHA is a hard refusal
