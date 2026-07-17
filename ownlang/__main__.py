@@ -631,11 +631,52 @@ def _cmd_gate(rest: list[str]) -> int:
     return 0
 
 
+def _cmd_verify_delta(rest: list[str]) -> int:
+    """S2 step 10: `own-fix subscriptions verify-delta` — the analyzer-semantic gate over an
+    accepted step 8 bundle. Re-runs Own.NET's real core analyzer (from a snapshotted ownlang
+    package in a fresh, isolated subprocess) over the pristine preimage and the accepted
+    postimage and proves the OWN001 delta matches the plan (converted gone, manual preserved,
+    no new OWN001 of any lane, no new OWN050). --gate is mandatory; there is no --config."""
+    from ownlang.fix_delta import DeltaError, run_verify_delta
+    from ownlang.fix_gate import GateError  # the reused snapshot/publish helpers raise this
+
+    flags = {"--bundle", "--plan", "--candidates", "--root", "--gate", "--extractor-dll", "--out"}
+    parsed = _own_fix_parse(rest, flags, {"--ref-dir"})
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    # a repeated singleton flag is an input error, not a silent last-wins (LA F11)
+    for f in flags:
+        if rest.count(f) > 1:
+            print(f"own-fix: {f} given more than once", file=sys.stderr)
+            return 2
+    if positional or not all(opts.get(k) for k in flags):
+        print("usage: own-fix subscriptions verify-delta --bundle <step8-bundle> "
+              "--plan <validated-plan.json> --candidates <candidates.json> "
+              "--root <pristine-source-root> --gate <step9-gate-result.json> "
+              "--extractor-dll <OwnSharp.Extractor.dll> --out <delta-evidence-dir> "
+              "[--ref-dir <dir>]...", file=sys.stderr)
+        return 2
+    try:
+        published = run_verify_delta(
+            opts["--bundle"], opts["--plan"], opts["--candidates"], opts["--root"],
+            opts["--gate"], opts["--extractor-dll"], opts["--out"], opts.get("--ref-dir") or [])
+    except (DeltaError, GateError) as exc:  # both carry a stable .category
+        print(f"own-fix: refuse: {exc.category}: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # fail closed: any surprise is a refusal, not a traceback
+        print(f"own-fix: refuse: INFRASTRUCTURE: internal error "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote delta-result.json -> {published}")
+    return 0
+
+
 def cmd_own_fix(rest: list[str]) -> int:
-    """`own-fix subscriptions {candidates|render|validate-plan|apply} ...`."""
+    """`own-fix subscriptions {candidates|render|validate-plan|apply|gate|verify-delta} ...`."""
     if len(rest) < 2 or rest[0] != "subscriptions":
         print("usage: python -m ownlang own-fix subscriptions "
-              "{candidates|render|validate-plan|apply} ...", file=sys.stderr)
+              "{candidates|render|validate-plan|apply|gate|verify-delta} ...", file=sys.stderr)
         return 2
     verb, args = rest[1], rest[2:]
     if verb == "candidates":
@@ -648,8 +689,10 @@ def cmd_own_fix(rest: list[str]) -> int:
         return _cmd_apply(args)
     if verb == "gate":
         return _cmd_gate(args)
+    if verb == "verify-delta":
+        return _cmd_verify_delta(args)
     print(f"own-fix: unknown subcommand {verb!r} "
-          "(candidates | render | validate-plan | apply | gate)", file=sys.stderr)
+          "(candidates | render | validate-plan | apply | gate | verify-delta)", file=sys.stderr)
     return 2
 
 
