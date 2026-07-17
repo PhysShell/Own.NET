@@ -203,16 +203,18 @@ public static class WeakEvents
 _HELPER_OK = "namespace Helper { public static class Aux { public static void Touch() { } } }\n"
 _HELPER_THROW = ("namespace Helper { public static class Aux { public static void Touch() "
                  "{ throw new System.InvalidOperationException(\"bad helper\"); } } }\n")
-# a wrapper whose body pulls in Microsoft.CodeAnalysis — a NON-framework assembly already loaded in
-# the probe's default context — proving a closed load context never satisfies it from there.
+# a wrapper whose body makes a RUNTIME call into Microsoft.CodeAnalysis — a NON-framework assembly
+# already present in the probe's default context — proving the closed load context never satisfies
+# it from there. (A constant/enum reference would be folded at compile time and load nothing, so the
+# body must force an actual assembly load: a real method call into the Roslyn assembly.)
 _DEP_ROSLYN = """using System.ComponentModel;
 public static class WeakEvents
 {
     public static void AddPropertyChanged(
         INotifyPropertyChanged source, PropertyChangedEventHandler handler)
     {
-        _ = Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
-        source.PropertyChanged += handler;
+        var e = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseExpression("a");
+        if (e != null) source.PropertyChanged += handler;
     }
 }
 """
@@ -468,6 +470,8 @@ def run() -> int:
                 _run_case(dotnet, ext, probe, work, c, check)
             _determinism(dotnet, ext, probe, work, check)
             _run_ambiguous(dotnet, ext, probe, work, check)
+            _run_dep_cases(dotnet, ext, probe, work, check)
+            _run_two_slot_versions(dotnet, ext, probe, work, check)
     except Fail as exc:
         fails.append(f"Tier B setup: {exc}")
 
@@ -592,6 +596,79 @@ def _run_ambiguous(dotnet: str, ext: str, probe: str, work: str, check) -> None:
     out = os.path.join(w, "target")
     p = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, out, [da, db], 0, True)
     _expect_result(p, out, ("refuse", "CALLSITE_BINDING"), check, "ambiguous")
+
+
+def _run_dep_cases(dotnet: str, ext: str, probe: str, work: str, check) -> None:
+    """H2: the closed load context. A wrapper dependency resolves ONLY from a materialized slot;
+    it is never satisfied from the probe deployment, the default context, or an arbitrary path."""
+    # (a) dependency present in an accepted slot -> pass.
+    try:
+        helper = _compile(dotnet, work, "dhOK", _HELPER_OK, "net8.0", "Helper")
+        weak = _compile(dotnet, work, "dwOK", _DEPWEAK, "net8.0", "WeakEvents",
+                        [("Helper", helper)])
+        wd, hd = _slot(work, "dwOK", weak), _slot(work, "dhOK", helper)
+        b, pl, ca, dl, rt, w = _build_chain(dotnet, ext, work, "depin", _PRE, [wd, hd], True)
+        out = os.path.join(w, "target")
+        p = _verify_target(dotnet, probe, b, pl, ca, rt, dl, out, [wd, hd], 0, True)
+        _expect_result(p, out, ("pass", "converted"), check, "dep-in-slot")
+    except Fail as exc:
+        check(False, f"dep-in-slot: chain setup failed ({exc})")
+
+    # (b) dependency absent from slots but copied NEXT TO the probe deployment -> unsupported.
+    try:
+        helper = _compile(dotnet, work, "dhNP", _HELPER_OK, "net8.0", "Helper")
+        weak = _compile(dotnet, work, "dwNP", _DEPWEAK, "net8.0", "WeakEvents",
+                        [("Helper", helper)])
+        wd = _slot(work, "dwNP", weak)
+        probe_copy_dir = os.path.join(work, "probe-copy")
+        shutil.copytree(os.path.dirname(probe), probe_copy_dir)
+        shutil.copy(helper, os.path.join(probe_copy_dir, "Helper.dll"))
+        probe_copy = os.path.join(probe_copy_dir, os.path.basename(probe))
+        b, pl, ca, dl, rt, w = _build_chain(dotnet, ext, work, "depnp", _PRE, [wd], True)
+        out = os.path.join(w, "target")
+        p = _verify_target(dotnet, probe_copy, b, pl, ca, rt, dl, out, [wd], 0, True)
+        _expect_result(p, out, ("refuse", "WRAPPER_RUNTIME_UNSUPPORTED"), check,
+                       "dep-next-to-probe")
+    except Fail as exc:
+        check(False, f"dep-next-to-probe: chain setup failed ({exc})")
+
+    # (c) dependency absent from slots but ALREADY loaded in the probe's default context
+    #     (Microsoft.CodeAnalysis, a probe deployment assembly) -> unsupported, never satisfied.
+    try:
+        weak = _compile(dotnet, work, "dwDC", _DEP_ROSLYN, "net8.0", "WeakEvents", None,
+                        [("Microsoft.CodeAnalysis.CSharp", "4.9.2")])
+        wd = _slot(work, "dwDC", weak)
+        b, pl, ca, dl, rt, w = _build_chain(dotnet, ext, work, "depdc", _PRE, [wd], True)
+        out = os.path.join(w, "target")
+        p = _verify_target(dotnet, probe, b, pl, ca, rt, dl, out, [wd], 0, True)
+        _expect_result(p, out, ("refuse", "WRAPPER_RUNTIME_UNSUPPORTED"), check,
+                       "dep-default-context")
+    except Fail as exc:
+        check(False, f"dep-default-context: chain setup failed ({exc})")
+
+
+def _run_two_slot_versions(dotnet: str, ext: str, probe: str, work: str, check) -> None:
+    """H2: two slots export the same simple-name dependency; the FROZEN first-winning slot is the
+    one loaded, proven behaviorally (good Helper -> pass; throwing Helper -> TARGET_BEHAVIOR)."""
+    try:
+        hgood = _compile(dotnet, work, "tvHg", _HELPER_OK, "net8.0", "Helper")
+        hthrow = _compile(dotnet, work, "tvHt", _HELPER_THROW, "net8.0", "Helper")
+        weak = _compile(dotnet, work, "tvW", _DEPWEAK, "net8.0", "WeakEvents",
+                        [("Helper", hgood)])
+        wd = _slot(work, "tvW", weak)
+        good, throw = _slot(work, "tvHg", hgood), _slot(work, "tvHt", hthrow)
+        # good Helper is the earlier (first-winning) slot -> pass
+        b, pl, ca, dl, rt, w = _build_chain(dotnet, ext, work, "tvA", _PRE, [wd, good, throw], True)
+        out = os.path.join(w, "target")
+        p = _verify_target(dotnet, probe, b, pl, ca, rt, dl, out, [wd, good, throw], 0, True)
+        _expect_result(p, out, ("pass", "converted"), check, "two-slot first-wins (good)")
+        # throwing Helper is the earlier slot -> the wrapper throws on subscribe -> TARGET_BEHAVIOR
+        b, pl, ca, dl, rt, w = _build_chain(dotnet, ext, work, "tvB", _PRE, [wd, throw, good], True)
+        out = os.path.join(w, "target")
+        p = _verify_target(dotnet, probe, b, pl, ca, rt, dl, out, [wd, throw, good], 0, True)
+        _expect_result(p, out, ("refuse", "TARGET_BEHAVIOR"), check, "two-slot first-wins (throw)")
+    except Fail as exc:
+        check(False, f"two-slot-versions: chain setup failed ({exc})")
 
 
 if __name__ == "__main__":
