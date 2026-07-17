@@ -29,33 +29,57 @@ def _is_main_guard(test: ast.expr) -> bool:
             and test.comparators[0].value == "__main__")
 
 
-def _module_scope_exit(node: ast.AST) -> bool:
-    """True if a sys.exit(...) / raise SystemExit(...) would fire at IMPORT time. Descends
-    through module-scope compound statements (if / try / with / for / while) but NOT into
-    a new scope (function / class / lambda) and NOT into the `if __name__ == "__main__"`
-    entrypoint — so an exit inside `if True:` or a top-level `try:` IS caught, while the
-    real guard and any function body are not."""
-    for child in ast.iter_child_nodes(node):
-        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
-                              ast.Lambda, ast.ClassDef)):
-            continue  # a new scope: its body does not run on import
-        if isinstance(child, ast.If) and _is_main_guard(child.test):
-            # ONLY the guard's body is exempt — its `else:` still runs on import, so a
-            # `if __name__ == "__main__": ... else: sys.exit(0)` must not slip through.
-            # Re-run the SAME per-child logic over the orelse statements (a synthetic
-            # Module so a bare `raise SystemExit` there is checked as a statement, not just
-            # its children).
-            if child.orelse and _module_scope_exit(
-                    ast.Module(body=child.orelse, type_ignores=[])):
+def _future_annotations(module: ast.AST) -> bool:
+    body = getattr(module, "body", [])
+    for stmt in body:
+        if isinstance(stmt, ast.ImportFrom) and stmt.module == "__future__":
+            if any(alias.name == "annotations" for alias in stmt.names):
                 return True
-            continue
-        if isinstance(child, ast.Raise) and _is_systemexit(child.exc):
-            return True
-        if isinstance(child, ast.Call) and _is_sys_exit(child.func):
-            return True
-        if _module_scope_exit(child):
-            return True
     return False
+
+
+def _annotation_exprs(func: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.expr]:
+    a = func.args
+    exprs = [arg.annotation for arg in
+             (*a.posonlyargs, *a.args, *a.kwonlyargs) if arg.annotation]
+    for extra in (a.vararg, a.kwarg):
+        if extra is not None and extra.annotation is not None:
+            exprs.append(extra.annotation)
+    if func.returns is not None:
+        exprs.append(func.returns)
+    return exprs
+
+
+def _module_scope_exit(node: ast.AST, ann_eager: bool | None = None) -> bool:
+    """True if a sys.exit(...) / raise SystemExit(...) would fire at IMPORT time. Only the
+    genuinely DEFERRED subtrees are pruned: a function / async-function / lambda BODY, and
+    the `if __name__ == "__main__"` body. Everything else runs on import and is scanned —
+    class bodies + bases + keywords, decorators, argument defaults, lambda defaults, and
+    (unless `from __future__ import annotations` is in force) annotations. The node itself
+    is checked BEFORE its children, so a decorator / default that IS `sys.exit(...)` is
+    caught, not just its arguments."""
+    if ann_eager is None:  # decided once, at the module root, then threaded down
+        ann_eager = not _future_annotations(node)
+
+    if isinstance(node, ast.Raise) and _is_systemexit(node.exc):
+        return True
+    if isinstance(node, ast.Call) and _is_sys_exit(node.func):
+        return True
+    if isinstance(node, ast.If) and _is_main_guard(node.test):
+        # ONLY the guard's body is exempt — its `else:` (and `elif`) still run on import.
+        return any(_module_scope_exit(s, ann_eager) for s in node.orelse)
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        eager = [*node.decorator_list, *node.args.defaults,
+                 *[d for d in node.args.kw_defaults if d is not None]]
+        if ann_eager:
+            eager += _annotation_exprs(node)
+        return any(_module_scope_exit(e, ann_eager) for e in eager)
+    if isinstance(node, ast.Lambda):
+        eager = [*node.args.defaults, *[d for d in node.args.kw_defaults if d is not None]]
+        return any(_module_scope_exit(e, ann_eager) for e in eager)
+    # Everything else — module body, class body/bases/keywords/decorators, module-scope
+    # control flow — executes on import; scan every child.
+    return any(_module_scope_exit(c, ann_eager) for c in ast.iter_child_nodes(node))
 
 
 def _is_systemexit(exc: ast.expr | None) -> bool:
@@ -82,11 +106,26 @@ _SELFTEST_MUST_CATCH = (
      "if __name__ == '__main__':\n    pass\nelse:\n    raise SystemExit(1)\n"),
     ("exit in a main-guard elif",
      "import sys\nif __name__ == '__main__':\n    pass\nelif True:\n    sys.exit(0)\n"),
+    # Declarations that run code AT IMPORT — the trapdoors that skipping a whole
+    # FunctionDef / ClassDef / Lambda node would miss.
+    ("exit in a class body", "import sys\nclass C:\n    sys.exit(7)\n"),
+    ("exit in a class base", "import sys\nclass C(sys.exit(7)):\n    pass\n"),
+    ("exit in a class decorator", "import sys\n@sys.exit(7)\nclass C:\n    pass\n"),
+    ("exit in a function default", "import sys\ndef f(value=sys.exit(7)):\n    pass\n"),
+    ("exit in a function decorator", "import sys\n@sys.exit(7)\ndef f():\n    pass\n"),
+    ("exit in a keyword-only default",
+     "import sys\ndef f(*, value=sys.exit(7)):\n    pass\n"),
+    ("exit in a lambda default", "import sys\nf = lambda value=sys.exit(7): None\n"),
+    ("exit in an eager annotation", "import sys\ndef f(x: sys.exit(7)):\n    pass\n"),
 )
 _SELFTEST_MUST_PASS = (
     ("guarded entrypoint", "import sys\nif __name__ == '__main__':\n    sys.exit(0)\n"),
     ("exit inside a function", "import sys\ndef run():\n    sys.exit(0)\n"),
     ("exit inside a lambda", "f = lambda: __import__('sys').exit(0)\n"),
+    ("exit inside a class method body",
+     "import sys\nclass C:\n    def m(self):\n        sys.exit(0)\n"),
+    ("stringified annotation under future-annotations",
+     "from __future__ import annotations\nimport sys\ndef f(x: sys.exit(7)):\n    pass\n"),
 )
 
 
