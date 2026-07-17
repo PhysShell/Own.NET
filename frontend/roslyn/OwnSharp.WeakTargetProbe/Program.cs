@@ -168,8 +168,13 @@ internal static class BindMode
                 || Rewrite.NormalizeHandler(argList[1].Expression).ToString() != e.NormalizedHandler)
                 return Refuse("CALLSITE_BINDING", $"{e.Fid}: invocation arguments do not match the candidate");
 
-            // 7: resolve the IMethodSymbol; every converted callsite must resolve to one symbol.
-            if (postModel.GetSymbolInfo(inv).Symbol is not IMethodSymbol sym)
+            // 7: resolve the IMethodSymbol. A failed overload still yields the CANDIDATE wrapper
+            // method, so a wrong-signature / overloaded wrapper is a TARGET_BINDING (WRAPPER_BINDING)
+            // refusal — not an unresolved callsite. Every converted callsite must resolve to one symbol.
+            var si = postModel.GetSymbolInfo(inv);
+            var sym = si.Symbol as IMethodSymbol
+                      ?? si.CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+            if (sym is null)
                 return Refuse("CALLSITE_BINDING", $"{e.Fid}: cannot resolve the invocation symbol");
             if (SymbolEqualityComparer.Default.Equals(sym.ContainingAssembly, comp.Assembly))
                 return Refuse("CALLSITE_BINDING", $"{e.Fid}: target is source-defined, not a reference wrapper");
@@ -180,6 +185,12 @@ internal static class BindMode
                 var path = mref?.FilePath ?? "";
                 if (!slotByPath.TryGetValue(path, out var slot))
                     return Refuse("WRAPPER_BINDING", $"{e.Fid}: resolved assembly is not a materialized slot");
+                // TARGET_BINDING: resolve plan.target_api.subscribe (SimpleType.Method) inside the
+                // selected wrapper assembly and enforce the exact required shape (exactly one public
+                // type, exactly one public static non-generic void(INPC, PCEH) method, no other
+                // overload, no ref/optional/params/modopt) — any mismatch is WRAPPER_BINDING.
+                var terr = TargetBinding.Validate(sym.ContainingAssembly, target);
+                if (terr is not null) return Refuse("WRAPPER_BINDING", $"{e.Fid}: {terr}");
                 derivedOrdinal = slot.Ordinal;
                 asmName = sym.ContainingAssembly.Name;
                 mvid = ReadMvid(path);
@@ -337,6 +348,57 @@ internal static class References
     }
 
     public readonly record struct Slot(int Ordinal, string Path, string SimpleName);
+}
+
+// TARGET_BINDING (WRAPPER_BINDING on any mismatch): the plan.target_api.subscribe method, resolved
+// by name ONLY inside the selected wrapper assembly, must have the exact accepted shape. This is
+// independent of whether the postimage callsite's arguments bind, so a wrong-signature or overloaded
+// wrapper is refused here rather than surfacing as an unresolved callsite or a runtime load failure.
+internal static class TargetBinding
+{
+    private static readonly SymbolDisplayFormat FQFmt = SymbolDisplayFormat.FullyQualifiedFormat
+        .WithMiscellaneousOptions(SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+                                  & ~SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+
+    private static string FQ(ITypeSymbol t) => t.ToDisplayString(FQFmt).Replace("global::", "");
+
+    public static string? Validate(IAssemblySymbol asm, string target)
+    {
+        var dot = target.LastIndexOf('.');
+        if (dot <= 0) return "target_api.subscribe is not SimpleType.Method";
+        var typeName = target[..dot];
+        var methodName = target[(dot + 1)..];
+
+        var types = new List<INamedTypeSymbol>();
+        Collect(asm.GlobalNamespace, types);
+        var matches = types.Where(t => t.DeclaredAccessibility == Accessibility.Public
+            && (t.Name == typeName || FQ(t) == typeName)).ToList();
+        if (matches.Count != 1) return $"expected exactly one public type '{typeName}'";
+        var declType = matches[0];
+        if (declType.IsGenericType) return "the wrapper type is generic";
+
+        var overloads = declType.GetMembers(methodName).OfType<IMethodSymbol>()
+            .Where(m => m.IsStatic && m.DeclaredAccessibility == Accessibility.Public).ToList();
+        if (overloads.Count != 1) return $"expected exactly one public static '{methodName}'";
+        var m = overloads[0];
+        if (m.IsGenericMethod) return "the wrapper method is generic";
+        if (m.ReturnType.SpecialType != SpecialType.System_Void) return "return type is not System.Void";
+        if (m.Parameters.Length != 2) return "parameter count is not 2";
+        if (FQ(m.Parameters[0].Type) != "System.ComponentModel.INotifyPropertyChanged"
+            || FQ(m.Parameters[1].Type) != "System.ComponentModel.PropertyChangedEventHandler")
+            return "parameters are not (INotifyPropertyChanged, PropertyChangedEventHandler)";
+        foreach (var p in m.Parameters)
+            if (p.RefKind != RefKind.None || p.IsOptional || p.IsParams
+                || p.CustomModifiers.Any() || p.RefCustomModifiers.Any())
+                return "a parameter uses ref/optional/params/custom-modifier shape";
+        return null;
+    }
+
+    private static void Collect(INamespaceSymbol ns, List<INamedTypeSymbol> acc)
+    {
+        acc.AddRange(ns.GetTypeMembers());
+        foreach (var child in ns.GetNamespaceMembers()) Collect(child, acc);
+    }
 }
 
 internal static class Args
