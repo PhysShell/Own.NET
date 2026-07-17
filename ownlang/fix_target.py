@@ -583,18 +583,85 @@ def build_converted_result(input_hashes: dict[str, Any], delta_bytes: bytes,
     }
 
 
-def _revalidate(work: str, probe_fp: dict[str, Any], slot_evidence: list[dict[str, Any]],
-                slot_dirs: list[str], rt_dir: str, runtime_identity: dict[str, Any]) -> None:
-    pdir = os.path.join(work, "probe")
-    if _manifest_sha(pdir, _walk_regular_files(pdir, TOOLCHAIN_BINDING), TOOLCHAIN_BINDING) \
-            != probe_fp["probe_deployment_manifest_sha256"]:
-        raise TargetError(TOOLCHAIN_BINDING, "the materialized probe deployment changed")
+def _reval_slots(slot_evidence: list[dict[str, Any]], slot_dirs: list[str]) -> None:
     for i, ev in enumerate(slot_evidence):
         dll = os.path.join(slot_dirs[i], ev["relative_path"].rsplit("/", 1)[-1])
         if _sha_bytes(_snapshot(dll, REFERENCE_BINDING, "slot")) != ev["sha256"]:
             raise TargetError(REFERENCE_BINDING, "a materialized reference slot changed")
+
+
+def _reval_toolchain(work: str, probe_fp: dict[str, Any], slot_evidence: list[dict[str, Any]],
+                     slot_dirs: list[str], rt_dir: str, runtime_identity: dict[str, Any],
+                     dotnet_host: str, dotnet_host_sha: str) -> None:
+    """Revalidate the copied probe deployment, the materialized slots, the dotnet host, and the
+    selected runtime — before bind and before EVERY probe attempt (G5)."""
+    pdir = os.path.join(work, "probe")
+    if _manifest_sha(pdir, _walk_regular_files(pdir, TOOLCHAIN_BINDING), TOOLCHAIN_BINDING) \
+            != probe_fp["probe_deployment_manifest_sha256"]:
+        raise TargetError(TOOLCHAIN_BINDING, "the materialized probe deployment changed")
+    _reval_slots(slot_evidence, slot_dirs)
+    if _hash_resolved(dotnet_host, TOOLCHAIN_BINDING, "dotnet host") != dotnet_host_sha:
+        raise TargetError(TOOLCHAIN_BINDING, "the dotnet host changed")
     if _runtime_manifest(rt_dir) != runtime_identity["selected_runtime_manifest_sha256"]:
         raise TargetError(TOOLCHAIN_BINDING, "the selected runtime changed")
+
+
+def _reval_inputs(plan_path: str, candidates_path: str, delta_path: str, root: str, bundle: str,
+                  rel: str, plan_bytes: bytes, candidates_bytes: bytes, delta_bytes: bytes,
+                  input_hashes: dict[str, str]) -> None:
+    """Revalidate every authoritative input still equals what was bound — before constructing the
+    published evidence (G5): plan, candidates, delta, source, patch, manifest, postimage."""
+    if _snapshot(plan_path, INPUT_LAYOUT, "--plan") != plan_bytes:
+        raise TargetError(AUTHORITY_BINDING, "--plan changed during verification")
+    if _snapshot(candidates_path, INPUT_LAYOUT, "--candidates") != candidates_bytes:
+        raise TargetError(AUTHORITY_BINDING, "--candidates changed during verification")
+    if _snapshot(delta_path, INPUT_LAYOUT, "--delta") != delta_bytes:
+        raise TargetError(DELTA_BINDING, "--delta changed during verification")
+    manifest_path = os.path.join(bundle, "apply-manifest.json")
+    post_path = os.path.join(bundle, "postimage", *rel.split("/"))
+    for path, key, label in (
+        (os.path.join(root, *rel.split("/")), "pre_sha256", "the pristine source"),
+        (os.path.join(bundle, "change.patch"), "patch_sha256", "change.patch"),
+        (manifest_path, "apply_manifest_sha256", "apply-manifest.json"),
+        (post_path, "post_sha256", "the accepted postimage"),
+    ):
+        if _sha_bytes(_snapshot(path, DELTA_BINDING, label)) != input_hashes[key]:
+            raise TargetError(DELTA_BINDING, f"{label} changed during verification")
+
+
+def _execution_root(protected: list[str]) -> str:
+    """Create EXECUTION_WORK_ROOT under a temp parent PHYSICALLY resolved to be outside and not
+    equal to every protected root, and with no protected root inside it — else ISOLATION (G5)."""
+    parent = os.path.realpath(tempfile.gettempdir())
+    prots = [os.path.realpath(p) for p in protected]
+    for pr in prots:
+        if _same_or_inside(pr, parent):
+            raise TargetError(ISOLATION,
+                              "the execution temp parent resolves inside a protected root")
+    root = tempfile.mkdtemp(prefix="owen-target-", dir=parent)
+    rp = os.path.realpath(root)
+    for pr in prots:
+        if _same_or_inside(rp, pr):
+            _discard_root(root)
+            raise TargetError(ISOLATION, "a protected root resolves inside the execution root")
+    return root
+
+
+def _discard_root(work: str) -> None:
+    """Best-effort cleanup on the FAILURE path (never masks the original refusal)."""
+    try:
+        shutil.rmtree(work)
+    except OSError:
+        pass
+
+
+def _remove_root(work: str) -> None:
+    """Strict cleanup on the SUCCESS path, before publication: a failure is PUBLICATION and the
+    out-dir stays absent (G5)."""
+    try:
+        shutil.rmtree(work)
+    except OSError as exc:
+        raise TargetError(PUBLICATION, f"cannot remove the execution root ({exc})") from exc
 
 
 def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: str,
@@ -628,18 +695,32 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
         "pre_sha256": bundle_info["pre_sha256"], "post_sha256": bundle_info["post_sha256"],
     }
 
-    work = tempfile.mkdtemp(prefix="owen-target-")
+    # the protected roots the EXECUTION_WORK_ROOT must be created outside of (G5). `work` itself is
+    # added afterwards for the publication-staging exclusion.
+    out_parent = os.path.realpath(os.path.dirname(os.path.abspath(out)))
+    iso_protected = [root, bundle, out_parent, *ref_dirs]
+    if probe_dll is not None:
+        iso_protected.append(os.path.dirname(os.path.abspath(probe_dll)))
+    work = _execution_root(iso_protected)
+    publish_protected = [root, bundle, work, *ref_dirs]
+    if probe_dll is not None:
+        publish_protected.append(os.path.dirname(os.path.abspath(probe_dll)))
+
+    work_removed = False
     try:
         slot_dirs, slot_evidence = reference_closure(work, ref_dirs, delta)
         passed.add("reference_binding")
-        protected = [root, bundle, work, *ref_dirs]
-        if probe_dll is not None:
-            protected.append(os.path.dirname(os.path.abspath(probe_dll)))
 
         if not converted:
+            _reval_inputs(plan_path, candidates_path, delta_path, root, bundle, rel,
+                          plan_bytes, candidates_bytes, delta_bytes, input_hashes)
+            _reval_slots(slot_evidence, slot_dirs)
             passed.add("publication")
-            evidence = build_manual_only_result(input_hashes, delta_bytes, delta, target, passed)
-            return _publish_target(out, protected, _canonical(evidence))
+            evidence_bytes = _canonical(
+                build_manual_only_result(input_hashes, delta_bytes, delta, target, passed))
+            _remove_root(work)
+            work_removed = True
+            return _publish_target(out, publish_protected, evidence_bytes)
 
         assert probe_dll is not None and wrapper_ordinal is not None
         probe_dll_dst, probe_fp = snapshot_probe_deployment(work, probe_dll)
@@ -654,6 +735,8 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
         class_fqn = candidates["selection"]["allowed_types"][0]["full_name"]
         bind_params = build_bind_params(candidates, convert_ids, rel)
         slots_root = os.path.join(work, "references")
+        _reval_toolchain(work, probe_fp, slot_evidence, slot_dirs, rt_dir, runtime_identity,
+                         dotnet_host, dotnet_host_sha)  # before bind
         binding = run_bind(work, dotnet_host, probe_dll_dst, selected_ver, rel,
                            bundle_info["preimage"], bundle_info["postimage"], slots_root,
                            target, class_fqn, bind_params)
@@ -666,6 +749,8 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
 
         attempts: list[dict[str, Any]] = []
         for k in range(_ATTEMPT_COUNT):
+            _reval_toolchain(work, probe_fp, slot_evidence, slot_dirs, rt_dir, runtime_identity,
+                             dotnet_host, dotnet_host_sha)  # before EVERY attempt
             rc, res = run_probe_attempt(work, dotnet_host, probe_dll_dst, selected_ver,
                                         wrapper_ordinal, slots_root, target, k, rt_dir)
             if rc == 10:
@@ -677,17 +762,21 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
         passed.update({"wrapper_binding", "harness_controls", "target_behavior",
                        "target_nonretention", "harness_determinism"})
 
-        _revalidate(work, probe_fp, slot_evidence, slot_dirs, rt_dir, runtime_identity)
+        # before constructing evidence: revalidate every input and the whole toolchain again.
+        _reval_inputs(plan_path, candidates_path, delta_path, root, bundle, rel,
+                      plan_bytes, candidates_bytes, delta_bytes, input_hashes)
+        _reval_toolchain(work, probe_fp, slot_evidence, slot_dirs, rt_dir, runtime_identity,
+                         dotnet_host, dotnet_host_sha)
         passed.add("publication")
-        evidence = build_converted_result(input_hashes, delta_bytes, delta, target, slot_evidence,
-                                           wrapper_ordinal, binding, probe_fp, dotnet_host_sha,
-                                           dotnet_version, runtime_identity, attempts, passed)
-        evidence_bytes = _canonical(evidence)
-        try:
-            shutil.rmtree(work)  # G5: remove EXECUTION_WORK_ROOT before public publication
-        except OSError as exc:
-            raise TargetError(PUBLICATION, f"cannot remove the work root ({exc})") from exc
-        return _publish_target(out, protected, evidence_bytes)
-    finally:
-        shutil.rmtree(work, ignore_errors=True)
+        evidence_bytes = _canonical(build_converted_result(
+            input_hashes, delta_bytes, delta, target, slot_evidence, wrapper_ordinal, binding,
+            probe_fp, dotnet_host_sha, dotnet_version, runtime_identity, attempts, passed))
+        _remove_root(work)  # G5: remove EXECUTION_WORK_ROOT before publication
+        work_removed = True
+        # one atomic rename; NO filesystem operation runs after it succeeds.
+        return _publish_target(out, publish_protected, evidence_bytes)
+    except BaseException:
+        if not work_removed:
+            _discard_root(work)
+        raise
 
