@@ -162,6 +162,60 @@ public static class WeakEvents
     { Helper.Aux.Touch(); source.PropertyChanged += handler; }
 }
 """
+# exact-shape target PLUS a same-name overload -> WRAPPER_BINDING (no other overload allowed).
+_OVERLOAD = """using System.ComponentModel;
+public static class WeakEvents
+{
+    public static void AddPropertyChanged(
+        INotifyPropertyChanged source, PropertyChangedEventHandler handler) { }
+    public static void AddPropertyChanged(string source, PropertyChangedEventHandler handler) { }
+}
+"""
+# two different assemblies both exporting global WeakEvents -> the source call is ambiguous.
+_AMB = """using System.ComponentModel;
+public static class WeakEvents
+{
+    public static void AddPropertyChanged(
+        INotifyPropertyChanged source, PropertyChangedEventHandler handler) { }
+}
+"""
+# a wrapper that depends on a Helper assembly (weak, genuinely non-retaining) when Helper resolves.
+_DEPWEAK = """using System.ComponentModel;
+public static class WeakEvents
+{
+    public static void AddPropertyChanged(
+        INotifyPropertyChanged source, PropertyChangedEventHandler handler)
+    {
+        Helper.Aux.Touch();
+        var wr = new System.WeakReference(handler.Target);
+        var mi = handler.Method;
+        PropertyChangedEventHandler? relay = null;
+        relay = (s, e) =>
+        {
+            var t = wr.Target;
+            if (t == null) source.PropertyChanged -= relay;
+            else mi.Invoke(t, new object?[] { s, e });
+        };
+        source.PropertyChanged += relay;
+    }
+}
+"""
+_HELPER_OK = "namespace Helper { public static class Aux { public static void Touch() { } } }\n"
+_HELPER_THROW = ("namespace Helper { public static class Aux { public static void Touch() "
+                 "{ throw new System.InvalidOperationException(\"bad helper\"); } } }\n")
+# a wrapper whose body pulls in Microsoft.CodeAnalysis — a NON-framework assembly already loaded in
+# the probe's default context — proving a closed load context never satisfies it from there.
+_DEP_ROSLYN = """using System.ComponentModel;
+public static class WeakEvents
+{
+    public static void AddPropertyChanged(
+        INotifyPropertyChanged source, PropertyChangedEventHandler handler)
+    {
+        _ = Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
+        source.PropertyChanged += handler;
+    }
+}
+"""
 
 _CASES = [
     {"name": "weak", "pre": _PRE, "wrapper": _WEAK, "convert": True, "ref": True,
@@ -175,6 +229,8 @@ _CASES = [
     {"name": "throwing", "pre": _PRE, "wrapper": _THROWING, "convert": True, "ref": True,
      "probe": True, "expect": ("refuse", "TARGET_BEHAVIOR")},
     {"name": "wrongsig", "pre": _PRE, "wrapper": _WRONGSIG, "convert": True, "ref": True,
+     "probe": True, "expect": ("refuse", "WRAPPER_BINDING")},
+    {"name": "overload", "pre": _PRE, "wrapper": _OVERLOAD, "convert": True, "ref": True,
      "probe": True, "expect": ("refuse", "WRAPPER_BINDING")},
     {"name": "srcdef", "pre": _PRE_SRCDEF, "wrapper": None, "convert": True, "ref": False,
      "probe": True, "expect": ("refuse", "CALLSITE_BINDING")},
@@ -231,49 +287,53 @@ def _build(dotnet: str) -> tuple[str, str]:
     return ext[0], probe[0]
 
 
-def _csproj(tfm: str, helper_hint: str | None) -> str:
-    ref = (f'<ItemGroup><Reference Include="Helper"><HintPath>{helper_hint}</HintPath>'
-           f'</Reference></ItemGroup>') if helper_hint else ""
+def _csproj(tfm: str, refs: list[tuple[str, str]], asmname: str,
+            pkgs: list[tuple[str, str]] | None = None) -> str:
+    items = "".join(f'<Reference Include="{n}"><HintPath>{h}</HintPath></Reference>'
+                    for n, h in refs)
+    items += "".join(f'<PackageReference Include="{n}" Version="{v}" />'
+                     for n, v in (pkgs or []))
+    grp = f"<ItemGroup>{items}</ItemGroup>" if items else ""
     return (f'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             f'<TargetFramework>{tfm}</TargetFramework><Nullable>enable</Nullable>'
-            f'<AssemblyName>WeakEvents</AssemblyName><Deterministic>true</Deterministic>'
-            f'</PropertyGroup>{ref}</Project>')
+            f'<AssemblyName>{asmname}</AssemblyName><Deterministic>true</Deterministic>'
+            f'</PropertyGroup>{grp}</Project>')
+
+
+def _compile(dotnet: str, work: str, name: str, src: str, tfm: str, asmname: str,
+             refs: list[tuple[str, str]] | None = None,
+             pkgs: list[tuple[str, str]] | None = None) -> str:
+    """Compile <asmname>.dll and return its output path (not a slot)."""
+    d = os.path.join(work, f"c-{name}")
+    os.makedirs(d)
+    with open(os.path.join(d, "P.csproj"), "w", encoding="utf-8") as fh:
+        fh.write(_csproj(tfm, refs or [], asmname, pkgs))
+    with open(os.path.join(d, "P.cs"), "w", encoding="utf-8") as fh:
+        fh.write(src)
+    p = _run([dotnet, "build", os.path.join(d, "P.csproj"), "-c", "Release", "-v", "q", "--nologo"])
+    if p.returncode != 0:
+        raise Fail(f"compile {name}: {p.stdout[-500:]}")
+    return os.path.join(d, "bin", "Release", tfm, f"{asmname}.dll")
+
+
+def _slot(work: str, name: str, dll: str, as_name: str | None = None) -> str:
+    """A fresh ref-dir holding exactly one DLL (one ordered slot)."""
+    refdir = os.path.join(work, f"ref-{name}")
+    os.makedirs(refdir)
+    shutil.copy(dll, os.path.join(refdir, as_name or os.path.basename(dll)))
+    return refdir
 
 
 def _build_wrapper(dotnet: str, work: str, name: str, src: str, tfm: str,
-                   helper: str | None) -> str:
-    """Compile a standalone WeakEvents.dll (optionally referencing a NON-shipped Helper.dll)
-    and return a fresh ref-dir holding ONLY WeakEvents.dll (exactly one ordered slot)."""
-    helper_hint = None
+                   helper: str | None, asmname: str = "WeakEvents") -> str:
+    """Compile a standalone <asmname>.dll (optionally referencing a NON-shipped Helper.dll)
+    and return a fresh ref-dir holding ONLY that DLL (exactly one ordered slot)."""
+    refs: list[tuple[str, str]] = []
     if helper is not None:
-        hd = os.path.join(work, f"h-{name}")
-        os.makedirs(hd)
-        with open(os.path.join(hd, "H.csproj"), "w", encoding="utf-8") as fh:
-            fh.write('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
-                     f'<TargetFramework>{tfm}</TargetFramework><AssemblyName>Helper</AssemblyName>'
-                     '<Deterministic>true</Deterministic></PropertyGroup></Project>')
-        with open(os.path.join(hd, "H.cs"), "w", encoding="utf-8") as fh:
-            fh.write(helper)
-        p = _run([dotnet, "build", os.path.join(hd, "H.csproj"), "-c", "Release", "-v", "q",
-                  "--nologo"])
-        if p.returncode != 0:
-            raise Fail(f"helper build: {p.stdout[-300:]}")
-        helper_hint = os.path.join(hd, "bin", "Release", tfm, "Helper.dll")
-    wd = os.path.join(work, f"w-{name}")
-    os.makedirs(wd)
-    with open(os.path.join(wd, "W.csproj"), "w", encoding="utf-8") as fh:
-        fh.write(_csproj(tfm, helper_hint))
-    with open(os.path.join(wd, "W.cs"), "w", encoding="utf-8") as fh:
-        fh.write(src)
-    p = _run([dotnet, "build", os.path.join(wd, "W.csproj"), "-c", "Release", "-v", "q",
-              "--nologo"])
-    if p.returncode != 0:
-        raise Fail(f"wrapper {name} build: {p.stdout[-400:]}")
-    refdir = os.path.join(work, f"ref-{name}")
-    os.makedirs(refdir)
-    shutil.copy(os.path.join(wd, "bin", "Release", tfm, "WeakEvents.dll"),
-                os.path.join(refdir, "WeakEvents.dll"))
-    return refdir
+        helper_dll = _compile(dotnet, work, f"h-{name}", helper, tfm, "Helper")
+        refs.append(("Helper", helper_dll))
+    dll = _compile(dotnet, work, f"w-{name}", src, tfm, asmname, refs)
+    return _slot(work, name, dll)
 
 
 def _mkroot(work: str, name: str, cs: str) -> str:
@@ -330,13 +390,13 @@ def _apply_and_gate(cands: str, plan: str, root: str, work: str) -> tuple[str, s
 
 
 def _verify_delta(dotnet: str, dll: str, bundle: str, plan: str, cands: str, root: str,
-                  gate: str, work: str, refdir: str | None) -> str:
+                  gate: str, work: str, ref_dirs: list[str]) -> str:
     out = os.path.join(work, "delta")
     argv = [sys.executable, "-m", "ownlang", "own-fix", "subscriptions", "verify-delta",
             "--bundle", bundle, "--plan", plan, "--candidates", cands, "--root", root,
             "--gate", gate, "--extractor-dll", dll, "--out", out]
-    if refdir:
-        argv += ["--ref-dir", refdir]
+    for rd in ref_dirs:
+        argv += ["--ref-dir", rd]
     p = _run(argv, cwd=_REPO, env=_dotnet_env(dotnet))
     if p.returncode != 0:
         raise Fail(f"verify-delta rc={p.returncode}: {p.stderr[-500:]}")
@@ -344,16 +404,16 @@ def _verify_delta(dotnet: str, dll: str, bundle: str, plan: str, cands: str, roo
 
 
 def _verify_target(dotnet: str, probe: str, bundle: str, plan: str, cands: str, root: str,
-                   delta: str, out: str, refdir: str | None, ordinal: int,
-                   use_probe: bool) -> subprocess.CompletedProcess:
+                   delta: str, out: str, ref_dirs: list[str], ordinal: int | None,
+                   use_probe: bool, env: dict | None = None) -> subprocess.CompletedProcess:
     argv = [sys.executable, "-m", "ownlang", "own-fix", "subscriptions", "verify-target",
             "--bundle", bundle, "--root", root, "--plan", plan, "--candidates", cands,
             "--delta", delta, "--out", out]
     if use_probe:
         argv += ["--probe-dll", probe, "--wrapper-ordinal", str(ordinal)]
-    if refdir:
-        argv += ["--ref-dir", refdir]
-    return _run(argv, cwd=_REPO, env=_dotnet_env(dotnet))
+    for rd in ref_dirs:
+        argv += ["--ref-dir", rd]
+    return _run(argv, cwd=_REPO, env=env or _dotnet_env(dotnet))
 
 
 def _schema_ok(path: str, manual: bool, check, name: str) -> dict:
@@ -368,7 +428,17 @@ def _schema_ok(path: str, manual: bool, check, name: str) -> dict:
           f"{name}: exactly the eleven checks")
     check(obj["delta_binding"]["bound"] is True and obj["delta_binding"]["step10_status"] == "pass",
           f"{name}: delta bound")
+    _no_absolute_paths(raw, check, name)
     return obj
+
+
+def _no_absolute_paths(raw: bytes, check, name: str) -> None:
+    """No slot / deployment / execution absolute path may leak into published evidence (H2)."""
+    import re
+    text = raw.decode("utf-8")
+    leaked = bool(re.search(r"[A-Za-z]:\\", text)) or any(
+        s in text for s in ("/tmp/", "/home/", "/var/", "/root/", "\\\\"))
+    check(not leaked, f"{name}: evidence publishes no absolute path")
 
 
 def run() -> int:
@@ -397,6 +467,7 @@ def run() -> int:
             for c in _CASES:
                 _run_case(dotnet, ext, probe, work, c, check)
             _determinism(dotnet, ext, probe, work, check)
+            _run_ambiguous(dotnet, ext, probe, work, check)
     except Fail as exc:
         fails.append(f"Tier B setup: {exc}")
 
@@ -407,35 +478,43 @@ def run() -> int:
     return 1 if fails else 0
 
 
-def _chain(dotnet: str, ext: str, work: str,
-           c: dict) -> tuple[str, str, str, str, str | None, str]:
-    """extract -> candidates -> plan -> apply -> gate -> verify-delta; returns
-    (bundle, plan, cands, delta, refdir, root)."""
-    name = c["name"]
-    tfm = c.get("tfm", "net8.0")
-    refdir = None
-    if c["wrapper"] is not None:
-        refdir = _build_wrapper(dotnet, work, name, c["wrapper"], tfm, c.get("helper"))
-    root = _mkroot(work, name, c["pre"])
+def _build_chain(dotnet: str, ext: str, work: str, name: str, pre: str, ref_dirs: list[str],
+                 convert: bool) -> tuple[str, str, str, str, str, str]:
+    """extract -> candidates -> plan -> apply -> gate -> verify-delta over EXPLICIT ref-dirs;
+    returns (bundle, plan, cands, delta, root, workdir)."""
+    root = _mkroot(work, name, pre)
     w = os.path.join(work, f"run-{name}")
-    os.makedirs(w)
+    os.makedirs(w, exist_ok=True)
     cands = _candidates(dotnet, ext, root, w)
-    plan = _plan(cands, w, c["convert"])
+    plan = _plan(cands, w, convert)
     bundle, gate = _apply_and_gate(cands, plan, root, w)
-    delta = _verify_delta(dotnet, ext, bundle, plan, cands, root, gate, w,
-                          refdir if c["ref"] else None)
-    return bundle, plan, cands, delta, (refdir if c["ref"] else None), root
+    delta = _verify_delta(dotnet, ext, bundle, plan, cands, root, gate, w, ref_dirs)
+    return bundle, plan, cands, delta, root, w
+
+
+def _chain(dotnet: str, ext: str, work: str,
+           c: dict) -> tuple[str, str, str, str, list[str], str]:
+    name = c["name"]
+    ref_dirs: list[str] = []
+    if c["wrapper"] is not None:
+        ref_dirs = [_build_wrapper(dotnet, work, name, c["wrapper"], c.get("tfm", "net8.0"),
+                                   c.get("helper"))]
+    used = ref_dirs if c["ref"] else []
+    bundle, plan, cands, delta, root, _w = _build_chain(dotnet, ext, work, name, c["pre"],
+                                                        used, c["convert"])
+    return bundle, plan, cands, delta, used, root
 
 
 def _run_case(dotnet: str, ext: str, probe: str, work: str, c: dict, check) -> None:
     name = c["name"]
     try:
-        bundle, plan, cands, delta, refdir, root = _chain(dotnet, ext, work, c)
+        bundle, plan, cands, delta, ref_dirs, root = _chain(dotnet, ext, work, c)
     except Fail as exc:
         check(False, f"{name}: chain setup failed ({exc})")
         return
     out = os.path.join(work, f"run-{name}", "target")
-    p = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, out, refdir, 0, c["probe"])
+    p = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, out, ref_dirs,
+                       0 if c["probe"] else None, c["probe"])
     kind, detail = c["expect"]
     if kind == "refuse":
         check(p.returncode == 2 and detail in p.stderr,
@@ -467,14 +546,14 @@ def _determinism(dotnet: str, ext: str, probe: str, work: str, check) -> None:
     c = {"name": "det", "pre": _PRE, "wrapper": _WEAK, "convert": True, "ref": True,
          "probe": True, "expect": ("pass", "converted")}
     try:
-        bundle, plan, cands, delta, refdir, root = _chain(dotnet, ext, work, c)
+        bundle, plan, cands, delta, ref_dirs, root = _chain(dotnet, ext, work, c)
     except Fail as exc:
         check(False, f"determinism: chain setup failed ({exc})")
         return
     o1 = os.path.join(work, "det-1")
     o2 = os.path.join(work, "det-2")
-    p1 = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, o1, refdir, 0, True)
-    p2 = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, o2, refdir, 0, True)
+    p1 = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, o1, ref_dirs, 0, True)
+    p2 = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, o2, ref_dirs, 0, True)
     if p1.returncode != 0 or p2.returncode != 0:
         check(False, f"determinism: a run failed ({p1.returncode}/{p2.returncode})")
         return
@@ -484,6 +563,35 @@ def _determinism(dotnet: str, ext: str, probe: str, work: str, check) -> None:
         r2 = fh.read()
     check(r1 == r2, "determinism: two independent runs are byte-identical")
     check(_sha(r1) == _sha(r2), "determinism: identical evidence sha")
+
+
+def _expect_result(p: subprocess.CompletedProcess, out: str, expect: tuple[str, str],
+                   check, name: str) -> dict | None:
+    kind, detail = expect
+    if kind == "refuse":
+        check(p.returncode == 2 and detail in p.stderr,
+              f"{name}: expect refuse {detail} (rc={p.returncode}: {p.stderr.strip()[-160:]})")
+        return None
+    if p.returncode != 0:
+        check(False, f"{name}: expect pass ({p.stderr.strip()[-200:]})")
+        return None
+    return _schema_ok(os.path.join(out, "target-result.json"), detail == "manual", check, name)
+
+
+def _run_ambiguous(dotnet: str, ext: str, probe: str, work: str, check) -> None:
+    """H1: two DIFFERENT reference assemblies both exporting global WeakEvents make the source
+    call ambiguous -> CALLSITE_BINDING (a candidate is never promoted to the bound symbol)."""
+    try:
+        da = _slot(work, "ambA", _compile(dotnet, work, "ambA", _AMB, "net8.0", "WeakEventsA"))
+        db = _slot(work, "ambB", _compile(dotnet, work, "ambB", _AMB, "net8.0", "WeakEventsB"))
+        bundle, plan, cands, delta, root, w = _build_chain(dotnet, ext, work, "amb", _PRE,
+                                                           [da, db], True)
+    except Fail as exc:
+        check(False, f"ambiguous: chain setup failed ({exc})")
+        return
+    out = os.path.join(w, "target")
+    p = _verify_target(dotnet, probe, bundle, plan, cands, root, delta, out, [da, db], 0, True)
+    _expect_result(p, out, ("refuse", "CALLSITE_BINDING"), check, "ambiguous")
 
 
 if __name__ == "__main__":
