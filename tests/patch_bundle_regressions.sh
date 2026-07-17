@@ -184,6 +184,36 @@ print("empty patch ok")
 PY
 ok "patch_sha256 is the sha of no bytes; applied is empty; all ids stay in candidate order"
 
+echo "== 4b. a real source whose FILENAME cannot ride in a patch header =="
+# Not a synthetic string fed to canonical_patch: a real file on disk, reached through a
+# hash-bound bundle, whose name carries a tab. The patch headers could not carry it
+# literally, so the bundle must be refused outright rather than published with a
+# change.patch that does not apply.
+rm -rf "$T/tabroot"; mkdir -p "$T/tabroot"
+weird=$(printf 'we\tird.cs')
+cp "$FC" "$T/tabroot/$weird"
+( cd "$T/tabroot" && dotnet run --project "$EXT" --no-build -- "$weird" --fix-candidates \
+    -o "$T/tab_facts.json" ) > /dev/null 2>&1 || bad "tab fixture: extractor"
+python3 -m ownlang own-fix subscriptions candidates "$T/tab_facts.json" --config "$T/own.toml" \
+  --class Own.Samples.FixCandidates.TwoOnOneLine --output "$T/tab-candidates.json" \
+  --root "$T/tabroot" > /dev/null 2>&1 \
+  && python3 "$T/mkplan.py" "$T/tab-candidates.json" "$T/tab-plan.json" > /dev/null 2>&1
+if [ -f "$T/tab-plan.json" ]; then
+  rm -rf "$T/out_tab"
+  python3 -m ownlang own-fix subscriptions apply --plan "$T/tab-plan.json" \
+    --candidates "$T/tab-candidates.json" --root "$T/tabroot" --out "$T/out_tab" \
+    --rewriter "$REWRITER" > /dev/null 2>"$T/err.txt"
+  rc=$?
+  { [ "$rc" = 2 ] && [ ! -e "$T/out_tab" ] && grep -q "patch header" "$T/err.txt"; } \
+    && ok "a tab in the source filename is refused; no bundle is published" \
+    || bad "tab filename: rc=$rc $(cat "$T/err.txt")"
+  cmp -s "$T/tabroot/$weird" "$FC" \
+    && ok "the tab-named source is unchanged" || bad "the tab-named source was modified"
+else
+  # The upstream collector already refuses it — assert THAT rather than claim step 8 did.
+  ok "a tab in the source filename is refused upstream (collector), before step 8"
+fi
+
 echo "== 5. refusals leave no output and no staging =="
 rm -rf "$T/exists"; mkdir -p "$T/exists"; touch "$T/exists/stale"
 apply "$T/exists" "$T/plan.json" > /dev/null 2>"$T/err.txt"
@@ -202,6 +232,38 @@ chmod 755 "$T/ro"
 { [ "$rc" = 2 ] && [ ! -e "$T/ro/out" ] && [ -z "$(ls -A "$T/ro")" ]; } \
   && ok "a failed publication leaves no out-dir and no work directory" \
   || bad "failed publication: rc=$rc leftovers=[$(ls -A "$T/ro")] $(cat "$T/err.txt")"
+
+echo "== 5b. the --rewriter command grammar (one grammar, every platform) =="
+# A quoted executable path containing spaces must reach argv[0] WITHOUT its quotes.
+mkdir -p "$T/my tools"
+{ echo '#!/usr/bin/env bash'; echo "exec $REWRITER \"\$@\""; } > "$T/my tools/rw.sh"
+chmod +x "$T/my tools/rw.sh"
+rm -rf "$T/out_quoted"
+python3 -m ownlang own-fix subscriptions apply --plan "$T/plan.json" \
+  --candidates "$T/candidates.json" --root . --out "$T/out_quoted" \
+  --rewriter "'$T/my tools/rw.sh'" > /dev/null 2>"$T/err.txt" \
+  && diff -r "$T/out_quoted" "$T/out1" > /dev/null \
+  && ok "a quoted exe path with spaces (plus its args) runs and gives the same bundle" \
+  || bad "quoted --rewriter: $(cat "$T/err.txt")"
+
+rm -rf "$T/out_badq"
+python3 -m ownlang own-fix subscriptions apply --plan "$T/plan.json" \
+  --candidates "$T/candidates.json" --root . --out "$T/out_badq" \
+  --rewriter '"unterminated' > /dev/null 2>"$T/err.txt"
+rc=$?
+{ [ "$rc" = 2 ] && grep -q "own-fix: refuse:" "$T/err.txt" \
+  && ! grep -q "Traceback" "$T/err.txt" && [ ! -e "$T/out_badq" ]; } \
+  && ok "an unterminated quote is a refusal, not a traceback" \
+  || bad "unterminated --rewriter: rc=$rc $(cat "$T/err.txt")"
+
+rm -rf "$T/out_norw"
+python3 -m ownlang own-fix subscriptions apply --plan "$T/plan.json" \
+  --candidates "$T/candidates.json" --root . --out "$T/out_norw" \
+  --rewriter "definitely-not-on-path" > /dev/null 2>"$T/err.txt"
+rc=$?
+{ [ "$rc" = 2 ] && grep -q "own-fix: refuse:" "$T/err.txt" && [ ! -e "$T/out_norw" ]; } \
+  && ok "a missing rewriter executable is a refusal with no output" \
+  || bad "missing rewriter: rc=$rc $(cat "$T/err.txt")"
 
 # A stale plan: the gate refuses before the rewriter is ever spawned.
 zero=$(printf '0%.0s' $(seq 1 64))

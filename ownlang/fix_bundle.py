@@ -24,6 +24,7 @@ import difflib
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 from typing import Any
@@ -76,11 +77,35 @@ def _hunk_range(start: int, count: int) -> bytes:
     return b"%d,%d" % (start + 1, count)
 
 
+def require_patchable_path(rel: str) -> None:
+    """A path the unified-diff headers can carry LITERALLY. The canonical-relative-path
+    contract does not exclude a tab, a newline, a DEL or an unpaired surrogate — all of
+    which are legal in a real filename — and any of them would produce headers git cannot
+    parse back, so the bundle would ship a change.patch that does not apply while step 8
+    promises that every published patch does. Git's answer is C-quoting; this slice's
+    answer is to refuse the file, which is honest about what it supports."""
+    for index, ch in enumerate(rel):
+        code = ord(ch)
+        if code < 0x20 or code == 0x7F:
+            raise ApplyError(
+                f"source path {rel!r}: a control character (U+{code:04X}) at offset {index} "
+                "cannot be represented in a patch header — refusing"
+            )
+        if 0xD800 <= code <= 0xDFFF:
+            # Any surrogate present in a `str` is unpaired by construction: a real pair
+            # would already have been decoded into one non-BMP character.
+            raise ApplyError(
+                f"source path {rel!r}: an unpaired surrogate (U+{code:04X}) at offset "
+                f"{index} is not encodable — refusing"
+            )
+
+
 def canonical_patch(rel: str, pre: bytes, post: bytes, context: int = 3) -> bytes:
     """A deterministic `git apply`-able unified diff for the ONE allowed file. Depends on
     nothing but (rel, pre, post) — no timestamps, no temp or absolute paths, no username,
     no cwd — so the same inputs always yield the same bytes. An unchanged file is the
     EMPTY patch (a manual_review-only plan is valid, not a refusal)."""
+    require_patchable_path(rel)
     if pre == post:
         return b""
     before = _split_lines(pre)
@@ -257,12 +282,34 @@ def validate_rewriter_output(
 # --- orchestration -----------------------------------------------------------------
 
 
+def split_rewriter_command(value: str) -> list[str]:
+    """`--rewriter` is ONE grammar on every platform: POSIX shell word-splitting, quotes
+    removed. Splitting per-platform would make the same documented command line mean two
+    things — `posix=False` leaves the quotes around a quoted exe path, so they end up
+    INSIDE argv[0] and the exec fails on a file that does not exist. A path with spaces or
+    backslashes must therefore be quoted:
+
+        --rewriter "'C:\\Program Files\\owen\\owen-rewrite.exe' --quiet"
+
+    Raises ValueError on a malformed command (the caller turns that into a refusal)."""
+    return shlex.split(value, posix=True)
+
+
 def _realpath(path: str) -> str:
     return os.path.realpath(path)
 
 
-def _inside(parent: str, path: str) -> bool:
-    return path == parent or path.startswith(parent.rstrip(os.sep) + os.sep)
+def _same_or_inside(parent: str, path: str) -> bool:
+    """Is `path` the directory `parent` itself, or under it? Both must already be
+    physical. Case sensitivity is a PLATFORM property, not a string property: `C:\\Repo`
+    and `c:\\repo` are one directory on Windows and two on a case-sensitive filesystem, so
+    comparing exactly everywhere would let `c:\\repo\\artifact` slip past a `C:\\Repo`
+    root. os.path.normcase is exactly that platform rule (identity on POSIX)."""
+    p = os.path.normcase(os.path.normpath(parent))
+    c = os.path.normcase(os.path.normpath(path))
+    if c == p:
+        return True
+    return c.startswith(p if p.endswith(os.sep) else p + os.sep)
 
 
 def _prepare_out(out: str, root: str) -> tuple[str, str, str]:
@@ -278,7 +325,7 @@ def _prepare_out(out: str, root: str) -> tuple[str, str, str]:
         raise ApplyError(f"--out {out!r}: the parent directory does not exist")
     parent_phys = _realpath(parent)
     root_phys = _realpath(root)
-    if _inside(root_phys, parent_phys):
+    if _same_or_inside(root_phys, parent_phys):
         raise ApplyError(
             f"--out {out!r} resolves inside the source root ({parent_phys}) — refusing to "
             "write into the tree"
@@ -316,6 +363,10 @@ def apply_bundle(
     validate_apply_inputs(validated_plan, candidates, root)
     plan_sha256 = _sha_bytes(plan_raw)          # the EXACT bytes read here
     rel = candidates["source_files"][0]["path"]
+    # Refuse an unpatchable name HERE, before the rewriter is spawned: the bundle could
+    # never be published, so there is no reason to do the work first. canonical_patch
+    # re-checks — it is a public function and must hold on its own.
+    require_patchable_path(rel)
     pre_sha256 = candidates["source_files"][0]["sha256"]
     expected_applied = {d["finding_id"] for d in validated_plan["decisions"]
                         if d["action"] == "convert_acquire"}

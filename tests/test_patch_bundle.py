@@ -19,9 +19,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ownlang.fix_apply import ApplyError
 from ownlang.fix_bundle import (
+    _same_or_inside,
     build_manifest,
     canonical_patch,
     manifest_bytes,
+    split_rewriter_command,
     validate_rewriter_output,
 )
 
@@ -151,6 +153,26 @@ check(nn.count(b"\\ No newline at end of file\n") == 2, "patch: the no-newline m
 crlf = canonical_patch(REL, b"a;\r\nb;\r\n", b"a;\r\nc;\r\n")
 check(b"-b;\r\n" in crlf and b"+c;\r\n" in crlf, "patch: CRLF lines are preserved")
 
+# A path the headers cannot carry literally must be refused, not emitted: a patch that
+# does not parse back would break step 8's promise that every published patch applies.
+# `src/Sample.cs` is the path civilization normally uses; these are the ones it doesn't.
+for bad_path, why in (
+    ("src/we\tird.cs", "a tab"),
+    ("src/we\nird.cs", "a newline"),
+    ("src/we\rird.cs", "a carriage return"),
+    ("src/we\x00ird.cs", "a NUL"),
+    ("src/we\x7fird.cs", "a DEL"),
+    ("src/we\x01ird.cs", "a C0 control"),
+    ("src/we\ud800ird.cs", "an unpaired surrogate"),
+):
+    refuses(lambda p=bad_path: canonical_patch(p, PRE, POST), f"patch path: {why} is refused")
+    # ...and the refusal must not depend on there being a change to emit.
+    refuses(lambda p=bad_path: canonical_patch(p, PRE, PRE),
+            f"patch path: {why} is refused even for an empty patch")
+check(canonical_patch("src/with space.cs", PRE, POST).startswith(
+    b"diff --git a/src/with space.cs b/src/with space.cs\n"),
+    "patch path: a space is supported (git reads the name literally)")
+
 # --- the canonical manifest --------------------------------------------------------
 
 m = build_manifest(a_plan(), PLAN_SHA, REL, sha(PRE), POST, patch)
@@ -234,6 +256,41 @@ with tempfile.TemporaryDirectory() as tmp:
         "transport: a wrong preimage sha", "pre_sha256")
     refuses(lambda: validate(workdir(tmp, a_report(source_files=[]))),
             "transport: no source file", "exactly one source file")
+
+# --- path containment is a platform property ---------------------------------------
+
+check(_same_or_inside("/repo", "/repo"), "containment: a root contains itself")
+check(_same_or_inside("/repo", "/repo/sub/x"), "containment: a descendant is inside")
+check(not _same_or_inside("/repo", "/repository"), "containment: a name PREFIX is not inside")
+check(not _same_or_inside("/repo", "/other/x"), "containment: an unrelated path is outside")
+check(_same_or_inside("/", "/anything"), "containment: everything is inside the fs root")
+check(_same_or_inside("/repo", "/repo/") and _same_or_inside("/repo/", "/repo"),
+      "containment: a trailing separator does not change the answer")
+# The case rule must follow the PLATFORM, or `c:\repo\out` slips past a `C:\Repo` root.
+if os.name == "nt":
+    check(_same_or_inside("C:\\Repo", "c:\\repo\\artifact"),
+          "containment: Windows is case-insensitive")
+else:
+    check(not _same_or_inside("/repo", "/REPO/artifact"),
+          "containment: a case-sensitive filesystem is case-sensitive")
+
+# --- the --rewriter command grammar (one grammar, every platform) -------------------
+
+check(split_rewriter_command("owen-rewrite") == ["owen-rewrite"], "rewriter: a bare command")
+check(split_rewriter_command("dotnet run --project x --no-build --")
+      == ["dotnet", "run", "--project", "x", "--no-build", "--"], "rewriter: extra arguments")
+check(split_rewriter_command("'/opt/my tools/owen-rewrite' --quiet")
+      == ["/opt/my tools/owen-rewrite", "--quiet"],
+      "rewriter: a quoted exe path with spaces keeps NO quotes in argv[0]")
+check(split_rewriter_command("'C:\\Program Files\\owen\\owen-rewrite.exe'")
+      == ["C:\\Program Files\\owen\\owen-rewrite.exe"],
+      "rewriter: a single-quoted Windows path keeps its backslashes")
+try:
+    split_rewriter_command('"unterminated')
+    failures.append("rewriter: an unterminated quote must not parse")
+except ValueError:
+    pass  # the CLI maps this to `own-fix: refuse:` + exit 2, never a traceback
+checks += 1
 
 print(f"patch bundle (S2 step 8): {checks - len(failures)}/{checks} checks pass")
 for f in failures:

@@ -97,7 +97,7 @@ file static class Rewriter
         // ---- 2. paths: canonical root-relative, confined, and an out-dir off the tree ----
         var rootReal = RealDir(root, "--root");
         var absPath = ConfineToRoot(rootReal, relPath);
-        var (stagingDir, outFull) = PrepareOutDir(outDir, rootReal);
+        var outFull = PrepareOutDir(outDir, rootReal);
 
         // ---- 3. source: read ONCE; hash, decode and parse the SAME bytes (no TOCTOU) ----
         var sourceBytes = ReadAll(absPath, $"source '{relPath}'");
@@ -154,7 +154,7 @@ file static class Rewriter
         };
 
         // ---- 6. publish the bundle transactionally ----
-        Publish(stagingDir, outFull, relPath, postBytes, report, rootReal);
+        Publish(outFull, relPath, postBytes, report, rootReal);
 
         Console.WriteLine($"owen-rewrite: applied {applied.Count} convert_acquire, "
             + $"{manual.Count} manual_review -> {outDir}");
@@ -648,9 +648,21 @@ file static class Rewriter
         return real;
     }
 
-    static bool IsInside(string dir, string path) =>
-        path.StartsWith(dir.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
-            StringComparison.Ordinal);
+    /// <summary>Path comparison is a PLATFORM property, not a string property: `C:\Repo`
+    /// and `c:\repo` are one directory on Windows, and two on a case-sensitive filesystem.
+    /// Comparing ordinally everywhere would let `c:\repo\out` slip past a `C:\Repo` root.</summary>
+    static readonly StringComparison PathCmp = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
+    /// <summary>Is `path` the directory `dir` itself, or something under it? Both must
+    /// already be physical (symlink-resolved) paths.</summary>
+    static bool SameOrInside(string dir, string path)
+    {
+        if (string.Equals(path, dir, PathCmp)) return true;
+        var prefix = dir.EndsWith(Path.DirectorySeparatorChar) ? dir : dir + Path.DirectorySeparatorChar;
+        return path.StartsWith(prefix, PathCmp);
+    }
 
     /// <summary>`rel` must be exactly the canonical root-relative form the collector emits
     /// (`/`-separated, no drive, no `..`, no absolute path), and must resolve to a regular
@@ -663,7 +675,7 @@ file static class Rewriter
             throw new RefuseError($"source path '{rel}' is not a canonical root-relative path");
         // PHYSICAL confinement: `rel` may still walk through a symlinked directory.
         var abs = RealPath(Path.Combine(rootReal, rel), $"source path '{rel}'");
-        if (!IsInside(rootReal, abs))
+        if (!SameOrInside(rootReal, abs))
             throw new RefuseError($"source path '{rel}' resolves outside the root ({abs})");
         if (!File.Exists(abs))
             throw new RefuseError($"source path '{rel}' is not a regular file");
@@ -675,8 +687,8 @@ file static class Rewriter
     /// <summary>The out-dir must be a fresh directory PHYSICALLY off the source tree. The
     /// parent is resolved first and everything is then built under that verified physical
     /// path, so a symlinked parent cannot land the bundle in the source tree while the
-    /// string still looks external. Returns the staging dir to rename from.</summary>
-    static (string Staging, string Out) PrepareOutDir(string outDir, string rootReal)
+    /// string still looks external.</summary>
+    static string PrepareOutDir(string outDir, string rootReal)
     {
         var outFull = SafeFullPath(outDir, "--out");
         var name = Path.GetFileName(outFull);
@@ -689,10 +701,46 @@ file static class Rewriter
         var outPhys = Path.Combine(parentPhys, name);
         if (Directory.Exists(outPhys) || File.Exists(outPhys) || LinkTargetOf(outPhys, "--out") is not null)
             throw new RefuseError($"--out '{outDir}' already exists — refusing to mix runs");
-        var staging = Path.Combine(parentPhys, "." + name + ".owen-staging");
-        if (Directory.Exists(staging) || File.Exists(staging) || LinkTargetOf(staging, "--out") is not null)
-            throw new RefuseError($"staging path '{staging}' already exists — refusing");
-        return (staging, outPhys);
+        return outPhys;
+    }
+
+    /// <summary>Claim a staging directory under the already-verified physical parent, then
+    /// PROVE we own it — created here and now, unpredictably named, a real empty directory
+    /// that resolves to itself. A deterministic name that is merely checked-then-written is
+    /// a window: between the check and the first write, anyone able to guess the name can
+    /// drop a link there and redirect the "isolated" postimage into the source tree.</summary>
+    static string ClaimStaging(string parentPhys, string what)
+    {
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var name = ".owen-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+            var path = Path.Combine(parentPhys, name);
+            if (Directory.Exists(path) || File.Exists(path) || LinkTargetOf(path, what) is not null)
+                continue;   // astronomically unlikely; try again rather than touch it
+            try
+            {
+                // Owner-only on Unix, set AS the directory is created — never a widened
+                // window between mkdir and chmod.
+                if (OperatingSystem.IsWindows())
+                    Directory.CreateDirectory(path);
+                else
+                    Directory.CreateDirectory(path, UnixFileMode.UserRead | UnixFileMode.UserWrite
+                        | UnixFileMode.UserExecute);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException
+                or ArgumentException or NotSupportedException or SecurityException)
+            {
+                throw new RefuseError($"{what}: cannot create a staging directory ({e.Message})");
+            }
+            if (LinkTargetOf(path, what) is not null)
+                throw new RefuseError($"{what}: the staging path is a link — refusing");
+            if (!string.Equals(RealPath(path, what), path, PathCmp))
+                throw new RefuseError($"{what}: the staging path does not resolve to itself — refusing");
+            if (Directory.EnumerateFileSystemEntries(path).Any())
+                throw new RefuseError($"{what}: the claimed staging directory is not empty — refusing");
+            return path;
+        }
+        throw new RefuseError($"{what}: could not claim a staging directory");
     }
 
     /// <summary>The out-dir's parent, resolved physically and proven to be off the source
@@ -701,7 +749,7 @@ file static class Rewriter
     static string CheckOutParent(string parent, string outDir, string rootReal)
     {
         var parentPhys = RealPath(parent, "--out parent");
-        if (parentPhys == rootReal || IsInside(rootReal, parentPhys))
+        if (SameOrInside(rootReal, parentPhys))
             throw new RefuseError(
                 $"--out '{outDir}' resolves inside the source root ({parentPhys}) — refusing to write into the tree");
         return parentPhys;
@@ -892,17 +940,18 @@ file static class Rewriter
     /// <summary>Stage the WHOLE bundle in a sibling dir, then publish it with one atomic
     /// rename. A failure at any write leaves no out-dir at all — never a half-published
     /// bundle whose report does not describe its postimage.</summary>
-    static void Publish(string staging, string outFull, string rel, byte[] postBytes, object report,
-        string rootReal)
+    static void Publish(string outFull, string rel, byte[] postBytes, object report, string rootReal)
     {
         // Re-prove the destination is physically off the source tree, now, against the
-        // filesystem as it is at publication — not as it was at argument-parsing time.
-        CheckOutParent(Path.GetDirectoryName(outFull)!, outFull, rootReal);
+        // filesystem as it is at publication — not as it was at argument-parsing time —
+        // and only THEN claim the directory we are about to write into.
+        var parentPhys = CheckOutParent(Path.GetDirectoryName(outFull)!, outFull, rootReal);
+        var staging = ClaimStaging(parentPhys, "--out");
         try
         {
             var postPath = Path.GetFullPath(Path.Combine(staging, "postimage", rel));
             var postRoot = Path.Combine(staging, "postimage");
-            if (!IsInside(postRoot, postPath))
+            if (!SameOrInside(postRoot, postPath))
                 throw new RefuseError($"post-image path for '{rel}' escapes the out-dir");
             Directory.CreateDirectory(Path.GetDirectoryName(postPath)!);
             File.WriteAllBytes(postPath, postBytes);

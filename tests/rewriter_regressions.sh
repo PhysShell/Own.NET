@@ -104,11 +104,19 @@ for name, path in (("escape", "../../../etc/passwd"), ("rooted", "/etc/passwd"),
         dec["file"] = path
     w(f"p_{name}", e)
 
+# The target must be malformed ON ITS OWN: change it in BOTH files and re-bind the bundle
+# hash, so the envelope still matches and only ValidateTargetApi can object. Changing the
+# plan alone would trip the plan-vs-bundle projection check first — the right exit code
+# for the wrong reason, which proves nothing about the grammar.
 for name, tgt in (("invoke", "WeakEvents.Add()"), ("generic", "WeakEvents.Add<Foo>"),
                   ("cond", "WeakEvents?.Add"), ("expr", "a + b"),
                   ("arg", "Weak.Add(evil, x)"), ("assign", "x = y"),
                   ("trailing", "Weak.Add; Evil()"), ("empty", "")):
+    b = cp(c)
+    b["target_api"]["subscribe"] = tgt
+    w(f"tc_{name}", b)
     x = cp(p)
+    x["input_bundle_sha256"] = bundle_sha256(b)
     x["target_api"]["subscribe"] = tgt
     w(f"t_{name}", x)
 
@@ -252,7 +260,7 @@ refuse "action outside the S1 enum"       "$T/p_bad_action_enum.json" "$T/c_bad_
 
 echo "== 2. target API grammar, enforced BEFORE any replacement is built =="
 for t in invoke generic cond expr arg assign trailing empty; do
-  refuse "target: $t" "$T/t_$t.json" "$T/fc-candidates.json" "target_api.subscribe"
+  refuse "target: $t" "$T/t_$t.json" "$T/tc_$t.json" "target_api.subscribe"
 done
 
 echo "== 3. out-dir confinement + transactional publication =="

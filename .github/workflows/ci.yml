@@ -1723,17 +1723,39 @@ jobs:
       # the invariant the whole hash-bound chain rests on.
       - name: S2 owen-rewrite — a stale preimage SHA is a hard refusal
         run: |
-          zero=$(printf '0%.0s' $(seq 1 64))
-          sed "s/sha256:[0-9a-f]\{64\}/sha256:$zero/g" "$RUNNER_TEMP/s2/fc-plan.json" \
-            > "$RUNNER_TEMP/s2/stale.json"
+          # The preimage SHA must be stale ON ITS OWN: change it in BOTH files and re-bind
+          # the bundle hash, so the envelope still matches and the binding still holds.
+          # Rewriting every sha256-looking value instead would break the hash binding, and
+          # the refusal would come from there — the right exit code for the wrong reason.
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          sys.path.insert(0, ".")
+          from ownlang.fix_plan import bundle_sha256
+
+          t = os.environ["RUNNER_TEMP"] + "/s2"
+          bundle = json.load(open(f"{t}/fc-candidates.json"))
+          plan = json.load(open(f"{t}/fc-plan.json"))
+          stale = "sha256:" + "0" * 64
+          bundle["source_files"][0]["sha256"] = stale
+          plan["source_files"][0]["sha256"] = stale
+          plan["input_bundle_sha256"] = bundle_sha256(bundle)
+          json.dump(bundle, open(f"{t}/stale-candidates.json", "w"))
+          json.dump(plan, open(f"{t}/stale-plan.json", "w"))
+          PY
           if dotnet run --project frontend/roslyn/Owen.CSharp.Rewriter --no-build -- \
-              --plan "$RUNNER_TEMP/s2/stale.json" --candidates "$RUNNER_TEMP/s2/fc-candidates.json" \
-              --root . --out "$RUNNER_TEMP/s2/stale_out" 2>/dev/null; then
+              --plan "$RUNNER_TEMP/s2/stale-plan.json" \
+              --candidates "$RUNNER_TEMP/s2/stale-candidates.json" \
+              --root . --out "$RUNNER_TEMP/s2/stale_out" 2>"$RUNNER_TEMP/s2/stale.err"; then
             echo 'FAIL: a stale preimage SHA must be refused'; exit 1
           fi
+          grep -q 'STALE SOURCE / PREIMAGE MISMATCH' "$RUNNER_TEMP/s2/stale.err" \
+            || { echo "FAIL: refused for the wrong reason: $(cat "$RUNNER_TEMP/s2/stale.err")"; exit 1; }
           [ ! -d "$RUNNER_TEMP/s2/stale_out" ] || { echo 'FAIL: a refused run left an output dir'; exit 1; }
           git diff --quiet -- frontend/roslyn/samples/ || { echo 'FAIL: the source tree was modified'; exit 1; }
-          echo 'OK: a stale preimage SHA is refused; nothing written; the source tree is untouched'
+          echo 'OK: STALE SOURCE / PREIMAGE MISMATCH; nothing written; the source tree is untouched'
 
   # The OwnTS frontend spike (P-020 Own.React): the SAME OwnIR seam, fed from a
   # React .tsx instead of C#. Two analyses over the one core: (1) a useEffect
