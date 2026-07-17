@@ -638,6 +638,7 @@ def _cmd_verify_delta(rest: list[str]) -> int:
     postimage and proves the OWN001 delta matches the plan (converted gone, manual preserved,
     no new OWN001 of any lane, no new OWN050). --gate is mandatory; there is no --config."""
     from ownlang.fix_delta import DeltaError, run_verify_delta
+    from ownlang.fix_gate import GateError  # the reused snapshot/publish helpers raise this
 
     flags = {"--bundle", "--plan", "--candidates", "--root", "--gate", "--extractor-dll", "--out"}
     parsed = _own_fix_parse(rest, flags, {"--ref-dir"})
@@ -660,7 +661,7 @@ def _cmd_verify_delta(rest: list[str]) -> int:
         published = run_verify_delta(
             opts["--bundle"], opts["--plan"], opts["--candidates"], opts["--root"],
             opts["--gate"], opts["--extractor-dll"], opts["--out"], opts.get("--ref-dir") or [])
-    except DeltaError as exc:
+    except (DeltaError, GateError) as exc:  # both carry a stable .category
         print(f"own-fix: refuse: {exc.category}: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # fail closed: any surprise is a refusal, not a traceback

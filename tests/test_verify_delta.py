@@ -644,6 +644,23 @@ def run() -> int:
     check(_raises(fd.GATE_BINDING, bg, json.dumps(good, indent=2).encode("utf-8") + b"\n"),
           "gate: non-canonical bytes -> GATE_BINDING")
 
+    # a missing CLI input must be a CONTROLLED refusal (its real category), never a leaked
+    # GateError surfacing as INFRASTRUCTURE (the reused fix_gate helpers raise GateError).
+    import contextlib
+    import io
+
+    from ownlang.__main__ import cmd_own_fix
+    with tempfile.TemporaryDirectory() as tmp:
+        miss = os.path.join(tmp, "nope")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = cmd_own_fix(["subscriptions", "verify-delta", "--bundle", miss, "--plan", miss,
+                              "--candidates", miss, "--root", miss, "--gate", miss,
+                              "--extractor-dll", miss, "--out", os.path.join(tmp, "out")])
+        text = err.getvalue()
+        check(rc == 2 and "own-fix: refuse:" in text and "INFRASTRUCTURE" not in text,
+              f"CLI: missing input -> controlled refusal, not INFRASTRUCTURE ({text.strip()[:80]})")
+
     # --- slice 6: reference-closure snapshot + evidence assembly + bundle layout
     with tempfile.TemporaryDirectory() as tmp:
         work = os.path.join(tmp, "w")
