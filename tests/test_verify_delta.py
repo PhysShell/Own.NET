@@ -132,6 +132,138 @@ def _bplan(cands: dict, actions: list) -> dict:
                           for i, c in enumerate(cands["candidates"])]}
 
 
+# --- facts builders for the real fresh-core-subprocess fixture (slices 3-5) ---------
+
+_CTYPE = "Own.Samples.TwoOnOneLine"
+_CREL = "Own/Samples/TwoOnOneLine.cs"
+
+
+def _cfix(handler: str = "OnA", source: str = "_a", ordinal: int = 0, start: int = 100) -> dict:
+    return {"enclosing_member": _CTYPE + ".ctor()", "event_identity": _EV,
+            "event_contract": "inotify_property_changed",
+            "source_identity": _CTYPE + "." + source, "source_identity_kind": "stable_symbol",
+            "handler_identity": _CTYPE + "." + handler + "(object, ...)",
+            "handler_identity_kind": "stable_symbol", "occurrence_ordinal": ordinal,
+            "span": {"start": start, "length": 30, "start_line": 10, "start_column": 1,
+                     "end_line": 10, "end_column": 31},
+            "teardown": {"status": "none", "candidates": []}}
+
+
+def _csub(fix: dict, event: str, handler: str) -> dict:
+    return {"event": event, "handler": handler, "line": 10, "released": False,
+            "resource": "subscription", "source": "injected", "lambda": False, "fix": fix}
+
+
+def _cfacts(subs: list) -> dict:
+    comp = {"name": _CTYPE.rsplit(".", 1)[-1], "qualified_name": _CTYPE, "is_partial": False,
+            "is_nested": False, "declaration_count": 1, "is_generated": False,
+            "file": _CREL, "subscriptions": subs}
+    return {"ownir_version": 0, "fix_candidates_version": 1, "components": [comp]}
+
+
+def _mk_root(work: str) -> str:
+    d = tempfile.mkdtemp(dir=work)
+    src = os.path.join(d, *_CREL.split("/"))
+    os.makedirs(os.path.dirname(src), exist_ok=True)
+    with open(src, "wb") as fh:
+        fh.write(b"// sample\nnamespace Own.Samples { class TwoOnOneLine {} }\n")
+    return d
+
+
+def _candidates_from(records: list) -> dict:
+    return {"version": 1, "operation": "fix-subscriptions",
+            "target_api": {"subscribe": "WeakEvents.AddPropertyChanged"},
+            "selection": {"allowed_types": [{"full_name": _CTYPE, "file": _CREL}],
+                          "selected_findings": None,
+                          "constraints": {"max_types_changed": 1, "max_files_changed": 1,
+                                          "allow_helper_changes": False,
+                                          "allow_config_changes": False,
+                                          "allow_suppressions": False}},
+            "source_files": [{"path": _CREL, "sha256": "sha256:" + "0" * 64}],
+            "candidates": list(records)}
+
+
+def _fixture_core_fails() -> tuple[int, list[str]]:
+    """Drive the REAL fresh core subprocess (snapshotted ownlang, python -S -B -E) over
+    synthetic --fix-candidates facts. No dotnet. Proves LA1 (runner fingerprint + verify),
+    LA4 (closed core.json), the analyzer-to-id bridge, and baseline authority end to end."""
+    checks = 0
+    fails: list[str] = []
+
+    def cf(cond: bool, label: str) -> None:
+        nonlocal checks
+        checks += 1
+        if not cond:
+            fails.append(label)
+
+    target = "WeakEvents.AddPropertyChanged"
+    with tempfile.TemporaryDirectory() as work:
+        core_dir, runner_path, runner_sha, core_fp = fd.materialize_core(work)
+        py, pyfp = fd.resolve_python()
+        cf(core_fp["core_runner_sha256"] == fd._sha_bytes(fd.RUN_CORE_SOURCE.encode("utf-8")),
+           "fixture: core_runner_sha256 == hash of RUN_CORE_SOURCE")
+        cf(len(pyfp["python_executable_sha256"]) == len("sha256:") + 64,
+           "fixture: python executable fingerprinted")
+
+        base_facts = _cfacts([_csub(_cfix("OnA", "_a", 0, 100), "_a.PropertyChanged", "OnA"),
+                              _csub(_cfix("OnB", "_b", 1, 200), "_b.PropertyChanged", "OnB")])
+        post_facts = _cfacts([_csub(_cfix("OnB", "_b", 1, 200), "_b.PropertyChanged", "OnB")])
+        base_root, post_root = _mk_root(work), _mk_root(work)
+
+        def params(root: str) -> dict:
+            return {"root": root, "target_subscribe": target, "class_fqn": _CTYPE}
+
+        base = fd.run_core(core_dir, runner_path, py, runner_sha, base_root,
+                           json.dumps(base_facts).encode(), params(base_root), fd.BASELINE_ANALYSIS)
+        post = fd.run_core(core_dir, runner_path, py, runner_sha, post_root,
+                           json.dumps(post_facts).encode(), params(post_root),
+                           fd.POSTIMAGE_ANALYSIS)
+        cf(len(base["all_own001"]) == 2, "fixture: baseline has 2 OWN001")
+        cf(len(post["all_own001"]) == 1, "fixture: postimage has 1 OWN001")
+
+        recs = {e["record"]["handler"]: e for e in base["fix_eligible_subscriptions"]}
+        cf(set(recs) == {"OnA", "OnB"}, "fixture: two fix-eligible subscriptions")
+        fid_a, fid_b = recs["OnA"]["finding_id"], recs["OnB"]["finding_id"]
+        candidates = _candidates_from([recs["OnA"]["record"], recs["OnB"]["record"]])
+
+        fd.check_baseline_authority(candidates, base)
+        fd.check_target_identity(base, _CREL, fd.BASELINE_ANALYSIS)
+        fd.check_target_identity(post, _CREL, fd.POSTIMAGE_ANALYSIS)
+        res = fd.classify_delta({"convert_acquire_ids": [fid_a], "manual_review_ids": [fid_b]},
+                                base, post)
+        cf(res["delta"]["removed_subscription_own001_ids"] == [fid_a], "fixture: OnA removed")
+        cf(res["delta"]["preserved_subscription_own001_ids"] == [fid_b], "fixture: OnB preserved")
+        cf(len(res["delta"]["removed_all_own001"]) == 1, "fixture: exactly one core removed")
+
+        # baseline-authority mismatch -> ANALYSIS_SCOPE
+        import copy
+        bad_c = copy.deepcopy(candidates)
+        bad_c["candidates"][0]["enclosing_member"] = "N.Other.ctor()"
+        cf(_raises(fd.ANALYSIS_SCOPE, fd.check_baseline_authority, bad_c, base),
+           "fixture: baseline-authority mismatch -> ANALYSIS_SCOPE")
+
+        # malformed facts -> BASELINE_ANALYSIS (the runner exits 4)
+        junk_root = _mk_root(work)
+        try:
+            fd.run_core(core_dir, runner_path, py, runner_sha, junk_root, b"{ not json",
+                        params(junk_root), fd.BASELINE_ANALYSIS)
+            cf(False, "fixture: malformed facts -> BASELINE_ANALYSIS")
+        except fd.DeltaError as exc:
+            cf(exc.category == fd.BASELINE_ANALYSIS, "fixture: malformed facts -> BASELINE")
+
+        # runner mutation -> TOOLCHAIN_BINDING (LA1), checked before launch (do this LAST)
+        with open(runner_path, "ab") as fh:
+            fh.write(b"# tamper\n")
+        try:
+            fd.run_core(core_dir, runner_path, py, runner_sha, base_root,
+                        json.dumps(base_facts).encode(), params(base_root), fd.BASELINE_ANALYSIS)
+            cf(False, "fixture: runner mutation -> TOOLCHAIN_BINDING")
+        except fd.DeltaError as exc:
+            cf(exc.category == fd.TOOLCHAIN_BINDING, "fixture: runner mutation -> TOOLCHAIN")
+
+    return checks, fails
+
+
 def run() -> int:  # noqa: C901 — a flat battery of independent assertions
     ok = 0
     bad = 0
@@ -346,8 +478,15 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
     check(_raises(fd.GATE_BINDING, bg, json.dumps(good, indent=2).encode("utf-8") + b"\n"),
           "gate: non-canonical bytes -> GATE_BINDING")
 
+    # --- slices 3-5: the real fresh core subprocess (no dotnet) ---------------
+    fchecks, ffails = _fixture_core_fails()
+    ok += fchecks - len(ffails)
+    bad += len(ffails)
+    for f in ffails:
+        print(f"  FAIL: {f}")
+
     total = ok + bad
-    print(f"verify-delta (unit): {ok}/{total} checks pass")
+    print(f"verify-delta (unit + fixture): {ok}/{total} checks pass")
     return 1 if bad else 0
 
 

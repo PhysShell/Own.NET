@@ -29,8 +29,11 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import shutil
 import stat
+import subprocess
+import sys
 from collections import Counter
 from typing import Any
 
@@ -490,3 +493,262 @@ def _validate_gate_shape(supplied: Any, cat: str) -> None:
             raise DeltaError(cat, f"gate-result.json.gates.{name} status {value!r} not allowed")
     if len({gates[n] for n in _STEP9_GIT_GATES}) != 1:
         raise DeltaError(cat, "gate-result.json git gates disagree (must share one status)")
+
+
+# --- the fresh, snapshotted core-analyzer subprocess (LA1 / LA4 / LA5) --------------
+
+# The deterministic runner materialized at WORK_ROOT/core/run_core.py. Its bytes are
+# hashed as core_runner_sha256; it is NOT part of the ownlang fingerprint. It runs under
+# `python -S -B -E` with the snapshotted ownlang package on sys.path[0], so the fingerprinted
+# bytes are the bytes that actually produce the verdict. It self-fingerprints after import
+# (every ownlang module must resolve physically inside the snapshot) and exits 3 on failure.
+RUN_CORE_SOURCE = r'''"""Step 10 core runner — runs inside a fresh, isolated subprocess over the
+snapshotted ownlang package on sys.path[0] and emits canonical core.json."""
+import json
+import os
+import sys
+
+
+def _fail_toolchain(msg):
+    sys.stderr.write("run_core: toolchain: " + msg + "\n")
+    raise SystemExit(3)
+
+
+def _fail_analysis(msg):
+    sys.stderr.write("run_core: analysis: " + msg + "\n")
+    raise SystemExit(4)
+
+
+def _phys_inside(child, parent):
+    c = os.path.normcase(os.path.realpath(child))
+    p = os.path.normcase(os.path.realpath(parent))
+    return c == p or c.startswith(p + os.sep)
+
+
+def main():
+    if len(sys.argv) != 4:
+        _fail_toolchain("usage: run_core.py FACTS CORE_OUT PARAMS")
+    facts_path, out_path, params_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    pkg = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ownlang")
+    try:
+        import ownlang
+        import ownlang.__main__
+        import ownlang.fix_candidates
+        import ownlang.ownir
+    except Exception as exc:
+        _fail_toolchain("cannot import snapshotted ownlang: " + repr(exc))
+    for mod in (ownlang, ownlang.ownir, ownlang.__main__, ownlang.fix_candidates):
+        f = getattr(mod, "__file__", None)
+        if not f or not os.path.isfile(f) or not _phys_inside(f, pkg):
+            _fail_toolchain("import escaped the snapshot: " + str(getattr(mod, "__name__", "?")))
+    try:
+        with open(params_path, "rb") as fh:
+            params = json.load(fh)
+        with open(facts_path, "rb") as fh:
+            facts = json.load(fh)
+    except Exception as exc:
+        _fail_analysis("cannot read inputs: " + repr(exc))
+    try:
+        findings = ownlang.ownir.check_facts(facts)
+    except Exception as exc:
+        _fail_analysis("check_facts failed: " + repr(exc))
+    all_own001 = []
+    own050 = []
+    for fnd in findings:
+        if fnd.code == "OWN001":
+            all_own001.append({"file": fnd.file, "code": "OWN001", "component": fnd.component,
+                               "event": fnd.event, "handler": fnd.handler, "kind": fnd.kind,
+                               "advisory": bool(fnd.advisory), "severity": fnd.severity,
+                               "ignore_reason": fnd.ignore_reason})
+        elif fnd.code == "OWN050":
+            own050.append({"file": fnd.file, "component": fnd.component,
+                           "event": fnd.event, "handler": fnd.handler})
+    try:
+        env = ownlang.fix_candidates.collect_candidates(
+            facts, params["target_subscribe"], params["class_fqn"], None, params["root"])
+    except Exception as exc:
+        _fail_analysis("collect_candidates failed: " + repr(exc))
+    fix_eligible = []
+    for c in env["candidates"]:
+        src = c["source"]
+        full = c["event"] if src == "this" else (src + "." + c["event"])
+        fix_eligible.append({"finding_id": c["finding_id"],
+                             "diagnostic_code": c["diagnostic_code"],
+                             "bridge_key": {"file": c["file"],
+                                            "component": c["containing_type"].rsplit(".", 1)[-1],
+                                            "event": full, "handler": c["handler"]},
+                             "record": c})
+    core = {"version": 1, "operation": "verify-subscription-core-observations",
+            "all_own001": all_own001, "own050": own050,
+            "fix_eligible_subscriptions": fix_eligible}
+    data = json.dumps(core, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    with open(out_path, "w", encoding="utf-8") as fh:
+        fh.write(data + "\n")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
+def _walk_pkg(pkg_src: str) -> list[str]:
+    """Every regular package file, canonical '/'-relative, sorted by byte order — except
+    __pycache__ and compiled .pyc/.pyo. Rejects any symlink/reparse or non-regular entry."""
+    out: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(pkg_src):
+        dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+        for d in dirnames:
+            if _is_link(os.lstat(os.path.join(dirpath, d))):
+                raise DeltaError(TOOLCHAIN_BINDING, "ownlang has a symlinked subdirectory")
+        for fn in filenames:
+            if fn.endswith((".pyc", ".pyo")):
+                continue
+            full = os.path.join(dirpath, fn)
+            st = os.lstat(full)
+            if _is_link(st):
+                raise DeltaError(TOOLCHAIN_BINDING, f"ownlang/{fn} is a symlink / reparse point")
+            if not stat.S_ISREG(st.st_mode):
+                raise DeltaError(TOOLCHAIN_BINDING, f"ownlang/{fn} is not a regular file")
+            out.append(os.path.relpath(full, pkg_src).replace(os.sep, "/"))
+    out.sort()
+    return out
+
+
+def materialize_core(work: str) -> tuple[str, str, str, dict[str, Any]]:
+    """Snapshot the installed ownlang package verbatim into WORK/core/ownlang and write the
+    deterministic runner WORK/core/run_core.py. Returns (core_dir, runner_path,
+    core_runner_sha256, core_fingerprint). The runner bytes are verified immediately after
+    materialization (LA1)."""
+    import ownlang as _own
+
+    own_file = getattr(_own, "__file__", None)
+    if not own_file:
+        raise DeltaError(TOOLCHAIN_BINDING, "cannot locate the ownlang package")
+    pkg_src = os.path.dirname(os.path.abspath(own_file))
+    if _is_link(os.lstat(pkg_src)):
+        raise DeltaError(TOOLCHAIN_BINDING, "the ownlang package root is a link")
+    core_dir = os.path.join(work, "core")
+    pkg_dst = os.path.join(core_dir, "ownlang")
+    os.makedirs(pkg_dst)
+    manifest: list[dict[str, str]] = []
+    for rel in _walk_pkg(pkg_src):
+        data = _snapshot(os.path.join(pkg_src, rel.replace("/", os.sep)),
+                         TOOLCHAIN_BINDING, f"ownlang/{rel}")
+        dst = os.path.join(pkg_dst, rel.replace("/", os.sep))
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        with open(dst, "wb") as fh:
+            fh.write(data)
+        manifest.append({"path": rel, "sha256": _sha_bytes(data)})
+    manifest.sort(key=lambda m: m["path"])
+    runner_path = os.path.join(core_dir, "run_core.py")
+    runner_bytes = RUN_CORE_SOURCE.encode("utf-8")
+    with open(runner_path, "wb") as fh:
+        fh.write(runner_bytes)
+    core_runner_sha256 = _sha_bytes(runner_bytes)
+    _verify_runner(runner_path, core_runner_sha256)
+    fingerprint = {
+        "ownlang_manifest_sha256": _sha_bytes(_canonical_json(manifest)),
+        "ownlang_files": manifest,
+        "core_runner_sha256": core_runner_sha256,
+    }
+    return core_dir, runner_path, core_runner_sha256, fingerprint
+
+
+def _verify_runner(runner_path: str, expected_sha: str) -> None:
+    """Re-read and re-hash the materialized runner; a change is TOOLCHAIN_BINDING (LA1)."""
+    data = _snapshot(runner_path, TOOLCHAIN_BINDING, "run_core.py")
+    if _sha_bytes(data) != expected_sha:
+        raise DeltaError(TOOLCHAIN_BINDING, "core runner bytes changed (core_runner_sha256)")
+
+
+def resolve_python() -> tuple[str, dict[str, Any]]:
+    """Resolve, snapshot, and identify the Python executable that runs the fresh core
+    subprocess (LA5). A missing / non-regular interpreter is TOOLCHAIN_BINDING."""
+    exe = sys.executable
+    if not exe:
+        raise DeltaError(TOOLCHAIN_BINDING, "no Python executable to run the core subprocess")
+    data = _snapshot(exe, TOOLCHAIN_BINDING, "python executable")
+    return exe, {
+        "python_executable_sha256": _sha_bytes(data),
+        "python_implementation": sys.implementation.name,
+        "python_version": platform.python_version(),
+        "python_cache_tag": sys.implementation.cache_tag or "unknown",
+    }
+
+
+def _core_env(image_dir: str) -> dict[str, str]:
+    """A minimal environment for the core subprocess. `-E` ignores every PYTHON* variable;
+    only the host bits the interpreter needs to start are forwarded, and the caches / temp
+    are redirected into the image workspace."""
+    env: dict[str, str] = {}
+    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "HOME", "LANG", "LC_ALL"):
+        if k in os.environ:
+            env[k] = os.environ[k]
+    env["TMPDIR"] = image_dir
+    env["TEMP"] = image_dir
+    env["TMP"] = image_dir
+    return env
+
+
+def run_core(core_dir: str, runner_path: str, python_exe: str, core_runner_sha256: str,
+             image_dir: str, facts_bytes: bytes, params: dict[str, Any],
+             cat: str) -> dict[str, Any]:
+    """Run the fresh core subprocess over `facts_bytes` and return the parsed, schema-checked
+    core.json. Re-verifies the runner bytes before launch (LA1). A self-fingerprint / import
+    escape (exit 3) is TOOLCHAIN_BINDING; any other failure or a malformed core.json is the
+    per-image analysis category `cat`."""
+    _verify_runner(runner_path, core_runner_sha256)
+    facts_path = os.path.join(image_dir, "facts.json")
+    core_path = os.path.join(image_dir, "core.json")
+    params_path = os.path.join(image_dir, "params.json")
+    with open(facts_path, "wb") as fh:
+        fh.write(facts_bytes)
+    with open(params_path, "wb") as fh:
+        fh.write(_canonical_json(params))
+    proc = subprocess.run(
+        [python_exe, "-S", "-B", "-E", runner_path, facts_path, core_path, params_path],
+        cwd=core_dir, env=_core_env(image_dir), capture_output=True, text=True, check=False)
+    if proc.returncode == 3:
+        raise DeltaError(TOOLCHAIN_BINDING,
+                         f"core runner self-fingerprint failed: {proc.stderr.strip()[:300]}")
+    if proc.returncode != 0:
+        raise DeltaError(cat, f"core analyzer failed (rc={proc.returncode}): "
+                              f"{proc.stderr.strip()[:300]}")
+    try:
+        with open(core_path, "rb") as fh:
+            raw = json.loads(fh.read())
+    except (OSError, ValueError) as exc:
+        raise DeltaError(cat, f"core.json is unreadable ({exc})") from exc
+    return _parse_core(raw, cat)
+
+
+def check_baseline_authority(candidates: dict[str, Any], base_core: dict[str, Any]) -> None:
+    """Bind the declared closure to the accepted S0 candidates (LA/§8): every accepted
+    candidate must be reproduced EXACTLY over the baseline for all 18 authoritative fields.
+    A mismatch is ANALYSIS_SCOPE — it proves the declared closure is semantically compatible
+    with the accepted S0 authority, not that it is historically identical."""
+    recomputed = {e["finding_id"]: e["record"]
+                  for e in base_core["fix_eligible_subscriptions"]}
+    for c in candidates["candidates"]:
+        fid = c["finding_id"]
+        rec = recomputed.get(fid)
+        if rec is None:
+            raise DeltaError(ANALYSIS_SCOPE,
+                             f"accepted candidate {fid} is not reproduced over the baseline")
+        for field in _AUTHORITY_FIELDS:
+            if c[field] != rec[field]:
+                raise DeltaError(ANALYSIS_SCOPE,
+                                 f"baseline-authority mismatch on '{field}' for {fid}")
+
+
+def check_target_identity(core: dict[str, Any], rel: str, cat: str) -> None:
+    """Every finding used by Step 10 must carry file == the declared target rel (LA/§3)."""
+    for o in core["all_own001"]:
+        if o["file"] != rel:
+            raise DeltaError(cat, f"OWN001 attributed to {o['file']!r} != target {rel!r}")
+    for o in core["own050"]:
+        if o["file"] != rel:
+            raise DeltaError(cat, f"OWN050 attributed to {o['file']!r} != target {rel!r}")
+    for e in core["fix_eligible_subscriptions"]:
+        if e["record"]["file"] != rel or e["bridge_key"]["file"] != rel:
+            raise DeltaError(cat, f"candidate attributed to a file != target {rel!r}")
