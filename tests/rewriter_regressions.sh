@@ -197,7 +197,9 @@ echo "== 5. strict UTF-8: BOM / CRLF preserved, invalid bytes refused =="
 # Each variant needs its OWN root: the SHA is checked before the decode, so to reach the
 # decoder at all the candidates must have been built from the very bytes under test.
 uvariant() {  # uvariant <name> <expected-rc> <expect>
-  local name="$1" root="$T/u_$name" out="$T/uo_$name"
+  local name="$1"
+  local root="$T/u_$name"
+  local out="$T/uo_$name"
   rm -rf "$out"
   ( cd "$root" && dotnet run --project "$EXT" --no-build -- sample.cs --fix-candidates \
       -o "$T/u_facts.json" ) > /dev/null 2>&1 || { bad "$name: extractor"; return; }
