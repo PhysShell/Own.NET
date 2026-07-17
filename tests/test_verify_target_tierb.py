@@ -240,6 +240,12 @@ _CASES = [
      "probe": True, "expect": ("pass", "two")},
     {"name": "incompat", "pre": _PRE, "wrapper": _INCOMPAT, "tfm": "net9.0", "convert": True,
      "ref": True, "probe": True, "expect": ("refuse", "WRAPPER_RUNTIME_UNSUPPORTED")},
+    # a .NET Framework 4.x wrapper references mscorlib -> cross-family incompatibility (L1).
+    {"name": "netfx", "pre": _PRE, "wrapper": _STRONG, "tfm": "net48", "convert": True,
+     "ref": True, "probe": True, "expect": ("refuse", "WRAPPER_RUNTIME_UNSUPPORTED")},
+    # a compatible netstandard2.0 wrapper is NOT rejected by the runtime-family predicate.
+    {"name": "netstandard", "pre": _PRE, "wrapper": _WEAK, "tfm": "netstandard2.0", "convert": True,
+     "ref": True, "probe": True, "expect": ("pass", "converted")},
     {"name": "missingdep", "pre": _PRE, "wrapper": _MISSINGDEP, "helper": _HELPER,
      "convert": True, "ref": True, "probe": True,
      "expect": ("refuse", "WRAPPER_RUNTIME_UNSUPPORTED")},
@@ -258,7 +264,10 @@ def _sha(b: bytes) -> str:
 
 def _run(argv: list[str], cwd: str | None = None,
          env: dict | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False, env=env)
+    # decode as UTF-8 with replacement — a localized MSBuild / NuGet-restore line (e.g. under a
+    # non-UTF-8 Windows console codepage) must never crash the reader thread.
+    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False, env=env,
+                          encoding="utf-8", errors="replace")
 
 
 def _py(args: list[str], cwd: str | None = None) -> subprocess.CompletedProcess:
@@ -291,13 +300,18 @@ def _build(dotnet: str) -> tuple[str, str]:
 
 def _csproj(tfm: str, refs: list[tuple[str, str]], asmname: str,
             pkgs: list[tuple[str, str]] | None = None) -> str:
+    pkgs = list(pkgs or [])
+    if tfm.startswith("net4"):  # .NET Framework targets need the cross-platform ref assemblies
+        pkgs.append(("Microsoft.NETFramework.ReferenceAssemblies", "1.0.3"))
     items = "".join(f'<Reference Include="{n}"><HintPath>{h}</HintPath></Reference>'
                     for n, h in refs)
-    items += "".join(f'<PackageReference Include="{n}" Version="{v}" />'
-                     for n, v in (pkgs or []))
+    items += "".join(f'<PackageReference Include="{n}" Version="{v}" />' for n, v in pkgs)
     grp = f"<ItemGroup>{items}</ItemGroup>" if items else ""
+    # LangVersion latest: net48 / netstandard2.0 default to C# 7.3, where Nullable=enable and the
+    # nullable annotations in the wrapper sources are an error.
     return (f'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>'
             f'<TargetFramework>{tfm}</TargetFramework><Nullable>enable</Nullable>'
+            f'<LangVersion>latest</LangVersion>'
             f'<AssemblyName>{asmname}</AssemblyName><Deterministic>true</Deterministic>'
             f'</PropertyGroup>{grp}</Project>')
 
