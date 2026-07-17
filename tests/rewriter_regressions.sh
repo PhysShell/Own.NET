@@ -111,6 +111,104 @@ for name, tgt in (("invoke", "WeakEvents.Add()"), ("generic", "WeakEvents.Add<Fo
     x = cp(p)
     x["target_api"]["subscribe"] = tgt
     w(f"t_{name}", x)
+
+# A NUL in the path survives JSON but not Path.GetFullPath: it must still be exit 2.
+# An overflowing span must be refused before `new TextSpan(start, length)` can throw.
+b = cp(c)
+b["source_files"][0]["path"] = "front\x00end/x.cs"
+b["selection"]["allowed_types"][0]["file"] = "front\x00end/x.cs"
+for cand in b["candidates"]:
+    cand["file"] = "front\x00end/x.cs"
+w("c_nulpath", b)
+e = cp(p)
+e["input_bundle_sha256"] = bundle_sha256(b)
+e["source_files"][0]["path"] = "front\x00end/x.cs"
+e["selection"]["allowed_types"][0]["file"] = "front\x00end/x.cs"
+for dec in e["decisions"]:
+    dec["file"] = "front\x00end/x.cs"
+w("p_nulpath", e)
+
+b = cp(c)
+b["candidates"][0]["acquire_span"] = {"start": 2147483647, "length": 2147483647}
+w("c_overflow", b)
+e = cp(p)
+e["input_bundle_sha256"] = bundle_sha256(b)
+e["decisions"][0]["acquire_span"] = {"start": 2147483647, "length": 2147483647}
+w("p_overflow", e)
+PY
+
+# The FROZEN domain envelope: the bundle hash proves the plan and the candidates agree with
+# EACH OTHER, never that the candidates obey the permission policy. Each forgery below is
+# fully self-consistent and freshly hash-bound, so only the rewriter's own restatement of
+# the frozen contract can refuse it. The plan is hand-built as the canonical projection,
+# because validate_plan (correctly) will not produce one from a forged bundle.
+python3 - "$T" <<'PY' || exit 1
+import json
+import sys
+
+sys.path.insert(0, ".")
+from ownlang.fix_candidates import collect_candidates
+from ownlang.fix_plan import bundle_sha256
+
+t = sys.argv[1]
+facts = json.load(open(f"{t}/fc.json"))
+
+
+def project(b, action="convert_acquire"):
+    """The canonical projection of `b` — exactly what validate_plan would materialize."""
+    return {
+        "version": 1,
+        "operation": "fix-subscriptions",
+        "input_bundle_sha256": bundle_sha256(b),
+        "target_api": {"subscribe": b["target_api"]["subscribe"]},
+        "selection": {
+            "allowed_types": [dict(b["selection"]["allowed_types"][0])],
+            "selected_findings": b["selection"]["selected_findings"],
+            "constraints": b["selection"]["constraints"],
+        },
+        "source_files": [dict(b["source_files"][0])],
+        "decisions": [
+            {"finding_id": x["finding_id"], "action": action, "file": x["file"],
+             "acquire_span": x["acquire_span"]}
+            for x in b["candidates"]
+        ],
+    }
+
+
+def w(name, b, action="convert_acquire"):
+    json.dump(b, open(f"{t}/c_{name}.json", "w"))
+    json.dump(project(b, action), open(f"{t}/p_{name}.json", "w"))
+
+
+# A `name_only` event (a same-named PropertyChanged on an unrelated type) that FORGES the
+# permission to convert. S0 gives it manual_review only; the tiering must be re-enforced.
+nb = collect_candidates(facts, "WeakEvents.AddPropertyChanged",
+                        "Own.Samples.FixCandidates.NameOnlySubscriber", None, ".")
+assert nb["candidates"][0]["event_contract"] == "name_only", "fixture drift: expected name_only"
+assert nb["candidates"][0]["allowed_actions"] == ["manual_review"], "fixture drift"
+nb["candidates"][0]["allowed_actions"] = ["convert_acquire", "manual_review"]
+w("forged_tier", nb)
+
+good = collect_candidates(facts, "WeakEvents.AddPropertyChanged",
+                          "Own.Samples.FixCandidates.TwoOnOneLine", None, ".")
+
+# The selected type's file and the source file drift apart, each self-consistent.
+b = json.loads(json.dumps(good))
+b["selection"]["allowed_types"][0]["file"] = "frontend/roslyn/samples/Other.cs"
+w("type_file_drift", b)
+
+# selected_findings that does not name exactly the bundle's candidates.
+b = json.loads(json.dumps(good))
+b["selection"]["selected_findings"] = [b["candidates"][0]["finding_id"], "OWN001:sha256:" + "0" * 64]
+w("bad_selected", b)
+
+# An unknown event_contract, and an action outside the S1 enum.
+b = json.loads(json.dumps(good))
+b["candidates"][0]["event_contract"] = "definitely_weak_trust_me"
+w("bad_contract", b)
+b = json.loads(json.dumps(good))
+b["candidates"][0]["allowed_actions"] = ["convert_acquire", "rm_minus_rf"]
+w("bad_action_enum", b)
 PY
 
 refuse() {  # refuse <name> <plan> <cands> <expect> [root]
@@ -137,6 +235,20 @@ refuse "source path escapes root"   "$T/p_escape.json"    "$T/c_escape.json"    
 refuse "absolute source path"       "$T/p_rooted.json"    "$T/c_rooted.json"     "canonical root-relative"
 refuse "backslash source path"      "$T/p_backslash.json" "$T/c_backslash.json"  "canonical root-relative"
 refuse "non-canonical .. inside"    "$T/p_dotdot.json"    "$T/c_dotdot.json"     "canonical root-relative"
+refuse "invalid character in path"  "$T/p_nulpath.json"   "$T/c_nulpath.json"    "refuse:"
+refuse "overflowing acquire_span"   "$T/p_overflow.json"  "$T/c_overflow.json"   "outside the source"
+
+echo "== 1b. the frozen domain envelope, restated inside the executable =="
+refuse "forged name_only convert_acquire" "$T/p_forged_tier.json"    "$T/c_forged_tier.json" \
+  "convert_acquire is not permitted for event_contract 'name_only'"
+refuse "allowed-type file != source file" "$T/p_type_file_drift.json" "$T/c_type_file_drift.json" \
+  "is not the source file"
+refuse "malformed selected_findings"      "$T/p_bad_selected.json"    "$T/c_bad_selected.json" \
+  "does not name exactly the bundle's candidates"
+refuse "unknown event_contract"           "$T/p_bad_contract.json"    "$T/c_bad_contract.json" \
+  "unknown event_contract"
+refuse "action outside the S1 enum"       "$T/p_bad_action_enum.json" "$T/c_bad_action_enum.json" \
+  "unknown action"
 
 echo "== 2. target API grammar, enforced BEFORE any replacement is built =="
 for t in invoke generic cond expr arg assign trailing empty; do
@@ -167,6 +279,55 @@ chmod 755 "$T/ro"
 { [ "$rc" = 2 ] && [ ! -e "$T/ro/out" ] && [ -z "$(ls -A "$T/ro")" ]; } \
   && ok "a failed publication leaves no out-dir and no staging dir" \
   || bad "failed publication: rc=$rc leftovers=[$(ls -A "$T/ro")] $(cat "$T/err.txt")"
+
+echo "== 3b. confinement is PHYSICAL, not lexical (intermediate directory symlinks) =="
+# root/linked -> outside : the final path is not itself a link, so resolving only the last
+# component would call this escape confined. The bundle is re-hashed so nothing but the
+# rewriter's own physical confinement can refuse it.
+rm -rf "$T/sym"; mkdir -p "$T/sym/outside" "$T/sym/root"
+cp "$FR" "$T/sym/outside/sample.cs"
+ln -s ../outside "$T/sym/root/linked"
+( cd "$T/sym/outside" && dotnet run --project "$EXT" --no-build -- sample.cs --fix-candidates \
+    -o "$T/sym_facts.json" ) > /dev/null 2>&1 || bad "symlink fixture: extractor"
+plan_for "$T/sym_facts.json" Own.Samples.FixRewrite.ExplicitDelegate "$T/sym/outside" "$T/sym" \
+  > /dev/null 2>&1 || bad "symlink fixture: candidates/plan"
+python3 - "$T" <<'PY' || exit 1
+import json
+import sys
+
+sys.path.insert(0, ".")
+from ownlang.fix_plan import bundle_sha256
+
+t = sys.argv[1]
+b = json.load(open(f"{t}/sym-candidates.json"))
+p = json.load(open(f"{t}/sym-plan.json"))
+via = "linked/sample.cs"                      # the SAME bytes, reached through the link
+b["source_files"][0]["path"] = via
+b["selection"]["allowed_types"][0]["file"] = via
+for cand in b["candidates"]:
+    cand["file"] = via
+json.dump(b, open(f"{t}/c_via_link.json", "w"))
+p["input_bundle_sha256"] = bundle_sha256(b)
+p["source_files"][0]["path"] = via
+p["selection"]["allowed_types"][0]["file"] = via
+for dec in p["decisions"]:
+    dec["file"] = via
+json.dump(p, open(f"{t}/p_via_link.json", "w"))
+PY
+refuse "source reached through a symlinked dir" "$T/p_via_link.json" "$T/c_via_link.json" \
+  "resolves outside the root" "$T/sym/root"
+
+# outside/link -> <repo> : an --out whose parent is a link INTO the source tree. The string
+# looks external; the physical path is the repo.
+ln -s "$REPO" "$T/sym/link_to_root"
+rw --plan "$T/fc-plan.json" --candidates "$T/fc-candidates.json" --root . \
+  --out "$T/sym/link_to_root/artifacts" > /dev/null 2>"$T/err.txt"
+rc=$?
+{ [ "$rc" = 2 ] && grep -q "resolves inside the source root" "$T/err.txt" \
+  && [ ! -e "$REPO/artifacts" ]; } \
+  && ok "an out-dir whose parent links into the source root is refused" \
+  || bad "symlinked out parent: rc=$rc $(cat "$T/err.txt")"
+git diff --quiet -- "$FC" && ok "the source tree is still untouched" || bad "the source tree was modified"
 
 echo "== 4. extractor-compatible normalization (handler / receiver / containing type) =="
 ext "$FR" --fix-candidates -o "$T/fr.json" > /dev/null 2>&1 || { echo "FAIL: extractor"; exit 1; }

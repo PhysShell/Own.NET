@@ -21,6 +21,7 @@
 // needed. The INotifyPropertyChanged contract + the convert_acquire permission were proven
 // in S0 and are carried in the hash-bound candidate.
 
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -45,6 +46,15 @@ file static class Rewriter
         catch (RefuseError e)
         {
             Console.Error.WriteLine($"owen-rewrite: refuse: {e.Message}");
+            return 2;
+        }
+        catch (Exception e)
+        {
+            // Fail closed. Every known shape/path/span failure is already a RefuseError with
+            // a real message; this net exists so that an UNANTICIPATED one is still a
+            // refusal that writes nothing, rather than a traceback with an exit code the
+            // caller might not read as "refused".
+            Console.Error.WriteLine($"owen-rewrite: refuse: internal error ({e.GetType().Name}: {e.Message})");
             return 2;
         }
     }
@@ -108,9 +118,7 @@ file static class Rewriter
         {
             if (action == "manual_review") { manual.Add(fid); continue; }
 
-            var span = SpanOf(cand, fid);
-            if (span.End > sourceText.Length)
-                throw new RefuseError($"{fid}: span is outside the source");
+            var span = SpanOf(cand, fid, sourceText.Length);
             foreach (var s in seenSpans)
                 if (span.OverlapsWith(s))
                     throw new RefuseError($"{fid}: overlapping convert_acquire spans");
@@ -146,7 +154,7 @@ file static class Rewriter
         };
 
         // ---- 6. publish the bundle transactionally ----
-        Publish(stagingDir, outFull, relPath, postBytes, report);
+        Publish(stagingDir, outFull, relPath, postBytes, report, rootReal);
 
         Console.WriteLine($"owen-rewrite: applied {applied.Count} convert_acquire, "
             + $"{manual.Count} manual_review -> {outDir}");
@@ -307,13 +315,53 @@ file static class Rewriter
 
     // ================= binding =================
 
-    /// <summary>The candidate fields this executable relies on, keyed by finding_id, in
-    /// bundle order. Every access is checked here so no later step can throw a shape
-    /// exception.</summary>
+    // The FROZEN domain envelope, restated here because a hash cannot carry it. The bundle
+    // binding proves the plan and the candidates agree with EACH OTHER; it says nothing
+    // about whether the candidates obey the permission policy. A forged, perfectly
+    // self-consistent pair could otherwise declare `event_contract: name_only` with
+    // `allowed_actions: ["convert_acquire"]`, re-hash, and be honoured.
+    static readonly string[] Contracts =
+        ["inotify_property_changed", "name_only", "other", "unresolved"];
+    static readonly string[] Actions = ["convert_acquire", "manual_review"];
+
+    /// <summary>The candidates bundle, validated against the frozen envelope and returned
+    /// as (finding_id, element) in bundle order. Every field a later step reads is checked
+    /// here, so nothing downstream can throw a shape exception.</summary>
     static List<(string Id, JsonElement El)> ValidateBundleShape(JsonElement bundle)
     {
+        ExactKeys(bundle, "candidates", "version", "operation", "target_api", "selection",
+            "source_files", "candidates");
+        if (Int(bundle, "version", "candidates") != 1)
+            throw new RefuseError("candidates: unsupported version");
+        if (Str(bundle, "operation", "candidates") != "fix-subscriptions")
+            throw new RefuseError("candidates: operation must be 'fix-subscriptions'");
+        ExactKeys(Prop(bundle, "target_api", "candidates"), "candidates.target_api", "subscribe");
+        Str(Prop(bundle, "target_api", "candidates"), "subscribe", "candidates.target_api");
+
+        var sel = Prop(bundle, "selection", "candidates");
+        ExactKeys(sel, "candidates.selection", "allowed_types", "selected_findings", "constraints");
+        var types = Arr(sel, "allowed_types", "candidates.selection");
+        if (types.Count != 1)
+            throw new RefuseError("candidates.selection.allowed_types must hold exactly one type");
+        ExactKeys(types[0], "candidates.selection.allowed_types[0]", "full_name", "file");
+        var typeName = Str(types[0], "full_name", "candidates.selection.allowed_types[0]");
+        var typeFile = Str(types[0], "file", "candidates.selection.allowed_types[0]");
+        CheckConstraints(Prop(sel, "constraints", "candidates.selection"), "candidates.selection.constraints");
+
+        var files = Arr(bundle, "source_files", "candidates");
+        if (files.Count != 1)
+            throw new RefuseError("candidates.source_files must hold exactly one file");
+        ExactKeys(files[0], "candidates.source_files[0]", "path", "sha256");
+        var srcPath = Str(files[0], "path", "candidates.source_files[0]");
+        Str(files[0], "sha256", "candidates.source_files[0]");
+        // The selected type and the source file must be the SAME file — comparing each
+        // against its own copy would still admit `type -> A.cs, source -> B.cs`.
+        if (typeFile != srcPath)
+            throw new RefuseError(
+                $"candidates: the selected type's file '{typeFile}' is not the source file '{srcPath}'");
+
         var list = new List<(string, JsonElement)>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         var cands = Arr(bundle, "candidates", "candidates");
         if (cands.Count == 0)
             throw new RefuseError("candidates: the bundle is empty");
@@ -321,21 +369,77 @@ file static class Rewriter
         {
             var ctx = $"candidates[{list.Count}]";
             var fid = Str(c, "finding_id", ctx);
-            if (!seen.Add(fid))
+            if (!ids.Add(fid))
                 throw new RefuseError($"{ctx}: duplicate finding_id {fid}");
-            foreach (var k in new[] { "file", "containing_type", "event", "source", "handler",
-                                      "source_identity", "source_identity_kind",
-                                      "handler_identity", "handler_identity_kind" })
+            foreach (var k in new[] { "event", "source", "handler", "source_identity",
+                                      "source_identity_kind", "handler_identity",
+                                      "handler_identity_kind" })
                 Str(c, k, ctx);
             var span = Prop(c, "acquire_span", ctx);
             Int(span, "start", $"{ctx}.acquire_span");
             Int(span, "length", $"{ctx}.acquire_span");
+
+            // Each candidate belongs to the ONE selected (type, file) pair.
+            if (Str(c, "containing_type", ctx) != typeName)
+                throw new RefuseError($"{ctx}: is outside the single selected type {typeName}");
+            if (Str(c, "file", ctx) != srcPath)
+                throw new RefuseError($"{ctx}: is outside the single selected source file {srcPath}");
+
+            var contract = Str(c, "event_contract", ctx);
+            if (!Contracts.Contains(contract))
+                throw new RefuseError($"{ctx}: unknown event_contract '{contract}'");
             var actions = Arr(c, "allowed_actions", ctx);
-            if (actions.Count == 0 || actions.Any(a => a.ValueKind != JsonValueKind.String))
+            if (actions.Count == 0)
                 throw new RefuseError($"{ctx}: allowed_actions must be a non-empty string array");
+            var seenActions = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var a in actions)
+            {
+                if (a.ValueKind != JsonValueKind.String)
+                    throw new RefuseError($"{ctx}: allowed_actions must be a string array");
+                var action = a.GetString()!;
+                if (!Actions.Contains(action))
+                    throw new RefuseError($"{ctx}: unknown action '{action}' in allowed_actions");
+                if (!seenActions.Add(action))
+                    throw new RefuseError($"{ctx}: duplicate action '{action}' in allowed_actions");
+            }
+            // The frozen tiering: converting an acquire is permitted ONLY for a proven
+            // INotifyPropertyChanged contract, whatever the bundle claims to allow.
+            if (seenActions.Contains("convert_acquire") && contract != "inotify_property_changed")
+                throw new RefuseError(
+                    $"{ctx}: convert_acquire is not permitted for event_contract '{contract}'");
             list.Add((fid, c));
         }
+
+        // selected_findings: null, or a unique set naming exactly these candidates.
+        var selected = Prop(sel, "selected_findings", "candidates.selection");
+        if (selected.ValueKind != JsonValueKind.Null)
+        {
+            if (selected.ValueKind != JsonValueKind.Array)
+                throw new RefuseError("candidates.selection.selected_findings must be null or an array");
+            var picked = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var f in selected.EnumerateArray())
+            {
+                if (f.ValueKind != JsonValueKind.String)
+                    throw new RefuseError("candidates.selection.selected_findings must hold strings");
+                if (!picked.Add(f.GetString()!))
+                    throw new RefuseError($"candidates.selection.selected_findings: duplicate {f.GetString()}");
+            }
+            if (!picked.SetEquals(ids))
+                throw new RefuseError(
+                    "candidates.selection.selected_findings does not name exactly the bundle's candidates");
+        }
         return list;
+    }
+
+    static void CheckConstraints(JsonElement cons, string ctx)
+    {
+        ExactKeys(cons, ctx, "max_types_changed", "max_files_changed", "allow_helper_changes",
+            "allow_config_changes", "allow_suppressions");
+        if (Int(cons, "max_types_changed", ctx) != 1 || Int(cons, "max_files_changed", ctx) != 1)
+            throw new RefuseError($"{ctx}: this slice changes exactly one type in one file");
+        foreach (var k in new[] { "allow_helper_changes", "allow_config_changes", "allow_suppressions" })
+            if (Prop(cons, k, ctx).ValueKind != JsonValueKind.False)
+                throw new RefuseError($"{ctx}.{k} must be false");
     }
 
     /// <summary>Re-derive the canonical plan projection from the (hash-bound) bundle and
@@ -381,15 +485,7 @@ file static class Rewriter
             != Canonical(Prop(bSel, "selected_findings", "candidates.selection")))
             throw new RefuseError("plan.selection.selected_findings does not match the candidates bundle");
 
-        var cons = Prop(sel, "constraints", "plan.selection");
-        ExactKeys(cons, "plan.selection.constraints", "max_types_changed", "max_files_changed",
-            "allow_helper_changes", "allow_config_changes", "allow_suppressions");
-        if (Int(cons, "max_types_changed", "plan.selection.constraints") != 1
-            || Int(cons, "max_files_changed", "plan.selection.constraints") != 1)
-            throw new RefuseError("plan.selection.constraints: this slice changes exactly one type in one file");
-        foreach (var k in new[] { "allow_helper_changes", "allow_config_changes", "allow_suppressions" })
-            if (Prop(cons, k, "plan.selection.constraints").ValueKind != JsonValueKind.False)
-                throw new RefuseError($"plan.selection.constraints.{k} must be false");
+        CheckConstraints(Prop(sel, "constraints", "plan.selection"), "plan.selection.constraints");
 
         var files = Arr(plan, "source_files", "plan");
         var bFiles = Arr(bundle, "source_files", "candidates");
@@ -468,20 +564,85 @@ file static class Rewriter
 
     // ================= paths =================
 
-    static string RealPath(string path)
+    static string SafeFullPath(string path, string what)
     {
-        var full = Path.GetFullPath(path);
-        // Resolve symlinks the way the collector's os.path.realpath did, so a link cannot
-        // point the "confined" path out of the tree.
-        var link = File.Exists(full) ? File.ResolveLinkTarget(full, returnFinalTarget: true)
-            : Directory.Exists(full) ? Directory.ResolveLinkTarget(full, returnFinalTarget: true)
-            : null;
-        return link is null ? full : Path.GetFullPath(link.FullName);
+        try
+        {
+            return Path.GetFullPath(path);
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException
+            or PathTooLongException or SecurityException or IOException)
+        {
+            throw new RefuseError($"{what}: invalid path '{path}' ({e.Message})");
+        }
     }
+
+    /// <summary>The raw symlink/junction target of `path`, or null if it is not a link.</summary>
+    static string? LinkTargetOf(string path, string what)
+    {
+        try
+        {
+            FileSystemInfo info = Directory.Exists(path) ? new DirectoryInfo(path) : new FileInfo(path);
+            return info.LinkTarget;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException
+            or ArgumentException or NotSupportedException or SecurityException)
+        {
+            throw new RefuseError($"{what}: cannot inspect '{path}' ({e.Message})");
+        }
+    }
+
+    /// <summary>The PHYSICAL path — every existing component resolved, exactly as
+    /// os.path.realpath does. Resolving only the final component would leave confinement
+    /// lexical: `root/linked-dir -> /outside` is not itself a link at `root/linked-dir/f.cs`,
+    /// so a purely-final resolve would call the escape confined. On each link we restart
+    /// from the target's root with the target's segments ahead of the remaining ones, so a
+    /// link whose own target sits behind further links still resolves. `..` is applied
+    /// AFTER the prefix is resolved, which is what makes it physical rather than textual.</summary>
+    static string RealPath(string path, string what)
+    {
+        var full = SafeFullPath(path, what);
+        var root = Path.GetPathRoot(full);
+        if (string.IsNullOrEmpty(root))
+            throw new RefuseError($"{what}: '{path}' has no filesystem root");
+        var pending = new Queue<string>(Segments(full, root));
+        var cur = root;
+        var hops = 0;
+        while (pending.Count > 0)
+        {
+            var seg = pending.Dequeue();
+            if (seg == ".") continue;
+            if (seg == "..")
+            {
+                cur = Path.GetDirectoryName(cur) ?? root;
+                if (cur.Length < root.Length) cur = root;
+                continue;
+            }
+            var next = Path.Combine(cur, seg);
+            var raw = LinkTargetOf(next, what);
+            if (raw is null) { cur = next; continue; }
+            if (++hops > 40)
+                throw new RefuseError($"{what}: too many symlink hops resolving '{path}'");
+            var target = SafeFullPath(Path.IsPathRooted(raw) ? raw : Path.Combine(cur, raw), what);
+            var tRoot = Path.GetPathRoot(target);
+            if (string.IsNullOrEmpty(tRoot))
+                throw new RefuseError($"{what}: link '{next}' has an unrooted target");
+            var rest = pending.ToList();
+            pending.Clear();
+            foreach (var s in Segments(target, tRoot)) pending.Enqueue(s);
+            foreach (var s in rest) pending.Enqueue(s);
+            cur = tRoot;
+        }
+        return cur;
+    }
+
+    static string[] Segments(string full, string root) =>
+        full[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries);
 
     static string RealDir(string root, string what)
     {
-        var real = RealPath(root);
+        var real = RealPath(root, what);
         if (!Directory.Exists(real))
             throw new RefuseError($"{what}: '{root}' is not a directory");
         return real;
@@ -500,9 +661,10 @@ file static class Rewriter
             || rel.StartsWith('/') || rel.Contains("//", StringComparison.Ordinal)
             || rel.Split('/').Any(p => p is "" or "." or ".."))
             throw new RefuseError($"source path '{rel}' is not a canonical root-relative path");
-        var abs = RealPath(Path.Combine(rootReal, rel));
+        // PHYSICAL confinement: `rel` may still walk through a symlinked directory.
+        var abs = RealPath(Path.Combine(rootReal, rel), $"source path '{rel}'");
         if (!IsInside(rootReal, abs))
-            throw new RefuseError($"source path '{rel}' escapes the root");
+            throw new RefuseError($"source path '{rel}' resolves outside the root ({abs})");
         if (!File.Exists(abs))
             throw new RefuseError($"source path '{rel}' is not a regular file");
         if (Path.GetRelativePath(rootReal, abs).Replace('\\', '/') != rel)
@@ -510,22 +672,39 @@ file static class Rewriter
         return abs;
     }
 
-    /// <summary>The out-dir must be a fresh directory off the source tree; returns the
-    /// staging dir it will be atomically renamed from.</summary>
+    /// <summary>The out-dir must be a fresh directory PHYSICALLY off the source tree. The
+    /// parent is resolved first and everything is then built under that verified physical
+    /// path, so a symlinked parent cannot land the bundle in the source tree while the
+    /// string still looks external. Returns the staging dir to rename from.</summary>
     static (string Staging, string Out) PrepareOutDir(string outDir, string rootReal)
     {
-        var outFull = Path.GetFullPath(outDir);
-        if (outFull == rootReal || IsInside(rootReal, outFull))
-            throw new RefuseError($"--out '{outDir}' is inside the source root — refusing to write into the tree");
-        if (Directory.Exists(outFull) || File.Exists(outFull))
-            throw new RefuseError($"--out '{outDir}' already exists — refusing to mix runs");
+        var outFull = SafeFullPath(outDir, "--out");
+        var name = Path.GetFileName(outFull);
+        if (string.IsNullOrEmpty(name))
+            throw new RefuseError($"--out '{outDir}': not a directory name");
         var parent = Path.GetDirectoryName(outFull);
         if (parent is null || !Directory.Exists(parent))
             throw new RefuseError($"--out '{outDir}': the parent directory does not exist");
-        var staging = Path.Combine(parent, "." + Path.GetFileName(outFull) + ".owen-staging");
-        if (Directory.Exists(staging) || File.Exists(staging))
+        var parentPhys = CheckOutParent(parent, outDir, rootReal);
+        var outPhys = Path.Combine(parentPhys, name);
+        if (Directory.Exists(outPhys) || File.Exists(outPhys) || LinkTargetOf(outPhys, "--out") is not null)
+            throw new RefuseError($"--out '{outDir}' already exists — refusing to mix runs");
+        var staging = Path.Combine(parentPhys, "." + name + ".owen-staging");
+        if (Directory.Exists(staging) || File.Exists(staging) || LinkTargetOf(staging, "--out") is not null)
             throw new RefuseError($"staging path '{staging}' already exists — refusing");
-        return (staging, outFull);
+        return (staging, outPhys);
+    }
+
+    /// <summary>The out-dir's parent, resolved physically and proven to be off the source
+    /// tree. Called again immediately before publication: the check is cheap and the
+    /// filesystem is not ours alone.</summary>
+    static string CheckOutParent(string parent, string outDir, string rootReal)
+    {
+        var parentPhys = RealPath(parent, "--out parent");
+        if (parentPhys == rootReal || IsInside(rootReal, parentPhys))
+            throw new RefuseError(
+                $"--out '{outDir}' resolves inside the source root ({parentPhys}) — refusing to write into the tree");
+        return parentPhys;
     }
 
     // ================= source decoding =================
@@ -554,11 +733,19 @@ file static class Rewriter
 
     // ================= the span-node identity guard =================
 
-    static TextSpan SpanOf(JsonElement cand, string fid)
+    /// <summary>Bounds are checked BEFORE the TextSpan exists: `new TextSpan(start, length)`
+    /// throws on an overflowing start+length, and an attacker-supplied span must be a
+    /// refusal, not an exception. `Int` has already rejected negatives and non-int32s, so
+    /// `sourceLength - start` cannot underflow here.</summary>
+    static TextSpan SpanOf(JsonElement cand, string fid, int sourceLength)
     {
         var span = Prop(cand, "acquire_span", $"candidate {fid}");
-        return new TextSpan(Int(span, "start", $"candidate {fid}.acquire_span"),
-            Int(span, "length", $"candidate {fid}.acquire_span"));
+        var ctx = $"candidate {fid}.acquire_span";
+        var start = Int(span, "start", ctx);
+        var length = Int(span, "length", ctx);
+        if (start > sourceLength || length > sourceLength - start)
+            throw new RefuseError($"{fid}: acquire_span is outside the source");
+        return new TextSpan(start, length);
     }
 
     static string BuildEdit(SyntaxNode rootNode, SourceText sourceText, TextSpan span,
@@ -705,8 +892,12 @@ file static class Rewriter
     /// <summary>Stage the WHOLE bundle in a sibling dir, then publish it with one atomic
     /// rename. A failure at any write leaves no out-dir at all — never a half-published
     /// bundle whose report does not describe its postimage.</summary>
-    static void Publish(string staging, string outFull, string rel, byte[] postBytes, object report)
+    static void Publish(string staging, string outFull, string rel, byte[] postBytes, object report,
+        string rootReal)
     {
+        // Re-prove the destination is physically off the source tree, now, against the
+        // filesystem as it is at publication — not as it was at argument-parsing time.
+        CheckOutParent(Path.GetDirectoryName(outFull)!, outFull, rootReal);
         try
         {
             var postPath = Path.GetFullPath(Path.Combine(staging, "postimage", rel));
