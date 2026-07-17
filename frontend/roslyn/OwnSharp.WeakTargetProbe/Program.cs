@@ -480,6 +480,7 @@ internal static class ProbeMode
         var attempt = int.Parse(a["attempt"]);
         var target = a["target"];
         var slotsDir = a["slots-dir"];
+        var runtimeDir = a["runtime-dir"];
         var outPath = a["out"];
 
         var slot = Path.Combine(slotsDir, ordinal.ToString("D6"));
@@ -490,7 +491,13 @@ internal static class ProbeMode
         var typeName = target[..dot];
         var methodName = target[(dot + 1)..];
 
-        var alc = new WrapperLoadContext(rootPath, slotsDir);
+        // the closed load context: the wrapper root loads only from its exact derived slot; its
+        // non-framework dependencies resolve ONLY from the ordered materialized slots (first
+        // filename wins); framework assemblies resolve ONLY from the selected probe runtime; a
+        // non-framework dependency absent from the slots is a controlled loader failure. The probe
+        // deployment / default context can NEVER satisfy a wrapper dependency.
+        var framework = FrameworkNames(runtimeDir);
+        var alc = new WrapperLoadContext(slotsDir, framework);
         MethodInfo method;
         Action<INotifyPropertyChanged, PropertyChangedEventHandler> invoke;
         string asmName, mvid, token, sig;
@@ -629,6 +636,18 @@ internal static class ProbeMode
         using var h = System.Security.Cryptography.SHA256.Create();
         return Convert.ToHexString(h.ComputeHash(s)).ToLowerInvariant();
     }
+
+    // the framework assembly set = the simple names physically present in the SELECTED probe
+    // runtime directory. Only these may resolve from the default context; everything else must
+    // come from a materialized slot.
+    private static HashSet<string> FrameworkNames(string runtimeDir)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (Directory.Exists(runtimeDir))
+            foreach (var dll in Directory.GetFiles(runtimeDir, "*.dll"))
+                set.Add(Path.GetFileNameWithoutExtension(dll));
+        return set;
+    }
 }
 
 internal sealed class ProbeSource : INotifyPropertyChanged
@@ -646,18 +665,40 @@ internal sealed class ProbeSubscriber
 internal sealed class WrapperLoadContext : AssemblyLoadContext
 {
     private readonly string _slotsDir;
-    public WrapperLoadContext(string rootPath, string slotsDir) : base("weak-target", isCollectible: false)
-        => _slotsDir = slotsDir;
+    private readonly HashSet<string> _framework;
+
+    public WrapperLoadContext(string slotsDir, HashSet<string> framework)
+        : base("weak-target", isCollectible: false)
+    {
+        _slotsDir = slotsDir;
+        _framework = framework;
+    }
 
     protected override Assembly? Load(AssemblyName name)
+    {
+        var simple = name.Name ?? "";
+        // framework assemblies resolve ONLY from the selected probe runtime (the default context,
+        // which the probe pinned via --fx-version). Returning null delegates to that runtime.
+        if (_framework.Contains(simple)) return null;
+        // a non-framework dependency resolves ONLY from the ordered materialized slots (first
+        // filename wins) — never the probe deployment, the default context, the working directory,
+        // the user profile, or an arbitrary PATH entry.
+        var dll = ResolveSlot(simple);
+        if (dll != null) return LoadFromAssemblyPath(dll);
+        // absent from the slots -> a controlled loader failure -> WRAPPER_RUNTIME_UNSUPPORTED.
+        throw new FileNotFoundException(
+            $"the wrapper dependency '{simple}' is not in the materialized reference closure");
+    }
+
+    private string? ResolveSlot(string simple)
     {
         if (!Directory.Exists(_slotsDir)) return null;
         foreach (var slot in Directory.GetDirectories(_slotsDir).OrderBy(d => d, StringComparer.Ordinal))
         {
             var dll = Directory.GetFiles(slot, "*.dll").SingleOrDefault();
-            if (dll != null && string.Equals(Path.GetFileNameWithoutExtension(dll), name.Name,
+            if (dll != null && string.Equals(Path.GetFileNameWithoutExtension(dll), simple,
                     StringComparison.OrdinalIgnoreCase))
-                return LoadFromAssemblyPath(Path.GetFullPath(dll));
+                return Path.GetFullPath(dll);
         }
         return null;
     }

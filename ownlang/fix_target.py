@@ -368,15 +368,15 @@ _RESOLVED_KEYS = ("ordinal", "slot_sha256", "assembly_simple_name", "module_mvid
 
 
 def run_probe_attempt(work: str, dotnet_host: str, probe_dll: str, selected_ver: str,
-                      wrapper_ordinal: int, slots_dir: str, target: str,
-                      attempt: int) -> tuple[int, dict[str, Any] | None]:
+                      wrapper_ordinal: int, slots_dir: str, target: str, attempt: int,
+                      runtime_dir: str) -> tuple[int, dict[str, Any] | None]:
     adir = os.path.join(work, f"attempt-{attempt}")
     os.makedirs(adir, exist_ok=True)
     out_path = os.path.join(adir, "probe-result.json")
     argv = [dotnet_host, "exec", "--fx-version", selected_ver, "--roll-forward", "Disable",
             probe_dll, "probe", "--wrapper-ordinal", str(wrapper_ordinal),
-            "--slots-dir", slots_dir, "--attempt", str(attempt), "--target", target,
-            "--out", out_path]
+            "--slots-dir", slots_dir, "--runtime-dir", runtime_dir, "--attempt", str(attempt),
+            "--target", target, "--out", out_path]
     try:
         proc = subprocess.run(argv, cwd=os.path.join(work, "probe"), env=_probe_env(work, adir),
                               capture_output=True, timeout=_CHILD_TIMEOUT_SECONDS, check=False)
@@ -667,7 +667,7 @@ def run_verify_target(bundle: str, root: str, plan_path: str, candidates_path: s
         attempts: list[dict[str, Any]] = []
         for k in range(_ATTEMPT_COUNT):
             rc, res = run_probe_attempt(work, dotnet_host, probe_dll_dst, selected_ver,
-                                        wrapper_ordinal, slots_root, target, k)
+                                        wrapper_ordinal, slots_root, target, k, rt_dir)
             if rc == 10:
                 raise TargetError(WRAPPER_RUNTIME_UNSUPPORTED,
                                   "the wrapper cannot execute under the fixed probe runtime")
