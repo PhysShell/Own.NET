@@ -23,7 +23,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import fix_delta as fd
-from ownlang.fix_gate import _build_evidence, _bundle_sha256, validate_gate_authority
+from ownlang.fix_gate import _build_evidence, _bundle_sha256
 
 _EV = "System.ComponentModel.INotifyPropertyChanged.PropertyChanged"
 _FILE = "Own/Sample.cs"
@@ -227,8 +227,8 @@ def _fixture_core_fails() -> tuple[int, list[str]]:
         candidates = _candidates_from([recs["OnA"]["record"], recs["OnB"]["record"]])
 
         fd.check_baseline_authority(candidates, base)
-        fd.check_target_identity(base, _CREL, fd.BASELINE_ANALYSIS)
-        fd.check_target_identity(post, _CREL, fd.POSTIMAGE_ANALYSIS)
+        fd.check_target_identity(base, _CREL)
+        fd.check_target_identity(post, _CREL)
         res = fd.classify_delta({"convert_acquire_ids": [fid_a], "manual_review_ids": [fid_b]},
                                 base, post)
         cf(res["delta"]["removed_subscription_own001_ids"] == [fid_a], "fixture: OnA removed")
@@ -264,7 +264,173 @@ def _fixture_core_fails() -> tuple[int, list[str]]:
     return checks, fails
 
 
-def run() -> int:  # noqa: C901 — a flat battery of independent assertions
+def _elig_k(fid: str, ordinal: int, handler: str = "OnA", event: str = "_a.PropertyChanged",
+            dc: str = "OWN001") -> dict:
+    """A fix-eligible record sharing the SAME bridge key K but a distinct finding_id (via a
+    distinct occurrence_ordinal) — the identical-K duplicate the bridge must count."""
+    e = _elig(fid, event, handler, dc=dc, source="_a")
+    e["record"]["occurrence_ordinal"] = ordinal
+    return e
+
+
+def _amendment_regressions() -> tuple[int, list[str]]:
+    """R1 (runtime selection), R3 (image bridge), R4 (core.json bytes), R5 (publish cleanup),
+    R2 (toolchain / isolation mutation) — all offline (no dotnet)."""
+    checks = 0
+    fails: list[str] = []
+
+    def cf(cond: bool, label: str) -> None:
+        nonlocal checks
+        checks += 1
+        if not cond:
+            fails.append(label)
+
+    NC = "Microsoft.NETCore.App"
+
+    # --- R1: version parsing + runtime selection --------------------------------
+    cf(fd._parse_version("8.0.28") == (8, 0, 28), "R1: parse stable version")
+    cf(fd._parse_version("8.0.0-rc.1") is None, "R1: prerelease -> None")
+    cf(fd._parse_version("8.0") is None, "R1: two-component -> None")
+    sel, _d = fd._select_runtime(f"{NC} 8.0.28 [/p]\nMicrosoft.AspNetCore.App 8.0.28 [/q]\n",
+                                 NC, "8.0.0")
+    cf(sel == "8.0.28", "R1: 8.0.0 requested, only 8.0.28 -> selects 8.0.28")
+    sel2, _ = fd._select_runtime(f"{NC} 8.0.5 [/a]\n{NC} 8.0.28 [/b]\n{NC} 8.0.11 [/c]\n",
+                                 NC, "8.0.0")
+    cf(sel2 == "8.0.28", "R1: multiple patches -> highest")
+    cf(_raises(fd.TOOLCHAIN_BINDING, fd._select_runtime, f"{NC} 8.0.5 [/a]\n", NC, "8.0.10"),
+       "R1: lower-than-minimum -> refuse")
+    cf(_raises(fd.TOOLCHAIN_BINDING, fd._select_runtime, f"{NC} 8.1.0 [/a]\n", NC, "8.0.0"),
+       "R1: different minor -> refuse")
+    cf(_raises(fd.TOOLCHAIN_BINDING, fd._select_runtime, f"{NC} 8.0.0-preview.1 [/a]\n",
+               NC, "8.0.0"), "R1: prerelease-only -> refuse")
+    cf(_raises(fd.TOOLCHAIN_BINDING, fd._select_runtime, "", NC, "8.0.0"),
+       "R1: none installed -> refuse")
+
+    # --- R3: image-level bridge for both images / both actions ------------------
+    obs_a, obs_b = _obs("_a.PropertyChanged", "OnA"), _obs("_b.PropertyChanged", "OnB")
+    ea = _elig(_FIDA, "_a.PropertyChanged", "OnA", source="_a")
+    eb = _elig(_FIDB, "_b.PropertyChanged", "OnB", source="_b")
+    cf(_raises(fd.ANALYSIS_IDENTITY, fd.classify_delta,
+               {"convert_acquire_ids": [], "manual_review_ids": [_FIDB]},
+               _image([], [], [eb]), _image([obs_b], [], [eb])),
+       "R3: manual candidate with no baseline core -> ANALYSIS_IDENTITY")
+    cf(_raises(fd.ANALYSIS_IDENTITY, fd.classify_delta,
+               {"convert_acquire_ids": [], "manual_review_ids": [_FIDB]},
+               _image([obs_b], [], [eb]), _image([], [], [eb])),
+       "R3: manual candidate with no postimage core -> ANALYSIS_IDENTITY")
+    cf(_raises(fd.ANALYSIS_IDENTITY, fd.classify_delta,
+               {"convert_acquire_ids": [_FIDA], "manual_review_ids": [_FIDB]},
+               _image([obs_a], [], [ea, eb]), _image([obs_a], [], [ea, eb])),
+       "R3: extra eligible fact without core -> ANALYSIS_IDENTITY")
+    cf(_raises(fd.ANALYSIS_IDENTITY, fd.classify_delta,
+               {"convert_acquire_ids": [_FIDA], "manual_review_ids": []},
+               _image([obs_a, obs_a], [], [ea]), _image([], [], [])),
+       "R3: surplus core observation -> ANALYSIS_IDENTITY")
+    # identical-K duplicate, same action -> valid (cardinality 2 == 2)
+    d1, d2 = _elig_k(_FIDA, 0), _elig_k(_FIDC, 1)
+    res_dup = fd.classify_delta({"convert_acquire_ids": [_FIDA, _FIDC], "manual_review_ids": []},
+                                _image([obs_a, obs_a], [], [d1, d2]), _image([], [], []))
+    cf(len(res_dup["delta"]["removed_all_own001"]) == 2, "R3: identical-action duplicate group ok")
+    # identical-K mixed action -> ANALYSIS_IDENTITY
+    cf(_raises(fd.ANALYSIS_IDENTITY, fd.classify_delta,
+               {"convert_acquire_ids": [_FIDA], "manual_review_ids": [_FIDC]},
+               _image([obs_a, obs_a], [], [d1, d2]), _image([obs_a], [], [d1])),
+       "R3: mixed-action collision under one K -> ANALYSIS_IDENTITY")
+
+    # --- R4: closed core.json byte protocol -------------------------------------
+    core_obj = {"version": 1, "operation": "verify-subscription-core-observations",
+                "all_own001": [obs_a], "own050": [], "fix_eligible_subscriptions": [ea]}
+    good = fd.canonical_evidence(core_obj)
+    cf(fd._load_core(good, fd.BASELINE_ANALYSIS)["all_own001"] == [obs_a], "R4: canonical loads")
+    cf(_raises(fd.BASELINE_ANALYSIS, fd._load_core, good[:-1], fd.BASELINE_ANALYSIS),
+       "R4: missing trailing newline -> refuse")
+    cf(_raises(fd.BASELINE_ANALYSIS, fd._load_core,
+               json.dumps(core_obj, indent=2).encode() + b"\n", fd.BASELINE_ANALYSIS),
+       "R4: non-canonical bytes -> refuse")
+    cf(_raises(fd.BASELINE_ANALYSIS, fd._load_core,
+               fd.canonical_evidence({**core_obj, "extra": 1}), fd.BASELINE_ANALYSIS),
+       "R4: unknown key -> refuse")
+    cf(_raises(fd.BASELINE_ANALYSIS, fd._load_core,
+               fd.canonical_evidence({**core_obj, "all_own001": [{**obs_a, "advisory": "no"}]}),
+               fd.BASELINE_ANALYSIS), "R4: non-bool advisory not coerced -> refuse")
+    bad_rec = _record(_FIDA)
+    bad_rec["occurrence_ordinal"] = "x"
+    cf(_raises(fd.BASELINE_ANALYSIS, fd._load_core,
+               fd.canonical_evidence({**core_obj, "fix_eligible_subscriptions":
+                                      [{**ea, "record": bad_rec}]}), fd.BASELINE_ANALYSIS),
+       "R4: wrong-typed record field -> refuse")
+
+    # --- R5: publication cleanup failure -> PUBLICATION -------------------------
+    with tempfile.TemporaryDirectory() as tmp:
+        root, pub = os.path.join(tmp, "root"), os.path.join(tmp, "pub")
+        os.makedirs(root)
+        os.makedirs(pub)
+        out = os.path.join(pub, "ev")
+        orig_rename, orig_rmtree = fd.os.rename, fd.shutil.rmtree
+
+        def _boom(*_a, **_k):
+            raise OSError("boom")
+
+        try:
+            fd.os.rename = _boom      # force a pre-succeeded failure
+            fd.shutil.rmtree = _boom  # force the cleanup itself to fail
+            cf(_raises(fd.PUBLICATION, fd._publish_delta, out, root, b'{}\n'),
+               "R5: cleanup failure -> PUBLICATION")
+        finally:
+            fd.os.rename, fd.shutil.rmtree = orig_rename, orig_rmtree
+        cf(not os.path.exists(out), "R5: no OUTPUT_DIR after a failed publish")
+
+    # --- R2: toolchain + isolation mutation regressions -------------------------
+    with tempfile.TemporaryDirectory() as work:
+        _core_dir, _rp, _rs, core_fp = fd.materialize_core(work)
+        pkg = os.path.join(work, "core", "ownlang")
+        before = fd._manifest_sha(pkg, fd._walk_pkg(pkg), fd.TOOLCHAIN_BINDING)
+        cf(before == core_fp["ownlang_manifest_sha256"], "R2: ownlang manifest reproducible")
+        with open(os.path.join(pkg, "ownir.py"), "ab") as fh:
+            fh.write(b"\n# mutate\n")
+        after = fd._manifest_sha(pkg, fd._walk_pkg(pkg), fd.TOOLCHAIN_BINDING)
+        cf(after != core_fp["ownlang_manifest_sha256"], "R2: ownlang mutation detected")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        work = os.path.join(tmp, "w")
+        os.makedirs(work)
+        rd = os.path.join(tmp, "refs")
+        os.makedirs(rd)
+        with open(os.path.join(rd, "A.dll"), "wb") as fh:
+            fh.write(b"A0")
+        slots, evid = fd.snapshot_reference_closure(work, [rd])
+        dll = os.path.join(slots[0], "A.dll")
+        with open(dll, "ab") as fh:
+            fh.write(b"tamper")
+        rehash = fd._sha_bytes(fd._snapshot(dll, fd.TOOLCHAIN_BINDING, "slot"))
+        cf(rehash != evid[0]["sha256"], "R2: reference-slot mutation detected")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        rel = "Own/Sample.cs"
+        p = os.path.join(tmp, *rel.split("/"))
+        os.makedirs(os.path.dirname(p))
+        with open(p, "wb") as fh:
+            fh.write(b"class A {}\n")
+        os.makedirs(os.path.join(tmp, ".git"))
+        with open(os.path.join(tmp, ".git", "index"), "wb") as fh:
+            fh.write(b"idx-v1")
+        snap = fd._isolation_snapshot(tmp, rel)
+        fd._isolation_verify(snap, tmp, rel)  # unchanged: must not raise
+        with open(p, "ab") as fh:
+            fh.write(b"// touched\n")
+        cf(_raises(fd.ISOLATION, fd._isolation_verify, snap, tmp, rel),
+           "R2: target-file mutation -> ISOLATION")
+        with open(p, "wb") as fh:
+            fh.write(b"class A {}\n")  # restore target
+        with open(os.path.join(tmp, ".git", "index"), "wb") as fh:
+            fh.write(b"idx-v2")
+        cf(_raises(fd.ISOLATION, fd._isolation_verify, snap, tmp, rel),
+           "R2: .git/index mutation -> ISOLATION")
+
+    return checks, fails
+
+
+def run() -> int:
     ok = 0
     bad = 0
 
@@ -394,7 +560,7 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
         os.makedirs(root)
         os.makedirs(pub)
         out = os.path.join(pub, "evidence")
-        published = fd._publish_delta(out, root, b'{"ok":true}\n')
+        fd._publish_delta(out, root, b'{"ok":true}\n')
         names = sorted(os.listdir(out))
         check(names == ["delta-result.json"], "publish leaves only delta-result.json")
         with open(os.path.join(out, "delta-result.json"), "rb") as fh:
@@ -503,9 +669,15 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
                   "delta": {"removed_all_own001": []},
                   "semantic_idempotence": {"converted_ids_still_actionable": [], "pass": True}}
     ev = fd.build_evidence("Own/X.cs", "N.X", 2, {"a": 1}, {"b": 2}, {"c": 3}, [], "T",
-                           {"convert_acquire_ids": [], "manual_review_ids": []}, classified)
+                           {"convert_acquire_ids": [], "manual_review_ids": []}, classified,
+                           set(fd._CHECK_NAMES))
     check(set(ev["checks"]) == set(fd._CHECK_NAMES) and len(fd._CHECK_NAMES) == 17,
           "evidence: exactly seventeen check names")
+    # an unexecuted check must NOT be published (R2)
+    check(_raises(fd.INFRASTRUCTURE, fd.build_evidence, "Own/X.cs", "N.X", 0, {}, {}, {}, [],
+                  "T", {"convert_acquire_ids": [], "manual_review_ids": []}, classified,
+                  set(fd._CHECK_NAMES) - {"isolation"}),
+          "evidence: unexecuted check -> INFRASTRUCTURE")
     check(all(v == "pass" for v in ev["checks"].values()), "evidence: every check passes")
     check(ev["schema"] == 1 and ev["operation"] == "verify-subscription-analyzer-delta",
           "evidence: schema + operation")
@@ -521,6 +693,13 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
             fh.write(b"")
         check(_raises(fd.INPUT_LAYOUT, fd._require_bundle_layout, b),
               "bundle layout incomplete -> INPUT_LAYOUT")
+
+    # --- R1-R5 amendment regressions (offline) --------------------------------
+    achecks, afails = _amendment_regressions()
+    ok += achecks - len(afails)
+    bad += len(afails)
+    for f in afails:
+        print(f"  FAIL: {f}")
 
     # --- slices 3-5: the real fresh core subprocess (no dotnet) ---------------
     fchecks, ffails = _fixture_core_fails()

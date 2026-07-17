@@ -39,6 +39,9 @@ from collections import Counter
 from typing import Any
 
 from ownlang.fix_gate import (
+    _ACTIONS,
+    _CONTRACTS,
+    _SPAN_KEYS,
     GateError,
     _canonical_bytes,
     _canonical_json,
@@ -210,11 +213,48 @@ def _parse_fix_eligible(o: Any, cat: str, where: str) -> dict[str, Any]:
         if not isinstance(bridge[k], str):
             raise DeltaError(cat, f"{where}.bridge_key.{k} must be a string")
     _require_rel(bridge["file"], cat, f"{where}.bridge_key.file")
-    rec = e["record"]
-    if not isinstance(rec, dict) or set(rec) != set(_AUTHORITY_FIELDS):
-        raise DeltaError(cat, f"{where}.record is not the exact authoritative field set")
+    rec = _validate_record(e["record"], cat, f"{where}.record")
     return {"finding_id": e["finding_id"], "diagnostic_code": e["diagnostic_code"],
             "bridge_key": {k: bridge[k] for k in _BRIDGE_FIELDS}, "record": rec}
+
+
+_RECORD_STR_FIELDS = (
+    "finding_id", "diagnostic_code", "containing_type", "file", "enclosing_member",
+    "event", "event_identity", "event_contract", "source", "source_identity",
+    "source_identity_kind", "handler", "handler_identity", "handler_identity_kind",
+)
+
+
+def _validate_record(rec: Any, cat: str, where: str) -> dict[str, Any]:
+    """Concrete-type validation of the 18 authoritative candidate fields — every string
+    field, the int occurrence_ordinal, the six-int acquire_span, the teardown block, and a
+    non-empty allowed_actions subset. Analyzer values are never coerced (R4)."""
+    if not isinstance(rec, dict) or set(rec) != set(_AUTHORITY_FIELDS):
+        raise DeltaError(cat, f"{where} is not the exact authoritative field set")
+    for k in _RECORD_STR_FIELDS:
+        if not isinstance(rec[k], str):
+            raise DeltaError(cat, f"{where}.{k} must be a string")
+    if rec["event_contract"] not in _CONTRACTS:
+        raise DeltaError(cat, f"{where}.event_contract is not a known contract")
+    oo = rec["occurrence_ordinal"]
+    if not isinstance(oo, int) or isinstance(oo, bool) or oo < 0:
+        raise DeltaError(cat, f"{where}.occurrence_ordinal must be a non-negative int")
+    span = rec["acquire_span"]
+    if not isinstance(span, dict) or set(span) != set(_SPAN_KEYS):
+        raise DeltaError(cat, f"{where}.acquire_span is not the frozen six-key span")
+    for k in _SPAN_KEYS:
+        if not isinstance(span[k], int) or isinstance(span[k], bool):
+            raise DeltaError(cat, f"{where}.acquire_span.{k} must be an int")
+    td = rec["teardown"]
+    if not isinstance(td, dict) or set(td) != {"status", "candidates"}:
+        raise DeltaError(cat, f"{where}.teardown is not {{status, candidates}}")
+    if td["status"] not in ("none", "exact", "ambiguous") or not isinstance(td["candidates"], list):
+        raise DeltaError(cat, f"{where}.teardown has a bad status/candidates")
+    actions = rec["allowed_actions"]
+    if not isinstance(actions, list) or not actions \
+            or any(a not in _ACTIONS for a in actions) or len(set(actions)) != len(actions):
+        raise DeltaError(cat, f"{where}.allowed_actions must be a non-empty unique subset")
+    return {k: rec[k] for k in _AUTHORITY_FIELDS}
 
 
 # --- the pure delta classifier (Section 8 / LA2 / LA4) -----------------------------
@@ -237,11 +277,15 @@ def classify_delta(expected: dict[str, Any], baseline: dict[str, Any],
     b_sub = _subscription_ids(baseline, BASELINE_ANALYSIS)
     p_sub = _subscription_ids(postimage, POSTIMAGE_ANALYSIS)
 
-    # --- the bridge FIRST: every accepted id maps to exactly one baseline core
-    # OWN001 observation (identity questions precede the id-set equations, so an
-    # unbridged / mixed-action / ambiguous candidate fails closed as ANALYSIS_IDENTITY
-    # rather than being masked by a later DELTA_MISMATCH). R_C feeds the core delta.
-    r_c = _bridge_r_c(convert, manual, baseline)
+    # --- the bridge FIRST, at IMAGE level for BOTH images (R3): every fix-eligible OWN001
+    # fact must correspond one-to-one (exact multiset cardinality) to a core OWN001
+    # observation, in baseline AND postimage. Then every accepted id maps through a validated
+    # baseline group and R_C is drawn from it. Identity questions precede the id-set
+    # equations, so an unbridged / mixed-action / ambiguous candidate fails closed as
+    # ANALYSIS_IDENTITY rather than being masked by a later DELTA_MISMATCH.
+    base_groups = validate_image_bridge(baseline, BASELINE_ANALYSIS)
+    validate_image_bridge(postimage, POSTIMAGE_ANALYSIS)
+    r_c = _bridge_r_c(convert, manual, baseline, base_groups)
 
     # --- subscription finding-id equations -------------------------------------
     if not s_set <= b_sub:
@@ -318,48 +362,69 @@ def _subscription_ids(image: dict[str, Any], cat: str) -> set[str]:
     return set(ids)
 
 
-def _bridge_r_c(convert: list[str], manual: list[str],
-                baseline: dict[str, Any]) -> Counter[str]:
-    """Bridge each accepted candidate to exactly one baseline core OWN001 observation and
-    return R_C, the multiset of baseline observations mapped to the converted set. Every
-    ambiguity fails closed as ANALYSIS_IDENTITY (SUBSCRIPTION_JOIN_KEY)."""
-    by_fid = {e["finding_id"]: e["bridge_key"] for e in baseline["fix_eligible_subscriptions"]
-              if e["diagnostic_code"] == "OWN001"}
-    # each 4-field projection -> the distinct full observations that project to it
-    by_proj: dict[tuple[str, ...], list[dict[str, Any]]] = {}
-    for obs in baseline["all_own001"]:
-        by_proj.setdefault(_proj(obs), []).append(obs)
+def validate_image_bridge(image: dict[str, Any],
+                          cat: str) -> dict[tuple[str, ...], list[dict[str, Any]]]:
+    """Image-level bridge (R3): group fix-eligible OWN001 facts and core OWN001 observations
+    by K=(file,component,event,handler) and require, for every K carrying an eligible fact,
+    exact multiset cardinality with the core observations and a single distinct observation
+    shape. Every violation is ANALYSIS_IDENTITY. Returns the validated K -> [observations]
+    groups (each group's observations are byte-identical)."""
+    elig_by_k: Counter[tuple[str, ...]] = Counter(
+        tuple(e["bridge_key"][f] for f in _BRIDGE_FIELDS)
+        for e in image["fix_eligible_subscriptions"] if e["diagnostic_code"] == "OWN001")
+    core_by_k: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    for obs in image["all_own001"]:
+        core_by_k.setdefault(_proj(obs), []).append(obs)
+    groups: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    for k, elig_count in elig_by_k.items():
+        obs = core_by_k.get(k, [])
+        if not obs:
+            raise DeltaError(ANALYSIS_IDENTITY,
+                             f"eligible OWN001 subscription {k} has no core observation")
+        if len({_ckey(o) for o in obs}) != 1:
+            raise DeltaError(ANALYSIS_IDENTITY,
+                             f"eligible OWN001 {k} maps to multiple distinct observations")
+        if len(obs) != elig_count:
+            raise DeltaError(ANALYSIS_IDENTITY,
+                             f"eligible/core cardinality mismatch for {k}: "
+                             f"{elig_count} facts vs {len(obs)} observations")
+        groups[k] = obs
+    return groups
 
-    # mixed-action under one indistinguishable bridge key -> fail closed
+
+def _bridge_r_c(convert: list[str], manual: list[str], baseline: dict[str, Any],
+                base_groups: dict[tuple[str, ...], list[dict[str, Any]]]) -> Counter[str]:
+    """Every accepted id (C and M) must map through a validated baseline group; a mixed
+    convert/manual group under one indistinguishable K fails closed. R_C is drawn only from
+    the validated baseline groups (built after the complete baseline bridge passes)."""
+    by_fid = {e["finding_id"]: tuple(e["bridge_key"][f] for f in _BRIDGE_FIELDS)
+              for e in baseline["fix_eligible_subscriptions"]
+              if e["diagnostic_code"] == "OWN001"}
+    convert_set = set(convert)
     action_of: dict[tuple[str, ...], set[str]] = {}
     for fid in convert + manual:
         if fid not in by_fid:
             raise DeltaError(ANALYSIS_IDENTITY,
                              f"accepted candidate {fid} has no baseline subscription fact")
-        key = tuple(by_fid[fid][k] for k in _BRIDGE_FIELDS)
-        action_of.setdefault(key, set()).add("convert" if fid in set(convert) else "manual")
+        key = by_fid[fid]
+        if key not in base_groups:
+            raise DeltaError(ANALYSIS_IDENTITY,
+                             f"accepted candidate {fid} maps to an unvalidated baseline group")
+        action_of.setdefault(key, set()).add("convert" if fid in convert_set else "manual")
     for key, actions in action_of.items():
         if len(actions) > 1:
             raise DeltaError(ANALYSIS_IDENTITY,
                              f"bridge key {key} mixes convert and manual candidates")
-
     r_c: Counter[str] = Counter()
     consumed: Counter[tuple[str, ...]] = Counter()
     for fid in convert:
-        key = tuple(by_fid[fid][k] for k in _BRIDGE_FIELDS)
-        matches = by_proj.get(key, [])
-        distinct = {_ckey(o) for o in matches}
-        if not matches:
-            raise DeltaError(ANALYSIS_IDENTITY,
-                             f"candidate {fid} has no baseline core OWN001 observation")
-        if len(distinct) != 1:
-            raise DeltaError(ANALYSIS_IDENTITY,
-                             f"candidate {fid} maps to multiple distinct core observations")
+        key = by_fid[fid]
+        group = base_groups[key]
         consumed[key] += 1
-        if consumed[key] > len(matches):
+        if consumed[key] > len(group):
             raise DeltaError(ANALYSIS_IDENTITY,
                              f"more converted candidates than observations for key {key}")
-        r_c[_ckey(matches[0])] += 1
+        r_c[_ckey(group[0])] += 1
     return r_c
 
 
@@ -401,11 +466,22 @@ def _publish_delta(out: str, root: str, evidence_bytes: bytes) -> str:
         if os.path.exists(out_phys) or os.path.islink(out_phys):
             raise DeltaError(PUBLICATION, "the out-dir appeared before publication")
         _require_single_delta_file(workdir)
-        os.rename(workdir, out_phys)
+        try:
+            os.rename(workdir, out_phys)
+        except OSError as exc:
+            raise DeltaError(PUBLICATION, f"cannot publish the evidence ({exc})") from exc
         succeeded = True
     finally:
+        # On a PRE-rename failure OUTPUT_DIR must stay absent and the private staging must be
+        # removed for real (R5): rmtree WITHOUT ignore_errors, and a cleanup failure is itself
+        # PUBLICATION — never a false claim that the OS removed the staging path. After a
+        # successful rename the workdir no longer exists (it became OUTPUT_DIR), so nothing runs.
         if not succeeded:
-            shutil.rmtree(workdir, ignore_errors=True)
+            try:
+                shutil.rmtree(workdir)
+            except OSError as exc:
+                raise DeltaError(PUBLICATION,
+                                 f"could not remove the staging directory ({exc})") from exc
     return out_phys
 
 
@@ -559,7 +635,7 @@ def main():
         if fnd.code == "OWN001":
             all_own001.append({"file": fnd.file, "code": "OWN001", "component": fnd.component,
                                "event": fnd.event, "handler": fnd.handler, "kind": fnd.kind,
-                               "advisory": bool(fnd.advisory), "severity": fnd.severity,
+                               "advisory": fnd.advisory, "severity": fnd.severity,
                                "ignore_reason": fnd.ignore_reason})
         elif fnd.code == "OWN050":
             own050.append({"file": fnd.file, "component": fnd.component,
@@ -583,8 +659,8 @@ def main():
             "all_own001": all_own001, "own050": own050,
             "fix_eligible_subscriptions": fix_eligible}
     data = json.dumps(core, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    with open(out_path, "w", encoding="utf-8") as fh:
-        fh.write(data + "\n")
+    with open(out_path, "wb") as fh:
+        fh.write(data.encode("utf-8") + b"\n")  # binary: no newline translation (LF everywhere)
 
 
 if __name__ == "__main__":
@@ -662,15 +738,33 @@ def _verify_runner(runner_path: str, expected_sha: str) -> None:
         raise DeltaError(TOOLCHAIN_BINDING, "core runner bytes changed (core_runner_sha256)")
 
 
+def _hash_resolved(path: str, cat: str, what: str) -> str:
+    """Hash a TRUSTED system binary/file, following symlinks to its real regular target.
+    System interpreters / hosts / runtime files are legitimately symlinks (pyenv, the CI
+    tool cache, the .NET shared framework), so the strict symlink-rejecting _snapshot (for
+    UNTRUSTED caller inputs) would wrongly refuse them."""
+    real = os.path.realpath(path)
+    try:
+        st = os.stat(real)
+    except OSError as exc:
+        raise DeltaError(cat, f"{what}: cannot stat ({exc})") from exc
+    if not stat.S_ISREG(st.st_mode):
+        raise DeltaError(cat, f"{what}: does not resolve to a regular file")
+    try:
+        with open(real, "rb") as fh:
+            return _sha_bytes(fh.read())
+    except OSError as exc:
+        raise DeltaError(cat, f"{what}: cannot read ({exc})") from exc
+
+
 def resolve_python() -> tuple[str, dict[str, Any]]:
-    """Resolve, snapshot, and identify the Python executable that runs the fresh core
-    subprocess (LA5). A missing / non-regular interpreter is TOOLCHAIN_BINDING."""
+    """Resolve, hash, and identify the Python executable that runs the fresh core subprocess
+    (LA5). The interpreter is trusted infrastructure and is followed to its real target."""
     exe = sys.executable
     if not exe:
         raise DeltaError(TOOLCHAIN_BINDING, "no Python executable to run the core subprocess")
-    data = _snapshot(exe, TOOLCHAIN_BINDING, "python executable")
     return exe, {
-        "python_executable_sha256": _sha_bytes(data),
+        "python_executable_sha256": _hash_resolved(exe, TOOLCHAIN_BINDING, "python executable"),
         "python_implementation": sys.implementation.name,
         "python_version": platform.python_version(),
         "python_cache_tag": sys.implementation.cache_tag or "unknown",
@@ -717,9 +811,23 @@ def run_core(core_dir: str, runner_path: str, python_exe: str, core_runner_sha25
                               f"{proc.stderr.strip()[:300]}")
     try:
         with open(core_path, "rb") as fh:
-            raw = json.loads(fh.read())
-    except (OSError, ValueError) as exc:
+            core_bytes = fh.read()
+    except OSError as exc:
         raise DeltaError(cat, f"core.json is unreadable ({exc})") from exc
+    return _load_core(core_bytes, cat)
+
+
+def _load_core(core_bytes: bytes, cat: str) -> dict[str, Any]:
+    """The closed core.json byte protocol (R4): require the trailing newline, valid JSON, and
+    that the bytes equal the canonical re-encoding of the parsed object, then schema-check."""
+    if not core_bytes.endswith(b"\n"):
+        raise DeltaError(cat, "core.json is missing its trailing newline")
+    try:
+        raw = json.loads(core_bytes)
+    except ValueError as exc:
+        raise DeltaError(cat, f"core.json is not valid JSON ({exc})") from exc
+    if _canonical_bytes(raw) != core_bytes:
+        raise DeltaError(cat, "core.json is not canonical bytes (sorted keys + newline)")
     return _parse_core(raw, cat)
 
 
@@ -742,17 +850,19 @@ def check_baseline_authority(candidates: dict[str, Any], base_core: dict[str, An
                                  f"baseline-authority mismatch on '{field}' for {fid}")
 
 
-def check_target_identity(core: dict[str, Any], rel: str, cat: str) -> None:
-    """Every finding used by Step 10 must carry file == the declared target rel (LA/§3)."""
+def check_target_identity(core: dict[str, Any], rel: str) -> None:
+    """Every finding used by Step 10 must carry file == the declared target rel (LA/§3).
+    A foreign / absolute / escaping / image-mismatched identity is ANALYSIS_SCOPE (R6) — a
+    scope error, never a per-image analysis error."""
     for o in core["all_own001"]:
         if o["file"] != rel:
-            raise DeltaError(cat, f"OWN001 attributed to {o['file']!r} != target {rel!r}")
+            raise DeltaError(ANALYSIS_SCOPE, f"OWN001 file {o['file']!r} != target {rel!r}")
     for o in core["own050"]:
         if o["file"] != rel:
-            raise DeltaError(cat, f"OWN050 attributed to {o['file']!r} != target {rel!r}")
+            raise DeltaError(ANALYSIS_SCOPE, f"OWN050 file {o['file']!r} != target {rel!r}")
     for e in core["fix_eligible_subscriptions"]:
         if e["record"]["file"] != rel or e["bridge_key"]["file"] != rel:
-            raise DeltaError(cat, f"candidate attributed to a file != target {rel!r}")
+            raise DeltaError(ANALYSIS_SCOPE, f"candidate attributed to a file != target {rel!r}")
 
 
 # --- the extractor toolchain + hermetic reference/runtime snapshots (LA2/LA4/LA5) --
@@ -845,8 +955,26 @@ def snapshot_extractor_deployment(work: str,
     return os.path.join(dst_root, name), fingerprint
 
 
+def _parse_version(v: str) -> tuple[int, int, int] | None:
+    """A STABLE numeric major.minor.patch, or None for a prerelease / build-metadata /
+    non-three-component version (prereleases are never eligible, R1)."""
+    if not isinstance(v, str) or "-" in v or "+" in v:
+        return None
+    parts = v.split(".")
+    if len(parts) != 3:
+        return None
+    try:
+        nums = tuple(int(p) for p in parts)
+    except ValueError:
+        return None
+    if any(n < 0 for n in nums):
+        return None
+    return (nums[0], nums[1], nums[2])
+
+
 def _read_runtimeconfig(dll_dst: str) -> tuple[str, str, str]:
-    """(tfm, framework_name, framework_version) from the snapshotted runtimeconfig.json."""
+    """(tfm, framework_name, requested_minimum_version) from the snapshotted runtimeconfig.
+    The requested version must be a stable numeric major.minor.patch (R1)."""
     base = dll_dst[:-4] if dll_dst.lower().endswith(".dll") else dll_dst
     data = _snapshot(base + ".runtimeconfig.json", TOOLCHAIN_BINDING, "runtimeconfig.json")
     try:
@@ -854,12 +982,17 @@ def _read_runtimeconfig(dll_dst: str) -> tuple[str, str, str]:
     except ValueError as exc:
         raise DeltaError(TOOLCHAIN_BINDING, f"runtimeconfig.json is invalid ({exc})") from exc
     opts = rc.get("runtimeOptions") if isinstance(rc, dict) else None
-    fw = opts.get("framework") if isinstance(opts, dict) else None
+    if not isinstance(opts, dict):
+        raise DeltaError(TOOLCHAIN_BINDING, "runtimeconfig.json has no runtimeOptions object")
+    fw = opts.get("framework")
     if not isinstance(fw, dict):
         raise DeltaError(TOOLCHAIN_BINDING, "runtimeconfig.json has no single framework object")
     tfm, fname, fver = opts.get("tfm"), fw.get("name"), fw.get("version")
     if not (isinstance(tfm, str) and isinstance(fname, str) and isinstance(fver, str)):
         raise DeltaError(TOOLCHAIN_BINDING, "runtimeconfig framework tuple is incomplete")
+    if _parse_version(fver) is None:
+        raise DeltaError(TOOLCHAIN_BINDING,
+                         f"requested framework version {fver!r} is not stable major.minor.patch")
     return tfm, fname, fver
 
 
@@ -873,48 +1006,78 @@ def _run_capture(argv: list[str], cat: str, what: str) -> str:
     return proc.stdout
 
 
+def _select_runtime(listing: str, fname: str, fver: str) -> tuple[str, str]:
+    """Pure runtime selection (R1): from `dotnet --list-runtimes` text, among the requested
+    framework name keep STABLE releases of the SAME major.minor that are >= the requested
+    minimum, and return (highest_selected_version, runtime_dir). No eligible runtime is
+    TOOLCHAIN_BINDING."""
+    req = _parse_version(fver)
+    if req is None:
+        raise DeltaError(TOOLCHAIN_BINDING, f"requested version {fver!r} is not major.minor.patch")
+    eligible: list[tuple[tuple[int, int, int], str, str]] = []
+    for line in listing.splitlines():
+        parts = line.strip().split(" ", 2)
+        if len(parts) != 3 or parts[0] != fname:
+            continue
+        vt = _parse_version(parts[1])
+        if vt is None or vt[0] != req[0] or vt[1] != req[1] or vt < req:
+            continue
+        path = parts[2].strip()
+        if path.startswith("[") and path.endswith("]"):
+            path = path[1:-1]
+        eligible.append((vt, parts[1], os.path.join(path, parts[1])))
+    if not eligible:
+        raise DeltaError(TOOLCHAIN_BINDING,
+                         f"no eligible {fname} {req[0]}.{req[1]}.x runtime >= {fver} is installed")
+    eligible.sort(key=lambda e: e[0])
+    _vt, selected_ver, rt_dir = eligible[-1]
+    return selected_ver, rt_dir
+
+
+def _runtime_manifest(rt_dir: str) -> str:
+    """A follow-symlink file manifest of the selected runtime directory (trusted infra: the
+    .NET shared framework legitimately contains symlinks; each is hashed by its real target).
+    os.walk with followlinks=False lists symlinked FILES but does not recurse symlinked dirs."""
+    manifest: list[dict[str, str]] = []
+    for dirpath, _dirnames, filenames in os.walk(rt_dir):
+        for fn in filenames:
+            full = os.path.join(dirpath, fn)
+            rel = os.path.relpath(full, rt_dir).replace(os.sep, "/")
+            manifest.append({"path": rel,
+                             "sha256": _hash_resolved(full, TOOLCHAIN_BINDING, f"runtime {rel}")})
+    manifest.sort(key=lambda m: m["path"])
+    return _sha_bytes(_canonical_json(manifest))
+
+
 def resolve_runtime(dotnet_host: str, tfm: str, fname: str,
-                    fver: str) -> tuple[dict[str, Any], str, str]:
-    """Prove the EXACT requested runtime is installed (roll-forward disabled), snapshot its
-    file manifest, and return (resolved_runtime_identity, dotnet_version, dotnet_host_sha256).
-    An unavailable / ambiguous / malformed runtime is TOOLCHAIN_BINDING (LA D4)."""
-    host_data = _snapshot(dotnet_host, TOOLCHAIN_BINDING, "dotnet host")
-    dotnet_host_sha256 = _sha_bytes(host_data)
+                    fver: str) -> tuple[dict[str, Any], str, str, str, str]:
+    """Select the runtime the host will actually run (R1): among installed runtimes for the
+    requested framework name, keep the STABLE releases of the SAME major.minor that are >= the
+    requested minimum, and select the highest patch deterministically. Publish both requested
+    and selected versions; fingerprint the SELECTED runtime directory. Returns
+    (resolved_runtime_identity, dotnet_version, dotnet_host_sha256, selected_version, rt_dir).
+    No eligible runtime is TOOLCHAIN_BINDING."""
+    dotnet_host_sha256 = _hash_resolved(dotnet_host, TOOLCHAIN_BINDING, "dotnet host")
     dotnet_version = _run_capture([dotnet_host, "--version"], TOOLCHAIN_BINDING,
                                   "dotnet --version").strip()
     listing = _run_capture([dotnet_host, "--list-runtimes"], TOOLCHAIN_BINDING,
                            "dotnet --list-runtimes")
-    matches: list[str] = []
-    for line in listing.splitlines():
-        parts = line.strip().split(" ", 2)
-        if len(parts) == 3 and parts[0] == fname and parts[1] == fver:
-            path = parts[2].strip()
-            if path.startswith("[") and path.endswith("]"):
-                path = path[1:-1]
-            matches.append(os.path.join(path, fver))
-    if len(matches) != 1:
-        raise DeltaError(TOOLCHAIN_BINDING,
-                         f"expected exactly one {fname} {fver} runtime, found {len(matches)}")
-    rt_dir = matches[0]
+    selected_ver, rt_dir = _select_runtime(listing, fname, fver)
     if not os.path.isdir(rt_dir):
-        raise DeltaError(TOOLCHAIN_BINDING, "the resolved runtime directory does not exist")
-    manifest: list[dict[str, str]] = []
-    for rel in _walk_regular_files(rt_dir, TOOLCHAIN_BINDING):
-        data = _snapshot(os.path.join(rt_dir, rel.replace("/", os.sep)),
-                         TOOLCHAIN_BINDING, f"runtime {rel}")
-        manifest.append({"path": rel, "sha256": _sha_bytes(data)})
-    manifest.sort(key=lambda m: m["path"])
-    identity = {"framework_name": fname, "framework_version": fver, "tfm": tfm,
-                "runtime_manifest_sha256": _sha_bytes(_canonical_json(manifest))}
-    return identity, dotnet_version, dotnet_host_sha256
+        raise DeltaError(TOOLCHAIN_BINDING, "the selected runtime directory does not exist")
+    identity = {"framework_name": fname, "tfm": tfm, "requested_framework_version": fver,
+                "selected_framework_version": selected_ver,
+                "runtime_manifest_sha256": _runtime_manifest(rt_dir)}
+    return identity, dotnet_version, dotnet_host_sha256, selected_ver, rt_dir
 
 
 def _dotnet_env(work: str, image_dir: str) -> dict[str, str]:
+    """Env for the extractor process. Roll-forward is NOT set here — it is authoritative on
+    the argv (`--roll-forward Disable`, R1.8) so a broad env policy cannot override it."""
     env: dict[str, str] = {}
-    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "HOME", "LANG", "LC_ALL"):
+    for k in ("SystemRoot", "SYSTEMROOT", "windir", "PATH", "LANG", "LC_ALL"):
         if k in os.environ:
             env[k] = os.environ[k]
-    env["DOTNET_ROLL_FORWARD"] = "Disable"
     env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
     env["DOTNET_NOLOGO"] = "1"
     env["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1"
@@ -927,12 +1090,16 @@ def _dotnet_env(work: str, image_dir: str) -> dict[str, str]:
     return env
 
 
-def extract_image(work: str, dll_dst: str, dotnet_host: str, image_dir: str, rel: str,
-                  target: str, slot_dirs: list[str], cat: str) -> bytes:
-    """Run the fixed `dotnet exec <dll> extract ...` over the materialized target file and
-    return the facts.json bytes. The image workspace root is the process CWD."""
-    argv = [dotnet_host, "exec", dll_dst, "extract", rel, "--out", "facts.json",
-            "--fix-candidates", "--weak-subscribe", target]
+def extract_image(work: str, dll_dst: str, dotnet_host: str, selected_ver: str,
+                  image_dir: str, rel: str, target: str, slot_dirs: list[str],
+                  cat: str) -> bytes:
+    """Run the fixed extractor over the materialized target file and return the facts.json
+    bytes. The selected runtime is pinned on the argv (`--fx-version <selected>
+    --roll-forward Disable`, R1) so the host runs exactly the fingerprinted runtime. The
+    image workspace root is the process CWD."""
+    argv = [dotnet_host, "exec", "--fx-version", selected_ver, "--roll-forward", "Disable",
+            dll_dst, "extract", rel, "--out", "facts.json", "--fix-candidates",
+            "--weak-subscribe", target]
     for slot in slot_dirs:
         argv += ["--ref-dir", slot]
     os.makedirs(os.path.join(work, "home"), exist_ok=True)
@@ -948,12 +1115,77 @@ def extract_image(work: str, dll_dst: str, dotnet_host: str, image_dir: str, rel
 # --- evidence assembly + the full orchestration ------------------------------------
 
 
+def _manifest_sha(root: str, rels: list[str], cat: str) -> str:
+    m = [{"path": rel,
+          "sha256": _sha_bytes(_snapshot(os.path.join(root, rel.replace("/", os.sep)), cat, rel))}
+         for rel in rels]
+    m.sort(key=lambda x: x["path"])
+    return _sha_bytes(_canonical_json(m))
+
+
+def _revalidate_toolchain(work: str, ext_fp: dict[str, Any], core_fp: dict[str, Any],
+                          runner_path: str, runner_sha: str, python_exe: str,
+                          python_fp: dict[str, Any], dotnet_host: str, dotnet_host_sha: str,
+                          rt_dir: str, runtime_manifest_sha: str, slot_dirs: list[str],
+                          ref_evidence: list[dict[str, Any]]) -> None:
+    """Re-derive every MATERIALIZED toolchain hash and require it unchanged (R2). The copy is
+    the execution authority, so mutation of any original caller directory after snapshot must
+    not affect execution — this proves it. Any drift is TOOLCHAIN_BINDING."""
+    tdir = os.path.join(work, "toolchain")
+    if _manifest_sha(tdir, _walk_regular_files(tdir, TOOLCHAIN_BINDING), TOOLCHAIN_BINDING) \
+            != ext_fp["extractor_deployment_manifest_sha256"]:
+        raise DeltaError(TOOLCHAIN_BINDING, "the materialized extractor deployment changed")
+    pkg = os.path.join(work, "core", "ownlang")
+    if _manifest_sha(pkg, _walk_pkg(pkg), TOOLCHAIN_BINDING) != core_fp["ownlang_manifest_sha256"]:
+        raise DeltaError(TOOLCHAIN_BINDING, "the materialized ownlang package changed")
+    _verify_runner(runner_path, runner_sha)
+    if _hash_resolved(python_exe, TOOLCHAIN_BINDING, "python") \
+            != python_fp["python_executable_sha256"]:
+        raise DeltaError(TOOLCHAIN_BINDING, "the Python executable changed")
+    if _hash_resolved(dotnet_host, TOOLCHAIN_BINDING, "dotnet host") != dotnet_host_sha:
+        raise DeltaError(TOOLCHAIN_BINDING, "the dotnet host changed")
+    if _runtime_manifest(rt_dir) != runtime_manifest_sha:
+        raise DeltaError(TOOLCHAIN_BINDING, "the selected runtime manifest changed")
+    for i, ev in enumerate(ref_evidence):
+        dll = os.path.join(slot_dirs[i], ev["relative_path"].rsplit("/", 1)[-1])
+        if _sha_bytes(_snapshot(dll, TOOLCHAIN_BINDING, "reference slot")) != ev["sha256"]:
+            raise DeltaError(TOOLCHAIN_BINDING, "a materialized reference slot changed")
+
+
+def _isolation_snapshot(root: str, rel: str) -> dict[str, str | None]:
+    """Hash the protected surfaces: the pristine target file, and .git/index / .git/config
+    when each is present as a regular file (R2)."""
+    snap: dict[str, str | None] = {
+        "target": _sha_bytes(_snapshot(os.path.join(root, *rel.split("/")),
+                                       ISOLATION, "pristine target file")),
+    }
+    for name in ("index", "config"):
+        p = os.path.join(root, ".git", name)
+        try:
+            regular = os.path.isfile(p) and not _is_link(os.lstat(p))
+        except OSError:
+            regular = False
+        snap[name] = _sha_bytes(_snapshot(p, ISOLATION, f".git/{name}")) if regular else None
+    return snap
+
+
+def _isolation_verify(before: dict[str, str | None], root: str, rel: str) -> None:
+    if _isolation_snapshot(root, rel) != before:
+        raise DeltaError(ISOLATION, "a protected surface (target/.git index/config) changed")
+
+
 def build_evidence(rel: str, class_fqn: str, ref_count: int, input_hashes: dict[str, Any],
                    gate_binding: dict[str, Any], toolchain_fp: dict[str, Any],
                    reference_closure: list[dict[str, Any]], target_subscribe: str,
-                   expected: dict[str, Any], classified: dict[str, Any]) -> dict[str, Any]:
-    """Assemble the full delta-result.json object (Section 14) — every check is 'pass' in a
-    published artifact, and the check-name set is exactly the fixed seventeen names."""
+                   expected: dict[str, Any], classified: dict[str, Any],
+                   checks_passed: set[str]) -> dict[str, Any]:
+    """Assemble the full delta-result.json (Section 14). A check is published 'pass' ONLY if
+    it was actually executed (R2): `checks_passed` is the set of executed-and-passed checks,
+    and it MUST be exactly the seventeen names — an incomplete set is an orchestration bug,
+    never a silently-filled artifact."""
+    if checks_passed != set(_CHECK_NAMES):
+        missing = sorted(set(_CHECK_NAMES) - checks_passed)
+        raise DeltaError(INFRASTRUCTURE, f"refusing to publish unexecuted checks: {missing}")
     return {
         "schema": 1,
         "operation": "verify-subscription-analyzer-delta",
@@ -973,7 +1205,7 @@ def build_evidence(rel: str, class_fqn: str, ref_count: int, input_hashes: dict[
         "postimage": classified["postimage"],
         "delta": classified["delta"],
         "semantic_idempotence": classified["semantic_idempotence"],
-        "checks": {name: "pass" for name in _CHECK_NAMES},
+        "checks": dict.fromkeys(_CHECK_NAMES, "pass"),
     }
 
 
@@ -1000,10 +1232,12 @@ def run_verify_delta(bundle: str, plan_path: str, candidates_path: str, root: st
     OWN001-only guard, bind the Step 9 evidence, snapshot the extractor + core toolchains,
     analyze the pristine preimage and the accepted postimage in hermetic workspaces, verify
     the delta, and publish delta-result.json atomically. Returns the published path."""
+    passed: set[str] = set()
     plan_bytes = _snapshot(plan_path, INPUT_LAYOUT, "--plan")
     candidates_bytes = _snapshot(candidates_path, INPUT_LAYOUT, "--candidates")
     gate_bytes = _snapshot(gate_path, INPUT_LAYOUT, "--gate")
     auth, _plan, candidates = load_authority(plan_bytes, candidates_bytes)
+    passed.add("authority_binding")
     rel = auth.rel
     class_fqn = candidates["selection"]["allowed_types"][0]["full_name"]
     target = auth.target_subscribe
@@ -1016,9 +1250,11 @@ def run_verify_delta(bundle: str, plan_path: str, candidates_path: str, root: st
                                 INPUT_LAYOUT, "postimage")
     preimage_bytes = _snapshot(os.path.join(root, *rel.split("/")), INPUT_LAYOUT, "preimage")
     pre_sha, post_sha = _sha_bytes(preimage_bytes), _sha_bytes(postimage_bytes)
+    passed.add("input_layout")
 
     gate_sha = bind_gate(gate_bytes, auth, plan_bytes, manifest_bytes, patch_bytes,
                          pre_sha, post_sha)
+    passed.add("gate_binding")
     git_status = "not_applicable" if not auth.applied else "pass"
 
     work = tempfile.mkdtemp(prefix="owen-delta-")
@@ -1028,33 +1264,50 @@ def run_verify_delta(bundle: str, plan_path: str, candidates_path: str, root: st
         dll_dst, ext_fp = snapshot_extractor_deployment(work, extractor_dll)
         tfm, fname, fver = _read_runtimeconfig(dll_dst)
         dotnet_host = _resolve_dotnet_host()
-        runtime_identity, dotnet_version, dotnet_host_sha = resolve_runtime(
+        runtime_identity, dotnet_version, dotnet_host_sha, selected_ver, rt_dir = resolve_runtime(
             dotnet_host, tfm, fname, fver)
         slot_dirs, ref_evidence = snapshot_reference_closure(work, ref_dirs)
+        runtime_manifest_sha = runtime_identity["runtime_manifest_sha256"]
+
+        def revalidate() -> None:
+            _revalidate_toolchain(work, ext_fp, core_fp, runner_path, runner_sha, python_exe,
+                                  python_fp, dotnet_host, dotnet_host_sha, rt_dir,
+                                  runtime_manifest_sha, slot_dirs, ref_evidence)
+
+        # the pristine target's isolation baseline (re-checked after the postimage run)
+        iso_before = _isolation_snapshot(root, rel)
 
         def analyze(label: str, image_bytes: bytes, cat: str) -> dict[str, Any]:
-            _verify_runner(runner_path, runner_sha)
+            revalidate()  # materialized toolchain unchanged before this image (R2/LA1)
             image_dir = os.path.join(work, label)
             src = os.path.join(image_dir, *rel.split("/"))
             os.makedirs(os.path.dirname(src), exist_ok=True)
             with open(src, "wb") as fh:
                 fh.write(image_bytes)
-            facts_bytes = extract_image(work, dll_dst, dotnet_host, image_dir, rel, target,
-                                        slot_dirs, cat)
+            facts_bytes = extract_image(work, dll_dst, dotnet_host, selected_ver, image_dir,
+                                        rel, target, slot_dirs, cat)
             params = {"root": image_dir, "target_subscribe": target, "class_fqn": class_fqn}
             core = run_core(core_dir, runner_path, python_exe, runner_sha, image_dir,
                             facts_bytes, params, cat)
-            check_target_identity(core, rel, cat)
+            check_target_identity(core, rel)
             return core
 
         base_core = analyze("baseline", preimage_bytes, BASELINE_ANALYSIS)
+        passed.add("baseline_analysis")
         post_core = analyze("postimage", postimage_bytes, POSTIMAGE_ANALYSIS)
-        _verify_runner(runner_path, runner_sha)  # after the postimage run (LA1)
+        passed.add("postimage_analysis")
+        revalidate()  # materialized toolchain unchanged after the postimage run (R2/LA1)
+        passed.update({"toolchain_binding", "core_analyzer_binding"})
+        _isolation_verify(iso_before, root, rel)
+        passed.add("isolation")
 
         check_baseline_authority(candidates, base_core)
+        passed.add("baseline_authority")
         classified = classify_delta(
             {"convert_acquire_ids": auth.applied, "manual_review_ids": auth.manual},
             base_core, post_core)
+        passed.update({"analysis_scope", "analysis_identity", "delta_subscription",
+                       "delta_core", "new_own001", "new_own050", "semantic_idempotence"})
 
         toolchain_fp = {
             **ext_fp,
@@ -1075,8 +1328,10 @@ def run_verify_delta(bundle: str, plan_path: str, candidates_path: str, root: st
                         "step9_version": 1, "git_gates_status": git_status, "bound": True}
         expected = {"convert_acquire_ids": sorted(auth.applied),
                     "manual_review_ids": sorted(auth.manual)}
+        passed.add("publication")  # we are publishing exactly one atomic OUTPUT_DIR now
         evidence = build_evidence(rel, class_fqn, len(ref_dirs), input_hashes, gate_binding,
-                                  toolchain_fp, ref_evidence, target, expected, classified)
+                                  toolchain_fp, ref_evidence, target, expected, classified,
+                                  passed)
         return _publish_delta(out, root, canonical_evidence(evidence))
     finally:
         shutil.rmtree(work, ignore_errors=True)
