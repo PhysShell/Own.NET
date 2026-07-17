@@ -314,6 +314,8 @@ def run() -> int:
     _h4_validators(check)
     _h4_run_child(check)
     _h4_bind_delta(check)
+    _l2_schema(check)
+    _l3_cleanup(check)
 
     total = ok + bad
     print(f"verify-target (Tier A): {ok}/{total} checks pass")
@@ -442,7 +444,7 @@ def _h3_revalidation(check) -> None:
 
 
 def _h3_cleanup_and_publish(check) -> None:
-    # --- _remove_root: a cleanup failure is PUBLICATION ---
+    # --- _remove_root_strict: a cleanup failure is PUBLICATION ---
     with tempfile.TemporaryDirectory() as tmp:
         d = os.path.join(tmp, "work")
         os.makedirs(d)
@@ -453,7 +455,7 @@ def _h3_cleanup_and_publish(check) -> None:
 
         try:
             ft.shutil.rmtree = _boom
-            check(_raises(ft.PUBLICATION, ft._remove_root, d),
+            check(_raises(ft.PUBLICATION, ft._remove_root_strict, d),
                   "remove-root: cleanup failure -> PUBLICATION")
         finally:
             ft.shutil.rmtree = orig
@@ -715,6 +717,111 @@ def _h4_bind_delta(check) -> None:
         d["reference_closure"] = [{"ordinal": 0, "relative_path": "W.dll"}]
         check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
               "bind_delta: malformed reference_closure entry -> DELTA_BINDING")
+
+
+def _l2_schema(check) -> None:
+    """L2: the exact consumed Step 10 schema — bool-vs-int, value types, SHA form, ordinal order."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _root, _bundle, paths, delta_bytes = _manual_fixture(tmp)
+        with open(paths["candidates.json"], encoding="utf-8") as fh:
+            cands = json.load(fh)
+        with open(paths["plan.json"], encoding="utf-8") as fh:
+            plan = json.load(fh)
+        auth = validate_gate_authority(plan, cands)
+        plan_b, cand_b = _reads(paths["plan.json"]), _reads(paths["candidates.json"])
+        rc0 = {"ordinal": 0, "source_dir_ordinal": 0, "relative_path": "W.dll",
+               "sha256": "sha256:" + "a" * 64}
+
+        def run_bad(fn, label: str) -> None:
+            d = json.loads(delta_bytes)
+            fn(d)
+            check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d),
+                         auth, plan_b, cand_b), label)
+
+        run_bad(lambda d: d.update(schema=True), "L2: schema=true -> DELTA_BINDING")
+        run_bad(lambda d: d["analysis_scope"].update(reference_dir_count=False),
+                "L2: reference_dir_count=false -> DELTA_BINDING")
+        run_bad(lambda d: d["analysis_scope"].update(selected_class=1),
+                "L2: selected_class non-string -> DELTA_BINDING")
+        run_bad(lambda d: d["analysis_scope"].update(closure_kind=1),
+                "L2: closure_kind non-string -> DELTA_BINDING")
+        run_bad(lambda d: d["expected"].update(manual_review_ids=[1]),
+                "L2: non-string expected id -> DELTA_BINDING")
+        run_bad(lambda d: d["input_hashes"].update(pre_sha256="sha256:ZZ"),
+                "L2: malformed input hash -> DELTA_BINDING")
+        run_bad(lambda d: d.update(reference_closure=[{**rc0, "ordinal": True}]),
+                "L2: boolean reference ordinal -> DELTA_BINDING")
+        run_bad(lambda d: d.update(reference_closure=[{**rc0, "ordinal": -1}]),
+                "L2: negative reference ordinal -> DELTA_BINDING")
+        run_bad(lambda d: d.update(reference_closure=[{**rc0, "sha256": "sha256:zz"}]),
+                "L2: malformed reference sha -> DELTA_BINDING")
+        run_bad(lambda d: d.update(reference_closure=[dict(rc0), {**rc0, "ordinal": 0}]),
+                "L2: duplicate / unsorted reference ordinal -> DELTA_BINDING")
+        # positive control: a valid, ordered two-entry closure binds.
+        d = json.loads(delta_bytes)
+        d["reference_closure"] = [rc0, {"ordinal": 1, "source_dir_ordinal": 1,
+                                        "relative_path": "B.dll", "sha256": "sha256:" + "b" * 64}]
+        try:
+            ft.bind_delta(_canonical_bytes(d), auth, plan_b, cand_b)
+            check(True, "L2: a valid ordered two-entry closure binds")
+        except ft.TargetError:
+            check(False, "L2: false rejection of a valid closure")
+
+
+def _l3_cleanup(check) -> None:
+    """L3: strict failure-path cleanup — successful cleanup re-raises the original refusal, a
+    cleanup failure is PUBLICATION, and OUTPUT_DIR is always absent (no ignore_errors)."""
+    # (a) a controlled failure after the execution root is claimed, cleanup succeeds -> original
+    #     category; (b) same with a cleanup failure -> PUBLICATION. Both leave the out-dir absent.
+    with tempfile.TemporaryDirectory() as tmp:
+        root, bundle, paths, _delta = _manual_fixture(tmp)
+        refdir = os.path.join(tmp, "refs")  # a ref-dir the delta's empty closure will not match
+        os.makedirs(refdir)
+        with open(os.path.join(refdir, "X.dll"), "wb") as fh:
+            fh.write(b"MZ")
+        out_a = os.path.join(tmp, "out-a")
+        check(_raises(ft.REFERENCE_BINDING, ft.run_verify_target, bundle, root, paths["plan.json"],
+                      paths["candidates.json"], paths["delta.json"], None, out_a, [refdir], None),
+              "L3: failure + successful cleanup -> original category")
+        check(not os.path.exists(out_a), "L3: out-dir absent after the original-category failure")
+
+        out_b = os.path.join(tmp, "out-b")
+        orig = ft.shutil.rmtree
+
+        def _boom(*_a, **_k):
+            raise OSError("locked")
+
+        try:
+            ft.shutil.rmtree = _boom
+            check(_raises(ft.PUBLICATION, ft.run_verify_target, bundle, root, paths["plan.json"],
+                          paths["candidates.json"], paths["delta.json"], None, out_b,
+                          [refdir], None),
+                  "L3: failure + execution-root cleanup failure -> PUBLICATION")
+        finally:
+            ft.shutil.rmtree = orig
+        check(not os.path.exists(out_b), "L3: out-dir absent after the cleanup-failure PUBLICATION")
+
+    # (c) a protected root resolves inside the execution root: cleanup success -> ISOLATION;
+    #     cleanup failure -> PUBLICATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        base = os.path.join(tmp, "base")
+        prot = os.path.join(base, "prot")
+        os.makedirs(prot)
+        orig_mkdtemp, orig_rmtree = ft.tempfile.mkdtemp, ft.shutil.rmtree
+        try:
+            ft.tempfile.mkdtemp = lambda *a, **k: base
+            check(_raises(ft.ISOLATION, ft._execution_root, [prot]),
+                  "L3: protected-inside-root + cleanup success -> ISOLATION")
+            os.makedirs(prot, exist_ok=True)
+
+            def _boom(*_a, **_k):
+                raise OSError("locked")
+
+            ft.shutil.rmtree = _boom
+            check(_raises(ft.PUBLICATION, ft._execution_root, [prot]),
+                  "L3: protected-inside-root + cleanup failure -> PUBLICATION")
+        finally:
+            ft.tempfile.mkdtemp, ft.shutil.rmtree = orig_mkdtemp, orig_rmtree
 
 
 if __name__ == "__main__":
