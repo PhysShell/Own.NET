@@ -203,6 +203,12 @@ internal static class BindMode
                 // overload, no ref/optional/params/modopt) — any mismatch is WRAPPER_BINDING.
                 var terr = TargetBinding.Validate(sym.ContainingAssembly, target);
                 if (terr is not null) return Refuse("WRAPPER_BINDING", $"{e.Fid}: {terr}");
+                // even a CLEANLY BOUND wrapper may target an incompatible runtime family (e.g. a
+                // .NET Framework mscorlib wrapper whose types retarget onto the net8 refs) — the
+                // positive runtime-family predicate refuses it before probing (L1).
+                if (RuntimeIncompatible(comp, sym.ContainingAssembly))
+                    return Refuse("WRAPPER_RUNTIME_UNSUPPORTED",
+                        $"{e.Fid}: the wrapper targets a runtime family/version incompatible with the probe runtime");
                 derivedOrdinal = slot.Ordinal;
                 asmName = sym.ContainingAssembly.Name;
                 mvid = ReadMvid(path);
@@ -350,22 +356,49 @@ internal static class BindMode
         return Refuse("CALLSITE_BINDING", $"{fid}: the invocation does not bind to a single wrapper symbol");
     }
 
-    // The POSITIVE runtime-incompatibility predicate (K3): the wrapper assembly references a core
-    // framework assembly at a version STRICTLY NEWER than the one the selected probe runtime provides
-    // to this compilation. This is a deterministic metadata comparison, not an inference from a
-    // failed overload — a shape-correct wrapper that merely fails to bind for another reason is NOT
-    // runtime-incompatible.
-    private static readonly HashSet<string> CoreFramework = new(StringComparer.OrdinalIgnoreCase)
-        { "System.Runtime", "System.Private.CoreLib", "netstandard", "mscorlib" };
+    // The POSITIVE runtime-compatibility predicate (K3 / L1): a deterministic metadata comparison,
+    // never an inference from a failed overload. It positively establishes BOTH an incompatible
+    // runtime FAMILY (a .NET-Framework `mscorlib` wrapper under a CoreCLR probe, or a CoreCLR
+    // `System.Private.CoreLib` wrapper under a non-CoreCLR probe) AND a newer SAME-family runtime
+    // contract (a core contract at a version strictly newer than the selected runtime supplies), plus
+    // a TargetFrameworkAttribute that positively declares an incompatible family. A netstandard
+    // reference is NEVER a reason to reject (netstandard is a compatibility contract, not a family).
+    private static readonly HashSet<string> SameFamilyContract = new(StringComparer.OrdinalIgnoreCase)
+        { "System.Runtime", "System.Private.CoreLib" };
 
     private static bool RuntimeIncompatible(CSharpCompilation comp, IAssemblySymbol wrapperAsm)
     {
-        var compCore = comp.GetSpecialType(SpecialType.System_Object).ContainingAssembly.Identity.Version;
+        var coreAsm = comp.GetSpecialType(SpecialType.System_Object).ContainingAssembly;
+        var runtimeVersion = coreAsm.Identity.Version;
+        var runtimeIsCoreClr = string.Equals(coreAsm.Name, "System.Private.CoreLib",
+                                              StringComparison.OrdinalIgnoreCase);
         foreach (var mod in wrapperAsm.Modules)
             foreach (var r in mod.ReferencedAssemblies)
-                if (CoreFramework.Contains(r.Name) && r.Version > compCore)
-                    return true;
+            {
+                if (string.Equals(r.Name, "mscorlib", StringComparison.OrdinalIgnoreCase)
+                    && runtimeIsCoreClr)
+                    return true;  // .NET Framework wrapper under a CoreCLR probe
+                if (string.Equals(r.Name, "System.Private.CoreLib", StringComparison.OrdinalIgnoreCase)
+                    && !runtimeIsCoreClr)
+                    return true;  // CoreCLR wrapper under a non-CoreCLR probe
+                if (SameFamilyContract.Contains(r.Name) && r.Version > runtimeVersion)
+                    return true;  // a same-family core contract strictly newer than the runtime
+            }
+        foreach (var attr in wrapperAsm.GetAttributes())
+            if (attr.AttributeClass?.ToDisplayString()
+                    == "System.Runtime.Versioning.TargetFrameworkAttribute"
+                && attr.ConstructorArguments.Length > 0
+                && attr.ConstructorArguments[0].Value is string moniker
+                && MonikerFamilyIncompatible(moniker, runtimeIsCoreClr))
+                return true;
         return false;
+    }
+
+    private static bool MonikerFamilyIncompatible(string moniker, bool runtimeIsCoreClr)
+    {
+        var isFramework = moniker.StartsWith(".NETFramework", StringComparison.OrdinalIgnoreCase);
+        var isCoreApp = moniker.StartsWith(".NETCoreApp", StringComparison.OrdinalIgnoreCase);
+        return (runtimeIsCoreClr && isFramework) || (!runtimeIsCoreClr && isCoreApp);
     }
 
     private static int Refuse(string category, string message)
