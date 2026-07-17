@@ -40,7 +40,15 @@ def _module_scope_exit(node: ast.AST) -> bool:
                               ast.Lambda, ast.ClassDef)):
             continue  # a new scope: its body does not run on import
         if isinstance(child, ast.If) and _is_main_guard(child.test):
-            continue  # the sanctioned entrypoint
+            # ONLY the guard's body is exempt — its `else:` still runs on import, so a
+            # `if __name__ == "__main__": ... else: sys.exit(0)` must not slip through.
+            # Re-run the SAME per-child logic over the orelse statements (a synthetic
+            # Module so a bare `raise SystemExit` there is checked as a statement, not just
+            # its children).
+            if child.orelse and _module_scope_exit(
+                    ast.Module(body=child.orelse, type_ignores=[])):
+                return True
+            continue
         if isinstance(child, ast.Raise) and _is_systemexit(child.exc):
             return True
         if isinstance(child, ast.Call) and _is_sys_exit(child.func):
@@ -68,6 +76,12 @@ _SELFTEST_MUST_CATCH = (
      "import sys\ntry:\n    sys.exit(0)\nexcept Exception:\n    pass\n"),
     ("raise SystemExit at module scope", "raise SystemExit(1)\n"),
     ("exit inside a for loop", "import sys\nfor _ in range(1):\n    sys.exit(0)\n"),
+    ("sys.exit in a main-guard else",
+     "import sys\nif __name__ == '__main__':\n    pass\nelse:\n    sys.exit(0)\n"),
+    ("raise SystemExit in a main-guard else",
+     "if __name__ == '__main__':\n    pass\nelse:\n    raise SystemExit(1)\n"),
+    ("exit in a main-guard elif",
+     "import sys\nif __name__ == '__main__':\n    pass\nelif True:\n    sys.exit(0)\n"),
 )
 _SELFTEST_MUST_PASS = (
     ("guarded entrypoint", "import sys\nif __name__ == '__main__':\n    sys.exit(0)\n"),
