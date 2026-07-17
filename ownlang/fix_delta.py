@@ -35,6 +35,7 @@ from collections import Counter
 from typing import Any
 
 from ownlang.fix_gate import (
+    GateError,
     _canonical_bytes,
     _canonical_json,
     _claim_workdir,
@@ -85,6 +86,22 @@ _AUTHORITY_FIELDS = (
     "source_identity_kind", "handler", "handler_identity", "handler_identity_kind",
     "occurrence_ordinal", "acquire_span", "teardown", "allowed_actions",
 )
+
+# The frozen Step 9 gate-result.json contract (fix_gate._build_evidence): the exact
+# eleven top-level keys, the ten gate names, and the three git gates that alone may be
+# "not_applicable" (together, exactly for an empty / manual-only patch).
+_STEP9_OPERATION = "gate-subscription-fix-bundle"
+_STEP9_KEYS = (
+    "version", "operation", "input_bundle_sha256", "validated_plan_sha256",
+    "apply_manifest_sha256", "patch_sha256", "target_api", "source_files",
+    "applied_findings", "manual_review_findings", "gates",
+)
+_STEP9_GATE_NAMES = (
+    "bundle_layout", "manifest_shape", "authority_binding", "artifact_hashes",
+    "pristine_preimage", "patch_structure", "git_apply_check", "git_apply",
+    "postimage_equality", "isolated_tree",
+)
+_STEP9_GIT_GATES = ("git_apply_check", "git_apply", "isolated_tree")
 
 
 class DeltaError(Exception):
@@ -361,7 +378,6 @@ def _publish_delta(out: str, root: str, evidence_bytes: bytes) -> str:
     exactly delta-result.json, so nothing runs after the rename: either OUTPUT_DIR is
     absent, or it holds the complete canonical delta-result.json. A pre-rename failure
     removes the workdir; a post-rename failure is impossible because there is none."""
-    from ownlang.fix_gate import GateError
     try:
         out_phys, _parent_phys, root_phys = _out_parent(out, root)
         workdir = _claim_workdir(_parent_phys)
@@ -401,3 +417,76 @@ def _require_single_delta_file(workdir: str) -> None:
 def canonical_evidence(evidence: dict[str, Any]) -> bytes:
     """The published bytes: canonical JSON (sorted keys, compact) + a trailing newline."""
     return _canonical_bytes(evidence)
+
+
+# --- authority + OWN001-only scope guard (LA2) + exact Step 9 binding ---------------
+
+
+def load_authority(plan_bytes: bytes, candidates_bytes: bytes) -> tuple[Any, Any, Any]:
+    """Restate the frozen plan+candidates authority (reusing validate_gate_authority) and
+    enforce the OWN001-only scope guard (LA2): every accepted candidate must carry
+    diagnostic_code == 'OWN001'. An OWN014 (or any other) candidate is outside Step 10 and
+    fails closed as ANALYSIS_SCOPE before any analyzer runs."""
+    try:
+        plan = json.loads(plan_bytes)
+        candidates = json.loads(candidates_bytes)
+    except ValueError as exc:
+        raise DeltaError(AUTHORITY_BINDING, f"plan/candidates is not valid JSON ({exc})") from exc
+    try:
+        auth = validate_gate_authority(plan, candidates)
+    except GateError as exc:  # the frozen validator's category IS AUTHORITY_BINDING
+        raise DeltaError(exc.category, str(exc)) from exc
+    for candidate in candidates["candidates"]:
+        if candidate.get("diagnostic_code") != "OWN001":
+            raise DeltaError(ANALYSIS_SCOPE,
+                             "Step 10 verifies OWN001 subscription candidates only")
+    return auth, plan, candidates
+
+
+def bind_gate(gate_bytes: bytes, auth: Any, plan_bytes: bytes, manifest_bytes: bytes,
+              patch_bytes: bytes, pre_sha: str, post_sha: str) -> str:
+    """Bind the mandatory Step 9 evidence: validate the supplied gate-result.json to the
+    exact frozen shape, reconstruct the expected object from THIS plan+candidates+bundle,
+    and require both semantic equality and canonical bytes. Any deviation is GATE_BINDING.
+    Returns the gate-result sha256 for the evidence."""
+    cat = GATE_BINDING
+    try:
+        supplied = json.loads(gate_bytes)
+    except ValueError as exc:
+        raise DeltaError(cat, f"gate-result.json is not valid JSON ({exc})") from exc
+    _validate_gate_shape(supplied, cat)
+    # git gates are not_applicable exactly when the patch is empty (manual-only, C empty)
+    git_status = "not_applicable" if not auth.applied else "pass"
+    gates = {n: (git_status if n in _STEP9_GIT_GATES else "pass") for n in _STEP9_GATE_NAMES}
+    expected = {
+        "version": 1,
+        "operation": _STEP9_OPERATION,
+        "input_bundle_sha256": auth.input_bundle_sha256,
+        "validated_plan_sha256": _sha_bytes(plan_bytes),
+        "apply_manifest_sha256": _sha_bytes(manifest_bytes),
+        "patch_sha256": _sha_bytes(patch_bytes),
+        "target_api": {"subscribe": auth.target_subscribe},
+        "source_files": [{"path": auth.rel, "pre_sha256": pre_sha, "post_sha256": post_sha}],
+        "applied_findings": list(auth.applied),
+        "manual_review_findings": list(auth.manual),
+        "gates": gates,
+    }
+    if supplied != expected:
+        raise DeltaError(cat, "gate-result.json does not reconstruct from plan+candidates+bundle")
+    if _canonical_bytes(supplied) != gate_bytes:
+        raise DeltaError(cat, "gate-result.json is not canonical bytes (sorted keys + newline)")
+    return _sha_bytes(gate_bytes)
+
+
+def _validate_gate_shape(supplied: Any, cat: str) -> None:
+    if not isinstance(supplied, dict) or set(supplied) != set(_STEP9_KEYS):
+        raise DeltaError(cat, "gate-result.json is not the exact Step 9 eleven-key set")
+    gates = supplied["gates"]
+    if not isinstance(gates, dict) or set(gates) != set(_STEP9_GATE_NAMES):
+        raise DeltaError(cat, "gate-result.json.gates is not the exact ten-name set")
+    for name, value in gates.items():
+        allowed = ("pass", "not_applicable") if name in _STEP9_GIT_GATES else ("pass",)
+        if value not in allowed:
+            raise DeltaError(cat, f"gate-result.json.gates.{name} status {value!r} not allowed")
+    if len({gates[n] for n in _STEP9_GIT_GATES}) != 1:
+        raise DeltaError(cat, "gate-result.json git gates disagree (must share one status)")

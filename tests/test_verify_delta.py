@@ -14,6 +14,7 @@ Run:  python tests/test_verify_delta.py
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -22,6 +23,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import fix_delta as fd
+from ownlang.fix_gate import _build_evidence, _bundle_sha256, validate_gate_authority
 
 _EV = "System.ComponentModel.INotifyPropertyChanged.PropertyChanged"
 _FILE = "Own/Sample.cs"
@@ -78,6 +80,56 @@ def _raises(cat: str, fn, *a) -> bool:
     except fd.DeltaError as exc:
         return exc.category == cat
     return False
+
+
+# --- realistic plan / candidates / gate builders (slice 2) -------------------------
+
+_REL = "Own/Sample.cs"
+_PRE = b"class A\n{\n    void M()\n    {\n        p.PropertyChanged += OnX;\n    }\n}\n"
+_POST = _PRE.replace(b"p.PropertyChanged += OnX;", b"WeakEvents.AddPropertyChanged(p, OnX);")
+
+
+def _sha(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def _bcand(fid: str, start: int, dc: str = "OWN001",
+           contract: str = "inotify_property_changed", actions: list | None = None) -> dict:
+    return {"finding_id": fid, "diagnostic_code": dc, "containing_type": "N.A", "file": _REL,
+            "enclosing_member": "N.A..ctor(N.IPub)", "event": "PropertyChanged",
+            "event_identity": _EV, "event_contract": contract, "source": "p",
+            "source_identity": "p", "source_identity_kind": "computed", "handler": "OnX",
+            "handler_identity": "N.A.OnX(object, ...)", "handler_identity_kind": "stable_symbol",
+            "occurrence_ordinal": 0,
+            "acquire_span": {"start": start, "length": 10, "start_line": 5,
+                             "start_column": 9, "end_line": 5, "end_column": 19},
+            "teardown": {"status": "none", "candidates": []},
+            "allowed_actions": actions or ["convert_acquire", "manual_review"]}
+
+
+def _bcands(cands: list) -> dict:
+    return {"version": 1, "operation": "fix-subscriptions",
+            "target_api": {"subscribe": "WeakEvents.AddPropertyChanged"},
+            "selection": {"allowed_types": [{"full_name": "N.A", "file": _REL}],
+                          "selected_findings": None,
+                          "constraints": {"max_types_changed": 1, "max_files_changed": 1,
+                                          "allow_helper_changes": False,
+                                          "allow_config_changes": False,
+                                          "allow_suppressions": False}},
+            "source_files": [{"path": _REL, "sha256": _sha(_PRE)}], "candidates": cands}
+
+
+def _bplan(cands: dict, actions: list) -> dict:
+    return {"version": 1, "operation": "fix-subscriptions",
+            "input_bundle_sha256": _bundle_sha256(cands),
+            "target_api": {"subscribe": cands["target_api"]["subscribe"]},
+            "selection": {"allowed_types": [dict(cands["selection"]["allowed_types"][0])],
+                          "selected_findings": cands["selection"]["selected_findings"],
+                          "constraints": dict(cands["selection"]["constraints"])},
+            "source_files": [dict(cands["source_files"][0])],
+            "decisions": [{"finding_id": c["finding_id"], "action": actions[i],
+                           "file": c["file"], "acquire_span": c["acquire_span"]}
+                          for i, c in enumerate(cands["candidates"])]}
 
 
 def run() -> int:  # noqa: C901 — a flat battery of independent assertions
@@ -226,6 +278,73 @@ def run() -> int:  # noqa: C901 — a flat battery of independent assertions
         inside = os.path.join(root, "evidence")
         check(_raises(fd.PUBLICATION, fd._publish_delta, inside, root, b'{}\n'),
               "out inside root -> PUBLICATION")
+
+    # --- slice 2: authority OWN001-only guard + exact Step 9 gate binding ------
+    import copy
+    fid1 = "OWN001:sha256:" + "1" * 64
+    fid2 = "OWN050:sha256:" + "2" * 64  # a valid finding_id label; diagnostic_code is what matters
+    cands = _bcands([_bcand(fid1, 40),
+                     _bcand(fid2, 80, contract="name_only", actions=["manual_review"])])
+    plan = _bplan(cands, ["convert_acquire", "manual_review"])
+    auth, _p, _c = fd.load_authority(json.dumps(plan).encode(), json.dumps(cands).encode())
+    check(auth.applied == [fid1] and auth.manual == [fid2], "authority: OWN001 candidates load")
+
+    cands014 = _bcands([_bcand(fid1, 40, dc="OWN014", contract="name_only",
+                               actions=["manual_review"])])
+    plan014 = _bplan(cands014, ["manual_review"])
+    check(_raises(fd.ANALYSIS_SCOPE, fd.load_authority,
+                  json.dumps(plan014).encode(), json.dumps(cands014).encode()),
+          "OWN014 candidate -> ANALYSIS_SCOPE")
+
+    mani, patch = b"manifest-bytes", b"patch-bytes"
+    plan_bytes = json.dumps(plan).encode()
+    pre_sha, post_sha = _sha(_PRE), _sha(_POST)
+    gate_bytes = _build_evidence(auth, _REL, plan_bytes, mani, patch, pre_sha, post_sha, "pass")
+
+    def bg(gb: bytes):
+        return fd.bind_gate(gb, auth, plan_bytes, mani, patch, pre_sha, post_sha)
+
+    check(bg(gate_bytes) == fd._sha_bytes(gate_bytes), "gate: frozen evidence binds")
+
+    # manual-only: the three git gates are not_applicable, C empty
+    cands_m = _bcands([_bcand(fid2, 80, contract="name_only", actions=["manual_review"])])
+    plan_m = _bplan(cands_m, ["manual_review"])
+    auth_m, _, _ = fd.load_authority(json.dumps(plan_m).encode(), json.dumps(cands_m).encode())
+    plan_m_bytes = json.dumps(plan_m).encode()
+    gate_m = _build_evidence(auth_m, _REL, plan_m_bytes, mani, patch, pre_sha, post_sha,
+                             "not_applicable")
+    check(bool(fd.bind_gate(gate_m, auth_m, plan_m_bytes, mani, patch, pre_sha, post_sha)),
+          "gate: manual-only not_applicable binds")
+
+    good = json.loads(gate_bytes)
+
+    def _canon(obj) -> bytes:
+        return (json.dumps(obj, sort_keys=True, separators=(",", ":"),
+                           ensure_ascii=False).encode("utf-8") + b"\n")
+
+    def tam(mut) -> bytes:
+        g = copy.deepcopy(good)
+        mut(g)
+        return _canon(g)
+
+    check(_raises(fd.GATE_BINDING, bg,
+                  tam(lambda g: g["gates"].__setitem__("bundle_layout", "fail"))),
+          "gate: fail status -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg, tam(lambda g: g.__setitem__("surprise", 1))),
+          "gate: unknown top-level key -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg, tam(lambda g: g["gates"].pop("git_apply"))),
+          "gate: missing gate -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg,
+                  tam(lambda g: g["target_api"].__setitem__("subscribe", "X.Y"))),
+          "gate: wrong target -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg,
+                  tam(lambda g: g["gates"].__setitem__("bundle_layout", "not_applicable"))),
+          "gate: not_applicable on a non-git gate -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg,
+                  tam(lambda g: g["gates"].__setitem__("git_apply", "not_applicable"))),
+          "gate: split git-gate statuses -> GATE_BINDING")
+    check(_raises(fd.GATE_BINDING, bg, json.dumps(good, indent=2).encode("utf-8") + b"\n"),
+          "gate: non-canonical bytes -> GATE_BINDING")
 
     total = ok + bad
     print(f"verify-delta (unit): {ok}/{total} checks pass")
