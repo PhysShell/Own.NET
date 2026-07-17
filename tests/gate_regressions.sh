@@ -178,6 +178,16 @@ refuse "a symlink entry in the bundle" "$T/g_sym" "$T/bundle_sym" BUNDLE_LAYOUT
 cp -r "$T/bundle" "$T/bundle_pi_extra"
 touch "$T/bundle_pi_extra/postimage/frontend/roslyn/samples/Extra.cs"
 refuse "an extra postimage file" "$T/g_pie" "$T/bundle_pi_extra" BUNDLE_LAYOUT
+# An extra EMPTY directory (a file-set check alone would miss it).
+cp -r "$T/bundle" "$T/bundle_ed"; mkdir -p "$T/bundle_ed/postimage/frontend/roslyn/samples/empty"
+refuse "an extra empty directory" "$T/g_ed" "$T/bundle_ed" BUNDLE_LAYOUT
+cp -r "$T/bundle" "$T/bundle_hd"; mkdir -p "$T/bundle_hd/postimage/.hidden"
+refuse "a hidden empty directory" "$T/g_hd" "$T/bundle_hd" BUNDLE_LAYOUT
+cp -r "$T/bundle" "$T/bundle_nd"; mkdir -p "$T/bundle_nd/postimage/a/b/c"
+refuse "a nested empty directory" "$T/g_nd" "$T/bundle_nd" BUNDLE_LAYOUT
+# A symlinked bundle ROOT (rejected by lstat before realpath).
+ln -s "$T/bundle" "$T/bundle_link"
+refuse "a symlinked bundle root" "$T/g_bl" "$T/bundle_link" BUNDLE_LAYOUT
 
 echo "== 5. pristine source =="
 zero=$(printf '0%.0s' $(seq 1 64))

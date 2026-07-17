@@ -211,6 +211,34 @@ refuses(lambda: validate_gate_authority(plan_for(sel, ["convert_acquire", "manua
         AUTHORITY_BINDING, "authority: selected_findings incomplete")
 
 
+# Full value / nested-shape validation of the frozen candidate (amendment 2): the exact key
+# set alone is not enough — a wrong-typed value or a malformed teardown on a re-hashed bundle
+# must still be refused, so each fixture is bound through plan_for.
+def tamper(mut: Any, label: str) -> None:
+    c = base_candidates()
+    mut(c["candidates"][0])
+    refuses(lambda: validate_gate_authority(plan_for(c, ["convert_acquire", "manual_review"]), c),
+            AUTHORITY_BINDING, label)
+
+
+def _set(key: str, value: Any) -> Any:
+    return lambda cand: cand.__setitem__(key, value)
+
+
+tamper(_set("event_identity", 123), "authority: event_identity wrong type")
+tamper(_set("occurrence_ordinal", "banana"), "authority: occurrence_ordinal wrong type")
+tamper(_set("occurrence_ordinal", -1), "authority: occurrence_ordinal negative")
+tamper(_set("diagnostic_code", 7), "authority: diagnostic_code wrong type")
+tamper(_set("enclosing_member", None), "authority: enclosing_member wrong type")
+tamper(lambda c: c["teardown"].__setitem__("whatever", True), "authority: teardown extra key")
+tamper(lambda c: c["teardown"].__setitem__("status", "maybe"), "authority: teardown unknown status")
+tamper(_set("teardown", {"status": "exact", "candidates": [{"source": "a"}]}),
+       "authority: teardown candidate malformed")
+tamper(_set("teardown", {"status": "exact", "candidates": [
+    {"source": "a", "handler": "b", "match": "text", "span": {"start": 1, "length": 2}}]}),
+    "authority: teardown candidate span shape")
+
+
 # --- manifest shape ----------------------------------------------------------------
 
 
@@ -326,6 +354,47 @@ refuses(lambda: parse_step8_patch(GOOD[:-1], REL, PRE), PATCH_STRUCTURE,
 refuses(lambda: parse_step8_patch(GOOD.replace(b"@@ -5,1 +5,1 @@", b"@@ -99,1 +99,1 @@"),
                                   REL, PRE), PATCH_STRUCTURE, "patch: range past the preimage")
 
+# --- the no-newline marker + range invariants (amendment / blocker 5) --------------
+
+PRE3 = b"a\nb\nc\n"
+X = "x.cs"
+
+
+def small(hunk: bytes) -> bytes:
+    xb = X.encode()
+    return (b"diff --git a/" + xb + b" b/" + xb + b"\n--- a/" + xb + b"\n+++ b/" + xb + b"\n"
+            + hunk)
+
+
+parse_step8_patch(small(b"@@ -1,1 +1,1 @@\n-a\n+z\n"), X, PRE3)
+check(True, "patch: a minimal single-line change parses")
+# A legitimate no-newline marker on the last line of each side.
+parse_step8_patch(small(b"@@ -3,1 +3,1 @@\n-c\n\\ No newline at end of file\n+z\n"
+                         b"\\ No newline at end of file\n"), X, b"a\nb\nc")
+check(True, "patch: a well-placed no-newline marker parses")
+# A marker before any eligible line.
+refuses(lambda: parse_step8_patch(
+    small(b"@@ -1,1 +1,1 @@\n\\ No newline at end of file\n-a\n+z\n"), X, PRE3),
+    PATCH_STRUCTURE, "patch: marker before any line")
+# Two markers in a row (a duplicate / stray marker).
+refuses(lambda: parse_step8_patch(
+    small(b"@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n"
+          b"\\ No newline at end of file\n+z\n"), X, PRE3),
+    PATCH_STRUCTURE, "patch: a duplicate no-newline marker")
+# A marker on a line that is NOT the last of its side.
+refuses(lambda: parse_step8_patch(
+    small(b"@@ -1,2 +1,1 @@\n-a\n\\ No newline at end of file\n-b\n+z\n"), X, PRE3),
+    PATCH_STRUCTURE, "patch: marker with more of the same side after it")
+# A zero-length (insertion) range whose start is past the preimage.
+refuses(lambda: parse_step8_patch(small(b"@@ -99,0 +4,1 @@\n+z\n"), X, PRE3),
+        PATCH_STRUCTURE, "patch: an insertion range past the preimage")
+# A non-zero range starting at line 0.
+refuses(lambda: parse_step8_patch(small(b"@@ -0,1 +1,1 @@\n-a\n+z\n"), X, PRE3),
+        PATCH_STRUCTURE, "patch: a non-zero range starting at 0")
+# A valid pure insertion at the top (old range -0,0).
+parse_step8_patch(small(b"@@ -0,0 +1,1 @@\n+z\n"), X, PRE3)
+check(True, "patch: a pure insertion at the top parses")
+
 
 # --- containment platform rule -----------------------------------------------------
 
@@ -339,7 +408,14 @@ else:
     check(not _same_or_inside("/repo", "/REPO/x"), "containment: POSIX case-sensitive")
 
 
-print(f"gate (S2 step 9): {checks - len(failures)}/{checks} checks pass")
-for f in failures:
-    print(f"  FAIL: {f}")
-sys.exit(1 if failures else 0)
+def run() -> int:
+    """The aggregate contract run_tests.py expects: report + an int rc, NEVER a
+    process-ending sys.exit at import time (which would silence every later module)."""
+    print(f"gate (S2 step 9): {checks - len(failures)}/{checks} checks pass")
+    for f in failures:
+        print(f"  FAIL: {f}")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

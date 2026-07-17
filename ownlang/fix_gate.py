@@ -248,6 +248,29 @@ def _bundle_sha256(candidates: dict[str, Any]) -> str:
     return _sha_bytes(_canonical_json(candidates))
 
 
+def _span(obj: dict[str, Any], name: str, cat: str, where: str) -> tuple[int, ...]:
+    """The frozen 6-key int span. Returns the values as a tuple for exact comparison."""
+    sp = _obj(_need(obj, name, cat, where), cat, f"{where}.{name}")
+    _exact(sp, cat, f"{where}.{name}", *_SPAN_KEYS)
+    return tuple(_int(sp, k, cat, f"{where}.{name}") for k in _SPAN_KEYS)
+
+
+def _validate_teardown(td: Any, cat: str, where: str) -> None:
+    """The frozen teardown block: status vocabulary + exact-key candidates with a span."""
+    t = _obj(td, cat, f"{where}.teardown")
+    _exact(t, cat, f"{where}.teardown", "status", "candidates")
+    if _s(t, "status", cat, f"{where}.teardown") not in ("none", "exact", "ambiguous"):
+        raise GateError(cat, f"{where}.teardown: unknown status")
+    for i, tc_any in enumerate(_list(t, "candidates", cat, f"{where}.teardown")):
+        tctx = f"{where}.teardown.candidates[{i}]"
+        tc = _obj(tc_any, cat, tctx)
+        _exact(tc, cat, tctx, "source", "handler", "match", "span")
+        _s(tc, "source", cat, tctx)
+        _s(tc, "handler", cat, tctx)
+        _s(tc, "match", cat, tctx)
+        _span(tc, "span", cat, tctx)
+
+
 def _check_constraints(cons: dict[str, Any], cat: str, where: str) -> None:
     _exact(cons, cat, where, "max_types_changed", "max_files_changed",
            "allow_helper_changes", "allow_config_changes", "allow_suppressions")
@@ -317,9 +340,14 @@ def _validate_candidates(bundle: dict[str, Any], cat: str) -> dict[str, Any]:
             raise GateError(cat, f"{where}: duplicate finding_id {fid}")
         id_set.add(fid)
         ids.append(fid)
-        for k in ("event", "source", "handler", "source_identity", "source_identity_kind",
-                  "handler_identity", "handler_identity_kind"):
+        # EVERY string field the frozen S0 candidate carries — not just the identity
+        # subset — so a wrong-typed field on a re-hashed bundle cannot ride through.
+        for k in ("diagnostic_code", "enclosing_member", "event", "event_identity",
+                  "source", "source_identity", "source_identity_kind",
+                  "handler", "handler_identity", "handler_identity_kind"):
             _s(c, k, cat, where)
+        _int(c, "occurrence_ordinal", cat, where)
+        _validate_teardown(c["teardown"], cat, where)
         if _s(c, "containing_type", cat, where) != type_name:
             raise GateError(cat, f"{where}: outside the selected type {type_name}")
         if _s(c, "file", cat, where) != src_path:
@@ -327,10 +355,7 @@ def _validate_candidates(bundle: dict[str, Any], cat: str) -> dict[str, Any]:
         contract = _s(c, "event_contract", cat, where)
         if contract not in _CONTRACTS:
             raise GateError(cat, f"{where}: unknown event_contract '{contract}'")
-        span = _obj(c.get("acquire_span"), cat, f"{where}.acquire_span")
-        _exact(span, cat, f"{where}.acquire_span", *_SPAN_KEYS)
-        span_by_id[fid] = tuple(_int(span, k, cat, f"{where}.acquire_span")
-                                for k in _SPAN_KEYS)
+        span_by_id[fid] = _span(c, "acquire_span", cat, where)
         actions = _list(c, "allowed_actions", cat, where)
         if not actions:
             raise GateError(cat, f"{where}: allowed_actions must be non-empty")
@@ -429,10 +454,7 @@ def validate_gate_authority(validated_plan: Any, candidates: Any) -> GateAuthori
             raise GateError(cat, f"{where}: action '{action}' not allowed for {fid}")
         if _s(d, "file", cat, where) != src_path:
             raise GateError(cat, f"{where}: file != the selected source file")
-        d_span = _obj(d.get("acquire_span"), cat, f"{where}.acquire_span")
-        _exact(d_span, cat, f"{where}.acquire_span", *_SPAN_KEYS)
-        got = tuple(_int(d_span, k, cat, f"{where}.acquire_span") for k in _SPAN_KEYS)
-        if got != facts["span_by_id"][fid]:
+        if _span(d, "acquire_span", cat, where) != facts["span_by_id"][fid]:
             raise GateError(cat, f"{where}: acquire_span != the candidate")
         (applied if action == "convert_acquire" else manual).append(fid)
 
@@ -561,33 +583,56 @@ def parse_step8_patch(patch: bytes, rel: str, preimage: bytes) -> None:
             raise GateError(PATCH_STRUCTURE, "patch: malformed hunk header") from exc
         old_start, old_len = _range(old_part)
         _new_start, new_len = _range(new_part)
+        # Range bounds, including the zero-length (pure-insertion) case: a 0-length old
+        # range names the line BEFORE it (0..pre_lines); a non-zero range is 1-based and
+        # must lie within the preimage.
+        if old_len > 0:
+            if old_start < 1 or old_start + old_len - 1 > pre_lines:
+                raise GateError(PATCH_STRUCTURE, "patch: a hunk range is outside the preimage")
+        elif old_start > pre_lines:
+            raise GateError(PATCH_STRUCTURE, "patch: an insertion range is past the preimage")
         if old_start < prev_old_end:
             raise GateError(PATCH_STRUCTURE, "patch: hunks not increasing / non-overlapping")
-        if old_len > 0 and old_start + old_len - 1 > pre_lines:
-            raise GateError(PATCH_STRUCTURE, "patch: a hunk range is outside the preimage")
         prev_old_end = old_start + old_len
         saw_hunk = True
         i += 1
         ctx = minus = plus = 0
-        body_lines = 0
+        old_closed = new_closed = False   # a no-newline marker closes a side; once each
+        last_head: bytes | None = None    # the head of the last body line (None after a marker)
         while i < len(recs) and not (recs[i].startswith(b"@@ -")
                                      and recs[i].endswith(b" @@")):
             line = recs[i]
             if line == b"\\ No newline at end of file":
-                if body_lines == 0:
-                    raise GateError(PATCH_STRUCTURE, "patch: no-newline marker with no line")
+                # Must sit immediately after an eligible body line, mark the LAST line of
+                # its side(s), and appear at most once per side. A context line is on both
+                # sides; a `-` line only old; a `+` line only new.
+                if last_head is None:
+                    raise GateError(PATCH_STRUCTURE, "patch: no-newline marker not after a line")
+                marks_old = last_head in (b" ", b"-")
+                marks_new = last_head in (b" ", b"+")
+                if (marks_old and old_closed) or (marks_new and new_closed):
+                    raise GateError(PATCH_STRUCTURE, "patch: duplicate no-newline marker")
+                old_closed = old_closed or marks_old
+                new_closed = new_closed or marks_new
+                last_head = None
                 i += 1
                 continue
             if not line or line[:1] not in (b" ", b"-", b"+"):
                 raise GateError(PATCH_STRUCTURE, f"patch: illegal hunk line {line[:40]!r}")
             head = line[:1]
+            # A line of a side already closed by a marker means the marker did not mark the
+            # LAST line of that side.
+            if head in (b" ", b"-") and old_closed:
+                raise GateError(PATCH_STRUCTURE, "patch: old-side line after a no-newline marker")
+            if head in (b" ", b"+") and new_closed:
+                raise GateError(PATCH_STRUCTURE, "patch: new-side line after a no-newline marker")
             if head == b" ":
                 ctx += 1
             elif head == b"-":
                 minus += 1
             else:
                 plus += 1
-            body_lines += 1
+            last_head = head
             i += 1
         if ctx + minus != old_len or ctx + plus != new_len:
             raise GateError(PATCH_STRUCTURE, "patch: hunk line counts disagree with header")
@@ -758,10 +803,10 @@ def apply_in_throwaway(workdir: str, rel: str, preimage: bytes, postimage: bytes
 # --- publication (the step 8 protocol, reused) -------------------------------------
 
 
-def _prepare_out(out: str, root: str) -> tuple[str, str, str]:
-    """(out_phys, workdir, staging). The out-dir must be fresh and PHYSICALLY off the
-    source tree; the workdir (holding staging + the throwaway repo) is claimed under the
-    verified physical parent with an unpredictable name."""
+def _out_parent(out: str, root: str) -> tuple[str, str, str]:
+    """(out_phys, parent_phys, root_phys). The out-dir must be fresh and PHYSICALLY off the
+    source tree — its parent is resolved and confined here, and re-proven immediately
+    before the publishing rename."""
     out_abs = os.path.abspath(out)
     name = os.path.basename(out_abs.rstrip(os.sep))
     if not name:
@@ -776,16 +821,50 @@ def _prepare_out(out: str, root: str) -> tuple[str, str, str]:
     out_phys = os.path.join(parent_phys, name)
     if os.path.exists(out_phys) or os.path.islink(out_phys):
         raise GateError(PUBLICATION, f"--out {out!r} already exists")
-    workdir = os.path.join(parent_phys, f".{name}.owen-gate-{os.urandom(16).hex()}")
-    if os.path.exists(workdir) or os.path.islink(workdir):
-        raise GateError(PUBLICATION, "the work directory already exists")
-    return out_phys, workdir, os.path.join(workdir, "staging")
+    return out_phys, parent_phys, root_phys
 
 
-def _publish(staging: str, out_phys: str, evidence: bytes) -> None:
+def _claim_workdir(parent_phys: str) -> str:
+    """CLAIM an unpredictable working directory: create it here and now (owner-only on
+    POSIX, as part of the mkdir), then PROVE we own it — not a link/reparse, resolving to
+    itself under a platform-aware comparison, and empty. A name that is merely checked and
+    then written into is a window; this closes it."""
+    for _ in range(8):
+        path = os.path.join(parent_phys, f".owen-gate-{os.urandom(16).hex()}")
+        if os.path.exists(path) or os.path.islink(path):
+            continue
+        try:
+            os.mkdir(path, mode=0o700)
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            raise GateError(PUBLICATION,
+                            f"cannot claim a work directory ({exc.strerror or exc})") from exc
+        lst = os.lstat(path)
+        if _is_link(lst):
+            raise GateError(PUBLICATION, "the claimed work directory is a link")
+        if not stat.S_ISDIR(lst.st_mode) or os.path.realpath(path) != path \
+                or not _same_or_inside(parent_phys, os.path.realpath(path)):
+            raise GateError(PUBLICATION, "the claimed work directory does not resolve to itself")
+        if any(os.scandir(path)):
+            raise GateError(PUBLICATION, "the claimed work directory is not empty")
+        return path
+    raise GateError(PUBLICATION, "could not claim a work directory")
+
+
+def _publish(staging: str, out_phys: str, evidence: bytes, root_phys: str) -> None:
     os.makedirs(staging)
     with open(os.path.join(staging, "gate-result.json"), "wb") as fh:
         fh.write(evidence)
+    # Re-prove the destination against the filesystem AS IT IS NOW, right before the rename.
+    parent = os.path.dirname(out_phys)
+    if not os.path.isdir(parent):
+        raise GateError(PUBLICATION, "the out-dir parent vanished before publication")
+    if os.path.realpath(parent) != os.path.dirname(out_phys) \
+            or _same_or_inside(root_phys, os.path.realpath(parent)):
+        raise GateError(PUBLICATION, "the out-dir parent changed to resolve inside the root")
+    if os.path.exists(out_phys) or os.path.islink(out_phys):
+        raise GateError(PUBLICATION, "the out-dir appeared before publication")
     try:
         os.rename(staging, out_phys)
     except OSError as exc:
@@ -822,10 +901,13 @@ def _require_top_level(bundle: str) -> None:
         raise GateError(BUNDLE_LAYOUT, "postimage: is not a real directory")
 
 
-def _walk_regular(root: str, what: str) -> set[str]:
+def _walk_tree(root: str, what: str) -> tuple[set[str], set[str]]:
     """Every entry under `root` must be a real directory or a regular file — no symlinks,
-    reparse points, fifos, sockets or devices. Returns `/`-joined file paths."""
-    leaves: set[str] = set()
+    reparse points, fifos, sockets or devices. Returns (dir paths, file paths), both
+    `/`-joined and relative to `root`, so the caller can require an EXACT layout (extra or
+    hidden empty directories are a violation, not just extra files)."""
+    dirs: set[str] = set()
+    files: set[str] = set()
     stack = [root]
     while stack:
         current = stack.pop()
@@ -835,16 +917,18 @@ def _walk_regular(root: str, what: str) -> set[str]:
             raise GateError(BUNDLE_LAYOUT, f"{what}: cannot scan ({exc.strerror or exc})") from exc
         for entry in entries:
             st = _lentry(entry.path, entry.path)
+            rel = os.path.relpath(entry.path, root).replace("\\", "/")
             if _is_link(st):
                 raise GateError(BUNDLE_LAYOUT, f"{what}: '{entry.name}' is a symlink/reparse")
             if stat.S_ISDIR(st.st_mode):
+                dirs.add(rel)
                 stack.append(entry.path)
             elif stat.S_ISREG(st.st_mode):
-                leaves.add(os.path.relpath(entry.path, root).replace("\\", "/"))
+                files.add(rel)
             else:
                 raise GateError(BUNDLE_LAYOUT,
                                 f"{what}: '{entry.name}' is not a regular file or dir")
-    return leaves
+    return dirs, files
 
 
 # --- evidence + orchestration ------------------------------------------------------
@@ -878,13 +962,17 @@ def run_gate(bundle: str, plan_path: str, candidates_path: str, root: str, out: 
     path; raises GateError (no output, source untouched) on any refusal."""
     import shutil
 
-    # [1] bundle layout — entry types + top-level set; collect the postimage leaves.
-    bundle_phys = os.path.realpath(bundle)
-    if not os.path.isdir(bundle_phys):
+    # [1] bundle layout — the bundle root itself must not be a symlink/reparse (lstat
+    # BEFORE realpath), then exact entry types + the full postimage subtree.
+    blst = _lentry(bundle, "--bundle")
+    if _is_link(blst):
+        raise GateError(BUNDLE_LAYOUT, "--bundle is a symlink / reparse point")
+    if not stat.S_ISDIR(blst.st_mode):
         raise GateError(BUNDLE_LAYOUT, "--bundle is not a directory")
+    bundle_phys = os.path.realpath(bundle)
     _require_top_level(bundle_phys)
     postimage_root = os.path.join(bundle_phys, "postimage")
-    post_leaves = _walk_regular(postimage_root, "postimage")
+    post_dirs, post_leaves = _walk_tree(postimage_root, "postimage")
 
     # [2] snapshot the inputs that do NOT need rel (each read exactly once).
     manifest_bytes = _snapshot(os.path.join(bundle_phys, "apply-manifest.json"),
@@ -898,10 +986,13 @@ def run_gate(bundle: str, plan_path: str, candidates_path: str, root: str, out: 
     manifest = _load_json(manifest_bytes, MANIFEST_SHAPE, "apply-manifest.json")
     rel, m_pre, m_post, m_patch = validate_manifest_shape(manifest)
 
-    # [4] bundle layout, final: exactly one postimage leaf, and it is rel.
-    if post_leaves != {rel}:
-        raise GateError(BUNDLE_LAYOUT,
-                        f"postimage holds {sorted(post_leaves)}, want ['{rel}']")
+    # [4] bundle layout, final: the postimage subtree is EXACTLY rel's ancestor dirs plus
+    # rel — no extra, hidden or empty directory rides through.
+    parts = rel.split("/")
+    expected_dirs = {"/".join(parts[:i]) for i in range(1, len(parts))}
+    if post_leaves != {rel} or post_dirs != expected_dirs:
+        raise GateError(BUNDLE_LAYOUT, f"postimage layout {sorted(post_dirs | post_leaves)} "
+                        f"!= exactly {sorted(expected_dirs | {rel})}")
     postimage_bytes = _snapshot(os.path.join(postimage_root, *rel.split("/")),
                                 BUNDLE_LAYOUT, f"postimage/{rel}")
 
@@ -949,9 +1040,10 @@ def run_gate(bundle: str, plan_path: str, candidates_path: str, root: str, out: 
     parse_step8_patch(patch_bytes, rel, preimage_bytes)
 
     # [10] apply semantics + publication.
-    out_phys, workdir, staging = _prepare_out(out, root)
+    out_phys, parent_phys, root_phys = _out_parent(out, root)
+    workdir = _claim_workdir(parent_phys)
+    staging = os.path.join(workdir, "staging")
     try:
-        os.makedirs(workdir)
         if empty_patch:
             # manual-only: pre == post == the pristine bytes; Git is not run.
             if postimage_bytes != preimage_bytes:
@@ -966,7 +1058,7 @@ def run_gate(bundle: str, plan_path: str, candidates_path: str, root: str, out: 
 
         evidence = _build_evidence(auth, rel, plan_bytes, manifest_bytes, patch_bytes,
                                    m_pre, m_post, git_gates)
-        _publish(staging, out_phys, evidence)
+        _publish(staging, out_phys, evidence, root_phys)
     except BaseException:
         shutil.rmtree(workdir, ignore_errors=True)
         raise
