@@ -87,6 +87,9 @@ def _make_delta(cands_bytes: bytes, plan_bytes: bytes, auth, manifest_sha: str, 
         "expected": {"convert_acquire_ids": sorted(auth.applied),
                      "manual_review_ids": sorted(auth.manual)},
         "reference_closure": ref_closure,
+        # the remaining frozen Step 10 top-level keys (present but not consumed by Step 11).
+        "gate_binding": {"git_gates_status": "not_applicable"},
+        "baseline": {}, "postimage": {}, "delta": {}, "semantic_idempotence": {"pass": True},
         "checks": dict.fromkeys(ft._STEP10_CHECKS, "pass"),
     }
     return _canonical_bytes(d)
@@ -305,6 +308,9 @@ def run() -> int:
     _h3_isolation(check)
     _h3_revalidation(check)
     _h3_cleanup_and_publish(check)
+    _h4_validators(check)
+    _h4_run_child(check)
+    _h4_bind_delta(check)
 
     total = ok + bad
     print(f"verify-target (Tier A): {ok}/{total} checks pass")
@@ -486,6 +492,155 @@ def _h3_cleanup_and_publish(check) -> None:
         check(after == before, "publish: no EXECUTION_WORK_ROOT residue after success")
         check(os.path.isfile(os.path.join(published, "target-result.json")),
               "publish: the artifact exists after a clean run")
+
+
+_RW = {"assembly_simple_name": "WeakEvents",
+       "module_mvid": "d94f6f4c-0000-4000-8000-00000000abcd",
+       "metadata_token": "0x06000001", "resolved_signature": "System.Void WeakEvents.M()"}
+
+
+def _binding_result(fids: list[str]) -> dict:
+    cs = [{"finding_id": f, "preimage_span": [i, 10], "postimage_span": [i * 2, 20], **_RW}
+          for i, f in enumerate(sorted(fids))]
+    return {"version": 1, "operation": "weak-target-bind", "converted_callsites": len(fids),
+            "derived_wrapper_ordinal": 0, "resolved_wrapper": dict(_RW),
+            "callsite_binding": {"all_callsites_same_symbol": True,
+                                 "target_is_source_defined": False},
+            "callsites": cs}
+
+
+def _probe_result(**over) -> dict:
+    r = {"version": 1, "operation": "weak-target-probe", "attempt": 0,
+         "strong_delivered_once": True, "strong_retained": True, "weak_control_collected": True,
+         "delivered_count": 1, "threw_on_subscribe": False, "threw_on_first_raise": False,
+         "subscriber_collected": True, "threw_on_post_collection_raise": False,
+         "resolved_wrapper": {"ordinal": 0, "slot_sha256": "sha256:" + "a" * 64,
+                              "assembly_simple_name": "WeakEvents",
+                              "module_mvid": "d94f6f4c-0000-4000-8000-00000000abcd",
+                              "metadata_token": "0x06000001",
+                              "resolved_signature": "System.Void WeakEvents.M()"}}
+    r.update(over)
+    return r
+
+
+def _h4_validators(check) -> None:
+    ids = ["OWN001:sha256:" + "1" * 64, "OWN001:sha256:" + "2" * 64]
+    try:
+        ft._validate_binding_result(_binding_result(ids), ids)
+        check(True, "binding-result: a valid bijection passes")
+    except ft.TargetError:
+        check(False, "binding-result: false rejection")
+    # malformed shape/type -> INFRASTRUCTURE
+    b = _binding_result(ids)
+    b["derived_wrapper_ordinal"] = True
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
+          "binding-result: bool ordinal -> INFRASTRUCTURE")
+    b = _binding_result(ids)
+    b["callsites"][0]["surprise"] = 1
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
+          "binding-result: extra callsite key -> INFRASTRUCTURE")
+    b = _binding_result(ids)
+    b["callsites"][0]["postimage_span"] = [1, -1]
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
+          "binding-result: negative span -> INFRASTRUCTURE")
+    b = _binding_result(ids)
+    b["callsites"][0]["module_mvid"] = "different"
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_binding_result, b, ids),
+          "binding-result: callsite identity != resolved_wrapper -> INFRASTRUCTURE")
+    # well-formed but non-bijective / duplicate span -> CALLSITE_BINDING
+    check(_raises(ft.CALLSITE_BINDING, ft._validate_binding_result, _binding_result(ids), ids[:1]),
+          "binding-result: not a bijection -> CALLSITE_BINDING")
+    b = _binding_result(ids)
+    b["callsites"][1]["postimage_span"] = list(b["callsites"][0]["postimage_span"])
+    check(_raises(ft.CALLSITE_BINDING, ft._validate_binding_result, b, ids),
+          "binding-result: duplicate postimage span -> CALLSITE_BINDING")
+
+    # probe-result field types / formats
+    try:
+        ft._validate_probe_result(_probe_result(), 0)
+        check(True, "probe-result: a valid result passes")
+    except ft.TargetError:
+        check(False, "probe-result: false rejection")
+    bad = _probe_result()
+    bad["resolved_wrapper"]["ordinal"] = True
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, bad, 0),
+          "probe-result: bool ordinal -> INFRASTRUCTURE")
+    bad = _probe_result()
+    bad["resolved_wrapper"]["slot_sha256"] = "sha256:XYZ"
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, bad, 0),
+          "probe-result: malformed slot sha -> INFRASTRUCTURE")
+    bad = _probe_result()
+    bad["resolved_wrapper"]["extra"] = 1
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, bad, 0),
+          "probe-result: extra resolved_wrapper key -> INFRASTRUCTURE")
+    bad = _probe_result()
+    bad["resolved_wrapper"]["module_mvid"] = "not-a-guid"
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_probe_result, bad, 0),
+          "probe-result: malformed mvid -> INFRASTRUCTURE")
+
+    # runtime-unsupported result schema (gate for accepting child exit 10)
+    good = {"version": 1, "operation": "weak-target-probe", "attempt": 0,
+            "runtime_unsupported": True, "reason": "FileNotFoundException"}
+    try:
+        ft._validate_unsupported_result(good, 0)
+        check(True, "unsupported-result: valid schema passes")
+    except ft.TargetError:
+        check(False, "unsupported-result: false rejection")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_unsupported_result, {**good, "reason": 1}, 0),
+          "unsupported-result: non-string reason -> INFRASTRUCTURE")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_unsupported_result,
+                  {**good, "runtime_unsupported": False}, 0),
+          "unsupported-result: flag not true -> INFRASTRUCTURE")
+    check(_raises(ft.INFRASTRUCTURE, ft._validate_unsupported_result, good, 1),
+          "unsupported-result: wrong attempt -> INFRASTRUCTURE")
+
+
+def _h4_run_child(check) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {k: v for k, v in os.environ.items() if k in ("PATH", "SystemRoot", "SYSTEMROOT")}
+        rc, out, err, reason = ft._run_child(
+            [sys.executable, "-c", "import time; time.sleep(30)"], tmp, env, 1)
+        check(reason == "timeout", "run-child: over-time child -> timeout (killed)")
+        flood_out = "import sys; sys.stdout.buffer.write(b'x'*200000)"
+        rc, out, err, reason = ft._run_child([sys.executable, "-c", flood_out], tmp, env, 20)
+        check(reason == "stdout_overflow" and len(out) <= ft._OUT_LIMIT,
+              "run-child: stdout overflow -> capped + killed")
+        flood_err = "import sys; sys.stderr.buffer.write(b'y'*200000)"
+        rc, out, err, reason = ft._run_child([sys.executable, "-c", flood_err], tmp, env, 20)
+        check(reason == "stderr_overflow" and len(err) <= ft._OUT_LIMIT,
+              "run-child: stderr overflow -> capped + killed")
+        rc, out, err, reason = ft._run_child(
+            [sys.executable, "-c", "print('ok')"], tmp, env, 20)
+        check(reason is None and rc == 0 and out.strip() == b"ok",
+              "run-child: a clean child returns bounded output")
+
+
+def _h4_bind_delta(check) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        _root, _bundle, paths, delta_bytes = _manual_fixture(tmp)
+        with open(paths["candidates.json"], encoding="utf-8") as fh:
+            cands = json.load(fh)
+        with open(paths["plan.json"], encoding="utf-8") as fh:
+            plan = json.load(fh)
+        auth = validate_gate_authority(plan, cands)
+        plan_b, cand_b = _reads(paths["plan.json"]), _reads(paths["candidates.json"])
+        try:
+            ft.bind_delta(delta_bytes, auth, plan_b, cand_b)
+            check(True, "bind_delta: the frozen 15-key delta binds")
+        except ft.TargetError:
+            check(False, "bind_delta: false rejection of a valid delta")
+        d = json.loads(delta_bytes)
+        d["surprise"] = 1
+        check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
+              "bind_delta: unknown top-level key -> DELTA_BINDING")
+        d = json.loads(delta_bytes)
+        del d["input_hashes"]["pre_sha256"]
+        check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
+              "bind_delta: missing consumed field -> DELTA_BINDING")
+        d = json.loads(delta_bytes)
+        d["toolchain_fingerprint"]["resolved_runtime_identity"]["tfm"] = 9
+        check(_raises(ft.DELTA_BINDING, ft.bind_delta, _canonical_bytes(d), auth, plan_b, cand_b),
+              "bind_delta: wrong-typed runtime identity -> DELTA_BINDING")
 
 
 if __name__ == "__main__":
