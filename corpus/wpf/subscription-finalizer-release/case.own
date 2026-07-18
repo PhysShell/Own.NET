@@ -1,0 +1,20 @@
+module WpfSubscriptionFinalizerRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the only `-=` lives in the finalizer. A finalizer runs
+// only after the object becomes unreachable — but the live subscription is
+// exactly what keeps it reachable, so the release path is blocked by the leak
+// it is supposed to fix. Modelled as the ctor scope with no release => OWN001.
+fn FinalizerDetachDocument(properties: int) {
+    let sub = acquire Subscription(properties);
+    // the finalizer `-=` is not modelled as a release: it cannot run while
+    // the subscription holds `this` reachable (before.cs)
+}

@@ -1,0 +1,20 @@
+module WpfSubscriptionOverloadConflatedCleanup
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; Dispose calls the Cleanup() overload that detaches
+// nothing, while the `-=` lives only in the never-called Cleanup(bool).
+// Modelled as the ctor+Dispose scope where the called path performs no
+// release => OWN001.
+fn ReportView(report: int) {
+    let sub = acquire Subscription(report);
+    // Dispose() -> Cleanup(): no release on the called overload; the
+    // Cleanup(bool) holding the `-=` is never called (before.cs)
+}

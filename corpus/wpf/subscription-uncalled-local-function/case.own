@@ -1,0 +1,19 @@
+module WpfSubscriptionUncalledLocalFunction
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the only `-=` sits in a nested callable (local
+// function / lambda) that Dispose declares but never invokes. Declaration is
+// not execution, so the teardown path performs no release => OWN001.
+fn UncalledLocalFunctionView(model: int) {
+    let sub = acquire Subscription(model);
+    // Dispose declares Detach() but never calls it: no release on any
+    // executed path (before.cs)
+}

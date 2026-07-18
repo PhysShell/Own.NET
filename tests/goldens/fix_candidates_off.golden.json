@@ -40,7 +40,7 @@
           "event": "_pub.PropertyChanged",
           "handler": "OnChanged",
           "line": 45,
-          "released": true,
+          "released": false,
           "resource": "subscription",
           "source": "injected",
           "lambda": false
@@ -310,7 +310,7 @@
           "event": "_pub.PropertyChanged",
           "handler": "_handler",
           "line": 254,
-          "released": true,
+          "released": false,
           "resource": "subscription",
           "source": "injected",
           "lambda": false

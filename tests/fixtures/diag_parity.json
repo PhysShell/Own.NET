@@ -386,6 +386,16 @@
       ]
     },
     {
+      "name": "corpus/wpf/subscription-ambiguous-overload-wiring/case.own",
+      "source": "module WpfSubscriptionAmbiguousOverloadWiring\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the wired teardown handler name is AMBIGUOUS (two\n// overloads, the event unresolved), and the `-=` sits in the overload the\n// delegate never attaches. The executed teardown path performs no release\n// => OWN001.\nfn OrdersWindow(orders: int) {\n    let sub = acquire Subscription(orders);\n    // the attached Window_Closing overload detaches nothing; the `-=` lives\n    // in the never-attached sibling overload (before.cs)\n}\n",
+      "diags": [
+        [
+          17,
+          "OWN001"
+        ]
+      ]
+    },
+    {
       "name": "corpus/wpf/subscription-explicit-delegate-release/case.own",
       "source": "module WpfSubscriptionExplicitDelegateRelease\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Dispose\n    kind \"subscription token\"\n}\n\n// The view modelled as one scope: the ctor subscribes to the injected source and\n// (in before.cs) never unsubscribes — no Dispose. Acquiring the token without\n// releasing it = the injected source keeps the listener alive => OWN001.\n//\n// The C# after.cs releases it in Dispose — but writes the `-=` as a bare method\n// group while\n// the `+=` wraps the handler in `new PropertyChangedEventHandler(...)`. That\n// syntactic asymmetry is what the extractor must normalize; this .own reduction\n// only carries the acquire/release logic the core reasons about.\nfn SourceView(source: int) {\n    let sub = acquire Subscription(source);\n    // no `release sub;` -> unreleased subscription (before.cs)\n}\n",
       "diags": [
@@ -396,11 +406,71 @@
       ]
     },
     {
+      "name": "corpus/wpf/subscription-finalizer-release/case.own",
+      "source": "module WpfSubscriptionFinalizerRelease\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the only `-=` lives in the finalizer. A finalizer runs\n// only after the object becomes unreachable — but the live subscription is\n// exactly what keeps it reachable, so the release path is blocked by the leak\n// it is supposed to fix. Modelled as the ctor scope with no release => OWN001.\nfn FinalizerDetachDocument(properties: int) {\n    let sub = acquire Subscription(properties);\n    // the finalizer `-=` is not modelled as a release: it cannot run while\n    // the subscription holds `this` reachable (before.cs)\n}\n",
+      "diags": [
+        [
+          17,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/subscription-nonteardown-release/case.own",
+      "source": "module WpfSubscriptionNonTeardownRelease\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the only `-=` lives in an arbitrary non-teardown method\n// (`StopListening`) that no lifecycle path is proven to call. Modelled as the\n// ctor scope alone: the token is acquired and never released within any\n// teardown => OWN001. (The `-=`'s existence elsewhere is not modelled as a\n// release — that is exactly the #278 rule: existence is not execution.)\nfn PriceListener(prices: int) {\n    let sub = acquire Subscription(prices);\n    // no `release sub;` on any teardown path -> unreleased subscription (before.cs)\n}\n",
+      "diags": [
+        [
+          18,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/subscription-overload-conflated-cleanup/case.own",
+      "source": "module WpfSubscriptionOverloadConflatedCleanup\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; Dispose calls the Cleanup() overload that detaches\n// nothing, while the `-=` lives only in the never-called Cleanup(bool).\n// Modelled as the ctor+Dispose scope where the called path performs no\n// release => OWN001.\nfn ReportView(report: int) {\n    let sub = acquire Subscription(report);\n    // Dispose() -> Cleanup(): no release on the called overload; the\n    // Cleanup(bool) holding the `-=` is never called (before.cs)\n}\n",
+      "diags": [
+        [
+          17,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/subscription-param-guarded-unregister/case.own",
+      "source": "module WpfSubscriptionParamGuardedUnregister\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the only release sits behind a caller-controlled flag in\n// a non-teardown method (`UnregisterEventHandlers(bool UnregOnlyGoodys)` under\n// `if (!UnregOnlyGoodys)`). Modelled as one scope: on the flag=true path the\n// release never runs, so the token is not released on all paths => OWN001.\n// The real callers DO pass true (GTDService, DocCloud) — the leak path is the\n// production path, not a corner.\nfn GoodsDocument(properties: int, unregOnlyGoodys: int) {\n    let sub = acquire Subscription(properties);\n    if (unregOnlyGoodys) {\n        return;                     // caller passed true -> the `-=` block is skipped\n    }\n    release sub;                    // the guarded `-=`: runs only when the flag is false\n}\n",
+      "diags": [
+        [
+          21,
+          "OWN001"
+        ]
+      ]
+    },
+    {
       "name": "corpus/wpf/subscription-target-typed-delegate-release/case.own",
       "source": "module WpfSubscriptionTargetTypedDelegateRelease\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the finding\n// carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Dispose\n    kind \"subscription token\"\n}\n\n// The view modelled as one scope: the ctor subscribes to the injected source and\n// (in before.cs) never unsubscribes — no Dispose => OWN001.\n//\n// The C# after.cs releases it in Dispose, but the ctor `+=` uses C# 9 target-typed\n// delegate creation `new(H)` while the `-=` is a bare method group. That syntactic\n// asymmetry is what the extractor must normalize; this .own reduction only carries\n// the acquire/release logic the core reasons about.\nfn SourceView(source: int) {\n    let sub = acquire Subscription(source);\n    // no `release sub;` -> unreleased subscription (before.cs)\n}\n",
       "diags": [
         [
           20,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/subscription-uncalled-local-function/case.own",
+      "source": "module WpfSubscriptionUncalledLocalFunction\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the only `-=` sits in a nested callable (local\n// function / lambda) that Dispose declares but never invokes. Declaration is\n// not execution, so the teardown path performs no release => OWN001.\nfn UncalledLocalFunctionView(model: int) {\n    let sub = acquire Subscription(model);\n    // Dispose declares Detach() but never calls it: no release on any\n    // executed path (before.cs)\n}\n",
+      "diags": [
+        [
+          16,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/subscription-xaml-name-only-release/case.own",
+      "source": "module WpfSubscriptionXamlNameOnlyRelease\n\n// A subscription token: `+= handler` acquires the source<->listener edge; the\n// matching `-= handler` releases it. `kind` tags the resource so the generic\n// ownership finding carries a [resource: ...] note.\nresource Subscription {\n    acquire Subscribe\n    release Unsubscribe\n    kind \"subscription token\"\n}\n\n// The ctor subscribes; the only `-=` lives in a method whose NAME matches the\n// XAML handler convention but which nothing in code wires to any event. A name\n// is not wiring — the method is unreachable as far as the code can prove.\n// Modelled as the ctor scope with no release => OWN001.\nfn SettingsView(settings: int) {\n    let sub = acquire Subscription(settings);\n    // the name-only `Window_Closing` is not modelled as a release: nothing\n    // proves the platform ever calls it (before.cs)\n}\n",
+      "diags": [
+        [
+          17,
           "OWN001"
         ]
       ]

@@ -1,0 +1,20 @@
+module WpfSubscriptionNonTeardownRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the only `-=` lives in an arbitrary non-teardown method
+// (`StopListening`) that no lifecycle path is proven to call. Modelled as the
+// ctor scope alone: the token is acquired and never released within any
+// teardown => OWN001. (The `-=`'s existence elsewhere is not modelled as a
+// release — that is exactly the #278 rule: existence is not execution.)
+fn PriceListener(prices: int) {
+    let sub = acquire Subscription(prices);
+    // no `release sub;` on any teardown path -> unreleased subscription (before.cs)
+}

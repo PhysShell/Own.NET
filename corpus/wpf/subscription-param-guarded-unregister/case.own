@@ -1,0 +1,24 @@
+module WpfSubscriptionParamGuardedUnregister
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the only release sits behind a caller-controlled flag in
+// a non-teardown method (`UnregisterEventHandlers(bool UnregOnlyGoodys)` under
+// `if (!UnregOnlyGoodys)`). Modelled as one scope: on the flag=true path the
+// release never runs, so the token is not released on all paths => OWN001.
+// The real callers DO pass true (GTDService, DocCloud) — the leak path is the
+// production path, not a corner.
+fn GoodsDocument(properties: int, unregOnlyGoodys: int) {
+    let sub = acquire Subscription(properties);
+    if (unregOnlyGoodys) {
+        return;                     // caller passed true -> the `-=` block is skipped
+    }
+    release sub;                    // the guarded `-=`: runs only when the flag is false
+}

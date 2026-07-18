@@ -11,9 +11,16 @@
 // When the left side's declaring type is an unresolved external reference we do
 // not guess: a handler-shaped RHS surfaces as an OWN050 "leakage analysis
 // skipped" note, never a leak. A subscription is "released" by a matching
-// `target -= handler` in the class; a `Tick`/`Elapsed` handler is tagged
-// resource=timer (WPF002) and is released if the timer's receiver also has a
-// `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
+// `target -= handler` in a recognised TEARDOWN CONTEXT of the class (#278:
+// Dispose/DisposeAsync/OnClosed/Unloaded-style methods, a handler wired in code
+// to the class's own Closed/Unloaded-style lifecycle event, or a method/local
+// function the teardown path provably calls intra-class, symbol-resolved) that
+// is not guarded by a parameter of its enclosing method — a `-=` in an
+// arbitrary method, a finalizer, an unwired lambda, an uncalled local function,
+// or behind a caller-controlled flag, is not proven to run and keeps the honest
+// warning.
+// A `Tick`/`Elapsed` handler is tagged resource=timer (WPF002) and is released
+// if the timer's receiver also has a `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
 //
 // Usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [more ...] [-o|--out facts.json]
@@ -809,6 +816,288 @@ static string? Receiver(ExpressionSyntax expr) =>
 static bool IsTimerEvent(ExpressionSyntax left) =>
     left is MemberAccessExpressionSyntax m
         && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
+
+// --- #278 soundness: a `-=` that exists is not a `-=` that runs. -----------------
+//
+// A matching `-=` credits the subscription's release ONLY when it sits in a
+// recognised TEARDOWN CONTEXT of the subscribing class (P-001/P-004 as written:
+// `Dispose`/`OnClosed`/`Unloaded`), and is not guarded away by a parameter of its
+// enclosing method. A `-=` in an arbitrary method — one nothing here proves is
+// ever called, or whose guard the caller can flip — keeps today's honest OWN001
+// warning instead of silently swallowing the leak class (the #238 doctrine).
+// Heap-proven on SectorTS GTD: ctor `+=` to a static publisher, the only `-=`
+// inside `UnregisterEventHandlers(bool UnregOnlyGoodys)` behind `if (!UnregOnly-
+// Goodys)`, and the leaking callers pass `true` — the old "any `-=` in the class"
+// model paired them and stayed silent over a 66%-retained heap.
+//
+// Teardown contexts (deliberately NO whole-program call graph — intra-class only):
+//   * a method the platform itself runs at end-of-life, by exact name:
+//     Dispose / DisposeAsync / OnClosed / OnClosing / OnUnloaded / OnFormClosed /
+//     OnFormClosing;
+//   * a handler this class wires (`+=`, bare/`this.` receiver) to its own
+//     lifecycle event: Closed / Closing / Unloaded / FormClosed / FormClosing /
+//     Disposed — including an inline lambda handler on those events;
+//   * any method or local function such a context PROVABLY calls (`Cleanup()`
+//     from `Dispose()`), transitively within the class — a SYMBOL-based
+//     fixpoint: only an invocation that RESOLVES to a specific own method
+//     extends the set, so a call to `Cleanup()` never credits an uncalled
+//     `Cleanup(bool)` overload.
+//
+// Explicit NON-contexts (follow-up to #278 — each was a silent-exemption hole):
+//   * a FINALIZER: for a subscription leak the subscriber stays REACHABLE
+//     through the publisher's delegate, so its finalizer never runs while the
+//     subscription is live — a `-=` there can never break the hold;
+//   * a `Window_Closing`-style NAME with no code wiring: the XAML attach never
+//     reaches this extractor, so the name alone proves nothing (it may be stale
+//     dead code) — a XAML-aware slice can restore it with evidence;
+//   * a local function or lambda merely DECLARED inside a teardown method:
+//     declaration is not execution — a local function counts only when the
+//     symbol-based closure proves a teardown calls it, a lambda only when it is
+//     the handler wired to a lifecycle event.
+
+// A method name the platform (or the IDisposable contract) itself invokes at the
+// end of the object's life.
+static bool IsTeardownMethodName(string name) =>
+    name is "Dispose" or "DisposeAsync"
+         or "OnClosed" or "OnClosing" or "OnUnloaded" or "OnFormClosed" or "OnFormClosing";
+
+// An event MEMBER name that fires at the subscriber's own end-of-life, so a handler
+// attached to it is a teardown context.
+static bool IsTeardownEventName(string name) =>
+    name is "Closed" or "Closing" or "Unloaded" or "FormClosed" or "FormClosing" or "Disposed";
+
+// The event-member simple name of a `+=`/`-=` left side (`Closed`, `win.Closed`),
+// null when the shape names no member.
+static string? EventMemberName(ExpressionSyntax left) => left switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+    _ => null,
+};
+
+// Is the `+=` receiver THIS object (bare `Closed +=` / `this.Closed +=`)? A handler
+// hooked to ANOTHER object's `Closed` runs at that object's teardown, not ours, so
+// it may not ground OUR release.
+static bool IsSelfLifecycleReceiver(ExpressionSyntax left) =>
+    left is IdentifierNameSyntax
+    || (left is MemberAccessExpressionSyntax ma && ma.Expression is ThisExpressionSyntax);
+
+// The descendant nodes of one callable's OWN body — never descending into a
+// nested lambda or local function, whose bodies do not run just because the
+// enclosing method does (they get their own teardown decision).
+static IEnumerable<SyntaxNode> DirectBodyNodes(SyntaxNode body) =>
+    body.DescendantNodes(n =>
+        n is not AnonymousFunctionExpressionSyntax and not LocalFunctionStatementSyntax);
+
+// The set of THIS class's method (and local-function) SYMBOLS that are teardown
+// contexts: the named/wired roots plus everything a member of the set PROVABLY
+// calls, to a fixpoint. Symbol-based on purpose (#278 follow-up): the closure
+// extends only through an invocation that RESOLVES to a specific own method or
+// local function, so `Dispose() => Cleanup();` credits exactly `Cleanup()` —
+// never a same-named, uncalled `Cleanup(bool)` overload.
+static HashSet<IMethodSymbol> TeardownContextMethods(
+    ClassDeclarationSyntax cls, SemanticModel model, INamedTypeSymbol? clsSymbol)
+{
+    var teardown = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+    var work = new Queue<IMethodSymbol>();
+    void Add(IMethodSymbol? m)
+    {
+        if (m is not null && teardown.Add(m))
+            work.Enqueue(m);
+    }
+
+    // roots: exact platform teardown names among the class's own methods.
+    foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+        if (IsTeardownMethodName(md.Identifier.Text))
+            Add(model.GetDeclaredSymbol(md));
+
+    // roots: method-group handlers this class wires to its OWN lifecycle events
+    // (`Closed += OnDone;` / `this.Closing += Window_Closing;`).
+    foreach (var a in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+    {
+        if (!a.IsKind(SyntaxKind.AddAssignmentExpression)
+            || EventMemberName(a.Left) is not { } evName || !IsTeardownEventName(evName)
+            || !IsSelfLifecycleReceiver(a.Left))
+            continue;
+        var h = NormalizeHandler(a.Right);
+        if (h is not (IdentifierNameSyntax or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
+            continue;
+        var info = model.GetSymbolInfo(h);
+        if (info.Symbol is IMethodSymbol hm)
+        {
+            Add(hm); // symbol-resolved: the event delegate picked its exact target
+        }
+        else
+        {
+            // The lifecycle EVENT is unresolved (`Closing +=` on a base the runner
+            // cannot reference, e.g. WPF `Window` on Linux), so the method group
+            // binds no definite symbol. The runtime delegate still attaches exactly
+            // ONE overload — chosen by the event's delegate signature, which is
+            // precisely what is missing here — so the group's NAME may ground a
+            // teardown ONLY when it is unambiguous: exactly one method with that
+            // name in the immediate class. Zero or 2+ same-named methods credit
+            // NOTHING — a `-=` in the wrong, never-attached overload must keep the
+            // honest warning (the unresolved twin of the invocation-overload
+            // conflation the closure below rules out).
+            var hn = h is IdentifierNameSyntax hid
+                ? hid.Identifier.Text
+                : ((MemberAccessExpressionSyntax)h).Name.Identifier.Text;
+            IMethodSymbol? only = null;
+            var unique = true;
+            foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+                if (md.Identifier.Text == hn && model.GetDeclaredSymbol(md) is { } nds)
+                {
+                    if (only is not null) { unique = false; break; }
+                    only = nds;
+                }
+            if (unique && only is not null)
+                Add(only);
+        }
+    }
+
+    // intra-class closure: a method/local function a teardown context provably
+    // calls (bare or `this.`-qualified, RESOLVED to a symbol of this class) is
+    // itself a teardown context. Unresolved calls extend nothing — the worst
+    // case stays "keeps today's honest warning".
+    while (work.Count > 0)
+    {
+        var m = work.Dequeue();
+        foreach (var sref in m.DeclaringSyntaxReferences)
+        {
+            if (sref.SyntaxTree != model.SyntaxTree)
+                continue; // a partial's other-file half: outside this model's scope
+            SyntaxNode? body = sref.GetSyntax() switch
+            {
+                BaseMethodDeclarationSyntax bmd => (SyntaxNode?)bmd.Body ?? bmd.ExpressionBody,
+                LocalFunctionStatementSyntax lf => (SyntaxNode?)lf.Body ?? lf.ExpressionBody,
+                _ => null,
+            };
+            if (body is null)
+                continue;
+            foreach (var inv in DirectBodyNodes(body).OfType<InvocationExpressionSyntax>())
+            {
+                if (inv.Expression is not (IdentifierNameSyntax
+                        or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
+                    continue;
+                if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
+                    continue;
+                if (callee.MethodKind == MethodKind.LocalFunction
+                    || (clsSymbol is not null
+                        && SymbolEqualityComparer.Default.Equals(callee.ContainingType, clsSymbol)))
+                    Add(callee);
+            }
+        }
+    }
+    return teardown;
+}
+
+// Does this `-=` sit in a PROVEN teardown context of `cls`? Walks the lexical
+// ancestors to the nearest callable and asks whether that callable provably runs
+// at teardown. A ctor, an accessor (a rebinding setter is the #163 gap, not a
+// proven teardown), a non-teardown method, a FINALIZER (never runs while the
+// publisher's delegate keeps the subscriber reachable), an unwired lambda, or an
+// uncalled local function => no.
+static bool InTeardownContext(AssignmentExpressionSyntax sub, ClassDeclarationSyntax cls,
+                              HashSet<IMethodSymbol> teardownMethods, SemanticModel model)
+{
+    for (SyntaxNode? cur = sub.Parent; cur is not null; cur = cur.Parent)
+    {
+        switch (cur)
+        {
+            case AnonymousFunctionExpressionSyntax lam:
+                // teardown ONLY as the handler wired to a lifecycle event
+                // (`Closed += (s, e) => { ... -= ... }`, unwrapping `new
+                // EventHandler(...)` wrappers). Anything else — including a lambda
+                // merely declared inside Dispose — is a deferred delegate nothing
+                // here proves is invoked.
+                return lam.FirstAncestorOrSelf<AssignmentExpressionSyntax>() is { } attach
+                    && attach.IsKind(SyntaxKind.AddAssignmentExpression)
+                    && ReferenceEquals(NormalizeHandler(attach.Right), lam)
+                    && EventMemberName(attach.Left) is { } evName
+                    && IsTeardownEventName(evName)
+                    && IsSelfLifecycleReceiver(attach.Left);
+            case LocalFunctionStatementSyntax lf:
+                // declaration is not execution: only a local function the
+                // symbol-based closure proved a teardown CALLS counts.
+                return model.GetDeclaredSymbol(lf) is { } lfs
+                    && teardownMethods.Contains(lfs);
+            case DestructorDeclarationSyntax:
+                return false;
+            case MethodDeclarationSyntax md:
+                return ReferenceEquals(md.Parent, cls)
+                    && model.GetDeclaredSymbol(md) is { } ms
+                    && teardownMethods.Contains(ms);
+            case BaseMethodDeclarationSyntax: // ctor / operator: not a teardown
+                return false;
+            case AccessorDeclarationSyntax:
+                return false;
+            case TypeDeclarationSyntax:
+                return false;
+        }
+    }
+    return false;
+}
+
+// #278 rule 2: a `-=` under a branch whose condition depends on a PARAMETER of the
+// enclosing method cannot be proven to run from the subscription site — the caller
+// chooses (SectorTS: `if (!UnregOnlyGoodys)`, callers pass `true`). Field/local
+// guards (`if (_handler != null)`) stay credited: they are the class's own state,
+// not a caller-controlled skip. The ONE canonical exception is the positive
+// `disposing` guard of the IDisposable pattern — `Dispose(bool disposing)`'s
+// `if (disposing) { ... }` runs on every `Dispose()` call, so a POSITIVE use of
+// that single bool parameter does not demote; `if (!disposing)` (the finalizer
+// branch) still does.
+static bool IsParamGuardedRelease(AssignmentExpressionSyntax sub, SemanticModel model)
+{
+    for (SyntaxNode? cur = sub.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
+    {
+        ExpressionSyntax? cond = cur switch
+        {
+            IfStatementSyntax ifs => ifs.Condition,
+            ConditionalExpressionSyntax ce => ce.Condition,
+            SwitchStatementSyntax ss => ss.Expression,
+            SwitchExpressionSyntax se => se.GoverningExpression,
+            WhileStatementSyntax ws => ws.Condition,
+            ForStatementSyntax fs => fs.Condition,
+            _ => null,
+        };
+        if (cond is null)
+            continue;
+        foreach (var id in cond.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+            if (model.GetSymbolInfo(id).Symbol is IParameterSymbol p
+                && !IsCanonicalDisposingGuardUse(id, p))
+                return true;
+    }
+    return false;
+}
+
+// A POSITIVE reference to the single bool parameter of `Dispose(bool)` — the
+// canonical `if (disposing)` (also `if (disposing && !_disposed)`). A negated use
+// (`!disposing`, `disposing == false`) selects the finalizer branch and does not
+// prove the managed release runs.
+static bool IsCanonicalDisposingGuardUse(IdentifierNameSyntax id, IParameterSymbol p)
+{
+    if (p.Type.SpecialType != SpecialType.System_Boolean
+        || p.ContainingSymbol is not IMethodSymbol m
+        || m.Name != "Dispose" || m.Parameters.Length != 1)
+        return false;
+    SyntaxNode use = id;
+    while (use.Parent is ParenthesizedExpressionSyntax pe)
+        use = pe;
+    if (use.Parent is PrefixUnaryExpressionSyntax pu && pu.IsKind(SyntaxKind.LogicalNotExpression))
+        return false;
+    if (use.Parent is BinaryExpressionSyntax be
+        && (be.IsKind(SyntaxKind.EqualsExpression) || be.IsKind(SyntaxKind.NotEqualsExpression)))
+    {
+        var other = ReferenceEquals(be.Left, use) ? be.Right : be.Left;
+        var negated = be.IsKind(SyntaxKind.EqualsExpression)
+            ? other.IsKind(SyntaxKind.FalseLiteralExpression)
+            : other.IsKind(SyntaxKind.TrueLiteralExpression);
+        if (negated)
+            return false;
+    }
+    return true;
+}
 
 // Issue #218 — DP/property-changed old->new subscription ROTATION. A property-changed callback (a
 // `PropertyChangedCallback` reading `e.OldValue`/`e.NewValue`, or a virtual `OnXChanged(T old, T new)`
@@ -4878,11 +5167,22 @@ foreach (var (file, tree) in parsed)
     {
         var assigns = cls.DescendantNodes().OfType<AssignmentExpressionSyntax>().ToList();
 
-        // every `target -= handler` in this class, keyed by "left|right".
+        // every `target -= handler` in this class that is PROVEN to run at teardown,
+        // keyed by "left|right". #278 soundness: a `-=` in an arbitrary method (or
+        // behind a caller-controlled parameter guard) is not a release — it kept
+        // pairing SectorTS GTD's ctor `+=` with a flag-skipped `-=` and silently
+        // swallowed a heap-proven leak. Only a teardown-context, unguarded `-=`
+        // credits release now; everything else keeps the honest OWN001/OWN014.
+        // (Self-detaching handlers, old->new rotation and timer `.Stop()` have
+        // their own dedicated checks below, unchanged.)
+        var clsSymbol = model.GetDeclaredSymbol(cls);
+        var teardownMethods = TeardownContextMethods(cls, model, clsSymbol);
         var unsub = new HashSet<string>();
         foreach (var a in assigns)
             if (a.IsKind(SyntaxKind.SubtractAssignmentExpression)
-                && IsHandler(NormalizeHandler(a.Right)))
+                && IsHandler(NormalizeHandler(a.Right))
+                && InTeardownContext(a, cls, teardownMethods, model)
+                && !IsParamGuardedRelease(a, model))
                 unsub.Add($"{a.Left}|{NormalizeHandler(a.Right)}");
 
         // every receiver with a `.Stop()` call: a timer detached this way counts
@@ -4935,7 +5235,6 @@ foreach (var (file, tree) in parsed)
         //     lived publisher — so it is NOT exempted, else a real leak is suppressed.
         //   * template parts — `_part = GetTemplateChild("PART_x") as T`: a control
         //     owns the parts of its own template (collectable part<->control cycle).
-        var clsSymbol = model.GetDeclaredSymbol(cls);
         var selfOwned = new HashSet<string>(constructed);
         foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
             if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)

@@ -1,0 +1,20 @@
+module WpfSubscriptionAmbiguousOverloadWiring
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the wired teardown handler name is AMBIGUOUS (two
+// overloads, the event unresolved), and the `-=` sits in the overload the
+// delegate never attaches. The executed teardown path performs no release
+// => OWN001.
+fn OrdersWindow(orders: int) {
+    let sub = acquire Subscription(orders);
+    // the attached Window_Closing overload detaches nothing; the `-=` lives
+    // in the never-attached sibling overload (before.cs)
+}
