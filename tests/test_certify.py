@@ -22,9 +22,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import fix_certify as fc
 from ownlang.fix_bundle import build_manifest, canonical_patch, manifest_bytes
-from ownlang.fix_delta import _sorted_multiset
+from ownlang.fix_delta import _STEP9_GATE_NAMES, _STEP9_GIT_GATES, _sorted_multiset
 from ownlang.fix_gate import (
-    _STEP9_GATE_NAMES,
     _bundle_sha256,
     _canonical_bytes,
     _canonical_json,
@@ -33,7 +32,6 @@ from ownlang.fix_gate import (
 )
 from ownlang.fix_target import _attempt_verdict
 
-_STEP9_GIT_GATES = ("git_apply_check", "git_apply", "isolated_tree")
 _REL = "Own/Sample.cs"
 _FQN = "N.A"
 _SUB = "WeakEvents.AddPropertyChanged"
@@ -297,16 +295,19 @@ class Chain:
                            "checks": checks}
 
     def materialize(self, root: str) -> dict:
-        os.makedirs(root, exist_ok=True)
-        bundle = os.path.join(root, "bundle")
+        # Inputs live under <root>/in; the published output goes to <root>/out, which is therefore
+        # physically outside every protected input root (bundle / ref-dirs / input-file parents).
+        indir = os.path.join(root, "in")
+        os.makedirs(indir, exist_ok=True)
+        bundle = os.path.join(indir, "bundle")
         _write(os.path.join(bundle, "apply-manifest.json"), self.manifest_data)
         _write(os.path.join(bundle, "change.patch"), self.patch)
         _write(os.path.join(bundle, "postimage", *self.rel.split("/")), self.postimage)
-        paths = {"plan": os.path.join(root, "plan.json"),
-                 "candidates": os.path.join(root, "candidates.json"),
-                 "gate": os.path.join(root, "gate.json"),
-                 "delta": os.path.join(root, "delta.json"),
-                 "target": os.path.join(root, "target.json")}
+        paths = {"plan": os.path.join(indir, "plan.json"),
+                 "candidates": os.path.join(indir, "candidates.json"),
+                 "gate": os.path.join(indir, "gate.json"),
+                 "delta": os.path.join(indir, "delta.json"),
+                 "target": os.path.join(indir, "target.json")}
         _write(paths["plan"], self.plan_bytes)
         _write(paths["candidates"], self.cands_bytes)
         _write(paths["gate"], self.gate_bytes)
@@ -314,7 +315,7 @@ class Chain:
         _write(paths["target"], _canonical_bytes(self.target))
         ref_dirs = []
         for i, (name, data) in enumerate(self.ref_slots):
-            rd = os.path.join(root, f"ref-{i}")
+            rd = os.path.join(indir, f"ref-{i}")
             _write(os.path.join(rd, name), data)
             ref_dirs.append(rd)
         out = os.path.join(root, "out", "cert")
