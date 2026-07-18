@@ -30,7 +30,7 @@ child-issue DAG. Revised per the post-merge review in
 | 5a | diagnostic messages + ordered Evidence parity | #255 |
 | 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 |
 | 5c | `own-codegen` (analysis-independent sibling) | #257 |
-| 6a | OwnIR **bridge semantics formalized** before the port | #258 (delivered: `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md`, review via PR #297) |
+| 6a | OwnIR **bridge semantics formalized** before the port | #258 (deliverable written — `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` **land with PR #297**, in independent review; not on `main` yet) |
 | 6b | Rust `own-bridge`, layered OwnIR parity | #259 |
 | 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269 — normalized `AnalysisTrace` + first-divergence minimizer) |
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 |
@@ -547,9 +547,11 @@ hardening is what made the verdict seam cheap — and the CFG seam has since bee
    interprocedural inference, verdict mapping. **Prerequisite:** the normative
    write-up of the inference semantics (consume/borrow/fresh/alias/overwrite rules)
    from the tech-debt register, so the port has a spec and not just
-   `test_ownir.py` examples — delivered as `spec/Bridge.md` +
-   `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`);
-   implementation is #259. Diff on the OwnIR fixtures + `ownir --format sarif`.
+   `test_ownir.py` examples — written as `spec/Bridge.md` +
+   `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`),
+   landing with PR #297 after independent review; implementation is #259 and
+   starts only after that review gate. Diff on the OwnIR fixtures +
+   `ownir --format sarif`.
 7. **`own-cli`**: cut over once corpus parity is ~100% (shadow mode #260 with
    #269's AnalysisTrace, then the CLI #261). Keep Python frozen as the
    oracle/spec.
