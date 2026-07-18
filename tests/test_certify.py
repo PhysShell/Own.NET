@@ -92,7 +92,10 @@ def _plan(cands: dict, actions: list[str]) -> dict:
 
 
 def _obs(handler: str) -> dict:
-    return {"file": _REL, "code": "OWN001", "component": "A", "event": "PropertyChanged",
+    # event is the bridge-key event: source "a" + "." + candidate event "PropertyChanged", and
+    # component is the candidate's containing_type simple name "A" — exactly what the frozen core
+    # runner derives, so the Step-12-local R_C bridge maps each candidate onto its observation.
+    return {"file": _REL, "code": "OWN001", "component": "A", "event": "a.PropertyChanged",
             "handler": handler, "kind": "subscription", "advisory": False,
             "severity": None, "ignore_reason": None}
 
@@ -375,6 +378,7 @@ def run() -> int:
     _publication(check)
     _deep_representable(check)
     _defect_regressions(check)
+    _r_round(check)
     _isolation(check)
 
     total = ok + bad
@@ -921,6 +925,73 @@ def _defect_regressions(check) -> None:
     _surrogate_case(check, "gate", fc.GATE_BINDING)
     _surrogate_case(check, "delta", fc.DELTA_BINDING)
     _surrogate_case(check, "target", fc.TARGET_BINDING)
+
+
+def _r2_args(tmp: str):
+    """The `_revalidate_originals` argument vector (the originals-only boundary) built from a bound
+    converted chain, with a fresh scratch dir for the ref-dir closure re-derivation."""
+    c, a, args, _b = _bound(tmp)
+    scratch = os.path.join(tmp, "r2reval")
+    return c, a, (*args[:16], args[18], scratch)
+
+
+def _r_round(check) -> None:
+    # R1: removed_all_own001 must equal the bridge-authorized R_C — an unrelated (non-subscription)
+    # core OWN001 that also disappeared, honestly listed and matching baseline - postimage, must
+    # still be refused because it is not authorized for conversion.
+    def unrelated_removed(c: Chain) -> None:
+        ghost = _obs("GhostUnrelated")
+        c.delta["baseline"]["all_own001"] = _sorted_multiset(
+            [*c.delta["baseline"]["all_own001"], ghost])
+        c.delta["delta"]["removed_all_own001"] = _sorted_multiset(
+            [*c.delta["delta"]["removed_all_own001"], ghost])
+    _mut(check, "converted", "unrelated OWN001 also removed -> DELTA_BINDING (R_C authorization)",
+         fc.DELTA_BINDING, unrelated_removed)
+
+    # R2 (originals-only boundary): a no-drift baseline passes; an original input / bundle / ref-dir
+    # drift is ISOLATION. (Guarded on the boundary function so this reports one red rather than
+    # aborting when the function is absent.)
+    if not hasattr(fc, "_revalidate_originals"):
+        check(False, "R2 originals: _revalidate_originals boundary not implemented")
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            _c, _a, oargs = _r2_args(tmp)
+            try:
+                fc._revalidate_originals(*oargs)
+                check(True, "R2 originals: no drift passes")
+            except Exception as exc:
+                check(False, f"R2 originals: false drift ({exc})")
+        for label, drifter in (
+            ("candidates", lambda a: a["candidates"]),
+            ("bundle patch", lambda a: os.path.join(a["bundle"], "change.patch")),
+            ("ref-dir DLL", lambda a: os.path.join(a["ref_dirs"][0], "WeakEvents.dll")),
+        ):
+            with tempfile.TemporaryDirectory() as tmp:
+                _c, a, oargs = _r2_args(tmp)
+                with open(drifter(a), "ab") as fh:
+                    fh.write(b"X")
+                check(_raises_call(fc.ISOLATION, fc._revalidate_originals, *oargs),
+                      f"R2 originals: {label} drift -> ISOLATION")
+
+    # R2 (wired): a privileged mutation of an authoritative input AFTER the first revalidation but
+    # before the rename is caught by the pre-rename boundary — proved end to end by mutating an
+    # input from inside a publish wrapper.
+    with tempfile.TemporaryDirectory() as tmp:
+        a = Chain("converted").materialize(tmp)
+        real_pub = fc.publish_certification
+
+        def wrap(out, protected, ev, pre_rename=None):
+            with open(a["delta"], "ab") as fh:
+                fh.write(b" ")
+            if pre_rename is None:
+                return real_pub(out, protected, ev)
+            return real_pub(out, protected, ev, pre_rename)
+        try:
+            fc.publish_certification = wrap
+            check(_raises(fc.ISOLATION, a),
+                  "R2: input drift before the rename -> ISOLATION (pre-rename boundary)")
+        finally:
+            fc.publish_certification = real_pub
 
 
 if __name__ == "__main__":

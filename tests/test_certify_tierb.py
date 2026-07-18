@@ -27,8 +27,9 @@ from __future__ import annotations
 import glob
 import hashlib
 import json
+import ntpath
 import os
-import re
+import posixpath
 import shutil
 import subprocess
 import sys
@@ -273,13 +274,25 @@ def _chain(dotnet: str, ext: str, probe: str, work: str, c: dict) -> dict:
             "target": target, "ref_dirs": ref_dirs, "w": w}
 
 
-def _no_absolute_paths(raw: bytes, check, name: str) -> None:
-    text = raw.decode("utf-8")
-    # a Windows drive (either slash), a UNC prefix, or any common POSIX absolute root.
-    leaked = bool(re.search(r"[A-Za-z]:[\\/]", text)) or "\\\\" in text or any(
-        s in text for s in ("/tmp/", "/home/", "/Users/", "/var/", "/root/", "/opt/", "/mnt/",
-                            "/private/"))
-    check(not leaked, f"{name}: evidence publishes no absolute path")
+def _all_strings(obj) -> list:
+    out: list = []
+    if isinstance(obj, str):
+        out.append(obj)
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            out.extend(_all_strings(v))
+    elif isinstance(obj, list):
+        for v in obj:
+            out.extend(_all_strings(v))
+    return out
+
+
+def _no_absolute_paths(obj, check, name: str) -> None:
+    # every published string, checked platform-independently: POSIX-absolute, Windows-absolute
+    # (drive with either slash, or a leading slash), or a UNC prefix. Not a prefix allowlist.
+    leaked = [s for s in _all_strings(obj)
+              if posixpath.isabs(s) or ntpath.isabs(s) or s.startswith("\\\\")]
+    check(not leaked, f"{name}: evidence publishes no absolute path (found {leaked[:2]})")
 
 
 def _schema_ok(path: str, chain_kind: str, check, name: str) -> dict:
@@ -304,7 +317,7 @@ def _schema_ok(path: str, chain_kind: str, check, name: str) -> dict:
     check(obj["preimage_binding"] == {"mode": "cross_artifact_only", "bytes_supplied": False,
                                       "pre_sha256": obj["preimage_binding"]["pre_sha256"]},
           f"{name}: cross-artifact preimage binding, bytes not supplied")
-    _no_absolute_paths(raw, check, name)
+    _no_absolute_paths(obj, check, name)
     return obj
 
 
@@ -313,12 +326,10 @@ def _git(args: list[str]) -> str:
 
 
 def _git_config_sha() -> str:
-    path = os.path.join(_REPO, ".git", "config")
-    try:
-        with open(path, "rb") as fh:
-            return _sha(fh.read())
-    except OSError:
-        return "absent"
+    # `git config --show-origin` resolves the config regardless of whether .git is a directory or a
+    # linked-worktree file, so this fingerprints the effective local config, not one on-disk path.
+    return _sha(_run(["git", "config", "--local", "--list", "--show-origin"],
+                     cwd=_REPO).stdout.encode("utf-8"))
 
 
 def run() -> int:
