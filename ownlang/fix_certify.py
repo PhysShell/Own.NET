@@ -249,7 +249,8 @@ def bind_certification_bundle(bundle: str, rel: str, plan: dict[str, Any], plan_
     rel, the cross-artifact preimage SHA and the actual postimage / patch bytes. The frozen
     fix_target.bind_bundle is deliberately NOT reused (it binds to a delta, not a reconstruction).
     A manual-only chain must be a real no-op (empty patch, postimage == preimage); a converted
-    chain must carry a non-empty patch. Any deviation is BUNDLE_BINDING."""
+    chain must be a real edit (non-empty patch AND postimage != preimage). Any deviation is
+    BUNDLE_BINDING."""
     cat = BUNDLE_BINDING
     bundle_phys = _require_bundle_layout(bundle, rel, cat)
     manifest_data = _snap(os.path.join(bundle_phys, "apply-manifest.json"), cat,
@@ -269,6 +270,8 @@ def bind_certification_bundle(bundle: str, rel: str, plan: dict[str, Any], plan_
     if converted:
         if patch_bytes == b"":
             raise CertifyError(cat, "a converted chain must carry a non-empty change.patch")
+        if _sha_bytes(postimage_bytes) == pre_sha256:
+            raise CertifyError(cat, "a converted chain must have postimage != preimage")
     else:
         if patch_bytes != b"":
             raise CertifyError(cat, "a manual-only chain must carry the empty change.patch")
