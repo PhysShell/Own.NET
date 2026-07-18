@@ -721,12 +721,54 @@ def _cmd_verify_target(rest: list[str]) -> int:
     return 0
 
 
+def _cmd_certify(rest: list[str]) -> int:
+    """S2 step 12: `own-fix subscriptions certify` — Final Evidence Certification. A pure verifier
+    + publisher that binds the six accepted S2 artifacts (validated plan, candidates, step 8
+    bundle, step 9 gate-result, step 10 delta-result, step 11 target-result) plus the reference
+    closure into one deterministic certification-result.json (status evidence_complete). It runs no
+    dotnet, applies no patch, mutates no source, and re-executes nothing — upstream pass-status is
+    bound (hash + schema), never re-run; the preimage digest is cross-artifact-bound with the
+    bytes not supplied."""
+    from ownlang.fix_certify import CertifyError, run_certify
+
+    flags = {"--plan", "--candidates", "--bundle", "--gate", "--delta", "--target", "--out"}
+    parsed = _own_fix_parse(rest, flags, {"--ref-dir"})
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    for f in flags:
+        if rest.count(f) > 1:
+            print(f"own-fix: {f} given more than once", file=sys.stderr)
+            return 2
+    if positional or not all(opts.get(k) for k in flags):
+        print("usage: own-fix subscriptions certify --plan <validated-plan.json> "
+              "--candidates <candidates.json> --bundle <step8-bundle> "
+              "--gate <step9-gate-result.json> --delta <step10-delta-result.json> "
+              "--target <step11-target-result.json> --out <certification-evidence-dir> "
+              "[--ref-dir <dir>]...", file=sys.stderr)
+        return 2
+    try:
+        published = run_certify(
+            opts["--plan"], opts["--candidates"], opts["--bundle"], opts["--gate"],
+            opts["--delta"], opts["--target"], opts["--out"], opts.get("--ref-dir") or [])
+    except CertifyError as exc:
+        print(f"own-fix: refuse: {exc.category}: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # fail closed: any surprise is a refusal, not a traceback
+        print(f"own-fix: refuse: INFRASTRUCTURE: internal error "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote certification-result.json -> {published}")
+    return 0
+
+
 def cmd_own_fix(rest: list[str]) -> int:
     """`own-fix subscriptions {candidates|render|validate-plan|apply|gate|verify-delta|
-    verify-target} ...`."""
+    verify-target|certify} ...`."""
     if len(rest) < 2 or rest[0] != "subscriptions":
         print("usage: python -m ownlang own-fix subscriptions "
-              "{candidates|render|validate-plan|apply|gate|verify-delta} ...", file=sys.stderr)
+              "{candidates|render|validate-plan|apply|gate|verify-delta|verify-target|certify} "
+              "...", file=sys.stderr)
         return 2
     verb, args = rest[1], rest[2:]
     if verb == "candidates":
@@ -743,8 +785,10 @@ def cmd_own_fix(rest: list[str]) -> int:
         return _cmd_verify_delta(args)
     if verb == "verify-target":
         return _cmd_verify_target(args)
+    if verb == "certify":
+        return _cmd_certify(args)
     print(f"own-fix: unknown subcommand {verb!r} (candidates | render | validate-plan | apply "
-          "| gate | verify-delta | verify-target)", file=sys.stderr)
+          "| gate | verify-delta | verify-target | certify)", file=sys.stderr)
     return 2
 
 

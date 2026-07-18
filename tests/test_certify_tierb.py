@@ -344,8 +344,10 @@ def _run_case(dotnet: str, ext: str, probe: str, work: str, c: dict, check) -> N
     except Fail as exc:
         check(False, f"{name}: chain setup failed ({exc})")
         return
-    out1 = os.path.join(chain["w"], "cert-1")
-    out2 = os.path.join(chain["w"], "cert-2")
+    # the certification output lives OUTSIDE the input tree (its parent must not resolve inside a
+    # protected input root: the bundle, the ref-dirs, or the input-file parents).
+    out1 = os.path.join(work, f"{name}-cert-1")
+    out2 = os.path.join(work, f"{name}-cert-2")
     p1 = _certify(chain["plan"], chain["cands"], chain["bundle"], chain["gate"], chain["delta"],
                   chain["target"], out1, chain["ref_dirs"])
     if p1.returncode != 0:

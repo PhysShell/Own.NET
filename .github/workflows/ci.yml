@@ -269,6 +269,10 @@ jobs:
         env:
           OWN_TIERB_REQUIRED: "1"
         run: python tests/test_verify_target_tierb.py
+      - name: S2 step 12 final-evidence certification (Tier B, full public CLI)
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_certify_tierb.py
       - name: Check facts through the core
         run: |
           out=$(python -m ownlang ownir "$RUNNER_TEMP/facts.json" || true)
