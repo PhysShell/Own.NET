@@ -59,7 +59,10 @@ fn accepts_the_current_version_on_a_rejection_document() {
     let text = "{\n  \"lowered_version\": 1,\n  \"error\": \"boom\"\n}\n";
     let surface = parse_document(text).expect("a current-version rejection parses");
     let emitted = to_canonical_json(&surface).expect("canonical emit");
-    assert_eq!(emitted, text, "rejection surface must round-trip byte-exactly");
+    assert_eq!(
+        emitted, text,
+        "rejection surface must round-trip byte-exactly"
+    );
 }
 
 #[test]

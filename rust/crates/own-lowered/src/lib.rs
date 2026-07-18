@@ -22,6 +22,6 @@ mod model;
 
 pub use model::{
     parse_document, to_canonical_json, Extern, ExternParam, Function, HandleEntry, Lifetime,
-    LoweredDocument, Manifest, ManifestCase, Param, Rejected, Resource, ResourceMember, Stmt,
-    Surface, TypeShape, LOWERED_VERSION,
+    LoweredDocument, Manifest, ManifestCase, Maybe, Param, Rejected, Resource, ResourceMember,
+    Stmt, Surface, TypeShape, LOWERED_VERSION,
 };
