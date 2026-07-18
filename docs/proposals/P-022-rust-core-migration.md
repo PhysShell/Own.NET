@@ -1,9 +1,46 @@
 # P-022 — Rust core migration: bird's-eye architecture
 
-Status: **draft / exploratory** (design only — no Rust code committed yet; the
-Python core stays the reference implementation and the oracle until parity holds).
-Revised per the post-merge review in
+Status: **in execution** (strangler-fig underway; the Python core stays the
+reference implementation and the oracle until the explicit cutover). The design
+rationale below is historical and unchanged; the live sequencing is the #250
+child-issue DAG. Revised per the post-merge review in
 [`docs/notes/p022-review-notes.md`](../notes/p022-review-notes.md).
+
+### Implementation status (reconciled after #214/#249 — see #250/#251)
+
+**Implemented** (workspace members in `rust/Cargo.toml`, parity-gated by
+`scripts/oracle_exact.py` and the shared fixtures in `tests/fixtures/`):
+
+- `own-ir` — OwnIR serde + schema round-trip (step 1);
+- `own-syntax` — parser, error-text parity (step 2);
+- `own-cfg` — lowering + the canonical CFG-JSON seam, replaying
+  `tests/fixtures/cfg_parity.json` (steps 0/3; the seam the strategy below
+  said "still needs building" **is built** — `python -m ownlang cfg --format
+  json` + the `--write`-regenerated parity fixtures);
+- `own-diagnostics` — the data-only diagnostics layer;
+- `own-analysis` — the worklist solver + ownership/lifetime/buffer/effect/DI
+  analyses (step 4; the **analysis-heart milestone**, completed in #214 /
+  PR #249, replaying `diag_parity.json` and the DI/effect fact-parity
+  fixtures).
+
+**Next steps — each owned by exactly one child issue under #250:**
+
+| Step | Deliverable | Issue |
+|---|---|---|
+| 5a | diagnostic messages + ordered Evidence parity | #255 |
+| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 |
+| 5c | `own-codegen` (analysis-independent sibling) | #257 |
+| 6a | OwnIR **bridge semantics formalized** before the port | #258 (delivered: `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md`, review via PR #297) |
+| 6b | Rust `own-bridge`, layered OwnIR parity | #259 |
+| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269 — normalized `AnalysisTrace` + first-divergence minimizer) |
+| 7b | Rust `own-cli`: command/output/exit-code parity | #261 |
+| 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 |
+
+The Datalog/Ascent rule layer stays strictly **post-cutover** (strategy step 8
+below) and deliberately has no issue yet. Throughout: Python remains
+authoritative until #262's cutover gate passes; a feature-freeze on
+verdict-changing inference holds until then
+([`interprocedural-roadmap.md`](../notes/interprocedural-roadmap.md)).
 
 ## Why
 
@@ -477,37 +514,48 @@ SARIF/JSON shapes. So:
   misses.
 
 **Per-layer seams.** SARIF is the verdict-layer seam and already exists. A **CFG-layer
-seam does not** — today `python -m ownlang cfg` prints a *human* dump (`_print_cfg`),
-not a contract. So a prerequisite of diffing CFGs is to first **add and freeze a
-canonical `cfg --format json` export on the Python side**; mirroring the debug text
-dump would bake a non-contract format into the ratchet. Treat "CFG JSON seam" as work
-to build, not an existing contract. With SARIF (verdict) present and CFG-JSON added,
-a divergence can be bisected to the crate that introduced it.
+seam did not** (at writing) — `python -m ownlang cfg` printed a *human* dump
+(`_print_cfg`), not a contract. So a prerequisite of diffing CFGs was to first **add
+and freeze a canonical `cfg --format json` export on the Python side**; mirroring the
+debug text dump would bake a non-contract format into the ratchet. With SARIF (verdict)
+present and CFG-JSON added, a divergence can be bisected to the crate that introduced
+it. *(Status per #251: built and frozen — `cfg --format json` +
+`tests/fixtures/cfg_parity.json`, replayed by `own-cfg`'s parity tests.)*
 
 Because the oracle compares *contracts we froze and tested*, the recent evidence/SARIF
-hardening is what makes the verdict seam cheap — the CFG seam still needs building.
+hardening is what made the verdict seam cheap — and the CFG seam has since been built
+(step 0 ✅ above).
 
 ## Migration strategy (strangler-fig, bottom-up, oracle-gated)
 
-0. **Add the missing Python seams first**: a canonical `cfg --format json` export
-   (and the exact diff harness). Without these the ratchet has nothing to compare the
-   CFG layer against.
-1. **Stand up the workspace + `own-ir`** (serde round-trips the existing OwnIR
+*(Status markers reconciled per #251; the plan text is otherwise as designed.)*
+
+0. ✅ **Add the missing Python seams first**: a canonical `cfg --format json` export
+   (and the exact diff harness, `scripts/oracle_exact.py`). Without these the ratchet
+   has nothing to compare the CFG layer against.
+1. ✅ **Stand up the workspace + `own-ir`** (serde round-trips the existing OwnIR
    fixtures — first parity check, at the seam).
-2. **`own-syntax`**: port the parser; diff the AST/`cfg` dump against Python.
-3. **`own-cfg`**: port lowering; diff the frozen CFG JSON (from step 0).
-4. **`own-analysis`**: port the worklist + ownership first, then lifetime/effect/DI;
+2. ✅ **`own-syntax`**: port the parser; diff the AST/`cfg` dump against Python.
+3. ✅ **`own-cfg`**: port lowering; diff the frozen CFG JSON (from step 0).
+4. ✅ **`own-analysis`**: port the worklist + ownership first, then lifetime/effect/DI;
    diff diagnostics (no evidence) → then evidence → then SARIF, layer by layer.
-5. **`own-diagnostics` + `own-codegen`**: SARIF/report/text and C# `emit`; diff each.
+   (#214 / PR #249 — the analysis heart; `own-diagnostics` shipped as its
+   data-only layer.)
+5. **`own-diagnostics` (messages/Evidence — #255), report/SARIF (#256) +
+   `own-codegen` (#257)**: SARIF/report/text and C# `emit`; diff each.
 6. **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
    interprocedural inference, verdict mapping. **Prerequisite:** the normative
    write-up of the inference semantics (consume/borrow/fresh/alias/overwrite rules)
    from the tech-debt register, so the port has a spec and not just
-   `test_ownir.py` examples. Diff on the OwnIR fixtures + `ownir --format sarif`.
-7. **`own-cli`**: cut over once corpus parity is ~100%. Keep Python frozen as the
+   `test_ownir.py` examples — delivered as `spec/Bridge.md` +
+   `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`);
+   implementation is #259. Diff on the OwnIR fixtures + `ownir --format sarif`.
+7. **`own-cli`**: cut over once corpus parity is ~100% (shadow mode #260 with
+   #269's AnalysisTrace, then the CLI #261). Keep Python frozen as the
    oracle/spec.
 8. **Only then** revisit the rule layer as Datalog/Ascent (ADR §8: "core moves to
-   Rust" trigger now satisfied) — natively, not as a Python detour.
+   Rust" trigger now satisfied) — natively, not as a Python detour. The formal
+   cutover + rollback gate + Python-distribution removal is #262.
 
 Throughout, Python stays authoritative; the Rust crates light up behind the ratchet.
 
@@ -541,6 +589,9 @@ Throughout, Python stays authoritative; the Rust crates light up behind the ratc
 
 ## Placement
 
-This document lives in `PhysShell/Own.NET/docs/proposals/`. It is design-only; the
-first code deliverable is the workspace skeleton + `own-ir` round-trip + the oracle
-harness, on its own branch, gated by the differential ratchet from commit one.
+This document lives in `PhysShell/Own.NET/docs/proposals/`. The document is
+design + status; the first code deliverable it called for — the workspace
+skeleton + `own-ir` round-trip + the oracle harness, gated by the differential
+ratchet from commit one — has shipped (`rust/`, `scripts/oracle_exact.py`; see
+the implementation-status block at the top). The monorepo layout it recommends
+is the one in effect.
