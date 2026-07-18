@@ -1,0 +1,22 @@
+[package]
+name = "own-lowered"
+description = "Layer 2 normalized-lowered-representation surface: typed model + canonical emitter replaying the Python-authored goldens (tests/fixtures/lowered, LOWERED_VERSION 1) — the data half of the own-bridge parity contract (P-022 #259); no lowering, no MOS, no analysis wiring"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+# A LEAF data crate, like own-diagnostics: it models the Layer 2 JSON surface
+# (spec/Bridge.md §6, ownlang/lowered.py is the authoritative Python twin) and
+# re-emits it byte-for-byte. It deliberately depends on NO other own-* crate —
+# the future own-bridge will construct these types from real lowering; this
+# crate must stay implementable without it (typed replay first, derivation
+# later). serde_json is a REGULAR dependency: the canonical emitter is the
+# crate's purpose, not a test aid.
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
