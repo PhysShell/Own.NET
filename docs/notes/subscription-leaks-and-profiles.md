@@ -35,6 +35,19 @@ WPF005  strong capture by a longer-lived source  -> OWN014  (region promotion)
 So the core stays neutral; "WPF" is *recognition + lifetime context*, not the
 error itself. The critique is correct, and we mostly already shipped it.
 
+Since #278, "matching `-=`" is teardown-scoped, as the WPF001 row above always
+said: the `-=` must sit in a recognised teardown context (`Dispose`/
+`DisposeAsync`/`OnClosed`/`Unloaded`-style methods, a finalizer, a handler wired
+to the class's own `Closed`/`Closing`/`Unloaded`-style lifecycle event, or a
+method the teardown path calls intra-class) and must not be guarded by a
+parameter of its enclosing method (the canonical positive `if (disposing)` of
+`Dispose(bool)` excepted). A `-=` in an arbitrary method, or behind a
+caller-controlled flag, is not proven to run and keeps the honest OWN001/OWN014
+— the #238 doctrine: the worst case of an exemption must be "keeps today's
+honest warning", never "silently swallows a leak class" (heap-proven on
+SectorTS `GTD`, corpus: `subscription-param-guarded-unregister`,
+`subscription-nonteardown-release`).
+
 ## The naming debt the critique correctly smells
 
 The capability is general. The *same* `source.Event += h` without `-=` leaks in

@@ -11,9 +11,14 @@
 // When the left side's declaring type is an unresolved external reference we do
 // not guess: a handler-shaped RHS surfaces as an OWN050 "leakage analysis
 // skipped" note, never a leak. A subscription is "released" by a matching
-// `target -= handler` in the class; a `Tick`/`Elapsed` handler is tagged
-// resource=timer (WPF002) and is released if the timer's receiver also has a
-// `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
+// `target -= handler` in a recognised TEARDOWN CONTEXT of the class (#278:
+// Dispose/DisposeAsync/OnClosed/Unloaded-style methods, a finalizer, a handler
+// wired to the class's own Closed/Unloaded-style lifecycle event, or a method
+// the teardown path calls intra-class) that is not guarded by a parameter of
+// its enclosing method — a `-=` in an arbitrary method, or behind a
+// caller-controlled flag, is not proven to run and keeps the honest warning.
+// A `Tick`/`Elapsed` handler is tagged resource=timer (WPF002) and is released
+// if the timer's receiver also has a `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
 //
 // Usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [more ...] [-o|--out facts.json]
@@ -809,6 +814,230 @@ static string? Receiver(ExpressionSyntax expr) =>
 static bool IsTimerEvent(ExpressionSyntax left) =>
     left is MemberAccessExpressionSyntax m
         && (m.Name.Identifier.Text == "Tick" || m.Name.Identifier.Text == "Elapsed");
+
+// --- #278 soundness: a `-=` that exists is not a `-=` that runs. -----------------
+//
+// A matching `-=` credits the subscription's release ONLY when it sits in a
+// recognised TEARDOWN CONTEXT of the subscribing class (P-001/P-004 as written:
+// `Dispose`/`OnClosed`/`Unloaded`), and is not guarded away by a parameter of its
+// enclosing method. A `-=` in an arbitrary method — one nothing here proves is
+// ever called, or whose guard the caller can flip — keeps today's honest OWN001
+// warning instead of silently swallowing the leak class (the #238 doctrine).
+// Heap-proven on SectorTS GTD: ctor `+=` to a static publisher, the only `-=`
+// inside `UnregisterEventHandlers(bool UnregOnlyGoodys)` behind `if (!UnregOnly-
+// Goodys)`, and the leaking callers pass `true` — the old "any `-=` in the class"
+// model paired them and stayed silent over a 66%-retained heap.
+//
+// Teardown contexts (deliberately NO whole-program call graph — intra-class only):
+//   * a method the platform itself runs at end-of-life, by exact name:
+//     Dispose / DisposeAsync / OnClosed / OnClosing / OnUnloaded / OnFormClosed /
+//     OnFormClosing, or a finalizer;
+//   * a handler this class wires (`+=`, bare/`this.` receiver) to its own
+//     lifecycle event: Closed / Closing / Unloaded / FormClosed / FormClosing /
+//     Disposed — including an inline lambda handler on those events;
+//   * the XAML-wiring naming convention `*_Closed` / `*_Closing` / `*_Unloaded` /
+//     `*_FormClosed` / `*_FormClosing` / `*_Disposed` (a XAML `Closing="Window_
+//     Closing"` attach never reaches this extractor, but the generated handler
+//     name does — corpus: screentogif-loaded-subscription);
+//   * any method such a context calls DIRECTLY on `this` (`Cleanup()` from
+//     `Dispose()`), transitively within the class — the "method the type's own
+//     disposal path calls" rule, closed intra-class only.
+
+// A method name the platform (or the IDisposable contract) itself invokes at the
+// end of the object's life, or the conventional XAML-wired lifecycle handler name.
+static bool IsTeardownMethodName(string name) =>
+    name is "Dispose" or "DisposeAsync"
+         or "OnClosed" or "OnClosing" or "OnUnloaded" or "OnFormClosed" or "OnFormClosing"
+    || name.EndsWith("_Closed", StringComparison.Ordinal)
+    || name.EndsWith("_Closing", StringComparison.Ordinal)
+    || name.EndsWith("_Unloaded", StringComparison.Ordinal)
+    || name.EndsWith("_FormClosed", StringComparison.Ordinal)
+    || name.EndsWith("_FormClosing", StringComparison.Ordinal)
+    || name.EndsWith("_Disposed", StringComparison.Ordinal);
+
+// An event MEMBER name that fires at the subscriber's own end-of-life, so a handler
+// attached to it is a teardown context.
+static bool IsTeardownEventName(string name) =>
+    name is "Closed" or "Closing" or "Unloaded" or "FormClosed" or "FormClosing" or "Disposed";
+
+// The event-member simple name of a `+=`/`-=` left side (`Closed`, `win.Closed`),
+// null when the shape names no member.
+static string? EventMemberName(ExpressionSyntax left) => left switch
+{
+    IdentifierNameSyntax id => id.Identifier.Text,
+    MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+    _ => null,
+};
+
+// Is the `+=` receiver THIS object (bare `Closed +=` / `this.Closed +=`)? A handler
+// hooked to ANOTHER object's `Closed` runs at that object's teardown, not ours, so
+// it may not ground OUR release.
+static bool IsSelfLifecycleReceiver(ExpressionSyntax left) =>
+    left is IdentifierNameSyntax
+    || (left is MemberAccessExpressionSyntax ma && ma.Expression is ThisExpressionSyntax);
+
+// The set of THIS class's method names that are teardown contexts: the named/wired
+// roots above plus everything they call directly on `this`, to a fixpoint. Keyed by
+// simple name (overloads conflate — the same conservative-toward-keeping-the-pair
+// granularity as the text-keyed `unsub` set itself; a same-named helper is at worst
+// credited like its sibling, never silently dropped).
+static HashSet<string> TeardownContextMethods(ClassDeclarationSyntax cls)
+{
+    var own = new Dictionary<string, List<MethodDeclarationSyntax>>(StringComparer.Ordinal);
+    foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+    {
+        if (!own.TryGetValue(md.Identifier.Text, out var list))
+            own[md.Identifier.Text] = list = new List<MethodDeclarationSyntax>();
+        list.Add(md);
+    }
+
+    var teardown = new HashSet<string>(StringComparer.Ordinal);
+    var work = new Queue<string>();
+    void Root(string name)
+    {
+        if (own.ContainsKey(name) && teardown.Add(name))
+            work.Enqueue(name);
+    }
+    foreach (var name in own.Keys)
+        if (IsTeardownMethodName(name))
+            Root(name);
+    // handlers this class wires to its OWN lifecycle events (`Closed += OnDone;`).
+    foreach (var a in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+        if (a.IsKind(SyntaxKind.AddAssignmentExpression)
+            && EventMemberName(a.Left) is { } evName && IsTeardownEventName(evName)
+            && IsSelfLifecycleReceiver(a.Left))
+        {
+            var h = NormalizeHandler(a.Right);
+            if (h is IdentifierNameSyntax hid)
+                Root(hid.Identifier.Text);
+            else if (h is MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } hma)
+                Root(hma.Name.Identifier.Text);
+        }
+    // intra-class closure: a method a teardown context calls on `this` is itself a
+    // teardown context ("a method the type's own disposal path calls").
+    while (work.Count > 0)
+        foreach (var md in own[work.Dequeue()])
+        {
+            SyntaxNode? body = (SyntaxNode?)md.Body ?? md.ExpressionBody;
+            if (body is null)
+                continue;
+            foreach (var inv in body.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+                var callee = inv.Expression switch
+                {
+                    IdentifierNameSyntax id => id.Identifier.Text,
+                    MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } ma => ma.Name.Identifier.Text,
+                    _ => null,
+                };
+                if (callee is not null)
+                    Root(callee);
+            }
+        }
+    return teardown;
+}
+
+// Does this `-=` sit in a teardown context of `cls`? Walks the lexical ancestors:
+// a finalizer or a teardown-set method of THIS class => yes; a ctor, an accessor
+// (a rebinding setter is the #163 gap, not a proven teardown), or a non-teardown
+// method => no. An anonymous function resolves to the event it is attached to when
+// it IS a `+=` handler (only a lifecycle event counts); a plain inline lambda
+// (`ForEach(x => x.E -= H)` inside Dispose) falls through to its lexical context.
+static bool InTeardownContext(AssignmentExpressionSyntax sub, ClassDeclarationSyntax cls,
+                              HashSet<string> teardownMethods)
+{
+    for (SyntaxNode? cur = sub.Parent; cur is not null; cur = cur.Parent)
+    {
+        switch (cur)
+        {
+            case AnonymousFunctionExpressionSyntax lam:
+                // `Closed += (s, e) => { ... -= ... }` — the lambda runs at teardown.
+                // Unwrap `new EventHandler(...)`-style wrappers by walking parents to
+                // the assignment whose (normalized) RHS is this very lambda.
+                if (lam.FirstAncestorOrSelf<AssignmentExpressionSyntax>() is { } attach
+                    && attach.IsKind(SyntaxKind.AddAssignmentExpression)
+                    && ReferenceEquals(NormalizeHandler(attach.Right), lam))
+                    return EventMemberName(attach.Left) is { } evName
+                        && IsTeardownEventName(evName)
+                        && IsSelfLifecycleReceiver(attach.Left);
+                continue; // not a handler: inherit the lexical context
+            case LocalFunctionStatementSyntax:
+                continue; // part of its declaring method's body
+            case DestructorDeclarationSyntax:
+                return true;
+            case MethodDeclarationSyntax md:
+                return ReferenceEquals(md.Parent, cls)
+                    && teardownMethods.Contains(md.Identifier.Text);
+            case BaseMethodDeclarationSyntax: // ctor / operator: not a teardown
+                return false;
+            case AccessorDeclarationSyntax:
+                return false;
+            case TypeDeclarationSyntax:
+                return false;
+        }
+    }
+    return false;
+}
+
+// #278 rule 2: a `-=` under a branch whose condition depends on a PARAMETER of the
+// enclosing method cannot be proven to run from the subscription site — the caller
+// chooses (SectorTS: `if (!UnregOnlyGoodys)`, callers pass `true`). Field/local
+// guards (`if (_handler != null)`) stay credited: they are the class's own state,
+// not a caller-controlled skip. The ONE canonical exception is the positive
+// `disposing` guard of the IDisposable pattern — `Dispose(bool disposing)`'s
+// `if (disposing) { ... }` runs on every `Dispose()` call, so a POSITIVE use of
+// that single bool parameter does not demote; `if (!disposing)` (the finalizer
+// branch) still does.
+static bool IsParamGuardedRelease(AssignmentExpressionSyntax sub, SemanticModel model)
+{
+    for (SyntaxNode? cur = sub.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
+    {
+        ExpressionSyntax? cond = cur switch
+        {
+            IfStatementSyntax ifs => ifs.Condition,
+            ConditionalExpressionSyntax ce => ce.Condition,
+            SwitchStatementSyntax ss => ss.Expression,
+            SwitchExpressionSyntax se => se.GoverningExpression,
+            WhileStatementSyntax ws => ws.Condition,
+            ForStatementSyntax fs => fs.Condition,
+            _ => null,
+        };
+        if (cond is null)
+            continue;
+        foreach (var id in cond.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+            if (model.GetSymbolInfo(id).Symbol is IParameterSymbol p
+                && !IsCanonicalDisposingGuardUse(id, p))
+                return true;
+    }
+    return false;
+}
+
+// A POSITIVE reference to the single bool parameter of `Dispose(bool)` — the
+// canonical `if (disposing)` (also `if (disposing && !_disposed)`). A negated use
+// (`!disposing`, `disposing == false`) selects the finalizer branch and does not
+// prove the managed release runs.
+static bool IsCanonicalDisposingGuardUse(IdentifierNameSyntax id, IParameterSymbol p)
+{
+    if (p.Type.SpecialType != SpecialType.System_Boolean
+        || p.ContainingSymbol is not IMethodSymbol m
+        || m.Name != "Dispose" || m.Parameters.Length != 1)
+        return false;
+    SyntaxNode use = id;
+    while (use.Parent is ParenthesizedExpressionSyntax pe)
+        use = pe;
+    if (use.Parent is PrefixUnaryExpressionSyntax pu && pu.IsKind(SyntaxKind.LogicalNotExpression))
+        return false;
+    if (use.Parent is BinaryExpressionSyntax be
+        && (be.IsKind(SyntaxKind.EqualsExpression) || be.IsKind(SyntaxKind.NotEqualsExpression)))
+    {
+        var other = ReferenceEquals(be.Left, use) ? be.Right : be.Left;
+        var negated = be.IsKind(SyntaxKind.EqualsExpression)
+            ? other.IsKind(SyntaxKind.FalseLiteralExpression)
+            : other.IsKind(SyntaxKind.TrueLiteralExpression);
+        if (negated)
+            return false;
+    }
+    return true;
+}
 
 // Issue #218 — DP/property-changed old->new subscription ROTATION. A property-changed callback (a
 // `PropertyChangedCallback` reading `e.OldValue`/`e.NewValue`, or a virtual `OnXChanged(T old, T new)`
@@ -4878,11 +5107,21 @@ foreach (var (file, tree) in parsed)
     {
         var assigns = cls.DescendantNodes().OfType<AssignmentExpressionSyntax>().ToList();
 
-        // every `target -= handler` in this class, keyed by "left|right".
+        // every `target -= handler` in this class that is PROVEN to run at teardown,
+        // keyed by "left|right". #278 soundness: a `-=` in an arbitrary method (or
+        // behind a caller-controlled parameter guard) is not a release — it kept
+        // pairing SectorTS GTD's ctor `+=` with a flag-skipped `-=` and silently
+        // swallowed a heap-proven leak. Only a teardown-context, unguarded `-=`
+        // credits release now; everything else keeps the honest OWN001/OWN014.
+        // (Self-detaching handlers, old->new rotation and timer `.Stop()` have
+        // their own dedicated checks below, unchanged.)
+        var teardownMethods = TeardownContextMethods(cls);
         var unsub = new HashSet<string>();
         foreach (var a in assigns)
             if (a.IsKind(SyntaxKind.SubtractAssignmentExpression)
-                && IsHandler(NormalizeHandler(a.Right)))
+                && IsHandler(NormalizeHandler(a.Right))
+                && InTeardownContext(a, cls, teardownMethods)
+                && !IsParamGuardedRelease(a, model))
                 unsub.Add($"{a.Left}|{NormalizeHandler(a.Right)}");
 
         // every receiver with a `.Stop()` call: a timer detached this way counts
