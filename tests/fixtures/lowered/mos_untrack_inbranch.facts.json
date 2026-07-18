@@ -1,0 +1,61 @@
+{
+  "ownir_version": 0,
+  "module": "Untrack",
+  "functions": [
+    {
+      "name": "MayTake",
+      "file": "F.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 3
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 12
+        },
+        {
+          "op": "if",
+          "line": 13,
+          "then": [
+            {
+              "op": "call",
+              "callee": "MayTake",
+              "args": [
+                "x"
+              ],
+              "line": 14
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "release",
+          "var": "x",
+          "line": 16
+        }
+      ]
+    }
+  ]
+}

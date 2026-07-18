@@ -1,0 +1,44 @@
+{
+  "ownir_version": 0,
+  "module": "R5",
+  "components": [
+    {
+      "name": "VM",
+      "file": "VM.cs",
+      "subscriptions": [
+        {
+          "event": "bus.Changed",
+          "handler": "OnC",
+          "line": 10,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "EventBus"
+        },
+        {
+          "event": "cache.Evicted",
+          "handler": "OnE",
+          "line": 11,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "Unregistered"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "EventBus",
+      "lifetime": "singleton",
+      "deps": [],
+      "file": "Startup.cs",
+      "line": 2
+    },
+    {
+      "name": "VM",
+      "lifetime": "scoped",
+      "deps": [],
+      "file": "Startup.cs",
+      "line": 3
+    }
+  ]
+}

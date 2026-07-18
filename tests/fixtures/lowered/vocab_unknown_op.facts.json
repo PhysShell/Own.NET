@@ -1,0 +1,16 @@
+{
+  "ownir_version": 0,
+  "module": "Vocab",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "try",
+          "line": 2
+        }
+      ]
+    }
+  ]
+}

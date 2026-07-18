@@ -114,6 +114,9 @@ Every row above marked **L1/L2/L3/S** requires a same-layer Rust parity
 fixture in #259; rows marked *(core suite)* are `own-analysis`/`own-di`
 territory (the bridge only routes them — BR-B1) and are covered by those
 crates' own parity suites. Layer 2 (the normalized lowered representation)
-has **no Python emitter yet** — building it is #259's first deliverable
-([Bridge.md §6](Bridge.md)); until then the (b)-section rows are pinned only
-end-to-end (L3), which is exactly the visibility gap layer 2 exists to close.
+is **built** (#259 foundation slice): `ownlang/lowered.py` +
+`tests/fixtures/lowered/` + `tests/test_lowered_fixtures.py` give the
+(b)-section rows (and the MOS-sensitive lowering shapes of section (c)) a
+directly-pinned lowering surface in addition to their end-to-end (L3)
+coverage; the per-case coverage of that fixture family is listed in the #259
+foundation PR.

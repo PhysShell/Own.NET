@@ -1,0 +1,185 @@
+{
+  "lowered_version": 1,
+  "module": "Fresh",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Make",
+      "lifetime": null,
+      "params": [],
+      "ret": {
+        "name": "Disposable",
+        "borrowed": false,
+        "mutable": false
+      },
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 2
+        },
+        {
+          "stmt": "return",
+          "handle": "loc_0",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "call",
+          "callee": "Make",
+          "args": [],
+          "line": 12
+        },
+        {
+          "stmt": "acquire",
+          "handle": "loc_1",
+          "resource": "Disposable",
+          "line": 12
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_1",
+          "line": 13
+        },
+        {
+          "stmt": "acquire",
+          "handle": "loc_2",
+          "resource": "Disposable",
+          "line": 14
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_2",
+          "line": 15
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "loc_0",
+      "component": "Make",
+      "file": "F.cs",
+      "line": 2,
+      "event": "tmp",
+      "resource": "flow-local",
+      "ever_released": false,
+      "pool": false
+    },
+    {
+      "handle": "loc_1",
+      "component": "M",
+      "file": "F.cs",
+      "line": 12,
+      "event": "r",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    },
+    {
+      "handle": "loc_2",
+      "component": "M",
+      "file": "F.cs",
+      "line": 14,
+      "event": "f",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "ownir_version": 0,
+  "module": "HoistPool",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "buf",
+              "kind": "pool",
+              "line": 3
+            }
+          ],
+          "else": [
+            {
+              "op": "acquire",
+              "var": "buf",
+              "kind": "pool",
+              "line": 5
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "buf",
+          "line": 7
+        }
+      ]
+    }
+  ]
+}

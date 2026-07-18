@@ -1,0 +1,213 @@
+{
+  "lowered_version": 1,
+  "module": "Counters",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [
+    {
+      "name": "Process",
+      "longer": null
+    },
+    {
+      "name": "scoped",
+      "longer": "Process"
+    },
+    {
+      "name": "transient",
+      "longer": "scoped"
+    },
+    {
+      "name": "Subscriber",
+      "longer": "Process"
+    }
+  ],
+  "functions": [
+    {
+      "name": "A",
+      "lifetime": "Subscriber",
+      "params": [
+        {
+          "handle": "cap_0",
+          "type": {
+            "name": "EventSource",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 0,
+          "lifetime": "Process"
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "subscribe",
+          "source": "cap_0",
+          "line": 3
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_1",
+          "resource": "Subscription",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "lifetime": "Subscriber",
+      "params": [
+        {
+          "handle": "cap_3",
+          "type": {
+            "name": "EventSource",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 0,
+          "lifetime": "Process"
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "sub_2",
+          "resource": "Subscription",
+          "line": 3
+        },
+        {
+          "stmt": "subscribe",
+          "source": "cap_3",
+          "line": 4
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "cap_0",
+      "component": "A",
+      "file": "A.cs",
+      "line": 3,
+      "event": "SystemEvents.A",
+      "handler": "HA",
+      "resource": "capture",
+      "source": "static"
+    },
+    {
+      "handle": "sub_1",
+      "component": "A",
+      "file": "A.cs",
+      "line": 4,
+      "event": "bus.A",
+      "handler": "HB",
+      "resource": "subscription",
+      "source": "injected"
+    },
+    {
+      "handle": "sub_2",
+      "component": "B",
+      "file": "B.cs",
+      "line": 3,
+      "event": "bus.B",
+      "handler": "HC",
+      "resource": "subscription",
+      "source": "injected"
+    },
+    {
+      "handle": "cap_3",
+      "component": "B",
+      "file": "B.cs",
+      "line": 4,
+      "event": "SystemEvents.B",
+      "handler": "HD",
+      "resource": "capture",
+      "source": "static"
+    }
+  ]
+}

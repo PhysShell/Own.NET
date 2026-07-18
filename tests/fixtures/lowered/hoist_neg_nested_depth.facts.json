@@ -1,0 +1,36 @@
+{
+  "ownir_version": 0,
+  "module": "HoistNeg1",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "if",
+              "line": 3,
+              "then": [
+                {
+                  "op": "acquire",
+                  "var": "r",
+                  "line": 4
+                }
+              ],
+              "else": []
+            },
+            {
+              "op": "release",
+              "var": "r",
+              "line": 6
+            }
+          ],
+          "else": []
+        }
+      ]
+    }
+  ]
+}

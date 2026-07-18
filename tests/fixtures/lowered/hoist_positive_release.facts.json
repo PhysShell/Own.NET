@@ -1,0 +1,35 @@
+{
+  "ownir_version": 0,
+  "module": "Hoist",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 3
+            }
+          ],
+          "else": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 5
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 7
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "lowered_version": 1,
+  "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+}

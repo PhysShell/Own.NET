@@ -1,0 +1,219 @@
+{
+  "lowered_version": 1,
+  "module": "R6",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "C",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "sub_0",
+          "resource": "Subscription",
+          "line": 3
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_1",
+          "resource": "Subscription",
+          "line": 4
+        },
+        {
+          "stmt": "release",
+          "handle": "sub_1",
+          "line": 4
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_2",
+          "resource": "Timer",
+          "line": 5
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_3",
+          "resource": "Disposable",
+          "line": 6
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_4",
+          "resource": "Disposable",
+          "line": 7
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_5",
+          "resource": "PooledBuffer",
+          "line": 8
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_6",
+          "resource": "Subscription",
+          "line": 9
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "sub_0",
+      "component": "C",
+      "file": "C.cs",
+      "line": 3,
+      "event": "bus.Changed",
+      "handler": "OnC",
+      "resource": "subscription",
+      "source": "injected"
+    },
+    {
+      "handle": "sub_1",
+      "component": "C",
+      "file": "C.cs",
+      "line": 4,
+      "event": "bus.Closed",
+      "handler": "OnX",
+      "resource": "subscription",
+      "released": true,
+      "source": "injected"
+    },
+    {
+      "handle": "sub_2",
+      "component": "C",
+      "file": "C.cs",
+      "line": 5,
+      "event": "_timer.Tick",
+      "handler": "OnT",
+      "resource": "timer"
+    },
+    {
+      "handle": "sub_3",
+      "component": "C",
+      "file": "C.cs",
+      "line": 6,
+      "event": "_conn",
+      "handler": "",
+      "resource": "disposable",
+      "type": "SqlConnection"
+    },
+    {
+      "handle": "sub_4",
+      "component": "C",
+      "file": "C.cs",
+      "line": 7,
+      "event": "reader",
+      "handler": "",
+      "resource": "local-disposable"
+    },
+    {
+      "handle": "sub_5",
+      "component": "C",
+      "file": "C.cs",
+      "line": 8,
+      "event": "buf",
+      "handler": "",
+      "resource": "pool"
+    },
+    {
+      "handle": "sub_6",
+      "component": "C",
+      "file": "C.cs",
+      "line": 9,
+      "event": "obs.Subscribe(H)",
+      "handler": "H",
+      "resource": "subscribe",
+      "source": "injected"
+    }
+  ]
+}

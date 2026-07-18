@@ -1,0 +1,66 @@
+{
+  "ownir_version": 0,
+  "module": "Params",
+  "functions": [
+    {
+      "name": "Sink",
+      "file": "F.cs",
+      "params": [
+        {
+          "name": "a",
+          "line": 1,
+          "effect": "consume"
+        },
+        {
+          "name": "b",
+          "line": 1,
+          "effect": "borrow"
+        },
+        {
+          "name": "c",
+          "line": 1,
+          "effect": "borrow_mut"
+        },
+        {
+          "name": "d",
+          "line": 1,
+          "effect": "plain"
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "a",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Second",
+      "file": "F.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "p",
+          "line": 6
+        },
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 7
+        },
+        {
+          "op": "release",
+          "var": "x",
+          "line": 8
+        }
+      ]
+    }
+  ]
+}

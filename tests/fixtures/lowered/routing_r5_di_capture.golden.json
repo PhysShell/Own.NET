@@ -1,0 +1,166 @@
+{
+  "lowered_version": 1,
+  "module": "R5",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [
+    {
+      "name": "Process",
+      "longer": null
+    },
+    {
+      "name": "scoped",
+      "longer": "Process"
+    },
+    {
+      "name": "transient",
+      "longer": "scoped"
+    },
+    {
+      "name": "Subscriber",
+      "longer": "Process"
+    }
+  ],
+  "functions": [
+    {
+      "name": "VM",
+      "lifetime": "scoped",
+      "params": [
+        {
+          "handle": "cap_0",
+          "type": {
+            "name": "EventSource",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 0,
+          "lifetime": "Process"
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "subscribe",
+          "source": "cap_0",
+          "line": 10
+        },
+        {
+          "stmt": "acquire",
+          "handle": "sub_1",
+          "resource": "Subscription",
+          "line": 11
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "cap_0",
+      "component": "VM",
+      "file": "VM.cs",
+      "line": 10,
+      "event": "bus.Changed",
+      "handler": "OnC",
+      "resource": "subscription",
+      "source": "injected",
+      "source_type": "EventBus",
+      "di_source_life": "singleton"
+    },
+    {
+      "handle": "sub_1",
+      "component": "VM",
+      "file": "VM.cs",
+      "line": 11,
+      "event": "cache.Evicted",
+      "handler": "OnE",
+      "resource": "subscription",
+      "source": "injected",
+      "source_type": "Unregistered"
+    }
+  ]
+}

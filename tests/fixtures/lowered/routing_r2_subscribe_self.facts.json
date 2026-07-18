@@ -1,0 +1,19 @@
+{
+  "ownir_version": 0,
+  "module": "R2",
+  "components": [
+    {
+      "name": "C",
+      "file": "C.cs",
+      "subscriptions": [
+        {
+          "event": "this.WhenAnyValue(x => x.P).Subscribe(H)",
+          "handler": "H",
+          "line": 4,
+          "resource": "subscribe",
+          "source": "self"
+        }
+      ]
+    }
+  ]
+}

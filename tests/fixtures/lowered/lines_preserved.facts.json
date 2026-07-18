@@ -1,0 +1,47 @@
+{
+  "ownir_version": 0,
+  "module": "Lines",
+  "components": [
+    {
+      "name": "C",
+      "file": "C.cs",
+      "subscriptions": [
+        {
+          "event": "bus.E",
+          "handler": "H",
+          "line": 41,
+          "resource": "subscription",
+          "source": "injected"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 101
+        },
+        {
+          "op": "use",
+          "var": "x",
+          "line": 102
+        },
+        {
+          "op": "overspan",
+          "var": "x",
+          "line": 102
+        },
+        {
+          "op": "release",
+          "var": "x",
+          "line": 103
+        }
+      ]
+    }
+  ]
+}

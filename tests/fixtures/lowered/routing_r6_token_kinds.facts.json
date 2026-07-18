@@ -1,0 +1,59 @@
+{
+  "ownir_version": 0,
+  "module": "R6",
+  "components": [
+    {
+      "name": "C",
+      "file": "C.cs",
+      "subscriptions": [
+        {
+          "event": "bus.Changed",
+          "handler": "OnC",
+          "line": 3,
+          "resource": "subscription",
+          "source": "injected"
+        },
+        {
+          "event": "bus.Closed",
+          "handler": "OnX",
+          "line": 4,
+          "resource": "subscription",
+          "source": "injected",
+          "released": true
+        },
+        {
+          "event": "_timer.Tick",
+          "handler": "OnT",
+          "line": 5,
+          "resource": "timer"
+        },
+        {
+          "event": "_conn",
+          "handler": "",
+          "line": 6,
+          "resource": "disposable",
+          "type": "SqlConnection"
+        },
+        {
+          "event": "reader",
+          "handler": "",
+          "line": 7,
+          "resource": "local-disposable"
+        },
+        {
+          "event": "buf",
+          "handler": "",
+          "line": 8,
+          "resource": "pool"
+        },
+        {
+          "event": "obs.Subscribe(H)",
+          "handler": "H",
+          "line": 9,
+          "resource": "subscribe",
+          "source": "injected"
+        }
+      ]
+    }
+  ]
+}

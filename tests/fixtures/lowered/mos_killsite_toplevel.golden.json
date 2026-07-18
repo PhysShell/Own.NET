@@ -1,0 +1,174 @@
+{
+  "lowered_version": 1,
+  "module": "KillSite",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "MayTake",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_0",
+          "type": {
+            "name": "int",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 1,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "release",
+              "handle": "parg_0",
+              "line": 3
+            }
+          ],
+          "else": [],
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_1",
+          "resource": "Disposable",
+          "line": 12
+        },
+        {
+          "stmt": "use",
+          "handle": "loc_1",
+          "line": 13
+        },
+        {
+          "stmt": "call",
+          "callee": "$consume",
+          "args": [
+            "loc_1"
+          ],
+          "line": 14
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "parg_0",
+      "component": "MayTake",
+      "file": "F.cs",
+      "line": 1,
+      "event": "p",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    {
+      "handle": "loc_1",
+      "component": "M",
+      "file": "F.cs",
+      "line": 12,
+      "event": "y",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  ]
+}

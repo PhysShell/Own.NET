@@ -1,0 +1,50 @@
+{
+  "ownir_version": 0,
+  "module": "Alias",
+  "functions": [
+    {
+      "name": "Wrap",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "s",
+          "line": 2
+        },
+        {
+          "op": "alias_join",
+          "var": "w",
+          "src": "s",
+          "line": 3
+        },
+        {
+          "op": "release",
+          "var": "w",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "NoClaim",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "q",
+          "line": 7
+        },
+        {
+          "op": "alias_join",
+          "var": "q",
+          "src": "ghost",
+          "line": 8
+        },
+        {
+          "op": "release",
+          "var": "q",
+          "line": 9
+        }
+      ]
+    }
+  ]
+}

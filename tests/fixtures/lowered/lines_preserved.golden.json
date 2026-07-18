@@ -1,0 +1,159 @@
+{
+  "lowered_version": 1,
+  "module": "Lines",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "C",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "sub_0",
+          "resource": "Subscription",
+          "line": 41
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "acquire",
+          "handle": "loc_0",
+          "resource": "Disposable",
+          "line": 101
+        },
+        {
+          "stmt": "use",
+          "handle": "loc_0",
+          "line": 102
+        },
+        {
+          "stmt": "overspan",
+          "handle": "loc_0",
+          "line": 102
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 103
+        }
+      ]
+    }
+  ],
+  "handles": [
+    {
+      "handle": "sub_0",
+      "component": "C",
+      "file": "C.cs",
+      "line": 41,
+      "event": "bus.E",
+      "handler": "H",
+      "resource": "subscription",
+      "source": "injected"
+    },
+    {
+      "handle": "loc_0",
+      "component": "M",
+      "file": "F.cs",
+      "line": 101,
+      "event": "x",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  ]
+}
