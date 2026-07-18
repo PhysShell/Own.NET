@@ -1,0 +1,20 @@
+module WpfSubscriptionXamlNameOnlyRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// The ctor subscribes; the only `-=` lives in a method whose NAME matches the
+// XAML handler convention but which nothing in code wires to any event. A name
+// is not wiring — the method is unreachable as far as the code can prove.
+// Modelled as the ctor scope with no release => OWN001.
+fn SettingsView(settings: int) {
+    let sub = acquire Subscription(settings);
+    // the name-only `Window_Closing` is not modelled as a release: nothing
+    // proves the platform ever calls it (before.cs)
+}

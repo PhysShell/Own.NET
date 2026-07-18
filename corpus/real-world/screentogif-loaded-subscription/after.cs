@@ -1,6 +1,12 @@
 // Fix: subscribe with named handlers (so they have a `-=` handle) and detach them
-// in Window_Closing. The view-model no longer roots the window, and a repeated
-// Loaded no longer stacks duplicate handlers.
+// in Window_Closing, wired IN CODE (`Closing += Window_Closing`). The view-model
+// no longer roots the window, and a repeated Loaded no longer stacks duplicate
+// handlers.
+//
+// The code wiring is load-bearing (#278 follow-up): a `Window_Closing`-style NAME
+// alone proves nothing to the extractor (the XAML attach never reaches it, and a
+// bare name may be stale dead code), so the release is credited only because the
+// ctor provably attaches the handler to the window's own Closing event.
 using System;
 using System.Windows;
 
@@ -12,6 +18,7 @@ public partial class VideoSource : Window
     {
         InitializeComponent();
         _viewModel = DataContext as VideoSourceViewModel;
+        Closing += Window_Closing;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
