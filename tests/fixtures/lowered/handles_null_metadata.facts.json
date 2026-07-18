@@ -1,0 +1,27 @@
+{
+  "ownir_version": 0,
+  "module": "NullMeta",
+  "components": [
+    {
+      "name": "C",
+      "file": "C.cs",
+      "subscriptions": [
+        {
+          "event": "bus.Changed",
+          "handler": "OnChanged",
+          "line": 4,
+          "resource": "subscription",
+          "type": null,
+          "source": null,
+          "source_type": null
+        },
+        {
+          "event": "bus.Closed",
+          "handler": "OnClosed",
+          "line": 9,
+          "resource": "subscription"
+        }
+      ]
+    }
+  ]
+}

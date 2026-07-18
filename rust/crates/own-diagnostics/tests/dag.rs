@@ -33,6 +33,13 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     m.insert("own-cfg", ["own-ir", "own-syntax"].into_iter().collect());
     // The invariant #214 is about: only the span leaf, never the solver/parser.
     m.insert("own-diagnostics", std::iter::once("own-ir").collect());
+    // The Layer 2 parity surface (#259): a DATA leaf like own-diagnostics —
+    // the typed model + canonical emitter of the normalized lowered
+    // representation. It deliberately depends on NO workspace crate: the
+    // future own-bridge will CONSTRUCT these types (own-bridge → own-lowered),
+    // never the reverse, and the surface must stay implementable without the
+    // lowering that fills it.
+    m.insert("own-lowered", BTreeSet::new());
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).

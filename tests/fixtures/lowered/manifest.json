@@ -42,6 +42,14 @@
       "rust_replay": true
     },
     {
+      "name": "handles_null_metadata",
+      "rules": [
+        "BR-L2",
+        "BR-D2"
+      ],
+      "rust_replay": true
+    },
+    {
       "name": "hoist_neg_early_return",
       "rules": [
         "BR-L7"
