@@ -709,7 +709,7 @@ def _bound(tmp: str, c: Chain | None = None):
     a = c.materialize(tmp)
     pb, cb = _read(a["plan"]), _read(a["candidates"])
     gb, dbb, tbb = _read(a["gate"]), _read(a["delta"]), _read(a["target"])
-    binfo = fc.bind_certification_bundle(a["bundle"], c.rel, c.plan, pb, c.pre_sha)
+    binfo = fc.bind_certification_bundle(a["bundle"], c.rel, c.plan, pb, c.pre_sha, c.converted)
     work = os.path.join(tmp, "revwork")
     os.makedirs(work)
     slot_dirs, slot_ev = fd.snapshot_reference_closure(work, a["ref_dirs"])

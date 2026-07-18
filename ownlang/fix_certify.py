@@ -43,12 +43,15 @@ from typing import Any
 from ownlang import fix_delta as fd
 from ownlang import fix_target as ft
 from ownlang.fix_bundle import build_manifest, manifest_bytes
-from ownlang.fix_candidates import CollectError, validate_candidates_bundle
+from ownlang.fix_candidates import (
+    CollectError,
+    _require_canonical_relpath,
+    validate_candidates_bundle,
+)
 from ownlang.fix_gate import (
     GateError,
     _canonical_bytes,
     _canonical_json,
-    _claim_workdir,
     _is_link,
     _out_parent,
     _same_or_inside,
@@ -148,6 +151,15 @@ def _load_json_strict(data: bytes, cat: str, what: str) -> Any:
         raise CertifyError(cat, f"{what}: not valid JSON ({exc})") from exc
 
 
+def _require_encodable(obj: Any, cat: str, what: str) -> bytes:
+    """Canonical-encode `obj`, mapping a lone-surrogate / non-UTF-8 payload to a controlled
+    source-specific refusal instead of letting a UnicodeEncodeError escape as INFRASTRUCTURE."""
+    try:
+        return _canonical_json(obj)
+    except (UnicodeEncodeError, ValueError) as exc:
+        raise CertifyError(cat, f"{what}: not encodable as canonical UTF-8 JSON ({exc})") from exc
+
+
 def _load_canonical(data: bytes, cat: str, what: str) -> dict[str, Any]:
     """A compact-canonical evidence artifact: trailing LF, no duplicate keys, and bytes that
     equal the canonical re-encoding of the parsed object."""
@@ -156,7 +168,7 @@ def _load_canonical(data: bytes, cat: str, what: str) -> dict[str, Any]:
     obj = _load_json_strict(data, cat, what)
     if not isinstance(obj, dict):
         raise CertifyError(cat, f"{what}: must be a JSON object")
-    if _canonical_bytes(obj) != data:
+    if _require_encodable(obj, cat, what) + b"\n" != data:
         raise CertifyError(cat, f"{what}: not exact compact canonical bytes")
     return obj
 
@@ -229,12 +241,13 @@ def _require_bundle_layout(bundle: str, rel: str, cat: str) -> str:
 
 
 def bind_certification_bundle(bundle: str, rel: str, plan: dict[str, Any], plan_bytes: bytes,
-                              pre_sha256: str) -> dict[str, Any]:
+                              pre_sha256: str, converted: bool) -> dict[str, Any]:
     """Bind the accepted Step 8 bundle: exact layout + postimage subtree, and the canonical
     apply-manifest reconstructed from the validated plan, the actual plan-byte SHA, the target
     rel, the cross-artifact preimage SHA and the actual postimage / patch bytes. The frozen
     fix_target.bind_bundle is deliberately NOT reused (it binds to a delta, not a reconstruction).
-    Any deviation is BUNDLE_BINDING."""
+    A manual-only chain must be a real no-op (empty patch, postimage == preimage); a converted
+    chain must carry a non-empty patch. Any deviation is BUNDLE_BINDING."""
     cat = BUNDLE_BINDING
     bundle_phys = _require_bundle_layout(bundle, rel, cat)
     manifest_data = _snap(os.path.join(bundle_phys, "apply-manifest.json"), cat,
@@ -249,6 +262,16 @@ def bind_certification_bundle(bundle: str, rel: str, plan: dict[str, Any], plan_
     if manifest_bytes(reconstruction) != manifest_data:
         raise CertifyError(cat, "apply-manifest.json is not the canonical projection of "
                                 "plan / candidates / bytes")
+    # the variant must match the bytes: a manual-only chain is a real no-op, a converted chain is
+    # a real edit — a hash-consistent bundle alone does not prove this (representable invariant).
+    if converted:
+        if patch_bytes == b"":
+            raise CertifyError(cat, "a converted chain must carry a non-empty change.patch")
+    else:
+        if patch_bytes != b"":
+            raise CertifyError(cat, "a manual-only chain must carry the empty change.patch")
+        if _sha_bytes(postimage_bytes) != pre_sha256:
+            raise CertifyError(cat, "a manual-only chain must have postimage == preimage")
     return {"bundle_phys": bundle_phys, "manifest_data": manifest_data, "patch_bytes": patch_bytes,
             "postimage_bytes": postimage_bytes,
             "apply_manifest_sha256": _sha_bytes(manifest_data),
@@ -265,6 +288,10 @@ def _load_authority(plan_bytes: bytes, candidates_bytes: bytes) -> tuple[Any, di
     candidates = _load_json_strict(candidates_bytes, cat, "--candidates")
     if not isinstance(plan, dict) or not isinstance(candidates, dict):
         raise CertifyError(cat, "plan and candidates must be JSON objects")
+    # canonical-encodability BEFORE the frozen validator, which hashes canonical candidates JSON
+    # and would otherwise let a lone-surrogate payload escape as an uncaught UnicodeEncodeError.
+    _require_encodable(candidates, cat, "--candidates")
+    _require_encodable(plan, cat, "--plan")
     try:
         validate_candidates_bundle(candidates)
     except CollectError as exc:
@@ -299,6 +326,9 @@ def _bind_gate(gate_bytes: bytes, auth: Any, plan_bytes: bytes, manifest_data: b
     """Bind the Step 9 gate-result to THIS plan/candidates/bundle via the frozen reconstruction
     (fix_delta.bind_gate: exact schema, the converted/manual gate-status variant, canonical
     bytes, and every hash). Returns the gate-result SHA. Any deviation is GATE_BINDING."""
+    # canonical bytes + duplicate-key + encodability first, so a lone-surrogate gate refuses as
+    # GATE_BINDING rather than escaping the frozen reconstruction as an uncaught error.
+    _load_canonical(gate_bytes, GATE_BINDING, "gate-result.json")
     try:
         return fd.bind_gate(gate_bytes, auth, plan_bytes, manifest_data, patch_bytes,
                             pre_sha256, post_sha256)
@@ -315,6 +345,7 @@ def _bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes, candidates_byt
     the delta to THIS bundle and gate (manifest / patch / preimage / postimage / gate SHA) and to
     the declared analysis scope. Any deviation is DELTA_BINDING."""
     cat = DELTA_BINDING
+    _load_canonical(delta_bytes, cat, "delta-result.json")  # canonical + dup-key + encodable
     try:
         delta = ft.bind_delta(delta_bytes, auth, plan_bytes, candidates_bytes)
     except ft.TargetError as exc:
@@ -324,9 +355,16 @@ def _bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes, candidates_byt
         if ih.get(key) != hashes[key]:
             raise CertifyError(cat, f"delta-result.json {key} does not bind this bundle")
     gb = delta["gate_binding"]
-    if gb.get("gate_result_sha256") != gate_sha256:
+    if not isinstance(gb, dict) or set(gb) != {"gate_result_sha256", "step9_operation",
+                                               "step9_version", "git_gates_status", "bound"}:
+        raise CertifyError(cat, "delta-result.json gate_binding is not the closed schema")
+    if gb["gate_result_sha256"] != gate_sha256:
         raise CertifyError(cat, "delta-result.json is not bound to this gate-result")
-    if gb.get("git_gates_status") != ("pass" if auth.applied else "not_applicable"):
+    if gb["step9_operation"] != "gate-subscription-fix-bundle" \
+            or not ft._is_int(gb["step9_version"]) or gb["step9_version"] != 1 \
+            or gb["bound"] is not True:
+        raise CertifyError(cat, "delta-result.json gate_binding fields are wrong")
+    if gb["git_gates_status"] != ("pass" if auth.applied else "not_applicable"):
         raise CertifyError(cat, "delta-result.json git_gates_status is not the plan's variant")
     scope = delta["analysis_scope"]
     if scope.get("source_file") != rel or scope.get("target_file_identity") != rel:
@@ -363,9 +401,12 @@ def _bind_target(target_bytes: bytes, auth: Any, delta: dict[str, Any], delta_by
     if variant != converted:
         raise CertifyError(cat, "target-result.json variant does not match the plan's chain kind")
     db = target["delta_binding"]
-    if not isinstance(db, dict) or db.get("delta_result_sha256") != _sha_bytes(delta_bytes) \
-            or db.get("step10_operation") != "verify-subscription-analyzer-delta" \
-            or db.get("step10_status") != "pass" or db.get("bound") is not True:
+    if not isinstance(db, dict) or set(db) != {"delta_result_sha256", "step10_operation",
+                                               "step10_status", "bound"}:
+        raise CertifyError(cat, "target-result.json delta_binding is not the closed schema")
+    if db["delta_result_sha256"] != _sha_bytes(delta_bytes) \
+            or db["step10_operation"] != "verify-subscription-analyzer-delta" \
+            or db["step10_status"] != "pass" or db["bound"] is not True:
         raise CertifyError(cat, "target-result.json is not bound to this delta-result")
     if target.get("input_hashes") != _target_input_hashes(hashes):
         raise CertifyError(cat, "target-result.json input_hashes do not bind this chain")
@@ -463,6 +504,10 @@ def _check_self_manifest(files: Any, digest: Any, cat: str, name: str) -> None:
         if not isinstance(entry, dict) or set(entry) != {"path", "sha256"} \
                 or not isinstance(entry["path"], str) or not ft._is_sha(entry["sha256"]):
             raise CertifyError(cat, f"{name}_files[{i}] is not a {{path, sha256}} entry")
+        try:
+            _require_canonical_relpath(entry["path"], f"{name}_files[{i}].path")
+        except CollectError as exc:
+            raise CertifyError(cat, str(exc)) from exc
         paths.append(entry["path"])
     if paths != sorted(paths):
         raise CertifyError(cat, f"{name}_files is not sorted by path")
@@ -537,11 +582,17 @@ def _validate_delta_representable(delta: dict[str, Any], auth: Any, cat: str) ->
     tfp = delta["toolchain_fingerprint"]
     if not isinstance(tfp, dict) or set(tfp) != _DELTA_TFP_KEYS:
         raise CertifyError(cat, "delta.toolchain_fingerprint is not the closed six-key schema")
+    if not ft._is_sha(tfp["dotnet_host_sha256"]) or not isinstance(tfp["dotnet_version"], str):
+        raise CertifyError(cat, "delta.toolchain_fingerprint scalar fields are malformed")
     _check_self_manifest(tfp["extractor_files"], tfp["extractor_deployment_manifest_sha256"], cat,
                          "extractor")
     ca = tfp["core_analyzer"]
     if not isinstance(ca, dict) or set(ca) != _CORE_ANALYZER_KEYS:
         raise CertifyError(cat, "delta.core_analyzer is not the closed seven-key schema")
+    if not ft._is_sha(ca["core_runner_sha256"]) or not ft._is_sha(ca["python_executable_sha256"]) \
+            or not all(isinstance(ca[k], str) for k in ("python_implementation", "python_version",
+                                                        "python_cache_tag")):
+        raise CertifyError(cat, "delta.core_analyzer scalar fields are malformed")
     _check_self_manifest(ca["ownlang_files"], ca["ownlang_manifest_sha256"], cat, "ownlang")
 
 
@@ -573,6 +624,10 @@ def _validate_target_converted(target: dict[str, Any], auth: Any, delta: dict[st
     slot = closure[ordinal]
     if not isinstance(sw, dict) or set(sw) != _TARGET_SW_KEYS:
         raise CertifyError(cat, "selected_wrapper is not the closed seven-key schema")
+    # exact-int BEFORE the equality (a JSON false == 0 in Python would otherwise pass as ordinal 0
+    # and be published as wrapper_identity.ordinal false).
+    if not ft._is_int(sw["ordinal"]) or sw["ordinal"] < 0:
+        raise CertifyError(cat, "selected_wrapper.ordinal is not a non-negative int")
     if sw["ordinal"] != ordinal or sw["sha256"] != slot["sha256"] \
             or sw["relative_path"] != slot["relative_path"]:
         raise CertifyError(cat, "selected_wrapper is not consistent with its reference slot")
@@ -592,11 +647,22 @@ def _validate_target_converted(target: dict[str, Any], auth: Any, delta: dict[st
     if not ft._is_sha(ptf["probe_runner_sha256"]) or not ft._is_sha(ptf["dotnet_host_sha256"]) \
             or not isinstance(ptf["dotnet_version"], str):
         raise CertifyError(cat, "probe_toolchain_fingerprint fields are malformed")
+    # the frozen producer computes the runner SHA directly from a file in the deployment manifest.
+    if ptf["probe_runner_sha256"] not in {f["sha256"] for f in ptf["probe_files"]}:
+        raise CertifyError(cat, "probe_runner_sha256 is not a probe deployment file digest")
     pri = target["probe_runtime_identity"]
     if not isinstance(pri, dict) or set(pri) != _PROBE_RID_KEYS \
             or not all(isinstance(pri[k], str) for k in _PROBE_RID_KEYS) \
             or not ft._is_sha(pri["selected_runtime_manifest_sha256"]):
         raise CertifyError(cat, "probe_runtime_identity is not the closed five-key schema")
+    # bind the probe runtime back to the Step 10 runtime identity (the frozen Step 11 producer
+    # requires all five fields to match; Step 12 re-binds the representable invariant).
+    s10 = delta["toolchain_fingerprint"]["resolved_runtime_identity"]
+    for k in ("framework_name", "tfm", "requested_framework_version", "selected_framework_version"):
+        if pri[k] != s10[k]:
+            raise CertifyError(cat, f"probe_runtime_identity.{k} != the Step 10 runtime")
+    if pri["selected_runtime_manifest_sha256"] != s10["runtime_manifest_sha256"]:
+        raise CertifyError(cat, "probe runtime manifest != the Step 10 runtime manifest")
 
     attempts = target["attempts"]
     if not isinstance(attempts, list) or len(attempts) != 3:
@@ -691,16 +757,59 @@ def revalidate_certification_inputs(
             raise CertifyError(ISOLATION, "a materialized reference slot changed after binding")
 
 
-# --- publication (Step 12-local; the frozen _publish_target hardcodes another name) --
+# --- publication (Step 12-local; the frozen _publish_target / _claim_workdir are NOT reused: one
+#     hardcodes another artifact name, the other swallows its cleanup with ignore_errors) ----------
+
+
+def _rmtree_strict(path: str) -> None:
+    """Remove `path` observably: a cleanup failure is PUBLICATION, never a silent ignore_errors."""
+    import shutil
+
+    try:
+        shutil.rmtree(path)
+    except OSError as exc:
+        raise CertifyError(PUBLICATION, f"cannot remove staging ({exc})") from exc
+
+
+def _claim_workdir_strict(parent_phys: str) -> str:
+    """Claim an unpredictable owner-only work directory under `parent_phys` and PROVE we own it
+    (not a link/reparse, resolves to itself under it, empty). A Step-12-local strict variant of the
+    frozen claimant: every failure is PUBLICATION and any cleanup is observable (no swallowing)."""
+    for _ in range(8):
+        path = os.path.join(parent_phys, f".owen-certify-{os.urandom(16).hex()}")
+        if os.path.exists(path) or os.path.islink(path):
+            continue
+        try:
+            os.mkdir(path, mode=0o700)
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            raise CertifyError(PUBLICATION,
+                               f"cannot claim a work directory ({exc.strerror or exc})") from exc
+        try:
+            try:
+                lst = os.lstat(path)
+                bad = (_is_link(lst) or not stat.S_ISDIR(lst.st_mode)
+                       or not _same_path(os.path.realpath(path), path)
+                       or not _same_or_inside(parent_phys, os.path.realpath(path))
+                       or any(os.scandir(path)))
+            except OSError as exc:
+                raise CertifyError(PUBLICATION,
+                                   f"cannot verify the claimed work directory ({exc})") from exc
+            if bad:
+                raise CertifyError(PUBLICATION, "the claimed work dir is not a fresh owned dir")
+        except BaseException:
+            _rmtree_strict(path)  # observable cleanup, then re-raise the original refusal
+            raise
+        return path
+    raise CertifyError(PUBLICATION, "could not claim a work directory")
 
 
 def publish_certification(out: str, protected: list[str], evidence_bytes: bytes) -> str:
     """Stage EXACTLY certification-result.json in a claimed private work directory off the output
     parent and publish it with ONE atomic rename. OUTPUT_DIR is absent on refusal; an existing
-    OUTPUT_DIR is PUBLICATION; a cleanup failure is PUBLICATION. No filesystem operation runs after
-    a successful rename."""
-    import shutil
-
+    OUTPUT_DIR is PUBLICATION; any staging / cleanup OSError is PUBLICATION. No filesystem operation
+    runs after a successful rename."""
     try:
         out_phys, parent_phys, _root = _out_parent(out, out)
     except GateError as exc:
@@ -708,29 +817,26 @@ def publish_certification(out: str, protected: list[str], evidence_bytes: bytes)
     for root in protected:
         if _same_or_inside(os.path.realpath(root), parent_phys):
             raise CertifyError(PUBLICATION, "the out-dir parent resolves inside a protected root")
-    try:
-        workdir = _claim_workdir(parent_phys)
-    except GateError as exc:
-        raise CertifyError(PUBLICATION, str(exc)) from exc
+    workdir = _claim_workdir_strict(parent_phys)
     succeeded = False
     try:
-        with open(os.path.join(workdir, "certification-result.json"), "wb") as fh:
-            fh.write(evidence_bytes)
-        if not _same_path(os.path.realpath(os.path.dirname(out_phys)), parent_phys) \
-                or os.path.exists(out_phys) or os.path.islink(out_phys):
-            raise CertifyError(PUBLICATION, "the out-dir destination changed before publication")
-        _require_single(workdir)
         try:
+            with open(os.path.join(workdir, "certification-result.json"), "wb") as fh:
+                fh.write(evidence_bytes)
+            if not _same_path(os.path.realpath(os.path.dirname(out_phys)), parent_phys) \
+                    or os.path.exists(out_phys) or os.path.islink(out_phys):
+                raise CertifyError(PUBLICATION,
+                                   "the out-dir destination changed before publication")
+            _require_single(workdir)
             os.rename(workdir, out_phys)
-        except OSError as exc:
+        except CertifyError:
+            raise
+        except OSError as exc:  # open / write / scandir / stat / rename — every path is PUBLICATION
             raise CertifyError(PUBLICATION, f"cannot publish ({exc})") from exc
         succeeded = True
     finally:
         if not succeeded:
-            try:
-                shutil.rmtree(workdir)
-            except OSError as exc:
-                raise CertifyError(PUBLICATION, f"cannot remove staging ({exc})") from exc
+            _rmtree_strict(workdir)
     return out_phys
 
 
@@ -826,8 +932,8 @@ def run_certify(plan_path: str, candidates_path: str, bundle: str, gate_path: st
     chain_kind = "converted" if converted else "manual_only"
     pre_sha256 = auth.pre_sha256
 
-    # [3] bundle: exact layout + the canonical-manifest reconstruction (BUNDLE_BINDING).
-    binfo = bind_certification_bundle(bundle, rel, plan, plan_bytes, pre_sha256)
+    # [3] bundle: exact layout + the canonical-manifest reconstruction + the no-op variant check.
+    binfo = bind_certification_bundle(bundle, rel, plan, plan_bytes, pre_sha256, converted)
 
     hashes: dict[str, str] = {
         "input_bundle_sha256": auth.input_bundle_sha256,
