@@ -35,7 +35,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
+from collections import Counter
 from typing import Any
 
 from ownlang import fix_delta as fd
@@ -45,6 +47,7 @@ from ownlang.fix_candidates import CollectError, validate_candidates_bundle
 from ownlang.fix_gate import (
     GateError,
     _canonical_bytes,
+    _canonical_json,
     _claim_workdir,
     _is_link,
     _out_parent,
@@ -55,6 +58,9 @@ from ownlang.fix_gate import (
     validate_gate_authority,
 )
 from ownlang.fix_plan import PlanError, validate_plan
+
+_MVID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+_TOKEN_RE = re.compile(r"0x[0-9a-f]{8}")
 
 # --- failure taxonomy (exactly ten; single-valued; no catch-all chain-mismatch) ----
 INPUT_LAYOUT = "INPUT_LAYOUT"
@@ -391,20 +397,226 @@ def _target_input_hashes(hashes: dict[str, str]) -> dict[str, str]:
 # --- representable Step 10 / Step 11 validation (deepened in the enforcement commit) --
 
 
+_DELTA_TFP_KEYS = frozenset({"extractor_deployment_manifest_sha256", "extractor_files",
+                             "dotnet_host_sha256", "dotnet_version", "resolved_runtime_identity",
+                             "core_analyzer"})
+_CORE_ANALYZER_KEYS = frozenset({"ownlang_manifest_sha256", "ownlang_files", "core_runner_sha256",
+                                 "python_executable_sha256", "python_implementation",
+                                 "python_version", "python_cache_tag"})
+_DELTA_IMAGE_KEYS = frozenset({"subscription_own001_ids", "all_own001", "own050"})
+_DELTA_DELTA_KEYS = frozenset({"removed_subscription_own001_ids",
+                               "preserved_subscription_own001_ids", "new_subscription_own001_ids",
+                               "unexpectedly_removed_subscription_own001_ids", "removed_all_own001",
+                               "new_all_own001", "new_own050"})
+_TARGET_CB_KEYS = frozenset({"converted_callsites", "all_callsites_same_symbol",
+                             "target_is_source_defined", "derived_wrapper_ordinal",
+                             "asserted_wrapper_ordinal"})
+_TARGET_SW_KEYS = frozenset({"ordinal", "relative_path", "sha256", "assembly_simple_name",
+                             "module_mvid", "metadata_token", "resolved_signature"})
+_PROBE_TFP_KEYS = frozenset({"probe_deployment_manifest_sha256", "probe_runner_sha256",
+                             "probe_files", "dotnet_host_sha256", "dotnet_version"})
+_PROBE_RID_KEYS = frozenset({"framework_name", "tfm", "requested_framework_version",
+                             "selected_framework_version", "selected_runtime_manifest_sha256"})
+_PROBE_PROTOCOL = {"attempt_count": 3, "collection_rounds": 5,
+                   "allocation_pressure_bytes_per_round": 4194304, "child_timeout_seconds": 30,
+                   "stdout_limit_bytes": 65536, "stderr_limit_bytes": 65536,
+                   "probe_result_limit_bytes": 65536, "delivered_count_required": 1}
+_ATTEMPT_KEYS = frozenset({"attempt", "strong_delivered_once", "strong_retained",
+                           "weak_control_collected", "delivered_count", "threw_on_subscribe",
+                           "threw_on_first_raise", "subscriber_collected",
+                           "threw_on_post_collection_raise", "verdict"})
+_ATTEMPT_BOOLS = ("strong_delivered_once", "strong_retained", "weak_control_collected",
+                  "threw_on_subscribe", "threw_on_first_raise", "subscriber_collected",
+                  "threw_on_post_collection_raise")
+
+
+def _str_id_list(value: Any, cat: str, where: str) -> list[str]:
+    if not isinstance(value, list) or any(not isinstance(x, str) for x in value):
+        raise CertifyError(cat, f"{where} must be a list of strings")
+    if list(value) != sorted(value) or len(set(value)) != len(value):
+        raise CertifyError(cat, f"{where} must be sorted and unique")
+    return list(value)
+
+
+def _obs_list(items: Any, cat: str, where: str, keyfn: Any) -> list[dict[str, Any]]:
+    if not isinstance(items, list):
+        raise CertifyError(cat, f"{where} must be a list")
+    out: list[dict[str, Any]] = []
+    for i, obs in enumerate(items):
+        try:
+            out.append(keyfn(obs, cat, f"{where}[{i}]"))
+        except fd.DeltaError as exc:
+            raise CertifyError(cat, str(exc)) from exc
+    if out != fd._sorted_multiset(out):
+        raise CertifyError(cat, f"{where} is not in canonical (deterministic) order")
+    return out
+
+
+def _check_self_manifest(files: Any, digest: Any, cat: str, name: str) -> None:
+    """A self-describing deployment manifest: exact-shape entries, sorted by path with no duplicate,
+    and a deployment digest that equals sha256(canonical_json(files)). Step 12 does not re-hash the
+    external toolchain bytes (not supplied); the claim is internal self-consistency only."""
+    if not isinstance(files, list):
+        raise CertifyError(cat, f"{name}_files must be a list")
+    paths: list[str] = []
+    for i, entry in enumerate(files):
+        if not isinstance(entry, dict) or set(entry) != {"path", "sha256"} \
+                or not isinstance(entry["path"], str) or not ft._is_sha(entry["sha256"]):
+            raise CertifyError(cat, f"{name}_files[{i}] is not a {{path, sha256}} entry")
+        paths.append(entry["path"])
+    if paths != sorted(paths):
+        raise CertifyError(cat, f"{name}_files is not sorted by path")
+    if len(set(paths)) != len(paths):
+        raise CertifyError(cat, f"{name}_files has a duplicate path")
+    if not ft._is_sha(digest) or _sha_bytes(_canonical_json(files)) != digest:
+        raise CertifyError(cat, f"{name} deployment manifest digest is not self-consistent")
+
+
 def _validate_delta_representable(delta: dict[str, Any], auth: Any, cat: str) -> None:
     """The representable Step 10 invariants beyond the frozen consumed-shape binding: the closed
     baseline / postimage / delta observation schemas, deterministic canonical ordering, the
     subscription / core-multiset / OWN050 / idempotence equations, and the self-describing
-    toolchain-manifest digests. Populated in the enforcement commit."""
-    return
+    toolchain-manifest digests. Every OWN001 observation carries a boolean advisory (O1)."""
+    convert = sorted(auth.applied)
+    manual = sorted(auth.manual)
+    c_set, m_set = set(convert), set(manual)
+    s_set = c_set | m_set
+
+    images: dict[str, dict[str, Any]] = {}
+    for name in ("baseline", "postimage"):
+        block = delta[name]
+        if not isinstance(block, dict) or set(block) != _DELTA_IMAGE_KEYS:
+            raise CertifyError(cat, f"delta {name} is not the closed image schema")
+        subs = _str_id_list(block["subscription_own001_ids"], cat,
+                            f"delta {name}.subscription_own001_ids")
+        all001 = _obs_list(block["all_own001"], cat, f"delta {name}.all_own001", fd._core_key)
+        own050 = _obs_list(block["own050"], cat, f"delta {name}.own050", fd._own050_key)
+        images[name] = {"subs": set(subs), "all": all001, "own050": own050}
+
+    dblock = delta["delta"]
+    if not isinstance(dblock, dict) or set(dblock) != _DELTA_DELTA_KEYS:
+        raise CertifyError(cat, "delta.delta is not the closed seven-key schema")
+    removed = _obs_list(dblock["removed_all_own001"], cat, "delta.removed_all_own001", fd._core_key)
+    if dblock["removed_subscription_own001_ids"] != convert \
+            or dblock["preserved_subscription_own001_ids"] != manual \
+            or dblock["new_subscription_own001_ids"] != [] \
+            or dblock["unexpectedly_removed_subscription_own001_ids"] != [] \
+            or dblock["new_all_own001"] != [] or dblock["new_own050"] != []:
+        raise CertifyError(cat, "delta.delta does not satisfy the frozen subscription equations")
+
+    base_subs, post_subs = images["baseline"]["subs"], images["postimage"]["subs"]
+    if not s_set <= base_subs:
+        raise CertifyError(cat, "an accepted candidate is not a baseline subscription")
+    if post_subs - base_subs:
+        raise CertifyError(cat, "a new postimage subscription OWN001 appeared")
+    if (base_subs - post_subs) & s_set != c_set:
+        raise CertifyError(cat, "removed candidate-scoped subscriptions != the converted set")
+    if (base_subs & post_subs) & s_set != m_set:
+        raise CertifyError(cat, "preserved candidate-scoped subscriptions != the manual set")
+    if (base_subs - s_set) - post_subs:
+        raise CertifyError(cat, "an undeclared subscription disappeared")
+
+    b_all = Counter(fd._ckey(o) for o in images["baseline"]["all"])
+    p_all = Counter(fd._ckey(o) for o in images["postimage"]["all"])
+    if p_all - b_all:
+        raise CertifyError(cat, "a new core OWN001 observation appeared in the postimage")
+    if Counter(fd._ckey(o) for o in removed) != (b_all - p_all):
+        raise CertifyError(cat, "removed_all_own001 != the baseline-minus-postimage multiset")
+    b50 = Counter(fd._ckey(o) for o in images["baseline"]["own050"])
+    p50 = Counter(fd._ckey(o) for o in images["postimage"]["own050"])
+    if p50 - b50:
+        raise CertifyError(cat, "a newly-introduced OWN050 advisory appeared")
+
+    si = delta["semantic_idempotence"]
+    if not isinstance(si, dict) or set(si) != {"converted_ids_still_actionable", "pass"} \
+            or si["pass"] is not True or si["converted_ids_still_actionable"] != []:
+        raise CertifyError(cat, "delta.semantic_idempotence is not the closed pass shape")
+    if c_set & post_subs:
+        raise CertifyError(cat, "a converted id is still an actionable postimage subscription")
+
+    tfp = delta["toolchain_fingerprint"]
+    if not isinstance(tfp, dict) or set(tfp) != _DELTA_TFP_KEYS:
+        raise CertifyError(cat, "delta.toolchain_fingerprint is not the closed six-key schema")
+    _check_self_manifest(tfp["extractor_files"], tfp["extractor_deployment_manifest_sha256"], cat,
+                         "extractor")
+    ca = tfp["core_analyzer"]
+    if not isinstance(ca, dict) or set(ca) != _CORE_ANALYZER_KEYS:
+        raise CertifyError(cat, "delta.core_analyzer is not the closed seven-key schema")
+    _check_self_manifest(ca["ownlang_files"], ca["ownlang_manifest_sha256"], cat, "ownlang")
 
 
 def _validate_target_converted(target: dict[str, Any], auth: Any, delta: dict[str, Any],
                                cat: str) -> None:
     """The representable converted-target invariants beyond the closed schema: the callsite
     summary, the exact probe protocol, the three recomputed attempt verdicts, the selected-wrapper
-    slot identity, and the probe deployment self-hash. Populated in the enforcement commit."""
-    return
+    slot identity, and the probe deployment self-hash."""
+    convert = sorted(auth.applied)
+    closure = delta["reference_closure"]
+
+    cb = target["callsite_binding"]
+    if not isinstance(cb, dict) or set(cb) != _TARGET_CB_KEYS:
+        raise CertifyError(cat, "callsite_binding is not the closed five-key schema")
+    if not ft._is_int(cb["converted_callsites"]) or cb["converted_callsites"] != len(convert):
+        raise CertifyError(cat, "converted_callsites != the number of converted candidates")
+    if cb["all_callsites_same_symbol"] is not True or cb["target_is_source_defined"] is not False:
+        raise CertifyError(cat, "the callsite summary is not a single source-external symbol")
+    if not ft._is_int(cb["derived_wrapper_ordinal"]) or cb["derived_wrapper_ordinal"] < 0 \
+            or not ft._is_int(cb["asserted_wrapper_ordinal"]) or cb["asserted_wrapper_ordinal"] < 0:
+        raise CertifyError(cat, "a wrapper ordinal is not a non-negative int")
+    if cb["derived_wrapper_ordinal"] != cb["asserted_wrapper_ordinal"]:
+        raise CertifyError(cat, "the derived and asserted wrapper ordinals disagree")
+    ordinal = cb["asserted_wrapper_ordinal"]
+    if not 0 <= ordinal < len(closure):
+        raise CertifyError(cat, "the asserted wrapper ordinal is outside the reference closure")
+
+    sw = target["selected_wrapper"]
+    slot = closure[ordinal]
+    if not isinstance(sw, dict) or set(sw) != _TARGET_SW_KEYS:
+        raise CertifyError(cat, "selected_wrapper is not the closed seven-key schema")
+    if sw["ordinal"] != ordinal or sw["sha256"] != slot["sha256"] \
+            or sw["relative_path"] != slot["relative_path"]:
+        raise CertifyError(cat, "selected_wrapper is not consistent with its reference slot")
+    if not ft._is_sha(sw["sha256"]) or not isinstance(sw["assembly_simple_name"], str) \
+            or not isinstance(sw["resolved_signature"], str) \
+            or not _MVID_RE.fullmatch(str(sw["module_mvid"])) \
+            or not _TOKEN_RE.fullmatch(str(sw["metadata_token"])):
+        raise CertifyError(cat, "selected_wrapper identity fields are malformed")
+
+    if target["probe_protocol"] != _PROBE_PROTOCOL:
+        raise CertifyError(cat, "probe_protocol is not the frozen constant set")
+
+    ptf = target["probe_toolchain_fingerprint"]
+    if not isinstance(ptf, dict) or set(ptf) != _PROBE_TFP_KEYS:
+        raise CertifyError(cat, "probe_toolchain_fingerprint is not the closed five-key schema")
+    _check_self_manifest(ptf["probe_files"], ptf["probe_deployment_manifest_sha256"], cat, "probe")
+    if not ft._is_sha(ptf["probe_runner_sha256"]) or not ft._is_sha(ptf["dotnet_host_sha256"]) \
+            or not isinstance(ptf["dotnet_version"], str):
+        raise CertifyError(cat, "probe_toolchain_fingerprint fields are malformed")
+    pri = target["probe_runtime_identity"]
+    if not isinstance(pri, dict) or set(pri) != _PROBE_RID_KEYS \
+            or not all(isinstance(pri[k], str) for k in _PROBE_RID_KEYS) \
+            or not ft._is_sha(pri["selected_runtime_manifest_sha256"]):
+        raise CertifyError(cat, "probe_runtime_identity is not the closed five-key schema")
+
+    attempts = target["attempts"]
+    if not isinstance(attempts, list) or len(attempts) != 3:
+        raise CertifyError(cat, "there must be exactly three probe attempts")
+    for i, at in enumerate(attempts):
+        if not isinstance(at, dict) or set(at) != _ATTEMPT_KEYS:
+            raise CertifyError(cat, f"attempt[{i}] is not the closed ten-key schema")
+        if not ft._is_int(at["attempt"]) or at["attempt"] != i:
+            raise CertifyError(cat, f"attempt[{i}] ordinal is not {i}")
+        if any(not isinstance(at[k], bool) for k in _ATTEMPT_BOOLS) \
+                or not ft._is_int(at["delivered_count"]):
+            raise CertifyError(cat, f"attempt[{i}] field types are wrong")
+        if not (at["strong_delivered_once"] and at["strong_retained"]
+                and at["weak_control_collected"]):
+            raise CertifyError(cat, f"attempt[{i}] strong / collectability control failed")
+        recomputed = ft._attempt_verdict(at)
+        if not isinstance(at["verdict"], str) or at["verdict"] != recomputed:
+            raise CertifyError(cat, f"attempt[{i}] published verdict != the recomputed verdict")
+        if recomputed != "pass":
+            raise CertifyError(cat, f"attempt[{i}] does not deliver exactly once and drop")
 
 
 # --- reference closure binding ------------------------------------------------------
@@ -438,10 +650,12 @@ def revalidate_certification_inputs(
     gate_bytes: bytes, delta_bytes: bytes, target_bytes: bytes, manifest_data: bytes,
     patch_bytes: bytes, postimage_bytes: bytes, work: str, slot_dirs: list[str],
     slot_evidence: list[dict[str, Any]]) -> None:
-    """Before publication, re-check that every authoritative input still equals what was bound.
-    The plain input files are re-snapshotted here; the original bundle, the original ref-dir
-    closures and the materialized slots are re-derived in the enforcement commit. Any post-binding
-    drift is ISOLATION."""
+    """Before publication, re-check that every authoritative input still equals what was bound —
+    the plain input files, the ORIGINAL bundle (exact layout + manifest / patch / postimage bytes),
+    the ORIGINAL --ref-dir closures re-derived from the caller directories, and the materialized
+    reference slots. Validation of the materialized copies is never treated as proof the caller
+    inputs stayed unchanged: the originals are re-scanned in their own right. Any post-binding drift
+    (including a change in an originally-empty ref-dir) is ISOLATION."""
     for path, original, label in ((plan_path, plan_bytes, "--plan"),
                                   (candidates_path, candidates_bytes, "--candidates"),
                                   (gate_path, gate_bytes, "--gate"),
@@ -449,6 +663,32 @@ def revalidate_certification_inputs(
                                   (target_path, target_bytes, "--target")):
         if _snap(path, ISOLATION, label) != original:
             raise CertifyError(ISOLATION, f"{label} changed during certification")
+
+    # the ORIGINAL bundle: exact entry set + postimage subtree + the three artifacts' bytes.
+    _require_bundle_layout(bundle_phys, rel, ISOLATION)
+    if _snap(os.path.join(bundle_phys, "apply-manifest.json"), ISOLATION,
+             "apply-manifest.json") != manifest_data:
+        raise CertifyError(ISOLATION, "the original apply-manifest.json changed after binding")
+    if _snap(os.path.join(bundle_phys, "change.patch"), ISOLATION, "change.patch") != patch_bytes:
+        raise CertifyError(ISOLATION, "the original change.patch changed after binding")
+    if _snap(os.path.join(bundle_phys, "postimage", *rel.split("/")), ISOLATION,
+             "postimage") != postimage_bytes:
+        raise CertifyError(ISOLATION, "the original postimage changed after binding")
+
+    # the ORIGINAL --ref-dirs: re-derive the whole closure and require the initial snapshot exactly.
+    try:
+        _reval_dirs, reval_evidence = fd.snapshot_reference_closure(
+            os.path.join(work, "reval"), ref_dirs)
+    except fd.DeltaError as exc:
+        raise CertifyError(ISOLATION, str(exc)) from exc
+    if reval_evidence != slot_evidence:
+        raise CertifyError(ISOLATION, "an original --ref-dir closure changed after binding")
+
+    # the MATERIALIZED reference slots.
+    for i, ev in enumerate(slot_evidence):
+        dll = os.path.join(slot_dirs[i], ev["relative_path"].rsplit("/", 1)[-1])
+        if _sha_bytes(_snap(dll, ISOLATION, "reference slot")) != ev["sha256"]:
+            raise CertifyError(ISOLATION, "a materialized reference slot changed after binding")
 
 
 # --- publication (Step 12-local; the frozen _publish_target hardcodes another name) --
