@@ -306,6 +306,13 @@ def _schema_ok(path: str, chain_kind: str, check, name: str) -> dict:
     check(obj.get("chain_kind") == chain_kind, f"{name}: chain_kind {chain_kind}")
     check(set(obj["checks"]) == _EXPECT_CHECKS and len(obj["checks"]) == 12,
           f"{name}: exactly the twelve checks")
+    # the exact status MAPPING, not just the key set.
+    if chain_kind == "converted":
+        check(set(obj["checks"].values()) == {"pass"}, f"{name}: all twelve checks == pass")
+    else:
+        check(obj["checks"]["wrapper_identity"] == "not_applicable"
+              and all(v == "pass" for k, v in obj["checks"].items() if k != "wrapper_identity"),
+              f"{name}: eleven checks == pass, wrapper_identity == not_applicable")
     check(obj["certification"]["claims"] == _EXPECT_CLAIMS, f"{name}: exact claims array")
     check("steps_8_11_gates_satisfied" not in raw.decode("utf-8"),
           f"{name}: no steps_8_11_gates_satisfied in the published evidence")

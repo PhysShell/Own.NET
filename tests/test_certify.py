@@ -420,17 +420,23 @@ def _core_pass(check) -> None:
             check(raw == canon, f"{kind}: certification-result.json is canonical bytes + LF")
             check(os.listdir(a["out"]) == ["certification-result.json"],
                   f"{kind}: only the artifact")
+            # the exact check-status MAPPING, not just the key set (a "publication": "fail" that
+            # sits neatly under the right key is not a pass).
             if ck == "converted":
+                check(set(res["checks"].values()) == {"pass"},
+                      f"{kind}: all twelve checks == pass")
                 wid = res["target_binding"]["wrapper_identity"]
                 check(wid["assembly_simple_name"] == _WRAP_ASM,
                       f"{kind}: wrapper identity recorded")
                 check(res["certification"]["converted_callsites"] == len(Chain(kind).auth.applied),
                       f"{kind}: converted_callsites")
             else:
+                check(res["checks"]["wrapper_identity"] == "not_applicable"
+                      and all(v == "pass" for k, v in res["checks"].items()
+                              if k != "wrapper_identity"),
+                      f"{kind}: eleven checks == pass, wrapper_identity == not_applicable")
                 check(res["target_binding"]["wrapper_identity"] is None,
                       f"{kind}: manual wrapper_identity null")
-                check(res["checks"]["wrapper_identity"] == "not_applicable",
-                      f"{kind}: manual wrapper_identity check not_applicable")
 
 
 def _byte_forms(check) -> None:
@@ -919,6 +925,11 @@ def _defect_regressions(check) -> None:
         c.patch = b""
     _mut_primitive(check, "manual", "manual-only post != pre -> BUNDLE_BINDING", fc.BUNDLE_BINDING,
                    manual_post_ne_pre)
+
+    def converted_post_eq_pre(c: Chain) -> None:
+        c.postimage = _PRE  # == preimage, while the converted change.patch stays non-empty
+    _mut_primitive(check, "converted", "converted post == pre -> BUNDLE_BINDING (D6)",
+                   fc.BUNDLE_BINDING, converted_post_eq_pre)
 
     # --- a lone surrogate is refused in the artifact's own source-specific category ---
     _surrogate_case(check, "candidates", fc.AUTHORITY_BINDING)
