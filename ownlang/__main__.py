@@ -672,8 +672,58 @@ def _cmd_verify_delta(rest: list[str]) -> int:
     return 0
 
 
+def _cmd_verify_target(rest: list[str]) -> int:
+    """S2 step 11: `own-fix subscriptions verify-target` — the fake-target gate. Binds the
+    accepted Step 8 bundle + Step 10 delta, runs the fixed OwnSharp.WeakTargetProbe (Roslyn
+    callsite bijection, then three isolated runtime probes) over the wrapper the postimage
+    actually calls, and proves it is a genuine non-retaining subscription."""
+    from ownlang.fix_gate import GateError
+    from ownlang.fix_target import TargetError, run_verify_target
+
+    flags = {"--bundle", "--root", "--plan", "--candidates", "--delta", "--out",
+             "--probe-dll", "--wrapper-ordinal"}
+    parsed = _own_fix_parse(rest, flags, {"--ref-dir"})
+    if parsed is None:
+        return 2
+    positional, opts = parsed
+    for f in flags:
+        if rest.count(f) > 1:
+            print(f"own-fix: {f} given more than once", file=sys.stderr)
+            return 2
+    required = ("--bundle", "--root", "--plan", "--candidates", "--delta", "--out")
+    if positional or not all(opts.get(k) for k in required):
+        print("usage: own-fix subscriptions verify-target --bundle <step8-bundle> "
+              "--root <pristine-source-root> --plan <validated-plan.json> "
+              "--candidates <candidates.json> --delta <step10-delta-result.json> "
+              "--out <target-evidence-dir> [--ref-dir <dir>]... "
+              "[--probe-dll <probe.dll>] [--wrapper-ordinal <N>]", file=sys.stderr)
+        return 2
+    wrapper_ordinal = None
+    if opts.get("--wrapper-ordinal") is not None:
+        raw = opts["--wrapper-ordinal"]
+        if not raw.isdigit():
+            print("own-fix: --wrapper-ordinal must be a non-negative integer", file=sys.stderr)
+            return 2
+        wrapper_ordinal = int(raw)
+    try:
+        published = run_verify_target(
+            opts["--bundle"], opts["--root"], opts["--plan"], opts["--candidates"],
+            opts["--delta"], opts.get("--probe-dll"), opts["--out"],
+            opts.get("--ref-dir") or [], wrapper_ordinal)
+    except (TargetError, GateError) as exc:
+        print(f"own-fix: refuse: {exc.category}: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # fail closed
+        print(f"own-fix: refuse: INFRASTRUCTURE: internal error "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        return 2
+    print(f"own-fix: wrote target-result.json -> {published}")
+    return 0
+
+
 def cmd_own_fix(rest: list[str]) -> int:
-    """`own-fix subscriptions {candidates|render|validate-plan|apply|gate|verify-delta} ...`."""
+    """`own-fix subscriptions {candidates|render|validate-plan|apply|gate|verify-delta|
+    verify-target} ...`."""
     if len(rest) < 2 or rest[0] != "subscriptions":
         print("usage: python -m ownlang own-fix subscriptions "
               "{candidates|render|validate-plan|apply|gate|verify-delta} ...", file=sys.stderr)
@@ -691,8 +741,10 @@ def cmd_own_fix(rest: list[str]) -> int:
         return _cmd_gate(args)
     if verb == "verify-delta":
         return _cmd_verify_delta(args)
-    print(f"own-fix: unknown subcommand {verb!r} "
-          "(candidates | render | validate-plan | apply | gate | verify-delta)", file=sys.stderr)
+    if verb == "verify-target":
+        return _cmd_verify_target(args)
+    print(f"own-fix: unknown subcommand {verb!r} (candidates | render | validate-plan | apply "
+          "| gate | verify-delta | verify-target)", file=sys.stderr)
     return 2
 
 

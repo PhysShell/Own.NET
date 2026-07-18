@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- S2 Step 11: the fixed Verified Target Wrapper probe. Two internal modes: bind (Roslyn
+       SemanticModel over the pristine preimage plus the accepted Step 8 postimage; per-finding
+       callsite bijection, G1; framework references from the SELECTED runtime the probe is
+       pinned to, plus the ordered reference slots, G2) and probe (a fresh child that loads the
+       derived wrapper from its EXACT materialized slot path via a dedicated AssemblyLoadContext,
+       G3, runs the runtime-compatibility preflight, G4, then the frozen GC harness for ONE
+       attempt). No code generation, build, restore, or NuGet happens inside verify-target; this
+       project is pre-built and passed as the probe-dll input. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>OwnSharp.WeakTargetProbe</AssemblyName>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
+  </ItemGroup>
+
+</Project>
