@@ -1,0 +1,37 @@
+{
+  "ownir_version": 0,
+  "module": "Direct",
+  "functions": [
+    {
+      "name": "Sink",
+      "file": "F.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1,
+          "effect": "consume"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "c",
+          "line": 12
+        },
+        {
+          "op": "call",
+          "callee": "Sink",
+          "args": [
+            "c"
+          ],
+          "line": 13
+        }
+      ]
+    }
+  ]
+}

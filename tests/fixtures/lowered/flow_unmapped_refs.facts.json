@@ -1,0 +1,32 @@
+{
+  "ownir_version": 0,
+  "module": "Unmapped",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "use",
+          "var": "ghost",
+          "line": 2
+        },
+        {
+          "op": "release",
+          "var": "ghost",
+          "line": 3
+        },
+        {
+          "op": "overspan",
+          "var": "ghost",
+          "line": 4
+        },
+        {
+          "op": "return",
+          "var": "ghost",
+          "line": 5
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "lowered_version": 1,
+  "module": "HoistNeg3",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "M",
+      "lifetime": null,
+      "params": [],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "if",
+          "cond": "?",
+          "then": [
+            {
+              "stmt": "acquire",
+              "handle": "loc_0",
+              "resource": "Disposable",
+              "line": 3
+            }
+          ],
+          "else": [
+            {
+              "stmt": "return",
+              "handle": null,
+              "line": 5
+            }
+          ],
+          "line": 2
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_0",
+          "line": 7
+        }
+      ]
+    }
+  ],
+  "handles": {
+    "loc_0": {
+      "component": "M",
+      "file": "F.cs",
+      "line": 3,
+      "event": "r",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  }
+}

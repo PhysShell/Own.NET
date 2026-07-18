@@ -1,0 +1,28 @@
+{
+  "ownir_version": 0,
+  "module": "R4",
+  "components": [
+    {
+      "name": "C",
+      "file": "C.cs",
+      "subscriptions": [
+        {
+          "event": "pub.Changed",
+          "handler": "OnC",
+          "line": 8,
+          "resource": "subscription",
+          "source": "injected",
+          "source_provenance": "returned_fresh"
+        },
+        {
+          "event": "pub2.Changed",
+          "handler": "OnC2",
+          "line": 9,
+          "resource": "subscription",
+          "source": "injected",
+          "source_provenance": "someday_maybe"
+        }
+      ]
+    }
+  ]
+}

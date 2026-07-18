@@ -1,0 +1,46 @@
+{
+  "ownir_version": 0,
+  "module": "Counters",
+  "components": [
+    {
+      "name": "A",
+      "file": "A.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.A",
+          "handler": "HA",
+          "line": 3,
+          "resource": "capture",
+          "source": "static"
+        },
+        {
+          "event": "bus.A",
+          "handler": "HB",
+          "line": 4,
+          "resource": "subscription",
+          "source": "injected"
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "file": "B.cs",
+      "subscriptions": [
+        {
+          "event": "bus.B",
+          "handler": "HC",
+          "line": 3,
+          "resource": "subscription",
+          "source": "injected"
+        },
+        {
+          "event": "SystemEvents.B",
+          "handler": "HD",
+          "line": 4,
+          "resource": "capture",
+          "source": "static"
+        }
+      ]
+    }
+  ]
+}

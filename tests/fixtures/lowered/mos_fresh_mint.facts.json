@@ -1,0 +1,52 @@
+{
+  "ownir_version": 0,
+  "module": "Fresh",
+  "functions": [
+    {
+      "name": "Make",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "tmp",
+          "line": 2
+        },
+        {
+          "op": "return",
+          "var": "tmp",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Make",
+          "args": [],
+          "result": "r",
+          "line": 12
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 13
+        },
+        {
+          "op": "call",
+          "callee": "File.OpenRead",
+          "args": [],
+          "result": "f",
+          "line": 14
+        },
+        {
+          "op": "release",
+          "var": "f",
+          "line": 15
+        }
+      ]
+    }
+  ]
+}

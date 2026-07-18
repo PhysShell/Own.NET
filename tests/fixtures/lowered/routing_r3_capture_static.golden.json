@@ -1,0 +1,146 @@
+{
+  "lowered_version": 1,
+  "module": "R3",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [
+    {
+      "name": "Process",
+      "longer": null
+    },
+    {
+      "name": "scoped",
+      "longer": "Process"
+    },
+    {
+      "name": "transient",
+      "longer": "scoped"
+    },
+    {
+      "name": "Subscriber",
+      "longer": "Process"
+    }
+  ],
+  "functions": [
+    {
+      "name": "Win",
+      "lifetime": "Subscriber",
+      "params": [
+        {
+          "handle": "cap_0",
+          "type": {
+            "name": "EventSource",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 0,
+          "lifetime": "Process"
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "subscribe",
+          "source": "cap_0",
+          "line": 5
+        }
+      ]
+    }
+  ],
+  "handles": {
+    "cap_0": {
+      "component": "Win",
+      "file": "Win.cs",
+      "line": 5,
+      "event": "SystemEvents.DisplaySettingsChanged",
+      "handler": "OnD",
+      "resource": "capture",
+      "source": "static"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "ownir_version": 0,
+  "module": "R3",
+  "components": [
+    {
+      "name": "Win",
+      "file": "Win.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.DisplaySettingsChanged",
+          "handler": "OnD",
+          "line": 5,
+          "resource": "capture",
+          "source": "static"
+        },
+        {
+          "event": "SystemEvents.PowerModeChanged",
+          "handler": "OnP",
+          "line": 6,
+          "resource": "capture",
+          "source": "static",
+          "released": true
+        },
+        {
+          "event": "bus.Changed",
+          "handler": "OnB",
+          "line": 7,
+          "resource": "capture",
+          "source": "injected"
+        }
+      ]
+    }
+  ]
+}

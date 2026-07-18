@@ -1,0 +1,59 @@
+{
+  "ownir_version": 0,
+  "module": "KillSite",
+  "functions": [
+    {
+      "name": "MayTake",
+      "file": "F.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 3
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "y",
+          "line": 12
+        },
+        {
+          "op": "use",
+          "var": "y",
+          "line": 13
+        },
+        {
+          "op": "call",
+          "callee": "MayTake",
+          "args": [
+            "y"
+          ],
+          "line": 14
+        },
+        {
+          "op": "release",
+          "var": "y",
+          "line": 15
+        }
+      ]
+    }
+  ]
+}

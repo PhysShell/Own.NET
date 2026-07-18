@@ -1,0 +1,28 @@
+{
+  "ownir_version": 0,
+  "module": "HoistNeg2",
+  "functions": [
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "while",
+          "line": 2,
+          "body": [
+            {
+              "op": "acquire",
+              "var": "r",
+              "line": 3
+            }
+          ]
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 5
+        }
+      ]
+    }
+  ]
+}

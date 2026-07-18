@@ -1,0 +1,234 @@
+{
+  "lowered_version": 1,
+  "module": "Params",
+  "resources": [
+    {
+      "name": "Subscription",
+      "kind": "subscription token",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Subscribe"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "Timer",
+      "kind": "timer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Start"
+        },
+        {
+          "role": "release",
+          "name": "Stop"
+        }
+      ]
+    },
+    {
+      "name": "Disposable",
+      "kind": "disposable field",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "New"
+        },
+        {
+          "role": "release",
+          "name": "Dispose"
+        }
+      ]
+    },
+    {
+      "name": "PooledBuffer",
+      "kind": "pooled buffer",
+      "members": [
+        {
+          "role": "acquire",
+          "name": "Rent"
+        },
+        {
+          "role": "release",
+          "name": "Return"
+        }
+      ]
+    }
+  ],
+  "externs": [
+    {
+      "name": "$consume",
+      "params": [
+        {
+          "effect": "consume",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow",
+      "params": [
+        {
+          "effect": "borrow",
+          "type": "Disposable"
+        }
+      ]
+    },
+    {
+      "name": "$borrow_mut",
+      "params": [
+        {
+          "effect": "borrow_mut",
+          "type": "Disposable"
+        }
+      ]
+    }
+  ],
+  "lifetimes": [],
+  "functions": [
+    {
+      "name": "Sink",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_0",
+          "type": {
+            "name": "Disposable",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 1,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_1",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 1,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_2",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": true
+          },
+          "line": 1,
+          "lifetime": null
+        },
+        {
+          "handle": "parg_3",
+          "type": {
+            "name": "int",
+            "borrowed": false,
+            "mutable": false
+          },
+          "line": 1,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "release",
+          "handle": "parg_0",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Second",
+      "lifetime": null,
+      "params": [
+        {
+          "handle": "parg_4",
+          "type": {
+            "name": "Disposable",
+            "borrowed": true,
+            "mutable": false
+          },
+          "line": 5,
+          "lifetime": null
+        }
+      ],
+      "ret": null,
+      "body": [
+        {
+          "stmt": "use",
+          "handle": "parg_4",
+          "line": 6
+        },
+        {
+          "stmt": "acquire",
+          "handle": "loc_5",
+          "resource": "Disposable",
+          "line": 7
+        },
+        {
+          "stmt": "release",
+          "handle": "loc_5",
+          "line": 8
+        }
+      ]
+    }
+  ],
+  "handles": {
+    "parg_0": {
+      "component": "Sink",
+      "file": "F.cs",
+      "line": 1,
+      "event": "a",
+      "resource": "flow-local",
+      "ever_released": true
+    },
+    "parg_1": {
+      "component": "Sink",
+      "file": "F.cs",
+      "line": 1,
+      "event": "b",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    "parg_2": {
+      "component": "Sink",
+      "file": "F.cs",
+      "line": 1,
+      "event": "c",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    "parg_3": {
+      "component": "Sink",
+      "file": "F.cs",
+      "line": 1,
+      "event": "d",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    "parg_4": {
+      "component": "Second",
+      "file": "F.cs",
+      "line": 5,
+      "event": "p",
+      "resource": "flow-local",
+      "ever_released": false
+    },
+    "loc_5": {
+      "component": "Second",
+      "file": "F.cs",
+      "line": 7,
+      "event": "x",
+      "resource": "flow-local",
+      "ever_released": true,
+      "pool": false
+    }
+  }
+}

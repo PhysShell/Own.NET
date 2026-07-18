@@ -1,0 +1,70 @@
+{
+  "ownir_version": 0,
+  "module": "Overloads",
+  "functions": [
+    {
+      "name": "Take",
+      "file": "F.cs",
+      "sig": "System.IO.Stream",
+      "params": [
+        {
+          "name": "p",
+          "line": 1,
+          "effect": "consume"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Take",
+      "file": "F.cs",
+      "sig": "System.String",
+      "params": [
+        {
+          "name": "p",
+          "line": 2,
+          "effect": "borrow"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "M",
+      "file": "F.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "c1",
+          "line": 12
+        },
+        {
+          "op": "call",
+          "callee": "Take",
+          "sig": "System.IO.Stream",
+          "args": [
+            "c1"
+          ],
+          "line": 13
+        },
+        {
+          "op": "acquire",
+          "var": "c2",
+          "line": 14
+        },
+        {
+          "op": "call",
+          "callee": "Take",
+          "args": [
+            "c2"
+          ],
+          "line": 15
+        },
+        {
+          "op": "release",
+          "var": "c2",
+          "line": 16
+        }
+      ]
+    }
+  ]
+}
