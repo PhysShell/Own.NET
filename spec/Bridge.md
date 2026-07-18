@@ -37,9 +37,13 @@ the core owns. Concretely: ownership/borrow/lifetime verdicts come from
 `check_module` (the composed core driver in `ownlang/__main__.py`); DI verdicts
 from `ownlang/di.py`'s five finders; effect verdicts from
 `ownlang/effects.py`; protocol verdicts from `ownlang/obligations.py`; the MOS
-fixpoint from `ownlang/ownership.py:solve`. The bridge's own logic is routing,
-identity, synthesis of *presentation* (messages, severity tiers, evidence
-slices) — and nothing that changes which sites are found.
+fixpoint from `ownlang/ownership.py:solve`. The bridge does **not**
+independently solve for violations after routing: its only authority to
+*admit, suppress, or redirect* sites is the **closed** routing behavior of
+BR-L1 (plus the lowering-time admission rules BR-L6–L9) and the advisory side
+paths of BR-V1; over the inputs it admits, the analyses own every verdict.
+Beyond that, the bridge's own logic is identity and the synthesis of
+*presentation* (messages, severity tiers, evidence slices).
 
 **BR-B2 (no verdict repair).** The bridge must not repair a wrong analysis
 verdict by replacing its code or its primary anchor. It may *skip* a closed list
@@ -70,16 +74,20 @@ names rejected** — the name is the identity verdicts map back by) →
 
 **BR-D2 (the tolerant door).** `check_facts(facts)` (and `to_module`/`to_own`)
 accept a dict directly, without `load()` — the path tests and embedders use.
-On this door the bridge **re-validates tolerantly**: malformed optional-block
-entries are **skipped, never coerced** (`_effect_findings`, `_protocol_findings`
-skip a malformed entry; `_di_findings` string-coerces only identity fields and
-requires `disposable` to be the JSON boolean `true`); `line` degrades to `0`
-via `_as_int` where the tolerant helpers are used; a **duplicate protocol name
-resolves first-wins** (deterministically) instead of raising. The two doors are
-deliberate: strict for external input, tolerant for already-shaped input — but
-their *divergences* are part of this contract and enumerated in §9 (OD-1,
-OD-2, OD-3). A port must implement the strict door exactly; whether it exposes
-the tolerant door at all is #259's decision recorded against OD-1.
+On this door the bridge re-validates with **three distinct tolerances**, none
+of them a blanket rule: (1) a **malformed optional-block entry is skipped as a
+whole**, never patched into shape (`_effect_findings` and `_protocol_findings`
+drop a malformed entry — a `deps: "a"` must not become `("a",)` and mint a
+spurious verdict); (2) an **accepted** entry's fields go through the existing
+**field-specific coercions** (`_di_findings` `str()`-coerces identity/location
+fields and admits `disposable` only as the JSON boolean `true`); (3) `line`
+**degrades to `0`** via `_as_int` on the paths that use the tolerant helper
+(not all paths do — OD-3). A **duplicate protocol name resolves first-wins**
+(deterministically) instead of raising. The two doors are deliberate: strict
+for external input, tolerant for already-shaped input — but their
+*divergences* are part of this contract and enumerated in §9 (OD-1, OD-2,
+OD-3). A port must implement the strict door exactly; whether it exposes the
+tolerant door at all is #259's decision recorded against OD-1.
 
 **BR-D3 (`sig` asymmetry — normative, not a bug).** A present-but-non-string
 `sig` on a `functions[]` **record** is rejected at the strict door; a malformed
