@@ -37,7 +37,9 @@ import json
 import os
 import re
 import stat
+import tempfile
 from collections import Counter
+from collections.abc import Callable
 from typing import Any
 
 from ownlang import fix_delta as fd
@@ -337,7 +339,7 @@ def _bind_gate(gate_bytes: bytes, auth: Any, plan_bytes: bytes, manifest_data: b
 
 
 def _bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes, candidates_bytes: bytes,
-                hashes: dict[str, str], gate_sha256: str, rel: str,
+                candidates: dict[str, Any], hashes: dict[str, str], gate_sha256: str, rel: str,
                 class_fqn: str) -> dict[str, Any]:
     """Bind the Step 10 delta-result as the upstream authority. The frozen fix_target.bind_delta
     proves canonical bytes, the exact top-level + consumed shapes, all seventeen checks pass, and
@@ -377,7 +379,7 @@ def _bind_delta(delta_bytes: bytes, auth: Any, plan_bytes: bytes, candidates_byt
     expected_kind = "single-file+refdirs" if scope.get("reference_dir_count") else "single-file"
     if scope.get("closure_kind") != expected_kind:
         raise CertifyError(cat, "delta-result.json closure_kind is not its derived kind")
-    _validate_delta_representable(delta, auth, cat)
+    _validate_delta_representable(delta, auth, candidates, cat)
     return delta
 
 
@@ -517,11 +519,63 @@ def _check_self_manifest(files: Any, digest: Any, cat: str, name: str) -> None:
         raise CertifyError(cat, f"{name} deployment manifest digest is not self-consistent")
 
 
-def _validate_delta_representable(delta: dict[str, Any], auth: Any, cat: str) -> None:
+def _bridge_key_of(candidate: dict[str, Any]) -> tuple[str, str, str, str]:
+    """The K=(file, component, event, handler) the frozen core runner derives for a candidate:
+    component is the containing type's simple name, event is source.event (or event when the source
+    is 'this')."""
+    src = candidate["source"]
+    event = candidate["event"] if src == "this" else f"{src}.{candidate['event']}"
+    return (candidate["file"], candidate["containing_type"].rsplit(".", 1)[-1], event,
+            candidate["handler"])
+
+
+def _authorized_removed(convert: list[str], manual: list[str], candidates: dict[str, Any],
+                        baseline_all001: list[dict[str, Any]], cat: str) -> Counter[str]:
+    """Reconstruct R_C — the multiset of core OWN001 observations AUTHORIZED for removal — from the
+    accepted candidate bridge, mirroring the frozen fix_delta._bridge_r_c: every accepted candidate
+    maps through K to a validated baseline group (a single distinct observation shape, exact
+    eligible/observation cardinality, no mixed convert/manual under one K); R_C draws one
+    observation per converted candidate. This is the frozen 'removed core == authorized'
+    authorization, so an unrelated non-subscription OWN001 that also vanished cannot ride a
+    hash-consistent delta."""
+    by_fid = {c["finding_id"]: _bridge_key_of(c) for c in candidates["candidates"]}
+    core_by_k: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
+    for obs in baseline_all001:
+        core_by_k.setdefault((obs["file"], obs["component"], obs["event"], obs["handler"]),
+                             []).append(obs)
+    convert_set = set(convert)
+    action_of: dict[tuple[str, str, str, str], set[str]] = {}
+    accepted_by_k: Counter[tuple[str, str, str, str]] = Counter()
+    for fid in convert + manual:
+        key = by_fid.get(fid)
+        if key is None:
+            raise CertifyError(cat, f"accepted candidate {fid} has no bridge key")
+        action_of.setdefault(key, set()).add("convert" if fid in convert_set else "manual")
+        accepted_by_k[key] += 1
+    for key, actions in action_of.items():
+        if len(actions) > 1:
+            raise CertifyError(cat, f"bridge key {key} mixes convert and manual candidates")
+    for key, count in accepted_by_k.items():
+        group = core_by_k.get(key, [])
+        if not group:
+            raise CertifyError(cat, f"accepted candidate bridge key {key} has no baseline OWN001")
+        if len({fd._ckey(o) for o in group}) != 1:
+            raise CertifyError(cat, f"bridge key {key} maps to multiple distinct observations")
+        if len(group) != count:
+            raise CertifyError(cat, f"eligible/observation cardinality mismatch for {key}")
+    r_c: Counter[str] = Counter()
+    for fid in convert:
+        r_c[fd._ckey(core_by_k[by_fid[fid]][0])] += 1
+    return r_c
+
+
+def _validate_delta_representable(delta: dict[str, Any], auth: Any, candidates: dict[str, Any],
+                                  cat: str) -> None:
     """The representable Step 10 invariants beyond the frozen consumed-shape binding: the closed
     baseline / postimage / delta observation schemas, deterministic canonical ordering, the
-    subscription / core-multiset / OWN050 / idempotence equations, and the self-describing
-    toolchain-manifest digests. Every OWN001 observation carries a boolean advisory (O1)."""
+    subscription / core-multiset / OWN050 / idempotence equations (including that the removed core
+    OWN001 multiset equals the bridge-authorized R_C, not merely baseline - postimage), and the
+    self-describing toolchain-manifest digests. Every OWN001 observation's advisory is a boolean."""
     convert = sorted(auth.applied)
     manual = sorted(auth.manual)
     c_set, m_set = set(convert), set(manual)
@@ -565,8 +619,14 @@ def _validate_delta_representable(delta: dict[str, Any], auth: Any, cat: str) ->
     p_all = Counter(fd._ckey(o) for o in images["postimage"]["all"])
     if p_all - b_all:
         raise CertifyError(cat, "a new core OWN001 observation appeared in the postimage")
-    if Counter(fd._ckey(o) for o in removed) != (b_all - p_all):
+    removed_multiset = Counter(fd._ckey(o) for o in removed)
+    if removed_multiset != (b_all - p_all):
         raise CertifyError(cat, "removed_all_own001 != the baseline-minus-postimage multiset")
+    # the removed core OWN001 must be EXACTLY those authorized for conversion (R_C from the
+    # candidate bridge) — an unrelated OWN001 that also vanished is a DELTA_BINDING refusal.
+    r_c = _authorized_removed(convert, manual, candidates, images["baseline"]["all"], cat)
+    if removed_multiset != r_c:
+        raise CertifyError(cat, "removed_all_own001 != the bridge-authorized R_C")
     b50 = Counter(fd._ckey(o) for o in images["baseline"]["own050"])
     p50 = Counter(fd._ckey(o) for o in images["postimage"]["own050"])
     if p50 - b50:
@@ -707,21 +767,20 @@ def _bind_reference(work: str, ref_dirs: list[str], delta: dict[str, Any],
     return slot_dirs, evidence
 
 
-# --- original-authority revalidation (deepened in the enforcement commit) -----------
+# --- original-authority revalidation ------------------------------------------------
 
 
-def revalidate_certification_inputs(
+def _revalidate_originals(
     plan_path: str, candidates_path: str, gate_path: str, delta_path: str, target_path: str,
     bundle_phys: str, rel: str, ref_dirs: list[str], plan_bytes: bytes, candidates_bytes: bytes,
     gate_bytes: bytes, delta_bytes: bytes, target_bytes: bytes, manifest_data: bytes,
-    patch_bytes: bytes, postimage_bytes: bytes, work: str, slot_dirs: list[str],
-    slot_evidence: list[dict[str, Any]]) -> None:
-    """Before publication, re-check that every authoritative input still equals what was bound —
-    the plain input files, the ORIGINAL bundle (exact layout + manifest / patch / postimage bytes),
-    the ORIGINAL --ref-dir closures re-derived from the caller directories, and the materialized
-    reference slots. Validation of the materialized copies is never treated as proof the caller
-    inputs stayed unchanged: the originals are re-scanned in their own right. Any post-binding drift
-    (including a change in an originally-empty ref-dir) is ISOLATION."""
+    patch_bytes: bytes, postimage_bytes: bytes, slot_evidence: list[dict[str, Any]],
+    scratch: str) -> None:
+    """Re-check every ORIGINAL authoritative input equals what was bound: the five input files, the
+    original bundle (exact layout + manifest / patch / postimage bytes), and the original --ref-dir
+    closure re-derived from the caller directories (into `scratch`, a fresh dir) against the initial
+    snapshot. Any post-binding drift (including a change in an originally-empty ref-dir) is
+    ISOLATION. This is the originals-only boundary; the materialized copies are never proof."""
     for path, original, label in ((plan_path, plan_bytes, "--plan"),
                                   (candidates_path, candidates_bytes, "--candidates"),
                                   (gate_path, gate_bytes, "--gate"),
@@ -730,7 +789,6 @@ def revalidate_certification_inputs(
         if _snap(path, ISOLATION, label) != original:
             raise CertifyError(ISOLATION, f"{label} changed during certification")
 
-    # the ORIGINAL bundle: exact entry set + postimage subtree + the three artifacts' bytes.
     _require_bundle_layout(bundle_phys, rel, ISOLATION)
     if _snap(os.path.join(bundle_phys, "apply-manifest.json"), ISOLATION,
              "apply-manifest.json") != manifest_data:
@@ -741,16 +799,26 @@ def revalidate_certification_inputs(
              "postimage") != postimage_bytes:
         raise CertifyError(ISOLATION, "the original postimage changed after binding")
 
-    # the ORIGINAL --ref-dirs: re-derive the whole closure and require the initial snapshot exactly.
     try:
-        _reval_dirs, reval_evidence = fd.snapshot_reference_closure(
-            os.path.join(work, "reval"), ref_dirs)
+        _reval_dirs, reval_evidence = fd.snapshot_reference_closure(scratch, ref_dirs)
     except fd.DeltaError as exc:
         raise CertifyError(ISOLATION, str(exc)) from exc
     if reval_evidence != slot_evidence:
         raise CertifyError(ISOLATION, "an original --ref-dir closure changed after binding")
 
-    # the MATERIALIZED reference slots.
+
+def revalidate_certification_inputs(
+    plan_path: str, candidates_path: str, gate_path: str, delta_path: str, target_path: str,
+    bundle_phys: str, rel: str, ref_dirs: list[str], plan_bytes: bytes, candidates_bytes: bytes,
+    gate_bytes: bytes, delta_bytes: bytes, target_bytes: bytes, manifest_data: bytes,
+    patch_bytes: bytes, postimage_bytes: bytes, work: str, slot_dirs: list[str],
+    slot_evidence: list[dict[str, Any]]) -> None:
+    """The full pre-publication revalidation: the originals-only boundary plus the MATERIALIZED
+    reference slots (re-hashed from the execution root). Any post-binding drift is ISOLATION."""
+    _revalidate_originals(plan_path, candidates_path, gate_path, delta_path, target_path,
+                          bundle_phys, rel, ref_dirs, plan_bytes, candidates_bytes, gate_bytes,
+                          delta_bytes, target_bytes, manifest_data, patch_bytes, postimage_bytes,
+                          slot_evidence, os.path.join(work, "reval"))
     for i, ev in enumerate(slot_evidence):
         dll = os.path.join(slot_dirs[i], ev["relative_path"].rsplit("/", 1)[-1])
         if _sha_bytes(_snap(dll, ISOLATION, "reference slot")) != ev["sha256"]:
@@ -805,11 +873,14 @@ def _claim_workdir_strict(parent_phys: str) -> str:
     raise CertifyError(PUBLICATION, "could not claim a work directory")
 
 
-def publish_certification(out: str, protected: list[str], evidence_bytes: bytes) -> str:
+def publish_certification(out: str, protected: list[str], evidence_bytes: bytes,
+                          pre_rename: Callable[[], None] | None = None) -> str:
     """Stage EXACTLY certification-result.json in a claimed private work directory off the output
-    parent and publish it with ONE atomic rename. OUTPUT_DIR is absent on refusal; an existing
-    OUTPUT_DIR is PUBLICATION; any staging / cleanup OSError is PUBLICATION. No filesystem operation
-    runs after a successful rename."""
+    parent and publish it with ONE atomic rename. `pre_rename`, if given, is the final
+    originals-only revalidation and runs immediately before the rename (after the staging guard), so
+    a privileged mutation of an authoritative input between the first revalidation and publication
+    is still caught. OUTPUT_DIR is absent on refusal; an existing OUTPUT_DIR is PUBLICATION; any
+    staging / cleanup OSError is PUBLICATION. No filesystem op runs after a successful rename."""
     try:
         out_phys, parent_phys, _root = _out_parent(out, out)
     except GateError as exc:
@@ -828,6 +899,8 @@ def publish_certification(out: str, protected: list[str], evidence_bytes: bytes)
                 raise CertifyError(PUBLICATION,
                                    "the out-dir destination changed before publication")
             _require_single(workdir)
+            if pre_rename is not None:  # the final originals-only boundary, just before the rename
+                pre_rename()
             os.rename(workdir, out_phys)
         except CertifyError:
             raise
@@ -949,7 +1022,7 @@ def run_certify(plan_path: str, candidates_path: str, bundle: str, gate_path: st
         pre_sha256, binfo["post_sha256"])
 
     # [5] delta (DELTA_BINDING).
-    delta = _bind_delta(delta_bytes, auth, plan_bytes, candidates_bytes, hashes,
+    delta = _bind_delta(delta_bytes, auth, plan_bytes, candidates_bytes, candidates, hashes,
                         hashes["gate_result_sha256"], rel, class_fqn)
     hashes["delta_result_sha256"] = _sha_bytes(delta_bytes)
 
@@ -980,12 +1053,27 @@ def run_certify(plan_path: str, candidates_path: str, bundle: str, gate_path: st
                                        slot_evidence, converted)
         evidence_bytes = _canonical_bytes(evidence)
         publish_protected = [binfo["bundle_phys"], work, *input_parents, *ref_dirs]
+
+        def _pre_rename() -> None:
+            # the SECOND originals-only boundary, run inside publish immediately before the atomic
+            # rename. The execution root is already gone, so the closure is re-derived into a fresh
+            # throwaway scratch (outside every protected root) that is strictly removed afterwards.
+            scratch = tempfile.mkdtemp(prefix="owen-certify-reval-")
+            try:
+                _revalidate_originals(
+                    plan_path, candidates_path, gate_path, delta_path, target_path,
+                    binfo["bundle_phys"], rel, ref_dirs, plan_bytes, candidates_bytes, gate_bytes,
+                    delta_bytes, target_bytes, binfo["manifest_data"], binfo["patch_bytes"],
+                    binfo["postimage_bytes"], slot_evidence, os.path.join(scratch, "reval"))
+            finally:
+                _rmtree_strict(scratch)
+
         try:
             ft._remove_root_strict(work)
         except ft.TargetError as exc:
             raise CertifyError(exc.category, str(exc)) from exc
         work_removed = True
-        return publish_certification(out, publish_protected, evidence_bytes)
+        return publish_certification(out, publish_protected, evidence_bytes, _pre_rename)
     except BaseException:
         if not work_removed:
             try:
