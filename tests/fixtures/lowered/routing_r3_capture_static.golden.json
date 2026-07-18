@@ -132,8 +132,9 @@
       ]
     }
   ],
-  "handles": {
-    "cap_0": {
+  "handles": [
+    {
+      "handle": "cap_0",
       "component": "Win",
       "file": "Win.cs",
       "line": 5,
@@ -142,5 +143,5 @@
       "resource": "capture",
       "source": "static"
     }
-  }
+  ]
 }

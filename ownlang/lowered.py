@@ -34,16 +34,29 @@ Normalization decisions (frozen; changing any is a parity-contract change):
   unconditionally part of the lowered Module); **lifetime declarations** appear
   exactly when the bridge emitted them (some capture was minted) — an empty
   `lifetimes` array is the observable "no capture" state.
-* **The handle map** is normalized, not a copy of the facts document: each
-  handle serializes only the identity-relevant keys, in a fixed order, and
-  only when present on the record: `component`, `file`, `line`, `event`,
-  `handler`, `resource`, `released`, `source`, `source_type`,
-  `di_source_life`, `type`, `ever_released`, `pool`. Handles appear in mint
-  order.
+* **Handles are an ordered ARRAY in mint order** (never a JSON object — key
+  order is not a sound carrier of semantic order for a byte-exact
+  cross-language contract). Each entry puts `handle` first, then only the
+  identity/routing-relevant keys, in a fixed order and only when present on
+  the record: `component`, `file`, `line`, `event`, `handler`, `resource`,
+  `released`, `source`, `source_type`, `di_source_life`, `type`,
+  `ever_released`, `pool`. The boundary is deliberate: Layer 2 carries the
+  lowered Module plus identity/routing metadata; **verdict-presentation
+  metadata is Layer 3 and excluded** — notably `lambda` (message note) and
+  `ignore_reason` (suppression), which never influence what is lowered.
 * **Fail-loud lowerings** (`OwnIRError` from vocabulary skew) project as
   `{"error": "<message>"}` so the rejection text is part of the surface.
+* **Closed at the top level too**: shapes the bridge never produces fail loud
+  rather than vanish — non-empty `Acquire.args`, module `policies`, an extern
+  with a return type, a prelude resource carrying emission templates.
 * Rendering is `json.dumps(indent=2, ensure_ascii=False)` + a trailing
   newline; regeneration is deterministic for identical input.
+
+Fixture sharing: `tests/fixtures/lowered/manifest.json` is the frozen case
+ledger. The Rust `own-bridge` replays every `rust_replay: true` case
+byte-for-byte; a `rust_replay: false` case is a **Python-only behavior
+snapshot** pinning an open decision (e.g. OD-2/#294's tolerant-door unknown-
+kind fallback) and takes no side on how that decision resolves.
 """
 
 from __future__ import annotations
@@ -107,6 +120,11 @@ def _stmt(s: Stmt) -> dict[str, Any]:
                 f"unprojectable Let rhs {type(s.rhs).__name__} — the bridge "
                 f"lowers only `Let(Acquire)`; a new shape must extend the "
                 f"Layer 2 contract")
+        if s.rhs.args:
+            raise ValueError(
+                "unprojectable Acquire args — the OwnIR lowering has always "
+                "emitted argument-free acquires; extend and version the "
+                "Layer 2 contract before serializing them")
         return {"stmt": "acquire", "handle": s.name,
                 "resource": s.rhs.resource, "line": s.line}
     if isinstance(s, Release):
@@ -153,6 +171,12 @@ def _function(fn: FnDecl) -> dict[str, Any]:
 
 
 def _resource(r: ResourceDecl) -> dict[str, Any]:
+    if (r.emit_type is not None or r.emit_acquire is not None
+            or r.emit_release is not None or r.emit_borrow is not None):
+        raise ValueError(
+            f"unprojectable resource '{r.name}' — emission templates are a "
+            f"codegen concern the bridge prelude never carries; extend the "
+            f"Layer 2 contract before serializing them")
     return {
         "name": r.name,
         "kind": r.kind,
@@ -161,6 +185,11 @@ def _resource(r: ResourceDecl) -> dict[str, Any]:
 
 
 def _extern(e: ExternDecl) -> dict[str, Any]:
+    if e.ret is not None:
+        raise ValueError(
+            f"unprojectable extern '{e.name}' return type — the bridge's sink "
+            f"externs are void; extend the Layer 2 contract before "
+            f"serializing one")
     return {
         "name": e.name,
         "params": [{"effect": p.effect.name.lower(), "type": p.type_name}
@@ -172,8 +201,10 @@ def _lifetime(lt: LifetimeDecl) -> dict[str, Any]:
     return {"name": lt.name, "longer": lt.longer}
 
 
-def _handle(rec: dict[str, Any]) -> dict[str, Any]:
-    return {k: rec[k] for k in _HANDLE_KEYS if k in rec}
+def _handle(name: str, rec: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {"handle": name}
+    out.update({k: rec[k] for k in _HANDLE_KEYS if k in rec})
+    return out
 
 
 def project_lowered(facts: dict[str, Any]) -> dict[str, Any]:
@@ -186,6 +217,10 @@ def project_lowered(facts: dict[str, Any]) -> dict[str, Any]:
     except OwnIRError as e:
         return {"lowered_version": LOWERED_VERSION, "error": str(e)}
     assert isinstance(mod, Module)
+    if mod.policies:
+        raise ValueError(
+            "unprojectable module policies — the bridge never emits policy "
+            "declarations; extend the Layer 2 contract before serializing them")
     return {
         "lowered_version": LOWERED_VERSION,
         "module": mod.name,
@@ -193,7 +228,7 @@ def project_lowered(facts: dict[str, Any]) -> dict[str, Any]:
         "externs": [_extern(e) for e in mod.externs],
         "lifetimes": [_lifetime(lt) for lt in mod.lifetimes],
         "functions": [_function(fn) for fn in mod.functions],
-        "handles": {h: _handle(rec) for h, rec in handles.items()},
+        "handles": [_handle(h, rec) for h, rec in handles.items()],
     }
 
 

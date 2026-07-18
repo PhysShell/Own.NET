@@ -105,8 +105,9 @@
       ]
     }
   ],
-  "handles": {
-    "sub_0": {
+  "handles": [
+    {
+      "handle": "sub_0",
       "component": "C",
       "file": "C.cs",
       "line": 3,
@@ -114,5 +115,5 @@
       "handler": "H",
       "resource": "mutex"
     }
-  }
+  ]
 }

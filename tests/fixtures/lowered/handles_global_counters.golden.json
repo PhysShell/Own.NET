@@ -168,8 +168,9 @@
       ]
     }
   ],
-  "handles": {
-    "cap_0": {
+  "handles": [
+    {
+      "handle": "cap_0",
       "component": "A",
       "file": "A.cs",
       "line": 3,
@@ -178,7 +179,8 @@
       "resource": "capture",
       "source": "static"
     },
-    "sub_1": {
+    {
+      "handle": "sub_1",
       "component": "A",
       "file": "A.cs",
       "line": 4,
@@ -187,7 +189,8 @@
       "resource": "subscription",
       "source": "injected"
     },
-    "sub_2": {
+    {
+      "handle": "sub_2",
       "component": "B",
       "file": "B.cs",
       "line": 3,
@@ -196,7 +199,8 @@
       "resource": "subscription",
       "source": "injected"
     },
-    "cap_3": {
+    {
+      "handle": "cap_3",
       "component": "B",
       "file": "B.cs",
       "line": 4,
@@ -205,5 +209,5 @@
       "resource": "capture",
       "source": "static"
     }
-  }
+  ]
 }

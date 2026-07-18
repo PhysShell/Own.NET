@@ -110,8 +110,9 @@
       ]
     }
   ],
-  "handles": {
-    "loc_0": {
+  "handles": [
+    {
+      "handle": "loc_0",
       "component": "M",
       "file": "F.cs",
       "line": 12,
@@ -120,5 +121,5 @@
       "ever_released": true,
       "pool": false
     }
-  }
+  ]
 }

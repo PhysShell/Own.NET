@@ -47,9 +47,14 @@
           "line": 13
         },
         {
+          "op": "use",
+          "var": "c1",
+          "line": 14
+        },
+        {
           "op": "acquire",
           "var": "c2",
-          "line": 14
+          "line": 15
         },
         {
           "op": "call",
@@ -57,12 +62,12 @@
           "args": [
             "c2"
           ],
-          "line": 15
+          "line": 16
         },
         {
           "op": "release",
           "var": "c2",
-          "line": 16
+          "line": 17
         }
       ]
     }

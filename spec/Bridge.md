@@ -349,10 +349,14 @@ committed regeneration path and a zero-Python steady state:
   **Built** (#259 foundation slice): `ownlang/lowered.py` is the Python
   emitter (its docstring freezes the normalization decisions;
   `LOWERED_VERSION` keys the surface), `tests/fixtures/lowered/
-  <case>.facts.json` + `<case>.golden.json` are the committed pairs, and
-  `tests/test_lowered_fixtures.py` is the verify/`--write` harness (stale,
-  missing, and orphaned goldens are each a red build). Rust replays the same
-  files in #259's implementation half.
+  <case>.facts.json` + `<case>.golden.json` are the committed pairs under the
+  frozen `manifest.json` ledger, and `tests/test_lowered_fixtures.py` is the
+  verify/`--write` harness (manifest == facts == goldens exactly; stale,
+  missing, orphaned, pair-deleted, and unlisted fixtures are each a red
+  build). In #259's implementation half Rust replays every
+  `rust_replay: true` manifest case byte-for-byte; a `rust_replay: false`
+  case is a Python-only snapshot pinning an open decision (OD-2/#294) and
+  takes no side on it.
 - **Layer 3 — final normalized diagnostics.** The findings list (and its
   SARIF/github/msbuild renderings) per facts fixture, byte-exact — the outer
   contract. Existing seeds: the end-to-end expectations in `test_ownir.py`

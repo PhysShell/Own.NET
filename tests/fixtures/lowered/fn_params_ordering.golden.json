@@ -180,8 +180,9 @@
       ]
     }
   ],
-  "handles": {
-    "parg_0": {
+  "handles": [
+    {
+      "handle": "parg_0",
       "component": "Sink",
       "file": "F.cs",
       "line": 1,
@@ -189,7 +190,8 @@
       "resource": "flow-local",
       "ever_released": true
     },
-    "parg_1": {
+    {
+      "handle": "parg_1",
       "component": "Sink",
       "file": "F.cs",
       "line": 1,
@@ -197,7 +199,8 @@
       "resource": "flow-local",
       "ever_released": false
     },
-    "parg_2": {
+    {
+      "handle": "parg_2",
       "component": "Sink",
       "file": "F.cs",
       "line": 1,
@@ -205,7 +208,8 @@
       "resource": "flow-local",
       "ever_released": false
     },
-    "parg_3": {
+    {
+      "handle": "parg_3",
       "component": "Sink",
       "file": "F.cs",
       "line": 1,
@@ -213,7 +217,8 @@
       "resource": "flow-local",
       "ever_released": false
     },
-    "parg_4": {
+    {
+      "handle": "parg_4",
       "component": "Second",
       "file": "F.cs",
       "line": 5,
@@ -221,7 +226,8 @@
       "resource": "flow-local",
       "ever_released": false
     },
-    "loc_5": {
+    {
+      "handle": "loc_5",
       "component": "Second",
       "file": "F.cs",
       "line": 7,
@@ -230,5 +236,5 @@
       "ever_released": true,
       "pool": false
     }
-  }
+  ]
 }

@@ -1,0 +1,205 @@
+{
+  "comment": "The frozen Layer 2 case ledger (#259). Hand-maintained: adding or removing a case is a deliberate contract change, and the harness requires manifest == facts == goldens exactly, so a fixture pair cannot silently disappear. rust_replay: false marks a Python-only behavior snapshot pinning an open decision (see 'decision'); the Rust own-bridge replays every rust_replay: true case byte-for-byte.",
+  "lowered_version": 1,
+  "cases": [
+    {
+      "name": "alias_join_cases",
+      "rules": [
+        "BR-L6",
+        "INF-A3"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "flow_kill_on_rebind",
+      "rules": [
+        "BR-L6"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "flow_unmapped_refs",
+      "rules": [
+        "BR-L6"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "fn_params_ordering",
+      "rules": [
+        "BR-L2",
+        "BR-L5",
+        "INF-A1"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "handles_global_counters",
+      "rules": [
+        "BR-L2",
+        "BR-D4"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_neg_early_return",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_neg_nested_depth",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_neg_while_body",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_pool_kind",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_positive_release",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "hoist_positive_use_only",
+      "rules": [
+        "BR-L7"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "lines_preserved",
+      "rules": [
+        "BR-L11"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_call_channel_overload_sig",
+      "rules": [
+        "BR-L9a",
+        "INF-M1",
+        "OwnIR-5.1"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_call_direct_consume",
+      "rules": [
+        "BR-L9b",
+        "INF-A1"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_call_unknown_drop",
+      "rules": [
+        "BR-L9b"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_fresh_mint",
+      "rules": [
+        "BR-L9d",
+        "INF-A2",
+        "INF-A4"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_killsite_toplevel",
+      "rules": [
+        "BR-L8",
+        "INF-A5a"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "mos_untrack_inbranch",
+      "rules": [
+        "BR-L8",
+        "INF-A5b"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r1_unresolved",
+      "rules": [
+        "BR-L1/R1"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r2_subscribe_self",
+      "rules": [
+        "BR-L1/R2"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r3_capture_static",
+      "rules": [
+        "BR-L1/R3",
+        "BR-L4"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r4_returned_fresh",
+      "rules": [
+        "BR-L1/R4"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r5_di_capture",
+      "rules": [
+        "BR-L1/R5",
+        "BR-L4",
+        "BR-P1"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "routing_r6_token_kinds",
+      "rules": [
+        "BR-L1/R6"
+      ],
+      "rust_replay": true
+    },
+    {
+      "name": "tolerant_unknown_kind",
+      "rules": [
+        "BR-D2",
+        "OD-2"
+      ],
+      "rust_replay": false,
+      "decision": "#294"
+    },
+    {
+      "name": "vocab_unknown_op",
+      "rules": [
+        "BR-L10",
+        "IR4"
+      ],
+      "rust_replay": true
+    }
+  ]
+}

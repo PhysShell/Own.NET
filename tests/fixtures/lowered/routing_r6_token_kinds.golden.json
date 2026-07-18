@@ -146,8 +146,9 @@
       ]
     }
   ],
-  "handles": {
-    "sub_0": {
+  "handles": [
+    {
+      "handle": "sub_0",
       "component": "C",
       "file": "C.cs",
       "line": 3,
@@ -156,7 +157,8 @@
       "resource": "subscription",
       "source": "injected"
     },
-    "sub_1": {
+    {
+      "handle": "sub_1",
       "component": "C",
       "file": "C.cs",
       "line": 4,
@@ -166,7 +168,8 @@
       "released": true,
       "source": "injected"
     },
-    "sub_2": {
+    {
+      "handle": "sub_2",
       "component": "C",
       "file": "C.cs",
       "line": 5,
@@ -174,7 +177,8 @@
       "handler": "OnT",
       "resource": "timer"
     },
-    "sub_3": {
+    {
+      "handle": "sub_3",
       "component": "C",
       "file": "C.cs",
       "line": 6,
@@ -183,7 +187,8 @@
       "resource": "disposable",
       "type": "SqlConnection"
     },
-    "sub_4": {
+    {
+      "handle": "sub_4",
       "component": "C",
       "file": "C.cs",
       "line": 7,
@@ -191,7 +196,8 @@
       "handler": "",
       "resource": "local-disposable"
     },
-    "sub_5": {
+    {
+      "handle": "sub_5",
       "component": "C",
       "file": "C.cs",
       "line": 8,
@@ -199,7 +205,8 @@
       "handler": "",
       "resource": "pool"
     },
-    "sub_6": {
+    {
+      "handle": "sub_6",
       "component": "C",
       "file": "C.cs",
       "line": 9,
@@ -208,5 +215,5 @@
       "resource": "subscribe",
       "source": "injected"
     }
-  }
+  ]
 }

@@ -130,8 +130,9 @@
       ]
     }
   ],
-  "handles": {
-    "loc_0": {
+  "handles": [
+    {
+      "handle": "loc_0",
       "component": "Wrap",
       "file": "F.cs",
       "line": 2,
@@ -140,7 +141,8 @@
       "ever_released": false,
       "pool": false
     },
-    "loc_1": {
+    {
+      "handle": "loc_1",
       "component": "Wrap",
       "file": "F.cs",
       "line": 3,
@@ -149,7 +151,8 @@
       "ever_released": true,
       "pool": false
     },
-    "loc_2": {
+    {
+      "handle": "loc_2",
       "component": "NoClaim",
       "file": "F.cs",
       "line": 7,
@@ -158,5 +161,5 @@
       "ever_released": true,
       "pool": false
     }
-  }
+  ]
 }

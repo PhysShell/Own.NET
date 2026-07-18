@@ -150,8 +150,9 @@
       ]
     }
   ],
-  "handles": {
-    "parg_0": {
+  "handles": [
+    {
+      "handle": "parg_0",
       "component": "MayTake",
       "file": "F.cs",
       "line": 1,
@@ -159,7 +160,8 @@
       "resource": "flow-local",
       "ever_released": true
     },
-    "loc_1": {
+    {
+      "handle": "loc_1",
       "component": "M",
       "file": "F.cs",
       "line": 12,
@@ -168,5 +170,5 @@
       "ever_released": true,
       "pool": false
     }
-  }
+  ]
 }
