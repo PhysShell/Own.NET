@@ -36,7 +36,15 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.fix_certify import _CHECK_NAMES, _CLAIMS
+# The contract's expected published values, stated LITERALLY (never imported from the module under
+# test), so a simultaneous production + test drift cannot self-confirm an amnesia.
+_EXPECT_CLAIMS = ["evidence_chain_hash_bound_and_canonical",
+                  "representable_internal_invariants_revalidated",
+                  "upstream_pass_results_bound_not_reexecuted",
+                  "preimage_digest_cross_artifact_bound_bytes_not_supplied"]
+_EXPECT_CHECKS = {"input_layout", "authority_binding", "bundle_binding", "gate_binding",
+                  "delta_binding", "target_binding", "reference_binding", "preimage_binding",
+                  "chain_consistency", "canonical_serialization", "wrapper_identity", "publication"}
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _EXT = os.path.join(_REPO, "frontend", "roslyn", "OwnSharp.Extractor")
@@ -174,14 +182,20 @@ def _candidates(dotnet: str, dll: str, root: str, work: str) -> str:
 
 
 def _plan(cands: str, work: str, convert: bool) -> str:
-    from ownlang.fix_plan import validate_plan
+    """Produce the validated plan through the PUBLIC `own-fix subscriptions validate-plan` CLI over
+    a model fix-plan JSON — never by importing validate_plan (this is a full-public-CLI test)."""
     with open(cands, encoding="utf-8") as fh:
         c = json.load(fh)
     action = "convert_acquire" if convert else "manual_review"
-    decisions = [{"finding_id": x["finding_id"], "action": action} for x in c["candidates"]]
+    model = {"version": 1, "decisions": [{"finding_id": x["finding_id"], "action": action}
+                                         for x in c["candidates"]]}
+    model_path = os.path.join(work, "fix-plan.json")
+    with open(model_path, "w", encoding="utf-8") as fh:
+        json.dump(model, fh)
     plan = os.path.join(work, "plan.json")
-    with open(plan, "w", encoding="utf-8") as fh:
-        json.dump(validate_plan(c, {"version": 1, "decisions": decisions}), fh)
+    p = _py(["own-fix", "subscriptions", "validate-plan", cands, model_path, "--output", plan])
+    if p.returncode != 0:
+        raise Fail(f"validate-plan: {p.stderr[-300:]}")
     return plan
 
 
@@ -261,8 +275,10 @@ def _chain(dotnet: str, ext: str, probe: str, work: str, c: dict) -> dict:
 
 def _no_absolute_paths(raw: bytes, check, name: str) -> None:
     text = raw.decode("utf-8")
-    leaked = bool(re.search(r"[A-Za-z]:\\", text)) or any(
-        s in text for s in ("/tmp/", "/home/", "/var/", "/root/", "\\\\"))
+    # a Windows drive (either slash), a UNC prefix, or any common POSIX absolute root.
+    leaked = bool(re.search(r"[A-Za-z]:[\\/]", text)) or "\\\\" in text or any(
+        s in text for s in ("/tmp/", "/home/", "/Users/", "/var/", "/root/", "/opt/", "/mnt/",
+                            "/private/"))
     check(not leaked, f"{name}: evidence publishes no absolute path")
 
 
@@ -275,9 +291,9 @@ def _schema_ok(path: str, chain_kind: str, check, name: str) -> dict:
     check(obj.get("schema") == 1 and obj.get("operation") == "certify-subscription-fix-chain"
           and obj.get("status") == "evidence_complete", f"{name}: schema/operation/status")
     check(obj.get("chain_kind") == chain_kind, f"{name}: chain_kind {chain_kind}")
-    check(set(obj["checks"]) == set(_CHECK_NAMES) and len(_CHECK_NAMES) == 12,
+    check(set(obj["checks"]) == _EXPECT_CHECKS and len(obj["checks"]) == 12,
           f"{name}: exactly the twelve checks")
-    check(obj["certification"]["claims"] == list(_CLAIMS), f"{name}: exact claims array")
+    check(obj["certification"]["claims"] == _EXPECT_CLAIMS, f"{name}: exact claims array")
     check("steps_8_11_gates_satisfied" not in raw.decode("utf-8"),
           f"{name}: no steps_8_11_gates_satisfied in the published evidence")
     check(set(obj["artifact_hashes"]) == {
@@ -294,6 +310,15 @@ def _schema_ok(path: str, chain_kind: str, check, name: str) -> dict:
 
 def _git(args: list[str]) -> str:
     return _run(["git", *args], cwd=_REPO).stdout.strip()
+
+
+def _git_config_sha() -> str:
+    path = os.path.join(_REPO, ".git", "config")
+    try:
+        with open(path, "rb") as fh:
+            return _sha(fh.read())
+    except OSError:
+        return "absent"
 
 
 def run() -> int:
@@ -321,12 +346,15 @@ def run() -> int:
         with tempfile.TemporaryDirectory() as work:
             head_before = _git(["rev-parse", "HEAD"])
             status_before = _git(["status", "--porcelain"])
+            config_before = _git_config_sha()
             for c in _CASES:
                 _run_case(dotnet, ext, probe, work, c, check)
             check(_git(["rev-parse", "HEAD"]) == head_before,
                   "no branch / HEAD movement across certification")
             check(_git(["status", "--porcelain"]) == status_before,
                   "no source / index / worktree mutation across certification")
+            check(_git_config_sha() == config_before,
+                  "no .git/config mutation across certification")
     except Fail as exc:
         fails.append(f"Tier B setup: {exc}")
 
