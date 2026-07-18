@@ -33,6 +33,16 @@ from ownlang.fix_gate import (
 )
 from ownlang.fix_target import _attempt_verdict
 
+# The contract's expected published values, stated LITERALLY in the test (never imported from the
+# module under test, so a simultaneous drift of production + test cannot self-confirm an amnesia).
+_EXPECT_CLAIMS = ["evidence_chain_hash_bound_and_canonical",
+                  "representable_internal_invariants_revalidated",
+                  "upstream_pass_results_bound_not_reexecuted",
+                  "preimage_digest_cross_artifact_bound_bytes_not_supplied"]
+_EXPECT_CHECKS = {"input_layout", "authority_binding", "bundle_binding", "gate_binding",
+                  "delta_binding", "target_binding", "reference_binding", "preimage_binding",
+                  "chain_consistency", "canonical_serialization", "wrapper_identity", "publication"}
+
 _REL = "Own/Sample.cs"
 _FQN = "N.A"
 _SUB = "WeakEvents.AddPropertyChanged"
@@ -133,11 +143,14 @@ def _write(path: str, data: bytes) -> None:
 
 
 class Chain:
-    """A mutable, internally-consistent six-artifact evidence chain. Fields are Python objects;
-    ``materialize`` serializes them to a fresh directory tree and returns the certify arguments."""
+    """A mutable, internally-consistent six-artifact evidence chain. The PRIMITIVES (candidate/plan
+    bytes, patch, postimage, ref slots) are set in __init__; ``_seal`` recomputes every downstream
+    hash, the gate, the delta and the target from those primitives, so a test can tamper a primitive
+    and re-seal to get a still-hash-consistent chain. ``materialize`` serializes to a fresh tree."""
 
-    def __init__(self, kind: str) -> None:
+    def __init__(self, kind: str, empty_refs: int = 0) -> None:
         self.kind = kind
+        self.empty_refs = empty_refs
         if kind == "converted":
             cs = [_cand("OWN001:sha256:" + "a" * 64, 40, "OnX", "inotify_property_changed",
                         ["convert_acquire", "manual_review"])]
@@ -159,26 +172,26 @@ class Chain:
         self.auth = validate_gate_authority(self.plan, self.cands)
         self.rel = self.auth.rel
         self.converted = bool(self.auth.applied)
+        self.pre = _PRE
+        self.pre_sha = _sha_bytes(self.pre)
+        self.postimage = _POST if self.converted else _PRE
+        self.patch = canonical_patch(self.rel, self.pre, self.postimage)
+        self.ref_slots = [("WeakEvents.dll", _WRAP_DLL)] if self.converted else []
+        self._seal()
 
-        pre = _PRE
-        post = _POST if self.converted else _PRE
-        self.postimage = post
-        self.patch = canonical_patch(self.rel, pre, post)
-        man = build_manifest(self.plan, _sha_bytes(self.plan_bytes), self.rel,
-                             _sha_bytes(pre), post, self.patch)
-        self.manifest_data = manifest_bytes(man)
-
-        cb = self.auth.input_bundle_sha256
+    def _seal(self) -> None:
+        """Recompute the manifest, the seven hashes, the gate, the delta and the target from the
+        current primitive bytes — so a mutation of a primitive stays internally hash-consistent."""
+        cb = _bundle_sha256(self.cands)
         pb = _sha_bytes(self.plan_bytes)
-        cs_sha = _sha_bytes(self.cands_bytes)
-        mb = _sha_bytes(self.manifest_data)
-        pa = _sha_bytes(self.patch)
-        pre_sha = _sha_bytes(pre)
-        po = _sha_bytes(post)
-        self.pre_sha = pre_sha
+        man = build_manifest(self.plan, pb, self.rel, self.pre_sha, self.postimage, self.patch)
+        self.manifest_data = manifest_bytes(man)
+        po = _sha_bytes(self.postimage)
         self._h = {"input_bundle_sha256": cb, "validated_plan_sha256": pb,
-                   "candidates_sha256": cs_sha, "apply_manifest_sha256": mb, "patch_sha256": pa,
-                   "pre_sha256": pre_sha, "post_sha256": po}
+                   "candidates_sha256": _sha_bytes(self.cands_bytes),
+                   "apply_manifest_sha256": _sha_bytes(self.manifest_data),
+                   "patch_sha256": _sha_bytes(self.patch), "pre_sha256": self.pre_sha,
+                   "post_sha256": po}
 
         git = "pass" if self.converted else "not_applicable"
         gates = dict.fromkeys(_STEP9_GATE_NAMES, "pass")
@@ -186,9 +199,9 @@ class Chain:
             gates[g] = git
         gate = {"version": 1, "operation": "gate-subscription-fix-bundle",
                 "input_bundle_sha256": cb, "validated_plan_sha256": pb,
-                "apply_manifest_sha256": mb, "patch_sha256": pa,
-                "target_api": {"subscribe": _SUB},
-                "source_files": [{"path": self.rel, "pre_sha256": pre_sha, "post_sha256": po}],
+                "apply_manifest_sha256": self._h["apply_manifest_sha256"],
+                "patch_sha256": self._h["patch_sha256"], "target_api": {"subscribe": _SUB},
+                "source_files": [{"path": self.rel, "pre_sha256": self.pre_sha, "post_sha256": po}],
                 "applied_findings": list(self.auth.applied),
                 "manual_review_findings": list(self.auth.manual), "gates": gates}
         self.gate_bytes = _canonical_bytes(gate)
@@ -200,8 +213,7 @@ class Chain:
         base_obs = [_obs(handler_of[c["finding_id"]]) for c in self.cands["candidates"]]
         post_obs = [_obs(handler_of[fid]) for fid in manual_ids]
         removed_obs = [_obs(handler_of[fid]) for fid in convert_ids]
-        ref_count = 1 if self.converted else 0
-        self.ref_slots = ([("WeakEvents.dll", _WRAP_DLL)] if self.converted else [])
+        ref_count = len(self.ref_slots) + self.empty_refs
         ref_closure = [{"ordinal": i, "source_dir_ordinal": i,
                         "relative_path": name, "sha256": _sha_bytes(data)}
                        for i, (name, data) in enumerate(self.ref_slots)]
@@ -250,7 +262,6 @@ class Chain:
                          "step10_operation": "verify-subscription-analyzer-delta",
                          "step10_status": "pass", "bound": True}
         if self.converted:
-            attempts = [_attempt(i) for i in range(3)]
             self.target = {
                 "schema": 1, "operation": "verify-target-wrapper", "status": "pass",
                 "input_hashes": dict(self._h), "delta_binding": delta_binding,
@@ -266,7 +277,7 @@ class Chain:
                     "resolved_signature": _WRAP_SIG},
                 "probe_toolchain_fingerprint": {
                     "probe_deployment_manifest_sha256": _mfp(_PROBE_FILES),
-                    "probe_runner_sha256": "sha256:" + "9" * 64, "probe_files": _PROBE_FILES,
+                    "probe_runner_sha256": _PROBE_FILES[0]["sha256"], "probe_files": _PROBE_FILES,
                     "dotnet_host_sha256": "sha256:" + "8" * 64, "dotnet_version": "8.0.100"},
                 "probe_runtime_identity": {
                     "framework_name": "Microsoft.NETCore.App", "tfm": "net8.0",
@@ -277,7 +288,7 @@ class Chain:
                                    "child_timeout_seconds": 30, "stdout_limit_bytes": 65536,
                                    "stderr_limit_bytes": 65536, "probe_result_limit_bytes": 65536,
                                    "delivered_count_required": 1},
-                "attempts": attempts,
+                "attempts": [_attempt(i) for i in range(3)],
                 "checks": dict.fromkeys((
                     "input_layout", "authority_binding", "delta_binding", "reference_binding",
                     "probe_toolchain_binding", "wrapper_binding", "harness_controls",
@@ -319,6 +330,10 @@ class Chain:
             rd = os.path.join(indir, f"ref-{i}")
             _write(os.path.join(rd, name), data)
             ref_dirs.append(rd)
+        for j in range(self.empty_refs):
+            rd = os.path.join(indir, f"ref-empty-{j}")
+            os.makedirs(rd, exist_ok=True)
+            ref_dirs.append(rd)
         out = os.path.join(root, "out", "cert")
         os.makedirs(os.path.join(root, "out"), exist_ok=True)
         return {"bundle": bundle, "out": out, "ref_dirs": ref_dirs, **paths}
@@ -334,6 +349,8 @@ def _raises(cat: str, a: dict) -> bool:
         _run(a)
     except fc.CertifyError as exc:
         return exc.category == cat
+    except Exception:
+        return False  # any uncaught exception is a wrong outcome (e.g. a leaked UnicodeEncodeError)
     return False
 
 
@@ -357,6 +374,7 @@ def run() -> int:
     _basic_refusals(check)
     _publication(check)
     _deep_representable(check)
+    _defect_regressions(check)
     _isolation(check)
 
     total = ok + bad
@@ -387,11 +405,11 @@ def _core_pass(check) -> None:
             check(res["preimage_binding"] == {
                 "mode": "cross_artifact_only", "bytes_supplied": False,
                 "pre_sha256": Chain(kind).pre_sha}, f"{kind}: preimage_binding block")
-            check(res["certification"]["claims"] == list(fc._CLAIMS),
+            check(res["certification"]["claims"] == _EXPECT_CLAIMS,
                   f"{kind}: exact claims array")
             check("steps_8_11_gates_satisfied" not in json.dumps(res),
                   f"{kind}: no steps_8_11_gates_satisfied anywhere")
-            check(set(res["checks"]) == set(fc._CHECK_NAMES) and len(fc._CHECK_NAMES) == 12,
+            check(set(res["checks"]) == _EXPECT_CHECKS and len(res["checks"]) == 12,
                   f"{kind}: exactly the twelve checks")
             raw = open(os.path.join(a["out"], "certification-result.json"), "rb").read()
             canon = _canonical_bytes(res)
@@ -430,39 +448,13 @@ def _byte_forms(check) -> None:
 
 
 def _reencode(cands_bytes: bytes, plan_bytes: bytes, kind: str) -> Chain:
-    """A Chain whose whole downstream chain binds the given (re-encoded) candidate/plan bytes."""
+    """A Chain whose whole downstream chain binds the given (re-encoded) candidate/plan bytes. The
+    candidates canonical-object digest is unchanged (semantic), but the file-byte digests change, so
+    re-sealing rebuilds every downstream hash from the actual bytes."""
     c = Chain(kind)
     c.cands_bytes = cands_bytes
     c.plan_bytes = plan_bytes
-    # candidates canonical-object digest is unchanged (semantic), but the file-byte digests change.
-    cs_sha = _sha_bytes(cands_bytes)
-    pb = _sha_bytes(plan_bytes)
-    man = build_manifest(c.plan, pb, c.rel, c.pre_sha, c.postimage, c.patch)
-    c.manifest_data = manifest_bytes(man)
-    mb = _sha_bytes(c.manifest_data)
-    c._h["validated_plan_sha256"] = pb
-    c._h["candidates_sha256"] = cs_sha
-    c._h["apply_manifest_sha256"] = mb
-    git = "pass" if c.converted else "not_applicable"
-    gates = dict.fromkeys(_STEP9_GATE_NAMES, "pass")
-    for g in _STEP9_GIT_GATES:
-        gates[g] = git
-    gate = {"version": 1, "operation": "gate-subscription-fix-bundle",
-            "input_bundle_sha256": c._h["input_bundle_sha256"], "validated_plan_sha256": pb,
-            "apply_manifest_sha256": mb, "patch_sha256": c._h["patch_sha256"],
-            "target_api": {"subscribe": _SUB},
-            "source_files": [{"path": c.rel, "pre_sha256": c.pre_sha,
-                              "post_sha256": c._h["post_sha256"]}],
-            "applied_findings": list(c.auth.applied),
-            "manual_review_findings": list(c.auth.manual), "gates": gates}
-    c.gate_bytes = _canonical_bytes(gate)
-    gb = _sha_bytes(c.gate_bytes)
-    c.delta["input_hashes"] = dict(c._h)
-    c.delta["gate_binding"]["gate_result_sha256"] = gb
-    c.delta_bytes = _canonical_bytes(c.delta)
-    db = _sha_bytes(c.delta_bytes)
-    c.target["input_hashes"] = dict(c._h)
-    c.target["delta_binding"]["delta_result_sha256"] = db
+    c._seal()
     return c
 
 
@@ -709,10 +701,11 @@ def _deep_representable(check) -> None:
          bad_wrapper_sha)
 
 
-def _bound(tmp: str):
-    """Materialize a converted chain and bind it up to the reference closure, returning the exact
-    argument vector fc.revalidate_certification_inputs is called with in the orchestration."""
-    c = Chain("converted")
+def _bound(tmp: str, c: Chain | None = None):
+    """Materialize a (converted, by default) chain and bind it up to the reference closure,
+    returning the exact argument vector fc.revalidate_certification_inputs is called with."""
+    if c is None:
+        c = Chain("converted")
     a = c.materialize(tmp)
     pb, cb = _read(a["plan"]), _read(a["candidates"])
     gb, dbb, tbb = _read(a["gate"]), _read(a["delta"]), _read(a["target"])
@@ -731,6 +724,8 @@ def _raises_call(cat: str, fn, *a) -> bool:
         fn(*a)
     except fc.CertifyError as exc:
         return exc.category == cat
+    except Exception:
+        return False
     return False
 
 
@@ -791,6 +786,141 @@ def _isolation(check) -> None:
             fh.write(b"X")
         check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
               "materialized slot drift -> ISOLATION")
+
+    # a DLL added to an ORIGINALLY-EMPTY --ref-dir after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp, Chain("converted", empty_refs=1))
+        empty = next(d for d in a["ref_dirs"] if "ref-empty" in d)
+        with open(os.path.join(empty, "Sneaky.dll"), "wb") as fh:
+            fh.write(b"MZ")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "DLL added to an originally-empty ref-dir -> ISOLATION")
+
+
+def _mut_primitive(check, kind: str, label: str, expect: str, mut) -> None:
+    """Mutate a PRIMITIVE (patch / postimage) then re-seal, so the tampered chain stays internally
+    hash-consistent and only the intended representable invariant is violated."""
+    with tempfile.TemporaryDirectory() as tmp:
+        c = Chain(kind)
+        mut(c)
+        c._seal()
+        a = c.materialize(tmp)
+        check(_raises(expect, a), label)
+
+
+def _surrogate_case(check, which: str, expect: str) -> None:
+    """Inject a lone surrogate into an existing string of one artifact, written ascii-escaped (valid
+    JSON bytes that parse back to a lone-surrogate str). The certifier must refuse in the artifact's
+    own binding category, never leak a UnicodeEncodeError out as INFRASTRUCTURE."""
+    with tempfile.TemporaryDirectory() as tmp:
+        c = Chain("converted")
+        a = c.materialize(tmp)
+        source = {"candidates": c.cands_bytes, "gate": c.gate_bytes,
+                  "delta": c.delta_bytes, "target": _canonical_bytes(c.target)}[which]
+        obj = json.loads(source)
+        obj["target_api"]["subscribe"] = obj["target_api"]["subscribe"] + "\ud800"
+        data = json.dumps(obj, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+        with open(a[which], "wb") as fh:
+            fh.write(data)
+        check(_raises(expect, a), f"lone surrogate in {which} -> {expect}")
+
+
+def _defect_regressions(check) -> None:
+    # --- delta.gate_binding is a closed schema (bound / step9_operation / step9_version) ---
+    def gb_set(key, value):
+        def _f(c: Chain) -> None:
+            c.delta["gate_binding"][key] = value
+        return _f
+    _mut(check, "converted", "gate_binding bound=false -> DELTA_BINDING", fc.DELTA_BINDING,
+         gb_set("bound", False))
+    _mut(check, "converted", "gate_binding wrong step9_operation -> DELTA_BINDING",
+         fc.DELTA_BINDING, gb_set("step9_operation", "x"))
+    _mut(check, "converted", "gate_binding step9_version=2 -> DELTA_BINDING", fc.DELTA_BINDING,
+         gb_set("step9_version", 2))
+    _mut(check, "converted", "gate_binding extra key -> DELTA_BINDING", fc.DELTA_BINDING,
+         gb_set("forged", True))
+
+    # --- target.delta_binding is a closed schema ---
+    def tdb_extra(c: Chain) -> None:
+        c.target["delta_binding"]["forged"] = True
+    _mut(check, "converted", "target.delta_binding extra key -> TARGET_BINDING", fc.TARGET_BINDING,
+         tdb_extra)
+
+    # --- Step 10 toolchain scalar types ---
+    def tfp_set(path, value):
+        def _f(c: Chain) -> None:
+            node = c.delta["toolchain_fingerprint"]
+            for k in path[:-1]:
+                node = node[k]
+            node[path[-1]] = value
+        return _f
+    _mut(check, "converted", "core_runner_sha256=null -> DELTA_BINDING", fc.DELTA_BINDING,
+         tfp_set(["core_analyzer", "core_runner_sha256"], None))
+    _mut(check, "converted", "python_version=[] -> DELTA_BINDING", fc.DELTA_BINDING,
+         tfp_set(["core_analyzer", "python_version"], []))
+    _mut(check, "converted", "dotnet_version=int -> DELTA_BINDING", fc.DELTA_BINDING,
+         tfp_set(["dotnet_version"], 1))
+    _mut(check, "converted", "dotnet_host_sha256 malformed -> DELTA_BINDING", fc.DELTA_BINDING,
+         tfp_set(["dotnet_host_sha256"], "nothex"))
+
+    # --- canonical-rel path in the self-manifests (recompute the digest so ONLY rel is wrong) ---
+    def ext_rel(c: Chain) -> None:
+        files = [{"path": "../evil.dll", "sha256": "sha256:" + "1" * 64}]
+        c.delta["toolchain_fingerprint"]["extractor_files"] = files
+        c.delta["toolchain_fingerprint"]["extractor_deployment_manifest_sha256"] = _mfp(files)
+    _mut(check, "converted", "extractor_files non-canonical path -> DELTA_BINDING",
+         fc.DELTA_BINDING, ext_rel)
+
+    def probe_rel(c: Chain) -> None:
+        files = [{"path": "../evil.dll", "sha256": "sha256:" + "4" * 64}]
+        ptf = c.target["probe_toolchain_fingerprint"]
+        ptf["probe_files"] = files
+        ptf["probe_deployment_manifest_sha256"] = _mfp(files)
+        ptf["probe_runner_sha256"] = files[0]["sha256"]
+    _mut(check, "converted", "probe_files non-canonical path -> TARGET_BINDING", fc.TARGET_BINDING,
+         probe_rel)
+
+    # --- probe_runner_sha256 must be a probe deployment file digest ---
+    def probe_runner_foreign(c: Chain) -> None:
+        c.target["probe_toolchain_fingerprint"]["probe_runner_sha256"] = "sha256:" + "e" * 64
+    _mut(check, "converted", "probe_runner not in probe_files -> TARGET_BINDING", fc.TARGET_BINDING,
+         probe_runner_foreign)
+
+    # --- Step 11 runtime identity must equal the Step 10 runtime identity ---
+    def rt_sha(c: Chain) -> None:
+        c.target["probe_runtime_identity"]["selected_runtime_manifest_sha256"] = \
+            "sha256:" + "e" * 64
+    _mut(check, "converted", "probe runtime manifest != Step 10 -> TARGET_BINDING",
+         fc.TARGET_BINDING, rt_sha)
+
+    def rt_fw(c: Chain) -> None:
+        c.target["probe_runtime_identity"]["framework_name"] = "Other.App"
+    _mut(check, "converted", "probe runtime framework != Step 10 -> TARGET_BINDING",
+         fc.TARGET_BINDING, rt_fw)
+
+    # --- selected_wrapper.ordinal must be an exact int (the False == 0 trap) ---
+    def bool_ordinal(c: Chain) -> None:
+        c.target["selected_wrapper"]["ordinal"] = False
+    _mut(check, "converted", "selected_wrapper.ordinal=false -> TARGET_BINDING", fc.TARGET_BINDING,
+         bool_ordinal)
+
+    # --- a manual-only chain must be a real no-op bundle ---
+    def manual_nonempty_patch(c: Chain) -> None:
+        c.patch = b"diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n"
+    _mut_primitive(check, "manual", "manual-only nonempty patch -> BUNDLE_BINDING",
+                   fc.BUNDLE_BINDING, manual_nonempty_patch)
+
+    def manual_post_ne_pre(c: Chain) -> None:
+        c.postimage = _PRE + b"// drift\n"
+        c.patch = b""
+    _mut_primitive(check, "manual", "manual-only post != pre -> BUNDLE_BINDING", fc.BUNDLE_BINDING,
+                   manual_post_ne_pre)
+
+    # --- a lone surrogate is refused in the artifact's own source-specific category ---
+    _surrogate_case(check, "candidates", fc.AUTHORITY_BINDING)
+    _surrogate_case(check, "gate", fc.GATE_BINDING)
+    _surrogate_case(check, "delta", fc.DELTA_BINDING)
+    _surrogate_case(check, "target", fc.TARGET_BINDING)
 
 
 if __name__ == "__main__":
