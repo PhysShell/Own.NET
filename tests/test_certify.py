@@ -21,6 +21,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang import fix_certify as fc
+from ownlang import fix_delta as fd
 from ownlang.fix_bundle import build_manifest, canonical_patch, manifest_bytes
 from ownlang.fix_delta import _STEP9_GATE_NAMES, _STEP9_GIT_GATES, _sorted_multiset
 from ownlang.fix_gate import (
@@ -598,13 +599,198 @@ def _publication(check) -> None:
         check(not os.path.exists(a["out"]), "refusal leaves OUTPUT_DIR absent")
 
 
-# Deep representable + isolation groups are populated in the next commit.
+def _read(path: str) -> bytes:
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def _sync_delta(c: Chain) -> None:
+    """Keep the target bound to the (possibly mutated) delta so a delta mutation surfaces as a
+    delta-representable refusal, not an incidental target hash mismatch."""
+    c.target["delta_binding"]["delta_result_sha256"] = _sha_bytes(_canonical_bytes(c.delta))
+
+
+def _mut(check, kind: str, label: str, expect: str, mut) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        c = Chain(kind)
+        mut(c)
+        _sync_delta(c)
+        a = c.materialize(tmp)
+        check(_raises(expect, a), label)
+
+
 def _deep_representable(check) -> None:
-    return
+    # OBS001.advisory: a genuine boolean certifies; a string or null is DELTA_BINDING.
+    with tempfile.TemporaryDirectory() as tmp:
+        c = Chain("converted")
+        c.delta["baseline"]["all_own001"][0]["advisory"] = False
+        _sync_delta(c)
+        a = c.materialize(tmp)
+        try:
+            _run(a)
+            check(True, "advisory false certifies")
+        except fc.CertifyError as exc:
+            check(False, f"advisory false: {exc.category}")
+
+    def set_adv(v):
+        def _f(c: Chain) -> None:
+            c.delta["baseline"]["all_own001"][0]["advisory"] = v
+        return _f
+    _mut(check, "converted", 'advisory "false" (string) -> DELTA_BINDING', fc.DELTA_BINDING,
+         set_adv("false"))
+    _mut(check, "converted", "advisory null -> DELTA_BINDING", fc.DELTA_BINDING, set_adv(None))
+
+    # a violated Step 10 subscription equation -> DELTA_BINDING.
+    def break_eq(c: Chain) -> None:
+        c.delta["delta"]["removed_subscription_own001_ids"] = []
+    _mut(check, "converted", "removed-subscription equation violated -> DELTA_BINDING",
+         fc.DELTA_BINDING, break_eq)
+
+    # a core-multiset equation: a new postimage OWN001 that was never in the baseline.
+    def new_core(c: Chain) -> None:
+        c.delta["postimage"]["all_own001"] = _sorted_multiset([_obs("Ghost")])
+    _mut(check, "converted", "new postimage OWN001 -> DELTA_BINDING", fc.DELTA_BINDING, new_core)
+
+    # deterministic observation ordering: baseline.all_own001 not in canonical order.
+    def unsorted(c: Chain) -> None:
+        c.delta["baseline"]["all_own001"] = list(reversed(c.delta["baseline"]["all_own001"]))
+    _mut(check, "mixed", "unsorted baseline observations -> DELTA_BINDING", fc.DELTA_BINDING,
+         unsorted)
+
+    # the self-describing toolchain-manifest digests (O4).
+    def bad_ext(c: Chain) -> None:
+        c.delta["toolchain_fingerprint"]["extractor_deployment_manifest_sha256"] = \
+            "sha256:" + "0" * 64
+    _mut(check, "converted", "extractor manifest digest mismatch -> DELTA_BINDING",
+         fc.DELTA_BINDING, bad_ext)
+
+    def bad_ownlang(c: Chain) -> None:
+        c.delta["toolchain_fingerprint"]["core_analyzer"]["ownlang_manifest_sha256"] = \
+            "sha256:" + "0" * 64
+    _mut(check, "converted", "ownlang manifest digest mismatch -> DELTA_BINDING",
+         fc.DELTA_BINDING, bad_ownlang)
+
+    def bad_probe(c: Chain) -> None:
+        c.target["probe_toolchain_fingerprint"]["probe_deployment_manifest_sha256"] = \
+            "sha256:" + "0" * 64
+    _mut(check, "converted", "probe manifest digest mismatch -> TARGET_BINDING",
+         fc.TARGET_BINDING, bad_probe)
+
+    # converted-target controls + the recomputed attempt verdict.
+    def deliver_two(c: Chain) -> None:
+        c.target["attempts"][0]["delivered_count"] = 2  # verdict field left stale at "pass"
+    _mut(check, "converted", "attempt delivered_count 2 (rehashed) -> TARGET_BINDING",
+         fc.TARGET_BINDING, deliver_two)
+
+    def broken_control(c: Chain) -> None:
+        c.target["attempts"][1]["strong_retained"] = False
+    _mut(check, "converted", "broken strong control -> TARGET_BINDING", fc.TARGET_BINDING,
+         broken_control)
+
+    def verdict_mismatch(c: Chain) -> None:
+        c.target["attempts"][2]["verdict"] = "TARGET_RETAINS"  # fields still say pass
+    _mut(check, "converted", "published verdict != recomputed -> TARGET_BINDING",
+         fc.TARGET_BINDING, verdict_mismatch)
+
+    # converted callsite / selected-wrapper invariants.
+    def bad_callsites(c: Chain) -> None:
+        c.target["callsite_binding"]["all_callsites_same_symbol"] = False
+    _mut(check, "converted", "all_callsites_same_symbol false -> TARGET_BINDING",
+         fc.TARGET_BINDING, bad_callsites)
+
+    def bad_ordinal(c: Chain) -> None:
+        c.target["callsite_binding"]["derived_wrapper_ordinal"] = 1
+    _mut(check, "converted", "derived != asserted ordinal -> TARGET_BINDING", fc.TARGET_BINDING,
+         bad_ordinal)
+
+    def bad_wrapper_sha(c: Chain) -> None:
+        c.target["selected_wrapper"]["sha256"] = "sha256:" + "e" * 64
+    _mut(check, "converted", "selected wrapper sha != slot -> TARGET_BINDING", fc.TARGET_BINDING,
+         bad_wrapper_sha)
+
+
+def _bound(tmp: str):
+    """Materialize a converted chain and bind it up to the reference closure, returning the exact
+    argument vector fc.revalidate_certification_inputs is called with in the orchestration."""
+    c = Chain("converted")
+    a = c.materialize(tmp)
+    pb, cb = _read(a["plan"]), _read(a["candidates"])
+    gb, dbb, tbb = _read(a["gate"]), _read(a["delta"]), _read(a["target"])
+    binfo = fc.bind_certification_bundle(a["bundle"], c.rel, c.plan, pb, c.pre_sha)
+    work = os.path.join(tmp, "revwork")
+    os.makedirs(work)
+    slot_dirs, slot_ev = fd.snapshot_reference_closure(work, a["ref_dirs"])
+    args = (a["plan"], a["candidates"], a["gate"], a["delta"], a["target"], binfo["bundle_phys"],
+            c.rel, a["ref_dirs"], pb, cb, gb, dbb, tbb, binfo["manifest_data"],
+            binfo["patch_bytes"], binfo["postimage_bytes"], work, slot_dirs, slot_ev)
+    return c, a, args, binfo
+
+
+def _raises_call(cat: str, fn, *a) -> bool:
+    try:
+        fn(*a)
+    except fc.CertifyError as exc:
+        return exc.category == cat
+    return False
 
 
 def _isolation(check) -> None:
-    return
+    # the no-drift baseline passes.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, _a, args, _b = _bound(tmp)
+        try:
+            fc.revalidate_certification_inputs(*args)
+            check(True, "revalidate: no drift passes")
+        except fc.CertifyError as exc:
+            check(False, f"revalidate: false drift ({exc.category})")
+
+    # a plain input file changing after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp)
+        with open(a["delta"], "ab") as fh:
+            fh.write(b" ")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "input byte drift after binding -> ISOLATION")
+
+    # the ORIGINAL bundle manifest changing after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp)
+        with open(os.path.join(a["bundle"], "apply-manifest.json"), "ab") as fh:
+            fh.write(b" ")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "original manifest drift -> ISOLATION")
+
+    # a decoy file added to the original bundle after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp)
+        with open(os.path.join(a["bundle"], "decoy.txt"), "wb") as fh:
+            fh.write(b"x")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "original bundle decoy file -> ISOLATION")
+
+    # an original --ref-dir DLL changing after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp)
+        with open(os.path.join(a["ref_dirs"][0], "WeakEvents.dll"), "ab") as fh:
+            fh.write(b"X")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "original ref-dir DLL drift -> ISOLATION")
+
+    # a DLL removed from an original --ref-dir after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, a, args, _b = _bound(tmp)
+        os.remove(os.path.join(a["ref_dirs"][0], "WeakEvents.dll"))
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "original ref-dir DLL removed -> ISOLATION")
+
+    # a materialized reference slot changing after binding is ISOLATION.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, _a, args, _b = _bound(tmp)
+        slot_dirs = args[17]
+        with open(os.path.join(slot_dirs[0], "WeakEvents.dll"), "ab") as fh:
+            fh.write(b"X")
+        check(_raises_call(fc.ISOLATION, fc.revalidate_certification_inputs, *args),
+              "materialized slot drift -> ISOLATION")
 
 
 if __name__ == "__main__":
