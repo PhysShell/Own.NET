@@ -16,6 +16,8 @@ stop aspirational docs from lying about the code.
 | [CodegenContract.md](CodegenContract.md) | the checker↔codegen contract C1–C4, lowering modes |
 | [OwnIR.md](OwnIR.md) | the frontend↔core fact seam (JSON): envelope, versioning + evolution policy, resource-kind + flow-op vocabulary, DI graph, rules IR1–IR6 |
 | [Inference.md](Inference.md) | the interprocedural ownership-inference layer: the MOS artifact, transfer lattice, derivation (S/R/M-rules), the solver (F-rules), call-site application (A-rules), optimistic default + advisories (OWN051/052), rules INF-* |
+| [Bridge.md](Bridge.md) | the OwnIR bridge's verdict-determining behavior beyond the schema: the two validation doors, fact lowering (routing, handles, hoisting, kill sites), MOS orchestration, analysis input preparation, verdict mapping (map-or-raise, message matrix, anchors, dedup/order), the 3-layer parity-fixture plan, rules BR-* — the P-022 `own-bridge` migration contract (#258) |
+| [BridgeBehaviorMatrix.md](BridgeBehaviorMatrix.md) | the completeness ledger for Bridge.md: every `test_ownir.py` family mapped to the BR/IR/INF rule it pins, its Python source location, and its Rust parity-fixture requirement |
 | [ownir.schema.json](ownir.schema.json) | the machine-readable OwnIR schema (JSON Schema 2020-12) — the single source the Python core and the Rust `own-ir` crate are checked against; its enums are pinned to the code's authoritative sets by `tests/test_ownir.py` |
 | [CLI.md](CLI.md) | the `check` / `emit` / `cfg` / `report` commands |
 
