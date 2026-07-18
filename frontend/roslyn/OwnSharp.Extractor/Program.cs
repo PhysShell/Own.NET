@@ -923,24 +923,35 @@ static HashSet<IMethodSymbol> TeardownContextMethods(
         if (h is not (IdentifierNameSyntax or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
             continue;
         var info = model.GetSymbolInfo(h);
-        var bound = false;
-        if (info.Symbol is IMethodSymbol hm) { Add(hm); bound = true; }
+        if (info.Symbol is IMethodSymbol hm)
+        {
+            Add(hm); // symbol-resolved: the event delegate picked its exact target
+        }
         else
-            foreach (var cand in info.CandidateSymbols.OfType<IMethodSymbol>()) { Add(cand); bound = true; }
-        if (!bound)
         {
             // The lifecycle EVENT is unresolved (`Closing +=` on a base the runner
             // cannot reference, e.g. WPF `Window` on Linux), so the method group
-            // binds no symbol. Fall back to the group's NAME over the class's own
-            // methods: a method group carries no argument list, so the name selects
-            // the same overload SET the group itself denotes — this is not the
-            // invocation-style overload conflation the closure below rules out.
+            // binds no definite symbol. The runtime delegate still attaches exactly
+            // ONE overload — chosen by the event's delegate signature, which is
+            // precisely what is missing here — so the group's NAME may ground a
+            // teardown ONLY when it is unambiguous: exactly one method with that
+            // name in the immediate class. Zero or 2+ same-named methods credit
+            // NOTHING — a `-=` in the wrong, never-attached overload must keep the
+            // honest warning (the unresolved twin of the invocation-overload
+            // conflation the closure below rules out).
             var hn = h is IdentifierNameSyntax hid
                 ? hid.Identifier.Text
                 : ((MemberAccessExpressionSyntax)h).Name.Identifier.Text;
+            IMethodSymbol? only = null;
+            var unique = true;
             foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
-                if (md.Identifier.Text == hn)
-                    Add(model.GetDeclaredSymbol(md));
+                if (md.Identifier.Text == hn && model.GetDeclaredSymbol(md) is { } nds)
+                {
+                    if (only is not null) { unique = false; break; }
+                    only = nds;
+                }
+            if (unique && only is not null)
+                Add(only);
         }
     }
 

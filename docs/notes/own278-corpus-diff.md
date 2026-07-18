@@ -162,3 +162,33 @@ Unchanged by the follow-up: the reduction still flags GTD, PGC and KDT
 (OWN001) and keeps the Dispose-releasing sibling silent. The real
 `STS_new/SectorTS` run and the OwnAudit STS baseline (GTD = `runtime-only`)
 remain the two pre-merge gates, executed locally.
+
+---
+
+# Follow-up 2: the unresolved-overload fallback made unambiguous
+
+One residual hole from the follow-up: when `Closing += Window_Closing` binds no
+definite symbol (unresolved lifecycle event), the name fallback added EVERY
+same-named own method to the teardown set. A method group syntactically denotes
+its overload set, but the runtime delegate attaches exactly ONE member —
+selected by the event's delegate signature, which is precisely what is missing
+without the reference — so a `-=` in the wrong, never-attached overload could
+still silently clear OWN001.
+
+Fix: the fallback credits the name ONLY when it is unambiguous — exactly one
+`IMethodSymbol` with that name in the immediate class; zero or 2+ matches
+credit nothing and keep the warning. The former `CandidateSymbols` crediting is
+gone with it (candidates of a failed method-group binding are the same
+ambiguous overload set by another name). The symbol-resolved path is unchanged
+— a RESOLVED event credits the delegate's exact target even among overloads.
+
+Pinned red→green by `corpus/wpf/subscription-ambiguous-overload-wiring`
+(before: two `Window_Closing` overloads, `-=` in the never-attached one →
+OWN001, silent under the previous head; after: a single `Window_Closing`
+holding the `-=` → silent). Verified: corpus benchmark **47/51 caught · 51/51
+fixes clean · 0 FPs** (all prior rows unchanged); samples byte-identical;
+golden unchanged; CFG/diag parity fixtures regenerated (additive) and the Rust
+side replays them clean (`cargo test`, incl. `full_parity_on_the_frozen_corpus`);
+full suite, ruff, mypy, fix-candidates and S2 gate checks green (the single
+gate failure is the known root-runner read-only-chmod environmental one,
+reproduced on the frozen baseline).
