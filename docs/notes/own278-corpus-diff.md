@@ -1,5 +1,8 @@
 # #278 teardown-scoped release — before/after corpus + sweep evidence
 
+> **Follow-up slice appended below** ("Follow-up: four silent-exemption paths
+> removed") — it supersedes the first slice's numbers where they differ.
+
 The soundness fix (a matching `-=` credits release only in a recognised teardown
 context and never under a parameter guard) was measured against every surface
 available on the dev runner. Baseline = frozen `366bbf93` (the G50 acceptance
@@ -83,3 +86,79 @@ flagged OWN001; CleanDoc is silent. Re-running
 remains a local, pre-merge step — together with the two merge gates from the
 scope: the G50 Acceptance Run on frozen `366bbf93`, and the OwnAudit STS
 baseline that classifies GTD as `runtime-only`.
+
+---
+
+# Follow-up: four silent-exemption paths removed
+
+The review of the first slice found four remaining paths that credited a
+release without proving it runs. All four are closed; each is red→green pinned
+by a corpus case. Baseline for this section = the first slice's head
+(`fix(extractor): green — #278 ...`), so the deltas isolate the follow-up.
+
+| # | removed path | why it was unsound | corpus pin |
+|---|---|---|---|
+| 1 | finalizer as teardown | the publisher's delegate keeps the subscriber REACHABLE, so the finalizer never runs while the subscription is live | `subscription-finalizer-release` |
+| 2 | `*_Closed`/`*_Closing`/`*_Unloaded`/... name suffix | a name is not wiring — the XAML attach never reaches the extractor and a bare name may be stale dead code | `subscription-xaml-name-only-release` |
+| 3 | name-keyed intra-class closure | `Dispose() -> Cleanup()` credited every method NAMED `Cleanup`, including an uncalled `Cleanup(bool)` overload | `subscription-overload-conflated-cleanup` |
+| 4 | lexical inheritance for nested callables | a local function or lambda declared inside Dispose does not run because Dispose does | `subscription-uncalled-local-function` |
+
+The closure is now SYMBOL-based (`IMethodSymbol` + `SymbolEqualityComparer`):
+an invocation extends the teardown set only with the specific own method or
+local function it RESOLVES to; unresolved calls extend nothing. A lambda counts
+only as the handler provably wired to the class's own lifecycle event; a local
+function only when a teardown context provably calls it. One narrow name
+fallback remains, for method-GROUP handlers wired to an UNRESOLVED lifecycle
+event (`Closing += Window_Closing` under an unreferenced WPF `Window` base): a
+method group carries no argument list, so its name denotes the whole overload
+set — not the invocation-overload conflation of #3.
+
+## Corpus benchmark
+
+40/44 (pre-#278) → 42/46 (slice 1) → **46/50 caught · 50/50 fixes clean ·
+0 FPs**. All pre-existing rows unchanged; the four new rows are
+`before[caught: OWN001] after[clean]`. The previously name-carried control
+`screentogif-loaded-subscription/after.cs` now wires `Closing +=
+Window_Closing` in code (the honest, provable form of the same fix) and stays
+clean.
+
+## Samples / goldens / suite
+
+`frontend/roslyn/samples` own-check output: **byte-identical** to the first
+slice (no sample used any of the four removed paths).
+`fix_candidates_off.golden.json`: unchanged, byte-parity gate passes;
+`check_fix_candidates_facts.py`, weak-subscribe checks, full
+`tests/run_tests.py`, ruff and mypy all green.
+
+## 5-repo sweep (before = slice 1, after = follow-up)
+
+| target | before | after | delta |
+|---|---|---|---|
+| ScreenToGif (WindowsDesktop ref pack) | 65 | 74 | +9, classified below |
+| CsvHelper | 37 | 37 | identical |
+| Dapper | 6 | 6 | identical |
+| Newtonsoft.Json | 509 | 509 | identical |
+| RestSharp | 3 | 3 | identical |
+
+### Classification of the 9 new ScreenToGif findings
+
+All nine are ONE shape — the deliberate blocker-2 trade-off. Five windows
+(`Editor`, `Recorder`, `NewRecorder`, `Webcam`, `Other/Startup`) subscribe
+static `SystemEvents.*`/`SystemParameters.*` events and detach them in a
+`Window_Closing`/`Startup_Closing` handler that is wired **only in XAML**
+(`Closing="Window_Closing"`, e.g. `Editor.xaml:17`) — the attach never reaches
+the extractor, so the name-suffix rule was the only thing crediting these, and
+that rule is exactly the unsound path removed (verified: the `-=` sites are
+real, e.g. `Editor.xaml.cs:375-377`, `Startup.xaml.cs:66`). They surface as
+OWN014 (static-source region escape with no provable release path) — a kept
+honest warning, not silence, per the doctrine. These are the first candidates
+for a future XAML-aware slice that credits `Closing="..."` attaches with actual
+evidence; until then the corpus keeps the code-wired form as the good control
+and pins the name-only form as bad.
+
+## SectorTS acceptance re-check
+
+Unchanged by the follow-up: the reduction still flags GTD, PGC and KDT
+(OWN001) and keeps the Dispose-releasing sibling silent. The real
+`STS_new/SectorTS` run and the OwnAudit STS baseline (GTD = `runtime-only`)
+remain the two pre-merge gates, executed locally.

@@ -12,11 +12,13 @@
 // not guess: a handler-shaped RHS surfaces as an OWN050 "leakage analysis
 // skipped" note, never a leak. A subscription is "released" by a matching
 // `target -= handler` in a recognised TEARDOWN CONTEXT of the class (#278:
-// Dispose/DisposeAsync/OnClosed/Unloaded-style methods, a finalizer, a handler
-// wired to the class's own Closed/Unloaded-style lifecycle event, or a method
-// the teardown path calls intra-class) that is not guarded by a parameter of
-// its enclosing method — a `-=` in an arbitrary method, or behind a
-// caller-controlled flag, is not proven to run and keeps the honest warning.
+// Dispose/DisposeAsync/OnClosed/Unloaded-style methods, a handler wired in code
+// to the class's own Closed/Unloaded-style lifecycle event, or a method/local
+// function the teardown path provably calls intra-class, symbol-resolved) that
+// is not guarded by a parameter of its enclosing method — a `-=` in an
+// arbitrary method, a finalizer, an unwired lambda, an uncalled local function,
+// or behind a caller-controlled flag, is not proven to run and keeps the honest
+// warning.
 // A `Tick`/`Elapsed` handler is tagged resource=timer (WPF002) and is released
 // if the timer's receiver also has a `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
@@ -831,29 +833,33 @@ static bool IsTimerEvent(ExpressionSyntax left) =>
 // Teardown contexts (deliberately NO whole-program call graph — intra-class only):
 //   * a method the platform itself runs at end-of-life, by exact name:
 //     Dispose / DisposeAsync / OnClosed / OnClosing / OnUnloaded / OnFormClosed /
-//     OnFormClosing, or a finalizer;
+//     OnFormClosing;
 //   * a handler this class wires (`+=`, bare/`this.` receiver) to its own
 //     lifecycle event: Closed / Closing / Unloaded / FormClosed / FormClosing /
 //     Disposed — including an inline lambda handler on those events;
-//   * the XAML-wiring naming convention `*_Closed` / `*_Closing` / `*_Unloaded` /
-//     `*_FormClosed` / `*_FormClosing` / `*_Disposed` (a XAML `Closing="Window_
-//     Closing"` attach never reaches this extractor, but the generated handler
-//     name does — corpus: screentogif-loaded-subscription);
-//   * any method such a context calls DIRECTLY on `this` (`Cleanup()` from
-//     `Dispose()`), transitively within the class — the "method the type's own
-//     disposal path calls" rule, closed intra-class only.
+//   * any method or local function such a context PROVABLY calls (`Cleanup()`
+//     from `Dispose()`), transitively within the class — a SYMBOL-based
+//     fixpoint: only an invocation that RESOLVES to a specific own method
+//     extends the set, so a call to `Cleanup()` never credits an uncalled
+//     `Cleanup(bool)` overload.
+//
+// Explicit NON-contexts (follow-up to #278 — each was a silent-exemption hole):
+//   * a FINALIZER: for a subscription leak the subscriber stays REACHABLE
+//     through the publisher's delegate, so its finalizer never runs while the
+//     subscription is live — a `-=` there can never break the hold;
+//   * a `Window_Closing`-style NAME with no code wiring: the XAML attach never
+//     reaches this extractor, so the name alone proves nothing (it may be stale
+//     dead code) — a XAML-aware slice can restore it with evidence;
+//   * a local function or lambda merely DECLARED inside a teardown method:
+//     declaration is not execution — a local function counts only when the
+//     symbol-based closure proves a teardown calls it, a lambda only when it is
+//     the handler wired to a lifecycle event.
 
 // A method name the platform (or the IDisposable contract) itself invokes at the
-// end of the object's life, or the conventional XAML-wired lifecycle handler name.
+// end of the object's life.
 static bool IsTeardownMethodName(string name) =>
     name is "Dispose" or "DisposeAsync"
-         or "OnClosed" or "OnClosing" or "OnUnloaded" or "OnFormClosed" or "OnFormClosing"
-    || name.EndsWith("_Closed", StringComparison.Ordinal)
-    || name.EndsWith("_Closing", StringComparison.Ordinal)
-    || name.EndsWith("_Unloaded", StringComparison.Ordinal)
-    || name.EndsWith("_FormClosed", StringComparison.Ordinal)
-    || name.EndsWith("_FormClosing", StringComparison.Ordinal)
-    || name.EndsWith("_Disposed", StringComparison.Ordinal);
+         or "OnClosed" or "OnClosing" or "OnUnloaded" or "OnFormClosed" or "OnFormClosing";
 
 // An event MEMBER name that fires at the subscriber's own end-of-life, so a handler
 // attached to it is a teardown context.
@@ -876,97 +882,140 @@ static bool IsSelfLifecycleReceiver(ExpressionSyntax left) =>
     left is IdentifierNameSyntax
     || (left is MemberAccessExpressionSyntax ma && ma.Expression is ThisExpressionSyntax);
 
-// The set of THIS class's method names that are teardown contexts: the named/wired
-// roots above plus everything they call directly on `this`, to a fixpoint. Keyed by
-// simple name (overloads conflate — the same conservative-toward-keeping-the-pair
-// granularity as the text-keyed `unsub` set itself; a same-named helper is at worst
-// credited like its sibling, never silently dropped).
-static HashSet<string> TeardownContextMethods(ClassDeclarationSyntax cls)
+// The descendant nodes of one callable's OWN body — never descending into a
+// nested lambda or local function, whose bodies do not run just because the
+// enclosing method does (they get their own teardown decision).
+static IEnumerable<SyntaxNode> DirectBodyNodes(SyntaxNode body) =>
+    body.DescendantNodes(n =>
+        n is not AnonymousFunctionExpressionSyntax and not LocalFunctionStatementSyntax);
+
+// The set of THIS class's method (and local-function) SYMBOLS that are teardown
+// contexts: the named/wired roots plus everything a member of the set PROVABLY
+// calls, to a fixpoint. Symbol-based on purpose (#278 follow-up): the closure
+// extends only through an invocation that RESOLVES to a specific own method or
+// local function, so `Dispose() => Cleanup();` credits exactly `Cleanup()` —
+// never a same-named, uncalled `Cleanup(bool)` overload.
+static HashSet<IMethodSymbol> TeardownContextMethods(
+    ClassDeclarationSyntax cls, SemanticModel model, INamedTypeSymbol? clsSymbol)
 {
-    var own = new Dictionary<string, List<MethodDeclarationSyntax>>(StringComparer.Ordinal);
-    foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+    var teardown = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+    var work = new Queue<IMethodSymbol>();
+    void Add(IMethodSymbol? m)
     {
-        if (!own.TryGetValue(md.Identifier.Text, out var list))
-            own[md.Identifier.Text] = list = new List<MethodDeclarationSyntax>();
-        list.Add(md);
+        if (m is not null && teardown.Add(m))
+            work.Enqueue(m);
     }
 
-    var teardown = new HashSet<string>(StringComparer.Ordinal);
-    var work = new Queue<string>();
-    void Root(string name)
-    {
-        if (own.ContainsKey(name) && teardown.Add(name))
-            work.Enqueue(name);
-    }
-    foreach (var name in own.Keys)
-        if (IsTeardownMethodName(name))
-            Root(name);
-    // handlers this class wires to its OWN lifecycle events (`Closed += OnDone;`).
+    // roots: exact platform teardown names among the class's own methods.
+    foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+        if (IsTeardownMethodName(md.Identifier.Text))
+            Add(model.GetDeclaredSymbol(md));
+
+    // roots: method-group handlers this class wires to its OWN lifecycle events
+    // (`Closed += OnDone;` / `this.Closing += Window_Closing;`).
     foreach (var a in cls.DescendantNodes().OfType<AssignmentExpressionSyntax>())
-        if (a.IsKind(SyntaxKind.AddAssignmentExpression)
-            && EventMemberName(a.Left) is { } evName && IsTeardownEventName(evName)
-            && IsSelfLifecycleReceiver(a.Left))
+    {
+        if (!a.IsKind(SyntaxKind.AddAssignmentExpression)
+            || EventMemberName(a.Left) is not { } evName || !IsTeardownEventName(evName)
+            || !IsSelfLifecycleReceiver(a.Left))
+            continue;
+        var h = NormalizeHandler(a.Right);
+        if (h is not (IdentifierNameSyntax or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
+            continue;
+        var info = model.GetSymbolInfo(h);
+        var bound = false;
+        if (info.Symbol is IMethodSymbol hm) { Add(hm); bound = true; }
+        else
+            foreach (var cand in info.CandidateSymbols.OfType<IMethodSymbol>()) { Add(cand); bound = true; }
+        if (!bound)
         {
-            var h = NormalizeHandler(a.Right);
-            if (h is IdentifierNameSyntax hid)
-                Root(hid.Identifier.Text);
-            else if (h is MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } hma)
-                Root(hma.Name.Identifier.Text);
+            // The lifecycle EVENT is unresolved (`Closing +=` on a base the runner
+            // cannot reference, e.g. WPF `Window` on Linux), so the method group
+            // binds no symbol. Fall back to the group's NAME over the class's own
+            // methods: a method group carries no argument list, so the name selects
+            // the same overload SET the group itself denotes — this is not the
+            // invocation-style overload conflation the closure below rules out.
+            var hn = h is IdentifierNameSyntax hid
+                ? hid.Identifier.Text
+                : ((MemberAccessExpressionSyntax)h).Name.Identifier.Text;
+            foreach (var md in cls.Members.OfType<MethodDeclarationSyntax>())
+                if (md.Identifier.Text == hn)
+                    Add(model.GetDeclaredSymbol(md));
         }
-    // intra-class closure: a method a teardown context calls on `this` is itself a
-    // teardown context ("a method the type's own disposal path calls").
+    }
+
+    // intra-class closure: a method/local function a teardown context provably
+    // calls (bare or `this.`-qualified, RESOLVED to a symbol of this class) is
+    // itself a teardown context. Unresolved calls extend nothing — the worst
+    // case stays "keeps today's honest warning".
     while (work.Count > 0)
-        foreach (var md in own[work.Dequeue()])
+    {
+        var m = work.Dequeue();
+        foreach (var sref in m.DeclaringSyntaxReferences)
         {
-            SyntaxNode? body = (SyntaxNode?)md.Body ?? md.ExpressionBody;
+            if (sref.SyntaxTree != model.SyntaxTree)
+                continue; // a partial's other-file half: outside this model's scope
+            SyntaxNode? body = sref.GetSyntax() switch
+            {
+                BaseMethodDeclarationSyntax bmd => (SyntaxNode?)bmd.Body ?? bmd.ExpressionBody,
+                LocalFunctionStatementSyntax lf => (SyntaxNode?)lf.Body ?? lf.ExpressionBody,
+                _ => null,
+            };
             if (body is null)
                 continue;
-            foreach (var inv in body.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            foreach (var inv in DirectBodyNodes(body).OfType<InvocationExpressionSyntax>())
             {
-                var callee = inv.Expression switch
-                {
-                    IdentifierNameSyntax id => id.Identifier.Text,
-                    MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } ma => ma.Name.Identifier.Text,
-                    _ => null,
-                };
-                if (callee is not null)
-                    Root(callee);
+                if (inv.Expression is not (IdentifierNameSyntax
+                        or MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax }))
+                    continue;
+                if (model.GetSymbolInfo(inv).Symbol is not IMethodSymbol callee)
+                    continue;
+                if (callee.MethodKind == MethodKind.LocalFunction
+                    || (clsSymbol is not null
+                        && SymbolEqualityComparer.Default.Equals(callee.ContainingType, clsSymbol)))
+                    Add(callee);
             }
         }
+    }
     return teardown;
 }
 
-// Does this `-=` sit in a teardown context of `cls`? Walks the lexical ancestors:
-// a finalizer or a teardown-set method of THIS class => yes; a ctor, an accessor
-// (a rebinding setter is the #163 gap, not a proven teardown), or a non-teardown
-// method => no. An anonymous function resolves to the event it is attached to when
-// it IS a `+=` handler (only a lifecycle event counts); a plain inline lambda
-// (`ForEach(x => x.E -= H)` inside Dispose) falls through to its lexical context.
+// Does this `-=` sit in a PROVEN teardown context of `cls`? Walks the lexical
+// ancestors to the nearest callable and asks whether that callable provably runs
+// at teardown. A ctor, an accessor (a rebinding setter is the #163 gap, not a
+// proven teardown), a non-teardown method, a FINALIZER (never runs while the
+// publisher's delegate keeps the subscriber reachable), an unwired lambda, or an
+// uncalled local function => no.
 static bool InTeardownContext(AssignmentExpressionSyntax sub, ClassDeclarationSyntax cls,
-                              HashSet<string> teardownMethods)
+                              HashSet<IMethodSymbol> teardownMethods, SemanticModel model)
 {
     for (SyntaxNode? cur = sub.Parent; cur is not null; cur = cur.Parent)
     {
         switch (cur)
         {
             case AnonymousFunctionExpressionSyntax lam:
-                // `Closed += (s, e) => { ... -= ... }` — the lambda runs at teardown.
-                // Unwrap `new EventHandler(...)`-style wrappers by walking parents to
-                // the assignment whose (normalized) RHS is this very lambda.
-                if (lam.FirstAncestorOrSelf<AssignmentExpressionSyntax>() is { } attach
+                // teardown ONLY as the handler wired to a lifecycle event
+                // (`Closed += (s, e) => { ... -= ... }`, unwrapping `new
+                // EventHandler(...)` wrappers). Anything else — including a lambda
+                // merely declared inside Dispose — is a deferred delegate nothing
+                // here proves is invoked.
+                return lam.FirstAncestorOrSelf<AssignmentExpressionSyntax>() is { } attach
                     && attach.IsKind(SyntaxKind.AddAssignmentExpression)
-                    && ReferenceEquals(NormalizeHandler(attach.Right), lam))
-                    return EventMemberName(attach.Left) is { } evName
-                        && IsTeardownEventName(evName)
-                        && IsSelfLifecycleReceiver(attach.Left);
-                continue; // not a handler: inherit the lexical context
-            case LocalFunctionStatementSyntax:
-                continue; // part of its declaring method's body
+                    && ReferenceEquals(NormalizeHandler(attach.Right), lam)
+                    && EventMemberName(attach.Left) is { } evName
+                    && IsTeardownEventName(evName)
+                    && IsSelfLifecycleReceiver(attach.Left);
+            case LocalFunctionStatementSyntax lf:
+                // declaration is not execution: only a local function the
+                // symbol-based closure proved a teardown CALLS counts.
+                return model.GetDeclaredSymbol(lf) is { } lfs
+                    && teardownMethods.Contains(lfs);
             case DestructorDeclarationSyntax:
-                return true;
+                return false;
             case MethodDeclarationSyntax md:
                 return ReferenceEquals(md.Parent, cls)
-                    && teardownMethods.Contains(md.Identifier.Text);
+                    && model.GetDeclaredSymbol(md) is { } ms
+                    && teardownMethods.Contains(ms);
             case BaseMethodDeclarationSyntax: // ctor / operator: not a teardown
                 return false;
             case AccessorDeclarationSyntax:
@@ -5115,12 +5164,13 @@ foreach (var (file, tree) in parsed)
         // credits release now; everything else keeps the honest OWN001/OWN014.
         // (Self-detaching handlers, old->new rotation and timer `.Stop()` have
         // their own dedicated checks below, unchanged.)
-        var teardownMethods = TeardownContextMethods(cls);
+        var clsSymbol = model.GetDeclaredSymbol(cls);
+        var teardownMethods = TeardownContextMethods(cls, model, clsSymbol);
         var unsub = new HashSet<string>();
         foreach (var a in assigns)
             if (a.IsKind(SyntaxKind.SubtractAssignmentExpression)
                 && IsHandler(NormalizeHandler(a.Right))
-                && InTeardownContext(a, cls, teardownMethods)
+                && InTeardownContext(a, cls, teardownMethods, model)
                 && !IsParamGuardedRelease(a, model))
                 unsub.Add($"{a.Left}|{NormalizeHandler(a.Right)}");
 
@@ -5174,7 +5224,6 @@ foreach (var (file, tree) in parsed)
         //     lived publisher — so it is NOT exempted, else a real leak is suppressed.
         //   * template parts — `_part = GetTemplateChild("PART_x") as T`: a control
         //     owns the parts of its own template (collectable part<->control cycle).
-        var clsSymbol = model.GetDeclaredSymbol(cls);
         var selfOwned = new HashSet<string>(constructed);
         foreach (var arg in cls.DescendantNodes().OfType<ArgumentSyntax>())
             if ((arg.RefKindKeyword.IsKind(SyntaxKind.RefKeyword)
