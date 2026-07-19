@@ -486,6 +486,16 @@
       ]
     },
     {
+      "name": "corpus/wpf/unsubscribe-behind-a-flag/case.own",
+      "source": "// OwnLang model of SectorTS `BrokerDataClasses/GTD.cs` — a document that subscribes to a STATIC\n// publisher in its constructor (`:5192`) and whose `-=` lives behind a parameter, in a method that\n// is not a teardown (`UnregisterEventHandlers(bool UnregOnlyGoodys)`, `:5259`). Callers pass `true`;\n// one whole subsystem (DocCloud) never calls it at all.\n//\n// `acquire` == `AppSettings.Options.PropertyChanged += h`, `release` == the matching `-=`.\n// The flag is modelled as the branch that returns before the release — the path that skips cleanup —\n// so the core flags the un-released subscription as OWN001.\n//\n// NOTE what this reduction proves: **the core already gets this right.** Give it a release that is\n// not reached on every path and it says so. The bug is upstream, in the extractor's release-matching,\n// which emits `released: true` from the mere *existence* of a matching `-=` in the class\n// (`OwnSharp.Extractor/Program.cs:13`) and never asks whether it runs. See notes.md and #278.\nmodule Corpus\nresource Subscription {\n  acquire Subscribe\n  release Dispose\n  kind \"subscription token\"\n}\nfn Document(options: int, unregOnlyChildren: int) {\n  let sub = acquire Subscription(options);   // ctor: `+=` on the process-wide static publisher\n  if (unregOnlyChildren) {\n    return;                                   // caller passed `true` -> the static `-=` is skipped\n  }\n  release sub;                                // the `-=` only a caller passing `false` ever reaches\n}\n",
+      "diags": [
+        [
+          23,
+          "OWN001"
+        ]
+      ]
+    },
+    {
       "name": "corpus/wpf/viewmodel-escapes-to-app/case.own",
       "source": "module WpfRegionEscape\n\n// Lifetime regions: a Window-lived ViewModel must not outlive its window, and\n// the App-lived event bus outlives everything.\nlifetime App;\nlifetime Window < App;\nlifetime ViewModel < Window;\n\n// The ViewModel (ViewModel-lived) strongly subscribes itself to the App-lived\n// bus. Because App strictly outlives ViewModel, the subscription promotes the\n// VM to App lifetime -> it can never die while the app runs => OWN014. This is\n// the region-escape theorem: the *ordering* is what makes it a leak (subscribing\n// to a same/shorter-lived source would be fine).\nfn CustomerViewModel(bus: EventBus lifetime App) lifetime ViewModel {\n    subscribe self to bus;\n}\n",
       "diags": [
