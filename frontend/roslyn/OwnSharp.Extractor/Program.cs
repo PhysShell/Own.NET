@@ -20,7 +20,10 @@
 // or behind a caller-controlled flag, is not proven to run and keeps the honest
 // warning.
 // A `Tick`/`Elapsed` handler is tagged resource=timer (WPF002) and is released
-// if the timer's receiver also has a `.Stop()` call. The IDisposable/pool/local detectors remain syntactic for now
+// only by a `.Stop()` on the timer's receiver that is PROVEN to run at teardown
+// (the same teardown/guard doctrine as the `-=` above — an arbitrary-method,
+// finalizer, unwired-handler or parameter-guarded Stop() credits nothing).
+// The IDisposable/pool/local detectors remain syntactic for now
 // (P-014 rollout: the event fact goes type-aware first).
 //
 // Usage: ownsharp-extract [extract] <file.cs | dir | *.csproj | *.sln> [more ...] [-o|--out facts.json]
@@ -997,10 +1000,14 @@ static HashSet<IMethodSymbol> TeardownContextMethods(
 // proven teardown), a non-teardown method, a FINALIZER (never runs while the
 // publisher's delegate keeps the subscriber reachable), an unwired lambda, or an
 // uncalled local function => no.
-static bool InTeardownContext(AssignmentExpressionSyntax sub, ClassDeclarationSyntax cls,
+// The release SITE is any node whose execution-at-teardown must be proven — a
+// `-=` unsubscribe assignment or a timer `.Stop()` invocation. One predicate,
+// one context model: the two release kinds must never disagree about what a
+// teardown is.
+static bool InTeardownContext(SyntaxNode site, ClassDeclarationSyntax cls,
                               HashSet<IMethodSymbol> teardownMethods, SemanticModel model)
 {
-    for (SyntaxNode? cur = sub.Parent; cur is not null; cur = cur.Parent)
+    for (SyntaxNode? cur = site.Parent; cur is not null; cur = cur.Parent)
     {
         switch (cur)
         {
@@ -1047,9 +1054,9 @@ static bool InTeardownContext(AssignmentExpressionSyntax sub, ClassDeclarationSy
 // `if (disposing) { ... }` runs on every `Dispose()` call, so a POSITIVE use of
 // that single bool parameter does not demote; `if (!disposing)` (the finalizer
 // branch) still does.
-static bool IsParamGuardedRelease(AssignmentExpressionSyntax sub, SemanticModel model)
+static bool IsParamGuardedRelease(SyntaxNode site, SemanticModel model)
 {
-    for (SyntaxNode? cur = sub.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
+    for (SyntaxNode? cur = site.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
     {
         ExpressionSyntax? cond = cur switch
         {
@@ -5173,8 +5180,9 @@ foreach (var (file, tree) in parsed)
         // pairing SectorTS GTD's ctor `+=` with a flag-skipped `-=` and silently
         // swallowed a heap-proven leak. Only a teardown-context, unguarded `-=`
         // credits release now; everything else keeps the honest OWN001/OWN014.
-        // (Self-detaching handlers, old->new rotation and timer `.Stop()` have
-        // their own dedicated checks below, unchanged.)
+        // (Self-detaching handlers and old->new rotation have their own
+        // dedicated checks below; a timer `.Stop()` shares THIS teardown/guard
+        // model — see the `stopped` collection just below.)
         var clsSymbol = model.GetDeclaredSymbol(cls);
         var teardownMethods = TeardownContextMethods(cls, model, clsSymbol);
         var unsub = new HashSet<string>();
@@ -5185,12 +5193,19 @@ foreach (var (file, tree) in parsed)
                 && !IsParamGuardedRelease(a, model))
                 unsub.Add($"{a.Left}|{NormalizeHandler(a.Right)}");
 
-        // every receiver with a `.Stop()` call: a timer detached this way counts
-        // as released even without an explicit `Tick -=` (e.g. Stop() in Dispose).
+        // every receiver whose `.Stop()` is PROVEN to run at teardown: a timer
+        // detached this way counts as released even without an explicit
+        // `Tick -=` (e.g. Stop() in Dispose). WPF002 soundness: the same
+        // doctrine as the `-=` above — a Stop() in an arbitrary method, a
+        // finalizer, an unwired lifecycle-looking handler, an uncalled
+        // helper/lambda, or behind a caller-parameter guard is EXISTENCE, not
+        // execution, and credits nothing (the honest OWN001 stands).
         var stopped = new HashSet<string>();
         foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
             if (inv.Expression is MemberAccessExpressionSyntax m
-                && m.Name.Identifier.Text == "Stop")
+                && m.Name.Identifier.Text == "Stop"
+                && InTeardownContext(inv, cls, teardownMethods, model)
+                && !IsParamGuardedRelease(inv, model))
                 stopped.Add(m.Expression.ToString());
 
         // Fields/locals this class constructs (`new`) — it OWNS them, so their
