@@ -55,6 +55,11 @@ fn replays_python_authored_goldens() {
             "duplicate manifest case name: {}",
             case.name
         );
+        assert!(
+            !case.rules.is_empty() && case.rules.iter().all(|r| !r.is_empty()),
+            "{}: 'rules' must be a non-empty array of non-empty strings",
+            case.name
+        );
     }
     let mut facts_files = BTreeSet::new();
     let mut golden_files = BTreeSet::new();
@@ -109,8 +114,8 @@ fn replays_python_authored_goldens() {
         replayed = replayed.checked_add(1).expect("case count fits u32");
     }
     assert!(
-        replayed >= 25,
-        "expected at least 25 shared cases, replayed {replayed}"
+        replayed >= 26,
+        "expected at least 26 shared cases, replayed {replayed}"
     );
     assert_eq!(
         skipped,

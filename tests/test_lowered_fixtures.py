@@ -68,6 +68,11 @@ def _manifest() -> tuple[list[str], list[str]]:
             continue
         if not isinstance(c.get("rust_replay"), bool):
             problems.append(f"manifest case '{name}': rust_replay must be a bool")
+        rules = c.get("rules")
+        if not (isinstance(rules, list) and rules
+                and all(isinstance(r, str) and r for r in rules)):
+            problems.append(f"manifest case '{name}': 'rules' must be a "
+                            f"non-empty array of non-empty strings")
         if c.get("rust_replay") is False and not c.get("decision"):
             problems.append(f"manifest case '{name}': a Python-only case must "
                             f"name the open decision it pins ('decision')")
