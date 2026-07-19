@@ -114,9 +114,14 @@ Every row above marked **L1/L2/L3/S** requires a same-layer Rust parity
 fixture in #259; rows marked *(core suite)* are `own-analysis`/`own-di`
 territory (the bridge only routes them — BR-B1) and are covered by those
 crates' own parity suites. Layer 2 (the normalized lowered representation)
-is **built** (#259 foundation slice): `ownlang/lowered.py` +
-`tests/fixtures/lowered/` + `tests/test_lowered_fixtures.py` give the
+is **built and Rust-implemented** (#259 slices 1–3): `ownlang/lowered.py` +
+`tests/fixtures/lowered/` + `tests/test_lowered_fixtures.py` (#299) give the
 (b)-section rows (and the MOS-sensitive lowering shapes of section (c)) a
 directly-pinned lowering surface in addition to their end-to-end (L3)
-coverage; the per-case coverage of that fixture family is listed in the #259
-foundation PR.
+coverage; `rust/crates/own-lowered` (#300) type-checks and re-emits every
+shared golden byte-exactly, and `rust/crates/own-bridge` (#301) constructs
+the same documents from the facts (`to_module` port: routing, minting, MOS,
+flow lowering), reproducing all 26 `rust_replay: true` goldens byte-for-byte.
+`tolerant_unknown_kind` stays the sole Python-only case pending #294. The
+per-case coverage of the fixture family is listed in the #259 foundation PR;
+Layer 1 and Layer 3 remain open.
