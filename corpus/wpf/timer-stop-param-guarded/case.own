@@ -1,0 +1,18 @@
+module WpfTimerStopParamGuarded
+
+// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner
+// edge; the matching `Stop()` releases it. `kind` tags the resource so the
+// generic ownership finding carries a [resource: timer] note.
+resource Timer {
+    acquire Start
+    release Stop
+    kind "timer"
+}
+
+// The Stop() sits on a teardown path but behind a caller-controlled
+// parameter guard — the caller can skip it. Modelled as the ctor scope
+// alone => OWN001.
+fn FeedTicker(interval: int) {
+    let t = acquire Timer(interval);
+    // a caller-parameter-guarded Stop() is not a proven release (before.cs)
+}

@@ -1,0 +1,18 @@
+module WpfTimerStopNonTeardown
+
+// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner
+// edge; the matching `Stop()` releases it. `kind` tags the resource so the
+// generic ownership finding carries a [resource: timer] note.
+resource Timer {
+    acquire Start
+    release Stop
+    kind "timer"
+}
+
+// The ctor starts the timer; the only `Stop()` lives in an arbitrary
+// non-teardown method nothing is proven to call. Modelled as the ctor scope
+// alone: acquired, never released on any teardown path => OWN001.
+fn TickerView(interval: int) {
+    let t = acquire Timer(interval);
+    // no `release t;` on any teardown path -> never-stopped timer (before.cs)
+}

@@ -1,0 +1,17 @@
+module WpfTimerStopUnwired
+
+// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner
+// edge; the matching `Stop()` releases it. `kind` tags the resource so the
+// generic ownership finding carries a [resource: timer] note.
+resource Timer {
+    acquire Start
+    release Stop
+    kind "timer"
+}
+
+// The Stop() hides in a lifecycle-looking method nothing wires. Modelled as
+// the ctor scope alone => OWN001.
+fn SplashTicker(interval: int) {
+    let t = acquire Timer(interval);
+    // unwired Window_Closing Stop() is not a teardown path (before.cs)
+}
