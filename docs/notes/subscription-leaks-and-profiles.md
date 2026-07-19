@@ -56,6 +56,17 @@ SectorTS `GTD`; corpus: `subscription-param-guarded-unregister`,
 `subscription-xaml-name-only-release`, `subscription-overload-conflated-cleanup`,
 `subscription-uncalled-local-function`).
 
+The WPF002 row's `Stop()` release obeys the SAME doctrine (the WPF002 Stop()
+soundness slice): a timer is released only by a `Stop()` on ITS receiver that
+is proven to run at teardown and is not caller-parameter-guarded — one shared
+context predicate with `-=`, not a second copy. A `Stop()` that merely exists
+(arbitrary method, finalizer, unwired `Window_Closing`-style name, uncalled
+helper/lambda, caller-controlled flag) credits nothing (corpus:
+`timer-stop-nonteardown-release`, `timer-stop-finalizer-release`,
+`timer-stop-unwired-lifecycle`, `timer-stop-uncalled-helper`,
+`timer-stop-uncalled-lambda`, `timer-stop-param-guarded`,
+`timer-stop-wrong-receiver`).
+
 ## The naming debt the critique correctly smells
 
 The capability is general. The *same* `source.Event += h` without `-=` leaks in

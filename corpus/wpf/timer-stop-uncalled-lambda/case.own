@@ -1,0 +1,17 @@
+module WpfTimerStopUncalledLambda
+
+// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner
+// edge; the matching `Stop()` releases it. `kind` tags the resource so the
+// generic ownership finding carries a [resource: timer] note.
+resource Timer {
+    acquire Start
+    release Stop
+    kind "timer"
+}
+
+// The Stop() hides in a stored, never-invoked lambda. Modelled as the ctor
+// scope alone => OWN001.
+fn PollingPane(interval: int) {
+    let t = acquire Timer(interval);
+    // a declared-but-unwired lambda Stop() is not a teardown path (before.cs)
+}

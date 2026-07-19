@@ -1,0 +1,19 @@
+module WpfTimerStopWrongReceiver
+
+// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner
+// edge; the matching `Stop()` releases it. `kind` tags the resource so the
+// generic ownership finding carries a [resource: timer] note.
+resource Timer {
+    acquire Start
+    release Stop
+    kind "timer"
+}
+
+// Two timers, only one stopped at teardown: the sibling's Stop() does not
+// release the other receiver => OWN001 for the unstopped one.
+fn DualPoller(fast: int, slow: int) {
+    let a = acquire Timer(fast);
+    let b = acquire Timer(slow);
+    release b;
+    // `a` has no release -> the sibling's Stop() does not silence it (before.cs)
+}
