@@ -44,7 +44,138 @@ audit/runtime/
   PropertyChangedStorm/  # C# PropertyChanged-storm profiler — Windows/build-required, NOT CI-gated
     PropertyChangedStorm.csproj  # net472; Microsoft.Diagnostics.Tracing.TraceEvent
     Program.cs         # TraceEvent over an .etl: per-property raise frequency, storm findings
+  RetentionPath/       # C# retention paths — Windows/build-required, NOT CI-gated
+    RetentionPath.csproj  # net472; Microsoft.Diagnostics.Runtime
+    Heap.cs            # ClrMD: mark from the GC roots; root -> object path with field names
+    Program.cs         # `census` (is it retained at all?) and `roots` (who holds it?)
 ```
+
+## Retention paths — is it retained, and by whom (Plan.md §4)
+
+`HeapCounter` answers *"how many instances of T are on the heap"*. That is **not** the same question as
+*"how many are retained"*, and conflating them is how a leak hunt goes wrong:
+`ClrHeap.EnumerateObjects()` walks the heap segments linearly and returns everything allocated —
+**including garbage the GC has not collected yet**. A big heap is not evidence of a leak. `HeapCounter`
+mitigates this by forcing a GC in the target first (SematixTrace), which works when you can drive the
+target; `RetentionPath` does not need to, because marking from the roots answers it directly.
+
+```powershell
+# 1. Is there anything to hunt? (attaches to a LIVE process — no procdump needed)
+RetentionPath.exe census --pid 1234 --out runtime.json
+
+roots                :          308 objects
+on the heap          :    4 270 155 objects          573 MB
+REACHABLE from roots :    4 144 653 objects          403 MB
+uncollected garbage  :      125 502 objects          170 MB
+>>> 70,4% of the heap is genuinely RETAINED — something holds it; run `roots`
+```
+
+If that share is low, stop: there is no reference to hunt, and the next question is about GC timing, not
+about who holds what.
+
+```powershell
+# 2. What holds the TYPICAL instance? Sampled, ranked, every hop naming its field.
+RetentionPath.exe roots --pid 1234 --type GTD --sample 200
+
+BrokerDataClasses.GTD: 50 on the heap, 50 of a 200-instance sample retained
+
+RETAINERS, ranked — what holds the TYPICAL instance, not merely one of them:
+
+#1  25/50 (50,0%) — via [static-event], 7 hops
+    System.Object[]
+    BrokerDataClasses.Property.KernelProperty
+    BrokerDataClasses.Property.GBProperty                (.fGBProperty)
+    System.ComponentModel.PropertyChangedEventHandler    (.PropertyChanged)
+    System.Object[]                                      (._invocationList)
+    System.ComponentModel.PropertyChangedEventHandler
+    BrokerDataClasses.GTD                                (._target)
+
+#4  1/50 (2,0%) — via [stack], 2 hops
+    SerializerSim.TInfo
+    BrokerDataClasses.GTD  (.Proto)
+
+>>> 50,0% of the retained instances hang off ONE reference:
+    System.ComponentModel.PropertyChangedEventHandler._target  [static-event]
+```
+
+**Why it samples.** *"Who holds this object"* is ill-posed for an object reachable from many roots:
+there are as many answers as there are paths, and the shortest is an arbitrary pick, not an
+explanation. The question worth asking is *"what holds the **typical** instance"*. So the walk samples
+the retained instances, computes each one's shortest path in a single BFS (breadth-first from the whole
+root set gives every node its shortest path for free), and reports the paths as a **ranked histogram**.
+The retainer that accounts for 129,900 of 130,000 instances is the leak; the one hanging off the stack
+is noise — and reading *that* one as "the answer" is exactly how a leak hunt goes wrong.
+
+A dump works too (`--dump target.dmp`) and is the right choice when the target must not be paused.
+Output is the **`runtime.json` contract** (`OwnAudit/docs/runtime-contract.md`), so OwnAudit's
+`runtime/correlate.py` consumes it with no adapter: a static leak finding whose type also shows up here
+as retained is `confirmed`; retention with **nothing static to explain it** is `runtime-only` — the
+analyzer's blind spot, and therefore a rule request.
+
+### `dominators` — which ONE reference, if cut, frees the memory
+
+`roots` tells you what the *typical* path is. It cannot tell you that **cutting** that path would free
+anything, because an object held by two references at once is attributed to whichever is nearer. That is
+not a shortcoming of the implementation; the question "who holds it" is simply ill-posed. The well-posed
+question is:
+
+> which single reference, if cut, makes this object collectable — and how much memory does that free?
+
+Dominance answers it. `D` dominates `X` when **every** path from a root to `X` goes through `D`, so `X`'s
+immediate dominator is its one true retainer, and `D`'s **retained size** — everything it dominates — is
+what you get back by dropping the reference to `D`. This is what Eclipse MAT and dotMemory are built on,
+and it is why they can say *"detach this and you get 1.4 GB back"* while a path walk cannot.
+
+```powershell
+RetentionPath.exe dominators --pid 1234 --top 8
+
+3 727 278 reachable objects, 361 MB retained in total
+
+DOMINATORS — cut this ONE reference and the retained bytes go away:
+  retained MB     own B  type
+         24,2    74 584  System.Object[]
+         21,5        48  BaseDict.DictionaryList
+          9,5    16 344  System.Object[]
+
+>>> NO single reference holds this memory — the biggest dominator accounts for only 6,7%
+    (24 MB of 361 MB). The objects are reachable from SEVERAL roots at once, so cutting any
+    one of them frees nothing. The fix must detach all of them.
+```
+
+**That verdict is the point of the verb.** On the SectorTS leak, `roots` names the static
+`PropertyChanged` event and it is not wrong — but `dominators` shows that detaching it *alone* frees
+nothing, because the same documents are also held by a static `List<Object>`. And that is exactly what
+the real fix turned out to be: `UnregisterEventHandlers(false)` detaches **several** references at once.
+A shortest-path walk would have named one of them, confidently, and the fix would not have worked.
+
+Algorithm: **Cooper–Harvey–Kennedy**, *"A Simple, Fast Dominance Algorithm"* (2001) — the iterative
+formulation, a page of code, converging in a couple of passes on real graphs. (PerfView, MIT, is the
+closest .NET reference; note it computes a *spanning tree* with inclusive sizes, which approximates
+this.) The graph is held as CSR — a 4M-object heap will not fit in `List<List<int>>`.
+
+Correctness is not taken on faith:
+
+* `RetentionPath selftest` — no target, no Windows, no ClrMD — checks the algorithm against graphs whose
+  dominators are known by hand: a **diamond** (an object reachable through both branches is dominated by
+  neither — the exact case a path walk gets wrong), a **chain** (retained size accumulates), and a
+  **cycle** (a gate dominates a reference cycle, which reference counting can never free).
+* At run time the super-root's retained size must equal the total size of the reachable graph, or the
+  walk **refuses to report**. A wrong dominator tree does not fail loudly — it just tells you to cut the
+  wrong reference.
+
+Cost: ~48 s and ~600 MB of analyzer memory for a 3.7 M-object heap, attached live. A 40 M-object heap
+will not fit; take a dump, or sample with `roots`.
+
+### What it does not do (read this before trusting it)
+
+* **A `[stack]` root is not retention.** It means the object is live in a frame *right now*. The tool
+  labels it as such precisely so it is not mistaken for a leak; the same is true of `[finalizer]`.
+* **It matches the TYPE, not the type's spelling.** Asking for `GTDGoody` will not match
+  `System.Func<BrokerDataClasses.GTDGoody, System.Boolean>` — a cached lambda whose generic *argument*
+  mentions it. (It used to, and confidently reported a 2-hop path to the wrong object. A tool that
+  points at the wrong culprit is worse than no tool.)
+* Attaching **suspends** the target for the duration of the walk. On a multi-GB heap that is minutes,
+  not seconds — take a dump instead.
 
 ## How the leak-harness works (Plan.md §4.1)
 
