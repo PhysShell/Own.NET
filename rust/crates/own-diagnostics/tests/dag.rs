@@ -40,6 +40,16 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // never the reverse, and the surface must stay implementable without the
     // lowering that fills it.
     m.insert("own-lowered", BTreeSet::new());
+    // The OwnIR -> Layer 2 lowering (#259 slice 3): a pure transformation
+    // crate. It READS the typed fact contract (own-ir) and CONSTRUCTS the
+    // typed Layer 2 surface (own-lowered) — both arrows point INTO data
+    // leaves, never the reverse, and own-lowered stays leaf (implementable
+    // without the lowering that fills it). No analysis/diagnostics edge:
+    // lowering must stay a pure OwnIr -> LoweredDocument function.
+    m.insert(
+        "own-bridge",
+        ["own-ir", "own-lowered"].into_iter().collect(),
+    );
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).

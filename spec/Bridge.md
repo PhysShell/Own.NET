@@ -169,7 +169,7 @@ depth ≥ 1; (2) its **shallowest** non-acquire reference is at depth 0; (3) it
 is not acquired anywhere inside a `while` body (loop acquires are cumulative —
 hoisting would hide a per-iteration leak); (4) the definite-assignment safety
 walk holds — no path can early-`return` (without returning the name) before
-the post-merge release on a path that did not acquire it (an `if` establishes
+the post-merge reference/discharge on a path that did not acquire it (an `if` establishes
 acquisition only when **both** arms do; a `while` body never does). The hoisted
 `Let` carries the **first** branch-acquire line and preserves the pool kind.
 An **untracked** name (BR-L8) is never hoisted.
@@ -346,17 +346,26 @@ committed regeneration path and a zero-Python steady state:
   of the lowered `Module` (functions, params with regions, statement kinds
   with handles and lines, prelude/lifetime presence) per facts fixture — the
   seam where a lowering bug is visible *before* it hides behind a verdict.
-  **Built** (#259 foundation slice): `ownlang/lowered.py` is the Python
-  emitter (its docstring freezes the normalization decisions;
-  `LOWERED_VERSION` keys the surface), `tests/fixtures/lowered/
-  <case>.facts.json` + `<case>.golden.json` are the committed pairs under the
-  frozen `manifest.json` ledger, and `tests/test_lowered_fixtures.py` is the
-  verify/`--write` harness (manifest == facts == goldens exactly; stale,
-  missing, orphaned, pair-deleted, and unlisted fixtures are each a red
-  build). In #259's implementation half Rust replays every
-  `rust_replay: true` manifest case byte-for-byte; a `rust_replay: false`
-  case is a Python-only snapshot pinning an open decision (OD-2/#294) and
-  takes no side on it.
+  **Built and Rust-implemented** (#259 slices 1–3): `ownlang/lowered.py` is
+  the authoritative Python emitter (#299 — its docstring freezes the
+  normalization decisions; `LOWERED_VERSION` keys the surface),
+  `tests/fixtures/lowered/<case>.facts.json` + `<case>.golden.json` are the
+  committed pairs under the frozen `manifest.json` ledger, and
+  `tests/test_lowered_fixtures.py` is the verify/`--write` harness
+  (manifest == facts == goldens exactly; stale, missing, orphaned,
+  pair-deleted, and unlisted fixtures are each a red build). On the Rust
+  side, `own-lowered` (#300) is the typed data surface + canonical emitter
+  that round-trips every shared golden byte-exactly (presence-aware
+  missing/null/value handle metadata; per-document `LOWERED_VERSION`
+  enforcement), and `own-bridge` (#301) **constructs** the Layer 2 document
+  from the facts themselves — `facts → own-ir parse → lower → canonical
+  emit` reproduces all 26 `rust_replay: true` goldens byte-for-byte with
+  the golden used only as expected output. A `rust_replay: false` case
+  (today exactly `tolerant_unknown_kind`) is a Python-only snapshot pinning
+  an open decision (OD-2/#294) and takes no side on it: the Rust bridge
+  fails loud on a present-but-unknown resource kind instead of adopting the
+  tolerant fallback. Layer 1, Layer 3, analysis wiring, and #259 as a whole
+  remain open.
 - **Layer 3 — final normalized diagnostics.** The findings list (and its
   SARIF/github/msbuild renderings) per facts fixture, byte-exact — the outer
   contract. Existing seeds: the end-to-end expectations in `test_ownir.py`

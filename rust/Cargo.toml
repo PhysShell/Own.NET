@@ -8,7 +8,7 @@
 
 [workspace]
 resolver = "2"
-members = ["crates/own-ir", "crates/own-syntax", "crates/own-cfg", "crates/own-diagnostics", "crates/own-analysis", "crates/own-lowered"]
+members = ["crates/own-ir", "crates/own-syntax", "crates/own-cfg", "crates/own-diagnostics", "crates/own-analysis", "crates/own-lowered", "crates/own-bridge"]
 
 [workspace.package]
 edition = "2021"

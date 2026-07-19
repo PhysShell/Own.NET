@@ -1,0 +1,20 @@
+# The OwnIR -> Layer 2 lowering (P-022 #259 slice 3): a pure transformation
+# crate. Production API is `OwnIr -> Result<LoweredDocument, BridgeError>` —
+# no filesystem, no CLI, no diagnostics, no analysis side effects; fixture
+# I/O lives only in the integration tests.
+[package]
+name = "own-bridge"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "OwnIR facts -> normalized Layer 2 lowering (Python to_module parity)"
+
+[dependencies]
+own-ir = { path = "../own-ir" }
+own-lowered = { path = "../own-lowered" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

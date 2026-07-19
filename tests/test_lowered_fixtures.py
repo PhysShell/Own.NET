@@ -18,14 +18,16 @@ lowering is visible BEFORE any analysis runs (spec/Bridge.md §6, layer 2).
   unlisted facts file are each a red build — the fixture family cannot
   silently rot (or shrink) in any direction. `--write` refuses to regenerate
   a shrunken contract for the same reason.
-* The Rust `own-bridge` (#259) will replay every manifest case with
-  `rust_replay: true` from its `<case>.facts.json` and must reproduce the
-  golden byte-for-byte; a `rust_replay: false` case is a Python-only behavior
-  snapshot pinning an open decision (its `decision` field names it, e.g.
-  OD-2/#294) and imposes nothing on Rust until that decision lands. Until
-  the Rust emitter exists this suite is the Python-side half of the contract
-  (zero-Python steady state: once Rust is authoritative, these goldens are
-  frozen inputs it replays without Python present).
+* The Rust side holds up its half of the contract (#300/#301): `own-lowered`
+  parses and re-emits every shared golden byte-exactly through its typed
+  model, and `own-bridge` CONSTRUCTS the same documents from each
+  `rust_replay: true` case's `<case>.facts.json`, reproducing the golden
+  byte-for-byte (`rust/crates/own-bridge/tests/replay.rs`). A
+  `rust_replay: false` case is a Python-only behavior snapshot pinning an
+  open decision (its `decision` field names it, e.g. OD-2/#294) and imposes
+  nothing on Rust until that decision lands. Python stays authoritative at
+  generation time (`--write`); the goldens are frozen inputs the Rust suites
+  verify without Python present (the zero-Python steady state).
 
 Run:  python tests/test_lowered_fixtures.py            (verify)
       python tests/test_lowered_fixtures.py --write    (regenerate)
@@ -68,6 +70,11 @@ def _manifest() -> tuple[list[str], list[str]]:
             continue
         if not isinstance(c.get("rust_replay"), bool):
             problems.append(f"manifest case '{name}': rust_replay must be a bool")
+        rules = c.get("rules")
+        if not (isinstance(rules, list) and rules
+                and all(isinstance(r, str) and r for r in rules)):
+            problems.append(f"manifest case '{name}': 'rules' must be a "
+                            f"non-empty array of non-empty strings")
         if c.get("rust_replay") is False and not c.get("decision"):
             problems.append(f"manifest case '{name}': a Python-only case must "
                             f"name the open decision it pins ('decision')")
