@@ -26,11 +26,12 @@ then operates in the plain product lattice `Transfer × Transfer`, where join is
 cellwise and every solver property (monotonicity, associativity, termination,
 order-independence) is inherited componentwise from the base lattice. Call
 sites that pass a statically-known constant select a cell; everything else
-joins the cells and behaves exactly like today. Collapsing the split recovers
-today's summary (a proven refinement, §7), so the layer degrades to the current
-behavior everywhere the guard vocabulary does not apply — and the flagship
-`Teardown(bool)` / null-guard-helper cases stop falling through the
-architecture.
+applies today's lowering rule to the collapsed value. Collapse never coarsens
+the summary (a proven lax refinement, §7 — on mixed release/forward bodies it
+is strictly *more* precise than today, a declared verdict-change class), so
+the layer degrades to the current behavior everywhere the guard vocabulary
+does not apply — and the flagship `Teardown(bool)` / null-guard-helper cases
+stop falling through the architecture.
 
 ## 1. Motivation — the bool that beat a thousand lines
 
@@ -85,17 +86,29 @@ without touching the precision floor.
 
 ## 3. The guarded-transfer lattice (G-L)
 
-### The shape
+### The shape — election first, then a fixed domain
+
+The type is deliberately **not** a runtime sum the solver could reshape
+mid-flight. Election is a separate, pre-solver artifact, and it *types* the
+coordinate:
 
 ```text
-GuardedTransfer ::= Uncond(t)                      -- today's summary
-                  | Split(g, t_pos, t_neg)         -- one fixed split
-    t, t_pos, t_neg ∈ Transfer = {⊥, no, must, may, unknown}   (INF-L1/L2)
+Election(M, i) ::= None | One(g) | Conflict        -- fixed before the solver (G-S1)
+
+D(M, i) = Transfer                     when Election(M, i) ∈ {None, Conflict}
+D(M, i) = Transfer × Transfer          when Election(M, i) = One(g)
+
+    t ∈ Transfer = {⊥, no, must, may, unknown}     (INF-L1/L2)
     g = a guard variable of this method (G-V1)
 ```
 
-`t_pos` is the transfer when `g`'s positive side holds (`p == true` /
-`q != null`), `t_neg` the negative side.
+For an elected coordinate, `(t_pos, t_neg)` are the transfers when `g`'s
+positive side holds (`p == true` / `q != null`) and its negative side,
+respectively. After election the domain of a coordinate is **immutable**:
+no value changes shape during the solve. `Uncond(t) ≡ (t, t)` is a
+**read-only diagonal embedding** used when a `Transfer`-typed neighbour is
+read from an elected coordinate's edge — never a way to convert a stored
+value.
 
 ### The load-bearing design decision: fix the split before the solver
 
@@ -129,27 +142,58 @@ Derivation extends `INF-S1–S6` with cell awareness. The walker is the
 branch-sensitive machinery D1/D7 already built (`_definite_release`,
 `_early_return_before_forward`) — parameterized by cell.
 
-- **G-S1 (split election, deterministic, two stages — both pre-solver).**
-  *Stage 1 (own body):* collect every guard literal (G-V1) that lexically
-  governs an ownership action on parameter `i` — an enclosing single-literal
+- **G-S1 (split election — its own monotone fixpoint, pre-solver).**
+  Election is computed in the three-point **election lattice**, not as a bare
+  candidate set (a singleton-set import operator is *not monotone*: a callee's
+  candidate set growing `{a} ⊂ {a, b}` would flip an importer from `{x}` to
+  `∅`, shrinking the output as the input grows — order dependence through the
+  back door, before the value solver even starts):
+
+  ```text
+  Election ::= None | One(g) | Conflict          -- height 2, finite
+
+  None      ⊔ x         = x
+  One(g)    ⊔ One(g)    = One(g)
+  One(g)    ⊔ One(h)    = Conflict      (g ≠ h)
+  Conflict  ⊔ x         = Conflict
+  ```
+
+  *Stage 1 (own body, the seed):* for each guard literal (G-V1) lexically
+  governing an ownership action on parameter `i` — an enclosing single-literal
   `if`/`else`, or a single-literal-guarded early `return` preceding the action
-  (the two shapes #305 pinned).
-  *Stage 2 (election propagation):* a parameter of `M` passed through an
-  `id`/`neg` argument map (G-S5) into the guard-variable position of a callee
-  whose `(callee, param)` already elected a split **imports** that election
-  into `M` — propagated over the call graph as a set-valued fixpoint
-  (monotone: elections are only ever added; finite: at most one candidate per
-  parameter pair; terminates). This is what lets a wrapper that merely
-  *forwards* its flag (worked cases 7–8) inherit the split — its own body has
-  no governing literal to elect from. Stage 2 uses only elected *variables*
-  and argument maps, never solved values, so it completes strictly before the
-  value fixpoint and G-L1 holds.
-  Then, per `(method, parameter)`:
-  - exactly **one** candidate variable (from both stages) → `Split` over it;
-  - **zero** → `Uncond` (today's derivation verbatim);
-  - **two or more** distinct candidates → `Uncond`, derived as today
-    (both-cell semantics; the honest join). Conflict resolution is a pure
-    function of the skeleton set — no join ordering can influence it.
+  (the two shapes #305 pinned) — contribute `One(g)`. The seed of `(M, i)` is
+  the election-lattice join of these contributions (so zero literals seed
+  `None`, and two distinct variables seed `Conflict` directly). The candidate
+  space is bounded by `|GuardVars(M)|` per `(M, resource parameter)` — finite,
+  and **not** "at most one": the lattice, not a cardinality assumption, is
+  what makes the fixpoint well-defined.
+  *Stage 2 (import along edges):* an import is licensed only by the
+  **conjunction of two facts on the same call**:
+
+  ```text
+  resource edge:   caller (M, resource param i) -> callee (C, resource param k)
+  guard binding:   callee guard param h := g | !g | constant | opaque
+                   (the argument bound to h at that same call)
+  ```
+
+  The import of `Election(C, k)` into `(M, i)` through that call is the map:
+  `None → None`; `One(h) → One(g)` when `h` is exactly the guard parameter
+  bound from the caller's `g` by an `id`/`neg` binding; `One(h') → None` for
+  any other variable; `Conflict → Conflict` (conservative: a conflicted
+  callee poisons its election-bearing importers rather than silently
+  dropping out). This map is monotone on the election lattice, imports are
+  joined with the seed, and the whole election assignment is the **least
+  fixpoint** of a monotone operator on a finite lattice — deterministic and
+  order-independent by construction, completed strictly before the value
+  solver, so G-L1 holds. This is what lets a wrapper that merely *forwards*
+  its flag (worked cases 7–8) inherit the split, its own body having no
+  literal to elect from.
+  Then, per `(method, parameter)`: `One(g)` → the coordinate is
+  `Split` over `g`; `None` / `Conflict` → `Uncond`, derived as today
+  (both-cell semantics; the honest join). The `Conflict`-propagation rule
+  knowingly trades wrapper precision for determinism — a provenance-aware
+  per-edge refinement is possible later, behind the same lattice, and is a
+  recorded non-goal today (§9).
 - **G-S2 (cellwise definiteness).** Within each cell, `INF-S2/S3` apply with
   paths **restricted to the cell**: a release definite on every normal-return
   path *consistent with the cell's literal* contributes `dispose` to that cell;
@@ -218,11 +262,18 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
     OWN051);
   - anything else → lower `join(t_pos, t_neg)` by INF-A1 — byte-for-byte
     today's behavior.
-- **G-A2 (the floor, restated for cells).** A `consume` may be applied **only**
-  from a cell whose value is `must` **and** whose selection is proven by G-A1's
-  static test at *this* call site. No cross-call-site inference, no "most
-  callers pass true", no default cell. An unselected `Split` never applies a
-  cell alone.
+- **G-A2 (the floor, restated for cells).** A `consume` may be applied in
+  exactly two situations:
+  1. **selected must** — a cell whose finalized value is `must`, selected by
+     G-A1's static test at *this* call site; or
+  2. **unanimous must** — no selection, but the finalized summary's collapse
+     is `must`, i.e. *every* cell is `must`: both sides of the guard provably
+     consume, so knowing the guard is unnecessary (this is also what makes an
+     `Uncond(must)` reached through a `const-pos`/`const-neg` edge lower as
+     it always has).
+  Nothing else: no cross-call-site inference, no "most callers pass true", no
+  default cell. An unselected `Split` whose cells *differ* never applies a
+  cell alone — it lowers the collapse (G-A1).
 - **G-A3 (borrow cells are findings, not favors).** Selecting a `no` cell keeps
   the obligation with the caller — where today's `plain` + OWN051 silenced it.
   `Teardown(true)` therefore surfaces the honest OWN001. This is the intended
@@ -248,31 +299,75 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
   `must` only through cell-definite release (G-S2/G-S3: definite on every path
   consistent with the cell) or through a forward chain of such cells (G-F2
   reads are monotone selections, and `must` survives only if the source cell
-  was `must`); and `must` is *applied* only under G-A2's static selection.
-  Every non-vocabulary shape, laundered guard, mixed split, opaque transform,
-  or unknown argument lands on a join — which is today's value. The floor
-  (`own-only 0`, INF §"The floor") is preserved verbatim.
-- **G-T2 (refinement / compatibility).** Define
-  `collapse(Uncond(t)) = t`, `collapse(Split(g, a, b)) = join(a, b)`.
-  Then:
-  1. **Derivation compatibility:** for every body, `collapse` of the guarded
-     derivation equals today's derivation. (G-S2's cells partition exactly the
-     paths INF-S2 already walks: definite-in-both-cells joins to `must`,
-     definite-in-one joins to `may` — the same `[dispose, borrow]` INF-S2
-     emits for a partial release. G-S1's zero-and-many cases are today's
-     derivation by definition.)
-  2. **Solver refinement:** `collapse` is a join-morphism on the product
-     lattice, and every G-F2 edge read laxly commutes with it (a selected or
-     mapped cell is ≤ the join of cells). Hence
-     `collapse(lfp guarded) ≤ lfp(collapsed)` — the guarded fixpoint is never
-     *coarser* than today's, and wherever no guard information exists it is
-     equal (by 1 and monotonicity).
-  3. **Application compatibility:** with no static selection, G-A1 lowers the
-     collapse — today's behavior exactly.
-  Consequence for migration: the summary dump gains the split as an additive
-  field plus a derived collapsed view; diffing the collapsed view against
-  today's golden dumps isolates exactly the intended Phase-2 verdict changes,
-  and nothing else.
+  was `must`); and `must` is *applied* only under G-A2 — a statically selected
+  `must` cell, or a unanimous summary whose every cell is `must` (the guard
+  provably irrelevant). Both application routes rest on the same cell-definite
+  evidence; neither invents a cell. Every non-vocabulary shape, laundered
+  guard, conflicted election, opaque transform, or unknown argument over
+  *differing* cells lands on a join — never a guess. The floor (`own-only 0`,
+  INF §"The floor") is preserved verbatim.
+- **G-T2 (refinement — a `≤`, deliberately not an `=`).** Define
+  `C(Uncond(t)) = t`, `C(Split(g, a, b)) = join(a, b)` (collapse), and
+  `fin` = the cellwise `⊥ → no` finalization (G-L4 / INF-L2). The claim is a
+  **lax simulation**, not equality — equality is *false*, and knowably so:
+
+  1. **Why not equality (the mixed release/forward counterexample).**
+     `void M(Resource p, bool g) { if (g) p.Dispose(); else Sink(p); }` with
+     `Sink` an unconditional consumer. Guarded derivation:
+     `pos = must` (local release), `neg = must` (forward resolved through
+     `Sink`), collapse `must`. Today's `_build_skeletons` is not an ideal
+     path-join: the release branch has *priority* — any partial local release
+     emits `[dispose, borrow]` and the forward is never processed — so
+     today's value is `may`. `collapse(guarded) = must ≠ may = today`, and
+     `must` is the *refinement* (`must ≤ may` in the precision order). The
+     guarded layer separates release-paths from forward-paths where today's
+     derivation flattens them: this is a **second, declared class of Phase-2
+     verdict changes** (beyond G-A1 selection) and enters the conformance
+     matrix as such (§8 row 12). "Unknown guard behaves byte-for-byte like
+     today" is therefore also too strong and is *not* claimed: what holds is
+     that the same INF-A1 lowering rule is applied to the collapsed value —
+     the value itself may be strictly more precise.
+  2. **Solver lax simulation (pre-finalization).** `C` is a join-morphism on
+     the product lattice
+     (`C((a,b) ⊔ (c,d)) = (a⊔c) ⊔ (b⊔d) = C(a,b) ⊔ C(c,d)`), and every G-F2
+     edge read laxly commutes with it: a projected, swapped, or mapped cell is
+     `≤` the join of cells, so `C(F_G(X)) ≤ F_0(C(X))` pointwise, where `F_G`
+     is the guarded global transfer function and `F_0` today's. By induction
+     over iterations, `C(F_G^n(⊥)) ≤ F_0^n(⊥)`, and both chains stabilize
+     (finite height), hence `C(lfp F_G) ≤ lfp F_0`.
+  3. **Finalization does not commute — and must be argued, not waved at.**
+     `C(fin(must, ⊥)) = C(must, no) = may`, while
+     `fin(C(must, ⊥)) = fin(must) = must`: finalization can *raise* the
+     collapse. A one-cell residual `⊥` is reachable
+     (`F(p, g) { if (g) p.Dispose(); else F(p, g); }` — the negative cell
+     reads only its own ungrounded same-SCC edge and stays `⊥` at the lfp).
+     The theorem is therefore stated **post-finalization**:
+     `C(fin(lfp F_G)) ≤ fin(lfp F_0)`, with two supporting definitions and a
+     case lemma:
+     - *cell semantics:* cell definiteness quantifies over the cell's
+       **normal-return paths**, exactly as INF-S2 quantifies globally; a cell
+       with no normal-return path contributes vacuously (matching the base
+       layer's treatment of never-returning paths);
+     - *residual-⊥ lemma:* a cell is `⊥` at the lfp only when its every
+       contribution is an ungrounded same-SCC forward. In every such skeleton
+       shape today's derivation is already `≥ may` (a partial local release on
+       the other side triggers the `[dispose, borrow]` priority) or is itself
+       residual-`⊥` (the pure-forward case, where both sides finalize `no`
+       identically) — so finalizing the guarded cell to `no` never lifts the
+       collapse above today's value. This lemma is a **proof obligation the
+       implementation must pin with tests** (§8 row 14), not a formality: it
+       is exactly where a future derivation change could silently break the
+       refinement.
+  4. **Application compatibility (weakened accordingly).** With no static
+     selection, G-A1 applies today's *lowering rule* to `C(fin(summary))`;
+     the resulting verdict coincides with today's wherever the value does
+     (all `None`-election coordinates, all vocabulary-free bodies) and is
+     more precise exactly in the two declared classes (selection, and the
+     release/forward separation of point 1).
+  Consequence for migration: the summary dump gains the election and the
+  cells as additive fields plus a derived collapsed view; diffing the
+  collapsed view against today's golden dumps isolates exactly the two
+  declared Phase-2 verdict-change classes, and nothing else.
 
 ## 8. Worked adversarial cases (hand-derived; the conformance seeds for #304)
 
@@ -292,11 +387,18 @@ Notation: `S = Split(g, pos, neg)`; call-site column shows the applied effect.
 | 6 | two variables: `if (a) release p; if (b) release p;` | G-S1 many ⇒ `Uncond` derived as today (`may`) | any | today's behavior |
 | 7 | wrapper `Outer(bool keep){ Inner(keep); }`, `Inner = Split(keep, no, must)` | split imported by G-S1 stage 2 (no own-body literal!), edge transform `id` ⇒ `Outer = Split(keep, no, must)` | `Outer(false)` | `consume` — the guard survives one hop |
 | 8 | negation wrapper `Outer(bool stop){ Inner(!stop); }` | stage-2 import, transform `neg` ⇒ cells swap ⇒ `Split(stop, must, no)` | `Outer(true)` | `consume` |
-| 9 | alternating recursion `F(p, bool g){ if (g) release p; else F(p, !g); }` | seed `(⊥,⊥)`; iter 1: pos `must`, neg reads pos through `neg` ⇒ `must`; iter 2: fixpoint `Split(g, must, must)` = collapse `must` — correct: every execution releases; terminates in 2 iterations (G-L3 bound respected) | any | `consume` |
+| 9 | alternating recursion `F(p, bool g){ if (g) release p; else F(p, !g); }` | least fixpoint `Split(g, must, must)` = collapse `must` — correct: every execution releases. (Under a synchronous Jacobi update this stabilizes in two sweeps: pos `must` from the local release, then neg `must` through the `neg` edge. The sweep count is an illustration of one schedule; the lfp itself is schedule-independent by G-F2's monotonicity — the scheduler is not part of the mathematics.) | any | `consume` (G-A2 case 2: unanimous `must`) |
 | 10 | disagreeing call sites `Teardown(true)` + `Teardown(false)` in one program | one summary, per-site selection (G-A1) — no cross-site contamination; each site gets its own row-1 verdict | — | — |
+| 11 | **late election conflict:** wrapper `W(bool f){ Inner(f); }`; `Inner`'s election grows `One(a)` → `Conflict` (a second guarded action over `b` appears in `Inner`) | the election fixpoint re-runs on the new skeleton set: `Conflict` imports as `Conflict` (G-S1), so `W` collapses to `Uncond` — a stale imported `One(a)` cannot survive, because election is a least fixpoint of a monotone operator, not an add-only set | any | today's behavior |
+| 12 | **mixed release/forward:** `if (g) release p; else MustSink(p);` | `Split(g, must, must)`, collapse `must` — where today's rel-priority derivation says `may` (G-T2.1's counterexample; the second declared verdict-change class) | any (no selection needed) | `consume` (G-A2 case 2) |
+| 13 | **unknown call site over unanimous cells:** row-12 summary, `M(p, x)` with `x` unknown | no selection, but `C(fin) = must` | — | `consume` — selection is unnecessary when both sides consume |
+| 14 | **one-cell residual ⊥:** `F(p, g){ if (g) release p; else F(p, g); }` (same-guard recursion, no grounding) | lfp `(must, ⊥)` → `fin` → `(must, no)` → collapse `may`; today: partial release ⇒ `may`. Equal — the residual-⊥ lemma's pin (G-T2.3) | unknown site | plain + OWN051 (today); `F(p, true)` selects `must` → `consume`; `F(p, false)` selects `no` → `borrow` → honest OWN001 |
+| 15 | **overload/election ordering:** sig-keyed summary (roadmap stage 2) elects `Split`; the name-merged fallback group contains a differing election | G-F3: the merge collapses every side to `Uncond` first, then joins — deterministic, pre-solver; the precise `sig`-keyed summary keeps its split where the call carries a `sig` | `sig`-resolved site | per-cell verdicts; name-fallback site: today's behavior |
 
 Each row is a fixture family for #304's conformance vectors; rows 1–3 are the
-summary-level twins of the corpus cases #305 landed, and must agree with them.
+summary-level twins of the corpus cases #305 landed, and must agree with them;
+rows 11–15 pin the election lattice, both G-T2 refinement classes, and the
+finalization lemma.
 
 ## 9. Non-goals (walls, not TODOs)
 
@@ -304,6 +406,10 @@ summary-level twins of the corpus cases #305 landed, and must agree with them.
 - no field/local/property guards, no guard state threading (G-V3);
 - no guard propagation beyond the single-edge transforms of G-S5 — in
   particular no caller-of-caller constant folding;
+- no provenance-aware election: a `Conflict` poisons its election-bearing
+  importers wholesale (G-S1); recovering wrapper precision through per-edge
+  provenance is a possible later refinement *behind the same lattice*, not
+  part of this contract;
 - no symbolic execution, no path conditions, no SMT;
 - no per-call-site summary specialization (the summary stays one object; only
   *selection* is per-site);
@@ -324,9 +430,18 @@ lands, they become redundant witnesses the corpus keeps as regression anchors.
 
 Acceptance for this proposal (design review, no code):
 
-- the fixed-split-before-solve decision (G-L1) and its associativity rationale;
+- the fixed-split-before-solve decision (G-L1) and its associativity
+  rationale, with election typed as its own three-point lattice
+  (`None`/`One(g)`/`Conflict`) solved by a monotone pre-solver fixpoint
+  (G-S1) — never a candidate set with a singleton filter;
 - the five-transform edge vocabulary (G-S5/G-F2) as the entire guard
   propagation story;
+- G-A2's two consume routes (selected `must`; unanimous `must`) as the
+  application floor;
 - G-T1/G-T2 accepted as the proof obligations the implementation PR must
-  discharge with tests (fixture families of §8);
+  discharge with tests (fixture families of §8) — G-T2 explicitly as a lax
+  refinement (`≤`) post-finalization, with the residual-⊥ lemma pinned, never
+  as derivation equality;
+- both declared verdict-change classes (cell selection; release/forward
+  separation) entered into the #304 conformance matrix;
 - the walls of §9 accepted as walls.
