@@ -10,8 +10,10 @@ Related work:
 - [`spec/Inference.md`](../../spec/Inference.md)
 - [`docs/notes/interprocedural-roadmap.md`](../notes/interprocedural-roadmap.md)
 - [`docs/notes/interprocedural-tz.md`](../notes/interprocedural-tz.md)
-- #258 / #259 / #260: bridge contract, Rust bridge, dual-engine parity
-- #278: a release that exists syntactically but is not reachable
+- #258 (closed) / #259 / #260: bridge contract, Rust bridge, dual-engine parity
+- #278 (closed by #293, extended by #302): a release that exists syntactically
+  but is not reachable — the historical motivating incident; #304 tracks the
+  post-cutover summary-backed generalization
 - #272 / #274: obligation protocols and protocol/effect summaries
 - #275: consume-or-exit loop progress
 - #122 / #146: exclusivity and publisher provenance
@@ -56,14 +58,16 @@ Today, `ownlang/ownir.py` is not merely a JSON loader. It validates facts,
 normalizes identities, lowers flow operations, mints handles and RIDs, resolves
 calls, infers method ownership summaries, applies branch-local behavior,
 prepares DI/effect inputs, drives analyses, and maps results back to source
-locations. #258 correctly treats this as verdict-determining behavior that must
-be specified before #259 ports it.
+locations. #258 (now closed) correctly treated this as verdict-determining
+behavior and specified it before #259 ported it.
 
 That concentration was acceptable for the proof of concept. It is not an
 acceptable permanent substrate for the next classes of work:
 
-- #278 needs release reachability through lifecycle call chains, not a class-wide
-  search for a matching `-=` or `Stop()`;
+- the #278 class needs release reachability through lifecycle call chains, not a
+  class-wide search for a matching `-=` or `Stop()` — the landed #293/#302
+  extractor predicates are the current bounded implementation, and #304 tracks
+  their summary-backed generalization;
 - obligation protocols need effects to be produced in one method and discharged
   in another;
 - loop progress needs callees to summarize whether they advance a controlling
@@ -93,7 +97,8 @@ This proposal defines:
 7. domain boundaries for ownership, protocols, progress, regions, and tasks;
 8. evidence and uncertainty requirements;
 9. an incremental migration sequence compatible with P-022 parity;
-10. acceptance criteria for the first real consumer, #278.
+10. acceptance criteria for the first real consumer, #304 (the #278 class,
+    generalizing the landed #293/#302 predicates).
 
 ## Non-goals
 
@@ -181,18 +186,29 @@ JSON dictionaries.
 
 ### OwnCFG
 
-The existing **OwnCFG** is the MIR-equivalent layer. It should represent each
-method as basic blocks containing OwnHIR operations and explicit terminators:
+The existing **OwnCFG** is the local-analysis substrate and the *intended*
+MIR-equivalent layer. Today it lowers the OwnLang AST into basic blocks with
+plain successor edges — calls and returns are ordinary instructions, and the
+crate still re-exports the AST for analyses the CFG does not model — so
+"MIR-equivalent" is the target contract, not the current state. To serve this
+architecture it must be extended to carry normalized OwnHIR operations and
+explicit typed terminators:
 
 ```text
 Goto
 Branch
 Switch
-Call
+Invoke   (call terminator: normal + exceptional successors)
 Return
 Throw
 AwaitSuspend
 ```
+
+One model, stated once: a plain call whose exceptional or suspension flow is
+not modeled stays an ordinary OwnHIR `Call` operation *inside* a block;
+`Invoke` is the terminator form a domain opts into when the
+exceptional/suspension successors must be distinguished. `Call` never appears
+as both an instruction and a terminator in the same method lowering.
 
 Normal, exceptional, and suspension edges must be distinguishable when a domain
 cares about them.
@@ -371,6 +387,12 @@ MethodSummary {
 the result. This makes invalidation, explanation, and differential replay
 possible.
 
+`input_contract` is not decorative: it carries the guarded-effect predicates
+(see the MVP policy under the ownership summary) under which conditional
+effects apply, plus the argument facts a callsite is allowed to substitute
+(statically-known constants). An empty contract means the summary's effects
+are unconditional.
+
 ### Ownership summary
 
 The current MOS remains authoritative for existing behavior. Its future internal
@@ -389,6 +411,39 @@ MayLeaveLive
 
 The critical distinction is **may** versus **must**. A release on one branch is
 not a release on all branches. Unknown is not clean.
+
+One context-insensitive summary per method is not enough for the flagship
+lifecycle case, and this proposal says so now rather than discovering it in
+Phase 2. The heap-proven SectorTS shape is:
+
+```csharp
+void Teardown(bool skip)
+{
+    if (!skip)
+        publisher.Event -= handler;   // the release
+}
+
+Teardown(true);                        // the callsite that never releases
+```
+
+An unconditional summary can say at most `MayRelease` — true and useless.
+Binding `parameter[0] -> true` decides the case only if the summary preserved
+the guard. The MVP policy is therefore:
+
+```text
+MVP guarded effects:
+  summaries preserve guarded effects over simple boolean/null parameter
+    predicates (a release/consume/protocol effect may carry
+    `when <param> == <const>` / `when <param> is null | non-null`);
+  callsite application substitutes statically-known constant arguments and
+    resolves the guard before joining;
+  any predicate outside that vocabulary degrades the effect to May/Unknown —
+    never to Must, and never to silence.
+```
+
+A full symbolic executor is explicitly out of scope. But without at least this
+much, the summary layer would be weaker than the landed #293/#302 extractor
+predicates on the exact case that motivated it.
 
 ### Obligation summary
 
@@ -547,8 +602,12 @@ it may not pretend the call was proven harmless.
 
 ## Lifecycle roots and reachability
 
-#278 shows that intraclass syntax matching is not lifecycle reasoning. A
-reachable-release analysis needs explicit roots and entry contracts.
+#278 showed that intraclass syntax matching is not lifecycle reasoning (a
+heap-proven leak hid behind a flag-guarded `-=` in a method callers skip). The
+landed #293/#302 extractor predicates close that reported class with bounded
+teardown-context and guard reasoning; they are the floor this section
+generalizes, not the ceiling. A reachable-release analysis needs explicit
+roots and entry contracts.
 
 Examples of roots:
 
@@ -571,6 +630,25 @@ Which path proves the missing release?
 
 A release in a dead method, an unregistered callback, or a conditional branch
 must not discharge a must-release obligation globally.
+
+Two different theorems hide here, and the analysis must keep them apart:
+
+```text
+LifecycleEffect:
+  IF a lifecycle root runs, release happens on all its required exits
+  (proved by the call graph + summaries under that root)
+
+LifecycleEnrollment:
+  THIS instance actually reaches that root
+  (proved by `using`, DI scope membership, a wired framework callback,
+   an owner whose own teardown calls Dispose, a registered handler,
+   or a framework model that guarantees the teardown)
+```
+
+Proving a perfect `Dispose()` that nothing ever calls proves nothing. A
+must-release obligation is discharged only by LifecycleEffect *and*
+LifecycleEnrollment together; effect without enrollment yields a degraded or
+conditional verdict — never clean.
 
 ## Evidence and explanations
 
@@ -608,7 +686,13 @@ Unsubscribe at ViewModel.cs:121 is not reached on that path
 ```
 
 The evidence graph should retain stable method/callsite/resource IDs and source
-spans. Diagnostic formatting is a projection. OwnAudit may correlate those IDs
+spans. Two representations, one truth: the full derivation exists once as a
+**proof DAG** keyed by those stable IDs; summaries carry only compact
+provenance/dependency references into it, and the diagnostic layer selects one
+deterministic **displayed witness** path per finding. The derivation graph is
+never duplicated into every summary, and the witness is a projection of the
+DAG, not a second derivation. Diagnostic formatting is a projection. OwnAudit
+may correlate those IDs
 with runtime resource identities and classify the result as static-only,
 runtime-only, or confirmed. OwnAudit does not recompute the static summary.
 
@@ -798,12 +882,27 @@ summaries.
 
 ## Migration plan
 
+### Who owns the bridge boundary, when
+
+P-022/#259 deliberately place lowering, MOS inference, and callsite
+application inside `own-bridge`, mirroring `ownir.py` for byte-parity. This
+proposal calls that concentration migration debt. Both are right — at
+different times — and a reader acting on only one of the two documents will
+re-architect the wrong period:
+
+| period | authoritative boundary |
+|---|---|
+| until Rust parity + cutover (#262) | #258/#259: MOS and lowering live in `own-bridge`, byte-parity with `ownir.py`; no seam moves |
+| after cutover | a dedicated extraction slice per this proposal: `own-bridge` validates/lowers only; the generic interproc engine moves out (open question 2) |
+| invariant across both | the OwnIR wire schema, verdicts, and parity artifacts do not change as part of the seam move |
+
 ### Phase 0 - documentation and parity freeze
 
 Timing: before #262.
 
 - Land this proposal as architecture direction only.
-- Finish #258 and merge the normative current bridge contract.
+- #258 is closed: `spec/Bridge.md` and its behavior matrix are the merged
+  normative bridge contract — keep them current as the parity baseline.
 - Preserve the verdict-changing inference freeze.
 - Add no new summary axis in only one engine.
 - Treat current summary dumps and diagnostics as parity artifacts.
@@ -832,10 +931,19 @@ Acceptance:
 - MOS can be implemented and tested without reading OwnIR JSON dictionaries;
 - every summary records dependencies and precision.
 
-### Phase 2 - #278 as the first feature consumer
+### Phase 2 - summary-backed lifecycle release reachability (#304)
 
 Implement lifecycle-root reachability and must-release composition for event
 subscriptions and timers.
+
+The historical motivator, #278, is **closed**: PR #293 landed the bounded
+extractor predicates (teardown context, parameter guards, symbol-based helper
+reachability), and PR #302 extended the same invariant to WPF002 `Stop()`.
+The landed #293/#302 extractor predicates are the current bounded
+implementation and the regression floor. The first post-cutover consumer of
+P-036 — tracked as #304 — will replace or generalize them with CFG-backed,
+summary-composed lifecycle reasoning; #278 stays the motivating incident, not
+a reusable implementation issue.
 
 Required fixtures:
 
@@ -850,11 +958,18 @@ Required fixtures:
 8. runtime-correlated SectorTS scenario: static-only becomes confirmed when the
    runtime identity matches.
 
+Fixtures 1-3 are already caught (or deliberately kept silent) by the landed
+#293/#302 predicates and enter this phase as regression anchors; fixtures 4-8
+are the genuinely new summary-backed capability.
+
 Acceptance:
 
-- class-wide existence of release no longer discharges an obligation;
+- class-wide existence of release no longer discharges an obligation (landed
+  behavior — must not regress);
 - the finding contains a call/branch witness;
-- no regression in current clean anchors;
+- no regression in current clean anchors or in the #293/#302 caught set;
+- helper release is proven through summary application, not extractor-side
+  symbol fixpoints;
 - runtime correlation uses stable static identities;
 - no rule-specific traversal duplicates the generic summary engine.
 
@@ -1009,12 +1124,13 @@ Chosen posture:
    local functions, and lambdas?
 5. Which WPF/DI lifecycle roots are built in, and which are project-declared?
 6. What conservative policy should each rule use for unknown external calls?
-7. How much field sensitivity is required for the first #278 slice?
+7. How much field sensitivity is required for the first #304 slice?
 8. How are callback registration and delegate target sets represented without
    pretending reflection is statically resolved?
 9. Which dependency hashes are sufficient for IDE summary invalidation?
-10. Which post-cutover issue owns the structural seam, and which issue owns the
-    first #278 feature consumer?
+10. Which post-cutover issue owns the structural seam? (The first feature
+    consumer — summary-backed lifecycle release reachability — is tracked as
+    #304.)
 
 ## Acceptance criteria for this proposal
 
@@ -1022,15 +1138,18 @@ This proposal is accepted when maintainers agree on the following decisions:
 
 - OwnIR remains the external fact contract, not the permanent solver IR;
 - an internal normalized semantic representation is required;
-- OwnCFG is the MIR-equivalent local analysis representation;
+- OwnCFG is the local-analysis substrate to be extended into the
+  MIR-equivalent representation (OwnHIR operations + typed terminators);
 - interprocedural behavior is expressed through first-class method summaries;
 - summaries are inferred/composed through a generic SCC/fixpoint engine;
 - bridge lowering, analysis, diagnostics, OwnAudit, and 007 have the boundaries
   described above;
 - no verdict-changing implementation begins before the P-022 parity/cutover
   discipline permits it;
-- #278 is the preferred first production consumer because it is a confirmed
-  soundness hole that syntax-only release existence cannot solve.
+- summary-backed lifecycle release reachability (#304) is the preferred first
+  production consumer: it generalizes the landed #293/#302 predicates on the
+  confirmed soundness class (#278) that syntax-only release existence could
+  not solve.
 
 Acceptance of the architecture is not acceptance of every future domain. Each
 new summary axis still requires its own issue, fixtures, precision policy, and
