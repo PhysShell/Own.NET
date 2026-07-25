@@ -198,8 +198,7 @@
         "BR-D2",
         "OD-2"
       ],
-      "rust_replay": false,
-      "decision": "#294"
+      "rust_replay": true
     },
     {
       "name": "vocab_unknown_op",

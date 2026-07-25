@@ -239,6 +239,28 @@ _RESOURCES = {
 # new kind is a vocabulary change that MUST bump OWNIR_VERSION (spec/OwnIR.md §2).
 _KNOWN_RESOURCE_KINDS = frozenset(_RESOURCES) | {"capture", "unresolved-subscription"}
 
+
+def _route_resource(rkind: str) -> tuple[str, str]:
+    """Route an owned resource kind to its ``(type, label)`` — fail-loud on a
+    present-but-unknown kind, exactly like ``load()``'s IR4 vocabulary check.
+
+    The tolerant door (direct ``check_facts``/``to_module``/``to_own`` with
+    ``load()`` bypassed) must NOT silently route an unknown kind through the
+    subscription path and mis-classify it (#294 OD-2); that contradicted the
+    same fail-loud rule ``load()`` and the unknown-flow-op guard already apply.
+    ``capture``/``unresolved-subscription`` are peeled off by earlier branches
+    before every call site, and ``flow-local`` is synthesized internally and
+    consumed before its own kill branch, so the only kind that reaches the
+    lookup miss here is a genuinely unknown one. An ABSENT ``resource`` field
+    defaulted to ``subscription`` upstream, which is known — so it never lands
+    here as a miss."""
+    try:
+        return _RESOURCES[rkind]
+    except KeyError:
+        raise OwnIRError(
+            f"unknown resource kind {rkind!r} — a new kind is a vocabulary "
+            f"change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)") from None
+
 # The complete flow-op vocabulary the lowerer (`_lower_flow`) handles — the single
 # authority the `_lower_flow` dispatch, `spec/ownir.schema.json`, and the Rust
 # `own-ir` crate must all agree on. Every op here has a branch in `_lower_flow`
@@ -831,7 +853,7 @@ def to_own(facts: dict[str, Any]) -> tuple[str, dict[str, dict[str, Any]]]:
             gid += 1
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
-            rtype, _ = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+            rtype, _ = _route_resource(rkind)
             owned_lines.append(f"    let {handle} = acquire {rtype}();")
             if sub.get("released"):
                 owned_lines.append(f"    release {handle};")
@@ -1006,7 +1028,7 @@ def to_module(facts: dict[str, Any],
             gid += 1
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
-            rtype, _ = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+            rtype, _ = _route_resource(rkind)
             line = _as_int(sub.get("line", 0))
             body.append(Let(handle, Acquire(rtype, [], line), line))
             if sub.get("released"):
@@ -2696,7 +2718,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                     "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",
                 }.get(d.code, f"IDisposable local '{name}': {d.message}")
             findings.append(Finding(
-                file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="pooled buffer" if pool else "disposable",
                 flow=_flow_local_steps(sub, d.code, d.line, bool(pool))))
@@ -2741,7 +2763,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 if len(steps) >= 2:
                     esc_flow = tuple(steps)
             findings.append(Finding(
-                file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", flow=esc_flow,
                 ignore_reason=ir))
@@ -2770,11 +2792,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                        f"lifetime, so it can never be collected — a region escape "
                        f"(leak, no release path{lam})")
             findings.append(Finding(
-                file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", ignore_reason=ir))
             continue
-        _, kind = _RESOURCES.get(rkind, _RESOURCES["subscription"])
+        _, kind = _route_resource(rkind)
         # P-004 tiering: only the plain `event += handler` leak (the else branch
         # below) grades its severity from the source's proven lifetime; every other
         # resource is a provable leak and stays at the host's --severity (error).
@@ -2833,7 +2855,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                            f"but never unsubscribed — the source keeps "
                            f"'{component}' alive (leak{lam})")
         findings.append(Finding(
-            file=sub["file"], line=int(sub.get("line", 0)), code=d.code,
+            file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind, severity=fsev, ignore_reason=ir))
 

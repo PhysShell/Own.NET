@@ -8,11 +8,11 @@
 //! every membership/default/truthiness decision textually comparable to
 //! `to_module` instead of re-deriving it through a second type system.
 //!
-//! One deliberate divergence, guarded loud: a PRESENT-but-unknown resource
-//! kind (Python's tolerant door falls back to `Subscription`) is a
-//! [`BridgeError`] here — the tolerant-door contract is an open decision
-//! (#294, the `tolerant_unknown_kind` fixture stays Python-only), and this
-//! crate refuses to guess either way.
+//! Fail-loud on a PRESENT-but-unknown resource kind: it is a [`BridgeError`]
+//! here, matching Python `_route_resource` byte-for-byte. #294 OD-2 landed on
+//! IR4-everywhere (the tolerant door no longer falls back to `Subscription`),
+//! so the `tolerant_unknown_kind` fixture is a shared `rust_replay` case now,
+//! not a Python-only snapshot.
 
 // The lowering mirrors `to_module` branch-for-branch; splitting it further
 // (or moving each walk's helper away from its single caller) would trade
@@ -1717,13 +1717,13 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
                 None,
             )?);
             let Some(rtype) = resource_type(rkind) else {
-                // Python's tolerant door falls back to Subscription here; that
-                // contract is an open decision (#294) this crate refuses to
-                // pre-empt in either direction — fail loud instead.
+                // #294 OD-2 landed: IR4 everywhere — a present-but-unknown kind
+                // is fail-loud on the tolerant door too (Python `_route_resource`
+                // now raises the same text), not silently routed as Subscription.
                 return Err(BridgeError(format!(
-                    "unknown resource kind '{rkind}' — the tolerant-door \
-                     fallback is an open decision (#294); the Rust bridge \
-                     refuses to guess"
+                    "unknown resource kind '{rkind}' — a new kind is a \
+                     vocabulary change that must bump OWNIR_VERSION (see \
+                     spec/OwnIR.md §2)"
                 )));
             };
             let line = as_int(sub.get("line"));

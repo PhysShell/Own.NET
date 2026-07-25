@@ -10,8 +10,9 @@
 //! Deliberately NOT here (next slices, gated separately): deriving these
 //! documents from `OwnIR` facts (the lowering itself), `OwnIR` validation,
 //! MOS inference, and any analysis wiring. A `rust_replay: false` manifest
-//! case is a Python-only behavior snapshot pinning an open decision (#294)
-//! and is not replayed by this crate's parity suite.
+//! case would be a Python-only behavior snapshot pinning an open decision, not
+//! replayed by this crate's parity suite; none remain today (OD-2/#294 landed
+//! IR4-everywhere, so `tolerant_unknown_kind` is a shared case now).
 //!
 //! Every shape here mirrors the frozen normalization decisions in the Python
 //! emitter's docstring; a field added there without a matching change here (or
