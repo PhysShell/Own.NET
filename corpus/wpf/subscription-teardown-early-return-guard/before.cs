@@ -16,7 +16,8 @@
 // (corpus/wpf/subscription-param-guarded-unregister). This case pins the
 // asymmetry between the two spellings of one guard.
 //
-// own-check MUST flag this OWN001 (today it stays silent — the FN this pins).
+// own-check MUST flag this OWN001. The shipped #293 predicate credited it (an
+// ancestors-only guard walk cannot see a sibling `return`) — the FN this pins.
 using System;
 using System.ComponentModel;
 

@@ -54,7 +54,7 @@ Severity per the #238 doctrine: *"the worst case of an exemption must be
 'keeps today's honest warning', never 'silently swallows a leak class'"*. Every
 entry below silently swallows.
 
-### A. Early-return parameter guard (AX1 ∧ AX5) — **P1, fixture landed**
+### A. Early-return parameter guard (AX1 ∧ AX5) — **P1, FIXED (#305)**
 
 ```csharp
 public void Dispose() { Cleanup(keepAlive: true); }   // the only caller
@@ -78,7 +78,7 @@ there as INF-S3. The same theorem, unfixed on the C# side.
 
 Fixture: `corpus/wpf/subscription-teardown-early-return-guard`.
 
-### B. `-=` in the ELSE of the canonical `if (disposing)` (AX3) — **P1, fixture landed**
+### B. `-=` in the ELSE of the canonical `if (disposing)` (AX3) — **P1, FIXED (#305)**
 
 ```csharp
 private void Dispose(bool disposing)
@@ -218,8 +218,11 @@ bounded fixes are the pre-cutover floor, not a substitute.
 
 - Confirmed by code reading against `Program.cs` (predicate internals quoted
   per attack above): A, B, C, E credit paths; survived-attack table.
-- Pinned red in the corpus (extractor MISS expected, `.own` reduction caught
-  by the core): A, B. CI's corpus benchmark empirically confirms both
-  directions (before MISSED, after clean) on every run.
-- Not yet fixtured: C, E (land with the fix), D (needs the bounded-enrollment
-  decision first), F (documented family, #304).
+- **A and B are fixed** (#305): `IsParamGuardedByEarlyReturn` (fix 1) and the
+  branch-aware canonical exemption `SiteOnNegativeBranch` (fix 2), both folded
+  into the shared `IsParamGuardedRelease` so `-=` and `.Stop()` inherit them
+  together. Fixtures flipped red→green expectations; timer twins added
+  (`timer-stop-early-return-guard`, `timer-stop-disposing-else-branch`). CI's
+  corpus benchmark is the empirical arbiter (before caught, after clean).
+- Not yet fixtured: C, E (next bounded round — same axiom AX2), D (needs the
+  bounded-enrollment decision first), F (documented family, #304).

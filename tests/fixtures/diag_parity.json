@@ -506,6 +506,26 @@
       ]
     },
     {
+      "name": "corpus/wpf/timer-stop-disposing-else-branch/case.own",
+      "source": "module WpfTimerStopDisposingElseBranch\n\n// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner\n// edge; the matching `Stop()` releases it. `kind` tags the resource so the\n// generic ownership finding carries a [resource: timer] note.\nresource Timer {\n    acquire Start\n    release Stop\n    kind \"timer\"\n}\n\n// Dispose(bool disposing) with the Stop() in the ELSE branch: on the managed\n// path (disposing=true — the only path that runs while the owner is reachable)\n// the timer is never stopped => OWN001.\nfn DisposeBool(interval: int, disposing: int) {\n    let t = acquire Timer(interval);\n    if (disposing) {\n        return;                 // managed-dispose path exits WITHOUT stopping\n    }\n    release t;                  // finalizer-only branch: unreachable while running\n}\n",
+      "diags": [
+        [
+          18,
+          "OWN001"
+        ]
+      ]
+    },
+    {
+      "name": "corpus/wpf/timer-stop-early-return-guard/case.own",
+      "source": "module WpfTimerStopEarlyReturnGuard\n\n// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner\n// edge; the matching `Stop()` releases it. `kind` tags the resource so the\n// generic ownership finding carries a [resource: timer] note.\nresource Timer {\n    acquire Start\n    release Stop\n    kind \"timer\"\n}\n\n// The Stop() sits after `if (keepTicking) return;` inside a teardown-called\n// helper — the early-return spelling of the caller-controlled guard. On the\n// production path (keepTicking=true) the timer is never stopped => OWN001.\nfn ShutdownKeepTicking(interval: int, keepTicking: int) {\n    let t = acquire Timer(interval);\n    if (keepTicking) {\n        return;                 // production callers pass true\n    }\n    release t;                  // the early-return-guarded Stop()\n}\n",
+      "diags": [
+        [
+          18,
+          "OWN001"
+        ]
+      ]
+    },
+    {
       "name": "corpus/wpf/timer-stop-finalizer-release/case.own",
       "source": "module WpfTimerStopFinalizer\n\n// A running timer: `Elapsed += handler` + `Start()` acquires the timer<->owner\n// edge; the matching `Stop()` releases it. `kind` tags the resource so the\n// generic ownership finding carries a [resource: timer] note.\nresource Timer {\n    acquire Start\n    release Stop\n    kind \"timer\"\n}\n\n// The only Stop() is in the finalizer, which the running timer itself keeps\n// from ever firing. Modelled as the ctor scope alone => OWN001.\nfn HeartbeatMonitor(interval: int) {\n    let t = acquire Timer(interval);\n    // finalizer Stop() is not a teardown path -> never-stopped timer (before.cs)\n}\n",
       "diags": [

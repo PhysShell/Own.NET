@@ -1054,56 +1054,128 @@ static bool InTeardownContext(SyntaxNode site, ClassDeclarationSyntax cls,
 // `if (disposing) { ... }` runs on every `Dispose()` call, so a POSITIVE use of
 // that single bool parameter does not demote; `if (!disposing)` (the finalizer
 // branch) still does.
+//
+// Two branch-shape refinements (#305, audit attacks A/B —
+// docs/notes/teardown-predicate-adversarial-audit.md):
+//   * the canonical exemption covers only a site on the POSITIVE side of that
+//     guard — a `-=` in the ELSE of `if (disposing)` executes only on the
+//     finalizer path, which never runs while the subscription keeps the
+//     subscriber reachable, so it demotes like any parameter guard;
+//   * an early `return` lexically PRECEDING the site, itself guarded by a
+//     parameter (`if (keepAlive) return; ... -= ...`), is the same
+//     caller-chosen skip spelled as a sibling instead of an ancestor — it
+//     demotes too (IsParamGuardedByEarlyReturn). The one exemption is the
+//     canonical pattern INVERTED: `if (!disposing) return;` fires exactly when
+//     the managed path does not run, so the site after it still executes on
+//     every `Dispose()` call and stays credited.
 static bool IsParamGuardedRelease(SyntaxNode site, SemanticModel model)
 {
     for (SyntaxNode? cur = site.Parent; cur is not null && cur is not MemberDeclarationSyntax; cur = cur.Parent)
     {
-        ExpressionSyntax? cond = cur switch
-        {
-            IfStatementSyntax ifs => ifs.Condition,
-            ConditionalExpressionSyntax ce => ce.Condition,
-            SwitchStatementSyntax ss => ss.Expression,
-            SwitchExpressionSyntax se => se.GoverningExpression,
-            WhileStatementSyntax ws => ws.Condition,
-            ForStatementSyntax fs => fs.Condition,
-            _ => null,
-        };
+        ExpressionSyntax? cond = GuardCondition(cur);
         if (cond is null)
             continue;
         foreach (var id in cond.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
             if (model.GetSymbolInfo(id).Symbol is IParameterSymbol p
-                && !IsCanonicalDisposingGuardUse(id, p))
+                && !(IsCanonicalDisposingParam(p) && !IsNegatedGuardUse(id)
+                     && !SiteOnNegativeBranch(cur, site)))
                 return true;
+    }
+    return IsParamGuardedByEarlyReturn(site, model);
+}
+
+// The branch-selector condition of one control-flow ancestor shape — shared by
+// the enclosing-guard walk and the early-return scan so the two demotion rules
+// can never disagree about what a guard is.
+static ExpressionSyntax? GuardCondition(SyntaxNode node) => node switch
+{
+    IfStatementSyntax ifs => ifs.Condition,
+    ConditionalExpressionSyntax ce => ce.Condition,
+    SwitchStatementSyntax ss => ss.Expression,
+    SwitchExpressionSyntax se => se.GoverningExpression,
+    WhileStatementSyntax ws => ws.Condition,
+    ForStatementSyntax fs => fs.Condition,
+    _ => null,
+};
+
+// Is `site` on the branch of `guard` that runs when its condition is FALSE —
+// the `else` of an `if`, the when-false arm of a ternary? The canonical
+// positive `disposing` exemption may cover only the TRUE side: the false side
+// is the finalizer path (#305 attack B).
+static bool SiteOnNegativeBranch(SyntaxNode guard, SyntaxNode site) => guard switch
+{
+    IfStatementSyntax { Else: { } els } => els.Span.Contains(site.Span),
+    ConditionalExpressionSyntax ce => ce.WhenFalse.Span.Contains(site.Span),
+    _ => false,
+};
+
+// #305 attack A: a `return` lexically BEFORE the site, guarded by a parameter
+// of the enclosing callable (`if (keepAlive) return; ... -= ...`), is the
+// caller-controlled skip as a preceding SIBLING — invisible to the
+// ancestors-only walk above, semantically identical to the enclosing-branch
+// spelling it demotes. Scans the enclosing callable's own body (never nested
+// lambdas/local functions — their returns do not exit this frame). Only the
+// canonical INVERTED disposing exit is exempt: `if (!disposing) return;`
+// guarantees the site still runs on every `Dispose()` call; a POSITIVE
+// `if (disposing) return;` leaves the site finalizer-only and demotes. An
+// unguarded or field/local-guarded return stays credited — same ownership of
+// class state as the enclosing-guard rule.
+static bool IsParamGuardedByEarlyReturn(SyntaxNode site, SemanticModel model)
+{
+    SyntaxNode? body = null;
+    for (SyntaxNode? cur = site.Parent; cur is not null; cur = cur.Parent)
+    {
+        if (cur is AnonymousFunctionExpressionSyntax af) { body = af.Body; break; }
+        if (cur is LocalFunctionStatementSyntax lf) { body = (SyntaxNode?)lf.Body ?? lf.ExpressionBody; break; }
+        if (cur is AccessorDeclarationSyntax acc) { body = (SyntaxNode?)acc.Body ?? acc.ExpressionBody; break; }
+        if (cur is BaseMethodDeclarationSyntax bmd) { body = (SyntaxNode?)bmd.Body ?? bmd.ExpressionBody; break; }
+    }
+    if (body is null)
+        return false;
+    foreach (var ret in DirectBodyNodes(body).OfType<ReturnStatementSyntax>())
+    {
+        if (ret.SpanStart >= site.SpanStart)
+            continue; // only an exit the flow passes before reaching the site
+        for (SyntaxNode? cur = ret.Parent; cur is not null && !ReferenceEquals(cur, body); cur = cur.Parent)
+        {
+            var cond = GuardCondition(cur);
+            if (cond is null)
+                continue;
+            foreach (var id in cond.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
+                if (model.GetSymbolInfo(id).Symbol is IParameterSymbol p
+                    && !(IsCanonicalDisposingParam(p) && IsNegatedGuardUse(id)))
+                    return true;
+        }
     }
     return false;
 }
 
-// A POSITIVE reference to the single bool parameter of `Dispose(bool)` — the
-// canonical `if (disposing)` (also `if (disposing && !_disposed)`). A negated use
-// (`!disposing`, `disposing == false`) selects the finalizer branch and does not
-// prove the managed release runs.
-static bool IsCanonicalDisposingGuardUse(IdentifierNameSyntax id, IParameterSymbol p)
+// The single bool parameter of a 1-parameter `Dispose(bool)` — the subject of
+// the canonical IDisposable-pattern exemptions above.
+static bool IsCanonicalDisposingParam(IParameterSymbol p) =>
+    p.Type.SpecialType == SpecialType.System_Boolean
+    && p.ContainingSymbol is IMethodSymbol m
+    && m.Name == "Dispose" && m.Parameters.Length == 1;
+
+// Is this identifier use NEGATED in its guard (`!disposing`, `disposing == false`,
+// `disposing != true`)? A negated use selects the finalizer branch; a positive
+// use (also `disposing && !_disposed`) selects the managed branch.
+static bool IsNegatedGuardUse(IdentifierNameSyntax id)
 {
-    if (p.Type.SpecialType != SpecialType.System_Boolean
-        || p.ContainingSymbol is not IMethodSymbol m
-        || m.Name != "Dispose" || m.Parameters.Length != 1)
-        return false;
     SyntaxNode use = id;
     while (use.Parent is ParenthesizedExpressionSyntax pe)
         use = pe;
     if (use.Parent is PrefixUnaryExpressionSyntax pu && pu.IsKind(SyntaxKind.LogicalNotExpression))
-        return false;
+        return true;
     if (use.Parent is BinaryExpressionSyntax be
         && (be.IsKind(SyntaxKind.EqualsExpression) || be.IsKind(SyntaxKind.NotEqualsExpression)))
     {
         var other = ReferenceEquals(be.Left, use) ? be.Right : be.Left;
-        var negated = be.IsKind(SyntaxKind.EqualsExpression)
+        return be.IsKind(SyntaxKind.EqualsExpression)
             ? other.IsKind(SyntaxKind.FalseLiteralExpression)
             : other.IsKind(SyntaxKind.TrueLiteralExpression);
-        if (negated)
-            return false;
     }
-    return true;
+    return false;
 }
 
 // Issue #218 — DP/property-changed old->new subscription ROTATION. A property-changed callback (a

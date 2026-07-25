@@ -36,13 +36,14 @@ every path"). This mirrors the Python bridge's own D7 fix
 a forward makes the transfer conditional) — the same theorem, unfixed on the
 extractor side.
 
-**Fix direction (bounded, lexical — matches the #293 style).** Demote a `-=`
-when a `return` lexically precedes it inside the enclosing callable and that
-`return` is guarded by a condition referencing a parameter — EXCEPT the
-canonical negated-disposing early exit (`if (!disposing) return;`), which
-guarantees the site *does* run on every `Dispose()` call and must stay
-credited. See `docs/notes/teardown-predicate-adversarial-audit.md` (attack A).
+**The fix (#305).** `IsParamGuardedByEarlyReturn`, folded into
+`IsParamGuardedRelease`: a `return` lexically preceding the site inside the
+enclosing callable, guarded by a parameter-referencing condition, demotes —
+EXCEPT the canonical negated-disposing early exit (`if (!disposing) return;`),
+which guarantees the site *does* run on every `Dispose()` call and stays
+credited. Timer twin: `timer-stop-early-return-guard` (shared predicate). See
+`docs/notes/teardown-predicate-adversarial-audit.md` (attack A).
 
-**CI impact.** `before.cs` is a known-miss (recall floor is an absolute count —
-`caught` does not move); `after.cs` reuses the proven-silent
-helper-from-Dispose shape of `subscription-overload-conflated-cleanup`.
+**CI impact.** `before.cs` flips to caught with the fix; `after.cs` reuses the
+proven-silent helper-from-Dispose shape of
+`subscription-overload-conflated-cleanup`.

@@ -35,12 +35,13 @@ exact code path wearing different syntax, and it is credited.
 directly: on the managed path (`disposing` truthy) the function returns without
 releasing — the branch-sensitive core reports OWN001.
 
-**Fix direction (bounded, lexical — matches the #293 style).** The canonical
-exception must be branch-aware: a positive `disposing` condition exempts only
-sites within its THEN branch. A site in the `else` of the canonical guard is
-the finalizer branch and must demote (or be treated as a finalizer non-context
-outright). See `docs/notes/teardown-predicate-adversarial-audit.md` (attack B).
+**The fix (#305).** The canonical exception is branch-aware now
+(`SiteOnNegativeBranch`): a positive `disposing` condition exempts only sites
+within its THEN branch; a site in the `else` (or the when-false arm of a
+ternary) demotes like any parameter guard. Timer twin:
+`timer-stop-disposing-else-branch` (shared predicate). See
+`docs/notes/teardown-predicate-adversarial-audit.md` (attack B).
 
-**CI impact.** `before.cs` is a known-miss (recall floor is an absolute count);
-`after.cs` is the canonical positive-branch pattern the #293 exception was
-built to credit (exercised by `frontend/roslyn/samples/WinFormsDisposalSample.cs`).
+**CI impact.** `before.cs` flips to caught with the fix; `after.cs` is the
+canonical positive-branch pattern the #293 exception was built to credit
+(exercised by `frontend/roslyn/samples/WinFormsDisposalSample.cs`).

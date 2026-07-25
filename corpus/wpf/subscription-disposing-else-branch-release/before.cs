@@ -10,7 +10,8 @@
 // publisher's delegate — the finalizer never runs while the subscription is
 // live. The release is unreachable; the leak is silently swallowed.
 //
-// own-check MUST flag this OWN001 (today it stays silent — the FN this pins).
+// own-check MUST flag this OWN001. The shipped #293 exception credited it (the
+// use-position check never asked which branch holds the site) — the FN this pins.
 using System;
 using System.ComponentModel;
 
