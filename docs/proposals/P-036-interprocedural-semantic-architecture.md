@@ -627,6 +627,27 @@ callee summary dependency hashes
 configuration/profile hash
 ```
 
+Two consequences of that key shape must be designed in rather than discovered
+in production:
+
+- **Recursive SCCs cache at SCC granularity.** Inside a recursive component,
+  each member's callee dependency hashes include the other members, so
+  per-method keys cannot be reconstructed before some entry is retrieved. The
+  cacheable unit for a recursive component is the SCC itself: its key derives
+  from the members' local inputs (body hashes, signatures, domain/config
+  versions) plus the dependency hashes of summaries *outside* the component —
+  all reconstructible bottom-up over the acyclic condensation. Per-method
+  entries inside the component stay locally addressable; their cross-member
+  dependency hashes are validated after loading, never used for lookup.
+- **Evidence spans are a projection, not cached truth.** A semantic body hash
+  deliberately survives edits that only move code (inserting lines above an
+  otherwise unchanged method), but source spans captured in cached evidence do
+  not. A cache hit may reuse semantic effects and evidence *structure* (stable
+  IDs and edges); the spans rendered to users are re-projected from the current
+  frontend facts at diagnostic time — the same "formatting is a projection"
+  rule the evidence section imposes. Equivalently: a cached span is valid only
+  together with the source-map version it was minted against.
+
 Changing a leaf method invalidates:
 
 1. its local CFG/summary;
