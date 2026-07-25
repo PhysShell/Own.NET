@@ -55,6 +55,7 @@ proposal is marked `done` with a pointer.
 | [P-033](P-033-probabilistic-data-structures.md) | In-process sketches & bitmap indexes for legacy .NET diagnostics (Top-K, CMS, t-digest, Bloom) | draft |
 | [P-034](P-034-runtime-lifetime-guard.md) | Runtime lifetime guard & disposal quarantine — the "enterprise malloc" idea, correctly scoped for .NET | draft |
 | [P-035](P-035-custom-weak-subscription.md) | Project-declared weak-subscription conventions — recognise/suggest a repo's own weak-subscribe API, not just the BCL WeakEventManager | draft |
+| [P-036](P-036-interprocedural-semantic-architecture.md) | Interprocedural semantic architecture: OwnHIR, OwnCFG, call graph, first-class summaries, and evidence | draft |
 
 > For priorities, milestones, the framing, and the design philosophy across all
 > of these, see the strategy hub: [`docs/ROADMAP.md`](../ROADMAP.md). P-004 … P-016
