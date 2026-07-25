@@ -25,8 +25,9 @@ Own.NET should treat interprocedural analysis as a first-class semantic layer, n
 as additional logic inside AST visitors or the OwnIR bridge. The external
 versioned **OwnIR** JSON contract remains the frontend seam. It lowers into an
 internal, typed, syntax-independent **OwnHIR** method representation. The
-existing **OwnCFG** is the MIR-equivalent control-flow representation and should
-remain the execution substrate for local dataflow. A derived call graph and
+existing **OwnCFG** is the local-analysis substrate, intended to become the
+MIR-equivalent control-flow representation, and should remain the execution
+substrate for local dataflow. A derived call graph and
 first-class **MethodSummary** artifacts carry effects across method boundaries.
 A generic SCC/fixpoint summary engine composes domain-specific summaries for
 ownership, obligations, progress, regions, and tasks. Diagnostics consume
@@ -59,7 +60,7 @@ normalizes identities, lowers flow operations, mints handles and RIDs, resolves
 calls, infers method ownership summaries, applies branch-local behavior,
 prepares DI/effect inputs, drives analyses, and maps results back to source
 locations. #258 (now closed) correctly treated this as verdict-determining
-behavior and specified it before #259 ported it.
+behavior and specified it so that #259 can port it under a frozen contract.
 
 That concentration was acceptable for the proof of concept. It is not an
 acceptable permanent substrate for the next classes of work:
@@ -204,11 +205,16 @@ Throw
 AwaitSuspend
 ```
 
-One model, stated once: a plain call whose exceptional or suspension flow is
-not modeled stays an ordinary OwnHIR `Call` operation *inside* a block;
-`Invoke` is the terminator form a domain opts into when the
-exceptional/suspension successors must be distinguished. `Call` never appears
-as both an instruction and a terminator in the same method lowering.
+One model, stated once: lowering selects `Call` or `Invoke` deterministically
+from the configured CFG profile and the available frontend facts — never from
+the analysis domain. When exceptional or suspension flow is represented, the
+call is lowered as `Invoke` for **all** domains; a domain that does not care
+about those successors may ignore them, but it does not request a different
+lowering for the same method and profile. A plain call whose exceptional flow
+the profile does not represent stays an ordinary OwnHIR `Call` operation
+inside a block. One method, one profile, one CFG shape — shared summaries,
+serialization, and cache keys all assume it — and `Call` never appears as both
+an instruction and a terminator in the same method lowering.
 
 Normal, exceptional, and suspension edges must be distinguishable when a domain
 cares about them.
