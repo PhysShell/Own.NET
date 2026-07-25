@@ -117,10 +117,11 @@ fn replays_python_authored_goldens() {
         replayed >= 26,
         "expected at least 26 shared cases, replayed {replayed}"
     );
-    assert_eq!(
-        skipped,
-        vec!["tolerant_unknown_kind".to_owned()],
-        "exactly the OD-2 (#294) snapshot is Python-only today; changing this \
-         set is a deliberate contract decision"
+    assert!(
+        skipped.is_empty(),
+        "no Python-only snapshots remain: OD-2 (#294) landed IR4-everywhere, so \
+         `tolerant_unknown_kind` is now a shared rust_replay case whose Rejected \
+         golden this suite round-trips through the typed surface. A new \
+         Python-only case is a deliberate contract decision: {skipped:?}"
     );
 }

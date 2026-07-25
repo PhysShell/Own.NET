@@ -394,6 +394,69 @@ def run() -> int:
     if _load_raises(ok_absent):
         fails.append("an absent resource field was wrongly rejected (must default to subscription)")
 
+    # --- #294 OD-2: the tolerant door (direct check_facts, load() bypassed) must
+    #     be fail-loud on a present-but-unknown resource kind too, not silently
+    #     route it as `subscription`. `load()` already rejects it (above); an
+    #     unknown FLOW op is rejected on both doors (below), so a resource kind
+    #     routing silently on the tolerant door is an accidental divergence. IR4
+    #     everywhere: the lowerer raises on an unknown kind exactly like load().
+    checks += 1
+    tolerant_bad_kind = {"ownir_version": OWNIR_VERSION, "module": "X",
+                         "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                             {"event": "e", "handler": "h", "line": 1,
+                              "resource": "mutex"}]}]}
+    try:
+        check_facts(tolerant_bad_kind)
+        fails.append("present-but-unknown resource kind silently routed on the "
+                     "tolerant door (check_facts) — should raise OwnIRError (#294 OD-2)")
+    except OwnIRError:
+        pass
+    # control: an ABSENT resource field still defaults to `subscription` on the
+    # tolerant door and produces the ordinary OWN001, never a spurious raise.
+    checks += 1
+    tolerant_absent = {"ownir_version": OWNIR_VERSION, "module": "X",
+                       "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                           {"event": "e", "handler": "h", "line": 1}]}]}
+    try:
+        _ta = check_facts(tolerant_absent)
+        if [f.code for f in _ta] != ["OWN001"]:
+            fails.append(f"absent resource kind on the tolerant door: expected "
+                         f"[OWN001], got {[f.code for f in _ta]}")
+    except OwnIRError as _e:
+        fails.append(f"absent resource field wrongly rejected on the tolerant door "
+                     f"(must default to subscription): {_e}")
+
+    # --- #294 OD-3: `line` coercion must be uniform. Some finding-construction
+    #     paths used strict int(sub.get("line", 0)) while others used the
+    #     non-throwing _as_int; a non-int `line` on the tolerant door crashed one
+    #     path and degraded the other. _as_int everywhere: a bad `line` degrades
+    #     to 0, never raises (load() still validates `line` on the strict door).
+    for _bad in (None, "oops", 3.5):
+        checks += 1
+        tolerant_bad_line = {"ownir_version": OWNIR_VERSION, "module": "X",
+                             "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                                 {"event": "e", "handler": "h", "line": _bad,
+                                  "source": "static", "source_type": "S"}]}]}
+        try:
+            _tl = check_facts(tolerant_bad_line)
+            if [(f.code, f.line) for f in _tl] != [("OWN001", 0)]:
+                fails.append(f"non-int line {_bad!r} on the tolerant door: expected "
+                             f"[(OWN001, 0)], got {[(f.code, f.line) for f in _tl]} (#294 OD-3)")
+        except (TypeError, ValueError) as _e:
+            fails.append(f"non-int line {_bad!r} crashed a strict int() finding path "
+                         f"on the tolerant door — should degrade to 0 via _as_int "
+                         f"(#294 OD-3): {type(_e).__name__}: {_e}")
+    # control: a valid int `line` is preserved unchanged.
+    checks += 1
+    tolerant_ok_line = {"ownir_version": OWNIR_VERSION, "module": "X",
+                        "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                            {"event": "e", "handler": "h", "line": 42,
+                             "source": "static", "source_type": "S"}]}]}
+    _ol = check_facts(tolerant_ok_line)
+    if [(f.code, f.line) for f in _ol] != [("OWN001", 42)]:
+        fails.append(f"valid int line dropped on the tolerant door: expected "
+                     f"[(OWN001, 42)], got {[(f.code, f.line) for f in _ol]}")
+
     # Version single-sourcing (IR2): every producer must stamp the SAME
     # ownir_version as the core. The literal is hand-kept in each frontend today —
     # once P-022's `own-ir` crate lands there are FOUR producers, so a schema will

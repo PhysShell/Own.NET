@@ -1,0 +1,24 @@
+module WpfSubscriptionTeardownEarlyReturnGuard
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// Dispose calls Cleanup(keepAlive=true); inside the helper the release sits
+// AFTER `if (keepAlive) return;` — the early-return spelling of the #278 flag
+// guard. On the production path (keepAlive=true) the token is never released.
+// The core is branch-sensitive and flags it; the C# extractor's guard detector
+// inspects only ENCLOSING conditions of the `-=` site, so before.cs stays
+// silent — an extractor gap, not a core gap.
+fn CleanupKeepAlive(properties: int, keepAlive: int) {
+    let sub = acquire Subscription(properties);
+    if (keepAlive) {
+        return;                 // production callers pass true
+    }
+    release sub;                // the early-return-guarded `-=`
+}

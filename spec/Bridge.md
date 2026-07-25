@@ -81,13 +81,15 @@ drop a malformed entry — a `deps: "a"` must not become `("a",)` and mint a
 spurious verdict); (2) an **accepted** entry's fields go through the existing
 **field-specific coercions** (`_di_findings` `str()`-coerces identity/location
 fields and admits `disposable` only as the JSON boolean `true`); (3) `line`
-**degrades to `0`** via `_as_int` on the paths that use the tolerant helper
-(not all paths do — OD-3). A **duplicate protocol name resolves first-wins**
-(deterministically) instead of raising. The two doors are deliberate: strict
-for external input, tolerant for already-shaped input — but their
-*divergences* are part of this contract and enumerated in §9 (OD-1, OD-2,
-OD-3). A port must implement the strict door exactly; whether it exposes the
-tolerant door at all is #259's decision recorded against OD-1.
+**degrades to `0`** via `_as_int` on **every** finding-construction path
+(OD-3, resolved — the strict `int(...)` anchor paths were converged onto the
+tolerant helper). A **present-but-unknown `resource` kind fails loud** on the
+tolerant door too, matching `load()` (OD-2, resolved). A **duplicate protocol
+name resolves first-wins** (deterministically) instead of raising. The two
+doors are deliberate: strict for external input, tolerant for already-shaped
+input; the accidental divergences are now converged (§9 OD-2/OD-3), leaving
+only **OD-1** open. A port must implement the strict door exactly; whether it
+exposes the tolerant door at all is #259's decision recorded against OD-1.
 
 **BR-D3 (`sig` asymmetry — normative, not a bug).** A present-but-non-string
 `sig` on a `functions[]` **record** is rejected at the strict door; a malformed
@@ -359,13 +361,12 @@ committed regeneration path and a zero-Python steady state:
   missing/null/value handle metadata; per-document `LOWERED_VERSION`
   enforcement), and `own-bridge` (#301) **constructs** the Layer 2 document
   from the facts themselves — `facts → own-ir parse → lower → canonical
-  emit` reproduces all 26 `rust_replay: true` goldens byte-for-byte with
-  the golden used only as expected output. A `rust_replay: false` case
-  (today exactly `tolerant_unknown_kind`) is a Python-only snapshot pinning
-  an open decision (OD-2/#294) and takes no side on it: the Rust bridge
-  fails loud on a present-but-unknown resource kind instead of adopting the
-  tolerant fallback. Layer 1, Layer 3, analysis wiring, and #259 as a whole
-  remain open.
+  emit` reproduces every `rust_replay: true` golden byte-for-byte with
+  the golden used only as expected output. With **OD-2/#294 resolved**
+  (IR4-everywhere fail-loud), `tolerant_unknown_kind` is now one of those
+  shared cases — its `Rejected` golden pins the identical error text on both
+  sides — so there are **no `rust_replay: false` snapshots left**. Layer 1,
+  Layer 3, analysis wiring, and #259 as a whole remain open.
 - **Layer 3 — final normalized diagnostics.** The findings list (and its
   SARIF/github/msbuild renderings) per facts fixture, byte-exact — the outer
   contract. Existing seeds: the end-to-end expectations in `test_ownir.py`
@@ -414,14 +415,21 @@ issue to be settled *before* the port relies on it.
 - **OD-1 (#294 — the tolerant door's scope).** Should Rust `own-bridge` expose the
   tolerant door (BR-D2) at all, or is strict-only + a Python-side test shim
   the porting contract?
-- **OD-2 (#294 — unknown kind on the tolerant door).** `to_module`/`to_own` silently
-  route a present-but-unknown `resource` kind as `subscription` when `load()`
-  is bypassed — the tolerant door contradicts IR4 here. Fail-loud in the
-  lowerer too, or spec the fallback?
-- **OD-3 (#294 — line coercion inconsistency).** Finding construction uses strict
-  `int(...)` on some paths (token/capture anchors) and `_as_int` on others —
-  a non-int `line` on the tolerant door crashes one path and degrades the
-  other.
+- **OD-2 (#294 — unknown kind on the tolerant door). RESOLVED: IR4 everywhere.**
+  `to_module`/`to_own` used to silently route a present-but-unknown `resource`
+  kind as `subscription` when `load()` was bypassed. The lowerer now fails loud
+  too (`ownir.py::_route_resource`), matching `load()`'s vocabulary check
+  byte-for-byte — the same rule the unknown-flow-op guard already applied. An
+  ABSENT `resource` field still defaults to `subscription`. Rust `own-bridge`
+  already fails loud here, so the `tolerant_unknown_kind` fixture is now a
+  shared `rust_replay` case (its `Rejected` golden pins the error text on both
+  sides), not a Python-only snapshot.
+- **OD-3 (#294 — line coercion inconsistency). RESOLVED: `_as_int` everywhere.**
+  Finding construction used strict `int(...)` on the token/capture anchor paths
+  and `_as_int` elsewhere, so a non-int `line` on the tolerant door crashed one
+  path and degraded the other. All finding-construction paths now use `_as_int`
+  (a non-int `line` degrades to `0`); `load()` still validates `line` on the
+  strict door.
 - **OD-4 (#295 — positional identity fallbacks).** `Component<gid>`/`Fn<loc>`
   defaults couple a nameless record's identity to the running counter
   (document position), so an unrelated earlier record shifts it.

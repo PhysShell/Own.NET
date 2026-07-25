@@ -126,10 +126,11 @@ fn lowers_every_shared_facts_to_its_golden() {
         lowered >= 26,
         "expected at least 26 shared cases lowered from facts, got {lowered}"
     );
-    assert_eq!(
-        skipped,
-        vec!["tolerant_unknown_kind".to_owned()],
-        "exactly the OD-2 (#294) snapshot is Python-only; changing this set is \
-         a deliberate contract decision"
+    assert!(
+        skipped.is_empty(),
+        "no Python-only snapshots remain: OD-2 (#294) landed IR4-everywhere, so \
+         `tolerant_unknown_kind` is now a shared rust_replay case whose Rejected \
+         golden this suite verifies byte-for-byte. A new Python-only case is a \
+         deliberate contract decision: {skipped:?}"
     );
 }

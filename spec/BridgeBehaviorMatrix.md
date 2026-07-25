@@ -121,7 +121,9 @@ directly-pinned lowering surface in addition to their end-to-end (L3)
 coverage; `rust/crates/own-lowered` (#300) type-checks and re-emits every
 shared golden byte-exactly, and `rust/crates/own-bridge` (#301) constructs
 the same documents from the facts (`to_module` port: routing, minting, MOS,
-flow lowering), reproducing all 26 `rust_replay: true` goldens byte-for-byte.
-`tolerant_unknown_kind` stays the sole Python-only case pending #294. The
-per-case coverage of the fixture family is listed in the #259 foundation PR;
-Layer 1 and Layer 3 remain open.
+flow lowering), reproducing every `rust_replay: true` golden byte-for-byte.
+With OD-2/#294 resolved (IR4-everywhere fail-loud), `tolerant_unknown_kind` is
+now one of those shared cases — its `Rejected` golden pins the identical error
+text on both sides — so no Python-only cases remain. The per-case coverage of
+the fixture family is listed in the #259 foundation PR; Layer 1 and Layer 3
+remain open.
