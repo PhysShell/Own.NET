@@ -1,0 +1,24 @@
+module WpfSubscriptionDisposingElseBranchRelease
+
+// A subscription token: `+= handler` acquires the source<->listener edge; the
+// matching `-= handler` releases it. `kind` tags the resource so the generic
+// ownership finding carries a [resource: ...] note.
+resource Subscription {
+    acquire Subscribe
+    release Unsubscribe
+    kind "subscription token"
+}
+
+// Dispose(bool disposing) with the release in the ELSE branch: on the managed
+// path (disposing=true — the only path that ever runs while the object is
+// reachable) the token is never released. The core is branch-sensitive and
+// flags it; the C# extractor's canonical-disposing exception looks only at the
+// parameter's use in the condition, not at which branch holds the release, so
+// before.cs stays silent — an extractor gap, not a core gap.
+fn DisposeBool(properties: int, disposing: int) {
+    let sub = acquire Subscription(properties);
+    if (disposing) {
+        return;                 // managed-dispose path exits WITHOUT releasing
+    }
+    release sub;                // finalizer-only branch: unreachable while subscribed
+}
