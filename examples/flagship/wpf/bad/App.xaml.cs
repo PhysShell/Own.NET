@@ -33,8 +33,17 @@ public partial class App : Application
             window.Close();
         }
 
-        // Give the GC every chance: whatever survives this is retained by a
-        // live reference, not by collection lag.
+        // Measure only after WPF has finished tearing the closed windows down.
+        // `Close()` completes through the dispatcher, so counting (or holding)
+        // right here would report the framework mid-teardown rather than the
+        // steady state — which is exactly what a witness would then see.
+        Dispatcher.BeginInvoke(new Action(ReportAndHold), DispatcherPriority.SystemIdle);
+    }
+
+    private void ReportAndHold()
+    {
+        // Whatever survives this is retained by a live reference, not by
+        // collection lag.
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
@@ -45,7 +54,26 @@ public partial class App : Application
             "every one of them, with its whole visual tree, is retained by the " +
             "static settings hub.");
 
-        Hold.IfAsked();
-        Shutdown();
+        if (!Hold.Requested)
+        {
+            Shutdown();
+            return;
+        }
+
+        // Hold with the message loop STILL RUNNING (see Hold.cs): a parked UI
+        // thread is indistinguishable, to a witness, from a leak.
+        Hold.Announce();
+        DateTime deadline = DateTime.UtcNow.AddSeconds(Hold.Seconds);
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(200),
+        };
+        timer.Tick += (_, _) =>
+        {
+            if (!Hold.ShouldRelease(deadline)) return;
+            timer.Stop();
+            Shutdown();
+        };
+        timer.Start();
     }
 }

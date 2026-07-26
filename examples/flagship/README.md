@@ -80,10 +80,21 @@ is where CI attaches the runtime witness and requires it to name the path:
 AppSettings → PropertyChanged → _invocationList → handler → DocumentWindow
 ```
 
-The `ok` side is held to the claim the fix actually makes — the hub retains
-nothing — rather than to "the heap is empty": WPF's own focus and input
-statics may legitimately hold the last closed window, and calling that our
-leak would be the same overreach Owen refuses everywhere else.
+The `ok` side is held to the claim the fix actually makes — **the hub retains
+nothing**, checked as the absence of a `static-event` root — rather than to
+"the heap is empty". Anything WPF itself still holds surfaces under a
+different root kind, and the CI step prints it instead of asserting it: a
+green check there means *your* subscription is gone, never that nothing
+anywhere references the window. Owen refuses that overreach here for the same
+reason it refuses it in static analysis.
+
+One measurement trap is worth naming, because it cost a CI round. `Close()`
+finishes through the dispatcher, so a sample that parks its UI thread to wait
+for a witness (`Thread.Sleep`, `Console.ReadLine`) freezes WPF mid-teardown —
+and the witness then faithfully reports framework book-keeping as retention.
+Both WPF samples therefore hold with the message loop still running
+(`DispatcherTimer`), and only count once the dispatcher has gone idle. A
+runtime witness is only as honest as the moment you take the picture.
 
 ### Holding a sample for a witness
 

@@ -2549,14 +2549,22 @@ jobs:
           [ "$WRC" -le 1 ] || { echo "FAIL: witness could not read the process (exit $WRC)"; exit 1; }
           cat "$RUNNER_TEMP/wpf-ok-runtime.json"
           python3 - "$RUNNER_TEMP/wpf-ok-runtime.json" <<'PY'
-          import json, sys
+          import collections, json, sys
           doc = json.load(open(sys.argv[1], encoding="utf-8"))
           roots = (doc.get("retained") or [{}])[0].get("roots") or []
-          bad = [r for r in roots if r.get("kind") == "static-event"]
-          if bad:
-              print(f"FAIL: the fixed variant still has static-event retention: {bad}", file=sys.stderr)
+          kinds = collections.Counter(r.get("kind") for r in roots)
+          if kinds.get("static-event"):
+              print("FAIL: the fixed variant still has static-event retention "
+                    f"({kinds['static-event']} root(s)) — the release did not run",
+                    file=sys.stderr)
               sys.exit(1)
-          print(f"ok: verdict {doc.get('verdict')}, no static-event root")
+          # Reported, not asserted: anything the FRAMEWORK still holds is a
+          # different root kind and a different claim. Printing it keeps the
+          # step honest — a green check here means "our subscription is gone",
+          # never "the heap is empty".
+          print(f"ok: no static-event root — the hub retains nothing. "
+                f"Witness verdict for the window type: {doc.get('verdict')}; "
+                f"other roots seen: {dict(kinds) or 'none'}")
           PY
       - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'
