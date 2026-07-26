@@ -2209,7 +2209,13 @@ jobs:
         # corpus: DI has no `.own` form, so it is not scanned by the Python `test_corpus` runner).
         # Remaining backlog: a full-length view STORED into another field, a TWO-plus-hop indirect field
         # use, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 25
+        run: python scripts/benchmark.py --min-recall 25 --json "$RUNNER_TEMP/benchmark-scorecard.json"
+      - name: publish the scorecard artifact (numbers + corpus + revision + methodology, A1)
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-scorecard
+          path: ${{ runner.temp }}/benchmark-scorecard.json
+          retention-days: 90
 
   # Alpha gate A (issue #202): the single delightful command, proven end-to-end
   # on a clean runner — install -> check -> findings. Packaging only, no
@@ -2361,6 +2367,21 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      - name: "flagship console repro: bad is OWN001, ok is clean (A2)"
+        run: |
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/console/bad" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: flagship bad must exit 1 (findings), got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: flagship bad must be flagged OWN001"; exit 1; }
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/console/ok" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 0 ] || { echo "FAIL: flagship ok must scan clean (exit 0), got $rc"; exit 1; }
       - name: "core internal crash surfaces as owen exit 5, politely — never a clean scan (A1)"
         if: runner.os == 'Linux'
         run: |
