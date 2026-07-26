@@ -1,7 +1,10 @@
 # P-037 — Guarded effect summaries: the conditional-transfer contract for #304
 
-Status: **draft** (design-only; implementation is post-cutover, #304 / P-036
-Phase 2 — the P-022 verdict-changing freeze applies until then).
+Status: **accepted — design contract, frozen** (arbitrated and accepted at
+`4a01f0e`; design-only — implementation is post-cutover, #304 / P-036 Phase 2,
+and the P-022 verdict-changing freeze applies until then. A design re-review
+is not required for implementation; the proof obligations of §7/§8 are
+discharged by the implementation PR's tests).
 
 Related work:
 
@@ -436,7 +439,12 @@ Notation: `S = Split(g, pos, neg)`; call-site column shows the applied effect.
 Each row is a fixture family for #304's conformance vectors; rows 1–3 are the
 summary-level twins of the corpus cases #305 landed, and must agree with them;
 rows 11–17 pin the election lattice, both declared refinement classes
-(application and summary), and all three branches of the residual-⊥ lemma.
+(application and summary), and residual-⊥ lemma branches 1–2. The discharge
+matrix must additionally carry a **dedicated machine-checked fixture for
+lemma branch 3** (the pure-ungrounded shape: both cells residual-⊥, today's
+solve residual-⊥, both finalize `no` identically) — an arbitration
+requirement, not an inference from "the base behavior is obvious": obvious
+cases stop being obvious after refactorings.
 
 ## 9. Non-goals (walls, not TODOs)
 
