@@ -47,3 +47,50 @@ count goes to zero: the two halves of the same evidence.
 Both variants are smoke-checked in CI (gate A) against the installed
 `Owen.Cli` on Linux and Windows: `bad` must exit 1 with OWN001, `ok` must
 exit 0.
+
+## The same bug where it actually lives (`wpf/`)
+
+The console pair is the shape stripped to its bones. `wpf/` is that shape in
+its native habitat: a `DocumentWindow` subscribed to the settings hub in its
+constructor, an unsubscribe behind `Cleanup(keepAlive)`, and a `Closed`
+handler that passes `true`. Every closed window — its whole visual tree — is
+retained by the hub's delegate list.
+
+```
+dotnet run --project examples/flagship/wpf/bad      (Windows)
+  → opened and closed 200 document windows; 200 still subscribed — every one
+    of them, with its whole visual tree, is retained by the static settings hub.
+
+owen check examples/flagship/wpf/bad --fail-on-finding
+  → OWN001 … DocumentWindow … (exit 1)
+```
+
+The fix (`wpf/ok/`) moves the release into `OnClosed` — the method WPF itself
+calls at the end of a window's life — unconditionally. Same windows, same
+subscription; the count goes to zero.
+
+Note what is and is not platform-bound. **Analysis is not**: the subscription
+binds through `System.ComponentModel` and the release is recognised by
+teardown name, so `owen check` reaches the same verdict on Linux, macOS and
+Windows, and the projects themselves compile anywhere
+(`EnableWindowsTargeting`). Only **running** the sample needs Windows, which
+is where CI attaches the runtime witness and requires it to name the path:
+
+```
+AppSettings → PropertyChanged → _invocationList → handler → DocumentWindow
+```
+
+The `ok` side is held to the claim the fix actually makes — the hub retains
+nothing — rather than to "the heap is empty": WPF's own focus and input
+statics may legitimately hold the last closed window, and calling that our
+leak would be the same overreach Owen refuses everywhere else.
+
+### Holding a sample for a witness
+
+Both pairs support `OWEN_FLAGSHIP_HOLD=1`, which parks the process after the
+work is done and prints `holding (pid N)`. Release it by sending a line on
+stdin (what `scripts/flagship-demo.sh` does through a FIFO) or, when stdin is
+not a console — every CI runner — by setting `OWEN_FLAGSHIP_STOP=<path>` and
+creating that file. Either way the hold is bounded by
+`OWEN_FLAGSHIP_HOLD_SECONDS` (default 300), so a forgotten sample cannot
+outlive its job.

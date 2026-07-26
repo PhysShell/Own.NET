@@ -65,12 +65,6 @@ public static class Program
         Console.WriteLine(
             $"opened and closed 1000 views; " +
             $"{AppSettings.Instance.SubscriberCount} still subscribed.");
-        if (Environment.GetEnvironmentVariable("OWEN_FLAGSHIP_HOLD") == "1")
-        {
-            // Keep the heap alive for a runtime witness (the demo script and
-            // the CI end-to-end smoke attach retention-path to this process).
-            Console.WriteLine($"holding (pid {Environment.ProcessId}) — send a line to exit.");
-            Console.ReadLine();
-        }
+        Hold.IfAsked();
     }
 }

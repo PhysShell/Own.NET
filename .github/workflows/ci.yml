@@ -2382,6 +2382,27 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: flagship ok must scan clean (exit 0), got $rc"; exit 1; }
+      - name: "flagship WPF repro: bad is OWN001, ok is clean — on BOTH platforms (A2)"
+        run: |
+          # The WPF pair is analysed everywhere, not only on Windows: the
+          # subscription binds through System.ComponentModel and the release is
+          # recognised by teardown NAME (`OnClosed`), so the verdict does not
+          # depend on the WindowsDesktop reference pack. Only RUNNING the
+          # sample needs Windows — that is the step below.
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/wpf/bad" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: flagship WPF bad must exit 1 (findings), got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: flagship WPF bad must be flagged OWN001"; exit 1; }
+          echo "$out" | grep -q "DocumentWindow" || { echo "FAIL: the finding must name the leaking window"; exit 1; }
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/wpf/ok" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 0 ] || { echo "FAIL: flagship WPF ok must scan clean (exit 0), got $rc"; exit 1; }
       - name: "core internal crash surfaces as owen exit 5, politely — never a clean scan (A1)"
         if: runner.os == 'Linux'
         run: |
@@ -2445,6 +2466,98 @@ jobs:
           echo "$out"
           [ "$rc" -eq 2 ] || { echo "FAIL: a failed attach must exit 2, never read as clean, got $rc"; exit 1; }
           dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll selftest
+      - name: "WPF flagship on Windows: the witness names the window the hub is holding (A2/A3)"
+        if: runner.os == 'Windows'
+        run: |
+          # The one thing that genuinely needs Windows: RUN the WPF sample and
+          # attach the witness to it. Everything else about this pair (build,
+          # XAML, the static verdict) is proven on every platform above.
+          #
+          # The pid comes from the app's own hold line, not from `$!`: under
+          # git-bash `$!` is the shell's job, not the dotnet.exe underneath it.
+          # The hold is released by creating a stop file — a runner's stdin is
+          # not a console, so a ReadLine hold would fall straight through.
+          dotnet build "$GITHUB_WORKSPACE/examples/flagship/wpf/bad" -c Release -v quiet
+          APP="$GITHUB_WORKSPACE/examples/flagship/wpf/bad/bin/Release/net8.0-windows/BadDocumentWindows.dll"
+          WITNESS="$GITHUB_WORKSPACE/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll"
+          STOP="$RUNNER_TEMP/wpf-stop"
+          LOG="$RUNNER_TEMP/wpf-app.log"
+          rm -f "$STOP"
+          OWEN_FLAGSHIP_HOLD=1 OWEN_FLAGSHIP_STOP="$STOP" OWEN_FLAGSHIP_HOLD_SECONDS=240 \
+            dotnet "$APP" > "$LOG" 2>&1 &
+          for _ in $(seq 1 90); do grep -q "holding (pid" "$LOG" 2>/dev/null && break; sleep 1; done
+          cat "$LOG"
+          grep -q "holding (pid" "$LOG" || { echo "FAIL: the WPF sample never reached its hold point"; exit 1; }
+          grep -q "200 still subscribed" "$LOG" || { echo "FAIL: the sample must report 200 live subscriptions"; exit 1; }
+          PID=$(sed -n 's/.*holding (pid \([0-9]*\)).*/\1/p' "$LOG" | head -1)
+          set +e
+          dotnet "$WITNESS" roots --pid "$PID" --type Owen.Flagship.Wpf.DocumentWindow \
+            --out "$RUNNER_TEMP/wpf-runtime.json"
+          WRC=$?
+          set -e
+          touch "$STOP"
+          cat "$RUNNER_TEMP/wpf-runtime.json"
+          [ "$WRC" -eq 1 ] || { echo "FAIL: witness must exit 1 (RETAINED) on the bad WPF sample, got $WRC"; exit 1; }
+          # JSON is the artifact; grep is not a parser. Semantic anchors only —
+          # addresses and hop counts are not a contract.
+          python3 - "$RUNNER_TEMP/wpf-runtime.json" <<'PY'
+          import json, sys
+          doc = json.load(open(sys.argv[1], encoding="utf-8"))
+          problems = []
+          if doc.get("verdict") != "RETAINED":
+              problems.append(f"verdict {doc.get('verdict')!r}, want RETAINED")
+          roots = (doc.get("retained") or [{}])[0].get("roots") or []
+          if "static-event" not in {r.get("kind") for r in roots}:
+              problems.append(f"no static-event root (got {sorted({r.get('kind') for r in roots})})")
+          text = " ".join(" ".join(r.get("path", [])) + str(r.get("holder", "")) for r in roots)
+          for anchor in ("AppSettings", "PropertyChanged", "_invocationList", "DocumentWindow"):
+              if anchor not in text:
+                  problems.append(f"retention path lacks the {anchor!r} anchor")
+          for p in problems:
+              print(f"FAIL: {p}", file=sys.stderr)
+          sys.exit(1 if problems else 0)
+          PY
+      - name: "WPF flagship on Windows: the fixed variant releases the subscription (A2)"
+        if: runner.os == 'Windows'
+        run: |
+          # The ok side's claim is about OUR subscription, so that is what is
+          # asserted: the hub holds nothing, and no static-event root reaches a
+          # closed window. The witness exit code is deliberately NOT the gate
+          # here — WPF's own focus/input statics may legitimately hold the last
+          # closed window, which is a framework fact, not our leak.
+          dotnet build "$GITHUB_WORKSPACE/examples/flagship/wpf/ok" -c Release -v quiet
+          APP="$GITHUB_WORKSPACE/examples/flagship/wpf/ok/bin/Release/net8.0-windows/OkDocumentWindows.dll"
+          WITNESS="$GITHUB_WORKSPACE/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll"
+          STOP="$RUNNER_TEMP/wpf-ok-stop"
+          LOG="$RUNNER_TEMP/wpf-ok-app.log"
+          rm -f "$STOP"
+          OWEN_FLAGSHIP_HOLD=1 OWEN_FLAGSHIP_STOP="$STOP" OWEN_FLAGSHIP_HOLD_SECONDS=240 \
+            dotnet "$APP" > "$LOG" 2>&1 &
+          for _ in $(seq 1 90); do grep -q "holding (pid" "$LOG" 2>/dev/null && break; sleep 1; done
+          cat "$LOG"
+          grep -q "0 still subscribed" "$LOG" || { echo "FAIL: the fixed sample must report 0 live subscriptions"; exit 1; }
+          PID=$(sed -n 's/.*holding (pid \([0-9]*\)).*/\1/p' "$LOG" | head -1)
+          set +e
+          dotnet "$WITNESS" roots --pid "$PID" --type Owen.Flagship.Wpf.DocumentWindow \
+            --out "$RUNNER_TEMP/wpf-ok-runtime.json"
+          WRC=$?
+          set -e
+          touch "$STOP"
+          # rc 0/1 both mean the witness READ the heap and reached a verdict;
+          # anything else (2) means it never got to look, which is a failure of
+          # the step, not a property of the sample.
+          [ "$WRC" -le 1 ] || { echo "FAIL: witness could not read the process (exit $WRC)"; exit 1; }
+          cat "$RUNNER_TEMP/wpf-ok-runtime.json"
+          python3 - "$RUNNER_TEMP/wpf-ok-runtime.json" <<'PY'
+          import json, sys
+          doc = json.load(open(sys.argv[1], encoding="utf-8"))
+          roots = (doc.get("retained") or [{}])[0].get("roots") or []
+          bad = [r for r in roots if r.get("kind") == "static-event"]
+          if bad:
+              print(f"FAIL: the fixed variant still has static-event retention: {bad}", file=sys.stderr)
+              sys.exit(1)
+          print(f"ok: verdict {doc.get('verdict')}, no static-event root")
+          PY
       - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'
         run: |
