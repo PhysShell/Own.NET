@@ -151,7 +151,7 @@ def _plan() -> tuple[dict[str, str], list[str]]:
             problems.append(f"case name '{name}' exists in BOTH the lowered "
                             f"corpus and fixtures/summaries — one golden tree "
                             f"serves both, so names must be unique")
-        elif name in _disk_cases(LOWDIR, ".facts.json"):
+        elif name in lowered:  # shadows an EXCLUDED lowered case
             problems.append(f"synthetic case '{name}' shadows a lowered "
                             f"corpus case name")
         else:
@@ -183,6 +183,10 @@ def run() -> int:
     plan, fails = _plan()
     if not plan and not fails:
         fails.append(f"no cases planned (no facts under {LOWDIR} / {FIXDIR})")
+    # `degraded` is counted from the dump already produced by the main loop —
+    # a second `_project` pass per case would double the solver/render work
+    # just to read one field (CodeRabbit).
+    n_degraded = 0
     for case, facts_path in sorted(plan.items()):
         golden_path = os.path.join(FIXDIR, f"{case}.summaries.json")
         try:
@@ -206,6 +210,9 @@ def run() -> int:
             fails.append(f"{case}: golden is stale (the solver or the dump "
                          f"changed); regenerate with "
                          f"'python tests/test_summaries_fixtures.py --write'")
+            continue
+        if json.loads(expected).get("degraded") is not None:
+            n_degraded += 1
     for orphan in sorted(_goldens() - set(plan)):
         fails.append(f"{orphan}: orphaned golden (not a planned case); remove "
                      f"it or restore the case (manifest/facts)")
@@ -213,10 +220,6 @@ def run() -> int:
         for f_ in fails:
             print(f"FAIL: summaries fixture {f_}")
         return 1
-    n_degraded = 0
-    for facts_path in plan.values():
-        if json.loads(_project(facts_path)[0]).get("degraded") is not None:
-            n_degraded += 1
     print(f"summaries (MOS parity) fixtures OK: {len(plan)} cases "
           f"({n_degraded} degraded, {len(plan) - n_degraded} solved) "
           f"verified in sync")
