@@ -4,7 +4,10 @@ Status: **accepted — design contract, frozen** (arbitrated and accepted at
 `4a01f0e`; design-only — implementation is post-cutover, #304 / P-036 Phase 2,
 and the P-022 verdict-changing freeze applies until then. A design re-review
 is not required for implementation; the proof obligations of §7/§8 are
-discharged by the implementation PR's tests).
+discharged by the implementation PR's tests). **Amended post-acceptance:**
+G-V4 entry-value stability (Codex P1 on #307, §2/§8 row 18) — a soundness
+*precondition* on guard eligibility and `id`/`neg` edges, closing the mutable-
+parameter hole; no architectural decision of the accepted contract changes.
 
 Related work:
 
@@ -86,6 +89,29 @@ without touching the precision floor.
   being summarized — never fields, locals, globals, or the caller's variables.
   A local initialized from a parameter is a local (the laundering case stays
   honest: no claim; cross-ref audit attack C).
+- **G-V4 (entry-value stability — a soundness precondition, Codex P1 on
+  #307).** Guard semantics are defined over the parameter's **entry value**,
+  but a C# parameter is a mutable local. Eligibility therefore requires
+  provable stability, with the cheapest sound test — an assignment anywhere
+  disqualifies:
+  - a guard variable must be a **by-value parameter that is never assigned**
+    in the body (no assignment, compound assignment, or increment; never
+    passed `ref`/`out`; not mutated through a capture). A violated guard
+    variable is **ineligible**: its literals elect nothing and actions under
+    them derive as today (both cells);
+  - the self-null split (G-S3) additionally requires the **resource parameter
+    itself** to be unassigned — a reassigned `q` would make the summary's
+    `must` claim dispose a *different* object than the caller's argument;
+  - `id`/`neg` transforms (G-S5) are recognized only when the forwarded
+    argument is the bare unassigned parameter (or a single `!` of one);
+    anything else — including `g = !g; Inner(p, g);`, which is *syntactically*
+    an identity forward of `g` — degrades the edge to `opaque`.
+  Without this rule, `Outer(p, true) { g = !g; Inner(p, g); }` would select
+  `Inner`'s positive cell while `Inner` actually receives `false` — a
+  fabricated `must` that can suppress a real leak and charge false
+  use-after-dispose, exactly what G-T1 forbids. Whole-body unassignment is
+  deliberately coarser than entry-SSA tracking (§9): it can only lose
+  precision, never soundness.
 
 ## 3. The guarded-transfer lattice (G-L)
 
@@ -230,7 +256,9 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
   `const-pos` / `const-neg` (a literal argument), `id` (the caller's own split
   variable passed through), `neg` (passed through negated: `Inner(!keep)`),
   `opaque` (anything else). `id`/`neg` are recognized only when caller and
-  callee split variables correspond through that same argument position.
+  callee split variables correspond through that same argument position AND
+  the caller's variable is entry-value stable (G-V4) — a mutated or
+  by-ref-exposed guard degrades the edge to `opaque`.
 - **G-S6 (everything else).** Actions not covered by G-S1–G-S5 derive exactly
   as today. In particular explicit `effect` contracts (INF-S1) remain
   unconditional and win over inference in both cells.
@@ -309,10 +337,13 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
   was `must`); and `must` is *applied* only under G-A2 — a statically selected
   `must` cell, or a unanimous summary whose every cell is `must` (the guard
   provably irrelevant). Both application routes rest on the same cell-definite
-  evidence; neither invents a cell. Every non-vocabulary shape, laundered
-  guard, conflicted election, opaque transform, or unknown argument over
-  *differing* cells lands on a join — never a guess. The floor (`own-only 0`,
-  INF §"The floor") is preserved verbatim.
+  evidence; neither invents a cell. Every guard fact is additionally grounded
+  in an entry-value-stable parameter (G-V4) — a mutable guard cannot silently
+  remap a cell selection or an `id`/`neg` edge. Every non-vocabulary shape,
+  laundered guard, mutated or by-ref guard, conflicted election, opaque
+  transform, or unknown argument over *differing* cells lands on a join —
+  never a guess. The floor (`own-only 0`, INF §"The floor") is preserved
+  verbatim.
 - **G-T2 (refinement — a `≤`, deliberately not an `=`).** Define
   `C(Uncond(t)) = t`, `C(Split(g, a, b)) = join(a, b)` (collapse), and
   `fin` = the cellwise `⊥ → no` finalization (G-L4 / INF-L2). The claim is a
@@ -435,11 +466,13 @@ Notation: `S = Split(g, pos, neg)`; call-site column shows the applied effect.
 | 15 | **overload/election ordering:** sig-keyed summary (roadmap stage 2) elects `Split`; the name-merged fallback group contains a differing election | G-F3: the merge collapses every side to `Uncond` first, then joins — deterministic, pre-solver; the precise `sig`-keyed summary keeps its split where the call carries a `sig` | `sig`-resolved site | per-cell verdicts; name-fallback site: today's behavior |
 | 16 | **forward-grounded residual ⊥:** `F(p, g){ if (g) MustSink(p); else F(p, g); }` | guarded lfp `(must, ⊥)` → fin `(must, no)` → collapse `may`; today `[forward MustSink, forward F, borrow]` → `may`. Equal — the residual-⊥ lemma's branch 2 pin (grounded forward on the other side; distinct from row 14's local-release shape) | unknown site | plain + OWN051; `F(p, true)` selects `must` → `consume` |
 | 17 | **`None`-coordinate refined through `const-pos`:** `Outer(Resource p){ Inner(p, true); }`, `Inner = Split(g, must, no)` | `Outer` elects `None` (its domain is plain `Transfer`) yet its `const-pos` edge reads `Inner`'s positive cell ⇒ `Outer = Uncond(must)`; today `may` forwards into `may`. The summary-refinement class reaching a split-free coordinate — pins that election does not bound where refinement can flow | any `Outer` site | `consume` |
+| 18 | **mutated guard (negative control, G-V4):** `Outer(Resource p, bool g){ g = !g; Inner(p, g); }`, `Inner = Split(g, must, no)` | `g` is assigned ⇒ not entry-value stable ⇒ the edge is `opaque`, reading `join(must, no) = may`; `Outer` gets today's behavior. Without G-V4 the *syntactic* identity forward would select the positive cell while `Inner` receives the negation — a fabricated `must` (the Codex P1). Same wall pins a reassigned self-null parameter | `Outer(p, true)` | plain + OWN051 (today) — never `consume` |
 
 Each row is a fixture family for #304's conformance vectors; rows 1–3 are the
 summary-level twins of the corpus cases #305 landed, and must agree with them;
-rows 11–17 pin the election lattice, both declared refinement classes
-(application and summary), and residual-⊥ lemma branches 1–2. The discharge
+rows 11–18 pin the election lattice, both declared refinement classes
+(application and summary), residual-⊥ lemma branches 1–2, and the G-V4
+stability wall. The discharge
 matrix must additionally carry a **dedicated machine-checked fixture for
 lemma branch 3** (the pure-ungrounded shape: both cells residual-⊥, today's
 solve residual-⊥, both finalize `no` identically) — an arbitration
@@ -456,6 +489,10 @@ cases stop being obvious after refactorings.
   importers wholesale (G-S1); recovering wrapper precision through per-edge
   provenance is a possible later refinement *behind the same lattice*, not
   part of this contract;
+- no SSA / entry-value tracking: G-V4 stability is the whole-body
+  unassignment test — an assignment anywhere disqualifies the parameter,
+  even when it happens after every guarded action; per-path or SSA-grade
+  stability is a later refinement behind the same rules;
 - no symbolic execution, no path conditions, no SMT;
 - no per-call-site summary specialization (the summary stays one object; only
   *selection* is per-site);
