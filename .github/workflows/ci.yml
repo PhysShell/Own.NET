@@ -2427,6 +2427,28 @@ jobs:
           echo "$out"
           [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 in debug mode too, got $rc"; exit 1; }
           echo "$out" | grep -q "Traceback (most recent call last)" || { echo "FAIL: --debug must surface the full cause"; exit 1; }
+      - name: "a top-level .NET exception exits 5 in BOTH modes — debug changes volume, not semantics (A1 P2)"
+        if: runner.os == 'Linux'
+        run: |
+          # TMPDIR pointing at a directory that does not exist makes
+          # Path.GetTempFileName() throw before any inner catch — the honest
+          # top-level owen exception, unreachable via the child stages.
+          set +e
+          out=$(TMPDIR=/definitely/does/not/exist owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 for a top-level exception, got $rc"; exit 1; }
+          echo "$out" | grep -q "owen: internal error" || { echo "FAIL: expected owen's polite framing"; exit 1; }
+          echo "$out" | grep -q "Unhandled exception" && { echo "FAIL: raw runtime crash banner leaked"; exit 1; }
+          echo "$out" | grep -q "   at " && { echo "FAIL: stack trace leaked without --debug"; exit 1; }
+          set +e
+          out=$(TMPDIR=/definitely/does/not/exist owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: --debug must keep exit 5 (a rethrow would exit a runtime-chosen code), got $rc"; exit 1; }
+          echo "$out" | grep -q "   at " || { echo "FAIL: --debug must print the full .NET stack"; exit 1; }
       - name: owen check --format sarif -- Owen-branded SARIF driver name
         run: |
           out=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif)

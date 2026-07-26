@@ -1,4 +1,3 @@
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
 namespace OwnSharp.Cli;
@@ -13,8 +12,11 @@ namespace OwnSharp.Cli;
 /// The report contains tool/OS/runtime identity, the command line, the
 /// failure stage and the technical cause. It deliberately contains NO source
 /// file contents — facts/source sharing stays an explicit user action
-/// (`--emit-facts`). Debug mode (`--debug` or OWEN_DEBUG=1) re-throws so the
-/// full .NET trace is available on demand.
+/// (`--emit-facts`). Debug mode (`--debug` or OWEN_DEBUG=1) prints the full
+/// .NET trace to stderr — it changes the VOLUME of diagnostics, never the
+/// machine semantics: the exit code is 5 in both modes (a re-throw would
+/// exit with a runtime-chosen, platform-dependent code and break the
+/// published contract).
 /// </summary>
 internal static class CrashReport
 {
@@ -33,12 +35,13 @@ internal static class CrashReport
         "https://github.com/PhysShell/Own.NET/issues/new/choose";
 
     /// <summary>Handle an uncaught exception at the top level: polite
-    /// message + report, exit 5 — or re-throw in debug mode.</summary>
+    /// message + report, exit 5. Debug mode additionally prints the full
+    /// exception (type, message, stack) — the exit code stays 5.</summary>
     public static int Handle(Exception ex, string[] args)
     {
         if (Debug)
         {
-            ExceptionDispatchInfo.Capture(ex).Throw();
+            Console.Error.WriteLine(ex);
         }
         var report = TryWrite(args, stage: "owen",
             cause: $"{ex.GetType().FullName}: {ex.Message}",
