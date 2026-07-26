@@ -112,6 +112,11 @@ three release paths:
 | `OWEN_FLAGSHIP_STOP=<path>`, then create that file | callers whose stdin is not a console — every CI runner |
 | `OWEN_FLAGSHIP_HOLD_SECONDS` (default 300) | the backstop: it applies to *every* path, so a forgotten sample cannot outlive its job |
 
+The backstop is measured with a `Stopwatch`, not `DateTime.UtcNow` arithmetic.
+A wall-clock deadline moves when the system clock does, and a bound a clock
+adjustment can extend is not a bound — a small thing to get right, but "cannot
+outlive its job" is either true or it is decoration.
+
 Two details are load-bearing rather than incidental. Stdin is read on a
 **background** thread — a blocking read would ignore the deadline it claims to
 honour, and in the WPF samples it would also starve the dispatcher the hold
