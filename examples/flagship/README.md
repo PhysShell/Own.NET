@@ -13,7 +13,7 @@ an unsubscribe that *exists* but sits behind `if (!keepAlive)` — and every
 close path calls `Cleanup(keepAlive: true)`. The `-=` never runs; every
 closed view stays pinned to the publisher forever.
 
-```
+```console
 dotnet run --project examples/flagship/console/bad
   → opened and closed 1000 views; 1000 still subscribed — every one of them
     is retained by the static publisher.
@@ -32,7 +32,7 @@ method is not evidence (the corpus pins this predicate family —
 Move the release where it provably runs: `Dispose()`, unconditionally, called
 on every close path.
 
-```
+```console
 dotnet run --project examples/flagship/console/ok
   → opened and closed 1000 views; 0 still subscribed.
 
@@ -56,7 +56,7 @@ constructor, an unsubscribe behind `Cleanup(keepAlive)`, and a `Closed`
 handler that passes `true`. Every closed window — its whole visual tree — is
 retained by the hub's delegate list.
 
-```
+```console
 dotnet run --project examples/flagship/wpf/bad      (Windows)
   → opened and closed 200 document windows; 200 still subscribed — every one
     of them, with its whole visual tree, is retained by the static settings hub.
@@ -76,7 +76,7 @@ Windows, and the projects themselves compile anywhere
 (`EnableWindowsTargeting`). Only **running** the sample needs Windows, which
 is where CI attaches the runtime witness and requires it to name the path:
 
-```
+```text
 AppSettings → PropertyChanged → _invocationList → handler → DocumentWindow
 ```
 
@@ -103,9 +103,19 @@ how that dishonesty stays green. The check asserts the whole claim now.
 ### Holding a sample for a witness
 
 Both pairs support `OWEN_FLAGSHIP_HOLD=1`, which parks the process after the
-work is done and prints `holding (pid N)`. Release it by sending a line on
-stdin (what `scripts/flagship-demo.sh` does through a FIFO) or, when stdin is
-not a console — every CI runner — by setting `OWEN_FLAGSHIP_STOP=<path>` and
-creating that file. Either way the hold is bounded by
-`OWEN_FLAGSHIP_HOLD_SECONDS` (default 300), so a forgotten sample cannot
-outlive its job.
+work is done and prints `holding (pid N)`. All four samples honour the same
+three release paths:
+
+| Release | For |
+| --- | --- |
+| a line on stdin | interactive runs, and `scripts/flagship-demo.sh` through its FIFO |
+| `OWEN_FLAGSHIP_STOP=<path>`, then create that file | callers whose stdin is not a console — every CI runner |
+| `OWEN_FLAGSHIP_HOLD_SECONDS` (default 300) | the backstop: it applies to *every* path, so a forgotten sample cannot outlive its job |
+
+Two details are load-bearing rather than incidental. Stdin is read on a
+**background** thread — a blocking read would ignore the deadline it claims to
+honour, and in the WPF samples it would also starve the dispatcher the hold
+depends on. And a **null** read is not a release: with stdin closed or
+redirected from nothing, `Console.ReadLine()` returns null immediately, so
+treating that as "the user pressed Enter" would end the hold before a witness
+could attach — the exact failure the stop file exists to avoid.
