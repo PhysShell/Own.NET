@@ -177,6 +177,19 @@ namespace OwnNet.Audit.Runtime
             // gate-A end-to-end smoke pins the corrected verdict). Retention
             // analysis prefers durable evidence; the stack only explains what
             // nothing durable can.
+            //
+            // INVARIANT (why the shared `parent` map cannot bury a transient
+            // path): durable traversal claims reachable targets; transient
+            // traversal may need shared intermediates, but every intermediate
+            // the durable phase claimed was WALKED TO EXHAUSTION — so any
+            // target reachable through a durably-claimed node is already
+            // durably claimed itself. A target left for phase 2 is, by
+            // construction, unreachable from every durable root, and its
+            // transient path cannot pass through a durably-claimed node. (The
+            // early exit on `reachedTargets` fires only when ALL targets are
+            // claimed, which preserves the property.) Transient ownership
+            // never overwrites durable ownership, and no explainable object
+            // is left unexplained.
             foreach (var seedTransient in new[] { false, true })
             {
                 foreach (var root in allRoots)

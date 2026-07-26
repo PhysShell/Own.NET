@@ -2444,28 +2444,18 @@ jobs:
           echo "$out"
           [ "$rc" -eq 2 ] || { echo "FAIL: a failed attach must exit 2, never read as clean, got $rc"; exit 1; }
           dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll selftest
-      - name: "witness end-to-end: live attach on the flagship leak → RETAINED via static-event (A3)"
+      - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'
         run: |
-          dotnet build "$GITHUB_WORKSPACE/examples/flagship/console/bad" -c Release -v quiet
-          mkfifo "$RUNNER_TEMP/hold-stdin"
-          OWEN_FLAGSHIP_HOLD=1 dotnet "$GITHUB_WORKSPACE"/examples/flagship/console/bad/bin/Release/net8.0/BadDocumentApp.dll \
-            > "$RUNNER_TEMP/hold.log" 2>&1 < "$RUNNER_TEMP/hold-stdin" &
-          exec 9> "$RUNNER_TEMP/hold-stdin"   # keep the pipe open so ReadLine blocks
-          for i in $(seq 1 30); do grep -q "holding (pid" "$RUNNER_TEMP/hold.log" && break; sleep 1; done
-          pid=$(grep -oP 'holding \(pid \K[0-9]+' "$RUNNER_TEMP/hold.log")
-          [ -n "$pid" ] || { echo "FAIL: hold app did not report a pid"; cat "$RUNNER_TEMP/hold.log"; exit 1; }
-          set +e
-          out=$(dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll \
-            roots --pid "$pid" --type Owen.Flagship.DocumentView --out "$RUNNER_TEMP/witness.json" 2>&1)
-          rc=$?
-          set -e
-          echo "$out"; echo >&9 || true
-          [ "$rc" -eq 1 ] || { echo "FAIL: RETAINED must exit 1, got $rc"; exit 1; }
-          echo "$out" | grep -q "verdict: RETAINED" || { echo "FAIL: expected verdict RETAINED"; exit 1; }
-          echo "$out" | grep -q "static-event" || { echo "FAIL: the static-event classification regressed (the net8 stack-mask bug)"; exit 1; }
-          grep -q '"kind": "static-event"' "$RUNNER_TEMP/witness.json" || { echo "FAIL: JSON artifact must carry the static-event kind"; exit 1; }
-          grep -q '"verdict": "RETAINED"' "$RUNNER_TEMP/witness.json" || { echo "FAIL: JSON artifact must carry the verdict"; exit 1; }
+          # The ONE reproducible demo entrypoint (scripts/flagship-demo.sh) is
+          # itself the CI proof: build -> hold the app -> attach the witness
+          # through its public CLI -> machine-validate JSON against the human
+          # verdict -> one stable summary line. bad must demonstrate the
+          # static-event retention; ok must verify no established retention
+          # (the loop-local stack root correctly reads OBSERVED_ONLY, not
+          # RETAINED — the verdict consults the classification).
+          ./scripts/flagship-demo.sh bad
+          ./scripts/flagship-demo.sh ok
       - name: "a top-level .NET exception exits 5 in BOTH modes — debug changes volume, not semantics (A1 P2)"
         if: runner.os == 'Linux'
         run: |

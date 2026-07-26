@@ -156,6 +156,32 @@ namespace OwnNet.Audit.Runtime
                 return 0;
             }
 
+            // The verdict CONSULTS the classification (the ok-variant of the
+            // flagship demo pinned this): a path from a transient root (stack
+            // frame, finalizer queue) proves the object is live RIGHT NOW,
+            // not that anything retains it — a loop local still in a register
+            // is not a leak. RETAINED requires at least one durable retainer;
+            // an `unsupported-root:*` kind counts as durable on purpose
+            // (fail-closed toward visibility: unknown evidence must surface
+            // loudly, never quietly demote the verdict).
+            var durable = report.Retainers
+                .Where(r => r.ContractKind() != "stack" && r.ContractKind() != "finalizer")
+                .ToList();
+            if (durable.Count == 0)
+            {
+                Console.WriteLine($"verdict: OBSERVED_ONLY — {report.TypeName}: {report.TotalOnHeap:N0} on the " +
+                                  $"heap, {report.SampledRetained:N0} of a {sample:N0}-instance sample reachable, " +
+                                  "but ONLY from transient roots (stack/finalizer) — live right now, not durable " +
+                                  "retention");
+                foreach (var r in report.Retainers.Take(3))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"    via [{r.ContractKind()}], {r.Path.Count} hops:");
+                    Console.Write(r.Render());
+                }
+                return 0;
+            }
+
             Console.WriteLine($"verdict: RETAINED — {report.TypeName}: {report.TotalOnHeap:N0} on the heap, " +
                               $"{report.SampledRetained:N0} of a {sample:N0}-instance sample retained");
             Console.WriteLine();
