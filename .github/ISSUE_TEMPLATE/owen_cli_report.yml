@@ -1,0 +1,70 @@
+name: "owen CLI problem (alpha)"
+description: "Something went wrong running `owen check` — a crash, a wrong exit code, a confusing message, or a suspected wrong finding."
+labels: ["bug", "owen-cli"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the alpha. Two quick pointers before you file:
+        - **Exit 4** ("no supported input") and **exit 3** (no Python ≥ 3.11) are
+          documented behavior, not bugs — see `owen --help`. If the message was
+          unclear or wrong for your case, that IS worth filing.
+        - **Exit 5** means owen hit an internal error and wrote a diagnostic
+          report to `~/.owen/diag/last-failure.json` — attaching it makes the fix
+          much faster. It contains tool/OS/runtime identity, the command line and
+          the failure cause, and **no source file contents**.
+  - type: input
+    id: version
+    attributes:
+      label: "owen --version"
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: "OS and .NET SDK"
+      description: "e.g. `Windows 11 / .NET SDK 8.0.4` or `Ubuntu 24.04 / .NET SDK 8.0.4`"
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: "Exact command"
+      placeholder: "owen check MyApp.sln --format sarif"
+    validations:
+      required: true
+  - type: input
+    id: exit-code
+    attributes:
+      label: "Exit code"
+      description: "`echo $?` (bash) / `echo $LASTEXITCODE` (PowerShell) right after the run"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: "Output (stderr/stdout)"
+      description: "What owen printed. If you can, re-run with `--debug` and include that instead."
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: artifact
+    attributes:
+      label: "Diagnostic report / sanitized repro (optional but very helpful)"
+      description: |
+        - For exit 5: attach `~/.owen/diag/last-failure.json`.
+        - For a wrong/missed finding: a minimal `.cs` snippet that shows it, or the
+          facts file from `owen check <path> --emit-facts facts.json` — **review it
+          before attaching**; it contains file paths and code structure (names,
+          lines), though no full source text. Never attach anything you consider
+          private without sanitizing it first.
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: "What you expected instead"
+    validations:
+      required: true
