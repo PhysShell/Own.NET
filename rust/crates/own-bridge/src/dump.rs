@@ -35,11 +35,12 @@ use serde_json::{json, Value};
 /// per-record `name`/`file` the skeleton builder reads), and neither door
 /// validates their TYPE — a container placed where a scalar belongs would
 /// render as Python `repr` there and as JSON text here. That shape has no
-/// producer, cannot be reproduced faithfully for dicts at all (serde_json's
-/// map re-sorts keys; Python `str()` keeps insertion order), and is kept
-/// OUT of the parity contract rather than half-emulated: the harness pins
-/// only scalar-metadata corpora, and any future fixture that smuggles a
-/// container in goes red on the byte diff instead of diverging silently.
+/// producer, cannot be reproduced faithfully for dicts at all
+/// (`serde_json`'s map re-sorts keys; Python `str()` keeps insertion
+/// order), and is kept OUT of the parity contract rather than
+/// half-emulated: the harness pins only scalar-metadata corpora, and any
+/// future fixture that smuggles a container in goes red on the byte diff
+/// instead of diverging silently.
 ///
 /// # Errors
 /// [`BridgeError`] only if the typed facts cannot be re-serialized to JSON
