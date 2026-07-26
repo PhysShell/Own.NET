@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Exe, not WinExe: the sample is its own witness — it prints the live
+         subscriber count, and CI reads that line. A WPF app keeps its console. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Owen.Flagship.Wpf</RootNamespace>
+    <!-- Lets the sample COMPILE on Linux/macOS (it still only RUNS on Windows),
+         so the XAML and the code-behind are checked long before the Windows
+         gate — the runner is where the app is executed, not where it is first
+         discovered to be broken. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+</Project>
