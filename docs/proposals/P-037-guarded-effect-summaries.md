@@ -143,14 +143,17 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
 `_early_return_before_forward`) — parameterized by cell.
 
 - **G-S1 (split election — its own monotone fixpoint, pre-solver).**
-  Election is computed in the three-point **election lattice**, not as a bare
-  candidate set (a singleton-set import operator is *not monotone*: a callee's
-  candidate set growing `{a} ⊂ {a, b}` would flip an importer from `{x}` to
-  `∅`, shrinking the output as the input grows — order dependence through the
-  back door, before the value solver even starts):
+  Election is computed in the **flat election lattice** — `|GuardVars(M)| + 2`
+  elements: `None` at the bottom, one incomparable `One(g)` per guard
+  variable, `Conflict` at the top; height 2 — not as a bare candidate set (a
+  singleton-set import operator is *not monotone*: a callee's candidate set
+  growing `{a} ⊂ {a, b}` would flip an importer from `{x}` to `∅`, shrinking
+  the output as the input grows — order dependence through the back door,
+  before the value solver even starts):
 
   ```text
-  Election ::= None | One(g) | Conflict          -- height 2, finite
+  Election ::= None | One(g) | Conflict     -- flat: None ⊑ One(g) ⊑ Conflict,
+                                            -- distinct One(g)/One(h) incomparable
 
   None      ⊔ x         = x
   One(g)    ⊔ One(g)    = One(g)
@@ -260,8 +263,9 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
     as owned — nothing subtler) → **select** the corresponding cell and lower
     it by `INF-A1` (`must → consume`, `no → borrow`, `may`/`unknown → plain` +
     OWN051);
-  - anything else → lower `join(t_pos, t_neg)` by INF-A1 — byte-for-byte
-    today's behavior.
+  - anything else → apply INF-A1 to `join(t_pos, t_neg)`. The lowering *rule*
+    is today's; the collapsed *value* may be a strict refinement of today's
+    (G-T2) — no byte-for-byte claim is made.
 - **G-A2 (the floor, restated for cells).** A `consume` may be applied in
   exactly two situations:
   1. **selected must** — a cell whose finalized value is `must`, selected by
@@ -311,22 +315,42 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
   `fin` = the cellwise `⊥ → no` finalization (G-L4 / INF-L2). The claim is a
   **lax simulation**, not equality — equality is *false*, and knowably so:
 
-  1. **Why not equality (the mixed release/forward counterexample).**
-     `void M(Resource p, bool g) { if (g) p.Dispose(); else Sink(p); }` with
-     `Sink` an unconditional consumer. Guarded derivation:
-     `pos = must` (local release), `neg = must` (forward resolved through
-     `Sink`), collapse `must`. Today's `_build_skeletons` is not an ideal
-     path-join: the release branch has *priority* — any partial local release
-     emits `[dispose, borrow]` and the forward is never processed — so
-     today's value is `may`. `collapse(guarded) = must ≠ may = today`, and
-     `must` is the *refinement* (`must ≤ may` in the precision order). The
-     guarded layer separates release-paths from forward-paths where today's
-     derivation flattens them: this is a **second, declared class of Phase-2
-     verdict changes** (beyond G-A1 selection) and enters the conformance
-     matrix as such (§8 row 12). "Unknown guard behaves byte-for-byte like
-     today" is therefore also too strong and is *not* claimed: what holds is
-     that the same INF-A1 lowering rule is applied to the collapsed value —
-     the value itself may be strictly more precise.
+  1. **Why not equality — and how wide the refinement really is.** Equality
+     fails against the real `_build_skeletons`, and not in one narrow spot:
+     - *release/forward separation:*
+       `void M(Resource p, bool g) { if (g) p.Dispose(); else Sink(p); }`
+       (`Sink` an unconditional consumer). Guarded: `pos = must` (local
+       release), `neg = must` (forward through `Sink`), collapse `must`.
+       Today the release branch has *priority* — a partial local release
+       emits `[dispose, borrow]` and the forward is never processed — so
+       today says `may`. `must ≤ may`: a strict refinement.
+     - *forward/forward separation:*
+       `if (g) SinkA(p); else SinkB(p);` (both unconditional consumers).
+       Guarded: each cell holds one straight-line forward → `Split(g, must,
+       must)`, collapse `must`. Today INF-S3 sees a conditional, multi-target
+       handoff and adds the synthetic `borrow` → `may`. Strict refinement,
+       and *not* the release/forward case.
+     - *const specialization through a wrapper, on a `None` coordinate:*
+       `void Outer(Resource p) { Inner(p, true); }` with
+       `Inner = Split(g, must, no)`. `Outer`'s election is `None` — its
+       coordinate is plain `Transfer` — yet its `const-pos` edge reads
+       `Inner`'s positive cell (G-F2) and resolves `Uncond(must)`, where
+       today `Inner = may` forwards into `Outer = may`. Election types a
+       coordinate's *own* domain; it does not stop that coordinate from
+       reading a refined neighbour. Any claim that `None`-election
+       coordinates coincide with today is therefore false and is not made.
+     These (and their transitive compositions through `id`/`neg` edges) are
+     one phenomenon, and the taxonomy declares exactly **two** verdict-change
+     classes, not a growing list:
+     1. **application refinement** — cell selection at the final call site
+        (G-A1/G-A2 route 1);
+     2. **summary refinement** — cellwise derivation plus guard-aware edge
+        transforms refining today's path-insensitive skeleton, even with no
+        selection at the final call site (all three shapes above; §8 rows
+        12–13, 16–17).
+     "Unknown guard behaves byte-for-byte like today" is *not* claimed: what
+     holds is that the same INF-A1 lowering rule is applied to the collapsed
+     value — the value itself may be strictly more precise (class 2).
   2. **Solver lax simulation (pre-finalization).** `C` is a join-morphism on
      the product lattice
      (`C((a,b) ⊔ (c,d)) = (a⊔c) ⊔ (b⊔d) = C(a,b) ⊔ C(c,d)`), and every G-F2
@@ -349,21 +373,33 @@ branch-sensitive machinery D1/D7 already built (`_definite_release`,
        with no normal-return path contributes vacuously (matching the base
        layer's treatment of never-returning paths);
      - *residual-⊥ lemma:* a cell is `⊥` at the lfp only when its every
-       contribution is an ungrounded same-SCC forward. In every such skeleton
-       shape today's derivation is already `≥ may` (a partial local release on
-       the other side triggers the `[dispose, borrow]` priority) or is itself
-       residual-`⊥` (the pure-forward case, where both sides finalize `no`
-       identically) — so finalizing the guarded cell to `no` never lifts the
-       collapse above today's value. This lemma is a **proof obligation the
-       implementation must pin with tests** (§8 row 14), not a formality: it
-       is exactly where a future derivation change could silently break the
+       contribution is an ungrounded same-SCC forward. The case split on the
+       **other** cell has three branches, and all three keep today `≥` the
+       finalized collapse:
+       1. *partial local release on the other side* — today's
+          `[dispose, borrow]` priority already yields `may`
+          (§8 row 14: `if (g) release p; else F(p, g);`);
+       2. *grounded forward on the other side* — today's INF-S3 sees a
+          conditional / multi-target handoff and adds the synthetic `borrow`,
+          so today is `≥ may` while the finalized collapse is `may`
+          (§8 row 16: `if (g) MustSink(p); else F(p, g);` — guarded lfp
+          `(must, ⊥)` → fin `(must, no)` → collapse `may`; today
+          `[forward MustSink, forward F, borrow] → may`);
+       3. *no grounding anywhere* — the pure-ungrounded case: today's solve is
+          itself residual-`⊥` and both sides finalize `no` identically.
+       So finalizing a guarded cell to `no` never lifts the collapse above
+       today's value. This lemma is a **proof obligation the implementation
+       must pin with tests** (§8 rows 14 and 16), not a formality: it is
+       exactly where a future derivation change could silently break the
        refinement.
   4. **Application compatibility (weakened accordingly).** With no static
-     selection, G-A1 applies today's *lowering rule* to `C(fin(summary))`;
-     the resulting verdict coincides with today's wherever the value does
-     (all `None`-election coordinates, all vocabulary-free bodies) and is
-     more precise exactly in the two declared classes (selection, and the
-     release/forward separation of point 1).
+     selection, G-A1 applies today's *lowering rule* to `C(fin(summary))`.
+     The resulting verdict coincides with today's **wherever the collapsed
+     value equals today's value** — no structural shortcut (`None` election
+     included) guarantees that by itself, per counterexample 3 of point 1 —
+     and differs exactly within the two declared classes: application
+     refinement (selection) and summary refinement (cellwise derivation +
+     guard-aware edges).
   Consequence for migration: the summary dump gains the election and the
   cells as additive fields plus a derived collapsed view; diffing the
   collapsed view against today's golden dumps isolates exactly the two
@@ -390,15 +426,17 @@ Notation: `S = Split(g, pos, neg)`; call-site column shows the applied effect.
 | 9 | alternating recursion `F(p, bool g){ if (g) release p; else F(p, !g); }` | least fixpoint `Split(g, must, must)` = collapse `must` — correct: every execution releases. (Under a synchronous Jacobi update this stabilizes in two sweeps: pos `must` from the local release, then neg `must` through the `neg` edge. The sweep count is an illustration of one schedule; the lfp itself is schedule-independent by G-F2's monotonicity — the scheduler is not part of the mathematics.) | any | `consume` (G-A2 case 2: unanimous `must`) |
 | 10 | disagreeing call sites `Teardown(true)` + `Teardown(false)` in one program | one summary, per-site selection (G-A1) — no cross-site contamination; each site gets its own row-1 verdict | — | — |
 | 11 | **late election conflict:** wrapper `W(bool f){ Inner(f); }`; `Inner`'s election grows `One(a)` → `Conflict` (a second guarded action over `b` appears in `Inner`) | the election fixpoint re-runs on the new skeleton set: `Conflict` imports as `Conflict` (G-S1), so `W` collapses to `Uncond` — a stale imported `One(a)` cannot survive, because election is a least fixpoint of a monotone operator, not an add-only set | any | today's behavior |
-| 12 | **mixed release/forward:** `if (g) release p; else MustSink(p);` | `Split(g, must, must)`, collapse `must` — where today's rel-priority derivation says `may` (G-T2.1's counterexample; the second declared verdict-change class) | any (no selection needed) | `consume` (G-A2 case 2) |
+| 12 | **mixed release/forward:** `if (g) release p; else MustSink(p);` | `Split(g, must, must)`, collapse `must` — where today's rel-priority derivation says `may` (G-T2.1; the summary-refinement class) | any (no selection needed) | `consume` (G-A2 case 2) |
 | 13 | **unknown call site over unanimous cells:** row-12 summary, `M(p, x)` with `x` unknown | no selection, but `C(fin) = must` | — | `consume` — selection is unnecessary when both sides consume |
 | 14 | **one-cell residual ⊥:** `F(p, g){ if (g) release p; else F(p, g); }` (same-guard recursion, no grounding) | lfp `(must, ⊥)` → `fin` → `(must, no)` → collapse `may`; today: partial release ⇒ `may`. Equal — the residual-⊥ lemma's pin (G-T2.3) | unknown site | plain + OWN051 (today); `F(p, true)` selects `must` → `consume`; `F(p, false)` selects `no` → `borrow` → honest OWN001 |
 | 15 | **overload/election ordering:** sig-keyed summary (roadmap stage 2) elects `Split`; the name-merged fallback group contains a differing election | G-F3: the merge collapses every side to `Uncond` first, then joins — deterministic, pre-solver; the precise `sig`-keyed summary keeps its split where the call carries a `sig` | `sig`-resolved site | per-cell verdicts; name-fallback site: today's behavior |
+| 16 | **forward-grounded residual ⊥:** `F(p, g){ if (g) MustSink(p); else F(p, g); }` | guarded lfp `(must, ⊥)` → fin `(must, no)` → collapse `may`; today `[forward MustSink, forward F, borrow]` → `may`. Equal — the residual-⊥ lemma's branch 2 pin (grounded forward on the other side; distinct from row 14's local-release shape) | unknown site | plain + OWN051; `F(p, true)` selects `must` → `consume` |
+| 17 | **`None`-coordinate refined through `const-pos`:** `Outer(Resource p){ Inner(p, true); }`, `Inner = Split(g, must, no)` | `Outer` elects `None` (its domain is plain `Transfer`) yet its `const-pos` edge reads `Inner`'s positive cell ⇒ `Outer = Uncond(must)`; today `may` forwards into `may`. The summary-refinement class reaching a split-free coordinate — pins that election does not bound where refinement can flow | any `Outer` site | `consume` |
 
 Each row is a fixture family for #304's conformance vectors; rows 1–3 are the
 summary-level twins of the corpus cases #305 landed, and must agree with them;
-rows 11–15 pin the election lattice, both G-T2 refinement classes, and the
-finalization lemma.
+rows 11–17 pin the election lattice, both declared refinement classes
+(application and summary), and all three branches of the residual-⊥ lemma.
 
 ## 9. Non-goals (walls, not TODOs)
 
@@ -431,17 +469,21 @@ lands, they become redundant witnesses the corpus keeps as regression anchors.
 Acceptance for this proposal (design review, no code):
 
 - the fixed-split-before-solve decision (G-L1) and its associativity
-  rationale, with election typed as its own three-point lattice
-  (`None`/`One(g)`/`Conflict`) solved by a monotone pre-solver fixpoint
-  (G-S1) — never a candidate set with a singleton filter;
+  rationale, with election typed as the flat election lattice
+  (`|GuardVars(M)| + 2` elements: `None`, one `One(g)` per guard variable,
+  `Conflict`) solved by a monotone pre-solver fixpoint (G-S1) — never a
+  candidate set with a singleton filter;
 - the five-transform edge vocabulary (G-S5/G-F2) as the entire guard
   propagation story;
 - G-A2's two consume routes (selected `must`; unanimous `must`) as the
   application floor;
 - G-T1/G-T2 accepted as the proof obligations the implementation PR must
   discharge with tests (fixture families of §8) — G-T2 explicitly as a lax
-  refinement (`≤`) post-finalization, with the residual-⊥ lemma pinned, never
-  as derivation equality;
-- both declared verdict-change classes (cell selection; release/forward
-  separation) entered into the #304 conformance matrix;
+  refinement (`≤`) post-finalization, with all three branches of the
+  residual-⊥ lemma pinned, never as derivation equality;
+- both declared verdict-change classes — **application refinement** (cell
+  selection at the final call site) and **summary refinement** (cellwise
+  derivation + guard-aware edge transforms, including release/forward and
+  forward/forward separation and const specialization through wrappers) —
+  entered into the #304 conformance matrix;
 - the walls of §9 accepted as walls.
