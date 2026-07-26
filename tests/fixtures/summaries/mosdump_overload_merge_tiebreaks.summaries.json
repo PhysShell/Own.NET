@@ -1,0 +1,31 @@
+{
+  "degraded": null,
+  "module": "MergeTie",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "a.cs",
+      "line": 0,
+      "method": "Ov.M",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "aa",
+          "transfer": "may"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "k1",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

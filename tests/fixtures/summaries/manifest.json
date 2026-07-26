@@ -1,0 +1,47 @@
+{
+  "ownir_version": 0,
+  "excluded_lowered": [
+    {
+      "name": "tolerant_unknown_kind",
+      "reason": "load() rejects the facts (unknown resource kind 'mutex') before dump_summaries can run — `python -m ownlang summaries` exits 2, so there is no document to pin. The rejection text itself is pinned byte-for-byte by the lowered family's Rejected golden (#294 OD-2: Python fails at the load door, Rust at the lower door)."
+    }
+  ],
+  "cases": [
+    {
+      "name": "mosdump_scc_cycles",
+      "rules": ["INF-F1", "INF-F2", "INF-F3", "INF-F7", "INF-L2", "INF-S4"]
+    },
+    {
+      "name": "mosdump_return_chains",
+      "rules": ["INF-R3", "INF-R4", "INF-F5", "INF-F7"]
+    },
+    {
+      "name": "mosdump_overload_merge_tiebreaks",
+      "rules": ["INF-M1", "INF-M2", "INF-M3", "INF-R1"]
+    },
+    {
+      "name": "mosdump_sig_vocabulary",
+      "rules": ["INF-M1", "INF-F1", "INF-R1"]
+    },
+    {
+      "name": "mosdump_degraded_duplicate_key",
+      "rules": ["INF-F4", "INF-F6"]
+    },
+    {
+      "name": "mosdump_nonascii_escaping",
+      "rules": ["INF-R1"]
+    },
+    {
+      "name": "mosdump_sink_channels",
+      "rules": ["INF-S6", "INF-F7"]
+    },
+    {
+      "name": "mosdump_explicit_effects",
+      "rules": ["INF-S1"]
+    },
+    {
+      "name": "mosdump_partial_and_guarded",
+      "rules": ["INF-S2", "INF-S3", "INF-L1"]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "ownir_version": 0,
+  "module": "Guarded",
+  "functions": [
+    {
+      "name": "Pg.Partial",
+      "file": "pg.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 3
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "Pg.Early",
+      "file": "pg.cs",
+      "params": [
+        {
+          "name": "q",
+          "line": 7
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 8,
+          "then": [
+            {
+              "op": "return",
+              "line": 9
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "call",
+          "callee": "Pg.SinkAll",
+          "args": [
+            "q"
+          ],
+          "line": 11
+        }
+      ]
+    },
+    {
+      "name": "Pg.SinkAll",
+      "file": "pg.cs",
+      "params": [
+        {
+          "name": "r",
+          "line": 14
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "r",
+          "line": 15
+        }
+      ]
+    }
+  ]
+}

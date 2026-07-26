@@ -12,16 +12,22 @@
 //! **Pure transformation**: [`lower`] maps a typed [`own_ir::OwnIr`] document
 //! to an [`own_lowered::LoweredDocument`] (or a [`BridgeError`] whose message
 //! text is part of the parity surface — Python projects it as the `Rejected`
-//! form). No filesystem, no CLI, no diagnostics, no analysis. The tolerant
-//! door, `OwnIR` validation parity, MOS contract *changes*, and analysis
-//! wiring are all out of scope (#294 stays open; the `tolerant_unknown_kind`
-//! fixture stays Python-only).
+//! form), and [`dump_summaries`] renders the MOS summaries document
+//! byte-identically to `python -m ownlang summaries` (the inference layer's
+//! parity artifact, spec/Inference.md §8). No filesystem, no CLI, no
+//! diagnostics, no analysis. `OwnIR` validation parity, MOS contract
+//! *changes*, and analysis wiring stay out of scope (#294 OD-2 landed:
+//! IR4-everywhere — `tolerant_unknown_kind` is a shared `rust_replay` case
+//! whose `Rejected` golden pins the fail-loud text on both sides).
 //!
 //! The oracle is byte-exact: for every `rust_replay: true` manifest case,
 //! `facts → OwnIr::from_json → lower → own_lowered::to_canonical_json` must
-//! equal the committed Python golden (`tests/replay.rs`). The goldens are
+//! equal the committed Python golden (`tests/replay.rs`), and every
+//! summaries-family case must reproduce its `*.summaries.json` golden
+//! through [`dump_summaries`] (`tests/summaries.rs`). The goldens are
 //! expected output ONLY — never an input to construction.
 
+mod dump;
 mod lower;
 mod mos;
 
@@ -49,4 +55,18 @@ impl std::error::Error for BridgeError {}
 /// (e.g. an unknown flow op); the message text matches Python's `OwnIRError`.
 pub fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
     lower::lower(facts)
+}
+
+/// Render the MOS summaries document for one `OwnIR` facts document.
+///
+/// Byte-identical to `python -m ownlang summaries` on the same facts
+/// (`json.dumps(doc, indent=2, sort_keys=True)` + the trailing newline).
+/// A solver failure is not an error: it is the document's `degraded` branch,
+/// exactly like the reference (INF-F6).
+///
+/// # Errors
+/// [`BridgeError`] only if the typed facts cannot be re-serialized to JSON
+/// (not reachable for a document [`OwnIr::from_json`] accepted).
+pub fn dump_summaries(facts: &OwnIr) -> Result<String, BridgeError> {
+    dump::dump_summaries(facts)
 }

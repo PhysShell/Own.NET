@@ -1,0 +1,18 @@
+{
+  "degraded": null,
+  "module": "Rebind",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "M",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

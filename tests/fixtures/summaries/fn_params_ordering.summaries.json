@@ -1,0 +1,60 @@
+{
+  "degraded": null,
+  "module": "Params",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "Second",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "p",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "Sink",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "a",
+          "transfer": "must"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "b",
+          "transfer": "no"
+        },
+        {
+          "disposable": true,
+          "index": 2,
+          "name": "c",
+          "transfer": "no"
+        },
+        {
+          "disposable": true,
+          "index": 3,
+          "name": "d",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

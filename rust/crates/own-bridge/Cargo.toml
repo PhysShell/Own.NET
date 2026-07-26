@@ -16,5 +16,9 @@ own-ir = { path = "../own-ir" }
 own-lowered = { path = "../own-lowered" }
 serde_json.workspace = true
 
+[dev-dependencies]
+# The summaries-family manifest is parsed typed+strict in tests/summaries.rs.
+serde.workspace = true
+
 [lints]
 workspace = true

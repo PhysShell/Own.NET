@@ -5,15 +5,16 @@
 //! least fixpoint over the call graph's SCC condensation, and each method's
 //! owned-return kind by a memoized, cycle-safe chase along forward edges.
 //!
-//! Deliberately NOT carried from the reference: the `adopt`/`return` path
-//! kinds and the `aliasOf`/`aliased` return kinds (reserved in Python — the
-//! production skeleton builder never emits them; they would contribute
-//! `Transfer::Must` / terminal strings exactly like Python's), the `escapes`
-//! axis (no producer sets it), and the unresolved-edge log (`solve_with_log`)
-//! — none of them can influence a lowered document today. The summary also
-//! drops the dump-only fields (`name`, `file`, `line`, `source`): the merged
-//! name/location tie-breaks in `_merge_skeletons` affect only the detached
-//! summaries artifact, never the lowering.
+//! Since the MOS parity harness (`dump_summaries` / `tests/summaries.rs`),
+//! the dump surface is carried in full: the summary fields the detached
+//! `summaries[]` artifact serializes (`name`, `disposable`, `file`, `line`,
+//! `source` — with the `_merge_skeletons` name/location tie-breaks in
+//! `lower.rs`) and the unresolved-boundary log ([`solve_with_log`], the
+//! `unresolved` key). Still deliberately NOT carried: the `adopt`/`return`
+//! path kinds and the `aliasOf`/`aliased` return kinds (reserved in Python —
+//! the production skeleton builder never emits them; they would contribute
+//! `Transfer::Must` / terminal strings exactly like Python's) and the
+//! `escapes` axis (no producer sets it, and INF-R2 keeps it out of the dump).
 
 // Solver internals index maps by invariant-backed keys (every key read was
 // inserted by the same pass); expect()/indexing over those invariants is the
@@ -55,6 +56,18 @@ pub(crate) const fn join(a: Transfer, b: Transfer) -> Transfer {
     }
 }
 
+impl Transfer {
+    /// The `Transfer` `StrEnum` value the dump serializes.
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::No => "no",
+            Self::Must => "must",
+            Self::May => "may",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 /// One thing a method body does with a parameter on one normal-return path.
 /// The production builder emits exactly these three kinds.
 #[derive(Debug, Clone)]
@@ -86,6 +99,12 @@ pub(crate) enum ReturnSkeleton {
 pub(crate) struct ParamSkeleton {
     /// The logical parameter index calls resolve by (never tuple offset).
     pub index: i64,
+    /// The C# parameter name (dump-only; `_merge_skeletons` takes the
+    /// lexicographic min across overloads so the dump is order-independent).
+    pub name: String,
+    /// The production builder always sets `true`; carried because the
+    /// solver's `lookup` short-circuits a non-disposable to `no`.
+    pub disposable: bool,
     /// Empty = nothing happens to it -> kept (`no`).
     pub paths: Vec<PathAction>,
 }
@@ -96,11 +115,18 @@ pub(crate) struct MethodSkeleton {
     pub key: String,
     pub params: Vec<ParamSkeleton>,
     pub ret: ReturnSkeleton,
+    /// Declaration file (dump-only; merged overloads take the min
+    /// `(file, line)` pair). `functions[]` records carry no line of their
+    /// own, so `line` stays 0 from the production builder.
+    pub file: String,
+    pub line: i64,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct ParamSummary {
     pub index: i64,
+    pub name: String,
+    pub disposable: bool,
     pub transfer: Transfer,
 }
 
@@ -110,6 +136,11 @@ pub(crate) struct MethodSummary {
     /// `"fresh" | "none" | "unknown"` — the terminal forms the production
     /// skeletons can reach. Only `== "fresh"` is read by the lowering.
     pub returns: String,
+    pub file: String,
+    pub line: i64,
+    /// `inferred | bcl | annotation | heuristic` in the reference; only the
+    /// default `inferred` tier has a producer today.
+    pub source: &'static str,
 }
 
 /// The lowering consumes summaries through this map (`mos` in Python).
@@ -209,10 +240,13 @@ fn sccs(adj: &BTreeMap<String, BTreeSet<String>>) -> Vec<Vec<String>> {
 
 type ParamKey = (String, i64);
 
-/// Resolve every method's MOS. A duplicate skeleton key is an error the
-/// caller degrades on (Python: `ValueError` → the bridge drops to an empty
-/// MOS rather than corrupting the call graph).
-pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
+/// Resolve every method's MOS, plus the unresolved-boundary log: every
+/// forward — param or return — that crossed an extern (unsummarized)
+/// boundary, sorted (Python `solve_with_log`; the dump's `unresolved` key).
+/// A duplicate skeleton key is an error the caller degrades on (Python:
+/// `ValueError` → the bridge drops to an empty MOS / the dump goes
+/// `degraded` rather than corrupting the call graph).
+pub(crate) fn solve_with_log(skeletons: Vec<MethodSkeleton>) -> Result<(Mos, Vec<String>), String> {
     let mut sk: BTreeMap<String, MethodSkeleton> = BTreeMap::new();
     for s in skeletons {
         if sk.contains_key(&s.key) {
@@ -221,6 +255,9 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
         sk.insert(s.key.clone(), s);
     }
 
+    // `set` + end-of-solve sort in Python; a BTreeSet iterates the same order
+    // (str `<` compares code points, which is exactly UTF-8 byte order).
+    let mut unresolved: BTreeSet<String> = BTreeSet::new();
     let mut param_val: HashMap<ParamKey, Transfer> = HashMap::new();
 
     // --- param transfers: bottom-up, per-SCC least fixpoint on the lattice --
@@ -229,7 +266,9 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
         let mut members: Vec<ParamKey> = Vec::new();
         for k in &comp {
             for p in &sk[k].params {
-                members.push((k.clone(), p.index));
+                if p.disposable {
+                    members.push((k.clone(), p.index));
+                }
             }
         }
         if members.is_empty() {
@@ -242,13 +281,18 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
         let lookup = |callee: &str,
                       arg: i64,
                       param_val: &HashMap<ParamKey, Transfer>,
-                      cur: &HashMap<ParamKey, Option<Transfer>>|
+                      cur: &HashMap<ParamKey, Option<Transfer>>,
+                      unresolved: &mut BTreeSet<String>|
          -> Option<Transfer> {
             let Some(skel) = sk.get(callee) else {
+                unresolved.insert(format!("{callee}#{arg} (extern, no summary)"));
                 return Some(Transfer::Unknown); // extern, no summary
             };
-            if !skel.params.iter().any(|q| q.index == arg) {
+            let Some(p) = skel.params.iter().find(|q| q.index == arg) else {
                 return Some(Transfer::Unknown); // no such logical param
+            };
+            if !p.disposable {
+                return Some(Transfer::No);
             }
             let keyp = (callee.to_owned(), arg);
             if let Some(v) = param_val.get(&keyp) {
@@ -278,7 +322,7 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
                             PathAction::Dispose => Some(Transfer::Must),
                             PathAction::Borrow => Some(Transfer::No),
                             PathAction::Forward { callee, arg } => {
-                                lookup(callee, *arg, &param_val, &cur)
+                                lookup(callee, *arg, &param_val, &cur, &mut unresolved)
                             }
                         };
                         acc = match (acc, contrib) {
@@ -304,7 +348,10 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
 
     // --- returns: iterative, memoized, cycle-safe chase along forward edges --
     let mut ret_val: HashMap<String, String> = HashMap::new();
-    let resolve_return = |start: &str, ret_val: &mut HashMap<String, String>| -> String {
+    let resolve_return = |start: &str,
+                          ret_val: &mut HashMap<String, String>,
+                          unresolved: &mut BTreeSet<String>|
+     -> String {
         if let Some(v) = ret_val.get(start) {
             return v.clone();
         }
@@ -335,6 +382,7 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
                 }
                 ReturnSkeleton::Forward { callee } => {
                     if !sk.contains_key(callee) {
+                        unresolved.insert(format!("return {callee} (extern, no summary)"));
                         val = "unknown".to_owned(); // extern, no summary
                         ret_val.insert(key.clone(), val.clone());
                         break;
@@ -367,14 +415,32 @@ pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
             .iter()
             .map(|p| ParamSummary {
                 index: p.index,
+                name: p.name.clone(),
+                disposable: p.disposable,
                 transfer: param_val
                     .get(&(key.clone(), p.index))
                     .copied()
                     .unwrap_or(Transfer::No),
             })
             .collect();
-        let returns = resolve_return(&key, &mut ret_val);
-        out.insert(key.clone(), MethodSummary { params, returns });
+        let returns = resolve_return(&key, &mut ret_val, &mut unresolved);
+        let skel = &sk[&key];
+        out.insert(
+            key.clone(),
+            MethodSummary {
+                params,
+                returns,
+                file: skel.file.clone(),
+                line: skel.line,
+                source: "inferred",
+            },
+        );
     }
-    Ok(out)
+    Ok((out, unresolved.into_iter().collect()))
+}
+
+/// Convenience wrapper around [`solve_with_log`] dropping the unresolved log
+/// (the lowering path — the log is a dump-only surface).
+pub(crate) fn solve(skeletons: Vec<MethodSkeleton>) -> Result<Mos, String> {
+    solve_with_log(skeletons).map(|(mos, _)| mos)
 }

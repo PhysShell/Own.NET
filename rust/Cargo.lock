@@ -30,6 +30,7 @@ version = "0.1.0"
 dependencies = [
  "own-ir",
  "own-lowered",
+ "serde",
  "serde_json",
 ]
 

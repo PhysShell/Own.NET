@@ -1,0 +1,66 @@
+{
+  "ownir_version": 0,
+  "module": "Sinks",
+  "functions": [
+    {
+      "name": "Sk.C",
+      "file": "sk.cs",
+      "params": [
+        {
+          "name": "a",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "$consume",
+          "args": [
+            "a"
+          ],
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Sk.B",
+      "file": "sk.cs",
+      "params": [
+        {
+          "name": "b",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "$borrow",
+          "args": [
+            "b"
+          ],
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Sk.M",
+      "file": "sk.cs",
+      "params": [
+        {
+          "name": "c",
+          "line": 9
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "$borrow_mut",
+          "args": [
+            "c"
+          ],
+          "line": 10
+        }
+      ]
+    }
+  ]
+}

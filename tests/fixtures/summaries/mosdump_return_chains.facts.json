@@ -1,0 +1,112 @@
+{
+  "ownir_version": 0,
+  "module": "ReturnChains",
+  "functions": [
+    {
+      "name": "Mk.Base",
+      "file": "mk.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 2
+        },
+        {
+          "op": "return",
+          "var": "r",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "Mk.Wrap1",
+      "file": "mk.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Mk.Base",
+          "args": [],
+          "result": "x",
+          "line": 7
+        },
+        {
+          "op": "return",
+          "var": "x",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "Mk.Wrap2",
+      "file": "mk.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Mk.Wrap1",
+          "args": [],
+          "result": "y",
+          "line": 12
+        },
+        {
+          "op": "return",
+          "var": "y",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "Cyc.P",
+      "file": "cyc.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Cyc.Q",
+          "args": [],
+          "result": "a",
+          "line": 17
+        },
+        {
+          "op": "return",
+          "var": "a",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "name": "Cyc.Q",
+      "file": "cyc.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Cyc.P",
+          "args": [],
+          "result": "b",
+          "line": 22
+        },
+        {
+          "op": "return",
+          "var": "b",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "Ext.W",
+      "file": "ext.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Vendor.Make",
+          "args": [],
+          "result": "c",
+          "line": 27
+        },
+        {
+          "op": "return",
+          "var": "c",
+          "line": 28
+        }
+      ]
+    }
+  ]
+}

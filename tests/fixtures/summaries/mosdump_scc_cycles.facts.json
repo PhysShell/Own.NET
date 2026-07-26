@@ -1,0 +1,101 @@
+{
+  "ownir_version": 0,
+  "module": "SccCycles",
+  "functions": [
+    {
+      "name": "Cy.A",
+      "file": "cy.cs",
+      "params": [
+        {
+          "name": "s",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "Cy.B",
+          "args": [
+            "s"
+          ],
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Cy.B",
+      "file": "cy.cs",
+      "params": [
+        {
+          "name": "t",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "Cy.A",
+          "args": [
+            "t"
+          ],
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Cy.C",
+      "file": "cy.cs",
+      "params": [
+        {
+          "name": "u",
+          "line": 9
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 10,
+          "then": [
+            {
+              "op": "call",
+              "callee": "Cy.D",
+              "args": [
+                "u"
+              ],
+              "line": 11
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "Cy.D",
+      "file": "cy.cs",
+      "params": [
+        {
+          "name": "v",
+          "line": 14
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "Cy.C",
+          "args": [
+            "v"
+          ],
+          "line": 15
+        },
+        {
+          "op": "call",
+          "callee": "Ext.Gone",
+          "args": [
+            "v"
+          ],
+          "line": 16
+        }
+      ]
+    }
+  ]
+}

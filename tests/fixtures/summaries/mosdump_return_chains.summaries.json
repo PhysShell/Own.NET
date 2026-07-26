@@ -1,0 +1,70 @@
+{
+  "degraded": null,
+  "module": "ReturnChains",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "cyc.cs",
+      "line": 0,
+      "method": "Cyc.P",
+      "params": [],
+      "returns": {
+        "owned": "unknown"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "cyc.cs",
+      "line": 0,
+      "method": "Cyc.Q",
+      "params": [],
+      "returns": {
+        "owned": "unknown"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "ext.cs",
+      "line": 0,
+      "method": "Ext.W",
+      "params": [],
+      "returns": {
+        "owned": "unknown"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "mk.cs",
+      "line": 0,
+      "method": "Mk.Base",
+      "params": [],
+      "returns": {
+        "owned": "fresh"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "mk.cs",
+      "line": 0,
+      "method": "Mk.Wrap1",
+      "params": [],
+      "returns": {
+        "owned": "fresh"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "mk.cs",
+      "line": 0,
+      "method": "Mk.Wrap2",
+      "params": [],
+      "returns": {
+        "owned": "fresh"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": [
+    "return Vendor.Make (extern, no summary)"
+  ]
+}

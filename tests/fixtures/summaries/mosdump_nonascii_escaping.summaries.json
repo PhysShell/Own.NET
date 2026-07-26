@@ -1,0 +1,31 @@
+{
+  "degraded": null,
+  "module": "\u042e\u043d\u0438\u043a\u043e\u0434\u2014\u041c\ud83d\ude00",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "\u0444\u0430\u0439\u043b\ud83d\ude00.cs",
+      "line": 0,
+      "method": "\u00dc.M\u00ebthod",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "\u03c0",
+          "transfer": "no"
+        },
+        {
+          "disposable": true,
+          "index": 1,
+          "name": "q\"uote\\",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

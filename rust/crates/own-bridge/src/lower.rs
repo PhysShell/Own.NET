@@ -56,7 +56,7 @@ fn py_truthy(v: Option<&Value>) -> bool {
 /// Python `str(v)` over the JSON values the facts carry. Containers are not
 /// reproduced (Python would repr them); no fixture nor real extractor puts a
 /// container where a scalar is read.
-fn py_str(v: &Value) -> String {
+pub(crate) fn py_str(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
         Value::Null => "None".to_owned(),
@@ -84,7 +84,7 @@ fn as_int(v: Option<&Value>) -> i64 {
 }
 
 /// `n.get(key)` where a present non-list / absent key reads as empty.
-fn as_list(v: Option<&Value>) -> &[Value] {
+pub(crate) fn as_list(v: Option<&Value>) -> &[Value] {
     v.and_then(Value::as_array).map_or(&[], Vec::as_slice)
 }
 
@@ -631,7 +631,10 @@ fn merge_returns(rets: &[&ReturnSkeleton]) -> ReturnSkeleton {
 }
 
 /// `_merge_skeletons`: collapse same-key overloads into ONE conservative
-/// summary at (key, parameter-index) granularity.
+/// summary at (key, parameter-index) granularity. The dump-only fields must
+/// not depend on `functions[]` input order (INF-R1): the merged param NAME is
+/// the lexicographic min across overloads carrying that index, the merged
+/// location the smallest `(file, line)` pair.
 fn merge_skeletons(key: &str, group: &[MethodSkeleton]) -> MethodSkeleton {
     if let [single] = group {
         let mut sk = single.clone();
@@ -639,6 +642,7 @@ fn merge_skeletons(key: &str, group: &[MethodSkeleton]) -> MethodSkeleton {
         return sk;
     }
     let mut by_index: BTreeMap<i64, Vec<PathAction>> = BTreeMap::new();
+    let mut names: BTreeMap<i64, String> = BTreeMap::new();
     for sk in group {
         for p in &sk.params {
             let paths = if p.paths.is_empty() {
@@ -647,17 +651,37 @@ fn merge_skeletons(key: &str, group: &[MethodSkeleton]) -> MethodSkeleton {
                 p.paths.clone()
             };
             by_index.entry(p.index).or_default().extend(paths);
+            names
+                .entry(p.index)
+                .and_modify(|n| {
+                    if p.name < *n {
+                        p.name.clone_into(n);
+                    }
+                })
+                .or_insert_with(|| p.name.clone());
         }
     }
     let params = by_index
         .into_iter()
-        .map(|(index, paths)| ParamSkeleton { index, paths })
+        .map(|(index, paths)| ParamSkeleton {
+            index,
+            name: names.get(&index).cloned().unwrap_or_default(),
+            disposable: true,
+            paths,
+        })
         .collect();
     let rets: Vec<&ReturnSkeleton> = group.iter().map(|s| &s.ret).collect();
+    let (file, line) = group
+        .iter()
+        .map(|sk| (sk.file.clone(), sk.line))
+        .min()
+        .expect("merge group is non-empty");
     MethodSkeleton {
         key: key.to_owned(),
         params,
         ret: merge_returns(&rets),
+        file,
+        line,
     }
 }
 
@@ -682,8 +706,9 @@ fn forward_path_action(
 }
 
 /// `_build_skeletons`: one merged skeleton per bare name plus one per emitted
-/// `name(sig)` overload group.
-fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
+/// `name(sig)` overload group. `pub(crate)`: the MOS parity dump
+/// (`dump.rs`) derives the same skeletons from the same raw `functions[]`.
+pub(crate) fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
     let mut counts: HashMap<String, usize> = HashMap::new();
     for f in raw_fns.iter().filter_map(Value::as_object) {
         let name = str_or(f, "name", "");
@@ -786,6 +811,8 @@ fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
             };
             params.push(ParamSkeleton {
                 index: i64::try_from(i).unwrap_or(i64::MAX),
+                name: cname,
+                disposable: true,
                 paths,
             });
         }
@@ -795,10 +822,14 @@ fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
             .map(|p| str_or(p, "name", ""))
             .collect();
         let ret = infer_return_skeleton(body, &pnames, &first_party, &call_key);
+        // carry the declaration file so the summary dump is navigable
+        // (`functions[]` records carry no line of their own; line stays 0).
         let sk = MethodSkeleton {
             key: key.clone(),
             params,
             ret,
+            file: str_or(f, "file", "?"),
+            line: 0,
         };
         if counts.get(&key).copied().unwrap_or(0) > 1 {
             if let Some(fsig) = call_sig(f) {

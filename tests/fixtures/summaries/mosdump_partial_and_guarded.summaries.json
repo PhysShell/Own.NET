@@ -1,0 +1,59 @@
+{
+  "degraded": null,
+  "module": "Guarded",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "pg.cs",
+      "line": 0,
+      "method": "Pg.Early",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "q",
+          "transfer": "may"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "pg.cs",
+      "line": 0,
+      "method": "Pg.Partial",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "p",
+          "transfer": "may"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "pg.cs",
+      "line": 0,
+      "method": "Pg.SinkAll",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "r",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}
