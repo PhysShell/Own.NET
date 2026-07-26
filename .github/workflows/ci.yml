@@ -2209,7 +2209,13 @@ jobs:
         # corpus: DI has no `.own` form, so it is not scanned by the Python `test_corpus` runner).
         # Remaining backlog: a full-length view STORED into another field, a TWO-plus-hop indirect field
         # use, and an injected-source region-escape. A drop below the floor is a regression.
-        run: python scripts/benchmark.py --min-recall 25
+        run: python scripts/benchmark.py --min-recall 25 --json "$RUNNER_TEMP/benchmark-scorecard.json"
+      - name: publish the scorecard artifact (numbers + corpus + revision + methodology, A1)
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-scorecard
+          path: ${{ runner.temp }}/benchmark-scorecard.json
+          retention-days: 90
 
   # Alpha gate A (issue #202): the single delightful command, proven end-to-end
   # on a clean runner — install -> check -> findings. Packaging only, no
@@ -2327,6 +2333,23 @@ jobs:
           echo "$out"
           [ "$rc" -ge 2 ] || { echo "FAIL: expected a non-zero exit for an unknown command, got $rc"; exit 1; }
           echo "$out" | grep -q "^owen: unknown command" || { echo "FAIL: expected an 'owen: unknown command' prefix"; exit 1; }
+      - name: "owen check <unknown option> is a usage error (exit 2), not a phantom path (A1)"
+        run: |
+          set +e
+          out=$(owen check --verbose . 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: expected exit 2 for an unknown option, got $rc"; exit 1; }
+          echo "$out" | grep -q "unknown option '--verbose'" || { echo "FAIL: expected an 'unknown option' message"; exit 1; }
+          echo "$out" | grep -q "does not exist" && { echo "FAIL: the typo was treated as a path"; exit 1; }
+          true
+      - name: "owen --help documents the exit-code contract incl. internal-error 5 (A1)"
+        run: |
+          out=$(owen --help)
+          echo "$out" | grep -q "Exit codes:" || { echo "FAIL: --help must document exit codes"; exit 1; }
+          echo "$out" | grep -q "5 internal error" || { echo "FAIL: --help must document exit 5"; exit 1; }
+          echo "$out" | grep -q -- "--debug" || { echo "FAIL: --help must document --debug"; exit 1; }
       - name: owen check finds the leak (installed execution, outside any checkout)
         run: |
           set +e
@@ -2344,6 +2367,125 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      - name: "flagship console repro: bad is OWN001, ok is clean (A2)"
+        run: |
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/console/bad" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 1 ] || { echo "FAIL: flagship bad must exit 1 (findings), got $rc"; exit 1; }
+          echo "$out" | grep -q "OWN001" || { echo "FAIL: flagship bad must be flagged OWN001"; exit 1; }
+          set +e
+          out=$(owen check "$GITHUB_WORKSPACE/examples/flagship/console/ok" --fail-on-finding 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 0 ] || { echo "FAIL: flagship ok must scan clean (exit 0), got $rc"; exit 1; }
+      - name: "core internal crash surfaces as owen exit 5, politely — never a clean scan (A1)"
+        if: runner.os == 'Linux'
+        run: |
+          # A crash-injection python: forwards everything to the real python3
+          # (so PythonResolver's version probe passes) but crashes the core
+          # stage exactly like `ownlang.run()` reports an internal error.
+          # Pre-A1 a core crash exited 1 and, without --fail-on-finding, owen
+          # mapped it to a CLEAN 0. (Cache sabotage cannot simulate this: the
+          # content-addressed core cache self-heals — an earlier step pins that.)
+          cat > "$RUNNER_TEMP/crashing-python" <<'EOF'
+          #!/bin/sh
+          case "$*" in
+            *"-m ownlang"*)
+              if [ "$OWNLANG_DEBUG" = "1" ]; then
+                echo "Traceback (most recent call last):" >&2
+                echo "  synthetic gate-A crash frame" >&2
+              else
+                echo "ownlang: internal error: RuntimeError: synthetic gate-A crash" >&2
+              fi
+              exit 70 ;;
+            *) exec python3 "$@" ;;
+          esac
+          EOF
+          chmod +x "$RUNNER_TEMP/crashing-python"
+          set +e
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 for a core crash, got $rc"; exit 1; }
+          echo "$out" | grep -q "ownlang: internal error" || { echo "FAIL: expected the core's polite one-liner"; exit 1; }
+          echo "$out" | grep -q "This is a bug in owen" || { echo "FAIL: expected owen's polite framing"; exit 1; }
+          echo "$out" | grep -q "Diagnostic report" || { echo "FAIL: the core-crash path must write the diagnostic report (Codex P2)"; exit 1; }
+          echo "$out" | grep -q "Traceback (most recent call last)" && { echo "FAIL: raw traceback leaked without --debug"; exit 1; }
+          echo "$out" | grep -qE "^0 findings\.$" && { echo "FAIL: a core crash must never read as a clean scan"; exit 1; }
+          true
+      - name: "the same crash with --debug shows the full cause and still exits 5 (A1)"
+        if: runner.os == 'Linux'
+        run: |
+          set +e
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 in debug mode too, got $rc"; exit 1; }
+          echo "$out" | grep -q "Traceback (most recent call last)" || { echo "FAIL: --debug must surface the full cause"; exit 1; }
+      - name: "retention-path witness MVP builds and its usage surface is honest (A3)"
+        run: |
+          dotnet build "$GITHUB_WORKSPACE/audit/runtime/RetentionPath" -c Release -v quiet
+          set +e
+          out=$(dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: bare usage must exit 2 (never clean), got $rc"; exit 1; }
+          echo "$out" | grep -q "RETAINED (root path shown) | OBSERVED_ONLY" || { echo "FAIL: usage must document the verdict vocabulary"; exit 1; }
+          set +e
+          out=$(dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll roots --pid 999999 --type X 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: a failed attach must exit 2, never read as clean, got $rc"; exit 1; }
+          dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll selftest
+      - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
+        if: runner.os == 'Linux'
+        run: |
+          # The ONE reproducible demo entrypoint (scripts/flagship-demo.sh) is
+          # itself the CI proof: build -> hold the app -> attach the witness
+          # through its public CLI -> machine-validate JSON against the human
+          # verdict -> one stable summary line. bad must demonstrate the
+          # static-event retention; ok must verify no established retention
+          # (the loop-local stack root correctly reads OBSERVED_ONLY, not
+          # RETAINED — the verdict consults the classification).
+          #
+          # GitHub runners ship Yama ptrace_scope=1, which blocks same-user
+          # non-ancestor PTRACE_ATTACH — the ClrMD live attach needs classic
+          # scope. CI-runner-only relaxation; the demo script itself stays
+          # sudo-free (a real user attaching to their own app under scope 1
+          # gets the witness's polite exit-2, not silence).
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+          ./scripts/flagship-demo.sh bad
+          ./scripts/flagship-demo.sh ok
+      - name: "a top-level .NET exception exits 5 in BOTH modes — debug changes volume, not semantics (A1 P2)"
+        if: runner.os == 'Linux'
+        run: |
+          # TMPDIR pointing at a directory that does not exist makes
+          # Path.GetTempFileName() throw before any inner catch — the honest
+          # top-level owen exception, unreachable via the child stages.
+          set +e
+          out=$(TMPDIR=/definitely/does/not/exist owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 for a top-level exception, got $rc"; exit 1; }
+          echo "$out" | grep -q "owen: internal error" || { echo "FAIL: expected owen's polite framing"; exit 1; }
+          echo "$out" | grep -q "Unhandled exception" && { echo "FAIL: raw runtime crash banner leaked"; exit 1; }
+          echo "$out" | grep -q "   at " && { echo "FAIL: stack trace leaked without --debug"; exit 1; }
+          set +e
+          out=$(TMPDIR=/definitely/does/not/exist owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: --debug must keep exit 5 (a rethrow would exit a runtime-chosen code), got $rc"; exit 1; }
+          echo "$out" | grep -q "   at " || { echo "FAIL: --debug must print the full .NET stack"; exit 1; }
       - name: owen check --format sarif -- Owen-branded SARIF driver name
         run: |
           out=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif)

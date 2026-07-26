@@ -93,20 +93,59 @@ internal static class CheckCommand
         var factsPath = Path.GetTempFileName();
         try
         {
-            var extractRc = await RunExtractorAsync(paths, factsPath, legacy, stats, bodyThrowEdges)
-                .ConfigureAwait(false);
-            if (extractRc != 0)
+            var (extractRc, extractOutput) =
+                await RunExtractorAsync(paths, factsPath, legacy, stats, bodyThrowEdges)
+                    .ConfigureAwait(false);
+            // The extractor's own contract is 0 / 2 (usage) / 4 (nothing to
+            // analyze after expansion) — those pass through with its output.
+            // Anything else is a crash (an unhandled exception's runtime
+            // code): frame it politely and keep the raw trace in the
+            // diagnostic report (or on stderr in --debug mode) — A1.
+            if (extractRc is 2 or 4)
             {
+                Console.Error.Write(extractOutput);
                 return extractRc;
             }
+            if (extractRc != 0)
+            {
+                if (CrashReport.Debug)
+                {
+                    Console.Error.Write(extractOutput);
+                }
+                return CrashReport.Child("extractor", extractRc, args, extractOutput);
+            }
+            Console.Error.Write(extractOutput);
 
             if (emitFacts is not null)
             {
-                File.Copy(factsPath, emitFacts, overwrite: true);
+                try
+                {
+                    File.Copy(factsPath, emitFacts, overwrite: true);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                    or ArgumentException or NotSupportedException or DirectoryNotFoundException)
+                {
+                    Console.Error.WriteLine(
+                        $"owen check: cannot write --emit-facts '{emitFacts}': {ex.Message}");
+                    return 2;
+                }
             }
 
             var cacheRoot = CoreVendor.EnsureUnpacked();
             var rc = await RunCoreAsync(python, cacheRoot, factsPath, format, severity).ConfigureAwait(false);
+            // The core self-reports internal errors as exit 70 (EX_SOFTWARE)
+            // with one polite line (ownlang `run()`): surface them as OUR
+            // internal error — pre-A1 a core crash exited 1 and, without
+            // --fail-on-finding, was silently mapped to a CLEAN scan.
+            if (rc == 70)
+            {
+                // The most important internal-error path must honor the whole
+                // contract, including the diagnostic report (Codex P2) — the
+                // core's polite one-liner is already on stderr above.
+                Console.Error.WriteLine(
+                    "owen: the analysis core failed internally — the line above has the short cause.");
+                return CrashReport.Child("analysis core", rc, args, capturedOutput: null);
+            }
 
             if (failOnFinding)
             {
@@ -151,7 +190,20 @@ internal static class CheckCommand
                 case "--legacy": legacy = true; break;
                 case "--stats": stats = true; break;
                 case "--body-throw-edges": bodyThrowEdges = true; break;
-                default: paths.Add(a); break;
+                case "--debug": CrashReport.DebugFlag = true; break;
+                default:
+                    // A mistyped flag must be a usage error, not a phantom
+                    // path: pre-A1 `owen check --verbose .` fell through to
+                    // "path '--verbose' does not exist" (exit 4), which reads
+                    // as an input problem instead of the actual typo.
+                    if (a.StartsWith('-'))
+                    {
+                        throw new InvalidOperationException(
+                            $"owen check: unknown option '{a}' (see `owen --help`; " +
+                            "put `--` before paths that begin with '-')");
+                    }
+                    paths.Add(a);
+                    break;
             }
         }
 
@@ -206,10 +258,12 @@ internal static class CheckCommand
         return false;
     }
 
-    /// <summary>Stage 1: run the bundled extractor as a child process. All of its
-    /// own output (build/run chatter, if any) goes to OUR stderr, keeping
-    /// stdout clean for stage 2 — same as own-check.sh's `1>&amp;2` on this stage.</summary>
-    private static async Task<int> RunExtractorAsync(
+    /// <summary>Stage 1: run the bundled extractor as a child process. Its
+    /// output (build/run chatter, warnings — and, on a crash, the raw trace)
+    /// is CAPTURED and returned; the caller decides what reaches OUR stderr
+    /// (everything for the contract codes, report-only for a crash — A1),
+    /// keeping stdout clean for stage 2 like own-check.sh's `1>&amp;2`.</summary>
+    private static async Task<(int Rc, string Output)> RunExtractorAsync(
         IReadOnlyList<string> paths, string factsPath, bool legacy, bool stats, bool bodyThrowEdges)
     {
         // "ownsharp-extract.dll" is OwnSharp.Extractor's own real AssemblyName/output
@@ -218,10 +272,10 @@ internal static class CheckCommand
         var extractorDll = Path.Combine(AppContext.BaseDirectory, "ownsharp-extract.dll");
         if (!File.Exists(extractorDll))
         {
-            Console.Error.WriteLine(
+            return (2,
                 $"owen: bundled extractor not found at '{extractorDll}' — a corrupt or " +
-                "incomplete tool install. Try `dotnet tool uninstall --global Owen.Cli` and reinstall.");
-            return 2;
+                "incomplete tool install. Try `dotnet tool uninstall --global Owen.Cli` " +
+                "and reinstall." + Environment.NewLine);
         }
 
         var psi = new ProcessStartInfo(ResolveDotnetMuxer())
@@ -258,9 +312,7 @@ internal static class CheckCommand
         await proc.WaitForExitAsync().ConfigureAwait(false);
         var stdout = await stdoutTask.ConfigureAwait(false);
         var stderr = await stderrTask.ConfigureAwait(false);
-        if (stdout.Length > 0) Console.Error.Write(stdout);
-        if (stderr.Length > 0) Console.Error.Write(stderr);
-        return proc.ExitCode;
+        return (proc.ExitCode, stdout + stderr);
     }
 
     /// <summary>The `dotnet` muxer used to `exec` the bundled extractor dll. A
@@ -313,6 +365,13 @@ internal static class CheckCommand
         // cwd to sys.path[0], but own-check.sh/.ps1 both set PYTHONPATH
         // explicitly too, and matching that is cheap insurance.
         psi.EnvironmentVariables["PYTHONPATH"] = cacheRoot;
+        // Debug passthrough (A1): the core's catch-all (`ownlang.run`) prints
+        // one polite line and exits 70; with OWNLANG_DEBUG=1 it re-raises the
+        // full traceback instead — that is what `owen check --debug` asks for.
+        if (CrashReport.Debug)
+        {
+            psi.EnvironmentVariables["OWNLANG_DEBUG"] = "1";
+        }
 
         using var proc = Process.Start(psi)
             ?? throw new InvalidOperationException("owen: failed to start the Python core process");

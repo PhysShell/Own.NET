@@ -212,7 +212,75 @@ def gate(caught: int, clean: int, total: int, fps: int, min_recall: int) -> list
     return problems
 
 
-def run(root: str, corpus_dirs: list[str], min_recall: int = 0) -> int:
+def scorecard(scores: list[CaseScore], min_recall: int,
+              corpus_counts: list[tuple[str, int]], revision: str) -> dict:
+    """The publishable scorecard (alpha gate A1): the aggregate numbers WITH the
+    corpus, the revision and the methodology attached — a metric published
+    without those is just a nice percentage nobody can audit. Pure function of
+    its inputs, so `--selftest` pins its shape with no SDK."""
+    caught, clean, total, fps = summarize(scores)
+    return {
+        "schema": 1,
+        "benchmark": "own.net corpus (real C# through the extractor + core)",
+        "revision": revision,
+        "methodology": {
+            "recall": "a case is 'caught' when its before.cs yields >=1 SARIF "
+                      "result at error/warning level (note/none are advisory, "
+                      "not verdicts); code-agnostic on purpose",
+            "specificity": "a fix is 'clean' when its after.cs yields 0 "
+                           "verdict-level results (any verdict on a fix is a "
+                           "false positive)",
+            "gate": "specificity and zero FPs are unconditional; recall is "
+                    "gated against the pinned floor and ratchets up",
+            "runner": "scripts/own-check.sh --format sarif per file",
+        },
+        "corpus": [{"dir": d, "cases": n} for d, n in corpus_counts],
+        "totals": {"cases": total, "caught": caught, "clean": clean,
+                   "false_positives": fps, "recall_floor": min_recall},
+        "cases": [{"name": s.name, "expected": sorted(s.expected),
+                   "before": sorted(s.before), "after": sorted(s.after),
+                   "caught": s.caught, "clean": s.clean} for s in scores],
+    }
+
+
+def _revision(root: str) -> str:
+    try:
+        proc = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root,
+                              capture_output=True, text=True, timeout=30,
+                              check=False)
+        return proc.stdout.strip() or "unknown"
+    except OSError:
+        return "unknown"
+
+
+def _publish(card: dict, json_path: str | None) -> None:
+    """Write the scorecard artifact and, under GitHub Actions, the job summary
+    — the same numbers the terminal prints, in auditable/linkable form."""
+    if json_path:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(card, f, indent=2, sort_keys=True)
+            f.write("\n")
+        print(f"benchmark: scorecard written to {json_path}")
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        t = card["totals"]
+        corpus = " + ".join(f"`{c['dir']}` ({c['cases']})" for c in card["corpus"])
+        with open(summary_path, "a", encoding="utf-8") as f:
+            f.write(
+                "### Corpus benchmark (real C#)\n\n"
+                f"| metric | value |\n|---|---|\n"
+                f"| bugs caught | {t['caught']}/{t['cases']} |\n"
+                f"| fixes clean | {t['clean']}/{t['cases']} |\n"
+                f"| false positives on fixes | {t['false_positives']} |\n"
+                f"| recall floor (gate) | {t['recall_floor']} |\n\n"
+                f"Corpus: {corpus} · revision `{card['revision'][:12]}`\n\n"
+                "Methodology: a *catch* is ≥1 SARIF error/warning on `before.cs`; "
+                "a *clean fix* is 0 on `after.cs`; advisory notes count as "
+                "neither. Specificity and zero-FP are unconditional gates.\n")
+
+
+def run(root: str, corpus_dirs: list[str], min_recall: int = 0,
+        json_path: str | None = None) -> int:
     """Score the corpus on real C#, print the scorecard, and apply the gate."""
     try:
         scores = score_corpus(root, corpus_dirs)
@@ -237,6 +305,10 @@ def run(root: str, corpus_dirs: list[str], min_recall: int = 0) -> int:
     print(f"benchmark: {caught}/{total} bugs caught in real C# · "
           f"{clean}/{total} fixes clean · {fps} false positive(s) on fixes "
           f"(recall floor {min_recall})")
+    corpus_counts = [(os.path.relpath(d, root), len(discover([d])))
+                     for d in corpus_dirs]
+    _publish(scorecard(scores, min_recall, corpus_counts, _revision(root)),
+             json_path)
     problems = gate(caught, clean, total, fps, min_recall)
     for p in problems:
         print(f"BENCHMARK FAIL: {p}")
@@ -285,6 +357,22 @@ def _selftest() -> int:
             fails.append(f"scoring: {msg}")
     if summarize(cases) != (3, 3, 4, 1):
         fails.append(f"summarize: expected (3,3,4,1), got {summarize(cases)}")
+
+    # 2b) scorecard: the publishable artifact must carry the SAME totals as
+    #     summarize(), plus the corpus/revision/methodology context — and be
+    #     deterministic (a metric nobody can audit or reproduce is marketing).
+    card = scorecard(cases, 3, [("corpus/x", 4)], "deadbeef")
+    if (card["totals"] != {"cases": 4, "caught": 3, "clean": 3,
+                           "false_positives": 1, "recall_floor": 3}
+            or card["corpus"] != [{"dir": "corpus/x", "cases": 4}]
+            or card["revision"] != "deadbeef"
+            or {"recall", "specificity", "gate", "runner"} - set(card["methodology"])
+            or [c["name"] for c in card["cases"]] != [s.name for s in cases]):
+        fails.append(f"scorecard: shape/totals wrong: {card}")
+    if (json.dumps(card, sort_keys=True)
+            != json.dumps(scorecard(cases, 3, [("corpus/x", 4)], "deadbeef"),
+                          sort_keys=True)):
+        fails.append("scorecard: must be deterministic for identical inputs")
 
     # 3) gate: precision absolute (a dirty fix or any FP fails regardless of recall),
     #    recall gated only against the floor.
@@ -360,6 +448,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--min-recall", type=_non_negative_int, default=0, metavar="N",
                     help="fail if fewer than N before.cs cases are caught (the pinned "
                          "recall floor; specificity + zero-FP are always required)")
+    ap.add_argument("--json", default=None, metavar="PATH",
+                    help="also write the publishable scorecard (numbers + corpus + "
+                         "revision + methodology) as JSON")
     args = ap.parse_args(argv)
     if args.selftest:
         return _selftest()
@@ -367,7 +458,7 @@ def main(argv: list[str]) -> int:
     corpus_dirs = args.corpus or [os.path.join(root, "corpus", "real-world"),
                                   os.path.join(root, "corpus", "wpf"),
                                   os.path.join(root, "corpus", "di")]
-    return run(root, corpus_dirs, args.min_recall)
+    return run(root, corpus_dirs, args.min_recall, args.json)
 
 
 if __name__ == "__main__":

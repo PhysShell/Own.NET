@@ -75,9 +75,44 @@ as above (bump `--version` if you rebuilt with a new `<Version>`).
 | `--stats` | off | print flow-locals coverage to stderr |
 | `--body-throw-edges` | off | opt-in: flag body-level (no-`try`) dispose-not-called-on-throw |
 
-Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `>=2` a
-core hard error (bad facts, a drifted contract), `3` no usable Python found,
-`4` no supported input found (nothing matching the included frontend).
+Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `2` a
+usage or contract error (bad flags, bad facts, a drifted contract), `3` no
+usable Python found, `4` no supported input found (nothing matching the
+included frontend), `5` an **internal error** — a bug in owen or a stage it
+drives (extractor/core crash). An internal error is never silence, never a
+clean scan, and never a raw stack trace by default: one short message, plus a
+deterministic diagnostic report at `~/.owen/diag/last-failure.json` (tool/OS/
+runtime identity, command line, stage, cause — **no source file contents**;
+sharing facts stays the explicit `--emit-facts` action). `--debug` (or
+`OWEN_DEBUG=1`) prints the full technical cause instead.
+
+## Known limitations (alpha)
+
+What is *unsupported by design* — distinct from bugs (which we want reported):
+
+- **.NET / C# frontend only.** `.cs`, `.csproj`, `.sln`. Anything else is
+  exit 4 ("no supported input"), never a silent clean scan.
+- **A non-compiling project is analyzed anyway** — symbol-tolerantly. Roslyn
+  compile errors are deliberately ignored (the analysis reads symbols, not
+  IL); unresolved external references degrade to *advisory* notes
+  (OWN050/OWN051), never to invented findings. Consequence: a broken build
+  does not fail `owen check`, and findings that depend on an unresolved type
+  may be missed — check the project compiles if a finding you expected is
+  absent.
+- **Alpha rule scope**, not a general leak detector: event-subscription
+  lifetime (the WPF/WinForms `+=`-without-reachable-`-=` family), timers,
+  local `IDisposable` flows, DI lifetime mismatches, pooled-buffer misuse.
+- **Static analysis only.** A finding is a lifetime-contract violation with
+  the evidence the code shows — not a runtime-proven leak. Runtime retention
+  proof is separate tooling.
+- **Vocabulary is versioned and fails loud.** Facts from a mismatched
+  extractor/core pair are a hard exit 2 by contract — never a guess.
+- **Python ≥ 3.11 required** at run time; never auto-installed.
+- Analysis of WPF-shaped code does **not** require Windows; only *running*
+  WPF apps does.
+
+Anything outside this list that ends in a crash, a wrong exit code, or a
+wrong finding is a bug — please use the "owen CLI problem" issue template.
 
 ## Release process
 

@@ -928,5 +928,30 @@ def main(argv: list[str]) -> int:
             "summaries": cmd_summaries}[cmd](path)
 
 
+def run(argv: list[str]) -> int:
+    """`main` behind the first-run contract: an internal crash exits 70
+    (EX_SOFTWARE) with ONE actionable line — never a traceback a first-time
+    user has to parse, and never an exit code a caller could mistake for
+    findings (1) or clean (0). `OWNLANG_DEBUG=1` re-raises for the full
+    technical cause (the `owen check --debug` passthrough). Deliberate
+    contract errors keep their own codes: they raise nothing."""
+    try:
+        return main(argv)
+    except Exception as exc:  # the whole point is the catch-all
+        import os
+        if os.environ.get("OWNLANG_DEBUG"):
+            # Debug shows the full cause but KEEPS the exit-code contract: a
+            # re-raise would exit 1, which a caller maps as "findings" (and
+            # `owen check` without --fail-on-finding maps to a clean 0).
+            import traceback
+            traceback.print_exc()
+            return 70
+        print(f"ownlang: internal error: {type(exc).__name__}: {exc}\n"
+              f"  This is a bug in the analyzer, not in your code. Re-run with "
+              f"OWNLANG_DEBUG=1 for the full traceback and please report it.",
+              file=sys.stderr)
+        return 70
+
+
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(run(sys.argv[1:]))
