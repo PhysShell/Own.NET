@@ -1,7 +1,9 @@
 //! The MOS parity dump — `ownlang/ownir.py::dump_summaries`, serialized as
 //! the `python -m ownlang summaries` CLI prints it (spec/Inference.md §8).
 //!
-//! The output contract is BYTE-EXACT stdout parity with the reference:
+//! The output contract is BYTE-EXACT stdout parity with the reference over
+//! the shared parity domain (scalar-metadata facts — the boundary is stated
+//! on [`dump_summaries`] and in the public API doc):
 //! `json.dumps(doc, indent=2, sort_keys=True)` plus the newline `print`
 //! appends. That serialization keeps Python's `ensure_ascii` default (unlike
 //! the Layer 2 surface, which pins `ensure_ascii=False`), so this module
@@ -28,7 +30,9 @@ use own_ir::{OwnIr, OWNIR_VERSION};
 use serde_json::{json, Value};
 
 /// Render the summaries document for one `OwnIR` facts document —
-/// byte-identical to `python -m ownlang summaries` on the same facts.
+/// byte-identical to `python -m ownlang summaries` for the shared parity
+/// domain (scalar-metadata facts; the public doc on the crate-level
+/// re-export states the same boundary).
 ///
 /// Scope note (the `py_str` caveat, same as the Layer 2 surface): the
 /// reference `str()`-ifies raw metadata scalars (`module`, and the

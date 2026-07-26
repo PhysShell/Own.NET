@@ -13,8 +13,10 @@
 //! to an [`own_lowered::LoweredDocument`] (or a [`BridgeError`] whose message
 //! text is part of the parity surface — Python projects it as the `Rejected`
 //! form), and [`dump_summaries`] renders the MOS summaries document
-//! byte-identically to `python -m ownlang summaries` (the inference layer's
-//! parity artifact, spec/Inference.md §8). No filesystem, no CLI, no
+//! byte-identically to `python -m ownlang summaries` over the shared
+//! scalar-metadata parity domain (the inference layer's parity artifact,
+//! spec/Inference.md §8; see the function's contract for the domain
+//! boundary). No filesystem, no CLI, no
 //! diagnostics, no analysis. `OwnIR` validation parity, MOS contract
 //! *changes*, and analysis wiring stay out of scope (#294 OD-2 landed:
 //! IR4-everywhere — `tolerant_unknown_kind` is a shared `rust_replay` case
@@ -59,10 +61,20 @@ pub fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
 
 /// Render the MOS summaries document for one `OwnIR` facts document.
 ///
-/// Byte-identical to `python -m ownlang summaries` on the same facts
-/// (`json.dumps(doc, indent=2, sort_keys=True)` + the trailing newline).
-/// A solver failure is not an error: it is the document's `degraded` branch,
-/// exactly like the reference (INF-F6).
+/// Byte-identical to `python -m ownlang summaries` (`json.dumps(doc,
+/// indent=2, sort_keys=True)` + the trailing newline) **for the shared
+/// parity domain**: facts whose metadata fields consumed through Python
+/// `str()` — `module`, `functions[].name`/`file`, call `callee`/`sig` — are
+/// JSON scalars. Every real producer emits scalars there, and the fixture
+/// corpus pins only such documents. Container-valued metadata is OUTSIDE
+/// this stage-1 contract: both doors accept it, but the reference renders
+/// it as Python `repr` while this port renders JSON text, so the outputs
+/// diverge without a runtime error. Door-wide type validation (or exact
+/// container-repr parity) is a separate #294-class door decision — see the
+/// scope note on the implementation for why neither is folded in here.
+///
+/// A solver failure is not an error: it is the document's `degraded`
+/// branch, exactly like the reference (INF-F6).
 ///
 /// # Errors
 /// [`BridgeError`] only if the typed facts cannot be re-serialized to JSON
