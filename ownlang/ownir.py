@@ -524,7 +524,11 @@ def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, A
 def load(path: str) -> dict[str, Any]:
     """Load and shape-check an OwnIR facts file (it is external input — a
     malformed file should fail with a clear error, not a deep traceback)."""
-    with open(path, encoding="utf-8") as f:
+    try:
+        f = open(path, encoding="utf-8")
+    except OSError as e:
+        raise OwnIRError(f"cannot read {path}: {e}") from e
+    with f:
         try:
             result: Any = json.load(f)
         except json.JSONDecodeError as e:

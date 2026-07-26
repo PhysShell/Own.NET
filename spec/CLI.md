@@ -17,6 +17,10 @@
 
 Notes:
 - `check`'s non-zero exit on errors is what makes it usable as a CI gate.
+- An **internal crash** of any command exits **70** (EX_SOFTWARE) with one
+  actionable line — never a traceback by default (`OWNLANG_DEBUG=1` re-raises),
+  and never a code a caller could read as findings (1) or clean (0)
+  (`ownlang.__main__.run`). The `owen` CLI maps 70 to its own exit 5.
 - **`own-check --config <own.toml>`** (the shell/Action wrapper, `scripts/own-check.sh`)
   reads the same file via `config` and forwards the declared weak-subscribe wrapper
   names to the Roslyn extractor (`--weak-subscribe "SimpleType.Method"`, internal

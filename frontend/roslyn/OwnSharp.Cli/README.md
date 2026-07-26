@@ -75,9 +75,16 @@ as above (bump `--version` if you rebuilt with a new `<Version>`).
 | `--stats` | off | print flow-locals coverage to stderr |
 | `--body-throw-edges` | off | opt-in: flag body-level (no-`try`) dispose-not-called-on-throw |
 
-Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `>=2` a
-core hard error (bad facts, a drifted contract), `3` no usable Python found,
-`4` no supported input found (nothing matching the included frontend).
+Exit codes: `0` clean, `1` findings (only with `--fail-on-finding`), `2` a
+usage or contract error (bad flags, bad facts, a drifted contract), `3` no
+usable Python found, `4` no supported input found (nothing matching the
+included frontend), `5` an **internal error** — a bug in owen or a stage it
+drives (extractor/core crash). An internal error is never silence, never a
+clean scan, and never a raw stack trace by default: one short message, plus a
+deterministic diagnostic report at `~/.owen/diag/last-failure.json` (tool/OS/
+runtime identity, command line, stage, cause — **no source file contents**;
+sharing facts stays the explicit `--emit-facts` action). `--debug` (or
+`OWEN_DEBUG=1`) prints the full technical cause instead.
 
 ## Release process
 

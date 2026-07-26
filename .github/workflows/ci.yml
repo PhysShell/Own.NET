@@ -2327,6 +2327,23 @@ jobs:
           echo "$out"
           [ "$rc" -ge 2 ] || { echo "FAIL: expected a non-zero exit for an unknown command, got $rc"; exit 1; }
           echo "$out" | grep -q "^owen: unknown command" || { echo "FAIL: expected an 'owen: unknown command' prefix"; exit 1; }
+      - name: "owen check <unknown option> is a usage error (exit 2), not a phantom path (A1)"
+        run: |
+          set +e
+          out=$(owen check --verbose . 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: expected exit 2 for an unknown option, got $rc"; exit 1; }
+          echo "$out" | grep -q "unknown option '--verbose'" || { echo "FAIL: expected an 'unknown option' message"; exit 1; }
+          echo "$out" | grep -q "does not exist" && { echo "FAIL: the typo was treated as a path"; exit 1; }
+          true
+      - name: "owen --help documents the exit-code contract incl. internal-error 5 (A1)"
+        run: |
+          out=$(owen --help)
+          echo "$out" | grep -q "Exit codes:" || { echo "FAIL: --help must document exit codes"; exit 1; }
+          echo "$out" | grep -q "5 internal error" || { echo "FAIL: --help must document exit 5"; exit 1; }
+          echo "$out" | grep -q -- "--debug" || { echo "FAIL: --help must document --debug"; exit 1; }
       - name: owen check finds the leak (installed execution, outside any checkout)
         run: |
           set +e
@@ -2344,6 +2361,51 @@ jobs:
           set -e
           echo "$out"
           [ "$rc" -eq 0 ] || { echo "FAIL: expected exit 0 on clean code, got $rc"; exit 1; }
+      - name: "core internal crash surfaces as owen exit 5, politely — never a clean scan (A1)"
+        if: runner.os == 'Linux'
+        run: |
+          # A crash-injection python: forwards everything to the real python3
+          # (so PythonResolver's version probe passes) but crashes the core
+          # stage exactly like `ownlang.run()` reports an internal error.
+          # Pre-A1 a core crash exited 1 and, without --fail-on-finding, owen
+          # mapped it to a CLEAN 0. (Cache sabotage cannot simulate this: the
+          # content-addressed core cache self-heals — an earlier step pins that.)
+          cat > "$RUNNER_TEMP/crashing-python" <<'EOF'
+          #!/bin/sh
+          case "$*" in
+            *"-m ownlang"*)
+              if [ "$OWNLANG_DEBUG" = "1" ]; then
+                echo "Traceback (most recent call last):" >&2
+                echo "  synthetic gate-A crash frame" >&2
+              else
+                echo "ownlang: internal error: RuntimeError: synthetic gate-A crash" >&2
+              fi
+              exit 70 ;;
+            *) exec python3 "$@" ;;
+          esac
+          EOF
+          chmod +x "$RUNNER_TEMP/crashing-python"
+          set +e
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 for a core crash, got $rc"; exit 1; }
+          echo "$out" | grep -q "ownlang: internal error" || { echo "FAIL: expected the core's polite one-liner"; exit 1; }
+          echo "$out" | grep -q "This is a bug in owen" || { echo "FAIL: expected owen's polite framing"; exit 1; }
+          echo "$out" | grep -q "Traceback (most recent call last)" && { echo "FAIL: raw traceback leaked without --debug"; exit 1; }
+          echo "$out" | grep -qE "^0 findings\.$" && { echo "FAIL: a core crash must never read as a clean scan"; exit 1; }
+          true
+      - name: "the same crash with --debug shows the full cause and still exits 5 (A1)"
+        if: runner.os == 'Linux'
+        run: |
+          set +e
+          out=$(OWEN_PYTHON="$RUNNER_TEMP/crashing-python" owen check --debug "$RUNNER_TEMP/owen-sample" 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 in debug mode too, got $rc"; exit 1; }
+          echo "$out" | grep -q "Traceback (most recent call last)" || { echo "FAIL: --debug must surface the full cause"; exit 1; }
       - name: owen check --format sarif -- Owen-branded SARIF driver name
         run: |
           out=$(owen check "$RUNNER_TEMP/owen-sample" --format sarif)
