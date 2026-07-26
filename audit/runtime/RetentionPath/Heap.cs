@@ -120,6 +120,12 @@ namespace OwnNet.Audit.Runtime
             // `GTDGoody` — a cached lambda whose *generic argument* happens to mention it — and then
             // confidently reports a path to the wrong object. A tool that points at the wrong culprit
             // is worse than no tool.
+            // ALL matching instances are targeted (Codex P1: taking the first
+            // `sample` in heap-enumeration order could catch only old garbage
+            // and miss a later durably-held instance — a false OBSERVED_ONLY).
+            // The verdict is exact over the whole population; only PATH
+            // RESOLUTION below is sampled (`sample` paths), keeping the
+            // expensive part bounded.
             var targets = new Dictionary<ulong, string>();
             long totalOfType = 0;
             foreach (var o in Heap.EnumerateObjects())
@@ -127,7 +133,7 @@ namespace OwnNet.Audit.Runtime
                 if (!o.IsValid || o.Type?.Name == null) continue;
                 if (!IsType(o.Type.Name, typeName)) continue;
                 totalOfType++;
-                if (targets.Count < sample) targets[o.Address] = o.Type.Name;
+                targets[o.Address] = o.Type.Name;
             }
             if (targets.Count == 0)
                 return new RetentionReport(typeName, 0, 0, new List<Retainer>());
@@ -209,13 +215,22 @@ namespace OwnNet.Audit.Runtime
             // ---- 3. unwind each sampled target, and group the paths by shape --------------
             var groups = new Dictionary<string, Retainer>();
             long retainedSampled = 0;
+            long pathsResolved = 0;
             foreach (var kv in targets)
             {
                 if (!parent.ContainsKey(kv.Key)) continue;   // not reachable — genuinely garbage
                 retainedSampled++;
+                if (pathsResolved >= sample) continue;       // verdict stays exact; paths stay bounded
+                pathsResolved++;
 
                 var hops = Unwind(kv.Key, parent, rootKind, maxHops, out ClrRootKind kind);
-                string signature = string.Join(" -> ", hops.Select(h => h.Type));
+                // The signature must carry the CLASSIFICATION and the fields,
+                // not only hop type names (Codex P1): a stack-rooted and a
+                // durably-rooted instance can share a type sequence, and
+                // merging them would classify the whole group by whichever
+                // came first — hiding a durable retainer or inventing one.
+                string signature = Retainer.Classify(kind, hops) + " | "
+                    + string.Join(" -> ", hops.Select(h => h.ToString()));
 
                 if (!groups.TryGetValue(signature, out var retainer))
                 {
@@ -241,12 +256,23 @@ namespace OwnNet.Audit.Runtime
         {
             var chain = new List<ulong>();
             ulong cur = target;
+            bool truncated = false;
             while (true)
             {
                 chain.Add(cur);
                 if (!parent.TryGetValue(cur, out ulong p) || p == 0) break;
                 cur = p;
-                if (chain.Count > maxHops) break;
+                if (chain.Count > maxHops) { truncated = true; break; }
+            }
+            if (truncated)
+            {
+                // Keep walking the (acyclic) parent chain WITHOUT recording
+                // hops: the rendered path stays bounded, but the verdict must
+                // see the true root — stopping mid-chain yielded
+                // ClrRootKind.None -> 'unsupported-root:None', which the
+                // verdict counts as durable, turning a long stack-only path
+                // into a false RETAINED (Codex P1).
+                while (parent.TryGetValue(cur, out ulong p2) && p2 != 0) cur = p2;
             }
             kind = rootKind.TryGetValue(cur, out var k) ? k : ClrRootKind.None;
             chain.Reverse();

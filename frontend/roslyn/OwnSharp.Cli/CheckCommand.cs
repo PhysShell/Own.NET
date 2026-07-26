@@ -139,13 +139,12 @@ internal static class CheckCommand
             // --fail-on-finding, was silently mapped to a CLEAN scan.
             if (rc == 70)
             {
+                // The most important internal-error path must honor the whole
+                // contract, including the diagnostic report (Codex P2) — the
+                // core's polite one-liner is already on stderr above.
                 Console.Error.WriteLine(
-                    "owen: the analysis core failed internally — the line above has the " +
-                    "short cause. This is a bug in owen, not in your code.");
-                Console.Error.WriteLine(
-                    "  Re-run with --debug (or OWEN_DEBUG=1) for the full traceback, and " +
-                    "please report it: https://github.com/PhysShell/Own.NET/issues/new/choose");
-                return CrashReport.ExitCode;
+                    "owen: the analysis core failed internally — the line above has the short cause.");
+                return CrashReport.Child("analysis core", rc, args, capturedOutput: null);
             }
 
             if (failOnFinding)

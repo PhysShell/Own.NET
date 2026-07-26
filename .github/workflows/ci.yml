@@ -2414,6 +2414,7 @@ jobs:
           [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 for a core crash, got $rc"; exit 1; }
           echo "$out" | grep -q "ownlang: internal error" || { echo "FAIL: expected the core's polite one-liner"; exit 1; }
           echo "$out" | grep -q "This is a bug in owen" || { echo "FAIL: expected owen's polite framing"; exit 1; }
+          echo "$out" | grep -q "Diagnostic report" || { echo "FAIL: the core-crash path must write the diagnostic report (Codex P2)"; exit 1; }
           echo "$out" | grep -q "Traceback (most recent call last)" && { echo "FAIL: raw traceback leaked without --debug"; exit 1; }
           echo "$out" | grep -qE "^0 findings\.$" && { echo "FAIL: a core crash must never read as a clean scan"; exit 1; }
           true

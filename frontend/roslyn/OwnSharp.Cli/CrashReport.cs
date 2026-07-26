@@ -54,7 +54,7 @@ internal static class CrashReport
     /// <summary>Frame a child stage's crash (unexpected exit code) without
     /// dumping its raw output on the user; the full capture goes into the
     /// report instead. In debug mode the caller prints the raw output.</summary>
-    public static int Child(string stage, int rc, string[] args, string capturedOutput)
+    public static int Child(string stage, int rc, string[] args, string? capturedOutput)
     {
         var report = TryWrite(args, stage,
             cause: $"{stage} exited with unexpected code {rc}",
