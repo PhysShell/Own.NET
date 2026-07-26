@@ -2520,11 +2520,17 @@ jobs:
       - name: "WPF flagship on Windows: the fixed variant releases the subscription (A2)"
         if: runner.os == 'Windows'
         run: |
-          # The ok side's claim is about OUR subscription, so that is what is
-          # asserted: the hub holds nothing, and no static-event root reaches a
-          # closed window. The witness exit code is deliberately NOT the gate
-          # here — WPF's own focus/input statics may legitimately hold the last
-          # closed window, which is a framework fact, not our leak.
+          # Same user-level contract as the console pair: nothing DURABLY
+          # retained — exit 0, verdict ABSENT or OBSERVED_ONLY, zero durable
+          # roots. Which of the two verdicts appears is not pinned (that would
+          # over-specify a GC timing detail); on windows-latest the closed
+          # windows are collected outright, so it reads ABSENT.
+          #
+          # An earlier round asserted only "no static-event root", because the
+          # fixed sample appeared to keep 200 windows alive through a
+          # [gc-handle] path. That was this sample parking its UI thread while
+          # WPF was still tearing the windows down — a measurement artifact,
+          # not a framework fact — and the weak assertion was hiding it.
           dotnet build "$GITHUB_WORKSPACE/examples/flagship/wpf/ok" -c Release -v quiet
           APP="$GITHUB_WORKSPACE/examples/flagship/wpf/ok/bin/Release/net8.0-windows/OkDocumentWindows.dll"
           WITNESS="$GITHUB_WORKSPACE/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll"
@@ -2543,28 +2549,25 @@ jobs:
           WRC=$?
           set -e
           touch "$STOP"
-          # rc 0/1 both mean the witness READ the heap and reached a verdict;
-          # anything else (2) means it never got to look, which is a failure of
-          # the step, not a property of the sample.
-          [ "$WRC" -le 1 ] || { echo "FAIL: witness could not read the process (exit $WRC)"; exit 1; }
+          [ "$WRC" -eq 0 ] || { echo "FAIL: witness must exit 0 (nothing durably retained) on the fixed sample, got $WRC"; exit 1; }
           cat "$RUNNER_TEMP/wpf-ok-runtime.json"
           python3 - "$RUNNER_TEMP/wpf-ok-runtime.json" <<'PY'
           import collections, json, sys
           doc = json.load(open(sys.argv[1], encoding="utf-8"))
           roots = (doc.get("retained") or [{}])[0].get("roots") or []
           kinds = collections.Counter(r.get("kind") for r in roots)
-          if kinds.get("static-event"):
-              print("FAIL: the fixed variant still has static-event retention "
-                    f"({kinds['static-event']} root(s)) — the release did not run",
-                    file=sys.stderr)
+          problems = []
+          if doc.get("verdict") not in ("ABSENT", "OBSERVED_ONLY"):
+              problems.append(f"verdict {doc.get('verdict')!r}, want ABSENT or OBSERVED_ONLY")
+          durable = [k for k in kinds if k not in ("stack", "finalizer")]
+          if durable:
+              problems.append(f"durable retainer(s) on the fixed sample: {durable}")
+          for p in problems:
+              print(f"FAIL: {p}", file=sys.stderr)
+          if problems:
               sys.exit(1)
-          # Reported, not asserted: anything the FRAMEWORK still holds is a
-          # different root kind and a different claim. Printing it keeps the
-          # step honest — a green check here means "our subscription is gone",
-          # never "the heap is empty".
-          print(f"ok: no static-event root — the hub retains nothing. "
-                f"Witness verdict for the window type: {doc.get('verdict')}; "
-                f"other roots seen: {dict(kinds) or 'none'}")
+          print(f"ok: nothing durably retains the window — verdict "
+                f"{doc.get('verdict')}, roots seen: {dict(kinds) or 'none'}")
           PY
       - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'

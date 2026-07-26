@@ -80,21 +80,25 @@ is where CI attaches the runtime witness and requires it to name the path:
 AppSettings → PropertyChanged → _invocationList → handler → DocumentWindow
 ```
 
-The `ok` side is held to the claim the fix actually makes — **the hub retains
-nothing**, checked as the absence of a `static-event` root — rather than to
-"the heap is empty". Anything WPF itself still holds surfaces under a
-different root kind, and the CI step prints it instead of asserting it: a
-green check there means *your* subscription is gone, never that nothing
-anywhere references the window. Owen refuses that overreach here for the same
-reason it refuses it in static analysis.
+The `ok` side is held to the same user-level contract as the console pair:
+**nothing durably retains the window** — the witness exits 0, the verdict is
+`ABSENT` or `OBSERVED_ONLY`, and there is not one durable root. Which of the
+two verdicts appears is deliberately not pinned; on `windows-latest` the
+closed windows are collected outright, so it reads `ABSENT`.
 
-One measurement trap is worth naming, because it cost a CI round. `Close()`
-finishes through the dispatcher, so a sample that parks its UI thread to wait
-for a witness (`Thread.Sleep`, `Console.ReadLine`) freezes WPF mid-teardown —
-and the witness then faithfully reports framework book-keeping as retention.
-Both WPF samples therefore hold with the message loop still running
-(`DispatcherTimer`), and only count once the dispatcher has gone idle. A
-runtime witness is only as honest as the moment you take the picture.
+One measurement trap is worth naming, because it cost a CI round and briefly
+made WPF look guilty. `Close()` finishes through the dispatcher, so a sample
+that parks its UI thread to wait for a witness (`Thread.Sleep`,
+`Console.ReadLine`) freezes WPF mid-teardown — and the witness then
+faithfully reports framework book-keeping as retention. The fixed sample
+appeared to hold 200 windows through a `[gc-handle]` path at 41 hops. It held
+none of them: the picture had been taken with the app frozen halfway through
+closing. Both WPF samples now hold with the message loop still running
+(`DispatcherTimer`) and count only once the dispatcher has gone idle.
+
+A runtime witness is only as honest as the moment you take the picture — and
+an assertion narrow enough to pass regardless ("no `static-event` root") is
+how that dishonesty stays green. The check asserts the whole claim now.
 
 ### Holding a sample for a witness
 
