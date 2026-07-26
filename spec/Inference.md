@@ -297,6 +297,14 @@ reason on solve failure.
   serialized — emitting an always-`False` field would freeze a lie into the parity
   surface. Serialize it the day a producer lands, together with the producer.
 
+The parity harness holds both sides to this dump byte-for-byte: the goldens
+under `tests/fixtures/summaries/` pin the exact CLI stdout for the frozen
+Layer 2 facts corpus plus MOS-specific synthetic cases
+(`tests/test_summaries_fixtures.py`, Python-authoritative `--write`), and the
+Rust port reproduces every golden through `own_bridge::dump_summaries`
+(`rust/crates/own-bridge/tests/summaries.rs`) — the summary-level
+Python↔Rust diff the roadmap's stage 1 names.
+
 ## 9. Scope / non-goals
 
 First-party (Tier A) + curated BCL (Tier B) + the per-call-site channel only. **No

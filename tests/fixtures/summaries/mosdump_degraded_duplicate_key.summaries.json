@@ -1,0 +1,7 @@
+{
+  "degraded": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)",
+  "module": "Degraded",
+  "ownir_version": 0,
+  "summaries": [],
+  "unresolved": []
+}

@@ -1,0 +1,71 @@
+{
+  "ownir_version": 0,
+  "module": "SigVocab",
+  "functions": [
+    {
+      "name": "C.S",
+      "sig": "System.IO.Stream",
+      "file": "s1.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "p",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "C.S",
+      "sig": "",
+      "file": "s0.cs",
+      "body": []
+    },
+    {
+      "name": "C.F",
+      "file": "f.cs",
+      "params": [
+        {
+          "name": "q",
+          "line": 8
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "C.S",
+          "sig": "System.IO.Stream",
+          "args": [
+            "q"
+          ],
+          "line": 9
+        }
+      ]
+    },
+    {
+      "name": "C.G",
+      "file": "g.cs",
+      "params": [
+        {
+          "name": "w",
+          "line": 12
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "global::C.S",
+          "args": [
+            "w"
+          ],
+          "line": 13
+        }
+      ]
+    }
+  ]
+}

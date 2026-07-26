@@ -1,0 +1,61 @@
+{
+  "degraded": null,
+  "module": "Sinks",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "sk.cs",
+      "line": 0,
+      "method": "Sk.B",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "b",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "sk.cs",
+      "line": 0,
+      "method": "Sk.C",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "a",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "sk.cs",
+      "line": 0,
+      "method": "Sk.M",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "c",
+          "transfer": "unknown"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": [
+    "$borrow_mut#0 (extern, no summary)"
+  ]
+}

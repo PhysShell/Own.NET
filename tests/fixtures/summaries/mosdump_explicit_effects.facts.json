@@ -1,0 +1,60 @@
+{
+  "ownir_version": 0,
+  "module": "Effects",
+  "functions": [
+    {
+      "name": "Ef.C",
+      "file": "ef.cs",
+      "params": [
+        {
+          "name": "a",
+          "line": 1,
+          "effect": "consume"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Ef.B",
+      "file": "ef.cs",
+      "params": [
+        {
+          "name": "b",
+          "line": 4,
+          "effect": "borrow"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Ef.M",
+      "file": "ef.cs",
+      "params": [
+        {
+          "name": "c",
+          "line": 7,
+          "effect": "borrow_mut"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Ef.P",
+      "file": "ef.cs",
+      "params": [
+        {
+          "name": "d",
+          "line": 10,
+          "effect": "plain"
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "d",
+          "line": 11
+        }
+      ]
+    }
+  ]
+}

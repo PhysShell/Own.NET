@@ -1,0 +1,61 @@
+{
+  "ownir_version": 0,
+  "module": "MergeTie",
+  "functions": [
+    {
+      "name": "Ov.M",
+      "file": "z.cs",
+      "params": [
+        {
+          "name": "zz",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "zz",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Ov.M",
+      "file": "a.cs",
+      "params": [
+        {
+          "name": "aa",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "aa",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Ov.M",
+      "file": "m.cs",
+      "params": [
+        {
+          "name": "k0",
+          "line": 9
+        },
+        {
+          "name": "k1",
+          "line": 9
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "k1",
+          "line": 10
+        }
+      ]
+    }
+  ]
+}

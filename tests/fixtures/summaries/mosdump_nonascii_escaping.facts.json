@@ -1,0 +1,27 @@
+{
+  "ownir_version": 0,
+  "module": "Юникод—М😀",
+  "functions": [
+    {
+      "name": "Ü.Mëthod",
+      "file": "файл😀.cs",
+      "params": [
+        {
+          "name": "π",
+          "line": 1
+        },
+        {
+          "name": "q\"uote\\",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "π",
+          "line": 2
+        }
+      ]
+    }
+  ]
+}

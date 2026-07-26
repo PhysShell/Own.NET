@@ -1,0 +1,76 @@
+{
+  "degraded": null,
+  "module": "Effects",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "ef.cs",
+      "line": 0,
+      "method": "Ef.B",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "b",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "ef.cs",
+      "line": 0,
+      "method": "Ef.C",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "a",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "ef.cs",
+      "line": 0,
+      "method": "Ef.M",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "c",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "ef.cs",
+      "line": 0,
+      "method": "Ef.P",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "d",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

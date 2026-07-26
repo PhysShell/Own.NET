@@ -1,0 +1,35 @@
+{
+  "degraded": null,
+  "module": "Direct",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "M",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "Sink",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "p",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

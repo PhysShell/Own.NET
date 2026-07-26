@@ -1,0 +1,47 @@
+{
+  "ownir_version": 0,
+  "module": "Degraded",
+  "functions": [
+    {
+      "name": "Take",
+      "sig": "System.IO.Stream",
+      "file": "t1.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "release",
+          "var": "p",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "Take",
+      "sig": "System.String",
+      "file": "t2.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": 5
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "p",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Take(System.IO.Stream)",
+      "file": "clash.cs",
+      "body": []
+    }
+  ]
+}

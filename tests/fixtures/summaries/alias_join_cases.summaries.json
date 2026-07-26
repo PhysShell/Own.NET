@@ -1,0 +1,28 @@
+{
+  "degraded": null,
+  "module": "Alias",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "NoClaim",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "F.cs",
+      "line": 0,
+      "method": "Wrap",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}

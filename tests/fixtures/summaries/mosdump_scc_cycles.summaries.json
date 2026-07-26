@@ -1,0 +1,78 @@
+{
+  "degraded": null,
+  "module": "SccCycles",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "cy.cs",
+      "line": 0,
+      "method": "Cy.A",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "s",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "cy.cs",
+      "line": 0,
+      "method": "Cy.B",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "t",
+          "transfer": "no"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "cy.cs",
+      "line": 0,
+      "method": "Cy.C",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "u",
+          "transfer": "unknown"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "cy.cs",
+      "line": 0,
+      "method": "Cy.D",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "v",
+          "transfer": "unknown"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": [
+    "Ext.Gone#0 (extern, no summary)"
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "degraded": null,
+  "module": "SigVocab",
+  "ownir_version": 0,
+  "summaries": [
+    {
+      "file": "f.cs",
+      "line": 0,
+      "method": "C.F",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "q",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "g.cs",
+      "line": 0,
+      "method": "C.G",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "w",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "s0.cs",
+      "line": 0,
+      "method": "C.S",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "p",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "s0.cs",
+      "line": 0,
+      "method": "C.S()",
+      "params": [],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    },
+    {
+      "file": "s1.cs",
+      "line": 0,
+      "method": "C.S(System.IO.Stream)",
+      "params": [
+        {
+          "disposable": true,
+          "index": 0,
+          "name": "p",
+          "transfer": "must"
+        }
+      ],
+      "returns": {
+        "owned": "none"
+      },
+      "source": "inferred"
+    }
+  ],
+  "unresolved": []
+}
