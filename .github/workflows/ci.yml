@@ -2454,6 +2454,13 @@ jobs:
           # static-event retention; ok must verify no established retention
           # (the loop-local stack root correctly reads OBSERVED_ONLY, not
           # RETAINED — the verdict consults the classification).
+          #
+          # GitHub runners ship Yama ptrace_scope=1, which blocks same-user
+          # non-ancestor PTRACE_ATTACH — the ClrMD live attach needs classic
+          # scope. CI-runner-only relaxation; the demo script itself stays
+          # sudo-free (a real user attaching to their own app under scope 1
+          # gets the witness's polite exit-2, not silence).
+          sudo sysctl -w kernel.yama.ptrace_scope=0
           ./scripts/flagship-demo.sh bad
           ./scripts/flagship-demo.sh ok
       - name: "a top-level .NET exception exits 5 in BOTH modes — debug changes volume, not semantics (A1 P2)"
