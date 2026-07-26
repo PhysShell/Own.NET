@@ -105,12 +105,17 @@ namespace OwnNet.Audit.Runtime
         }
 
         /// <summary>
-        /// Sample up to <paramref name="sample"/> retained instances of <paramref name="typeName"/>,
-        /// compute every one's shortest root path in a SINGLE breadth-first pass (BFS from the whole
-        /// root set gives each node its shortest path for free), then group the paths by shape.
+        /// Find what retains the instances of <paramref name="typeName"/>: one breadth-first pass
+        /// from the whole root set (which gives each node its shortest path for free), then group
+        /// the resolved paths by shape, ranked by how many instances each shape holds — the answer
+        /// to "what is holding all of this", as opposed to "here is a path to one of them".
         ///
-        /// The result is ranked: the shape that retains the most instances comes first. That is the
-        /// answer to "what is holding all of this", as opposed to "here is a path to one of them".
+        /// INVARIANT (the display/verdict boundary): reachability and the durable/transient census
+        /// are computed over EVERY instance on the heap. <paramref name="sample"/> bounds only how
+        /// many paths are RESOLVED for display; <paramref name="maxHops"/> bounds only how many
+        /// hops are RENDERED. No display limit may alter discovery, classification, aggregation,
+        /// or the verdict/exit code — a presentation flag that can change the diagnosis is a
+        /// lottery, not an option.
         /// </summary>
         public RetentionReport FindRetainers(string typeName, int sample, int maxHops)
         {
@@ -136,7 +141,7 @@ namespace OwnNet.Audit.Runtime
                 targets[o.Address] = o.Type.Name;
             }
             if (targets.Count == 0)
-                return new RetentionReport(typeName, 0, 0, new List<Retainer>());
+                return new RetentionReport(typeName, 0, 0, 0, 0, new List<Retainer>());
 
             // ---- 2. one BFS from every root; parent pointers only (no strings) ------------
             // Storing a label per node would cost hundreds of MB on a 4M-object heap. Store the
@@ -200,8 +205,7 @@ namespace OwnNet.Audit.Runtime
             {
                 foreach (var root in allRoots)
                 {
-                    bool transientRoot = root.RootKind == ClrRootKind.Stack
-                                         || root.RootKind == ClrRootKind.FinalizerQueue;
+                    bool transientRoot = Retainer.IsTransientRootKind(root.RootKind);
                     if (transientRoot != seedTransient) continue;
                     var o = root.Object;
                     if (!o.IsValid || parent.ContainsKey(o.Address)) continue;
@@ -212,18 +216,40 @@ namespace OwnNet.Audit.Runtime
                 Bfs();
             }
 
-            // ---- 3. unwind each sampled target, and group the paths by shape --------------
-            var groups = new Dictionary<string, Retainer>();
-            long retainedSampled = 0;
-            long pathsResolved = 0;
+            // ---- 3. root-kind census over EVERY reachable instance ------------------------
+            // The census walks each reachable target's parent chain to its true root —
+            // dictionary hops only, no type/field resolution — so the VERDICT sees the
+            // root kind of the whole population. Classifying only the resolved-path
+            // sample would re-admit the Codex P1 bias one level up: 200+ finalizer-
+            // queue-reachable corpses sitting ahead of one durably-held instance in
+            // heap order would read as a false OBSERVED_ONLY.
+            var durableAddrs = new List<ulong>();
+            var transientAddrs = new List<ulong>();
             foreach (var kv in targets)
             {
                 if (!parent.ContainsKey(kv.Key)) continue;   // not reachable — genuinely garbage
-                retainedSampled++;
-                if (pathsResolved >= sample) continue;       // verdict stays exact; paths stay bounded
+                ulong cur = kv.Key;
+                while (parent.TryGetValue(cur, out ulong p) && p != 0) cur = p;
+                var rk = rootKind.TryGetValue(cur, out var k) ? k : ClrRootKind.None;
+                // An unknown/None kind lands on the durable side, matching Classify's
+                // `unsupported-root:*` doctrine (fail-closed toward visibility).
+                if (Retainer.IsTransientRootKind(rk)) transientAddrs.Add(kv.Key);
+                else durableAddrs.Add(kv.Key);
+            }
+
+            // ---- 4. resolve up to `sample` paths for display, durable instances first ----
+            // Path resolution (type/field names) is the expensive, bounded part.
+            // Durable-first ordering guarantees that whenever the census found durable
+            // retention, at least one durable path is on display: RETAINED never ships
+            // without its root path.
+            var groups = new Dictionary<string, Retainer>();
+            long pathsResolved = 0;
+            foreach (var addr in durableAddrs.Concat(transientAddrs))
+            {
+                if (pathsResolved >= sample) break;
                 pathsResolved++;
 
-                var hops = Unwind(kv.Key, parent, rootKind, maxHops, out ClrRootKind kind);
+                var hops = Unwind(addr, parent, rootKind, maxHops, out ClrRootKind kind);
                 // The signature must carry the CLASSIFICATION and the fields,
                 // not only hop type names (Codex P1): a stack-rooted and a
                 // durably-rooted instance can share a type sequence, and
@@ -241,7 +267,8 @@ namespace OwnNet.Audit.Runtime
             }
 
             var ranked = groups.Values.OrderByDescending(r => r.Instances).ToList();
-            return new RetentionReport(targets.Values.First(), totalOfType, retainedSampled, ranked);
+            return new RetentionReport(targets.Values.First(), totalOfType,
+                durableAddrs.Count + transientAddrs.Count, durableAddrs.Count, pathsResolved, ranked);
         }
 
         /// <summary>
@@ -353,7 +380,8 @@ namespace OwnNet.Audit.Runtime
             Field == null ? Type : Type + "  (." + Field + ")";
     }
 
-    /// <summary>One distinct retention shape, and how many of the sampled instances it holds.</summary>
+    /// <summary>One distinct retention shape, and how many of the RESOLVED paths land on it
+    /// (display evidence; the verdict rests on the whole-population census, not on these).</summary>
     internal sealed class Retainer
     {
         public readonly IReadOnlyList<Hop> Path;
@@ -381,6 +409,17 @@ namespace OwnNet.Audit.Runtime
         /// a leak hunt goes wrong.
         /// </summary>
         public string ContractKind() => Classify(RootKind, Path);
+
+        /// <summary>
+        /// The transient/durable split at the ClrMD level — the single source of
+        /// truth shared by the BFS phase seeding, the whole-population census, and
+        /// (via Classify's 'stack'/'finalizer' cases) the string-level verdict
+        /// rule; the selftest pins that the layers agree. Every other kind —
+        /// including an UNKNOWN one — is durable for verdict purposes (fail-closed
+        /// toward visibility).
+        /// </summary>
+        public static bool IsTransientRootKind(ClrRootKind kind) =>
+            kind == ClrRootKind.Stack || kind == ClrRootKind.FinalizerQueue;
 
         /// <summary>
         /// The classifier boundary (kept pure over its evidence so the
@@ -440,15 +479,25 @@ namespace OwnNet.Audit.Runtime
     {
         public readonly string TypeName;
         public readonly long TotalOnHeap;
-        public readonly long SampledRetained;
+        /// <summary>Root-reachable instances — exact over the whole population.</summary>
+        public readonly long Retained;
+        /// <summary>Reachable instances whose true root is durable — exact; the
+        /// verdict's input, deliberately independent of the --sample display budget.</summary>
+        public readonly long DurableRetained;
+        /// <summary>How many paths were resolved for display (bounded by --sample) —
+        /// the denominator for every rendered share.</summary>
+        public readonly long PathsResolved;
         public readonly IReadOnlyList<Retainer> Retainers;
 
-        public RetentionReport(string typeName, long totalOnHeap, long sampledRetained,
+        public RetentionReport(string typeName, long totalOnHeap, long retained,
+                               long durableRetained, long pathsResolved,
                                IReadOnlyList<Retainer> retainers)
         {
             TypeName = typeName;
             TotalOnHeap = totalOnHeap;
-            SampledRetained = sampledRetained;
+            Retained = retained;
+            DurableRetained = durableRetained;
+            PathsResolved = pathsResolved;
             Retainers = retainers;
         }
     }

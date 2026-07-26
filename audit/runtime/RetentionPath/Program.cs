@@ -137,8 +137,12 @@ namespace OwnNet.Audit.Runtime
                 Console.Error.WriteLine("retention-path roots: need --type <TypeName>");
                 return 2;
             }
-            int sample = ArgInt(args, "--sample", 200);
-            int maxHops = ArgInt(args, "--max-hops", 40);
+            // Display budgets only — clamped to at least 1 so a pathological
+            // `--sample 0` cannot suppress the root path a RETAINED verdict
+            // must ship with. Neither flag can alter the verdict (the census
+            // in FindRetainers is exact over the whole population).
+            int sample = Math.Max(1, ArgInt(args, "--sample", 200));
+            int maxHops = Math.Max(1, ArgInt(args, "--max-hops", 40));
 
             var report = walker.FindRetainers(type, sample, maxHops);
             if (report.TotalOnHeap == 0)
@@ -147,12 +151,12 @@ namespace OwnNet.Audit.Runtime
                 WriteArtifact(args, "ABSENT", type, 0, new List<Retainer>());
                 return 0;
             }
-            if (report.SampledRetained == 0)
+            if (report.Retained == 0)
             {
                 // Honest mode split (A3): instances exist but NO retention path was
                 // established — never call this a proven leak.
                 Console.WriteLine($"verdict: OBSERVED_ONLY — {report.TotalOnHeap:N0} instance(s) of {type} on the " +
-                                  $"heap, but none of the {sample:N0}-instance sample is reachable from a GC root " +
+                                  "heap, but none of them is reachable from a GC root " +
                                   "(garbage awaiting collection, not an established retention)");
                 WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, new List<Retainer>());
                 return 0;
@@ -163,16 +167,15 @@ namespace OwnNet.Audit.Runtime
             // frame, finalizer queue) proves the object is live RIGHT NOW,
             // not that anything retains it — a loop local still in a register
             // is not a leak. RETAINED requires at least one durable retainer;
-            // an `unsupported-root:*` kind counts as durable on purpose
-            // (fail-closed toward visibility: unknown evidence must surface
-            // loudly, never quietly demote the verdict).
-            var durable = report.Retainers
-                .Where(r => IsDurableKind(r.ContractKind()))
-                .ToList();
-            if (durable.Count == 0)
+            // an unknown root kind counts as durable on purpose (fail-closed
+            // toward visibility: unknown evidence must surface loudly, never
+            // quietly demote the verdict). The census behind DurableRetained
+            // covers EVERY reachable instance, so the verdict cannot change
+            // with the --sample display budget.
+            if (report.DurableRetained == 0)
             {
                 Console.WriteLine($"verdict: OBSERVED_ONLY — {report.TypeName}: {report.TotalOnHeap:N0} on the " +
-                                  $"heap, {report.SampledRetained:N0} of a {sample:N0}-instance sample reachable, " +
+                                  $"heap, {report.Retained:N0} reachable, " +
                                   "but ONLY from transient roots (stack/finalizer) — live right now, not durable " +
                                   "retention");
                 foreach (var r in report.Retainers.Take(3))
@@ -186,7 +189,8 @@ namespace OwnNet.Audit.Runtime
             }
 
             Console.WriteLine($"verdict: RETAINED — {report.TypeName}: {report.TotalOnHeap:N0} on the heap, " +
-                              $"{report.SampledRetained:N0} of a {sample:N0}-instance sample retained");
+                              $"{report.Retained:N0} reachable, {report.DurableRetained:N0} durably retained " +
+                              $"({report.PathsResolved:N0} path(s) resolved for display)");
             Console.WriteLine();
             Console.WriteLine("RETAINERS, ranked — what holds the TYPICAL instance, not merely one of them:");
 
@@ -194,9 +198,11 @@ namespace OwnNet.Audit.Runtime
             foreach (var r in report.Retainers)
             {
                 rank++;
-                double share = 100.0 * r.Instances / report.SampledRetained;
+                // Shares are shares OF THE RESOLVED PATHS — the display sample —
+                // never of the full population the verdict was computed over.
+                double share = 100.0 * r.Instances / report.PathsResolved;
                 Console.WriteLine();
-                Console.WriteLine($"#{rank}  {r.Instances:N0}/{report.SampledRetained:N0} ({share:N1}%) " +
+                Console.WriteLine($"#{rank}  {r.Instances:N0}/{report.PathsResolved:N0} resolved ({share:N1}%) " +
                                   $"— via [{r.ContractKind()}], {r.Path.Count} hops");
                 Console.Write(r.Render());
                 if (rank >= 5) break;   // the tail is noise; raise --sample for resolution
@@ -204,11 +210,11 @@ namespace OwnNet.Audit.Runtime
 
             Console.WriteLine();
             var dominant = report.Retainers[0];
-            double dominantShare = 100.0 * dominant.Instances / report.SampledRetained;
+            double dominantShare = 100.0 * dominant.Instances / report.PathsResolved;
             if (dominantShare >= 50 && dominant.ContractKind() != "stack")
             {
                 string member = dominant.Member != null ? "." + dominant.Member : "";
-                Console.WriteLine($">>> {dominantShare:N1}% of the retained instances hang off ONE reference: " +
+                Console.WriteLine($">>> {dominantShare:N1}% of the resolved paths hang off ONE reference: " +
                                   $"{dominant.Holder}{member}  [{dominant.ContractKind()}]");
             }
             else
@@ -371,10 +377,26 @@ namespace OwnNet.Audit.Runtime
             Check("unknown evidence surfaces as RETAINED, never demotes",
                 VerdictOf(new[] { "unsupported-root:999" }), "RETAINED");
 
+            // 6. The doctrine lives at TWO layers — the ClrMD-level split
+            //    (BFS phase seeding + the whole-population census) and the
+            //    string-level verdict rule — and they must never disagree:
+            //    a kind the census calls transient must classify to a kind
+            //    the verdict calls non-durable, and vice versa.
+            foreach (var kind in new[] { ClrRootKind.Stack, ClrRootKind.FinalizerQueue,
+                                         ClrRootKind.PinnedHandle, ClrRootKind.StrongHandle,
+                                         (ClrRootKind)999 })
+            {
+                bool transient = Retainer.IsTransientRootKind(kind);
+                bool durable = IsDurableKind(Retainer.Classify(kind, plainStatic));
+                if (transient == durable)
+                    fails.Add($"census/verdict split disagrees for {kind}: " +
+                              $"IsTransientRootKind={transient}, IsDurableKind(Classify)={durable}");
+            }
+
             foreach (var f in fails)
                 Console.Error.WriteLine($"FAIL: classifier {f}");
             if (fails.Count == 0)
-                Console.WriteLine("retention-path classifier selftest OK: 11 checks passed");
+                Console.WriteLine("retention-path classifier selftest OK: 16 checks passed");
             return fails.Count == 0;
         }
 
@@ -386,7 +408,7 @@ namespace OwnNet.Audit.Runtime
             Console.Error.WriteLine("  RetentionPath roots      --pid <n> | --dump <path> --type <TypeName> [--sample 200] [--max-hops 40] [--out runtime.json]");
             Console.Error.WriteLine();
             Console.Error.WriteLine("  census      is there anything retained at all, or is the heap just uncollected garbage?");
-            Console.Error.WriteLine("  roots       what holds the TYPICAL instance of a type (sampled, ranked);");
+            Console.Error.WriteLine("  roots       what holds the TYPICAL instance of a type (exact verdict; sampled, ranked paths);");
             Console.Error.WriteLine("              verdicts: RETAINED (root path shown) | OBSERVED_ONLY (no path established) | ABSENT");
             return 2;
         }
