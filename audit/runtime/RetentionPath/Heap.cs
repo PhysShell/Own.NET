@@ -139,30 +139,58 @@ namespace OwnNet.Audit.Runtime
             var rootKind = new Dictionary<ulong, ClrRootKind>();
             var queue = new Queue<ulong>();
 
-            foreach (var root in Heap.EnumerateRoots())
+            // Seed DURABLE roots (handles/statics) before TRANSIENT ones
+            // (stack frames, the finalizer queue). Parent-pointer BFS credits an
+            // object to whichever root reaches it first; a Main local that
+            // happens to hold the static publisher in a register would
+            // otherwise claim it as [stack] and mask the real static-event
+            // retention (observed live on net8, gate A pins it).
+            var allRoots = Heap.EnumerateRoots().ToList();
+            int reachedTargets = 0;
+
+            void Bfs()
             {
-                var o = root.Object;
-                if (!o.IsValid || parent.ContainsKey(o.Address)) continue;
-                parent[o.Address] = 0;
-                rootKind[o.Address] = root.RootKind;
-                queue.Enqueue(o.Address);
+                while (queue.Count > 0 && reachedTargets < targets.Count)
+                {
+                    ulong addr = queue.Dequeue();
+                    if (targets.ContainsKey(addr)) reachedTargets++;
+
+                    var obj = Heap.GetObject(addr);
+                    if (!obj.IsValid || obj.Type == null) continue;
+
+                    foreach (var child in obj.EnumerateReferences())
+                    {
+                        if (!child.IsValid || parent.ContainsKey(child.Address)) continue;
+                        parent[child.Address] = addr;
+                        queue.Enqueue(child.Address);
+                    }
+                }
             }
 
-            int reachedTargets = 0;
-            while (queue.Count > 0 && reachedTargets < targets.Count)
+            // Two BFS PHASES, not merely two seeding passes: durable roots
+            // (handles/statics) are seeded and walked TO EXHAUSTION before any
+            // transient root (stack frame, finalizer queue) enters the graph.
+            // An object can be a stack-root itself AND reachable from a pinned
+            // static — a Main local holding the static publisher is exactly
+            // that — and seeding it as a stack ROOT would mask the durable
+            // static-event retention behind it (observed live on net8; the
+            // gate-A end-to-end smoke pins the corrected verdict). Retention
+            // analysis prefers durable evidence; the stack only explains what
+            // nothing durable can.
+            foreach (var seedTransient in new[] { false, true })
             {
-                ulong addr = queue.Dequeue();
-                if (targets.ContainsKey(addr)) reachedTargets++;
-
-                var obj = Heap.GetObject(addr);
-                if (!obj.IsValid || obj.Type == null) continue;
-
-                foreach (var child in obj.EnumerateReferences())
+                foreach (var root in allRoots)
                 {
-                    if (!child.IsValid || parent.ContainsKey(child.Address)) continue;
-                    parent[child.Address] = addr;
-                    queue.Enqueue(child.Address);
+                    bool transientRoot = root.RootKind == ClrRootKind.Stack
+                                         || root.RootKind == ClrRootKind.FinalizerQueue;
+                    if (transientRoot != seedTransient) continue;
+                    var o = root.Object;
+                    if (!o.IsValid || parent.ContainsKey(o.Address)) continue;
+                    parent[o.Address] = 0;
+                    rootKind[o.Address] = root.RootKind;
+                    queue.Enqueue(o.Address);
                 }
+                Bfs();
             }
 
             // ---- 3. unwind each sampled target, and group the paths by shape --------------
@@ -313,23 +341,44 @@ namespace OwnNet.Audit.Runtime
         /// only by the stack is merely *live right now*, not retained, and reading it as a leak is how
         /// a leak hunt goes wrong.
         /// </summary>
-        public string ContractKind()
+        public string ContractKind() => Classify(RootKind, Path);
+
+        /// <summary>
+        /// The classifier boundary (kept pure over its evidence so the
+        /// selftest pins it without a heap): a ClrMD root kind plus the path's
+        /// delegate evidence map onto the `runtime.json` kinds. Every KNOWN
+        /// kind is named explicitly; an UNKNOWN kind is an honest
+        /// `unsupported-root:<kind>` — visible evidence the mapping must be
+        /// taught, never silently classified as non-root or as a handle.
+        /// </summary>
+        public static string Classify(ClrRootKind rootKind, IReadOnlyList<Hop> path)
         {
-            bool viaDelegate = Path.Any(h =>
+            // The delegate evidence: an event subscription retains through the
+            // handler chain — EventHandler/MulticastDelegate hop types, or the
+            // multicast `_invocationList` field. Field evidence is checked as a
+            // FIELD, hop types as TYPES: an unrelated type merely named
+            // "...StackFrame..." or a field named "stackCache" is not evidence.
+            bool viaDelegate = path.Any(h =>
                 h.Type.IndexOf("EventHandler", StringComparison.Ordinal) >= 0 ||
                 h.Type.IndexOf("MulticastDelegate", StringComparison.Ordinal) >= 0 ||
                 (h.Field != null && h.Field.IndexOf("invocationList", StringComparison.OrdinalIgnoreCase) >= 0));
 
-            switch (RootKind)
+            switch (rootKind)
             {
                 case ClrRootKind.Stack:
                     return "stack";            // live in a frame right now — not retention
                 case ClrRootKind.FinalizerQueue:
                     return "finalizer";        // awaiting finalization — a stall, not a reference leak
                 case ClrRootKind.PinnedHandle:
+                    // statics live in a pinned object[] on both runtimes
                     return viaDelegate ? "static-event" : "static-field";
-                default:
+                case ClrRootKind.StrongHandle:
+                case ClrRootKind.AsyncPinnedHandle:
+                case ClrRootKind.RefCountedHandle:
+                case ClrRootKind.SizedRefHandle:
                     return viaDelegate ? "static-event" : "gc-handle";
+                default:
+                    return $"unsupported-root:{rootKind}";
             }
         }
 

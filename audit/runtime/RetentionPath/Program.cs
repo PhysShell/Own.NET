@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime;
 using Newtonsoft.Json;
 
 namespace OwnNet.Audit.Runtime
@@ -41,6 +42,12 @@ namespace OwnNet.Audit.Runtime
         {
             if (args.Length == 0) return Usage();
             string verb = args[0].ToLowerInvariant();
+
+            // The classifier boundary, pinned without a heap: the live net8
+            // static-event shape (gate A also proves it end-to-end), the
+            // negative neighbours, and the honest-refusal case.
+            if (verb == "selftest")
+                return ClassifierSelfTest() ? 0 : 1;
 
             int pid = ArgInt(args, "--pid", 0);
             string? dump = Arg(args, "--dump");
@@ -249,9 +256,72 @@ namespace OwnNet.Audit.Runtime
             return v != null && int.TryParse(v, out int n) ? n : fallback;
         }
 
+        private static bool ClassifierSelfTest()
+        {
+            var fails = new List<string>();
+            void Check(string name, string got, string want)
+            {
+                if (got != want) fails.Add($"{name}: got '{got}', want '{want}'");
+            }
+
+            // 1. THE live net8 static-event path, verbatim from the flagship
+            //    bad app (statics live in a pinned object[] on both runtimes).
+            var staticEvent = new List<Hop>
+            {
+                new("Owen.Flagship.AppSettings", null),
+                new("System.ComponentModel.PropertyChangedEventHandler", "PropertyChanged"),
+                new("System.Object[]", "_invocationList"),
+                new("System.ComponentModel.PropertyChangedEventHandler", null),
+                new("Owen.Flagship.DocumentView", "_target"),
+            };
+            Check("net8 static event (PinnedHandle)",
+                Retainer.Classify(ClrRootKind.PinnedHandle, staticEvent), "static-event");
+            Check("static event through a strong handle stays an event",
+                Retainer.Classify(ClrRootKind.StrongHandle, staticEvent), "static-event");
+
+            // 2. Negative neighbour: 'stack'-flavoured NAMES are not evidence —
+            //    a type/field merely containing the word must classify by its
+            //    root kind, not by string contagion.
+            var stackishNames = new List<Hop>
+            {
+                new("My.App.StackMachine", "stackCache"),
+                new("My.App.Node", "next"),
+            };
+            Check("stack-flavoured names stay a plain handle",
+                Retainer.Classify(ClrRootKind.StrongHandle, stackishNames), "gc-handle");
+
+            // 3. Doctrine: a genuine Stack root is 'live right now', never
+            //    retention — even when the path has delegate evidence.
+            Check("stack root stays stack even via a delegate",
+                Retainer.Classify(ClrRootKind.Stack, staticEvent), "stack");
+            Check("finalizer root is a stall, not a reference leak",
+                Retainer.Classify(ClrRootKind.FinalizerQueue, staticEvent), "finalizer");
+
+            // 4. A pinned root WITHOUT delegate evidence is a static field.
+            var plainStatic = new List<Hop>
+            {
+                new("My.App.Config", null),
+                new("My.App.Cache", "_entries"),
+            };
+            Check("pinned root without a delegate is static-field",
+                Retainer.Classify(ClrRootKind.PinnedHandle, plainStatic), "static-field");
+
+            // 5. Honest refusal: an unknown root kind is REPORTED as
+            //    unsupported, never silently classified as non-root/handle.
+            Check("unknown root kind refuses honestly",
+                Retainer.Classify((ClrRootKind)999, plainStatic), "unsupported-root:999");
+
+            foreach (var f in fails)
+                Console.Error.WriteLine($"FAIL: classifier {f}");
+            if (fails.Count == 0)
+                Console.WriteLine("retention-path classifier selftest OK: 7 checks passed");
+            return fails.Count == 0;
+        }
+
         private static int Usage()
         {
             Console.Error.WriteLine("usage:");
+            Console.Error.WriteLine("  RetentionPath selftest   # classifier fixtures, no target needed");
             Console.Error.WriteLine("  RetentionPath census     --pid <n> | --dump <path> [--out runtime.json] [--top 25]");
             Console.Error.WriteLine("  RetentionPath roots      --pid <n> | --dump <path> --type <TypeName> [--sample 200] [--max-hops 40] [--out runtime.json]");
             Console.Error.WriteLine();
