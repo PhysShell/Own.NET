@@ -29,7 +29,7 @@ cleanup() {
     [ -n "$APP_PID" ] && kill "$APP_PID" 2>/dev/null
     rm -rf "$WORK"
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 fail() { echo "flagship-demo: FAIL: $*" >&2; exit "${2:-2}"; }
 
@@ -97,11 +97,28 @@ if variant == "bad":
         problems.append("human and JSON verdicts DISAGREE")
     verdict_line = "leak DEMONSTRATED: static-event retention, path root->view established"
 else:
+    # The user-level contract only: exit 0, verdict in {ABSENT, OBSERVED_ONLY},
+    # zero durable retainers. Which of the two verdicts shows up depends on JIT
+    # liveness of a loop local — an internal CLR decision, not a public API;
+    # the witness selftest pins the verdict semantics deterministically.
     if rc != 0:
-        problems.append(f"witness exit {rc}, want 0 (nothing retained/observed only)")
+        problems.append(f"witness exit {rc}, want 0 (nothing durably retained)")
+    try:
+        doc = json.load(open(json_path, encoding="utf-8"))
+    except Exception as e:
+        problems.append(f"JSON artifact unreadable: {e}")
+        doc = {}
+    if doc.get("verdict") not in ("ABSENT", "OBSERVED_ONLY"):
+        problems.append(f"JSON verdict {doc.get('verdict')!r}, want ABSENT or OBSERVED_ONLY")
+    roots = (doc.get("retained") or [{}])[0].get("roots") or []
+    durable = [r.get("kind") for r in roots if r.get("kind") not in ("stack", "finalizer")]
+    if durable:
+        problems.append(f"ok variant has durable retainer(s): {durable}")
     if "verdict: RETAINED" in human:
         problems.append("ok variant must not be RETAINED")
-    verdict_line = "fix VERIFIED: no established retention for the closed views"
+    if (doc.get("verdict") in ("ABSENT", "OBSERVED_ONLY")) != ("verdict: RETAINED" not in human):
+        problems.append("human and JSON verdicts DISAGREE")
+    verdict_line = f"fix VERIFIED: no established retention ({doc.get('verdict')})"
 
 if problems:
     for p in problems:

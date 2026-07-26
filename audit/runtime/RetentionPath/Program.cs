@@ -144,6 +144,7 @@ namespace OwnNet.Audit.Runtime
             if (report.TotalOnHeap == 0)
             {
                 Console.WriteLine($"verdict: ABSENT — no instance of {type} is on the heap");
+                WriteArtifact(args, "ABSENT", type, 0, new List<Retainer>());
                 return 0;
             }
             if (report.SampledRetained == 0)
@@ -153,6 +154,7 @@ namespace OwnNet.Audit.Runtime
                 Console.WriteLine($"verdict: OBSERVED_ONLY — {report.TotalOnHeap:N0} instance(s) of {type} on the " +
                                   $"heap, but none of the {sample:N0}-instance sample is reachable from a GC root " +
                                   "(garbage awaiting collection, not an established retention)");
+                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, new List<Retainer>());
                 return 0;
             }
 
@@ -165,7 +167,7 @@ namespace OwnNet.Audit.Runtime
             // (fail-closed toward visibility: unknown evidence must surface
             // loudly, never quietly demote the verdict).
             var durable = report.Retainers
-                .Where(r => r.ContractKind() != "stack" && r.ContractKind() != "finalizer")
+                .Where(r => IsDurableKind(r.ContractKind()))
                 .ToList();
             if (durable.Count == 0)
             {
@@ -179,6 +181,7 @@ namespace OwnNet.Audit.Runtime
                     Console.WriteLine($"    via [{r.ContractKind()}], {r.Path.Count} hops:");
                     Console.Write(r.Render());
                 }
+                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, report.Retainers);
                 return 0;
             }
 
@@ -214,40 +217,59 @@ namespace OwnNet.Audit.Runtime
                                   "really is held from many places");
             }
 
-            string? outPath = Arg(args, "--out");
-            if (outPath != null)
-            {
-                var doc = new Dictionary<string, object>
-                {
-                    ["schema"] = "own-runtime/1",
-                    ["verdict"] = "RETAINED",
-                    ["collector"] = CollectorIdentity(args),
-                    ["retained"] = new object[]
-                    {
-                        new Dictionary<string, object>
-                        {
-                            ["type"] = report.TypeName,
-                            ["count"] = report.TotalOnHeap,
-                            ["expected"] = 0,
-                            ["bytes"] = 0,
-                            ["roots"] = report.Retainers.Take(5).Select(r => new Dictionary<string, object>
-                            {
-                                ["kind"] = r.ContractKind(),
-                                ["holder"] = r.Holder,
-                                ["member"] = r.Member ?? "",
-                                ["via"] = r.ContractKind() == "static-event" ? "delegate" : "reference",
-                                ["instances"] = r.Instances,
-                                ["path"] = r.Path.Select(h => h.ToString()).ToList(),
-                            }).ToList(),
-                        },
-                    },
-                };
-                File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
-                Console.WriteLine();
-                Console.WriteLine($"runtime.json written to {outPath}");
-            }
+            WriteArtifact(args, "RETAINED", report.TypeName, report.TotalOnHeap, report.Retainers);
 
             return 1;   // retention found
+        }
+
+        /// <summary>The verdict rule, pure over classification kinds (the
+        /// selftest pins it): RETAINED requires at least one DURABLE
+        /// retainer. Transient kinds (stack frame, finalizer queue) prove
+        /// 'live right now', never retention; an `unsupported-root:*` kind
+        /// counts as durable on purpose — unknown evidence surfaces loudly,
+        /// never quietly demotes the verdict.</summary>
+        internal static bool IsDurableKind(string kind) =>
+            kind != "stack" && kind != "finalizer";
+
+        internal static string VerdictOf(IEnumerable<string> retainerKinds) =>
+            retainerKinds.Any(IsDurableKind) ? "RETAINED" : "OBSERVED_ONLY";
+
+        /// <summary>The one `runtime.json` writer — every verdict emits the
+        /// artifact when `--out` is given, so the ok-side of a demo is as
+        /// machine-checkable as the leak side.</summary>
+        private static void WriteArtifact(
+            string[] args, string verdict, string typeName, long count, IReadOnlyList<Retainer> retainers)
+        {
+            string? outPath = Arg(args, "--out");
+            if (outPath == null) return;
+            var doc = new Dictionary<string, object>
+            {
+                ["schema"] = "own-runtime/1",
+                ["verdict"] = verdict,
+                ["collector"] = CollectorIdentity(args),
+                ["retained"] = new object[]
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["type"] = typeName,
+                        ["count"] = count,
+                        ["expected"] = 0,
+                        ["bytes"] = 0,
+                        ["roots"] = retainers.Take(5).Select(r => new Dictionary<string, object>
+                        {
+                            ["kind"] = r.ContractKind(),
+                            ["holder"] = r.Holder,
+                            ["member"] = r.Member ?? "",
+                            ["via"] = r.ContractKind() == "static-event" ? "delegate" : "reference",
+                            ["instances"] = r.Instances,
+                            ["path"] = r.Path.Select(h => h.ToString()).ToList(),
+                        }).ToList(),
+                    },
+                },
+            };
+            File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
+            Console.WriteLine();
+            Console.WriteLine($"runtime.json written to {outPath}");
         }
 
         /// <summary>Who read the heap and how — so the artifact is auditable
@@ -337,10 +359,22 @@ namespace OwnNet.Audit.Runtime
             Check("unknown root kind refuses honestly",
                 Retainer.Classify((ClrRootKind)999, plainStatic), "unsupported-root:999");
 
+            // The verdict rule (deterministic here; the live ok-demo only has
+            // to prove the absence of a false RETAINED — JIT liveness of a
+            // loop local is not a public contract to test against).
+            Check("stack-only reachability is OBSERVED_ONLY",
+                VerdictOf(new[] { "stack" }), "OBSERVED_ONLY");
+            Check("finalizer-only reachability is OBSERVED_ONLY",
+                VerdictOf(new[] { "finalizer", "stack" }), "OBSERVED_ONLY");
+            Check("one durable retainer makes it RETAINED",
+                VerdictOf(new[] { "stack", "static-event" }), "RETAINED");
+            Check("unknown evidence surfaces as RETAINED, never demotes",
+                VerdictOf(new[] { "unsupported-root:999" }), "RETAINED");
+
             foreach (var f in fails)
                 Console.Error.WriteLine($"FAIL: classifier {f}");
             if (fails.Count == 0)
-                Console.WriteLine("retention-path classifier selftest OK: 7 checks passed");
+                Console.WriteLine("retention-path classifier selftest OK: 11 checks passed");
             return fails.Count == 0;
         }
 
