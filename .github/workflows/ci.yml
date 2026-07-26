@@ -2427,6 +2427,22 @@ jobs:
           echo "$out"
           [ "$rc" -eq 5 ] || { echo "FAIL: expected exit 5 in debug mode too, got $rc"; exit 1; }
           echo "$out" | grep -q "Traceback (most recent call last)" || { echo "FAIL: --debug must surface the full cause"; exit 1; }
+      - name: "retention-path witness MVP builds and its usage surface is honest (A3)"
+        run: |
+          dotnet build "$GITHUB_WORKSPACE/audit/runtime/RetentionPath" -c Release -v quiet
+          set +e
+          out=$(dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: bare usage must exit 2 (never clean), got $rc"; exit 1; }
+          echo "$out" | grep -q "RETAINED (root path shown) | OBSERVED_ONLY" || { echo "FAIL: usage must document the verdict vocabulary"; exit 1; }
+          set +e
+          out=$(dotnet "$GITHUB_WORKSPACE"/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll roots --pid 999999 --type X 2>&1)
+          rc=$?
+          set -e
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: a failed attach must exit 2, never read as clean, got $rc"; exit 1; }
       - name: "a top-level .NET exception exits 5 in BOTH modes — debug changes volume, not semantics (A1 P2)"
         if: runner.os == 'Linux'
         run: |
