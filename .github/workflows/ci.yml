@@ -2011,12 +2011,88 @@ jobs:
           ' "$out" >/dev/null \
             || { echo "FAIL: a result is unlocated or references an undeclared rule"; exit 1; }
           echo "OK: SARIF 2.1.0 — Owen driver, every result rule-backed + located"
+      - name: Fixtures for the action's status contract (clean tree, broken config)
+        run: |
+          # Tier 0: a tree with nothing to report.
+          mkdir -p "$RUNNER_TEMP/owen-action-clean"
+          printf 'public class Clean { public int M() { return 1; } }\n' \
+            > "$RUNNER_TEMP/owen-action-clean/Clean.cs"
+          # Asserted here rather than on the action step: a `uses:` step's
+          # stdout is not capturable, so "annotates nothing" is checked through
+          # the same script the action runs.
+          out=$(scripts/own-check.sh --format github -- "$RUNNER_TEMP/owen-action-clean")
+          [ -z "$(echo "$out" | grep '^::' || true)" ] \
+            || { echo "FAIL: a clean tree must emit no annotations, got:"; echo "$out"; exit 1; }
+          echo "OK: clean tree, zero annotations"
+          # Tier >=2: a config own-check refuses to parse, so it exits 2 before
+          # analysing anything.
+          printf 'this is not = valid toml [[[\n' > "$RUNNER_TEMP/owen-broken.toml"
       - name: The composite action runs end-to-end (non-failing)
         uses: ./
         with:
           path: frontend/roslyn/samples
           format: github
           fail-on-finding: "false"
+
+      # The four tiers of the action's status contract, each pinned. The point
+      # of "annotations, not failures" is that it applies to FINDINGS ONLY;
+      # every other tier must keep behaving exactly as before, or the friendly
+      # default silently turns "the tool could not run" into a green check.
+      #
+      # Deliberately here and not only in action-marketplace-readiness.yml,
+      # which covers the same ground for the consumer fixture: that workflow is
+      # PATH-FILTERED (action.yml, own-check.sh, …), so a change to the Python
+      # core's exit codes — where these tiers actually originate — would never
+      # wake it. This job runs on every push and PR.
+      - name: "Tier 1 — findings, DEFAULT inputs: annotations published, step succeeds"
+        id: default_findings
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          # fail-on-finding deliberately NOT set: this is the out-of-the-box
+          # experience of someone who just added Owen to their repository.
+      - name: "Tier 1 — the default really was non-blocking"
+        run: |
+          [ "${{ steps.default_findings.outcome }}" = "success" ] \
+            || { echo "FAIL: a leaky tree must not fail the step by default"; exit 1; }
+          echo "OK: findings did not fail the step under default inputs"
+      - name: "Tier 1 opt-in — fail-on-finding: true turns the same findings into a failure"
+        id: strict_findings
+        continue-on-error: true
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          fail-on-finding: "true"
+      - name: "Tier 1 opt-in — the strict mode really did fail"
+        run: |
+          [ "${{ steps.strict_findings.outcome }}" = "failure" ] \
+            || { echo "FAIL: fail-on-finding: true must fail on a leaky tree (outcome=${{ steps.strict_findings.outcome }})"; exit 1; }
+          echo "OK: the same tree, the same annotations, a failing status"
+      - name: "Tier 0 — a clean tree succeeds and annotates nothing"
+        id: clean_tree
+        uses: ./
+        with:
+          path: ${{ runner.temp }}/owen-action-clean
+          format: github
+      - name: "Tier >=2 — an operational failure fails the step even with fail-on-finding: false"
+        id: operational_failure
+        continue-on-error: true
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          fail-on-finding: "false"
+          # A malformed own.toml makes own-check exit 2 before it can analyse
+          # anything. That is the tool failing to LOOK, not a defect found in
+          # the caller's code — the friendly default must not absorb it.
+          config: ${{ runner.temp }}/owen-broken.toml
+      - name: "Tier >=2 — the operational failure really did fail"
+        run: |
+          [ "${{ steps.operational_failure.outcome }}" = "failure" ] \
+            || { echo "FAIL: an operational failure (exit >=2) must fail the step regardless of fail-on-finding (outcome=${{ steps.operational_failure.outcome }})"; exit 1; }
+          echo "OK: 'could not look' did not become 'looked and found nothing'"
 
   # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
   # with format: sarif over the sample tree, then upload the log to GitHub code

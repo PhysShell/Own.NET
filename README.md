@@ -58,9 +58,25 @@ The sample is real and runnable: [`examples/flagship/`](examples/flagship/)
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 - uses: PhysShell/Own.NET@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
   with:
+    path: .
     format: github          # inline PR annotations; use "sarif" for the Security tab
-    fail-on-finding: "true"
 ```
+
+Findings arrive as PR annotations and **the step stays green** — adding Owen
+to a repository does not turn its CI red on day one. When you are ready to
+gate on it:
+
+```yaml
+  with:
+    path: .
+    fail-on-finding: true
+```
+
+Both modes analyse identically and publish identical annotations/SARIF; only
+the step's final status differs. And `fail-on-finding` governs *findings*
+only — if Owen cannot complete the analysis (crash, unreadable input, no SARIF
+written) the step fails in either mode. A friendly default must never turn
+"could not look" into "looked and found nothing".
 
 Once a release ships, prefer a pinned tag (`@v0.1.0`) or the moving major tag
 (`@v0`) over `@main` — see
