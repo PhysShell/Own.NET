@@ -1,14 +1,18 @@
 # How Owen proves retention
 
-A leak report is a claim about the future: *this object will never be
-collected*. Most tools make that claim from source alone, and most of the time
-they are guessing. This is how Owen makes it — what the static half can
-establish, what only a running process can, and where the proof stops.
+A lifetime-bug report asks two different questions: can the program prove that
+an object's release runs, and is a live process actually holding that object
+through a durable reference path?
+
+Static analysis answers the first question. A runtime witness answers the
+second for a particular heap snapshot. Owen keeps those claims separate:
+source establishes the missing lifetime guarantee; runtime evidence shows what
+is holding the object at the moment of observation and where that path leads.
 
 Everything below is either **proven by CI** on every commit, **observed in a
-specific run** (and named as such), or an **architectural rule** the code is
-built around. Where something is not yet true, it says so. None of it is a
-roadmap entry wearing the present tense.
+specific run** and named as such, or an **architectural rule** the
+implementation follows. Where something is not yet true, it says so. None of
+it is a roadmap entry wearing the present tense.
 
 ---
 
