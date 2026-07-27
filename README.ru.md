@@ -2,13 +2,57 @@
 
 # Own.NET
 
-> Own.NET находит баги времени жизни/ресурсов, которые C# не может выразить:
-> WPF/event-лики, забытый `Dispose`, рассинхрон DI lifetime и неправильное
-> использование pooled-буферов.
+> **Owen находит ошибки времени жизни в .NET и подтверждает их во время
+> выполнения — показывая ссылочный путь, который держит объект живым.**
 
 *Находи лики до профайлера.* GC собирает недостижимые объекты; Own находит
 объекты, которые должны были стать недостижимыми. `event +=` — это acquire,
-`-=` — это release.
+`-=` — это release. Он также находит забытый `Dispose`, рассинхрон DI
+lifetime и неправильное использование pooled-буферов — тот же вопрос о
+владении в разных обличьях.
+
+## Обе половины, на одном образце
+
+**Дефект — на строке, которая его порождает.** Окно подписывается на хаб
+настроек, живущий всё время процесса; отписка существует, но путь закрытия до
+неё не доходит:
+
+```console
+$ owen check examples/flagship/wpf/bad --fail-on-finding
+DocumentWindow.xaml.cs:28: warning: [OWN001] event '_settings.PropertyChanged'
+  is subscribed (handler 'OnSettingsChanged') but never unsubscribed; its
+  source is an injected dependency whose lifetime is unknown, so it may
+  outlive and keep 'DocumentWindow' alive (possible leak)
+```
+
+**Тот же объект во время выполнения — и то, что его действительно держит.**
+Отдельный шаг: он запускается, когда нужно доказательство, а не на каждой
+сборке:
+
+```text
+verdict: RETAINED — DocumentWindow: 200 on the heap, 200 durably retained
+
+AppSettings
+  → PropertyChanged
+  → _invocationList
+  → handler
+  → DocumentWindow
+
+100% из них висят на ОДНОЙ ссылке.
+```
+
+Обе половины держатся контракта на каждом прогоне CI, под Linux и Windows:
+
+```text
+bad → RETAINED / exit 1
+ok  → ABSENT or OBSERVED_ONLY / exit 0 / zero durable roots
+```
+
+Образец настоящий и запускаемый: [`examples/flagship/`](examples/flagship/)
+(консоль и WPF, каждый — пара `bad`/`ok`, отличающаяся только тем, где живёт
+`-=`). Что свидетель времени выполнения утверждает, а что — нет, и почему
+«достижим» не значит «утёк»:
+[`docs/how-owen-proves-retention.md`](docs/how-owen-proves-retention.md).
 
 ## Запустить в CI — 6 строк
 
