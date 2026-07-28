@@ -111,7 +111,20 @@ if [[ -n "$config" ]]; then
     [[ -n "$pair" ]] && extractor_args+=(--weak-subscribe "$pair")
   done <<< "$weak_pairs"
 fi
+set +e
 dotnet run --project "$extractor" -- "${extractor_args[@]}" 1>&2
+extract_rc=$?
+set -e
+if [[ "$extract_rc" -ne 0 ]]; then
+  # Stage 1 failed: the build broke, the extractor crashed, or it refused the
+  # input. NO VERDICT WAS PRODUCED, so this must not land on exit 1 — that code
+  # is reserved for "analysed, and there are findings", and a caller that
+  # chooses not to gate on findings (the Action's default) would read it as a
+  # clean run. Map it into the hard-error tier; the extractor's own contract
+  # codes (2 = usage, 4 = no input) already live there and pass through.
+  [[ "$extract_rc" -eq 1 ]] && extract_rc=2
+  exit "$extract_rc"
+fi
 
 # Optional: persist the OwnIR facts (the audit's XAML Phase-2 join consumes them
 # alongside xaml-facts.json). The verdict still comes from stage 2; this is just a

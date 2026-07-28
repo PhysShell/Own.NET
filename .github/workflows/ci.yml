@@ -1984,6 +1984,22 @@ jobs:
             echo "FAIL: a tree with leaks should exit non-zero under --fail-on-finding"; exit 1
           fi
           echo "OK: --fail-on-finding surfaced the leaks as a non-zero exit"
+      - name: A broken stage 1 is a hard error, never the "findings" tier
+        run: |
+          # Exit 1 means "analysed, and there are findings". If a failed
+          # extractor build could also exit 1, then a caller that chooses NOT to
+          # gate on findings — which is now the Action's default — reads a run
+          # that analysed nothing as clean. So stage-1 failures are normalised
+          # into the >=2 tier, and this pins it: --root at a path with no
+          # extractor project makes `dotnet run` fail with 1.
+          set +e
+          scripts/own-check.sh --root "$RUNNER_TEMP/no-such-root" --format github \
+            -- "$RUNNER_TEMP/owen-action-clean" >/dev/null 2>"$RUNNER_TEMP/stage1.err"
+          rc=$?
+          set -e
+          tail -3 "$RUNNER_TEMP/stage1.err" || true
+          [ "$rc" -ge 2 ] || { echo "FAIL: a broken stage 1 must exit >=2 (the tool did not look), got $rc"; exit 1; }
+          echo "OK: stage-1 failure landed in the hard-error tier (exit $rc)"
       - name: SARIF surface is a valid 2.1.0 log (the structure code scanning enforces)
         run: |
           # The contract GitHub's code-scanning ingest enforces, checked locally so
