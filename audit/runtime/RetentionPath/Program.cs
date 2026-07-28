@@ -75,7 +75,76 @@ namespace OwnNet.Audit.Runtime
                 // A failed read must not read as "clean" — exit 2, distinct from
                 // 0 (analysed, nothing retained) and 1 (analysed, retention found).
                 Console.Error.WriteLine($"retention-path: {ex.GetType().Name}: {ex.Message}");
+                foreach (var line in AttachAdvice(pid, live: dump == null))
+                {
+                    Console.Error.WriteLine(line);
+                }
                 return 2;
+            }
+        }
+
+        /// <summary>
+        /// Turn a bare ClrMD exception into something a person can act on when
+        /// the kernel — not the tool — refused the attach. On Linux, Yama's
+        /// ptrace_scope decides whether one process may trace another; the
+        /// default on most distributions and on CI runners forbids attaching to
+        /// a process that is not a descendant, and the resulting exception says
+        /// nothing about why.
+        ///
+        /// Deliberately narrow: advice only when this really could be the cause
+        /// — a LIVE attach, on Linux, where the target exists (a missing pid is
+        /// a different failure and deserves no lecture about ptrace) and Yama
+        /// is actually restricting. Otherwise the exception stands alone.
+        /// </summary>
+        private static IEnumerable<string> AttachAdvice(int pid, bool live)
+        {
+            if (!live || !OperatingSystem.IsLinux()) yield break;
+
+            try { using var _ = System.Diagnostics.Process.GetProcessById(pid); }
+            catch { yield break; }        // no such process: not a permission story
+
+            string scope;
+            try { scope = File.ReadAllText("/proc/sys/kernel/yama/ptrace_scope").Trim(); }
+            catch { yield break; }        // no Yama on this kernel
+            if (scope == "0") yield break;
+
+            yield return "  the target is alive, so this is a PERMISSION failure: the kernel's";
+            yield return $"  Yama policy (/proc/sys/kernel/yama/ptrace_scope = {scope}) refused it.";
+            yield return "  Owen did not look — this is NOT a verdict about the target's heap.";
+
+            // Each mode restricts something different, and the remedies do not
+            // carry over: telling a scope-3 user to relaunch the target as a
+            // descendant would be confident, actionable, and wrong.
+            switch (scope)
+            {
+                case "1":
+                    yield return "  Mode 1: only a DESCENDANT of the tracer may be attached to. Options:";
+                    yield return "    * take a dump and read that instead:  retention-path roots --dump <file> …";
+                    yield return "    * start the target FROM the witness, so it is a descendant;";
+                    yield return "    * have the target opt in: prctl(PR_SET_PTRACER, <witness pid>);";
+                    yield return "    * or relax the policy deliberately and temporarily:";
+                    yield return "        sudo sysctl -w kernel.yama.ptrace_scope=0";
+                    break;
+                case "2":
+                    yield return "  Mode 2: attaching requires CAP_SYS_PTRACE — descendant or not, and";
+                    yield return "  PR_SET_PTRACER does not help here. Options:";
+                    yield return "    * take a dump and read that instead:  retention-path roots --dump <file> …";
+                    yield return "    * run the witness with CAP_SYS_PTRACE (e.g. under sudo);";
+                    yield return "    * or relax the policy deliberately and temporarily:";
+                    yield return "        sudo sysctl -w kernel.yama.ptrace_scope=0";
+                    break;
+                case "3":
+                    yield return "  Mode 3: attaching is disabled outright and CANNOT be re-enabled at";
+                    yield return "  runtime — the value is locked until reboot, so no sysctl, capability,";
+                    yield return "  or opt-in will help on this boot. Options:";
+                    yield return "    * take a dump and read that instead:  retention-path roots --dump <file> …";
+                    yield return "    * or change the policy in config and reboot.";
+                    break;
+                default:
+                    yield return $"  Mode {scope} is not one this build knows (0-3 are documented). Options:";
+                    yield return "    * take a dump and read that instead:  retention-path roots --dump <file> …";
+                    yield return "    * or consult your kernel's Yama documentation for this value.";
+                    break;
             }
         }
 

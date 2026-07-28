@@ -1984,6 +1984,22 @@ jobs:
             echo "FAIL: a tree with leaks should exit non-zero under --fail-on-finding"; exit 1
           fi
           echo "OK: --fail-on-finding surfaced the leaks as a non-zero exit"
+      - name: A broken stage 1 is a hard error, never the "findings" tier
+        run: |
+          # Exit 1 means "analysed, and there are findings". If a failed
+          # extractor build could also exit 1, then a caller that chooses NOT to
+          # gate on findings — which is now the Action's default — reads a run
+          # that analysed nothing as clean. So stage-1 failures are normalised
+          # into the >=2 tier, and this pins it: --root at a path with no
+          # extractor project makes `dotnet run` fail with 1.
+          set +e
+          scripts/own-check.sh --root "$RUNNER_TEMP/no-such-root" --format github \
+            -- "$RUNNER_TEMP/owen-action-clean" >/dev/null 2>"$RUNNER_TEMP/stage1.err"
+          rc=$?
+          set -e
+          tail -3 "$RUNNER_TEMP/stage1.err" || true
+          [ "$rc" -ge 2 ] || { echo "FAIL: a broken stage 1 must exit >=2 (the tool did not look), got $rc"; exit 1; }
+          echo "OK: stage-1 failure landed in the hard-error tier (exit $rc)"
       - name: SARIF surface is a valid 2.1.0 log (the structure code scanning enforces)
         run: |
           # The contract GitHub's code-scanning ingest enforces, checked locally so
@@ -2011,12 +2027,88 @@ jobs:
           ' "$out" >/dev/null \
             || { echo "FAIL: a result is unlocated or references an undeclared rule"; exit 1; }
           echo "OK: SARIF 2.1.0 — Owen driver, every result rule-backed + located"
+      - name: Fixtures for the action's status contract (clean tree, broken config)
+        run: |
+          # Tier 0: a tree with nothing to report.
+          mkdir -p "$RUNNER_TEMP/owen-action-clean"
+          printf 'public class Clean { public int M() { return 1; } }\n' \
+            > "$RUNNER_TEMP/owen-action-clean/Clean.cs"
+          # Asserted here rather than on the action step: a `uses:` step's
+          # stdout is not capturable, so "annotates nothing" is checked through
+          # the same script the action runs.
+          out=$(scripts/own-check.sh --format github -- "$RUNNER_TEMP/owen-action-clean")
+          [ -z "$(echo "$out" | grep '^::' || true)" ] \
+            || { echo "FAIL: a clean tree must emit no annotations, got:"; echo "$out"; exit 1; }
+          echo "OK: clean tree, zero annotations"
+          # Tier >=2: a config own-check refuses to parse, so it exits 2 before
+          # analysing anything.
+          printf 'this is not = valid toml [[[\n' > "$RUNNER_TEMP/owen-broken.toml"
       - name: The composite action runs end-to-end (non-failing)
         uses: ./
         with:
           path: frontend/roslyn/samples
           format: github
           fail-on-finding: "false"
+
+      # The four tiers of the action's status contract, each pinned. The point
+      # of "annotations, not failures" is that it applies to FINDINGS ONLY;
+      # every other tier must keep behaving exactly as before, or the friendly
+      # default silently turns "the tool could not run" into a green check.
+      #
+      # Deliberately here and not only in action-marketplace-readiness.yml,
+      # which covers the same ground for the consumer fixture: that workflow is
+      # PATH-FILTERED (action.yml, own-check.sh, …), so a change to the Python
+      # core's exit codes — where these tiers actually originate — would never
+      # wake it. This job runs on every push and PR.
+      - name: "Tier 1 — findings, DEFAULT inputs: annotations published, step succeeds"
+        id: default_findings
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          # fail-on-finding deliberately NOT set: this is the out-of-the-box
+          # experience of someone who just added Owen to their repository.
+      - name: "Tier 1 — the default really was non-blocking"
+        run: |
+          [ "${{ steps.default_findings.outcome }}" = "success" ] \
+            || { echo "FAIL: a leaky tree must not fail the step by default"; exit 1; }
+          echo "OK: findings did not fail the step under default inputs"
+      - name: "Tier 1 opt-in — fail-on-finding: true turns the same findings into a failure"
+        id: strict_findings
+        continue-on-error: true
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          fail-on-finding: "true"
+      - name: "Tier 1 opt-in — the strict mode really did fail"
+        run: |
+          [ "${{ steps.strict_findings.outcome }}" = "failure" ] \
+            || { echo "FAIL: fail-on-finding: true must fail on a leaky tree (outcome=${{ steps.strict_findings.outcome }})"; exit 1; }
+          echo "OK: the same tree, the same annotations, a failing status"
+      - name: "Tier 0 — a clean tree succeeds and annotates nothing"
+        id: clean_tree
+        uses: ./
+        with:
+          path: ${{ runner.temp }}/owen-action-clean
+          format: github
+      - name: "Tier >=2 — an operational failure fails the step even with fail-on-finding: false"
+        id: operational_failure
+        continue-on-error: true
+        uses: ./
+        with:
+          path: frontend/roslyn/samples
+          format: github
+          fail-on-finding: "false"
+          # A malformed own.toml makes own-check exit 2 before it can analyse
+          # anything. That is the tool failing to LOOK, not a defect found in
+          # the caller's code — the friendly default must not absorb it.
+          config: ${{ runner.temp }}/owen-broken.toml
+      - name: "Tier >=2 — the operational failure really did fail"
+        run: |
+          [ "${{ steps.operational_failure.outcome }}" = "failure" ] \
+            || { echo "FAIL: an operational failure (exit >=2) must fail the step regardless of fail-on-finding (outcome=${{ steps.operational_failure.outcome }})"; exit 1; }
+          echo "OK: 'could not look' did not become 'looked and found nothing'"
 
   # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
   # with format: sarif over the sample tree, then upload the log to GitHub code
@@ -2569,6 +2661,45 @@ jobs:
           print(f"ok: nothing durably retains the window — verdict "
                 f"{doc.get('verdict')}, roots seen: {dict(kinds) or 'none'}")
           PY
+      - name: "attach denied by kernel policy is an honest exit 2, never a clean verdict (A4)"
+        if: runner.os == 'Linux'
+        run: |
+          # The operational contract, asserted rather than described: with Yama
+          # at its default scope, attaching to a NON-DESCENDANT process is
+          # refused by the kernel. The witness must say so, name the policy, and
+          # exit 2 — the tier that means "I did not look", distinct from 0
+          # (looked, nothing retained) and 1 (looked, retention found). This is
+          # the failure the first CI round of this arc actually hit.
+          #
+          # Runs BEFORE the demo step relaxes the scope; the app is a sibling of
+          # the witness (both children of this shell), which is exactly the
+          # shape Yama scope 1 forbids.
+          sudo sysctl -w kernel.yama.ptrace_scope=1
+          dotnet build "$GITHUB_WORKSPACE/examples/flagship/console/bad" -c Release -v quiet
+          APP="$GITHUB_WORKSPACE/examples/flagship/console/bad/bin/Release/net8.0/BadDocumentApp.dll"
+          WITNESS="$GITHUB_WORKSPACE/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll"
+          STOP="$RUNNER_TEMP/denied-stop"; LOG="$RUNNER_TEMP/denied-app.log"
+          rm -f "$STOP"
+          OWEN_FLAGSHIP_HOLD=1 OWEN_FLAGSHIP_STOP="$STOP" OWEN_FLAGSHIP_HOLD_SECONDS=120 \
+            dotnet "$APP" > "$LOG" 2>&1 &
+          for _ in $(seq 1 60); do grep -q "holding (pid" "$LOG" 2>/dev/null && break; sleep 1; done
+          grep -q "holding (pid" "$LOG" || { cat "$LOG"; echo "FAIL: sample never held"; exit 1; }
+          PID=$(sed -n 's/.*holding (pid \([0-9]*\)).*/\1/p' "$LOG" | head -1)
+          set +e
+          out=$(dotnet "$WITNESS" roots --pid "$PID" --type Owen.Flagship.DocumentView \
+            --out "$RUNNER_TEMP/denied.json" 2>&1)
+          rc=$?
+          set -e
+          touch "$STOP"
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: a denied attach must exit 2, got $rc"; exit 1; }
+          echo "$out" | grep -q "ptrace_scope" \
+            || { echo "FAIL: the diagnostic must name the policy that refused"; exit 1; }
+          echo "$out" | grep -q "NOT a verdict" \
+            || { echo "FAIL: the diagnostic must say it did not look"; exit 1; }
+          [ ! -s "$RUNNER_TEMP/denied.json" ] \
+            || { echo "FAIL: a refused attach must not write a verdict artifact"; exit 1; }
+          echo "OK: denied attach -> exit 2, policy named, no artifact written"
       - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'
         run: |

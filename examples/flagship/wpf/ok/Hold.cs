@@ -14,8 +14,11 @@
 //     otherwise the sample would exit before the witness could attach. Only an
 //     actual line counts.
 //   * Any hold can be forgotten. The deadline applies to every release path,
-//     so a stray sample can never outlive its job.
+//     so a stray sample can never outlive its job — and it is measured with a
+//     Stopwatch, not wall-clock arithmetic: a bound that a system-clock
+//     adjustment can extend is not a bound.
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -26,6 +29,7 @@ internal static class Hold
     private const int DefaultSeconds = 300;
 
     private static volatile bool _lineReceived;
+    private static readonly Stopwatch Elapsed = new();
 
     public static bool Requested =>
         Environment.GetEnvironmentVariable("OWEN_FLAGSHIP_HOLD") == "1";
@@ -38,22 +42,24 @@ internal static class Hold
                      out int s) && s > 0 ? s : DefaultSeconds;
 
     /// <summary>Print the pid line — the orchestration contract: whoever
-    /// launched this process waits for it before attaching — and start
-    /// watching stdin for the interactive release.</summary>
+    /// launched this process waits for it before attaching — start the
+    /// deadline clock, and start watching stdin for the interactive
+    /// release.</summary>
     public static void Announce()
     {
         string? stop = StopFile;
         Console.WriteLine($"holding (pid {Environment.ProcessId}) — send a line to exit"
             + (stop is null ? $", or wait {Seconds}s." : $", create {stop}, or wait {Seconds}s."));
         Console.Out.Flush();
+        Elapsed.Restart();
         WatchStdin();
     }
 
     /// <summary>True once ANY release path has fired: a line on stdin, the stop
     /// file, or the deadline.</summary>
-    public static bool ShouldRelease(DateTime deadlineUtc)
+    public static bool ShouldRelease()
     {
-        if (_lineReceived || DateTime.UtcNow >= deadlineUtc) return true;
+        if (_lineReceived || Elapsed.Elapsed >= TimeSpan.FromSeconds(Seconds)) return true;
         string? stop = StopFile;
         return stop != null && File.Exists(stop);
     }

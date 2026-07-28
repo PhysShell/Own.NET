@@ -33,9 +33,15 @@ inputs:
     required: false
     default: "error"
   fail-on-finding:
-    description: "Fail the step when any leak is found."
+    description: >-
+      Whether a FINDING fails the step. Default false: findings are published
+      as annotations/SARIF and the step succeeds, so adding Owen to a repository
+      cannot turn its CI red on day one. Set true once you are ready to gate on
+      it. This input governs findings ONLY — an operational failure (the
+      analyser crashed, the input could not be read, no SARIF could be written)
+      always fails the step, in either mode.
     required: false
-    default: "true"
+    default: "false"
   python-version:
     description: "Python version for the Owen core."
     required: false
@@ -130,8 +136,25 @@ runs:
           fi
           exit 0
         fi
-        args=(--root "${{ github.action_path }}" --format "$OWN_FORMAT" --severity "$OWN_SEVERITY" "${config_args[@]}")
-        if [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
-          args+=(--fail-on-finding)
+        # Always ask own-check for its TRUE tier (0 clean / 1 findings / >=2
+        # operational failure) and decide the step's status here. Run WITHOUT
+        # --fail-on-finding and the script folds findings into 0, making tier 1
+        # indistinguishable from tier 0 — and tier 1 is the only one this
+        # action is allowed to negotiate about.
+        set +e
+        "$check" --root "${{ github.action_path }}" --format "$OWN_FORMAT" \
+          --severity "$OWN_SEVERITY" "${config_args[@]}" --fail-on-finding -- "$OWN_PATH"
+        rc=$?
+        set -e
+        if [ "$rc" -ge 2 ]; then
+          # NOT a finding: the analyser crashed, the input could not be read, or
+          # the contract drifted. "Annotations instead of failure" is a policy
+          # about defects found in your code, never about the tool failing to
+          # look — that must not reach anyone as a green check.
+          echo "::error::Owen could not complete the analysis (exit $rc). This is an operational failure, not a finding — fail-on-finding does not apply to it. The diagnostic is above."
+          exit "$rc"
         fi
-        "$check" "${args[@]}" -- "$OWN_PATH"
+        if [ "$rc" -eq 1 ] && [ "$OWN_FAIL_ON_FINDING" = "true" ]; then
+          exit 1
+        fi
+        exit 0

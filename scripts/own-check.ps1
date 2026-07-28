@@ -78,7 +78,15 @@ try {
     $exArgs = @($Paths) + @("-o", $facts.FullName)
     if (-not $Legacy) { $exArgs += "--flow-locals" }
     & dotnet run --project $extractor -- @exArgs 1>$null
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) {
+        # Stage 1 failed: no verdict was produced. Exit 1 is reserved for
+        # "analysed, findings present", so a broken build must not borrow it —
+        # a caller that does not gate on findings would read it as clean. Map
+        # it into the hard-error tier (the extractor's own 2/4 pass through).
+        $stage1 = $LASTEXITCODE
+        if ($stage1 -eq 1) { $stage1 = 2 }
+        exit $stage1
+    }
 
     # Stage 2: the one checker produces the verdict at the C# location.
     $env:PYTHONPATH = $Root

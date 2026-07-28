@@ -2,12 +2,55 @@
 
 # Own.NET
 
-> Own.NET finds lifetime/resource bugs that C# cannot express: WPF/event
-> leaks, missing `Dispose`, DI lifetime mismatch, and pooled-buffer misuse.
+> **Owen finds .NET lifetime bugs and confirms them at runtime — showing the
+> reference path that keeps the object alive.**
 
 *Find leaks before the profiler.* GC collects unreachable objects; Own finds
 objects that should have become unreachable. `event +=` is acquire, `-=` is
-release.
+release. It also finds missing `Dispose`, DI lifetime mismatch, and
+pooled-buffer misuse — the same ownership question in different skins.
+
+## Both halves, on one sample
+
+**The defect, at the line that causes it.** A window subscribes to a
+process-lifetime settings hub; the unsubscribe exists, but the close path
+never reaches it:
+
+```console
+$ owen check examples/flagship/wpf/bad --fail-on-finding
+DocumentWindow.xaml.cs:28: warning: [OWN001] event '_settings.PropertyChanged'
+  is subscribed (handler 'OnSettingsChanged') but never unsubscribed; its
+  source is an injected dependency whose lifetime is unknown, so it may
+  outlive and keep 'DocumentWindow' alive (possible leak)
+```
+
+**The same object at runtime, and what is actually holding it.** A separate
+step — you run it when you want proof, not on every build:
+
+```text
+verdict: RETAINED — DocumentWindow: 200 on the heap, 200 durably retained
+
+AppSettings
+  → PropertyChanged
+  → _invocationList
+  → handler
+  → DocumentWindow
+
+100% of them hang off ONE reference.
+```
+
+Both halves are held to a contract on every CI run, on Linux and Windows:
+
+```text
+bad → RETAINED / exit 1
+ok  → ABSENT or OBSERVED_ONLY / exit 0 / zero durable roots
+```
+
+The sample is real and runnable: [`examples/flagship/`](examples/flagship/)
+(console and WPF, each a `bad`/`ok` pair whose only difference is where the
+`-=` lives). What the runtime witness will and will not claim — and why
+"reachable" is not "leaked" — is
+[`docs/how-owen-proves-retention.md`](docs/how-owen-proves-retention.md).
 
 ## Run it in CI — 6 lines
 
@@ -15,9 +58,25 @@ release.
 - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 - uses: PhysShell/Own.NET@main  # pre-release: no tagged release yet — pin a commit SHA for reproducibility
   with:
+    path: .
     format: github          # inline PR annotations; use "sarif" for the Security tab
-    fail-on-finding: "true"
 ```
+
+Findings arrive as PR annotations and **the step stays green** — adding Owen
+to a repository does not turn its CI red on day one. When you are ready to
+gate on it:
+
+```yaml
+  with:
+    path: .
+    fail-on-finding: true
+```
+
+Both modes analyse identically and publish identical annotations/SARIF; only
+the step's final status differs. And `fail-on-finding` governs *findings*
+only — if Owen cannot complete the analysis (crash, unreadable input, no SARIF
+written) the step fails in either mode. A friendly default must never turn
+"could not look" into "looked and found nothing".
 
 Once a release ships, prefer a pinned tag (`@v0.1.0`) or the moving major tag
 (`@v0`) over `@main` — see

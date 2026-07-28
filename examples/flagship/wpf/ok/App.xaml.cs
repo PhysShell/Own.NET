@@ -62,14 +62,13 @@ public partial class App : Application
         // Hold with the message loop STILL RUNNING (see Hold.cs): a parked UI
         // thread is indistinguishable, to a witness, from a leak.
         Hold.Announce();
-        DateTime deadline = DateTime.UtcNow.AddSeconds(Hold.Seconds);
         var timer = new DispatcherTimer(DispatcherPriority.Background)
         {
             Interval = TimeSpan.FromMilliseconds(200),
         };
         timer.Tick += (_, _) =>
         {
-            if (!Hold.ShouldRelease(deadline)) return;
+            if (!Hold.ShouldRelease()) return;
             timer.Stop();
             Shutdown();
         };
