@@ -2112,8 +2112,10 @@ jobs:
 
   # The PowerShell wrapper's exit-code tiers, on the platform it exists for
   # (#313). own-check.ps1 is the Windows twin of own-check.sh and is never
-  # exercised by any other job: the composite action drives the .sh, and the
-  # .ps1's paths are built with backslashes, so it cannot run on Linux at all.
+  # exercised by any other job. The composite action drives own-check.sh. The
+  # PowerShell wrapper can execute far enough on Linux to prove its stage-1
+  # failure tier, but its successful extraction path constructs Windows-style
+  # paths and is therefore exercised end to end on Windows.
   # That left the stage-1 normalisation — a broken extractor must land in the
   # >=2 tier, not borrow exit 1 from "findings present" — mirrored in code and
   # proven nowhere. Symmetry of source is an argument, not evidence.
@@ -2157,6 +2159,21 @@ jobs:
           New-Item -ItemType Directory -Force -Path $clean | Out-Null
           'public class Clean { public int M() { return 1; } }' |
             Set-Content -Path (Join-Path $clean "Clean.cs")
+      - name: Fixtures for the invocation contract (a leaky target, a clean cwd)
+        run: |
+          # The target the user will ASK for, and a working directory that has
+          # nothing to report — so "scanned the wrong tree" cannot hide behind
+          # a finding that happens to exist in both.
+          foreach ($n in @("ps1-target-a", "ps1-target-b")) {
+            $d = Join-Path $env:RUNNER_TEMP $n
+            New-Item -ItemType Directory -Force -Path $d | Out-Null
+            "using System.IO;`npublic class Leaky_$($n -replace '-','_') { public void Run() { var s = new MemoryStream(); s.WriteByte(1); } }" |
+              Set-Content -Path (Join-Path $d "Leaky.cs")
+          }
+          $cwd = Join-Path $env:RUNNER_TEMP "ps1-cwd-clean"
+          New-Item -ItemType Directory -Force -Path $cwd | Out-Null
+          'public class NothingHere { public int M() { return 1; } }' |
+            Set-Content -Path (Join-Path $cwd "NothingHere.cs")
       - name: "Tier >=2 — a broken stage 1 is a hard error, never the findings tier"
         run: |
           # -Root at a checkout that has no extractor project: `dotnet run`
@@ -2200,6 +2217,51 @@ jobs:
             Write-Host "FAIL: the flag changed the OUTPUT, not just the exit code"; exit 1
           }
           Write-Host "OK: findings -> 1 with the flag, 0 without, identical output"
+          exit 0
+      - name: "Invocation contract — the requested target is what gets scanned (#315)"
+        run: |
+          # The defect this pins: `own-check.ps1 -Format github -- src\App` used
+          # to bind src\App to -Root and scan "." instead — the tool looked, but
+          # not where it was asked to. Standing in a CLEAN directory is what
+          # makes that visible: a wrong-tree scan comes back with nothing and
+          # reads as good news.
+          $script = Join-Path $env:GITHUB_WORKSPACE "scripts/own-check.ps1"
+          $targetA = Join-Path $env:RUNNER_TEMP "ps1-target-a"
+          $targetB = Join-Path $env:RUNNER_TEMP "ps1-target-b"
+          Push-Location (Join-Path $env:RUNNER_TEMP "ps1-cwd-clean")
+          try {
+            $sep  = & $script -Format github -- $targetA
+            $expl = & $script -Format github -Paths $targetA
+            $pos  = & $script -Format github $targetA
+            $many = & $script -Format github -- $targetA $targetB
+            $none = & $script -Format github
+          } finally { Pop-Location }
+
+          foreach ($case in @(@{n="-- <target>"; o=$sep}, @{n="-Paths <target>"; o=$expl}, @{n="bare positional"; o=$pos})) {
+            if (-not (($case.o -join "`n") -match "OWN001")) {
+              Write-Host "FAIL: $($case.n) reported no finding — the target was not scanned"; exit 1
+            }
+            if (($case.o -join "`n") -match "NothingHere") {
+              Write-Host "FAIL: $($case.n) scanned the working directory instead of the target"; exit 1
+            }
+          }
+          # The two public forms must be EQUIVALENT, not merely both non-empty.
+          if (($sep -join "`n").Trim() -ne ($expl -join "`n").Trim()) {
+            Write-Host "FAIL: '-- <target>' and '-Paths <target>' disagree"
+            Write-Host "--- -- form ---"; $sep | Write-Host
+            Write-Host "--- -Paths form ---"; $expl | Write-Host
+            exit 1
+          }
+          # [string[]] is the declared type, so more than one path must work.
+          $manyText = $many -join "`n"
+          if (-not ($manyText -match "ps1-target-a") -or -not ($manyText -match "ps1-target-b")) {
+            Write-Host "FAIL: multiple positional paths did not both reach -Paths"; $many | Write-Host; exit 1
+          }
+          # No target at all still means the working directory, which is clean.
+          if (($none -join "`n") -match "OWN001") {
+            Write-Host "FAIL: with no target the clean cwd should report nothing"; $none | Write-Host; exit 1
+          }
+          Write-Host "OK: every documented form scans the requested target; the two public forms agree"
           exit 0
 
   # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
