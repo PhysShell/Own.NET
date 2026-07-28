@@ -75,8 +75,48 @@ namespace OwnNet.Audit.Runtime
                 // A failed read must not read as "clean" — exit 2, distinct from
                 // 0 (analysed, nothing retained) and 1 (analysed, retention found).
                 Console.Error.WriteLine($"retention-path: {ex.GetType().Name}: {ex.Message}");
+                foreach (var line in AttachAdvice(pid, live: dump == null))
+                {
+                    Console.Error.WriteLine(line);
+                }
                 return 2;
             }
+        }
+
+        /// <summary>
+        /// Turn a bare ClrMD exception into something a person can act on when
+        /// the kernel — not the tool — refused the attach. On Linux, Yama's
+        /// ptrace_scope decides whether one process may trace another; the
+        /// default on most distributions and on CI runners forbids attaching to
+        /// a process that is not a descendant, and the resulting exception says
+        /// nothing about why.
+        ///
+        /// Deliberately narrow: advice only when this really could be the cause
+        /// — a LIVE attach, on Linux, where the target exists (a missing pid is
+        /// a different failure and deserves no lecture about ptrace) and Yama
+        /// is actually restricting. Otherwise the exception stands alone.
+        /// </summary>
+        private static IEnumerable<string> AttachAdvice(int pid, bool live)
+        {
+            if (!live || !OperatingSystem.IsLinux()) yield break;
+
+            try { using var _ = System.Diagnostics.Process.GetProcessById(pid); }
+            catch { yield break; }        // no such process: not a permission story
+
+            string scope;
+            try { scope = File.ReadAllText("/proc/sys/kernel/yama/ptrace_scope").Trim(); }
+            catch { yield break; }        // no Yama on this kernel
+            if (scope == "0") yield break;
+
+            yield return $"  the target is alive, so this is a PERMISSION failure: the kernel's";
+            yield return $"  Yama policy (/proc/sys/kernel/yama/ptrace_scope = {scope}) forbids attaching";
+            yield return "  to a process that is not a descendant of this one. Owen did not look —";
+            yield return "  this is NOT a verdict about the target's heap. Options:";
+            yield return "    * take a dump and read that instead:  retention-path roots --dump <file> …";
+            yield return "    * start the target FROM the witness, so it is a descendant;";
+            yield return "    * have the target opt in: prctl(PR_SET_PTRACER, <witness pid>);";
+            yield return "    * or relax the policy deliberately and temporarily:";
+            yield return "        sudo sysctl -w kernel.yama.ptrace_scope=0";
         }
 
         private static int Census(RetentionWalker walker, string[] args)

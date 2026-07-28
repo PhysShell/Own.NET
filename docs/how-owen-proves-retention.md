@@ -237,10 +237,13 @@ earn.
 **Linux attach is governed by kernel policy, not by Owen.** Live attach needs
 permission to trace the target. Where policy allows it, the analysis runs;
 where policy denies it — the common default on modern distributions and on CI
-runners — the witness exits **2** with an explicit diagnostic. It does not
-retry silently, and it never converts "I could not look" into "I looked and
-found nothing". A failed read is never a clean verdict. Running against a dump
-avoids the question entirely.
+runners — the witness exits **2**, names the policy that refused, and writes no
+artifact. It does not retry silently, does not escalate, and never converts "I
+could not look" into "I looked and found nothing". Running against a dump
+avoids the question entirely. The full operational contract, including the
+choice between a dump, a descendant launch, `PR_SET_PTRACER`, and relaxing the
+policy, is in
+[`docs/runtime-witness-operations.md`](runtime-witness-operations.md).
 
 **What is not claimed.** The witness reports retention, not causation: it
 shows the reference that holds the object, not the commit that introduced it.

@@ -2645,6 +2645,45 @@ jobs:
           print(f"ok: nothing durably retains the window — verdict "
                 f"{doc.get('verdict')}, roots seen: {dict(kinds) or 'none'}")
           PY
+      - name: "attach denied by kernel policy is an honest exit 2, never a clean verdict (A4)"
+        if: runner.os == 'Linux'
+        run: |
+          # The operational contract, asserted rather than described: with Yama
+          # at its default scope, attaching to a NON-DESCENDANT process is
+          # refused by the kernel. The witness must say so, name the policy, and
+          # exit 2 — the tier that means "I did not look", distinct from 0
+          # (looked, nothing retained) and 1 (looked, retention found). This is
+          # the failure the first CI round of this arc actually hit.
+          #
+          # Runs BEFORE the demo step relaxes the scope; the app is a sibling of
+          # the witness (both children of this shell), which is exactly the
+          # shape Yama scope 1 forbids.
+          sudo sysctl -w kernel.yama.ptrace_scope=1
+          dotnet build "$GITHUB_WORKSPACE/examples/flagship/console/bad" -c Release -v quiet
+          APP="$GITHUB_WORKSPACE/examples/flagship/console/bad/bin/Release/net8.0/BadDocumentApp.dll"
+          WITNESS="$GITHUB_WORKSPACE/audit/runtime/RetentionPath/bin/Release/net8.0/RetentionPath.dll"
+          STOP="$RUNNER_TEMP/denied-stop"; LOG="$RUNNER_TEMP/denied-app.log"
+          rm -f "$STOP"
+          OWEN_FLAGSHIP_HOLD=1 OWEN_FLAGSHIP_STOP="$STOP" OWEN_FLAGSHIP_HOLD_SECONDS=120 \
+            dotnet "$APP" > "$LOG" 2>&1 &
+          for _ in $(seq 1 60); do grep -q "holding (pid" "$LOG" 2>/dev/null && break; sleep 1; done
+          grep -q "holding (pid" "$LOG" || { cat "$LOG"; echo "FAIL: sample never held"; exit 1; }
+          PID=$(sed -n 's/.*holding (pid \([0-9]*\)).*/\1/p' "$LOG" | head -1)
+          set +e
+          out=$(dotnet "$WITNESS" roots --pid "$PID" --type Owen.Flagship.DocumentView \
+            --out "$RUNNER_TEMP/denied.json" 2>&1)
+          rc=$?
+          set -e
+          touch "$STOP"
+          echo "$out"
+          [ "$rc" -eq 2 ] || { echo "FAIL: a denied attach must exit 2, got $rc"; exit 1; }
+          echo "$out" | grep -q "ptrace_scope" \
+            || { echo "FAIL: the diagnostic must name the policy that refused"; exit 1; }
+          echo "$out" | grep -q "NOT a verdict" \
+            || { echo "FAIL: the diagnostic must say it did not look"; exit 1; }
+          [ ! -s "$RUNNER_TEMP/denied.json" ] \
+            || { echo "FAIL: a refused attach must not write a verdict artifact"; exit 1; }
+          echo "OK: denied attach -> exit 2, policy named, no artifact written"
       - name: "flagship demo orchestrator end-to-end: bad DEMONSTRATED, ok VERIFIED (A3/A4)"
         if: runner.os == 'Linux'
         run: |
