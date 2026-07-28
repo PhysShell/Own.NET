@@ -44,7 +44,7 @@
 .EXAMPLE
   scripts\own-check.ps1 -Format github -Severity warning -FailOnFinding -- .
 #>
-[CmdletBinding()]
+[CmdletBinding(PositionalBinding = $false)]
 param(
     [string]$Root,
     [string]$Format = "human",
@@ -53,7 +53,13 @@ param(
     [string]$Verbosity = "normal",
     [switch]$Legacy,
     [switch]$FailOnFinding,
-    [Parameter(ValueFromRemainingArguments = $true)]
+    # Position 0 is claimed EXPLICITLY, and automatic positional binding is off
+    # for everything else (PositionalBinding = $false). Without both halves the
+    # scan target lands in $Root — the first declared parameter took position 0
+    # — and own-check then hunts for the extractor inside the tree it was asked
+    # to scan, or silently scans "." instead. Declaring the contract beats
+    # relying on declaration order to keep meaning it.
+    [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
     [string[]]$Paths
 )
 
@@ -64,7 +70,10 @@ $ErrorActionPreference = "Stop"
 if ([string]::IsNullOrEmpty($Root)) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
-# A bare "--" separator (shell habit) is harmless; drop it.
+# A bare "--" separator (shell habit) is harmless; drop it. In an interactive
+# session PowerShell eats the token itself, so this is a no-op there — it earns
+# its keep when the arguments are splatted (`& own-check.ps1 @args`), where a
+# literal "--" does arrive as a value.
 if ($Paths) { $Paths = @($Paths | Where-Object { $_ -ne "--" }) }
 if (-not $Paths -or $Paths.Count -eq 0) { $Paths = @(".") }
 
