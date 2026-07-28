@@ -2122,6 +2122,13 @@ jobs:
   # session (which is what `shell: pwsh` is) a script's `exit N` sets
   # $LASTEXITCODE to N, but `pwsh -Command "& ./script.ps1"` collapses that to
   # 1 at the process boundary — measuring the wrapper instead of the script.
+  #
+  # And every step here ENDS WITH `exit 0`. These steps run commands that are
+  # SUPPOSED to fail, and GitHub's pwsh wrapper finishes with
+  # `exit $LASTEXITCODE` — so a leftover non-zero code fails the step even when
+  # the assertion above it passed. The first run of this job did exactly that:
+  # it printed "OK: stage-1 failure landed in the hard-error tier (2)" and then
+  # reported the step as failed.
   own-check-ps1-surface:
     name: own-check.ps1 exit-code tiers (Windows)
     runs-on: windows-latest
@@ -2155,6 +2162,7 @@ jobs:
             exit 1
           }
           Write-Host "OK: stage-1 failure landed in the hard-error tier ($LASTEXITCODE)"
+          exit 0
       - name: "Tier 0 — a clean tree exits 0"
         run: |
           & ./scripts/own-check.ps1 -Format github -- (Join-Path $env:RUNNER_TEMP "ps1-clean") 1>$null
@@ -2162,6 +2170,7 @@ jobs:
             Write-Host "FAIL: a clean tree must exit 0, got $LASTEXITCODE"; exit 1
           }
           Write-Host "OK: clean tree exits 0"
+          exit 0
       - name: "Tier 1 — findings exit 1 only with -FailOnFinding"
         run: |
           # The same tree, twice: the flag is the ONLY difference, and it must
@@ -2183,6 +2192,7 @@ jobs:
             Write-Host "FAIL: the flag changed the OUTPUT, not just the exit code"; exit 1
           }
           Write-Host "OK: findings -> 1 with the flag, 0 without, identical output"
+          exit 0
 
   # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
   # with format: sarif over the sample tree, then upload the log to GitHub code
