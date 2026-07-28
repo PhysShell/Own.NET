@@ -2110,6 +2110,98 @@ jobs:
             || { echo "FAIL: an operational failure (exit >=2) must fail the step regardless of fail-on-finding (outcome=${{ steps.operational_failure.outcome }})"; exit 1; }
           echo "OK: 'could not look' did not become 'looked and found nothing'"
 
+  # The PowerShell wrapper's exit-code tiers, on the platform it exists for
+  # (#313). own-check.ps1 is the Windows twin of own-check.sh and is never
+  # exercised by any other job: the composite action drives the .sh, and the
+  # .ps1's paths are built with backslashes, so it cannot run on Linux at all.
+  # That left the stage-1 normalisation — a broken extractor must land in the
+  # >=2 tier, not borrow exit 1 from "findings present" — mirrored in code and
+  # proven nowhere. Symmetry of source is an argument, not evidence.
+  #
+  # Read $LASTEXITCODE, never the wrapper process's code: inside a PowerShell
+  # session (which is what `shell: pwsh` is) a script's `exit N` sets
+  # $LASTEXITCODE to N, but `pwsh -Command "& ./script.ps1"` collapses that to
+  # 1 at the process boundary — measuring the wrapper instead of the script.
+  #
+  # And every step here ENDS WITH `exit 0`. These steps run commands that are
+  # SUPPOSED to fail, and GitHub's pwsh wrapper finishes with
+  # `exit $LASTEXITCODE` — so a leftover non-zero code fails the step even when
+  # the assertion above it passed. The first run of this job did exactly that:
+  # it printed "OK: stage-1 failure landed in the hard-error tier (2)" and then
+  # reported the step as failed.
+  #
+  # Paths are passed with an explicit -Paths, never positionally and never
+  # after a `--` separator. In PowerShell `--` ends parameter parsing and what
+  # follows binds POSITIONALLY, and this script declares $Root first — so
+  # `own-check.ps1 -Format github -- src\App` silently binds src\App to -Root
+  # and scans "." instead. That is a defect in the wrapper's own documented
+  # examples, tracked separately; these assertions must exercise the tiers, not
+  # inherit the bug.
+  own-check-ps1-surface:
+    name: own-check.ps1 exit-code tiers (Windows)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: A clean tree to check against
+        run: |
+          $clean = Join-Path $env:RUNNER_TEMP "ps1-clean"
+          New-Item -ItemType Directory -Force -Path $clean | Out-Null
+          'public class Clean { public int M() { return 1; } }' |
+            Set-Content -Path (Join-Path $clean "Clean.cs")
+      - name: "Tier >=2 — a broken stage 1 is a hard error, never the findings tier"
+        run: |
+          # -Root at a checkout that has no extractor project: `dotnet run`
+          # fails with 1, and the wrapper must NOT pass that through, or a
+          # caller that does not gate on findings reads a run that analysed
+          # nothing as clean.
+          & ./scripts/own-check.ps1 -Root (Join-Path $env:RUNNER_TEMP "no-such-root") `
+            -Format github -Paths (Join-Path $env:RUNNER_TEMP "ps1-clean") 2>$null 1>$null
+          if ($LASTEXITCODE -lt 2) {
+            Write-Host "FAIL: a broken stage 1 must exit >=2 (the tool did not look), got $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "OK: stage-1 failure landed in the hard-error tier ($LASTEXITCODE)"
+          exit 0
+      - name: "Tier 0 — a clean tree exits 0"
+        run: |
+          & ./scripts/own-check.ps1 -Format github -Paths (Join-Path $env:RUNNER_TEMP "ps1-clean") 1>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "FAIL: a clean tree must exit 0, got $LASTEXITCODE"; exit 1
+          }
+          Write-Host "OK: clean tree exits 0"
+          exit 0
+      - name: "Tier 1 — findings exit 1 only with -FailOnFinding"
+        run: |
+          # The same tree, twice: the flag is the ONLY difference, and it must
+          # move nothing but the exit code.
+          $withFlag = & ./scripts/own-check.ps1 -Format github -FailOnFinding -Paths frontend/roslyn/samples
+          $rcFlag = $LASTEXITCODE
+          $noFlag = & ./scripts/own-check.ps1 -Format github -Paths frontend/roslyn/samples
+          $rcNoFlag = $LASTEXITCODE
+          if ($rcFlag -ne 1) {
+            Write-Host "FAIL: findings with -FailOnFinding must exit 1, got $rcFlag"; exit 1
+          }
+          if ($rcNoFlag -ne 0) {
+            Write-Host "FAIL: findings without the flag must exit 0, got $rcNoFlag"; exit 1
+          }
+          if (-not ($withFlag -match "OWN001")) {
+            Write-Host "FAIL: expected OWN001 in the annotated output"; exit 1
+          }
+          if (($withFlag -join "`n") -ne ($noFlag -join "`n")) {
+            Write-Host "FAIL: the flag changed the OUTPUT, not just the exit code"; exit 1
+          }
+          Write-Host "OK: findings -> 1 with the flag, 0 without, identical output"
+          exit 0
+
   # Dog-food the code-scanning surface end-to-end (P-013): run the composite action
   # with format: sarif over the sample tree, then upload the log to GitHub code
   # scanning. The repo is public, so code scanning is free — this is the live proof
