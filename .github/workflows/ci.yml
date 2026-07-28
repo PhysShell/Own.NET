@@ -2129,6 +2129,14 @@ jobs:
   # the assertion above it passed. The first run of this job did exactly that:
   # it printed "OK: stage-1 failure landed in the hard-error tier (2)" and then
   # reported the step as failed.
+  #
+  # Paths are passed with an explicit -Paths, never positionally and never
+  # after a `--` separator. In PowerShell `--` ends parameter parsing and what
+  # follows binds POSITIONALLY, and this script declares $Root first — so
+  # `own-check.ps1 -Format github -- src\App` silently binds src\App to -Root
+  # and scans "." instead. That is a defect in the wrapper's own documented
+  # examples, tracked separately; these assertions must exercise the tiers, not
+  # inherit the bug.
   own-check-ps1-surface:
     name: own-check.ps1 exit-code tiers (Windows)
     runs-on: windows-latest
@@ -2156,7 +2164,7 @@ jobs:
           # caller that does not gate on findings reads a run that analysed
           # nothing as clean.
           & ./scripts/own-check.ps1 -Root (Join-Path $env:RUNNER_TEMP "no-such-root") `
-            -Format github -- (Join-Path $env:RUNNER_TEMP "ps1-clean") 2>$null 1>$null
+            -Format github -Paths (Join-Path $env:RUNNER_TEMP "ps1-clean") 2>$null 1>$null
           if ($LASTEXITCODE -lt 2) {
             Write-Host "FAIL: a broken stage 1 must exit >=2 (the tool did not look), got $LASTEXITCODE"
             exit 1
@@ -2165,7 +2173,7 @@ jobs:
           exit 0
       - name: "Tier 0 — a clean tree exits 0"
         run: |
-          & ./scripts/own-check.ps1 -Format github -- (Join-Path $env:RUNNER_TEMP "ps1-clean") 1>$null
+          & ./scripts/own-check.ps1 -Format github -Paths (Join-Path $env:RUNNER_TEMP "ps1-clean") 1>$null
           if ($LASTEXITCODE -ne 0) {
             Write-Host "FAIL: a clean tree must exit 0, got $LASTEXITCODE"; exit 1
           }
@@ -2175,9 +2183,9 @@ jobs:
         run: |
           # The same tree, twice: the flag is the ONLY difference, and it must
           # move nothing but the exit code.
-          $withFlag = & ./scripts/own-check.ps1 -Format github -FailOnFinding -- frontend/roslyn/samples
+          $withFlag = & ./scripts/own-check.ps1 -Format github -FailOnFinding -Paths frontend/roslyn/samples
           $rcFlag = $LASTEXITCODE
-          $noFlag = & ./scripts/own-check.ps1 -Format github -- frontend/roslyn/samples
+          $noFlag = & ./scripts/own-check.ps1 -Format github -Paths frontend/roslyn/samples
           $rcNoFlag = $LASTEXITCODE
           if ($rcFlag -ne 1) {
             Write-Host "FAIL: findings with -FailOnFinding must exit 1, got $rcFlag"; exit 1
