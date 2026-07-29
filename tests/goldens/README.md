@@ -24,9 +24,12 @@ The 23 values were not produced by running the changed extractor here (the
 environment had no `dotnet`). They were derived from the sample's source text —
 `column` is the 1-based index of the event access on its line — and then checked
 against the 12 real `(line, column)` pairs that CI's own failing byte-diff printed
-on run 30442571356 (job 90545103519): 12 matches, 0 mismatches. The remaining 11
-follow the same derivation, and the next green run of this gate is what confirms
-them.
+on run 30442571356 (job 90545103519): 12 matches, 0 mismatches.
+
+The remaining 11 followed the same derivation, and run 30443181114 (job
+90547085334) settled them: the gate is a **byte** diff, so a green run means all 23
+values are what the extractor actually emits, not just the dozen that had been read
+off a log. The file is a measured artifact again.
 
 ### Regenerating (only when an unrelated extractor change intentionally alters this sample's facts)
 
