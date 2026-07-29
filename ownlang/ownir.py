@@ -2240,7 +2240,7 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None,
 def _hoisted_branch_locals(nodes: Any,
                            mos: dict[str, Any] | None,
                            first_party: frozenset[str] = frozenset(),
-                           ) -> dict[str, tuple[int, bool]]:
+                           ) -> dict[str, tuple[int, int | None, bool]]:
     """Locals acquired INSIDE an `if`/`while` branch but referenced after the merge.
 
     The core resolver is strictly lexical: an `if` pushes a scope per branch and pops
