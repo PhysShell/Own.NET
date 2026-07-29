@@ -41,7 +41,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -88,7 +87,7 @@ def _extract(flags: list[str]) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "facts.json")
         subprocess.run(
-            ["dotnet", "run", "--project", _EXT, "--"] + flags + [_SAMPLE_REL, "-o", out],
+            ["dotnet", "run", "--project", _EXT, "--", *flags, _SAMPLE_REL, "-o", out],
             cwd=_REPO, check=True, capture_output=True, text=True)
         with open(out, encoding="utf-8") as fh:
             return json.load(fh)

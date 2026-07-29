@@ -49,8 +49,13 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.ownir import (                                                      # noqa: E402
-    OWNIR_VERSION, OwnIRError, build_sarif, check_facts, load, render_finding,
+from ownlang.ownir import (
+    OWNIR_VERSION,
+    OwnIRError,
+    build_sarif,
+    check_facts,
+    load,
+    render_finding,
     to_module,
 )
 
@@ -84,7 +89,7 @@ def _raises(obj: dict) -> bool:
         load(_write(obj))
     except OwnIRError:
         return True
-    except Exception:                                            # noqa: BLE001
+    except Exception:
         return False
     return False
 
@@ -308,8 +313,9 @@ def run() -> int:
     # ---- 9. THE FIELD IS DECLARED LAST -------------------------------------
     # Positional construction is used across this module; a field inserted in the
     # middle would silently re-bind every positional argument after it.
-    from dataclasses import fields as dc_fields                                  # noqa: E402
-    from ownlang.ownir import Finding                                            # noqa: E402
+    from dataclasses import fields as dc_fields
+
+    from ownlang.ownir import Finding
     names = [f.name for f in dc_fields(Finding)]
     check(names[-1] == "column",
           f"`column` must be the LAST field of Finding, after ignore_reason; order is {names}")
