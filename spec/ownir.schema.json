@@ -97,6 +97,7 @@
       "type": "object",
       "properties": {
         "line": { "type": "integer" },
+        "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
         "event": {
           "description": "The event/handle identifier for this owned resource (e.g. `bus.CustomerChanged`, `_timer.Tick`); carried into the finding message and rendered output.",
           "type": "string"
@@ -163,6 +164,7 @@
       "properties": {
         "name": { "type": "string" },
         "line": { "type": "integer" },
+        "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
         "effect": { "$ref": "#/$defs/paramEffect" }
       }
     },
@@ -177,6 +179,7 @@
           "properties": {
             "op": { "const": "acquire" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" },
             "kind": { "type": "string", "enum": ["pool"] }
           },
@@ -188,6 +191,7 @@
           "properties": {
             "op": { "const": "release" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" }
           },
           "required": ["op", "var"]
@@ -198,6 +202,7 @@
           "properties": {
             "op": { "const": "use" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" }
           },
           "required": ["op", "var"]
@@ -208,6 +213,7 @@
           "properties": {
             "op": { "const": "overspan" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" }
           },
           "required": ["op", "var"]
@@ -218,6 +224,7 @@
           "properties": {
             "op": { "const": "return" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" }
           },
           "required": ["op"]
@@ -228,6 +235,7 @@
           "properties": {
             "op": { "const": "alias_join" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "var": { "type": "string" },
             "src": { "type": "string" }
           },
@@ -239,6 +247,7 @@
           "properties": {
             "op": { "const": "call" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "callee": { "type": "string" },
             "sig": { "type": "string" },
             "args": { "type": "array", "items": { "type": "string" } },
@@ -252,6 +261,7 @@
           "properties": {
             "op": { "const": "if" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "then": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } },
             "else": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
@@ -263,6 +273,7 @@
           "properties": {
             "op": { "const": "while" },
             "line": { "type": "integer" },
+            "column": { "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md \u00a72): a producer that does not report one omits it and no consumer substitutes a value \u2014 not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).", "type": "integer", "minimum": 1 },
             "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
           "required": ["op"]
