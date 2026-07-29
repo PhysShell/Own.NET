@@ -56,6 +56,15 @@ on:
       - "tests/test_diag_sarif.py"
       - ".github/workflows/producer-differential.yml"
   workflow_dispatch:
+    inputs:
+      ownaudit_ref:
+        description: >-
+          OwnAudit ref to take the comparator from. Defaults to its default
+          branch, which is the only thing a PR gate should trust. Overridable for
+          the bootstrap case below, and for testing a comparator change against a
+          real producer before it lands.
+        required: false
+        default: ""
 
 concurrency:
   group: producer-differential-${{ github.ref }}
@@ -124,8 +133,32 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: PhysShell/OwnAudit
+          # Empty resolves to OwnAudit's default branch. A PR gate must compare
+          # against a REVIEWED comparator, so a branch is only ever reachable
+          # through an explicit workflow_dispatch.
+          ref: ${{ github.event.inputs.ownaudit_ref }}
           path: ownaudit
           persist-credentials: false
+
+      # A missing comparator is a gate that CANNOT RUN, and a gate that cannot run
+      # must not report success. It fails here, by name, instead of surfacing as an
+      # opaque ImportError several steps later.
+      #
+      # BOOTSTRAP: until the OwnAudit side of this change lands on its default
+      # branch, that is exactly the state this step reports. The remedy is ordering,
+      # not a fallback — merge the comparator first, or dispatch this workflow with
+      # `ownaudit_ref` pointing at its branch. Skipping instead would leave the gate
+      # permanently un-run by whoever forgot, which is the hole this whole workflow
+      # exists to close.
+      - name: The comparator is present
+        run: |
+          set -euo pipefail
+          if [ ! -f ownaudit/corpusdiff/__main__.py ]; then
+            echo "FAIL: OwnAudit@${{ github.event.inputs.ownaudit_ref || 'default branch' }} has no corpusdiff/ — this job compares corpora through OwnAudit's projections and cannot run without them."
+            echo "Merge the OwnAudit corpusdiff change first, or re-dispatch this workflow with ownaudit_ref set to its branch."
+            exit 1
+          fi
+          echo "comparator: $(cd ownaudit && git rev-parse --short HEAD)"
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
