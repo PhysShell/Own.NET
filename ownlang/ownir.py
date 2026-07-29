@@ -2936,7 +2936,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                            f"'{component}' alive (leak{lam})")
         findings.append(Finding(
             file=sub["file"], line=_as_int(sub.get("line", 0)),
-                column=_as_col(sub.get("column")), code=d.code,
+            column=_as_col(sub.get("column")), code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind, severity=fsev, ignore_reason=ir))
 
