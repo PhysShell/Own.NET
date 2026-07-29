@@ -142,3 +142,44 @@ fn additive_unknown_fields_are_preserved() {
     let doc = OwnIr::from_json(text).expect("additive fields are tolerated");
     assert_eq!(doc.to_value().expect("serialize"), original);
 }
+
+/// Own.NET#317: the optional 1-based `column` is additive, so it has no typed
+/// field here - it rides in the flattened `extra` and must come back byte-for-byte.
+///
+/// `round_trips_every_python_fixture` already covers this by scanning the fixture
+/// directory, but only implicitly: it proves whatever happens to be on disk. This
+/// asserts the field by name, so the guarantee stays legible if the fixture is ever
+/// renamed or moved, and names the three shapes that carry one - a resource record,
+/// a contract param, and a flow op nested inside a branch.
+#[test]
+fn optional_column_survives_the_round_trip() {
+    let text = fs::read_to_string(fixtures_dir().join("flow_column_anchors.facts.json"))
+        .expect("the column fixture must exist");
+    let original: Value = serde_json::from_str(&text).expect("valid JSON");
+    let back = OwnIr::from_json(&text)
+        .expect("must parse like Python load()")
+        .to_value()
+        .expect("round-trip serialization");
+    assert_eq!(back, original, "the column fixture must round-trip value-for-value");
+
+    // and the columns are really there, not merely equal-because-both-dropped-them
+    let cols: Vec<i64> = back
+        .to_string()
+        .match_indices("\"column\":")
+        .map(|(i, _)| {
+            back.to_string()[i + 9..]
+                .trim_start()
+                .split(|c: char| !c.is_ascii_digit())
+                .next()
+                .unwrap_or("")
+                .parse::<i64>()
+                .expect("a column must serialize as an integer")
+        })
+        .collect();
+    assert_eq!(
+        cols.len(),
+        8,
+        "expected 8 columns in the fixture (2 records, 1 param, 5 flow ops), got {cols:?}"
+    );
+    assert!(cols.iter().all(|c| *c >= 1), "every column must be 1-based: {cols:?}");
+}

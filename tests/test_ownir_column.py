@@ -202,6 +202,53 @@ def run() -> int:
                   getattr(x, "column", 0) for x in got),
               "the deterministic sort key must order by column within a line")
 
+    # ---- 5b. EVERY HANDLE-MINTING PATH, NOT JUST THE OBVIOUS ONE -----------
+    #      A flow-local handle is minted in five places. A column that travels only
+    #      the direct `acquire` would leave whole categories line-only, so each path
+    #      is exercised here rather than assumed from the code reading.
+    def _fn(body):
+        return {"ownir_version": 0, "module": "M", "components": [],
+                "functions": [{"name": "F.G", "file": "F.cs", "body": body}]}
+
+    # a contract param that became an owned obligation (`_lower_fn_params`)
+    prm = check_facts({"ownir_version": 0, "module": "M", "components": [],
+                       "functions": [{"name": "F.G", "file": "F.cs",
+                                      "params": [{"name": "owned", "line": 30,
+                                                  "column": 26, "effect": "consume"}],
+                                      "body": [{"op": "use", "var": "owned", "line": 31}]}]})
+    check([(f.line, f.column) for f in prm] == [(30, 26)],
+           f"param path lost the column: {[(f.line, f.column) for f in prm]}")
+
+    # a fresh-returning call result
+    res = check_facts(_fn([
+        {"op": "call", "callee": "System.IO.File.Create", "sig": "Create(string)",
+         "result": "d", "args": [], "line": 20, "column": 11},
+        {"op": "use", "var": "d", "line": 21}]))
+    check([(f.line, f.column) for f in res] == [(20, 11)],
+           f"call-result path lost the column: {[(f.line, f.column) for f in res]}")
+
+    # a branch acquire referenced after the merge (the HOISTED path -
+    # `_hoisted_branch_locals`, the one most easily forgotten)
+    hoi = check_facts(_fn([
+        {"op": "if", "line": 43,
+         "then": [{"op": "acquire", "var": "h", "line": 44, "column": 21}], "else": []},
+        {"op": "use", "var": "h", "line": 46}]))
+    check([(f.line, f.column) for f in hoi] == [(44, 21)],
+           f"hoisted-branch path lost the column: {[(f.line, f.column) for f in hoi]}")
+
+    # `alias_join` is the fifth path. Its handle carries the column, but a finding
+    # NEVER anchors on the alias site: the alias shares the source's obligation, so
+    # every probed shape reports at the original acquire. Recorded as observed
+    # behaviour rather than claimed as coverage - if that ever changes, this check
+    # fails and someone decides deliberately which site should anchor.
+    ali = check_facts(_fn([
+        {"op": "acquire", "var": "x", "line": 12, "column": 7},
+        {"op": "alias_join", "var": "c", "src": "x", "line": 13, "column": 9},
+        {"op": "use", "var": "c", "line": 14}]))
+    check([(f.line, f.column, f.event) for f in ali] == [(12, 7, "x")],
+           f"alias_join must still anchor at the source acquire: "
+           f"{[(f.line, f.column, f.event) for f in ali]}")
+
     # ---- 6. THE MESSAGE IS NOT A COORDINATE SOURCE -------------------------
     # `Diagnostic._caret_col` recovers a caret column by searching the source line
     # for a name pulled out of the message text. That heuristic must never reach

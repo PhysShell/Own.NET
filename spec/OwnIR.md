@@ -51,7 +51,7 @@ What bumps the version — the rule that keeps the three producers honest:
 
 | Change | Bumps `OWNIR_VERSION`? |
 |---|---|
-| Add an **optional** field with a safe default (e.g. `type`, `source_type`) | **No** — an older core reads the record without it (see §4). |
+| Add an **optional** field with a safe default (e.g. `type`, `source_type`, `column`) | **No** — an older core reads the record without it (see §4). |
 | Add a new **resource kind** discriminator value (§4) | **Yes** — the kind selects the analysis path (§4 routing), so it is a vocabulary change, not additive metadata; a present-but-unknown kind is rejected at load. |
 | Add, rename, remove, or change the meaning of a **flow op** (§5) | **Yes** — vocabulary change (see the guard below). |
 | Remove or rename a required field, or change a field's semantics | **Yes** — not backward-readable. |
@@ -88,7 +88,7 @@ finding — a frontend cannot silently lose a verdict.
 
 Each component has a `name`, a `file`, and a list historically keyed
 `subscriptions` (it is really the list of owned-resource records). Each record
-carries a `line` and, optionally, `released` (bool) and a `resource`
+carries a `line` and, optionally, a `column`, `released` (bool) and a `resource`
 discriminator. An unreleased record is the core's **OWN001** (owned-but-not-
 released) at `line`; a released one nets to a balanced acquire/release and stays
 silent. The `resource`/`type` fields are additive (§2), so an older core reads
@@ -135,12 +135,50 @@ the reason it read. A non-string value is rejected at load. The Roslyn frontend
 currently reads `[OwnIgnore]` on **`IDisposable` field declarations** (the clearest
 attribute site — the record anchors at the field); other sites are follow-ups.
 
+### 4.1 `column` — the optional source coordinate (normative)
+
+A record, a contract param, or a flow op MAY carry a `column` beside its `line`:
+the **1-based** source column of the *same* node the `line` anchors on. It is
+optional and additive, so it does not bump `OWNIR_VERSION` (§2).
+
+Three rules, and they are the whole contract:
+
+1. **Same node.** The column belongs to the node the line came from. Pairing one
+   node's line with another's column yields a well-formed coordinate pointing at
+   a place that does not exist — worse than an absent field, because nothing
+   downstream can detect it. The one place this bites today is the OWN025
+   (POOL005) verdict, which anchors on the *view* site rather than the acquire:
+   it therefore reports **no** column at all rather than the acquire's.
+2. **Never invented.** A producer that does not know the column omits it. It is
+   never `0`, never `1`, and never recovered by re-reading the source line —
+   `Diagnostic._caret_col` does exactly that for its human-readable caret, by
+   pulling a name out of the message text and falling back to the indentation.
+   That is a renderer heuristic, not a coordinate the analysis computed.
+3. **Validated, not coerced.** `load()` rejects a `column` that is not a 1-based
+   integer — `0`, negative, `bool`, string, float and array all raise
+   `OwnIRError`, and the walk recurses into `if`/`while` bodies. `bool` is
+   rejected explicitly: `True` is an `int` in Python and would otherwise read as
+   column 1. `check_facts()`, which may be called directly on un-validated facts,
+   degrades to absent instead.
+
+A flow-local handle is minted on five paths — a contract param, a direct
+`acquire`, an `alias_join`, a fresh-returning call `result`, and a branch acquire
+hoisted to the function scope — and the column travels all five. An `alias_join`
+handle carries one, but a finding still anchors at the source acquire, because
+the alias shares its obligation rather than creating a second one.
+
+The column rides to SARIF as `region.startColumn`, alongside `startLine` and only
+when a real `startLine` is present. It is what OwnAudit's `finding-occurrence/v1`
+physical anchor reads (Own.NET#317, PhysShell/OwnAudit#58); a finding without one
+is anchored line-only, which is a degradation rather than a failure.
+
 ## 5. Flow bodies (`functions[]`)
 
 A flow function has a `name`, a `file`, and a `body`: an ordered list of flow
 ops modelling one method's intra-procedural CFG (P-016). Each op has an `op` and
-a `line`. The lowerer mints a globally-unique handle per acquire so a finding
-maps back to the exact C# local. The **complete** op vocabulary:
+a `line`, and optionally a `column` (§4.1). The lowerer mints a globally-unique
+handle per acquire so a finding maps back to the exact C# local. The **complete**
+op vocabulary:
 
 | `op` | Fields | Lowers to |
 |---|---|---|
