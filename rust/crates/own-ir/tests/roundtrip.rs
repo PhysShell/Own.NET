@@ -144,13 +144,14 @@ fn additive_unknown_fields_are_preserved() {
 }
 
 /// Own.NET#317: the optional 1-based `column` is additive, so it has no typed
-/// field here - it rides in the flattened `extra` and must come back byte-for-byte.
+/// field here - it rides in the flattened `extra` and must come back
+/// value-for-value, the same guarantee this file states for every fixture.
 ///
 /// `round_trips_every_python_fixture` already covers this by scanning the fixture
 /// directory, but only implicitly: it proves whatever happens to be on disk. This
-/// asserts the field by name, so the guarantee stays legible if the fixture is ever
-/// renamed or moved, and names the three shapes that carry one - a resource record,
-/// a contract param, and a flow op nested inside a branch.
+/// asserts the field by name at each path that carries one, so the guarantee stays
+/// legible if the fixture is renamed - and cannot become vacuous if both sides
+/// were ever to drop the field together.
 #[test]
 fn optional_column_survives_the_round_trip() {
     let text = fs::read_to_string(fixtures_dir().join("flow_column_anchors.facts.json"))
@@ -162,24 +163,23 @@ fn optional_column_survives_the_round_trip() {
         .expect("round-trip serialization");
     assert_eq!(back, original, "the column fixture must round-trip value-for-value");
 
-    // and the columns are really there, not merely equal-because-both-dropped-them
-    let cols: Vec<i64> = back
-        .to_string()
-        .match_indices("\"column\":")
-        .map(|(i, _)| {
-            back.to_string()[i + 9..]
-                .trim_start()
-                .split(|c: char| !c.is_ascii_digit())
-                .next()
-                .unwrap_or("")
-                .parse::<i64>()
-                .expect("a column must serialize as an integer")
-        })
-        .collect();
-    assert_eq!(
-        cols.len(),
-        8,
-        "expected 8 columns in the fixture (2 records, 1 param, 5 flow ops), got {cols:?}"
-    );
-    assert!(cols.iter().all(|c| *c >= 1), "every column must be 1-based: {cols:?}");
+    // Named paths rather than a text scan: this asserts WHICH records kept a
+    // column, so a future edit that moves one silently fails here instead of
+    // still counting to eight.
+    for (pointer, expected) in [
+        ("/components/0/subscriptions/0/column", 17),   // subscription record
+        ("/components/0/subscriptions/1/column", 9),    // disposable field record
+        ("/functions/0/params/0/column", 26),           // contract param
+        ("/functions/1/body/0/column", 13),             // direct acquire
+        ("/functions/1/body/1/column", 44),             // same line, other column
+        ("/functions/1/body/2/column", 17),             // alias_join
+        ("/functions/1/body/3/column", 22),             // fresh-returning call
+        ("/functions/1/body/4/then/0/column", 21),      // acquire inside a branch
+    ] {
+        assert_eq!(
+            back.pointer(pointer).and_then(Value::as_i64),
+            Some(expected),
+            "column at {pointer} must survive the round-trip"
+        );
+    }
 }

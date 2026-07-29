@@ -8,8 +8,12 @@ SARIF emits `startLine`. OwnAudit's `finding-occurrence/v1` anchors on
 `path + startLine + startColumn`, so every own-check finding currently anchors
 line-only.
 
-This file is the executable specification of the fix, written BEFORE it. Every
-check here fails on `main@0ded835` and must pass afterwards.
+This file is the executable specification of the fix, written BEFORE it. It was
+deliberately NOT all-red: on `main@0ded835` 18 of its 28 checks failed and 10
+passed. Those 10 are the point as much as the 18 - they pin what must NOT move
+(the flow-local anchor line, OWNIR_VERSION, and the human/GitHub/MSBuild
+renderings byte for byte), so a "fix" that moved any of them would be caught by a
+check that was already green. A contract made all-red on purpose proves less.
 
 THE CASE THAT DECIDES THE SLICE
 -------------------------------
@@ -47,6 +51,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.ownir import (                                                      # noqa: E402
     OWNIR_VERSION, OwnIRError, build_sarif, check_facts, load, render_finding,
+    to_module,
 )
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "ownir")
@@ -241,10 +246,29 @@ def run() -> int:
     # every probed shape reports at the original acquire. Recorded as observed
     # behaviour rather than claimed as coverage - if that ever changes, this check
     # fails and someone decides deliberately which site should anchor.
-    ali = check_facts(_fn([
+    alias_facts = _fn([
         {"op": "acquire", "var": "x", "line": 12, "column": 7},
         {"op": "alias_join", "var": "c", "src": "x", "line": 13, "column": 9},
-        {"op": "use", "var": "c", "line": 14}]))
+        {"op": "use", "var": "c", "line": 14}])
+
+    # (a) the HANDLE keeps the alias site's OWN coordinate. Observed directly via
+    #     `to_module`, because the finding in (b) cannot see it: delete the column
+    #     from the alias handle and (b) stays green, which would leave this path
+    #     covered in appearance only.
+    _, handles = to_module(alias_facts)
+    alias_handle = next(
+        (h for h in handles.values()
+         if h.get("resource") == "flow-local" and h.get("event") == "c"), None)
+    check(alias_handle is not None, "the alias_join handle was never minted")
+    if alias_handle is not None:
+        check((alias_handle.get("line"), alias_handle.get("column")) == (13, 9),
+              f"alias_join handle lost its own coordinate: {alias_handle}")
+
+    # (b) and the FINDING still anchors at the SOURCE acquire, because the alias
+    #     shares that obligation rather than creating a second one. A separate
+    #     claim from (a), so a separate check: if the diagnostic semantics ever
+    #     change, this fails and someone decides deliberately which site anchors.
+    ali = check_facts(alias_facts)
     check([(f.line, f.column, f.event) for f in ali] == [(12, 7, "x")],
            f"alias_join must still anchor at the source acquire: "
            f"{[(f.line, f.column, f.event) for f in ali]}")
