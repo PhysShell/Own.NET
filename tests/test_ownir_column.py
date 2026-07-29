@@ -85,13 +85,19 @@ def _write(obj: dict) -> str:
 
 
 def _raises(obj: dict) -> bool:
+    # `finally`, not a plain unlink after `load`: this helper exists to run inputs that
+    # RAISE, so the cleanup has to be on the path that raises - which is every call.
+    path = _write(obj)
     try:
-        load(_write(obj))
+        load(path)
     except OwnIRError:
         return True
     except Exception:
         return False
-    return False
+    else:
+        return False
+    finally:
+        os.remove(path)
 
 
 def _subscription_facts(column: int | None = None) -> dict:
