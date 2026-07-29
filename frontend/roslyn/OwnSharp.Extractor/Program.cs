@@ -540,8 +540,29 @@ static ExpressionSyntax NormalizeHandler(ExpressionSyntax e)
     return e;
 }
 
-static int LineOf(SyntaxNode node) =>
-    node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+// ---- the one source-coordinate authority (Own.NET#317) ----
+//
+// Every anchor-producing fact takes its `line` AND its `column` from a SINGLE
+// RangeOf() on the SINGLE node the record anchors on. There is deliberately no
+// parallel `ColumnOf(node)`: two independent lookups are two opportunities to pass
+// two different nodes, and the result would be a well-formed coordinate pointing at
+// a place that does not exist — the worst kind of wrong, because nothing downstream
+// can detect it. `LineOf` is kept as the name every existing call site already uses;
+// it is now a projection of the same range rather than a second computation.
+//
+// Roslyn's LinePosition is 0-based in both axes. The +1 happens here, once, so no
+// caller ever sees a mixed convention.
+static SourceRange RangeOf(SyntaxNode node)
+{
+    var ls = node.GetLocation().GetLineSpan();
+    return new SourceRange(
+        new SourcePos(ls.StartLinePosition.Line + 1, ls.StartLinePosition.Character + 1),
+        new SourcePos(ls.EndLinePosition.Line + 1, ls.EndLinePosition.Character + 1));
+}
+
+static SourcePos PosOf(SyntaxNode node) => RangeOf(node).Start;
+
+static int LineOf(SyntaxNode node) => PosOf(node).Line;
 
 // ---- S0 fix-candidate metadata (--fix-candidates only; strictly additive) ----
 
@@ -570,15 +591,18 @@ static string FixNormWs(string s) =>
 static object FixSpanOf(SyntaxNode node)
 {
     var span = node.Span;
-    var ls = node.GetLocation().GetLineSpan();
+    // Routed through RangeOf so the fix block and the anchor records share ONE
+    // definition of "the 1-based position of this node". The serialized shape is
+    // unchanged — same six properties, same order, same values.
+    var range = RangeOf(node);
     return new
     {
         start = span.Start,
         length = span.Length,
-        start_line = ls.StartLinePosition.Line + 1,
-        start_column = ls.StartLinePosition.Character + 1,
-        end_line = ls.EndLinePosition.Line + 1,
-        end_column = ls.EndLinePosition.Character + 1,
+        start_line = range.Start.Line,
+        start_column = range.Start.Column,
+        end_line = range.End.Line,
+        end_column = range.End.Column,
     };
 }
 
@@ -3148,7 +3172,12 @@ static bool LowerFlowStatements(IReadOnlyList<StatementSyntax> stmts, int start,
             var owner = uv.Identifier.Text;
             var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(usingDecl) } };
             InjectThrowEdge(usingDecl, nodes, onThrow, canEscape);   // a throw DURING Rent() runs the OUTER path (owner not yet acquired)
-            nodes.Add(new { op = "acquire", var = owner, line = LineOf(uv) });
+            // #317: the acquire is the handle-minting op the bridge anchors a flow-local
+            // finding on, so it carries the column of the SAME declarator its line came
+            // from. The paired `release` below keeps its line alone — it is a scope-exit
+            // event, not an anchor.
+            var uvPos = PosOf(uv);
+            nodes.Add(new { op = "acquire", var = owner, line = uvPos.Line, column = uvPos.Column });
             var release = new { op = "release", var = owner, line = LineOf(uv) };
             // The rest of THIS block is the try-body; the implicit using-dispose is its finally — run
             // before a return (so a returned view is read after release) and on normal completion.
@@ -3210,19 +3239,34 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                         && v.Initializer?.Value is BaseObjectCreationExpressionSyntax adoptOce
                         && AdoptedArg(adoptOce, model) is IdentifierNameSyntax adoptedId
                         && tracked.Contains(adoptedId.Identifier.Text))
+                    {
+                        // #317: an alias_join mints a handle, so it carries a column. Its
+                        // coordinate is the ALIAS declarator's, which is what the bridge
+                        // stores on the alias handle — the finding still anchors at the
+                        // source acquire, because a joined obligation is reported where it
+                        // was created (tests/test_ownir_column.py pins that).
+                        var aliasPos = PosOf(v);
                         nodes.Add(new { op = "alias_join", var = v.Identifier.Text,
-                                        src = adoptedId.Identifier.Text, line = LineOf(v) });
+                                        src = adoptedId.Identifier.Text,
+                                        line = aliasPos.Line, column = aliasPos.Column });
+                    }
                     else if (tracked.Contains(v.Identifier.Text)
                         && (v.Initializer?.Value is ObjectCreationExpressionSyntax
                                                  or ImplicitObjectCreationExpressionSyntax
                             || IsPoolRent(v.Initializer?.Value, model)        // ArrayPool<T> Rent
                             || IsMemoryPoolRent(v.Initializer?.Value, model)  // MemoryPool<T> Rent (IMemoryOwner)
                             || IsOwningFactory(v.Initializer?.Value, model)))   // File / crypto Create* factory
+                    {
                         // Tag an ArrayPool rent so the bridge labels a partial-path leak a
                         // "pooled buffer" (Return not on every path), not the generic "disposable"
                         // — the flow path previously mislabelled a pool buffer leaked on a throw edge.
-                        nodes.Add(new { op = "acquire", var = v.Identifier.Text, line = LineOf(v),
+                        // #317: the direct acquire is the flow-local OWN001 anchor — the one
+                        // record that decides whether two leaks declared on one line stay two.
+                        var acqPos = PosOf(v);
+                        nodes.Add(new { op = "acquire", var = v.Identifier.Text,
+                                        line = acqPos.Line, column = acqPos.Column,
                                         kind = IsPoolRent(v.Initializer?.Value, model) ? "pool" : "disposable" });
+                    }
                     // P-005 D5.2: `var r = FirstPartyFactory()` — emit a `call` op (NOT an
                     // acquire); the core mints the acquire only if it proves the callee returns
                     // `fresh`, so a non-fresh first-party call is never falsely owned.
@@ -3247,9 +3291,14 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                                   .Where(tracked.Contains)
                                   .ToArray()
                             : Array.Empty<string>();
+                        // #317: the call's `result` becomes a handle when the core proves the
+                        // callee returns `fresh`, so this record is on the anchor path too and
+                        // carries the result declarator's column.
+                        var callPos = PosOf(v);
                         nodes.Add(new { op = "call", callee = fpCallee, sig = fpSig,
                                         args = fpArgs,
-                                        result = v.Identifier.Text, line = LineOf(v) });
+                                        result = v.Identifier.Text,
+                                        line = callPos.Line, column = callPos.Column });
                     }
                     // POOL005: a full-length view in the initializer — `var copy = buf.AsSpan().ToArray();`
                     // — over-reads the pooled tail just as `Emit(buf.AsSpan());` does. EmitFlowExpr is not
@@ -3287,7 +3336,10 @@ static bool LowerFlowStmt(StatementSyntax st, HashSet<string> tracked, SemanticM
                 var uv = ud.Variables[0];
                 var owner = uv.Identifier.Text;
                 var exit = new List<object> { new { op = "return", var = (string?)null, line = LineOf(us) } };
-                nodes.Add(new { op = "acquire", var = owner, line = LineOf(uv) });
+                // #317: same rule as the `using` DECLARATION form above — the acquire anchors,
+                // so it carries the declarator's column; the release keeps its line alone.
+                var uvPos = PosOf(uv);
+                nodes.Add(new { op = "acquire", var = owner, line = uvPos.Line, column = uvPos.Column });
                 var release = new { op = "release", var = owner, line = LineOf(uv) };
                 var bodyOnReturn = new List<object> { release };
                 bodyOnReturn.AddRange(onReturn ?? exit);
@@ -5543,6 +5595,11 @@ foreach (var (file, tree) in parsed)
                 // no-fix shapes below are byte-for-byte the pre-S0 facts.
                 var ownAcquire = ReferenceEquals(a.FirstAncestorOrSelf<TypeDeclarationSyntax>(), cls);
                 var wantFix = emitFixCandidates && !isTimer && ownAcquire;
+                // #317: ONE position for all four shapes below. Every one of them anchors on
+                // `a.Left` - the event access, the same node `line` has always come from - so
+                // resolving it once here is both the cheapest and the only way the four records
+                // are guaranteed to agree.
+                var eventPos = PosOf(a.Left);
                 if (returnedFresh)
                 {
                     if (wantFix)
@@ -5550,7 +5607,8 @@ foreach (var (file, tree) in parsed)
                         {
                             @event = a.Left.ToString(),
                             handler = a.Right.ToString(),
-                            line = LineOf(a.Left),
+                            line = eventPos.Line,
+                            column = eventPos.Column,
                             released,
                             resource = "subscription",
                             source,
@@ -5563,7 +5621,8 @@ foreach (var (file, tree) in parsed)
                         {
                             @event = a.Left.ToString(),
                             handler = a.Right.ToString(),
-                            line = LineOf(a.Left),
+                            line = eventPos.Line,
+                            column = eventPos.Column,
                             released,
                             resource = "subscription",
                             source,
@@ -5576,7 +5635,8 @@ foreach (var (file, tree) in parsed)
                     {
                         @event = a.Left.ToString(),
                         handler = a.Right.ToString(),
-                        line = LineOf(a.Left),
+                        line = eventPos.Line,
+                        column = eventPos.Column,
                         released,
                         resource = source == "static" ? "capture" : "subscription",
                         source,
@@ -5588,7 +5648,8 @@ foreach (var (file, tree) in parsed)
                     {
                         @event = a.Left.ToString(),
                         handler = a.Right.ToString(),
-                        line = LineOf(a.Left),
+                        line = eventPos.Line,
+                        column = eventPos.Column,
                         released,
                         resource = isTimer ? "timer"
                                  : source == "static" ? "capture"
@@ -5599,11 +5660,14 @@ foreach (var (file, tree) in parsed)
             }
             else if (leftSymbol is null && IsHandler(a.Right))
             {
+                // #317: a separate branch, so a separate lookup - on the SAME node.
+                var unresolvedPos = PosOf(a.Left);
                 subs.Add(new
                 {
                     @event = a.Left.ToString(),
                     handler = a.Right.ToString(),
-                    line = LineOf(a.Left),
+                    line = unresolvedPos.Line,
+                    column = unresolvedPos.Column,
                     resource = "unresolved-subscription",
                 });
             }
@@ -5622,16 +5686,22 @@ foreach (var (file, tree) in parsed)
         if (emitEvents && weakSubscribe.Count > 0)
             foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out var wsSource, out var wsHandler))
+                {
+                    // #317: the wrapper CALL is the record's node, not the source expression
+                    // it names - the same node `line` already used.
+                    var wsPos = PosOf(inv);
                     subs.Add(new
                     {
                         @event = wsSource!.ToString(),
                         handler = wsHandler!.ToString(),
-                        line = LineOf(inv),
+                        line = wsPos.Line,
+                        column = wsPos.Column,
                         released = true,          // accepted release: weak, cannot leak (acceptance #2)
                         resource = "subscription",
                         source = "injected",
                         lambda = IsLambdaHandler(wsHandler!),
                     });
+                }
 
         // WPF003: an IDisposable field the class constructs (`new`) but never
         // disposes. Owned (not injected) = in `constructed` (computed above);
@@ -5888,11 +5958,15 @@ foreach (var (file, tree) in parsed)
                 // over silence). Additive/optional: absent when there is no valid reason, so
                 // an older core ignores it — exactly the source_provenance convention.
                 var ignoreReason = OwnIgnoreReason(fd.AttributeLists, model);
+                // #317: one position for both shapes - they are the same record with and
+                // without the suppression marker, anchored on the same declarator.
+                var fieldPos = PosOf(v);
                 if (ignoreReason is not null)
                     subs.Add(new
                     {
                         @event = v.Identifier.Text,
-                        line = LineOf(v),
+                        line = fieldPos.Line,
+                        column = fieldPos.Column,
                         released = disposed.Contains(v.Identifier.Text),
                         resource = "disposable",
                         type = tname,
@@ -5902,7 +5976,8 @@ foreach (var (file, tree) in parsed)
                     subs.Add(new
                     {
                         @event = v.Identifier.Text,
-                        line = LineOf(v),
+                        line = fieldPos.Line,
+                        column = fieldPos.Column,
                         released = disposed.Contains(v.Identifier.Text),
                         resource = "disposable",
                         type = tname,
@@ -5932,7 +6007,11 @@ foreach (var (file, tree) in parsed)
             // Owner fields -> declaration line (the synthetic `acquire`): IDisposable fields AND
             // `IMemoryOwner<T>` MemoryPool rentals, whose pooled buffer is released by Dispose() — so a
             // read after that Dispose (including through a Memory VIEW field of the owner) dangles.
-            var dispoFieldLine = new Dictionary<string, int>(StringComparer.Ordinal);
+            // #317: a POSITION, not a line. This dictionary is the sole coordinate source for
+            // the synthetic acquire minted below, and that acquire is an anchor — so the
+            // column has to travel with the line from the declarator that produced both,
+            // across the whole distance between the two loops.
+            var dispoFieldPos = new Dictionary<string, SourcePos>(StringComparer.Ordinal);
             foreach (var fd in cls.Members.OfType<FieldDeclarationSyntax>())
             {
                 if (fd.Modifiers.Any(mm => mm.IsKind(SyntaxKind.StaticKeyword)))
@@ -5947,13 +6026,13 @@ foreach (var (file, tree) in parsed)
                     && !IsMemoryOwnerType(model.GetTypeInfo(fd.Declaration.Type).Type))
                     continue;
                 foreach (var v in fd.Declaration.Variables)
-                    dispoFieldLine[v.Identifier.Text] = LineOf(v);
+                    dispoFieldPos[v.Identifier.Text] = PosOf(v);
             }
             // field -> line of its `.Dispose()` INSIDE Dispose()/DisposeAsync() (the
             // release event). Restricted to the dispose methods so an ordinary
             // `_f.Dispose()` helper is not misread as object teardown.
             var releasedAt = new Dictionary<string, int>(StringComparer.Ordinal);
-            if (dispoFieldLine.Count > 0)
+            if (dispoFieldPos.Count > 0)
                 foreach (var dm in cls.Members.OfType<MethodDeclarationSyntax>())
                 {
                     if (dm.Identifier.Text is not ("Dispose" or "DisposeAsync"))
@@ -5962,7 +6041,7 @@ foreach (var (file, tree) in parsed)
                         if (inv.Expression is MemberAccessExpressionSyntax dmm
                             && dmm.Name.Identifier.Text is "Dispose" or "DisposeAsync"
                             && ThisFieldName(dmm.Expression) is { } df
-                            && dispoFieldLine.ContainsKey(df)
+                            && dispoFieldPos.ContainsKey(df)
                             && !releasedAt.ContainsKey(df))
                             releasedAt[df] = LineOf(inv);
                 }
@@ -6065,13 +6144,19 @@ foreach (var (file, tree) in parsed)
                         continue;
                     if (DisposedGuardBefore(hbody, triggerPos))
                         continue;
+                    // #317: only the synthetic ACQUIRE carries a column. `releasedAt` and
+                    // `useLine` stay lines: the release and the use are events on the path,
+                    // not the record the finding anchors on, and giving them a column would
+                    // mean inventing coordinates for nodes this pass never resolved as a pair.
+                    var dispoPos = dispoFieldPos[useField];
                     flowFunctions.Add(new
                     {
                         name = $"{cls.Identifier.Text}.{hname}",
                         file,
                         body = new List<object>
                         {
-                            new { op = "acquire", var = useField, line = dispoFieldLine[useField] },
+                            new { op = "acquire", var = useField,
+                                  line = dispoPos.Line, column = dispoPos.Column },
                             new { op = "release", var = useField, line = releasedAt[useField] },
                             new { op = "use", var = useField, line = useLine },
                         },
@@ -6109,21 +6194,25 @@ foreach (var (file, tree) in parsed)
             //     in an inner type; and
             //   * a field-declaration INITIALIZER `byte[] _buf = ArrayPool<T>.Shared.Rent(n);` — a direct
             //     member of `cls`, so inherently this-class-scoped (CodeRabbit).
-            // First rent line per field anchors the synthetic acquire.
-            var pooledFieldRent = new Dictionary<string, int>(StringComparer.Ordinal);
+            // The first rent per field anchors the synthetic acquire, so #317 makes this a
+            // POSITION rather than a line: the acquire is minted in a different loop, and a
+            // carrier that dropped the column here would leave no way to recover it there
+            // except by re-resolving the node - a second lookup, and a second chance to pick
+            // the wrong one.
+            var pooledFieldRent = new Dictionary<string, SourcePos>(StringComparer.Ordinal);
             foreach (var inv in cls.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model)
                     && inv.FirstAncestorOrSelf<BaseTypeDeclarationSyntax>() == cls
                     && inv.Parent is AssignmentExpressionSyntax asg
                     && ThisFieldName(asg.Left) is { } pf
                     && !pooledFieldRent.ContainsKey(pf))
-                    pooledFieldRent[pf] = LineOf(inv);
+                    pooledFieldRent[pf] = PosOf(inv);
             foreach (var fdecl in cls.Members.OfType<FieldDeclarationSyntax>())
                 foreach (var fv in fdecl.Declaration.Variables)
                     if (fv.Initializer?.Value is InvocationExpressionSyntax finv
                         && IsPoolRent(finv, model)
                         && !pooledFieldRent.ContainsKey(fv.Identifier.Text))
-                        pooledFieldRent[fv.Identifier.Text] = LineOf(finv);
+                        pooledFieldRent[fv.Identifier.Text] = PosOf(finv);
             if (pooledFieldRent.Count > 0)
                 foreach (var member in cls.Members)
                 {
@@ -6135,11 +6224,17 @@ foreach (var (file, tree) in parsed)
                     var ops = new List<object>();
                     foreach (var node in member.DescendantNodes().OfType<ExpressionSyntax>())
                         if (FullViewFieldOwner(node, model) is { } fld
-                            && pooledFieldRent.TryGetValue(fld, out var rentLine)
+                            && pooledFieldRent.TryGetValue(fld, out var rentPos)
                             && seen.Add(fld))
                         {
                             var vline = LineOf(node);
-                            ops.Add(new { op = "acquire", var = fld, line = rentLine, kind = "pool" });
+                            // #317: the acquire anchors and carries the rent's column. The
+                            // overspan/release below stay on `vline` alone - `node` is the VIEW
+                            // site, a different node from the rent, and mixing the rent's column
+                            // into the view's line is the one error this change exists to prevent.
+                            ops.Add(new { op = "acquire", var = fld,
+                                          line = rentPos.Line, column = rentPos.Column,
+                                          kind = "pool" });
                             ops.Add(new { op = "overspan", var = fld, line = vline });
                             ops.Add(new { op = "release", var = fld, line = vline });
                         }
@@ -6177,10 +6272,15 @@ foreach (var (file, tree) in parsed)
                 // itself stays `emitEvents`-gated above; only this misclassification-guard is
                 // always active.
                 && !MatchesDeclaredWeakSubscribe(inv, model, weakSubscribe, out _, out _))
+            {
+                // #317: the dropped token's record anchors on the INVOCATION, which is the
+                // node `line` has always been taken from - `m` is only its receiver spelling.
+                var rxPos = PosOf(inv);
                 subs.Add(new
                 {
                     @event = m.ToString(),
-                    line = LineOf(inv),
+                    line = rxPos.Line,
+                    column = rxPos.Column,
                     released = false,
                     resource = "subscribe",
                     // A self-rooted `this.WhenAnyValue(p => p.SelfProp)` chain is a
@@ -6188,6 +6288,7 @@ foreach (var (file, tree) in parsed)
                     // Any other (external) source stays a flagged leak (null source).
                     source = IsSelfRootedWhenAny(m.Expression) ? "self" : null,
                 });
+            }
 
         // POOL001: an ArrayPool<T> buffer `Rent`ed but never `Return`ed, the Rent
         // recognised via the shared semantic `IsPoolRent` (so an aliased pool receiver
@@ -6218,7 +6319,9 @@ foreach (var (file, tree) in parsed)
 
         foreach (var member in cls.Members)
         {
-            var rented = new List<(string Name, int Line, bool IsField)>();
+            // #317: `Pos`, not `Line` - the record built from this tuple below is a POOL001
+            // anchor, and the rent invocation that fills it is resolved here, not there.
+            var rented = new List<(string Name, SourcePos Pos, bool IsField)>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model))
                 {
@@ -6247,7 +6350,7 @@ foreach (var (file, tree) in parsed)
                         _ => ((string?)null, false),
                     };
                     if (name != null)
-                        rented.Add((name, LineOf(inv), isField));
+                        rented.Add((name, PosOf(inv), isField));
                 }
             if (rented.Count == 0)
                 continue;
@@ -6258,11 +6361,12 @@ foreach (var (file, tree) in parsed)
                     && inv.ArgumentList.Arguments.Count > 0
                     && FieldName(inv.ArgumentList.Arguments[0].Expression) is { } rn)
                     returned.Add(rn);
-            foreach (var (name, line, isField) in rented)
+            foreach (var (name, pos, isField) in rented)
                 subs.Add(new
                 {
                     @event = name,
-                    line,
+                    line = pos.Line,
+                    column = pos.Column,
                     // locals stay per-member; a field is also released if returned/transferred
                     // anywhere in the class (cross-member ctor-rent + Dispose-return).
                     released = returned.Contains(name) || (isField && fieldReleased.Contains(name)),
@@ -6319,10 +6423,14 @@ foreach (var (file, tree) in parsed)
                     if (v.Initializer?.Value is { } newExpr
                         && HasEmptyDisposeBody(model.GetTypeInfo(newExpr).Type))
                         continue;
+                    // #317: the D1 local-leak record anchors on the declarator, so two
+                    // undisposed locals declared on one line stay two findings.
+                    var localPos = PosOf(v);
                     subs.Add(new
                     {
                         @event = name,
-                        line = LineOf(v),
+                        line = localPos.Line,
+                        column = localPos.Column,
                         released = disposedLocal.Contains(name),
                         resource = "local-disposable",
                         type = ctype,
@@ -6623,4 +6731,16 @@ partial class Program
     // would otherwise dodge the ancestor-walk weaver check (the FodyWeavers.xml lives next
     // to the .csproj, not above the linked file).
     internal static readonly HashSet<string> WeaverOwnedFiles = new(StringComparer.Ordinal);
+
+    // #317: a 1-based source coordinate, carried as ONE value so a line and a column can
+    // never drift onto different nodes. See RangeOf/PosOf/LineOf above — those are the only
+    // producers of these, and they are computed from a single GetLineSpan() per node.
+    //
+    // A bare `SourcePos` would be enough for the anchor records, but not for `FixSpanOf`,
+    // which also serializes `end_line`/`end_column`. Two types rather than one so the fix
+    // block and the anchors keep sharing one definition instead of forking a second
+    // "compute the position of a node" path — which is precisely what this change removes.
+    internal readonly record struct SourcePos(int Line, int Column);
+
+    internal readonly record struct SourceRange(SourcePos Start, SourcePos End);
 }

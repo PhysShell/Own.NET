@@ -261,6 +261,15 @@ jobs:
             frontend/roslyn/samples/OwnedCollectionElementSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
+      - name: Extractor source columns (Own.NET#317)
+        # The producer half of #317. Runs the real extractor over a fixture that puts two
+        # anchor sites on ONE line and asserts each record's exact (line, column) - the
+        # only place in this repo where an emitted column is checked against the source
+        # text rather than against another hand-written fixture. REQUIRED here (dotnet is
+        # present); it skips cleanly in the offline Tier-A job.
+        env:
+          OWN_TIERB_REQUIRED: "1"
+        run: python tests/test_extractor_columns.py
       - name: S2 step 10 analyzer-delta verifier (Tier B, full public CLI)
         env:
           OWN_TIERB_REQUIRED: "1"
