@@ -142,3 +142,47 @@ fn additive_unknown_fields_are_preserved() {
     let doc = OwnIr::from_json(text).expect("additive fields are tolerated");
     assert_eq!(doc.to_value().expect("serialize"), original);
 }
+
+/// Own.NET#317: the optional 1-based `column` is additive, so it has no typed
+/// field here - it rides in the flattened `extra` and must come back
+/// value-for-value, the same guarantee this file states for every fixture.
+///
+/// `round_trips_every_python_fixture` already covers this by scanning the fixture
+/// directory, but only implicitly: it proves whatever happens to be on disk. This
+/// asserts the field by name at each path that carries one, so the guarantee stays
+/// legible if the fixture is renamed - and cannot become vacuous if both sides
+/// were ever to drop the field together.
+#[test]
+fn optional_column_survives_the_round_trip() {
+    let text = fs::read_to_string(fixtures_dir().join("flow_column_anchors.facts.json"))
+        .expect("the column fixture must exist");
+    let original: Value = serde_json::from_str(&text).expect("valid JSON");
+    let back = OwnIr::from_json(&text)
+        .expect("must parse like Python load()")
+        .to_value()
+        .expect("round-trip serialization");
+    assert_eq!(
+        back, original,
+        "the column fixture must round-trip value-for-value"
+    );
+
+    // Named paths rather than a text scan: this asserts WHICH records kept a
+    // column, so a future edit that moves one silently fails here instead of
+    // still counting to eight.
+    for (pointer, expected) in [
+        ("/components/0/subscriptions/0/column", 17), // subscription record
+        ("/components/0/subscriptions/1/column", 9),  // disposable field record
+        ("/functions/0/params/0/column", 26),         // contract param
+        ("/functions/1/body/0/column", 13),           // direct acquire
+        ("/functions/1/body/1/column", 44),           // same line, other column
+        ("/functions/1/body/2/column", 17),           // alias_join
+        ("/functions/1/body/3/column", 22),           // fresh-returning call
+        ("/functions/1/body/4/then/0/column", 21),    // acquire inside a branch
+    ] {
+        assert_eq!(
+            back.pointer(pointer).and_then(Value::as_i64),
+            Some(expected),
+            "column at {pointer} must survive the round-trip"
+        );
+    }
+}

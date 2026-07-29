@@ -372,6 +372,15 @@ class Finding:
     # the extractor emits it only for an `[OwnIgnore]` with a non-empty reason, so a reason-less
     # attribute never suppresses. Declared LAST (positional-constructor safe).
     ignore_reason: str | None = None
+    # The 1-based source COLUMN of the same node `line` anchors on (#317). Optional
+    # and nullable: a producer that does not report one leaves it absent, and it is
+    # never substituted — not 0, not 1, and never recovered by re-reading the source
+    # line (that is `Diagnostic._caret_col`, a renderer heuristic). It rides into
+    # SARIF as `region.startColumn`, where OwnAudit's occurrence anchor reads it.
+    # Declared LAST for the same reason `ignore_reason` is: positional construction
+    # is used across this module, and a field inserted mid-list silently re-binds
+    # every positional argument after it.
+    column: int | None = None
 
     @property
     def suppressed(self) -> bool:
@@ -445,6 +454,12 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
     }
     if f.line >= 1:  # SARIF region.startLine is 1-based; omit it for a file-level finding
         phys["region"] = {"startLine": f.line}
+        # `startColumn` only ever accompanies a real `startLine`, and only when the
+        # producer actually reported one. A column without a line would be a
+        # coordinate with no point of reference; a substituted column would be a
+        # well-formed lie, which is worse than an absent field.
+        if f.column is not None:
+            phys["region"]["startColumn"] = f.column
     props: dict[str, Any] = {"resourceKind": f.kind}
     for key, val in (("component", f.component), ("event", f.event),
                      ("handler", f.handler)):
@@ -521,6 +536,41 @@ def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, A
     }
 
 
+def _check_column(v: Any, where: str) -> None:
+    """Fail-loud shape check for an optional source `column` (#317).
+
+    A column is a 1-based coordinate or it is absent. `0` is rejected rather than
+    treated as "unknown": SARIF columns start at 1, so a 0 is a producer bug, and
+    silently reading it as absent would hide the bug while looking correct. `bool`
+    is rejected explicitly - `True` is an `int` in Python and would otherwise be
+    accepted as column 1, which is exactly the fabricated coordinate this whole
+    contract refuses.
+
+    `load()` is fail-loud; `check_facts()` on un-validated facts degrades to None
+    through `_as_col`. Two entry points, two contracts, on purpose.
+    """
+    if v is None:
+        return
+    if isinstance(v, bool) or not isinstance(v, int) or v < 1:
+        raise OwnIRError(
+            f"{where} 'column' must be a 1-based integer or absent, got {v!r}")
+
+
+def _check_flow_columns(nodes: Any, where: str) -> None:
+    """Validate `column` on every flow op, including inside `if`/`while` bodies.
+
+    Recursive because a hoisted branch acquire - the path most likely to be
+    forgotten - lives inside a nested body, not at the top level."""
+    if not isinstance(nodes, list):
+        return
+    for n in nodes:
+        if not isinstance(n, dict):
+            continue
+        _check_column(n.get("column"), f"{where} op {n.get('op')!r}")
+        for key in ("then", "else", "body"):
+            _check_flow_columns(n.get(key), where)
+
+
 def load(path: str) -> dict[str, Any]:
     """Load and shape-check an OwnIR facts file (it is external input — a
     malformed file should fail with a clear error, not a deep traceback)."""
@@ -569,6 +619,9 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"unknown resource kind {r!r} — a new kind is a vocabulary "
                     f"change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)")
+            # The source COLUMN of the same node `line` anchors on (#317). Optional
+            # and additive: absent on every fact an older extractor emitted.
+            _check_column(s.get("column"), "subscription")
             t = s.get("type")
             if t is not None and not isinstance(t, str):
                 raise OwnIRError(
@@ -709,6 +762,7 @@ def load(path: str) -> dict[str, Any]:
         # and optional — an older core just reads functions without contracts. An
         # omitted `effect` is INFERRED from the body (v1 contract inference), so the
         # field is a hint/override, not a requirement.
+        _check_flow_columns(f.get("body"), "function body")
         ps = f.get("params", [])
         if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
             raise OwnIRError("a function's 'params' must be a JSON array of objects")
@@ -723,6 +777,7 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(pl, int) or isinstance(pl, bool):
                 raise OwnIRError(
                     f"parameter 'line' must be an integer, got {pl!r}")
+            _check_column(p.get("column"), "parameter")
             peff = p.get("effect")
             if peff is not None and peff not in _PARAM_EFFECTS:
                 raise OwnIRError(
@@ -1139,9 +1194,10 @@ def to_module(facts: dict[str, Any],
             for hname in sorted(hoist):
                 hh = f"loc_{loc[0]}"
                 loc[0] += 1
-                hline, hpool = hoist[hname]
+                hline, hcol, hpool = hoist[hname]
                 localmap[hname] = hh
-                handles[hh] = {"file": ffile, "line": hline, "event": hname,
+                handles[hh] = {"file": ffile, "line": hline, "column": hcol,
+                               "event": hname,
                                "component": fname, "resource": "flow-local",
                                "ever_released": hname in released, "pool": hpool}
                 hoisted_lets.append(Let(hh, Acquire("Disposable", [], hline), hline))
@@ -2123,7 +2179,8 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
         loc[0] += 1
         line = _as_int(p.get("line", 0))
         localmap[cname] = sym
-        handles[sym] = {"file": ffile, "line": line, "event": cname,
+        handles[sym] = {"file": ffile, "line": line, "column": _as_col(p.get("column")),
+                        "event": cname,
                         "component": fname, "resource": "flow-local",
                         "ever_released": cname in released_vars}
         out.append(Param(sym, tref, line))
@@ -2183,7 +2240,7 @@ def _branch_hoist_safe(nodes: Any, name: str, mos: dict[str, Any] | None,
 def _hoisted_branch_locals(nodes: Any,
                            mos: dict[str, Any] | None,
                            first_party: frozenset[str] = frozenset(),
-                           ) -> dict[str, tuple[int, bool]]:
+                           ) -> dict[str, tuple[int, int | None, bool]]:
     """Locals acquired INSIDE an `if`/`while` branch but referenced after the merge.
 
     The core resolver is strictly lexical: an `if` pushes a scope per branch and pops
@@ -2204,11 +2261,13 @@ def _hoisted_branch_locals(nodes: Any,
     release r` to one acquire would hide a per-iteration leak); and (4) `_branch_hoist_safe`
     holds — no path can early-`return` before the release on a path that did not acquire
     the local (else the unconditional hoisted acquire fabricates a leak — a *false*
-    OWN001). The returned `(line, pool)` is the first branch-acquire site and whether it
+    OWN001). The returned `(line, column, pool)` is the first branch-acquire site
+    (#317: its column too, from that same node) and whether it
     is an ArrayPool rent (so a hoisted pooled buffer keeps its kind). (Bridge branch-scope
     fix; Codex P2 on #116, loop exclusion Codex P1 + safety/pool CodeRabbit on #120.)"""
     acq_depth: dict[str, int] = {}    # name -> shallowest acquire depth
     acq_line: dict[str, int] = {}     # name -> first-seen acquire line
+    acq_col: dict[str, int | None] = {}   # name -> that same acquire's column (#317)
     acq_pool: dict[str, bool] = {}    # name -> is an ArrayPool rent (any acquire)
     ref_depth: dict[str, int] = {}    # name -> shallowest non-acquire reference depth
     loop_acq: set[str] = set()        # names acquired anywhere inside a `while` body
@@ -2238,6 +2297,10 @@ def _hoisted_branch_locals(nodes: Any,
                 if acq not in acq_depth or depth < acq_depth[acq]:
                     acq_depth[acq] = depth
                 acq_line.setdefault(acq, line)
+                # Keyed on the SAME first-seen acquire the line came from, so a hoisted
+                # local can never end up carrying one node's line and another's column.
+                if acq not in acq_col:
+                    acq_col[acq] = _as_col(n.get("column"))
                 if op == "acquire" and n.get("kind") == "pool":
                     acq_pool[acq] = True
                 if in_loop:
@@ -2261,7 +2324,7 @@ def _hoisted_branch_locals(nodes: Any,
     # body is CUMULATIVE — hoisting it would collapse 0..N iterations into one acquire
     # and hide a per-iteration leak (Codex P1), so a loop-acquired local is excluded (it
     # keeps its pre-existing behaviour; a loop-aware model is a separate follow-up).
-    return {name: (acq_line[name], acq_pool.get(name, False))
+    return {name: (acq_line[name], acq_col.get(name), acq_pool.get(name, False))
             for name, d in acq_depth.items()
             if d >= 1 and ref_depth.get(name, -1) == 0 and name not in loop_acq
             and _branch_hoist_safe(nodes, name, mos, first_party)}
@@ -2329,7 +2392,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
             handle = f"loc_{loc[0]}"
             loc[0] += 1
             localmap[name] = handle
-            handles[handle] = {"file": ffile, "line": line, "event": name,
+            handles[handle] = {"file": ffile, "line": line,
+               "column": _as_col(n.get("column")), "event": name,
                                "component": fname, "resource": "flow-local",
                                "ever_released": name in released_vars,
                                # the extractor stamps an ArrayPool Rent's acquire kind so a
@@ -2358,7 +2422,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[name] = handle
-                handles[handle] = {"file": ffile, "line": line, "event": name,
+                handles[handle] = {"file": ffile, "line": line,
+                   "column": _as_col(n.get("column")), "event": name,
                                    "component": fname, "resource": "flow-local",
                                    "ever_released": name in released_vars,
                                    "pool": False}
@@ -2491,7 +2556,8 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
                 handle = f"loc_{loc[0]}"
                 loc[0] += 1
                 localmap[result] = handle
-                handles[handle] = {"file": ffile, "line": line, "event": result,
+                handles[handle] = {"file": ffile, "line": line,
+                   "column": _as_col(n.get("column")), "event": result,
                                    "component": fname, "resource": "flow-local",
                                    "ever_released": result in released_vars,
                                    "pool": False}
@@ -2679,7 +2745,14 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 # unbounded AsSpan/Memory is taken), not the Rent site, and tag it
                 # a pooled buffer rather than the generic disposable.
                 findings.append(Finding(
-                    file=sub["file"], line=d.line, code=d.code,
+                    # `column=None` ON PURPOSE (#317 watchpoint 2). This branch
+                    # anchors on the VIEW site (`d.line`), not the acquire, so the
+                    # acquire's column belongs to a different node. Pairing one
+                    # node's line with another's column would be a well-formed
+                    # SARIF coordinate pointing at a place that does not exist -
+                    # the worst kind, because nothing downstream could tell.
+                    # A real column here needs the .own parser span (a non-goal).
+                    file=sub["file"], line=d.line, column=None, code=d.code,
                     component=component, event=name, handler="",
                     message=(f"pooled buffer '{name}' is viewed at its full "
                              f"length, past the logical length it was rented for "
@@ -2722,7 +2795,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                     "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",
                 }.get(d.code, f"IDisposable local '{name}': {d.message}")
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="pooled buffer" if pool else "disposable",
                 flow=_flow_local_steps(sub, d.code, d.line, bool(pool))))
@@ -2767,7 +2841,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 if len(steps) >= 2:
                     esc_flow = tuple(steps)
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", flow=esc_flow,
                 ignore_reason=ir))
@@ -2796,7 +2871,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                        f"lifetime, so it can never be collected — a region escape "
                        f"(leak, no release path{lam})")
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
+                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", ignore_reason=ir))
             continue
@@ -2859,7 +2935,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                            f"but never unsubscribed — the source keeps "
                            f"'{component}' alive (leak{lam})")
         findings.append(Finding(
-            file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
+            file=sub["file"], line=_as_int(sub.get("line", 0)),
+            column=_as_col(sub.get("column")), code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind, severity=fsev, ignore_reason=ir))
 
@@ -2914,7 +2991,10 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     seen: set[tuple[Any, ...]] = set()
     deduped: list[Finding] = []
     for f in findings:
-        key = (f.file, f.line, f.code, f.component, f.event, f.handler,
+        # `column` joins the key for the same reason `line` is in it: two findings
+        # that differ only in column are two leak sites, and without it they collapse
+        # into one (proved by tests/test_ownir_column.py, which saw exactly that).
+        key = (f.file, f.line, f.column, f.code, f.component, f.event, f.handler,
                f.message, f.kind, f.advisory, f.severity, f.ignore_reason)
         if key in seen:
             continue
@@ -2922,7 +3002,11 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         deduped.append(f)
     findings = deduped
 
-    findings.sort(key=lambda f: (f.file, f.line, f.code))
+    # `f.column or 0` rather than `f.column`: sorting a mix of None and int raises
+    # on the first pair whose earlier fields tie. A real column is >= 1, so 0 is an
+    # unambiguous "absent" that sorts before every reported one — and it lives ONLY
+    # in the sort key, never in the emitted record.
+    findings.sort(key=lambda f: (f.file, f.line, f.column or 0, f.code))
     return findings
 
 
@@ -2931,6 +3015,15 @@ def _as_int(v: Any) -> int:
     check_facts may be called directly (tests, embedders) on un-validated facts,
     so a bad `line` degrades to 0 rather than raising a bare ValueError."""
     return v if isinstance(v, int) and not isinstance(v, bool) else 0
+
+
+def _as_col(v: Any) -> int | None:
+    """A non-throwing column coercion (#317). `load()` is fail-loud about a bad
+    column; `check_facts` may be called directly on un-validated facts, so anything
+    that is not a real 1-based coordinate degrades to None — absent, never invented.
+    `bool` is excluded explicitly: `True` is an `int` in Python and would otherwise
+    read as column 1."""
+    return v if isinstance(v, int) and not isinstance(v, bool) and v >= 1 else None
 
 
 def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
@@ -3293,7 +3386,8 @@ def _unresolved_findings(facts: dict[str, Any]) -> list[Finding]:
                        f"unresolved reference (build the project or pass "
                        f"references); leakage analysis skipped")
             out.append(Finding(
-                file=cfile, line=_as_int(sub.get("line", 0)), code="OWN050",
+                file=cfile, line=_as_int(sub.get("line", 0)),
+                column=_as_col(sub.get("column")), code="OWN050",
                 component=cname, event=event, handler=handler, message=message,
                 kind="unresolved reference", advisory=True))
     return out

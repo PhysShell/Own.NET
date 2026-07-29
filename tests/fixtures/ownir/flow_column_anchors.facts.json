@@ -1,0 +1,133 @@
+{
+  "ownir_version": 0,
+  "module": "ColumnAnchors",
+  "_doc": [
+    "Own.NET#317: the optional 1-based `column` on the finding-anchor path.",
+    "Findings this fixture yields, all carrying a column: the contract param that",
+    "became an owned obligation (30:26), two direct acquires (40:13 and 40:44), the",
+    "acquire nested in an `if` branch (44:21 - the hoisted path, the one most easily",
+    "missed), the subscription (12:17) and the disposable field (21:9).",
+    "The two acquires SHARE line 40 and differ only in column: that pair is what",
+    "proves the column discriminates rather than decorating every record with the",
+    "same number - without it in the dedupe key they collapse into one finding.",
+    "`alias_join` and the fresh-returning call result also mint handles that carry a",
+    "column; neither yields a finding HERE (the alias shares its source's obligation",
+    "and the callee is not known-fresh). Both are covered at Finding level in",
+    "tests/test_ownir_column.py instead, where the alias case pins the observed",
+    "behaviour: it anchors at the source acquire, never at the alias site.",
+    "The Rust `own-ir` round-trip scans this directory, so this file is also the",
+    "additive-preservation evidence for the flattened `extra`."
+  ],
+  "components": [
+    {
+      "name": "ColumnAnchors.View",
+      "file": "View.xaml.cs",
+      "subscriptions": [
+        {
+          "event": "model.PropertyChanged",
+          "handler": "new PropertyChangedEventHandler(OnChanged)",
+          "line": 12,
+          "column": 17,
+          "released": false,
+          "resource": "subscription"
+        },
+        {
+          "event": "_timer",
+          "line": 21,
+          "column": 9,
+          "released": false,
+          "resource": "disposable",
+          "type": "System.Timers.Timer"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "ColumnAnchors.Sample.Consume",
+      "file": "Sample.cs",
+      "params": [
+        {
+          "name": "owned",
+          "line": 30,
+          "column": 26,
+          "effect": "consume"
+        }
+      ],
+      "body": [
+        {
+          "op": "use",
+          "var": "owned",
+          "line": 31
+        }
+      ]
+    },
+    {
+      "name": "ColumnAnchors.Sample.Leaks",
+      "file": "Sample.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "a",
+          "line": 40,
+          "column": 13
+        },
+        {
+          "op": "acquire",
+          "var": "b",
+          "line": 40,
+          "column": 44
+        },
+        {
+          "op": "alias_join",
+          "var": "c",
+          "src": "a",
+          "line": 41,
+          "column": 17
+        },
+        {
+          "op": "call",
+          "callee": "Factory.Create",
+          "sig": "",
+          "result": "d",
+          "args": [],
+          "line": 42,
+          "column": 22
+        },
+        {
+          "op": "if",
+          "line": 43,
+          "then": [
+            {
+              "op": "acquire",
+              "var": "hoisted",
+              "line": 44,
+              "column": 21
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "use",
+          "var": "hoisted",
+          "line": 46
+        },
+        {
+          "op": "use",
+          "var": "b",
+          "line": 47
+        },
+        {
+          "op": "use",
+          "var": "c",
+          "line": 48
+        },
+        {
+          "op": "use",
+          "var": "d",
+          "line": 49
+        }
+      ]
+    }
+  ]
+}

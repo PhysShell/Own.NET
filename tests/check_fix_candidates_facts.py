@@ -114,6 +114,38 @@ def main(on_path: str, off_path: str | None) -> int:
         s0, s1 = two[0]["span"], two[1]["span"]
         check(s0["start_line"] == s1["start_line"], "TwoOnOneLine: same line")
         check(s0["start"] != s1["start"], "TwoOnOneLine: spans must differ (full span)")
+        # #317: and now the RECORD itself tells them apart, not just the S0 fix block.
+        # Until this change the two subscriptions were indistinguishable to anything
+        # reading `path + line` — which is exactly what an OwnAudit occurrence anchor
+        # reads.
+        check(s0["start_column"] != s1["start_column"],
+              "TwoOnOneLine: the two spans must differ in COLUMN, not only in the "
+              "absolute offset — a byte offset is not a coordinate")
+
+    # #317, the cross-check that needs no expected values: every subscription record's
+    # `column` must equal its own fix block's `span.start_column`. The two are computed
+    # in different places (the `subs.Add` anchor from PosOf(a.Left), the fix span from
+    # FixSpanOf(a)), and an assignment expression starts exactly where its left side
+    # does — so agreement is required and disagreement means the anchor took its column
+    # from a node other than the one it names. This holds for every sample, on every
+    # run, with nothing hardcoded.
+    for comp in on.get("components", []):
+        for sub in comp.get("subscriptions") or []:
+            fix = sub.get("fix")
+            if not fix:
+                continue
+            span = fix["span"]
+            check(sub.get("line") == span["start_line"],
+                  f"{comp.get('name')}/{sub.get('event')}: record line {sub.get('line')!r} "
+                  f"!= fix span start_line {span['start_line']!r}")
+            check("column" in sub,
+                  f"{comp.get('name')}/{sub.get('event')}: subscription record carries no "
+                  "'column' — the extractor is still line-only on the anchor path (#317)")
+            if "column" in sub:
+                check(sub["column"] == span["start_column"],
+                      f"{comp.get('name')}/{sub.get('event')}: record column "
+                      f"{sub['column']!r} != fix span start_column "
+                      f"{span['start_column']!r} — two coordinates for one node")
 
     # Wrapped delegate: handler NORMALIZED to the method, teardown still exact.
     f = only_fix("WrappedDelegate")
