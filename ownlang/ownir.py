@@ -372,6 +372,26 @@ class Finding:
     # the extractor emits it only for an `[OwnIgnore]` with a non-empty reason, so a reason-less
     # attribute never suppresses. Declared LAST (positional-constructor safe).
     ignore_reason: str | None = None
+    # The 1-based COLUMN of the anchor, when the producer reported one, else None.
+    #
+    # NULLABLE AND NEVER SYNTHESISED. There is no in-band value that means "not
+    # reported": SARIF columns are 1-based, so a substituted 1 would be
+    # indistinguishable from a real first-column finding, and 0 is not a column at
+    # all. A consumer that anchors on this must be able to tell "the analysis did
+    # not compute a column" from "the analysis computed column 1", which is exactly
+    # what None buys and what any sentinel would destroy.
+    #
+    # It is NOT the human caret column. `diagnostics.Diagnostic._caret_col` recovers
+    # a column for the `^` in a rendered `.own` diagnostic by pulling a name out of
+    # the message and searching the source line for it, falling back to the
+    # indentation. That is a presentation heuristic over text; promoting it to an
+    # anchor would fabricate a coordinate the analysis never computed. This value
+    # comes only from a producer's own syntax location (`ColumnOf` in the Roslyn
+    # extractor), through the OwnIR `column` fact.
+    #
+    # Declared after `ignore_reason` so the positional constructor is unchanged
+    # (same rule as that field's own comment).
+    column: int | None = None
 
     @property
     def suppressed(self) -> bool:
@@ -444,7 +464,17 @@ def _sarif_result(f: Finding, severity: str) -> dict[str, Any]:
         "artifactLocation": {"uri": f.file.replace("\\", "/")},
     }
     if f.line >= 1:  # SARIF region.startLine is 1-based; omit it for a file-level finding
-        phys["region"] = {"startLine": f.line}
+        region: dict[str, Any] = {"startLine": f.line}
+        # `startColumn` rides along only when the producer actually reported one.
+        # OMITTED, never 0 and never 1: SARIF columns are 1-based, so there is no
+        # in-band "not reported" value, and a substituted 1 would be
+        # indistinguishable from a real first-column finding — a consumer that keys
+        # a physical anchor on it would then be keying on a fabricated coordinate.
+        # Gated on a line as well, because a column without a line anchors nothing
+        # (and SARIF's region grammar has no meaning for one).
+        if f.column is not None and f.column >= 1:
+            region["startColumn"] = f.column
+        phys["region"] = region
     props: dict[str, Any] = {"resourceKind": f.kind}
     for key, val in (("component", f.component), ("event", f.event),
                      ("handler", f.handler)):
@@ -597,6 +627,31 @@ def load(path: str) -> dict[str, Any]:
             if igr is not None and not isinstance(igr, str):
                 raise OwnIRError(
                     f"subscription 'ignore_reason' must be a string, got {igr!r}")
+            # `column`: the 1-based column of the subscription's anchor. Additive and
+            # OPTIONAL — an older producer omits it and the finding keeps the
+            # line-only anchor it always had, so this is not a vocabulary change and
+            # does not bump OWNIR_VERSION.
+            #
+            # Present-but-invalid FAILS LOUD, and that asymmetry is the point. An
+            # absent column is a producer honestly reporting less; a column of 0, of
+            # -3, of `true`, or of "12" is a producer reporting something it did not
+            # measure. Coercing those would put a fabricated coordinate into the
+            # physical anchor a consumer keys identity on — the one failure mode a
+            # nullable column exists to prevent. Bools are excluded explicitly
+            # because `isinstance(True, int)` is True in Python and `True` would
+            # otherwise sail through as column 1.
+            col = s.get("column")
+            if col is not None:
+                if not isinstance(col, int) or isinstance(col, bool):
+                    raise OwnIRError(
+                        f"subscription 'column' must be an integer or absent, got "
+                        f"{col!r} — a column that was not measured must be OMITTED, "
+                        f"never coerced (see spec/OwnIR.md §2)")
+                if col < 1:
+                    raise OwnIRError(
+                        f"subscription 'column' must be >= 1 (columns are 1-based), "
+                        f"got {col} — omit the field when no column is known rather "
+                        f"than emitting a sentinel")
     # Optional DI registration graph (DI001 — captive dependency, P-006). Additive
     # and optional: an older core simply ignores it.
     svcs = result.get("services", [])
@@ -2685,6 +2740,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                              f"length, past the logical length it was rented for "
                              f"(over-read / over-clear)"),
                     kind="pooled buffer",
+                    column=_anchor_column(sub, d.line),
                     flow=_flow_local_steps(sub, d.code, d.line, True)))
                 continue
             # An ArrayPool Rent is released by Return (a "pooled buffer"), not Dispose (a
@@ -2725,6 +2781,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="pooled buffer" if pool else "disposable",
+                column=_anchor_column(sub, _as_int(sub.get("line", 0))),
                 flow=_flow_local_steps(sub, d.code, d.line, bool(pool))))
             continue
         if sub.get("di_source_life"):
@@ -2770,7 +2827,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", flow=esc_flow,
-                ignore_reason=ir))
+                ignore_reason=ir, column=_anchor_column(sub, sub_ln)))
             continue
         if rkind == "capture":
             # OWN014 region escape (P-004): the lifetime engine proved the event
@@ -2798,7 +2855,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             findings.append(Finding(
                 file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
                 component=component, event=event, handler=handler,
-                message=message, kind="subscription token", ignore_reason=ir))
+                message=message, kind="subscription token", ignore_reason=ir,
+                column=_anchor_column(sub, _as_int(sub.get("line", 0)))))
             continue
         _, kind = _route_resource(rkind)
         # P-004 tiering: only the plain `event += handler` leak (the else branch
@@ -2861,7 +2919,8 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
         findings.append(Finding(
             file=sub["file"], line=_as_int(sub.get("line", 0)), code=d.code,
             component=component, event=event, handler=handler,
-            message=message, kind=kind, severity=fsev, ignore_reason=ir))
+            message=message, kind=kind, severity=fsev, ignore_reason=ir,
+            column=_anchor_column(sub, _as_int(sub.get("line", 0)))))
 
     # DI001 (captive dependency): a separate core analysis over the registration
     # graph, not the acquire/release model — the bridge just routes the facts to
@@ -2911,6 +2970,17 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # fall-through. For a flow-local every such diagnostic remaps to the same acquire
     # line (sub["line"]) above, collapsing to byte-identical findings — keep one.
     # The key includes `line`, so genuinely distinct leak sites stay distinct.
+    #
+    # `column` is DELIBERATELY NOT in the key. It is an anchor refinement, not part
+    # of what a finding IS, and adding it could only ever SPLIT a group that used to
+    # collapse — two `+=` on one line with the same event and handler text would stop
+    # being one finding and become two. That is a change to the finding population,
+    # which is precisely what a physical-anchor slice promised not to touch (the
+    # corpus differential forbids `multiplicity_change` for exactly this reason). The
+    # surviving member keeps its own column, and which member survives is the facts'
+    # order, which is deterministic. If those really are two distinct findings, the
+    # fix is to make them distinguishable at the pattern level, not to smuggle a
+    # population change in behind a coordinate.
     seen: set[tuple[Any, ...]] = set()
     deduped: list[Finding] = []
     for f in findings:
@@ -2931,6 +3001,27 @@ def _as_int(v: Any) -> int:
     check_facts may be called directly (tests, embedders) on un-validated facts,
     so a bad `line` degrades to 0 rather than raising a bare ValueError."""
     return v if isinstance(v, int) and not isinstance(v, bool) else 0
+
+
+def _anchor_column(sub: dict[str, Any], line: int) -> int | None:
+    """The fact's `column`, but ONLY when the finding is anchored on the very line
+    that column was measured on.
+
+    A column is a coordinate WITHIN a line, so it is meaningful only paired with
+    its own line. Some findings deliberately re-anchor away from the fact's line —
+    POOL005 reports at the over-reading view site (`d.line`), not at the Rent — and
+    carrying the Rent's column onto the view's line would point at an arbitrary
+    character of an unrelated statement. Silently wrong coordinates are worse than
+    absent ones: absent is visible in the coverage ledger, wrong is not.
+
+    Same non-throwing posture as `_as_int` — `load()` already rejects a malformed
+    column, but `check_facts` can be called directly on un-validated facts (tests,
+    embedders), and there a bad value degrades to "no column" rather than raising.
+    """
+    col = sub.get("column")
+    if not isinstance(col, int) or isinstance(col, bool) or col < 1:
+        return None
+    return col if _as_int(sub.get("line", 0)) == line and line >= 1 else None
 
 
 def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
@@ -3295,5 +3386,6 @@ def _unresolved_findings(facts: dict[str, Any]) -> list[Finding]:
             out.append(Finding(
                 file=cfile, line=_as_int(sub.get("line", 0)), code="OWN050",
                 component=cname, event=event, handler=handler, message=message,
-                kind="unresolved reference", advisory=True))
+                kind="unresolved reference", advisory=True,
+                column=_anchor_column(sub, _as_int(sub.get("line", 0)))))
     return out

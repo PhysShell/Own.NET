@@ -135,6 +135,45 @@ the reason it read. A non-string value is rejected at load. The Roslyn frontend
 currently reads `[OwnIgnore]` on **`IDisposable` field declarations** (the clearest
 attribute site — the record anchors at the field); other sites are follow-ups.
 
+### 4.1 Physical anchor column (`column`, additive/optional)
+
+Any owned-resource record may carry `column`: the **1-based** column of the record's
+anchor, taken from the producer's own syntax location (`ColumnOf` in the Roslyn
+extractor — the sibling of the `LineOf` that produces `line`). It refines *where* a
+finding is, and refines nothing else: the code, the message, the resource kind and
+the verdict are untouched. The core carries it on `Finding.column` and emits it as
+SARIF `region.startColumn`; the `human`, `github` and `msbuild` surfaces are
+deliberately unchanged.
+
+**It is nullable and it is never synthesised.** A producer that does not know a
+column **omits the field**. There is no in-band value that means "not reported":
+SARIF columns are 1-based, so a substituted `1` is indistinguishable from a real
+first-column finding, and `0` is not a column at all. A consumer keying a physical
+anchor on this must be able to tell *"the analysis did not compute a column"* from
+*"the analysis computed column 1"*.
+
+**Present-but-invalid fails loud** (§2 fail-loud, and the one place this field
+deviates from `line`'s tolerant coercion). `0`, a negative, a non-integer, and a
+boolean are all rejected at load rather than coerced. The asymmetry is the design: an
+absent column is a producer honestly reporting less, while a coerced one puts a
+coordinate the analysis never computed into the anchor a consumer keys identity on.
+
+**It is not the rendered caret column.** `ownlang/diagnostics.py::_caret_col`
+recovers a column for the `^` under a rendered `.own` diagnostic by pulling a name
+out of the message text and searching the source line for it, falling back to the
+indentation. That is a presentation heuristic over text and it must never reach this
+field, `Finding.column`, or SARIF — a guessed coordinate that *looks* measured is
+worse than an absent one, because absence is visible and a guess is not.
+
+**Coverage is partial on purpose.** The Roslyn frontend stamps a column on the
+`subscription`/`capture`/`timer`, `disposable`, `local-disposable`, `subscribe`,
+`pool` and `unresolved-subscription` records, i.e. wherever the emitting site has a
+syntax node in hand. A record that re-anchors a finding away from its own line (the
+POOL005 over-read view, reported at the view site rather than the `Rent`) drops the
+column instead of carrying it onto an unrelated line. Because the field is optional
+per §2, filling in the remaining producers later needs no version bump — and adding
+`column` is **not** a vocabulary change: `OWNIR_VERSION` stays put.
+
 ## 5. Flow bodies (`functions[]`)
 
 A flow function has a `name`, a `file`, and a `body`: an ordered list of flow

@@ -133,6 +133,11 @@
         "ignore_reason": {
           "description": "The mandatory justification of an inline [OwnIgnore(\"reason\")] per-site suppression (P-004, #209). When present and non-empty the core marks this record's finding SUPPRESSED: excluded from the exit code and the human findings stream, but still counted and carried in SARIF `suppressions` (visibility over silence). An empty string does not suppress (never a silent accept). Additive/optional; an older core ignores it and reports the finding.",
           "type": ["string", "null"]
+        },
+        "column": {
+          "description": "The 1-based COLUMN of this record's anchor, as the producer's own syntax location reported it (`ColumnOf` in the Roslyn extractor). Additive/optional: an older producer omits it and the finding keeps its line-only anchor. NULLABLE AND NEVER SYNTHESISED — the field must be OMITTED (or explicit null) when no column was measured, because SARIF columns are 1-based and a substituted 1 would be indistinguishable from a real first-column finding. `minimum: 1` is normative: unlike `line`, a present-but-invalid column is a hard error in ownlang/ownir.py::load (0, negative, non-integer and boolean are all rejected), since a coerced column becomes a fabricated coordinate in the physical anchor a consumer keys identity on. It carries only to SARIF `region.startColumn`; the human/github/msbuild surfaces are unchanged.",
+          "type": ["integer", "null"],
+          "minimum": 1
         }
       }
     },

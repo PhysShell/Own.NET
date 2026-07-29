@@ -1,0 +1,231 @@
+name: producer differential
+
+# The SHORT contour: two jobs that answer in minutes and gate every PR that
+# touches the producer.
+#
+#   producer-contract   fixture-scale unit tests on synthetic facts. No .NET, no
+#                       corpus, no network. Seconds.
+#   mini-corpus-diff    own-check at the PR's merge base AND at its head over the
+#                       frozen corpus/mini, compared through OwnAudit's projections.
+#                       Minutes.
+#
+# The long contour — a real corpus, hours — is OwnAudit's `corpus-differential.yml`,
+# run manually and nightly. Keeping it off the PR path is the whole point: a job
+# people wait hours for is a job people learn to bypass, and a seven-hour red X
+# holds the change hostage to the hardware rather than to its own correctness.
+#
+# WHY THIS IS PATH-FILTERED
+# A README typo cannot change what the producer says about C#, so it does not get a
+# .NET build and two extractor runs. Compute spent proving something that could not
+# have changed is not thoroughness; it is a slower queue for everyone else.
+#
+# WHY THE COMPARATOR IS CHECKED OUT INSTEAD OF VENDORED
+# Own.NET produces SARIF; OwnAudit compares corpora. Copying the projections here
+# would put a second implementation of finding identity in the repository that emits
+# the findings — and the two would drift, quietly, in the direction that made CI
+# green. The cost is a cross-repo checkout; the alternative is a checker that grades
+# its own homework.
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - "frontend/roslyn/**"
+      - "ownlang/ownir.py"
+      - "ownlang/diag_sarif.py"
+      - "ownlang/diagnostics.py"
+      - "spec/ownir*"
+      - "scripts/own-check*"
+      - "corpus/mini/**"
+      - "tests/test_ownir*.py"
+      - "tests/test_diag_sarif.py"
+      - ".github/workflows/producer-differential.yml"
+  push:
+    branches: ["**"]
+    paths:
+      - "frontend/roslyn/**"
+      - "ownlang/ownir.py"
+      - "ownlang/diag_sarif.py"
+      - "ownlang/diagnostics.py"
+      - "spec/ownir*"
+      - "scripts/own-check*"
+      - "corpus/mini/**"
+      - "tests/test_ownir*.py"
+      - "tests/test_diag_sarif.py"
+      - ".github/workflows/producer-differential.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: producer-differential-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The fixture-scale contract. Fast enough to run on a push as well as a PR, so a
+  # branch that has not opened a PR yet still gets the answer.
+  producer-contract:
+    name: producer contract (fixtures, no .NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      # The physical-anchor contract: an old column-less fact still works and emits
+      # no startColumn; a column reaches Finding.column and SARIF; an INVALID column
+      # fails loud at load() while degrading on the tolerant door; the old and new
+      # producers agree on every pattern-level field over one fixture; and the
+      # renderer's caret heuristic is nowhere on the path.
+      - name: physical-anchor column contract
+        run: python tests/test_ownir_column.py
+
+      # The bridge and both SARIF projections around it. A column change that broke
+      # the OwnIR fact vocabulary or the SARIF log shape would land here first.
+      - name: OwnIR bridge + SARIF projections
+        run: |
+          set -euo pipefail
+          python tests/test_ownir.py
+          python tests/test_diag_sarif.py
+
+      # The frozen corpus is an input, and an input with a broken file is a run that
+      # measures nothing. This does not compile C# (that is the next job's .NET
+      # build); it checks the corpus is present and its inventory has not silently
+      # shrunk, which is the failure a path filter cannot catch.
+      - name: frozen mini corpus is intact
+        run: |
+          set -euo pipefail
+          n=$(find corpus/mini -maxdepth 1 -name '*.cs' | wc -l)
+          [ "$n" -ge 10 ] \
+            || { echo "FAIL: corpus/mini has $n .cs files, expected at least 10 — a frozen corpus that shrank is a corpus change, not a producer change (see corpus/mini/README.md)"; exit 1; }
+          test -f corpus/mini/README.md \
+            || { echo "FAIL: corpus/mini/README.md is missing — the freeze policy is part of the corpus"; exit 1; }
+          echo "corpus/mini: $n .cs files"
+
+  # base-vs-head over the frozen corpus. PR and manual only: the comparison is
+  # defined against a MERGE BASE, and a bare push has no target branch to take one
+  # against. (`HEAD~1` would answer a different question — "did the last commit
+  # change anything" — and would pass trivially on any branch that rebases.)
+  mini-corpus-diff:
+    name: mini corpus diff (merge-base vs head)
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out Own.NET (the producer)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Full history: the runner takes a merge base and checks out two commits
+          # as git worktrees. A shallow clone has neither.
+          fetch-depth: 0
+
+      - name: Check out OwnAudit (the comparator)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: PhysShell/OwnAudit
+          path: ownaudit
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # The extractor is built twice (once per worktree), so restoring from cache is
+      # most of the difference between "a few minutes" and "long enough to be
+      # skipped".
+      - name: Cache NuGet packages
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('frontend/roslyn/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Resolve the baseline
+        id: base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          # workflow_dispatch has no PR context; fall back to the default branch.
+          if [ -z "${BASE_SHA:-}" ]; then
+            git fetch --quiet origin main
+            BASE_SHA=$(git rev-parse origin/main)
+          fi
+          merge_base=$(git merge-base "$BASE_SHA" HEAD)
+          echo "sha=$merge_base" >> "$GITHUB_OUTPUT"
+          # BOOTSTRAP: the very first PR to add corpus/mini has no corpus on the base
+          # side. own-check would then be handed a path that does not exist, exit in
+          # its hard-error tier, and abort the run — a confusing red X on the one PR
+          # that cannot possibly have regressed anything. Detect it and say so
+          # instead. This is NOT a fallback to an empty baseline: an absent corpus and
+          # a corpus that produced no findings are different claims, and diffing
+          # against the second when you have the first is how a whole corpus silently
+          # reads as "removed".
+          if git ls-tree -d --name-only "$merge_base" -- corpus/mini | grep -q .; then
+            echo "have_baseline=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_baseline=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "merge base: $merge_base"
+
+      - name: No baseline corpus yet
+        if: steps.base.outputs.have_baseline != 'true'
+        run: |
+          {
+            echo "## Mini corpus diff: SKIPPED"
+            echo
+            echo "\`corpus/mini\` does not exist at the merge base"
+            echo "(\`${{ steps.base.outputs.sha }}\`), so there is no baseline to compare"
+            echo "against. This is expected on the PR that introduces the corpus, and on"
+            echo "no other PR."
+            echo
+            echo "The job is skipped rather than run against an empty baseline: an absent"
+            echo "corpus and a corpus that produced no findings are different claims, and"
+            echo "treating the first as the second would report the entire corpus as newly"
+            echo "appeared."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run the differential
+        id: diff
+        if: steps.base.outputs.have_baseline == 'true'
+        working-directory: ownaudit
+        run: |
+          set -euo pipefail
+          PYTHONUTF8=1 PYTHONPATH=. python3 -m corpusdiff.run_differential \
+            --repo .. \
+            --base "${{ steps.base.outputs.sha }}" \
+            --head HEAD \
+            --corpus corpus/mini \
+            --out "$GITHUB_WORKSPACE/artifacts/mini-diff" \
+            --expect corpusdiff/expectations/own-check-start-column.json \
+            --run-label "pr-${{ github.run_id }}"
+
+      - name: Job summary
+        if: always() && steps.base.outputs.have_baseline == 'true'
+        run: |
+          if [ -f artifacts/mini-diff/report.md ]; then
+            cat artifacts/mini-diff/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The differential produced no report - see the step log. Exit 2 means" \
+              >> "$GITHUB_STEP_SUMMARY"
+            echo "UNDECIDED (bad input, a malformed expectation, or a producer that" \
+              >> "$GITHUB_STEP_SUMMARY"
+            echo "failed to produce a verdict), not 'no differences'." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # On failure too: a run that ended in violations is exactly the one whose
+      # intermediates someone needs to read. Both sides' SARIF, both normalized
+      # payloads, the provenance manifests, run.json and the report all travel.
+      - name: Upload the differential artifacts
+        if: always() && steps.base.outputs.have_baseline == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mini-corpus-diff-${{ github.run_id }}
+          path: artifacts/mini-diff/
+          if-no-files-found: warn
+          retention-days: 14

@@ -543,6 +543,25 @@ static ExpressionSyntax NormalizeHandler(ExpressionSyntax e)
 static int LineOf(SyntaxNode node) =>
     node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
+// The 1-based column of a node's START, the sibling of LineOf. Emitted on a fact as
+// the optional `column` so the core can anchor a finding at the exact character
+// Roslyn already knows, and SARIF can carry `region.startColumn`.
+//
+// It is 1-BASED because that is what SARIF regions and every editor use, while
+// Roslyn's Character is 0-based -- the same +1 LineOf applies to the line. The two
+// must move together: a 0-based column paired with a 1-based line is off by one in a
+// way no test that only checks "a column is present" would ever catch.
+//
+// This measures where the SYNTAX is. It is not, and must never become, the
+// renderer's caret heuristic (`Diagnostic._caret_col` in the Python core), which
+// recovers a column by pulling a name out of a message and searching the source
+// line for it, falling back to the indentation. That is fine for drawing a `^`
+// under a human-readable line and disqualifying as a coordinate: it would fabricate
+// a position the analysis never computed, and identity would then be keyed on a
+// guess. If a column is not genuinely known, the fact omits the field.
+static int ColumnOf(SyntaxNode node) =>
+    node.GetLocation().GetLineSpan().StartLinePosition.Character + 1;
+
 // ---- S0 fix-candidate metadata (--fix-candidates only; strictly additive) ----
 
 // The one documented FQN format for `qualified_name` and every symbol identity the
@@ -5551,6 +5570,7 @@ foreach (var (file, tree) in parsed)
                             @event = a.Left.ToString(),
                             handler = a.Right.ToString(),
                             line = LineOf(a.Left),
+                            column = ColumnOf(a.Left),
                             released,
                             resource = "subscription",
                             source,
@@ -5564,6 +5584,7 @@ foreach (var (file, tree) in parsed)
                             @event = a.Left.ToString(),
                             handler = a.Right.ToString(),
                             line = LineOf(a.Left),
+                            column = ColumnOf(a.Left),
                             released,
                             resource = "subscription",
                             source,
@@ -5577,6 +5598,7 @@ foreach (var (file, tree) in parsed)
                         @event = a.Left.ToString(),
                         handler = a.Right.ToString(),
                         line = LineOf(a.Left),
+                        column = ColumnOf(a.Left),
                         released,
                         resource = source == "static" ? "capture" : "subscription",
                         source,
@@ -5589,6 +5611,7 @@ foreach (var (file, tree) in parsed)
                         @event = a.Left.ToString(),
                         handler = a.Right.ToString(),
                         line = LineOf(a.Left),
+                        column = ColumnOf(a.Left),
                         released,
                         resource = isTimer ? "timer"
                                  : source == "static" ? "capture"
@@ -5604,6 +5627,7 @@ foreach (var (file, tree) in parsed)
                     @event = a.Left.ToString(),
                     handler = a.Right.ToString(),
                     line = LineOf(a.Left),
+                    column = ColumnOf(a.Left),
                     resource = "unresolved-subscription",
                 });
             }
@@ -5627,6 +5651,7 @@ foreach (var (file, tree) in parsed)
                         @event = wsSource!.ToString(),
                         handler = wsHandler!.ToString(),
                         line = LineOf(inv),
+                        column = ColumnOf(inv),
                         released = true,          // accepted release: weak, cannot leak (acceptance #2)
                         resource = "subscription",
                         source = "injected",
@@ -5893,6 +5918,7 @@ foreach (var (file, tree) in parsed)
                     {
                         @event = v.Identifier.Text,
                         line = LineOf(v),
+                        column = ColumnOf(v),
                         released = disposed.Contains(v.Identifier.Text),
                         resource = "disposable",
                         type = tname,
@@ -5903,6 +5929,7 @@ foreach (var (file, tree) in parsed)
                     {
                         @event = v.Identifier.Text,
                         line = LineOf(v),
+                        column = ColumnOf(v),
                         released = disposed.Contains(v.Identifier.Text),
                         resource = "disposable",
                         type = tname,
@@ -6181,6 +6208,7 @@ foreach (var (file, tree) in parsed)
                 {
                     @event = m.ToString(),
                     line = LineOf(inv),
+                    column = ColumnOf(inv),
                     released = false,
                     resource = "subscribe",
                     // A self-rooted `this.WhenAnyValue(p => p.SelfProp)` chain is a
@@ -6218,7 +6246,7 @@ foreach (var (file, tree) in parsed)
 
         foreach (var member in cls.Members)
         {
-            var rented = new List<(string Name, int Line, bool IsField)>();
+            var rented = new List<(string Name, int Line, int Column, bool IsField)>();
             foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
                 if (IsPoolRent(inv, model))
                 {
@@ -6247,7 +6275,7 @@ foreach (var (file, tree) in parsed)
                         _ => ((string?)null, false),
                     };
                     if (name != null)
-                        rented.Add((name, LineOf(inv), isField));
+                        rented.Add((name, LineOf(inv), ColumnOf(inv), isField));
                 }
             if (rented.Count == 0)
                 continue;
@@ -6258,11 +6286,12 @@ foreach (var (file, tree) in parsed)
                     && inv.ArgumentList.Arguments.Count > 0
                     && FieldName(inv.ArgumentList.Arguments[0].Expression) is { } rn)
                     returned.Add(rn);
-            foreach (var (name, line, isField) in rented)
+            foreach (var (name, line, column, isField) in rented)
                 subs.Add(new
                 {
                     @event = name,
                     line,
+                    column,
                     // locals stay per-member; a field is also released if returned/transferred
                     // anywhere in the class (cross-member ctor-rent + Dispose-return).
                     released = returned.Contains(name) || (isField && fieldReleased.Contains(name)),
@@ -6323,6 +6352,7 @@ foreach (var (file, tree) in parsed)
                     {
                         @event = name,
                         line = LineOf(v),
+                        column = ColumnOf(v),
                         released = disposedLocal.Contains(name),
                         resource = "local-disposable",
                         type = ctype,
