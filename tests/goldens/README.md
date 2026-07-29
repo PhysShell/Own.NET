@@ -23,3 +23,27 @@ Run both the base extractor and the current one from the **same working director
 with the **same relative sample path** so the `file` field matches. Never regenerate
 it from the S0 (or later) extractor's flag-off run — that would make the parity gate
 compare the change against itself.
+
+### Preferred path for a purely ADDITIVE field
+
+Wholesale regeneration is the wrong tool when a change only *adds* a key, because it
+replaces every byte of genuine pre-S0 output with bytes from the extractor under test
+— destroying the only reason this file is evidence. Regeneration is for a change that
+alters the existing facts.
+
+For an additive field, edit this file **textually** instead: insert the new key into
+each affected record and leave every other byte untouched. Then prove two things:
+
+1. **Deleting the new key gives back the previous golden exactly.** If it does not,
+   the change was not additive and the parity gate was right to complain.
+2. **Every inserted value is derived independently**, from the sample source rather
+   than copied from the extractor's output. Copying makes the golden a transcript of
+   whatever the code did; deriving makes it a check on whether the code was right.
+
+The `column` field (spec/OwnIR.md §4.1) was added this way: all 23 columns were
+recomputed from `FixCandidatesSample.cs` as the 1-based start of each event-access
+expression, and each one agreed with the extractor. Two cases in that sample are
+worth knowing about if you do this again — line 81 carries two genuinely distinct
+subscriptions (columns 47 and 73), while line 110 is ONE subscription site reported
+under two component entries (a nested class's constructor is a descendant of the
+outer type declaration too), so both of its records share column 40.
