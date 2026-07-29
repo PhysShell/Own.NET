@@ -196,20 +196,24 @@ jobs:
         working-directory: ownaudit
         run: |
           set -euo pipefail
+          # --out holds the two git worktrees as well as the artifacts, so it lives
+          # in RUNNER_TEMP rather than inside the Own.NET checkout: nesting a
+          # worktree in the tree under test would leave the outer working tree
+          # dirty and put the head worktree inside the base's scan root.
           PYTHONUTF8=1 PYTHONPATH=. python3 -m corpusdiff.run_differential \
             --repo .. \
             --base "${{ steps.base.outputs.sha }}" \
             --head HEAD \
             --corpus corpus/mini \
-            --out "$GITHUB_WORKSPACE/artifacts/mini-diff" \
+            --out "$RUNNER_TEMP/mini-diff" \
             --expect corpusdiff/expectations/own-check-start-column.json \
             --run-label "pr-${{ github.run_id }}"
 
       - name: Job summary
         if: always() && steps.base.outputs.have_baseline == 'true'
         run: |
-          if [ -f artifacts/mini-diff/report.md ]; then
-            cat artifacts/mini-diff/report.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$RUNNER_TEMP/mini-diff/report.md" ]; then
+            cat "$RUNNER_TEMP/mini-diff/report.md" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "The differential produced no report - see the step log. Exit 2 means" \
               >> "$GITHUB_STEP_SUMMARY"
@@ -226,6 +230,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mini-corpus-diff-${{ github.run_id }}
-          path: artifacts/mini-diff/
+          path: ${{ runner.temp }}/mini-diff/
           if-no-files-found: warn
           retention-days: 14
