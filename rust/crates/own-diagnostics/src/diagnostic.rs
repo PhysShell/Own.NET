@@ -7,7 +7,15 @@ use serde::{Deserialize, Serialize};
 
 /// A diagnostic's severity. Serialises to the same `"error"`/`"warning"`
 /// strings the Python `Severity` enum uses, so a future JSON/SARIF seam matches.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+///
+/// [`Ord`] exists so [`DiagIdentity`](crate::DiagIdentity) can be a total,
+/// reproducible sort key; the order is the declaration order (`Error` before
+/// `Warning`) and carries **no** claim that one tier outranks the other. The
+/// Python `Severity` is a plain `Enum` with no ordering, so nothing here mirrors
+/// a reference comparison — read it as determinism, not semantics.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum Severity {
     /// A verdict that fails a build / red check.
