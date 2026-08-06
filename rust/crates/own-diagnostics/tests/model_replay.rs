@@ -149,10 +149,103 @@ fn every_frozen_code_is_a_known_title() {
     }
 }
 
+/// Every key the Python writer emits, per level of the record. Asserted as an
+/// EXACT set, not a subset: a lost key means the fixture stopped carrying part
+/// of the contract, and an added key means Python grew a field Rust is silently
+/// discarding (serde ignores unknown fields by default, so nothing else would
+/// notice). Pinned here rather than via `deny_unknown_fields` on the type: the
+/// exactness belongs to this fixture, and the types may later be fed by
+/// producers whose tolerance is a separate decision.
+const RECORD_KEYS: [&str; 3] = ["path", "column", "diagnostic"];
+const DIAGNOSTIC_KEYS: [&str; 7] = [
+    "code",
+    "message",
+    "line",
+    "severity",
+    "subject",
+    "resource_kind",
+    "evidence",
+];
+const EVIDENCE_KEYS: [&str; 4] = ["line", "label", "file", "role"];
+
+fn key_set(value: &Value, what: &str) -> BTreeSet<String> {
+    value
+        .as_object()
+        .unwrap_or_else(|| panic!("{what} is a JSON object"))
+        .keys()
+        .cloned()
+        .collect()
+}
+
+fn expected(keys: &[&str]) -> BTreeSet<String> {
+    keys.iter().map(|k| (*k).to_owned()).collect()
+}
+
+#[test]
+fn fixture_shape_is_pinned_key_for_key() {
+    // The round-trip test below serialises a Rust value and reads Rust's own
+    // output back, so it cannot see the PYTHON writer drifting — and the two
+    // shapes are not identical: Rust omits `subject`/`resource_kind`/empty
+    // `evidence` (step-4 `skip_serializing_if`) where Python writes `null`/`[]`.
+    // Reading is unaffected, which is precisely what makes the drift invisible.
+    // So the writer's shape is pinned here, against the raw JSON.
+    let raw = std::fs::read_to_string(FIXTURE).expect("fixture readable");
+    let root: Value = serde_json::from_str(&raw).expect("diag_model.json parses");
+
+    for case in root
+        .get("cases")
+        .and_then(Value::as_array)
+        .expect("'cases' array")
+    {
+        let name = case.get("name").and_then(Value::as_str).unwrap_or("<?>");
+        for record in case
+            .get("records")
+            .and_then(Value::as_array)
+            .expect("'records' array")
+        {
+            assert_eq!(
+                key_set(record, "record"),
+                expected(&RECORD_KEYS),
+                "case {name:?}: record key set drifted from the Python writer"
+            );
+            let diagnostic = record.get("diagnostic").expect("'diagnostic'");
+            assert_eq!(
+                key_set(diagnostic, "diagnostic"),
+                expected(&DIAGNOSTIC_KEYS),
+                "case {name:?}: diagnostic key set drifted from the Python writer"
+            );
+
+            let steps = diagnostic
+                .get("evidence")
+                .and_then(Value::as_array)
+                .expect("'evidence' is always written, as [] when empty");
+            for step in steps {
+                assert_eq!(
+                    key_set(step, "evidence step"),
+                    expected(&EVIDENCE_KEYS),
+                    "case {name:?}: evidence step key set drifted from the Python writer"
+                );
+            }
+
+            // Arity must survive the load: a step dropped on read would leave the
+            // identity comparing a shorter reachability path than Python wrote.
+            let loaded: LocatedDiagnostic =
+                serde_json::from_value(record.clone()).expect("record loads");
+            assert_eq!(
+                loaded.diagnostic.evidence.len(),
+                steps.len(),
+                "case {name:?}: evidence arity drifted between the fixture and the model"
+            );
+        }
+    }
+}
+
 #[test]
 fn records_round_trip_through_the_model_unchanged() {
     // Serde is the load-bearing seam for every later slice (report/SARIF read
     // these same types), so a lossy field would silently truncate the contract.
+    // NOTE: this is Rust→JSON→Rust and proves only self-consistency; the Python
+    // writer's shape is pinned by `fixture_shape_is_pinned_key_for_key`.
     for case in load_cases() {
         for record in &case.records {
             let json = serde_json::to_value(record).expect("record serialises");

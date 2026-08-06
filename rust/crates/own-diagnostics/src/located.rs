@@ -37,6 +37,8 @@
 //! an output surface is PR 2's, pinned against Python; this type only guarantees
 //! that sorting is total, antisymmetric and reproducible.
 
+use std::num::NonZeroU32;
+
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostic::{Diagnostic, Evidence, Severity};
@@ -44,8 +46,22 @@ use crate::diagnostic::{Diagnostic, Evidence, Severity};
 /// A [`Diagnostic`] together with the primary-location identity the ported
 /// dataclass does not carry.
 ///
-/// Serde shape matches `tests/fixtures/diag_model.json` exactly (regenerate:
-/// `python tests/test_diag_model_fixtures.py --write`).
+/// **This type defines the READ contract for `tests/fixtures/diag_model.json`**
+/// (regenerate: `python tests/test_diag_model_fixtures.py --write`) — every key
+/// the Python writer emits loads into a field here, and
+/// `tests/model_replay.rs::fixture_shape_is_pinned_key_for_key` asserts that
+/// key-for-key so a Python-side shape change fails the replay.
+///
+/// Serialization is deliberately **not** byte-symmetric with that writer: the
+/// ported [`Diagnostic`] carries `skip_serializing_if` from step 4, so a Rust
+/// round-trip omits `subject`, `resource_kind` and an empty `evidence` where
+/// Python writes `null` and `[]`. Reading is unaffected (`serde(default)` and
+/// `null` both land on the same value), and a Rust→Rust round-trip therefore
+/// proves nothing about the writer — which is exactly why the shape is pinned by
+/// a separate assertion against the raw JSON rather than by round-tripping.
+/// Making the *write* side canonical belongs to `.ownreport.json` (#256), which
+/// owns output serialization; changing those attributes here would alter a
+/// step-4 type for a step-5a fixture's convenience.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LocatedDiagnostic {
     /// The file this verdict is reported against, **verbatim** — the input
@@ -53,8 +69,13 @@ pub struct LocatedDiagnostic {
     pub path: String,
     /// The 1-based source column (#317), when the producer reported one.
     /// `None` means *not reported*; it is never substituted with a placeholder.
+    ///
+    /// [`NonZeroU32`] is the type-level mirror of `ownlang.ownir::_check_column`,
+    /// which rejects `0` rather than reading it as "unknown": SARIF columns start
+    /// at 1, so a `0` is a producer bug, and silently absorbing it would hide the
+    /// bug while looking correct. Serde rejects a `0` here for the same reason.
     #[serde(default)]
-    pub column: Option<u32>,
+    pub column: Option<NonZeroU32>,
     /// The ported verdict value.
     pub diagnostic: Diagnostic,
 }
@@ -71,8 +92,12 @@ impl LocatedDiagnostic {
     }
 
     /// Attach a reported 1-based source column.
+    ///
+    /// Takes a [`NonZeroU32`] so column `0` is unrepresentable rather than
+    /// rejected at runtime — the reference treats it as a producer bug, and an
+    /// illegal state that cannot be constructed needs no check.
     #[must_use]
-    pub const fn with_column(mut self, column: u32) -> Self {
+    pub const fn with_column(mut self, column: NonZeroU32) -> Self {
         self.column = Some(column);
         self
     }
@@ -151,7 +176,7 @@ pub struct DiagIdentity {
     /// 1-based anchor line.
     pub line: u32,
     /// Reported source column, if any (`None` sorts first).
-    pub column: Option<u32>,
+    pub column: Option<NonZeroU32>,
     /// The diagnostic code.
     pub code: String,
     /// The severity tier.
@@ -188,13 +213,33 @@ mod tests {
         assert_ne!(a.identity(), b.identity());
     }
 
+    fn col(n: u32) -> NonZeroU32 {
+        NonZeroU32::new(n).expect("test columns are 1-based")
+    }
+
     #[test]
     fn absent_column_never_equals_a_reported_one() {
         let bare = LocatedDiagnostic::new("src/A.cs", diag());
-        let at_one = LocatedDiagnostic::new("src/A.cs", diag()).with_column(1);
+        let at_one = LocatedDiagnostic::new("src/A.cs", diag()).with_column(col(1));
         assert_ne!(bare.identity(), at_one.identity());
         // and `None` sorts before any reported column, deterministically.
         assert!(bare.identity() < at_one.identity());
+    }
+
+    #[test]
+    fn column_zero_is_rejected_like_the_reference_does() {
+        // `ownlang.ownir::_check_column` fails loud on 0 rather than reading it
+        // as "unknown" — a fabricated coordinate is the one thing that contract
+        // refuses. NonZeroU32 makes serde do the same, at the type level.
+        let err = serde_json::from_str::<LocatedDiagnostic>(
+            r#"{"path":"src/A.cs","column":0,
+                "diagnostic":{"code":"OWN001","message":"m","line":1,"severity":"error"}}"#,
+        )
+        .expect_err("column 0 must not deserialise");
+        assert!(
+            err.to_string().contains("nonzero"),
+            "expected a nonzero-rejection, got {err}"
+        );
     }
 
     #[test]
@@ -234,8 +279,8 @@ mod tests {
 
     #[test]
     fn identical_records_share_one_identity() {
-        let a = LocatedDiagnostic::new("src/A.cs", diag().with_subject("s#42")).with_column(4);
-        let b = LocatedDiagnostic::new("src/A.cs", diag().with_subject("s#42")).with_column(4);
+        let a = LocatedDiagnostic::new("src/A.cs", diag().with_subject("s#42")).with_column(col(4));
+        let b = LocatedDiagnostic::new("src/A.cs", diag().with_subject("s#42")).with_column(col(4));
         assert_eq!(a.identity(), b.identity());
     }
 
