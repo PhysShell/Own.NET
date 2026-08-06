@@ -6,9 +6,18 @@ rationale below is historical and unchanged; the live sequencing is the #250
 child-issue DAG. Revised per the post-merge review in
 [`docs/notes/p022-review-notes.md`](../notes/p022-review-notes.md).
 
-### Implementation status (reconciled after #214/#249 — see #250/#251)
+### Implementation status
 
-**Implemented** (workspace members in `rust/Cargo.toml`, parity-gated by
+> **Reconciled at `bdb3307`** against `rust/Cargo.toml`, the crate sources, and
+> the child-issue states under #250. The previous reconciliation (#251, closed
+> 2026-07-18) predates the `own-lowered`/`own-bridge` landings and the #258
+> merge, so its two-state *Implemented / Next steps* split no longer describes
+> the tree: step 6b is **partly built**, and a binary table cannot say that.
+> Statuses below are therefore **checkpoint-level**, and each open step names
+> the difference between its *normative* blocker and #250's *preferred*
+> sequencing — conflating those is what let the previous table drift.
+
+**Complete** (workspace members in `rust/Cargo.toml`, parity-gated by
 `scripts/oracle_exact.py` and the shared fixtures in `tests/fixtures/`):
 
 - `own-ir` — OwnIR serde + schema round-trip (step 1);
@@ -17,24 +26,42 @@ child-issue DAG. Revised per the post-merge review in
   `tests/fixtures/cfg_parity.json` (steps 0/3; the seam the strategy below
   said "still needs building" **is built** — `python -m ownlang cfg --format
   json` + the `--write`-regenerated parity fixtures);
-- `own-diagnostics` — the data-only diagnostics layer;
+- `own-diagnostics` — the data-only diagnostics layer. **Data types only**:
+  the message/Evidence contract on top of it is step 5a (#255), still open;
 - `own-analysis` — the worklist solver + ownership/lifetime/buffer/effect/DI
   analyses (step 4; the **analysis-heart milestone**, completed in #214 /
   PR #249, replaying `diag_parity.json` and the DI/effect fact-parity
-  fixtures).
+  fixtures);
+- `own-lowered` — the normalized Layer 2 document the bridge lowers into (the
+  differential-testing representation named by #259 checkpoint 2);
+- `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` — the normative bridge
+  contract and its completeness ledger (step 6a, #258 **closed completed**;
+  PR #297 is merged and both documents are on `main`).
 
-**Next steps — each owned by exactly one child issue under #250:**
+**In progress — step 6b, `own-bridge` (#259).** It landed ahead of #250's
+*preferred* order ("preferably after #255/#256"); its *normative* blocker was
+#258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 
-| Step | Deliverable | Issue |
+| #259 checkpoint | Status | Evidence / what remains |
 |---|---|---|
-| 5a | diagnostic messages + ordered Evidence parity | #255 |
-| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 |
-| 5c | `own-codegen` (analysis-independent sibling) | #257 |
-| 6a | OwnIR **bridge semantics formalized** before the port | #258 (deliverable written — `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` **land with PR #297**, in independent review; not on `main` yet) |
-| 6b | Rust `own-bridge`, layered OwnIR parity | #259 |
-| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269 — normalized `AnalysisTrace` + first-divergence minimizer) |
-| 7b | Rust `own-cli`: command/output/exit-code parity | #261 |
-| 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 |
+| 1 — typed OwnIR validation | **partial** | `OwnIr::from_json` + the #294 OD-2 fail-loud unknown-kind rule (pinned by the `tolerant_unknown_kind` `Rejected` golden). Full validation acceptance/rejection parity (fixture layer 1) is explicitly out of the current slice's scope |
+| 2 — fact lowering | **complete** | `lower()` → `own_lowered`; **27/27** `rust_replay` cases in `tests/fixtures/lowered/manifest.json` reproduce their Python goldens byte-exactly (`tests/replay.rs`) |
+| 3 — interprocedural MOS | **complete for the stage-1 domain** | `dump_summaries()` is byte-identical to `python -m ownlang summaries` across **35** `*.summaries.json` goldens (`tests/summaries.rs`). Container-valued metadata is **outside** the declared scalar-metadata parity domain — a separate #294-class door decision, not a silent gap |
+| 4 — analysis wiring | **not started** | the crate states its own boundary: "no diagnostics, no analysis". Ownership/lifetime/buffer/effect/DI are not yet driven from bridge facts |
+| 5 — full fact-to-verdict parity | **blocked by #255** | its comparison set *is* #255's deliverable — `message`, `severity`, `subject`, `resource_kind`, ordered Evidence |
+
+**Open steps — each owned by exactly one child issue under #250:**
+
+| Step | Deliverable | Issue | Status |
+|---|---|---|---|
+| 5a | diagnostic messages + ordered Evidence parity | #255 | **ready** — its only dependency (#251) is closed. The nearest missing contract between the finished analysis heart and *both* #256 and #259 checkpoint 5 |
+| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 | **blocked by #255** (normative — its own `Blocked by:` header; the report/SARIF surfaces consume #255's diagnostic model, including ordered Evidence, related locations and code flows) |
+| 5c | `own-codegen` (analysis-independent sibling) | #257 | **ready**, independent of the analysis path — parallelizable with 5a |
+| 6a | OwnIR **bridge semantics formalized** before the port | #258 | **complete** — see above |
+| 6b | Rust `own-bridge`, layered OwnIR parity | #259 | **in progress** — checkpoint table above |
+| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269 — normalized `AnalysisTrace` + first-divergence minimizer) | **infrastructure sliceable now**, final acceptance **blocked by #259**. Buildable against the landed checkpoints: same-input OwnIR capture + hash, reproduction-artifact format, engine protocol, trace schema, stable-ID normalization, and first-divergence reduction over the *lowered*/MOS layers. Not yet declarable as shadow mode: acceptance compares end diagnostics |
+| 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
+| 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
 The Datalog/Ascent rule layer stays strictly **post-cutover** (strategy step 8
 below) and deliberately has no issue yet. Throughout: Python remains
@@ -543,14 +570,16 @@ hardening is what made the verdict seam cheap — and the CFG seam has since bee
    data-only layer.)
 5. **`own-diagnostics` (messages/Evidence — #255), report/SARIF (#256) +
    `own-codegen` (#257)**: SARIF/report/text and C# `emit`; diff each.
-6. **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
-   interprocedural inference, verdict mapping. **Prerequisite:** the normative
-   write-up of the inference semantics (consume/borrow/fresh/alias/overwrite rules)
-   from the tech-debt register, so the port has a spec and not just
-   `test_ownir.py` examples — written as `spec/Bridge.md` +
-   `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`),
-   landing with PR #297 after independent review; implementation is #259 and
-   starts only after that review gate. Diff on the OwnIR fixtures +
+6. ◑ **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
+   interprocedural inference, verdict mapping. **Prerequisite (satisfied):** the
+   normative write-up of the inference semantics
+   (consume/borrow/fresh/alias/overwrite rules) from the tech-debt register, so
+   the port has a spec and not just `test_ownir.py` examples — written as
+   `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` (#258, composing
+   `spec/Inference.md`), **merged via PR #297 and on `main`**; the review gate
+   is passed and implementation (#259) is underway — lowering and MOS-summaries
+   parity landed, analysis wiring and final verdict parity outstanding (see the
+   checkpoint table in the status block above). Diff on the OwnIR fixtures +
    `ownir --format sarif`.
 7. **`own-cli`**: cut over once corpus parity is ~100% (shadow mode #260 with
    #269's AnalysisTrace, then the CLI #261). Keep Python frozen as the
