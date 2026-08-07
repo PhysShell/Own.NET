@@ -62,12 +62,18 @@ pub const OWNIR_VERSION: i64 = 0;
 /// two languages' English would freeze a debug surface as a contract.
 ///
 /// One variant per **mechanism** a loader can reject on, not one per message.
-/// The set is closed by measurement — `tests/fixtures/ownir_validation.json`
-/// fails if a declared category has no control exercising it, so the taxonomy
-/// cannot outgrow its evidence. There is deliberately no `Reference` variant:
-/// the strict-door sweep found no load-time referential constraint, and adding
-/// one on the strength of an issue's prose would invent a category nothing can
-/// reach.
+/// The set is closed by measurement, in both directions:
+///
+/// * it cannot outgrow its evidence — `tests/fixtures/ownir_validation.json`
+///   fails if a declared category has no control exercising it. There is
+///   deliberately no `Reference` variant, because the strict-door sweep found
+///   no load-time referential constraint and adding one on the strength of an
+///   issue's prose would invent a category nothing can reach;
+/// * and it is not frozen against new evidence. [`Self::WellFormedness`] was
+///   added when the second census found a mechanism the first had not reached.
+///   A taxonomy settled by one census is a claim about that census, not about
+///   the contract, and reporting the new mechanism under the nearest existing
+///   variant would be exactly the substitution this enum exists to prevent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum OwnIrErrorKind {
     /// The document is not JSON at all.
@@ -83,6 +89,16 @@ pub enum OwnIrErrorKind {
     Identity,
     /// A source coordinate violating the 1-based contract (#317).
     Location,
+    /// Every value has the right type and the right vocabulary, and the record
+    /// still cannot mean anything — a rule that structurally never fires, a
+    /// barrier the walk can never reach.
+    ///
+    /// This variant exists because the second census found the mechanism, and
+    /// a taxonomy frozen by the *first* census is not evidence about the
+    /// second. Reporting these as `Shape` was the exact failure the taxonomy
+    /// was built to prevent: letting the nearest available category stand in
+    /// for the real one.
+    WellFormedness,
 }
 
 impl OwnIrErrorKind {
@@ -96,6 +112,7 @@ impl OwnIrErrorKind {
             Self::Vocabulary => "vocabulary",
             Self::Identity => "identity",
             Self::Location => "location",
+            Self::WellFormedness => "well_formedness",
         }
     }
 }
@@ -606,13 +623,17 @@ impl OwnIr {
     /// round-trip the oracle's first parity check rides on.
     ///
     /// Refuses a document whose raw values nest deeper than
-    /// `strict::MAX_VALUE_DEPTH` — `serde_json::to_value` recurses over a
-    /// `Value`, and on a deep enough one it does not fail, it **aborts the
+    /// `strict::MAX_VALUE_DEPTH` (128). `serde_json::to_value` recurses over a
+    /// `Value`, and on a deep enough one it does not fail — it **aborts the
     /// process**. A stack overflow cannot be caught, so the only place to stop
-    /// it is before serialization starts. Measured: the abort begins somewhere
-    /// between 831 and 846 levels; the limit here is 128, the same bound
-    /// `serde_json`'s parser applies, so nothing [`OwnIr::from_json`] can
-    /// accept is refused.
+    /// it is before serialization starts.
+    ///
+    /// **128 is the contract**, and the only depth number that is. It is
+    /// `serde_json`'s own parser bound, so nothing [`OwnIr::from_json`] can
+    /// accept is refused here. The depth at which an unguarded serialization
+    /// would actually abort is a property of one stack size, build profile and
+    /// platform; useful forensics, not a specification, so it is not written as
+    /// one.
     ///
     /// # Errors
     /// [`OwnIrError`] if a raw value is nested too deeply, or if serialization

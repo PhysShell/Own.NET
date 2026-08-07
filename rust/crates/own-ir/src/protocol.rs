@@ -30,11 +30,16 @@
 //!
 //! `parse_protocol` refuses a protocol that can never fire (no barriers with
 //! `exit_barriers: false`) and one whose barrier equals its `opens` matcher (the
-//! walk checks opens first, so the barrier is dead). Both are well-formedness,
-//! not shape: every value in such a record has the right type. They are reported
-//! as [`OwnIrErrorKind::Shape`] because the six-category taxonomy has no better
-//! home, and that imprecision is written down in the ledger rather than
-//! smoothed over.
+//! walk checks opens first, so the barrier is dead). Every value in such a
+//! record has the right type and a legal vocabulary; what is wrong is that the
+//! record cannot *mean* anything.
+//!
+//! They are [`OwnIrErrorKind::WellFormedness`]. An earlier revision reported
+//! them as `Shape` on the grounds that the taxonomy was already frozen at six —
+//! which got the reasoning backwards. The taxonomy was frozen by the *first*
+//! census; this mechanism was found by the *second*. Freezing a category set
+//! against later evidence, and then filing new mechanisms under the nearest
+//! available name, is the precise substitution the enum was built to stop.
 
 // `unreachable_pub` (denied workspace-wide) and `redundant_pub_crate`
 // disagree about a private module's cross-module helpers: the first
@@ -64,6 +69,11 @@ fn shape(message: impl Into<String>) -> OwnIrError {
 
 fn vocabulary(message: impl Into<String>) -> OwnIrError {
     OwnIrError::new(OwnIrErrorKind::Vocabulary, message)
+}
+
+/// Right types, legal vocabulary, and still meaningless — see the module doc.
+fn well_formed(message: impl Into<String>) -> OwnIrError {
+    OwnIrError::new(OwnIrErrorKind::WellFormedness, message)
 }
 
 /// One event pattern, in the only form this checkpoint needs: something that can
@@ -118,13 +128,13 @@ pub(crate) fn validate_protocol(raw: &Value) -> Result<&str, OwnIrError> {
         }
     };
     if barriers.is_empty() && !exit_barriers {
-        return Err(shape(format!(
+        return Err(well_formed(format!(
             "{what}: no barriers and exit_barriers is false — the protocol can \
              never fire (a rule that structurally never fires is decoration)"
         )));
     }
     if barriers.contains(&opens) {
-        return Err(shape(format!(
+        return Err(well_formed(format!(
             "{what}: a barrier equals the 'opens' matcher — the open wins and \
              the barrier can never fire (re-entrancy checks are not supported yet)"
         )));

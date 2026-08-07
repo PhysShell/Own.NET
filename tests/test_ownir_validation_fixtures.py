@@ -51,11 +51,17 @@ consequences worth stating, because both look like inconsistencies otherwise:
   though the reference raises one message for both. The category is a semantic
   claim the ledger makes; the oracle only supplies accept/reject.
 * A protocol that "can never fire" (no barriers with `exit_barriers: false`, or
-  a barrier equal to `opens`) is recorded as `shape` for want of a better home.
-  Its types are all correct — it is a *well-formedness* rule, and the six-
-  category taxonomy has no variant for it. That is a known imprecision, written
-  down rather than smoothed over; a seventh category is not being invented
-  unilaterally to hide it.
+  a barrier equal to `opens`) is `well_formedness`, the seventh category. Every
+  value in such a record has the right type and a legal vocabulary; what is
+  broken is that the record cannot *mean* anything.
+
+  An earlier revision filed both under `shape`, reasoning that the taxonomy was
+  already frozen at six. That was backwards. The taxonomy was frozen by the
+  FIRST census; this mechanism was found by the SECOND. A category set settled
+  by one census is a claim about that census, not about the contract — and
+  filing a newly discovered mechanism under the nearest existing name is the
+  exact substitution the taxonomy exists to prevent. Seven categories are not
+  worse than six; a false one is worse than both.
 
 ## Integer width: measured, and deliberately not covered here
 
@@ -145,6 +151,8 @@ CATEGORIES = {
     "vocabulary": "right JSON type, value outside a closed set",
     "identity": "a name slot — empty, mistyped, or duplicated",
     "location": "a source coordinate violating the 1-based contract",
+    "well_formedness": ("right types, legal vocabulary, and the record still "
+                        "cannot mean anything"),
 }
 
 # The largest integer both loaders accept. Above it Python keeps going and Rust
@@ -785,17 +793,31 @@ def _controls() -> list[dict[str, Any]]:
            "shape"),
         _c("protocol-never-fires", "protocols",
            "no barriers AND no exit barriers: the rule can structurally never "
-           "fire, which the reference refuses as decoration. Categorised "
-           "`shape` for want of a better home — every type here is correct, so "
-           "this is the taxonomy's known imprecision, not a fit",
+           "fire, which the reference refuses as decoration. Every value here "
+           "is correctly typed and in vocabulary — what fails is meaning, so "
+           "the category is `well_formedness`",
            {"ownir_version": 0, "protocols": [_proto(exit_barriers=False)]},
-           "shape"),
+           "well_formedness"),
         _c("protocol-barrier-equals-opens", "protocols",
            "a barrier identical to `opens` is dead — the walk checks opens "
-           "first, so the barrier can never fire. Same taxonomy strain",
+           "first, so the barrier can never fire. Same category, different "
+           "mechanism: the record is well-typed and means nothing",
            {"ownir_version": 0, "protocols": [_proto(
                barriers=[{"kind": "assign", "target": "flag", "value": True}])]},
-           "shape"),
+           "well_formedness"),
+        _c("accept-protocol-fires-via-barrier", "protocols",
+           "`exit_barriers: false` is legal WITH a barrier — the twin that "
+           "makes `protocol-never-fires` a rejection about meaning rather than "
+           "a rejection of the field",
+           {"ownir_version": 0, "protocols": [_proto(
+               exit_barriers=False,
+               barriers=[{"kind": "call", "callee": "Barrier"}])]}, None),
+        _c("accept-protocol-barrier-differs-from-opens", "protocols",
+           "…and a barrier that is not `opens` is legal, which is what makes "
+           "the equality the defect rather than the presence",
+           {"ownir_version": 0, "protocols": [_proto(
+               barriers=[{"kind": "assign", "target": "flag", "value": False}])]},
+           None),
         _c("protocol-scope-not-object", "protocols", "`scope` is an object",
            {"ownir_version": 0, "protocols": [_proto(scope=7)]}, "shape"),
         _c("protocol-scope-methods-not-array", "protocols",

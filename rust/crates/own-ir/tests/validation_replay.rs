@@ -241,7 +241,9 @@ fn every_declared_category_is_exercised_by_a_control() {
             "category {name:?} is declared but no control exercises it"
         );
     }
-    // …and the port must be able to name every one of them.
+    // …and the port must be able to name every one of them. This list is
+    // exhaustive by hand rather than derived, so adding a variant without a
+    // control — or a control without a variant — fails here.
     for kind in [
         OwnIrErrorKind::Json,
         OwnIrErrorKind::Version,
@@ -249,6 +251,7 @@ fn every_declared_category_is_exercised_by_a_control() {
         OwnIrErrorKind::Vocabulary,
         OwnIrErrorKind::Identity,
         OwnIrErrorKind::Location,
+        OwnIrErrorKind::WellFormedness,
     ] {
         assert!(
             declared.contains_key(kind.as_str()),
@@ -294,7 +297,7 @@ fn a_deep_in_memory_value_is_refused_rather_than_aborting() {
     // caller built in memory.
     //
     // Depth 200 is chosen deliberately: past the 128 guard, and well inside the
-    // band where the value can still be built and dropped. See the honesty note
+    // range where the value can still be built and dropped. See the scope note
     // below for why it is not larger.
     let mut node = serde_json::json!({"ev": "return", "line": 1});
     for _ in 0..200 {
@@ -318,11 +321,17 @@ fn a_deep_in_memory_value_is_refused_rather_than_aborting() {
     // through `events`/`flow_columns` would never be the check that fires.
     assert!(doc.to_value().is_err(), "to_value must refuse it too");
 
-    // HONESTY NOTE, measured rather than assumed: this guard covers depths 129
-    // to roughly 800. Above ~804 merely DROPPING the value aborts, because
-    // `serde_json::Value` has a recursive `Drop` — nothing this crate does can
-    // prevent that, and a test asserting otherwise would abort before it could
-    // report. The bound stops the serializer, not the type.
+    // SCOPE NOTE. What the guard promises is exactly this: `to_value()` and
+    // `validate()` refuse a too-deep value and RETURN, instead of aborting
+    // inside the serializer. It does not promise that any `Value` a caller
+    // managed to construct is safe to hold — `serde_json::Value` has a
+    // recursive `Drop`, so a sufficiently deep one aborts on release before any
+    // method of this crate is reached. Guaranteeing that would mean not
+    // representing facts as `serde_json::Value` at all: a representation
+    // change, and outside cp1.
+    //
+    // (Such a case cannot be asserted here anyway — it would abort while the
+    // test tears down, so the test could never report. Hence 200, not more.)
 }
 
 #[test]

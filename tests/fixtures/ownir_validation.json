@@ -7,20 +7,22 @@
     "shape": "right place, wrong JSON type or container shape",
     "vocabulary": "right JSON type, value outside a closed set",
     "identity": "a name slot — empty, mistyped, or duplicated",
-    "location": "a source coordinate violating the 1-based contract"
+    "location": "a source coordinate violating the 1-based contract",
+    "well_formedness": "right types, legal vocabulary, and the record still cannot mean anything"
   },
   "totals": {
-    "cases": 191,
-    "accepted": 29,
+    "cases": 193,
+    "accepted": 31,
     "rejected": 162,
     "by_category": {
-      "accepted": 29,
+      "accepted": 31,
       "identity": 22,
       "json": 2,
       "location": 20,
-      "shape": 93,
+      "shape": 91,
       "version": 7,
-      "vocabulary": 18
+      "vocabulary": 18,
+      "well_formedness": 2
     }
   },
   "cases": [
@@ -2829,7 +2831,7 @@
     },
     {
       "name": "protocol-never-fires",
-      "why": "no barriers AND no exit barriers: the rule can structurally never fire, which the reference refuses as decoration. Categorised `shape` for want of a better home — every type here is correct, so this is the taxonomy's known imprecision, not a fit",
+      "why": "no barriers AND no exit barriers: the rule can structurally never fire, which the reference refuses as decoration. Every value here is correctly typed and in vocabulary — what fails is meaning, so the category is `well_formedness`",
       "section": "protocols",
       "document": {
         "ownir_version": 0,
@@ -2852,12 +2854,12 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "shape",
+      "category": "well_formedness",
       "message": "protocol 'P': no barriers and exit_barriers is false — the protocol can never fire (a rule that structurally never fires is decoration)"
     },
     {
       "name": "protocol-barrier-equals-opens",
-      "why": "a barrier identical to `opens` is dead — the walk checks opens first, so the barrier can never fire. Same taxonomy strain",
+      "why": "a barrier identical to `opens` is dead — the walk checks opens first, so the barrier can never fire. Same category, different mechanism: the record is well-typed and means nothing",
       "section": "protocols",
       "document": {
         "ownir_version": 0,
@@ -2886,8 +2888,76 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "shape",
+      "category": "well_formedness",
       "message": "protocol 'P': a barrier equals the 'opens' matcher — the open wins and the barrier can never fire (re-entrancy checks are not supported yet)"
+    },
+    {
+      "name": "accept-protocol-fires-via-barrier",
+      "why": "`exit_barriers: false` is legal WITH a barrier — the twin that makes `protocol-never-fires` a rejection about meaning rather than a rejection of the field",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "exit_barriers": false,
+            "barriers": [
+              {
+                "kind": "call",
+                "callee": "Barrier"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-protocol-barrier-differs-from-opens",
+      "why": "…and a barrier that is not `opens` is legal, which is what makes the equality the defect rather than the presence",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "barriers": [
+              {
+                "kind": "assign",
+                "target": "flag",
+                "value": false
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
     },
     {
       "name": "protocol-scope-not-object",
