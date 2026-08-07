@@ -4,7 +4,7 @@
 //! `OwnTS`) and the core: a versioned JSON fact vocabulary. This crate is the
 //! Rust side of that seam. Its acceptance rule mirrors the Python reference
 //! (`ownlang/ownir.py::load`) — a claim that is **measured**, not asserted:
-//! `tests/validation_replay.rs` replays a 191-control Python-authored ledger
+//! `tests/validation_replay.rs` replays a 193-control Python-authored ledger
 //! and requires zero Rust-only accepts, zero Rust-only rejects and zero
 //! error-category mismatches.
 //!
@@ -294,7 +294,8 @@ pub struct Subscription {
     /// rejections, but every one of them reported as [`OwnIrErrorKind::Shape`],
     /// when the contract being violated is the 1-based coordinate rule. The
     /// implementation mechanism must not pick the semantic category, so the
-    /// check lives in [`OwnIr::validate`] where it can answer `Location`.
+    /// check lives in the `strict` module — reached from [`OwnIr::from_json`]
+    /// and [`OwnIr::validate`] alike — where it can answer `Location`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub column: Option<Value>,
     #[serde(flatten)]
@@ -528,20 +529,27 @@ pub struct OwnIr {
         skip_serializing_if = "Option::is_none"
     )]
     pub functions: Option<Vec<Function>>,
-    /// Obligation-protocol declarations. Held as raw values: the reference
-    /// checks only that this is a LIST here and delegates each record to the
-    /// shared obligation parser, which is a separate surface with its own
-    /// vocabulary. What this crate owns from it is the identity invariant —
-    /// see [`OwnIr::validate`]. Record-level validity beyond that is NOT yet
-    /// mirrored; documented in the ledger rather than silently assumed.
+    /// Obligation-protocol declarations. Held as raw values because nothing
+    /// consumes a typed representation yet — not because the records go
+    /// unchecked.
+    ///
+    /// The reference checks only list-ness *here* and delegates each record to
+    /// the shared obligation parser. That parser is called by `load()` and its
+    /// errors are wrapped as `OwnIRError`, so it is part of the strict-door
+    /// contract, and its **acceptance grammar** is ported in `protocol.rs`. An
+    /// earlier revision of this comment called record validity a delegated
+    /// boundary "not yet mirrored"; the second census measured that as a hole
+    /// in the door worth 47 of its 58 permissive documents. Protocol
+    /// *analysis* — the lattice, the walker, verdicts — is still absent, and
+    /// that one is a real boundary.
     #[serde(
         default,
         deserialize_with = "reject_null",
         skip_serializing_if = "Option::is_none"
     )]
     pub protocols: Option<Vec<Value>>,
-    /// Per-method protocol facts. Same delegation as `protocols`: list shape
-    /// here, record parsing elsewhere.
+    /// Per-method protocol facts. Same arrangement as `protocols`: list shape
+    /// here, the event-tree grammar in `protocol.rs`, no analysis anywhere.
     #[serde(
         default,
         deserialize_with = "reject_null",

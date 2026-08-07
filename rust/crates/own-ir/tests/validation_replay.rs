@@ -342,7 +342,7 @@ fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
     // the reference.
     //
     // The ledger alone cannot check this: every control is a handful of levels
-    // deep, so a guard set to 16 would pass against all 191 of them. Measured —
+    // deep, so a guard set to 16 would pass against all 193 of them. Measured —
     // that mutation SURVIVED until this document was added. So the test builds
     // the deepest document `from_json` still accepts and pins the guard above
     // it.
