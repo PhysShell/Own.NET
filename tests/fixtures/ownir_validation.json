@@ -6,21 +6,21 @@
     "version": "the `ownir_version` gate — type or value",
     "shape": "right place, wrong JSON type or container shape",
     "vocabulary": "right JSON type, value outside a closed set",
-    "identity": "an identity field that is empty or duplicated",
+    "identity": "a name slot — empty, mistyped, or duplicated",
     "location": "a source coordinate violating the 1-based contract"
   },
   "totals": {
-    "cases": 77,
-    "accepted": 10,
-    "rejected": 67,
+    "cases": 191,
+    "accepted": 29,
+    "rejected": 162,
     "by_category": {
-      "accepted": 10,
-      "identity": 5,
+      "accepted": 29,
+      "identity": 22,
       "json": 2,
-      "location": 4,
-      "shape": 45,
+      "location": 20,
+      "shape": 93,
       "version": 7,
-      "vocabulary": 4
+      "vocabulary": 18
     }
   },
   "cases": [
@@ -1318,33 +1318,43 @@
     },
     {
       "name": "protocol-duplicate-name",
-      "why": "the protocol name is the identity verdicts map back by, so a duplicate is an identity collision, not a harmless repeat",
+      "why": "the protocol name is the identity verdicts map back by, so a duplicate is an identity collision, not a harmless repeat. Both records are individually VALID — the older version of this control used records with no `opens`/`closes`, which the reference refused for record shape long before it compared any names",
       "section": "protocols",
       "document": {
         "ownir_version": 0,
         "protocols": [
           {
             "name": "P",
-            "states": [
-              "a"
-            ],
-            "initial": "a",
-            "transitions": []
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
           },
           {
             "name": "P",
-            "states": [
-              "a"
-            ],
-            "initial": "a",
-            "transitions": []
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
           }
         ]
       },
       "raw": false,
       "verdict": "reject",
       "category": "identity",
-      "message": "protocol 'P': 'opens' and 'closes' are both required"
+      "message": "duplicate protocol name 'P' — protocol names are the identity findings map back by and must be unique"
     },
     {
       "name": "protocol-functions-not-array",
@@ -1460,6 +1470,2645 @@
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'components' must be a JSON array of objects"
+    },
+    {
+      "name": "service-lifetime-absent",
+      "why": "there is no default lifetime: an absent one is `None`, which is outside the closed set exactly like a misspelt one. This is the case `_svc()` could not express, and the port accepted it",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got None"
+    },
+    {
+      "name": "service-empty-record",
+      "why": "a service record with nothing in it: the lifetime gate fires first, so this is a vocabulary failure and not a missing-name one",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {}
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got None"
+    },
+    {
+      "name": "service-lifetime-null",
+      "why": "an explicit null is the same as absent here — both are `None`, and neither is in the closed set",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got None"
+    },
+    {
+      "name": "service-name-absent",
+      "why": "with a valid lifetime, an absent name reaches the identity check",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "lifetime": "singleton"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "service 'name' must be a non-empty string"
+    },
+    {
+      "name": "order-lifetime-before-name",
+      "why": "the reference checks `lifetime` BEFORE `name`, so a record that breaks both is a vocabulary failure. A port that validates identity first reports `identity` and is wrong about which rule fired",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "",
+            "lifetime": "eternal"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got 'eternal'"
+    },
+    {
+      "name": "order-name-before-deps",
+      "why": "…and `name` before the remaining service fields",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "lifetime": "singleton",
+            "name": "",
+            "deps": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "service 'name' must be a non-empty string"
+    },
+    {
+      "name": "order-resource-vocabulary-before-column",
+      "why": "within one subscription, the resource vocabulary precedes the column contract",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "resource": "bogus",
+                "column": 0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "unknown resource kind 'bogus' — a new kind is a vocabulary change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)"
+    },
+    {
+      "name": "order-column-before-subscription-type",
+      "why": "…and the column precedes the optional `type`",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 0,
+                "type": 7
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "subscription 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "order-sig-before-body-column",
+      "why": "inside a function, `sig` is checked before the body's columns",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "sig": 7,
+            "body": [
+              {
+                "op": "x",
+                "column": 0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function 'sig' must be a string, got 7"
+    },
+    {
+      "name": "order-body-column-before-param-name",
+      "why": "and the BODY's columns are checked before `params` — the least obvious edge in the whole door, because params read like the more primitive thing",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "x",
+                "column": 0
+              }
+            ],
+            "params": [
+              {
+                "name": ""
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'x' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "order-param-name-before-param-line",
+      "why": "within a param, identity precedes the line",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "",
+                "line": "3"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "parameter 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "order-param-line-before-param-column",
+      "why": "…the line precedes the column",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "line": "3",
+                "column": 0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "parameter 'line' must be an integer, got '3'"
+    },
+    {
+      "name": "order-param-column-before-effect",
+      "why": "…and the column precedes the effect vocabulary",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": 0,
+                "effect": "teleport"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "parameter 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "order-components-shape-before-services-vocabulary",
+      "why": "a components SHAPE failure outranks a services VOCABULARY failure, because components is validated first — completely. A door that runs all semantic gates before any shape check reports the vocabulary error and inverts the contract",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "components": {
+          "a": 1
+        },
+        "services": [
+          {
+            "lifetime": "bad"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'components' must be a JSON array of objects"
+    },
+    {
+      "name": "order-components-location-before-services-vocabulary",
+      "why": "same precedence with a column failure standing in for the shape one",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 0
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "lifetime": "bad"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "subscription 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "order-services-vocabulary-before-effects-shape",
+      "why": "and the same one section later: services before effects",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "lifetime": "bad"
+          }
+        ],
+        "effects": {
+          "a": 1
+        }
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got 'bad'"
+    },
+    {
+      "name": "order-effects-shape-before-functions-identity",
+      "why": "effects before functions",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "effects": {
+          "a": 1
+        },
+        "functions": [
+          {
+            "params": [
+              {
+                "name": ""
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'effects' must be a JSON array of objects"
+    },
+    {
+      "name": "order-functions-identity-before-protocols-shape",
+      "why": "functions before protocols",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": ""
+              }
+            ]
+          }
+        ],
+        "protocols": 7
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "parameter 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "order-protocols-identity-before-protocol-functions-shape",
+      "why": "protocols before protocol_functions — the last edge in the chain",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": ""
+          }
+        ],
+        "protocol_functions": 7
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol: 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "accept-flow-column-one",
+      "why": "column 1 on a flow op, nested and not — the acceptance twin the rejections below need",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "acquire",
+                "column": 1
+              },
+              {
+                "op": "if",
+                "then": [
+                  {
+                    "op": "release",
+                    "column": 1
+                  }
+                ],
+                "else": [
+                  {
+                    "op": "call",
+                    "column": 1
+                  }
+                ]
+              },
+              {
+                "op": "while",
+                "body": [
+                  {
+                    "op": "acquire",
+                    "column": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-flow-body-not-array",
+      "why": "a non-array `body` is SKIPPED, not rejected: the reference returns early rather than raising. Pinned because it is the kind of tolerance a port silently tightens",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-flow-body-of-scalars",
+      "why": "…and a non-object op inside the body is skipped the same way",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              1,
+              "x",
+              null
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "flow-column-zero",
+      "why": "the 1-based contract reaches flow ops, not just subscriptions",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "acquire",
+                "column": 0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "flow-column-negative",
+      "why": "…negative likewise",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "acquire",
+                "column": -2
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got -2"
+    },
+    {
+      "name": "flow-column-bool",
+      "why": "…and the bool-is-int trap",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "acquire",
+                "column": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got True"
+    },
+    {
+      "name": "flow-column-in-if-then",
+      "why": "recursion into `then` — a hoisted branch acquire",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "then": [
+                  {
+                    "op": "acquire",
+                    "column": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "flow-column-in-if-else",
+      "why": "…into `else`",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "else": [
+                  {
+                    "op": "acquire",
+                    "column": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "flow-column-in-while-body",
+      "why": "…into a loop `body`",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "while",
+                "body": [
+                  {
+                    "op": "acquire",
+                    "column": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "flow-column-deeply-nested",
+      "why": "…and through three levels, so a one-level-deep port fails here",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "then": [
+                  {
+                    "op": "while",
+                    "body": [
+                      {
+                        "op": "if",
+                        "else": [
+                          {
+                            "op": "acquire",
+                            "column": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "accept-param-column-one",
+      "why": "the 1-based boundary on a parameter coordinate",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": 1
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "param-column-zero",
+      "why": "the same contract on `params[].column` — a separate call site in the reference, and one the port did not have at all",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": 0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "parameter 'column' must be a 1-based integer or absent, got 0"
+    },
+    {
+      "name": "param-column-negative",
+      "why": "…negative likewise",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": -1
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "parameter 'column' must be a 1-based integer or absent, got -1"
+    },
+    {
+      "name": "param-column-bool",
+      "why": "…and the bool-is-int trap",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "parameter 'column' must be a 1-based integer or absent, got True"
+    },
+    {
+      "name": "param-column-string",
+      "why": "…and a string is no coordinate",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "column": "3"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "parameter 'column' must be a 1-based integer or absent, got '3'"
+    },
+    {
+      "name": "accept-protocol-minimal",
+      "why": "a name plus an opens/closes pair is a complete protocol",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-protocol-full",
+      "why": "every optional key at once: barriers, allow with narrowed args, an explicit scope, a description, and `exit_barriers` false — legal only BECAUSE a barrier is present",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "barriers": [
+              {
+                "kind": "call",
+                "callee": "Barrier"
+              }
+            ],
+            "allow": [
+              {
+                "kind": "call",
+                "callee": "Allowed",
+                "args": [
+                  "x"
+                ]
+              }
+            ],
+            "exit_barriers": false,
+            "scope": {
+              "methods": [
+                "Type.Method"
+              ]
+            },
+            "description": "d"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-protocol-call-matchers",
+      "why": "the other matcher kind: `call`, with and without narrowed args",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "call",
+              "callee": "Begin"
+            },
+            "closes": {
+              "kind": "call",
+              "callee": "End",
+              "args": [
+                "a",
+                "b"
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-two-distinct-protocols",
+      "why": "two protocols with DIFFERENT names — the twin that makes the duplicate-name rejection discriminating rather than a test of 'more than one protocol is refused'",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "A",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          },
+          {
+            "name": "B",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "protocol-not-object",
+      "why": "`protocols` is checked only for LIST-ness at the top; a scalar entry is refused by the record parser",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          7
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "a protocol must be an object, got 7"
+    },
+    {
+      "name": "protocol-null-entry",
+      "why": "…and null is not a record",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          null
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "a protocol must be an object, got None"
+    },
+    {
+      "name": "protocol-name-absent",
+      "why": "the protocol name is required, not defaulted",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "opens": {},
+            "closes": {}
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol: 'name' must be a non-empty string, got None"
+    },
+    {
+      "name": "protocol-name-empty",
+      "why": "…and must be non-empty",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol: 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-name-not-string",
+      "why": "…and a string",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": 7,
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol: 'name' must be a non-empty string, got 7"
+    },
+    {
+      "name": "protocol-missing-opens",
+      "why": "a protocol without `opens` cannot state what it is tracking",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "closes": {
+              "kind": "call",
+              "callee": "E"
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'opens' and 'closes' are both required"
+    },
+    {
+      "name": "protocol-missing-closes",
+      "why": "…and likewise `closes`",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "call",
+              "callee": "B"
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'opens' and 'closes' are both required"
+    },
+    {
+      "name": "protocol-opens-not-object",
+      "why": "a matcher is an object",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": 7,
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P' 'opens' must be an object, got 7"
+    },
+    {
+      "name": "protocol-matcher-unknown-kind",
+      "why": "the matcher kind is a closed vocabulary (assign | call), fail-loud like a flow op",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "teleport",
+              "target": "f"
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol 'P' 'opens': unknown matcher kind 'teleport' — the vocabulary is ['assign', 'call'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-matcher-kind-absent",
+      "why": "…and absent is outside that set too",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "target": "f"
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol 'P' 'opens': unknown matcher kind None — the vocabulary is ['assign', 'call'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-assign-matcher-target-empty",
+      "why": "the assign target is the member name the rule joins events by",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol 'P' 'opens': 'target' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-assign-matcher-without-value",
+      "why": "an opens/closes assign matcher must state the written boolean — 'any write opens' is not a checkable protocol",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "f"
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P' 'opens': an opens/closes assign matcher must state the written boolean 'value' — 'any write' cannot open or close an obligation"
+    },
+    {
+      "name": "protocol-assign-matcher-value-not-bool",
+      "why": "…and that value is a boolean",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "f",
+              "value": "yes"
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P' 'opens': assign 'value' must be a boolean, got 'yes'"
+    },
+    {
+      "name": "protocol-call-matcher-callee-empty",
+      "why": "the callee is the name a call event joins by",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "call",
+              "callee": ""
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol 'P' 'opens': 'callee' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-call-matcher-args-not-strings",
+      "why": "narrowed args are strings",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "call",
+              "callee": "C",
+              "args": [
+                1
+              ]
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P' 'opens': call 'args' must be an array of strings"
+    },
+    {
+      "name": "protocol-barriers-not-array",
+      "why": "`barriers` is an array",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "barriers": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'barriers' must be an array"
+    },
+    {
+      "name": "protocol-allow-not-array",
+      "why": "`allow` is an array",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "allow": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'allow' must be an array"
+    },
+    {
+      "name": "protocol-exit-barriers-not-bool",
+      "why": "`exit_barriers` is a boolean",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "exit_barriers": "no"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'exit_barriers' must be a boolean"
+    },
+    {
+      "name": "protocol-never-fires",
+      "why": "no barriers AND no exit barriers: the rule can structurally never fire, which the reference refuses as decoration. Categorised `shape` for want of a better home — every type here is correct, so this is the taxonomy's known imprecision, not a fit",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "exit_barriers": false
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': no barriers and exit_barriers is false — the protocol can never fire (a rule that structurally never fires is decoration)"
+    },
+    {
+      "name": "protocol-barrier-equals-opens",
+      "why": "a barrier identical to `opens` is dead — the walk checks opens first, so the barrier can never fire. Same taxonomy strain",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "barriers": [
+              {
+                "kind": "assign",
+                "target": "flag",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': a barrier equals the 'opens' matcher — the open wins and the barrier can never fire (re-entrancy checks are not supported yet)"
+    },
+    {
+      "name": "protocol-scope-not-object",
+      "why": "`scope` is an object",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "scope": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'scope' must be an object"
+    },
+    {
+      "name": "protocol-scope-methods-not-array",
+      "why": "`scope.methods` is an array — a CONTAINER failure",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "scope": {
+              "methods": 7
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'scope.methods' must be an array of non-empty strings"
+    },
+    {
+      "name": "protocol-scope-methods-empty-entry",
+      "why": "…of non-empty method names. The reference raises one message for this and the case above; the ledger separates them because a missing container and an unusable name are different defects",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "scope": {
+              "methods": [
+                ""
+              ]
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol 'P': 'scope.methods' must be an array of non-empty strings"
+    },
+    {
+      "name": "protocol-description-not-string",
+      "why": "`description` is a string",
+      "section": "protocols",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": {
+              "kind": "assign",
+              "target": "flag",
+              "value": true
+            },
+            "closes": {
+              "kind": "assign",
+              "target": "flag",
+              "value": false
+            },
+            "description": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P': 'description' must be a string"
+    },
+    {
+      "name": "order-protocol-name-before-opens",
+      "why": "the name is read before `opens`/`closes` are required, so a record missing everything reports identity",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": ""
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol: 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "order-protocol-opens-before-closes",
+      "why": "`opens` is parsed before `closes`",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocols": [
+          {
+            "name": "P",
+            "opens": 7,
+            "closes": {
+              "kind": "teleport"
+            }
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol 'P' 'opens' must be an object, got 7"
+    },
+    {
+      "name": "accept-protocol-function-minimal",
+      "why": "`events` defaults to empty, so a name alone is a valid record",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-protocol-function-every-event-kind",
+      "why": "all six event kinds including the two recursive ones — the acceptance side of the closed `ev` vocabulary",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "assign",
+                "target": "f",
+                "value": true,
+                "line": 1
+              },
+              {
+                "ev": "assign",
+                "target": "f",
+                "line": 2
+              },
+              {
+                "ev": "call",
+                "callee": "C",
+                "arg": "x",
+                "line": 3
+              },
+              {
+                "ev": "call",
+                "callee": "D",
+                "line": 4
+              },
+              {
+                "ev": "return",
+                "line": 5
+              },
+              {
+                "ev": "throw",
+                "line": 6
+              },
+              {
+                "ev": "if",
+                "line": 7,
+                "then": [
+                  {
+                    "ev": "return",
+                    "line": 8
+                  }
+                ],
+                "else": [
+                  {
+                    "ev": "throw",
+                    "line": 9
+                  }
+                ]
+              },
+              {
+                "ev": "while",
+                "line": 10,
+                "body": [
+                  {
+                    "ev": "call",
+                    "callee": "E",
+                    "line": 11
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "protocol-function-not-object",
+      "why": "like `protocols`, only list-ness is checked at the top",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          7
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "a protocol function must be an object, got 7"
+    },
+    {
+      "name": "protocol-function-null-entry",
+      "why": "…and null is not a record",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          null
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "a protocol function must be an object, got None"
+    },
+    {
+      "name": "protocol-function-name-empty",
+      "why": "the method name is what a protocol's scope matches against",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": ""
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function: 'name' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-function-name-absent",
+      "why": "…and it is required",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "file": "a.cs"
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function: 'name' must be a non-empty string, got None"
+    },
+    {
+      "name": "protocol-function-file-not-string",
+      "why": "`file` is optional but, present, a string",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "file": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': 'file' must be a string"
+    },
+    {
+      "name": "protocol-function-events-not-array",
+      "why": "`events` is an ordered array",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": 7
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': events must be an array, got 7"
+    },
+    {
+      "name": "protocol-function-event-not-object",
+      "why": "…of objects",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              7
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': each event must be an object, got 7"
+    },
+    {
+      "name": "protocol-function-event-unknown-kind",
+      "why": "the `ev` discriminator is closed (IR4): a present-but-unknown value is rejected, never skipped",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "teleport"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event 'teleport' — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-function-event-kind-absent",
+      "why": "…and an absent one is outside the set too",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "line": 1
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event None — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-function-event-line-not-int",
+      "why": "an event line is an integer",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "return",
+                "line": "3"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': 'line' must be an integer, got '3'"
+    },
+    {
+      "name": "protocol-function-event-line-bool",
+      "why": "…and the bool-is-int trap reaches here as well",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "return",
+                "line": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': 'line' must be an integer, got True"
+    },
+    {
+      "name": "protocol-function-assign-target-empty",
+      "why": "an assign event's target is a name slot",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "assign",
+                "target": ""
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function 'M' assign: 'target' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-function-assign-value-not-bool",
+      "why": "…its value is a boolean or absent (absent = an opaque write)",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "assign",
+                "target": "f",
+                "value": "yes"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': assign 'value' must be a boolean or absent (absent = opaque write), got 'yes'"
+    },
+    {
+      "name": "protocol-function-call-callee-empty",
+      "why": "a call event's callee is a name slot",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "call",
+                "callee": ""
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function 'M' call: 'callee' must be a non-empty string, got ''"
+    },
+    {
+      "name": "protocol-function-call-arg-not-string",
+      "why": "…its distinguished arg is a string or absent",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "call",
+                "callee": "C",
+                "arg": 7
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': call 'arg' must be a string or absent, got 7"
+    },
+    {
+      "name": "protocol-function-event-in-if-then",
+      "why": "the event vocabulary is enforced recursively — inside `then`",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "then": [
+                  {
+                    "ev": "teleport"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event 'teleport' — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-function-event-in-if-else",
+      "why": "…inside `else`",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "else": [
+                  {
+                    "ev": "teleport"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event 'teleport' — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-function-event-in-while-body",
+      "why": "…and inside a loop body",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "while",
+                "body": [
+                  {
+                    "ev": "teleport"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event 'teleport' — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "protocol-function-event-deeply-nested",
+      "why": "…through three levels, so a one-level-deep port fails here",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "then": [
+                  {
+                    "ev": "while",
+                    "body": [
+                      {
+                        "ev": "assign",
+                        "target": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "identity",
+      "message": "protocol function 'M' assign: 'target' must be a non-empty string, got ''"
+    },
+    {
+      "name": "order-event-kind-before-line",
+      "why": "the `ev` vocabulary is tested before the line",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "teleport",
+                "line": "x"
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "vocabulary",
+      "message": "protocol function 'M': unknown protocol event 'teleport' — the vocabulary is ['assign', 'call', 'if', 'return', 'throw', 'while'] (spec/OwnIR.md §8)"
+    },
+    {
+      "name": "order-event-line-before-assign-target",
+      "why": "…and the line before the per-kind fields",
+      "section": "order",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "assign",
+                "line": "x",
+                "target": ""
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': 'line' must be an integer, got 'x'"
+    },
+    {
+      "name": "components-null",
+      "why": "a present null is not an absent section",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "components": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'components' must be a JSON array of objects"
+    },
+    {
+      "name": "services-null",
+      "why": "…same for services",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "services": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'services' must be a JSON array of objects"
+    },
+    {
+      "name": "effects-null",
+      "why": "…effects",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "effects": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'effects' must be a JSON array of objects"
+    },
+    {
+      "name": "functions-null",
+      "why": "…functions",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "functions": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'functions' must be a JSON array of objects"
+    },
+    {
+      "name": "protocols-null",
+      "why": "…protocols",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "protocols": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'protocols' must be a JSON array of objects"
+    },
+    {
+      "name": "protocol-functions-null",
+      "why": "…and protocol_functions",
+      "section": "root",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": null
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "OwnIR 'protocol_functions' must be a JSON array of objects"
+    },
+    {
+      "name": "subscriptions-null",
+      "why": "…and one level down",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "each component's 'subscriptions' must be objects"
+    },
+    {
+      "name": "params-null",
+      "why": "…likewise params",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "a function's 'params' must be a JSON array of objects"
+    },
+    {
+      "name": "service-deps-null",
+      "why": "…and a null string array",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "deps": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'deps' must be an array of strings"
+    },
+    {
+      "name": "effect-bindings-null",
+      "why": "…and null bindings",
+      "section": "effects",
+      "document": {
+        "ownir_version": 0,
+        "effects": [
+          {
+            "bindings": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "effect 'bindings' must be a JSON array of objects"
+    },
+    {
+      "name": "service-line-null",
+      "why": "a null scalar is not an absent scalar either",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'line' must be an integer"
+    },
+    {
+      "name": "service-file-null",
+      "why": "…same for a string scalar",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "file": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'file' must be a string"
+    },
+    {
+      "name": "subscription-resource-null",
+      "why": "…and `resource` null fails the string check before the vocabulary",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "resource": null
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "subscription 'resource' must be a string, got None"
+    },
+    {
+      "name": "accept-column-null",
+      "why": "the column is the exception: the reference returns early on None, so an explicit null IS accepted where a null line is not",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": null
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-param-effect-null",
+      "why": "…and a null effect is read as absent, not as an unknown value",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "effect": null
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-function-sig-null",
+      "why": "…and a null `sig` is accepted, because the check is `is not None`",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "sig": null
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-service-sites-full",
+      "why": "well-formed DI004/DI005 call-site metadata",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "root_resolve_sites": [
+              {
+                "type": "T",
+                "file": "a.cs",
+                "line": 3
+              }
+            ],
+            "scope_cache_sites": [
+              {
+                "type": "U",
+                "file": "b.cs",
+                "line": 4
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-service-site-empty-object",
+      "why": "every site field is defaulted, so `{}` is a legal site",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "root_resolve_sites": [
+              {}
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "service-site-line-bool",
+      "why": "the bool-is-int trap inside a site record",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "root_resolve_sites": [
+              {
+                "line": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'root_resolve_sites' must be an array of {type:str, file:str, line:int} objects"
+    },
+    {
+      "name": "service-site-type-not-string",
+      "why": "…and a site `type` is a string",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "root_resolve_sites": [
+              {
+                "type": 7
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'root_resolve_sites' must be an array of {type:str, file:str, line:int} objects"
+    },
+    {
+      "name": "service-scope-cache-site-line-bool",
+      "why": "…both site arrays carry the same contract",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "scope_cache_sites": [
+              {
+                "line": true
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'scope_cache_sites' must be an array of {type:str, file:str, line:int} objects"
+    },
+    {
+      "name": "accept-line-at-i64-max",
+      "why": "the largest line both loaders accept",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 9223372036854775807
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-column-at-i64-max",
+      "why": "…and the largest column",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 9223372036854775807
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-negative-line",
+      "why": "a NEGATIVE line is accepted: only columns carry the 1-based rule, and conflating the two would tighten the door",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": -5
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-zero-line",
+      "why": "…and zero is the line default",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 0
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "column-float",
+      "why": "a float is not an integer coordinate even when it is whole",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "location",
+      "message": "subscription 'column' must be a 1-based integer or absent, got 1.0"
+    },
+    {
+      "name": "service-line-float",
+      "why": "…and the same for a line, where it is a shape failure instead",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 1.0
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'line' must be an integer"
     }
   ]
 }
