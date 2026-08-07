@@ -284,3 +284,85 @@ fn malformed_input_never_panics() {
         let _ = OwnIr::from_json(text);
     }
 }
+
+#[test]
+fn a_deep_in_memory_value_is_refused_rather_than_aborting() {
+    // `serde_json::to_value` recurses over a `Value`. On a deep enough one it
+    // does not return an error — it overflows the stack, which aborts the
+    // process and cannot be caught. `from_json` was never exposed (the parser
+    // caps nesting at 128); `validate()` is, because it serializes a value the
+    // caller built in memory.
+    //
+    // Depth 200 is chosen deliberately: past the 128 guard, and well inside the
+    // band where the value can still be built and dropped. See the honesty note
+    // below for why it is not larger.
+    let mut node = serde_json::json!({"ev": "return", "line": 1});
+    for _ in 0..200 {
+        node = serde_json::json!({"ev": "if", "line": 1, "then": [node]});
+    }
+    let doc = OwnIr {
+        protocol_functions: Some(vec![serde_json::json!({"name": "M", "events": [node]})]),
+        ..OwnIr::default()
+    };
+
+    let err = doc.validate().expect_err("a 200-deep tree must be refused");
+    assert_eq!(err.kind, OwnIrErrorKind::Shape, "{}", err.message);
+    assert!(
+        err.message.contains("nested more than"),
+        "expected the depth guard, got: {}",
+        err.message
+    );
+    // …and `to_value` refuses it directly, since that is where the hazard is.
+    // The guard lives there, NOT in the validator's own recursion: measured,
+    // `to_value` and `validate` abort at the SAME depth, so a counter threaded
+    // through `events`/`flow_columns` would never be the check that fires.
+    assert!(doc.to_value().is_err(), "to_value must refuse it too");
+
+    // HONESTY NOTE, measured rather than assumed: this guard covers depths 129
+    // to roughly 800. Above ~804 merely DROPPING the value aborts, because
+    // `serde_json::Value` has a recursive `Drop` — nothing this crate does can
+    // prevent that, and a test asserting otherwise would abort before it could
+    // report. The bound stops the serializer, not the type.
+}
+
+#[test]
+fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
+    // The guard is set to serde_json's own parse limit, so it must be
+    // unreachable for anything that survived parsing — otherwise it is not a
+    // stack-overflow bound, it is a new rejection rule with no counterpart in
+    // the reference.
+    //
+    // The ledger alone cannot check this: every control is a handful of levels
+    // deep, so a guard set to 16 would pass against all 191 of them. Measured —
+    // that mutation SURVIVED until this document was added. So the test builds
+    // the deepest document `from_json` still accepts and pins the guard above
+    // it.
+    let mut node = serde_json::json!({"ev": "return", "line": 1});
+    for _ in 0..50 {
+        node = serde_json::json!({"ev": "if", "line": 1, "then": [node]});
+    }
+    let deep = serde_json::json!({
+        "ownir_version": 0,
+        "protocol_functions": [{"name": "M", "events": [node]}]
+    });
+    let text = serde_json::to_string(&deep).expect("serializes");
+    let doc = OwnIr::from_json(&text).expect(
+        "a 50-level protocol tree is within serde_json's parse limit and the \
+         reference accepts it",
+    );
+    assert!(
+        doc.to_value().is_ok(),
+        "the depth guard refused a document the strict door accepted — it is \
+         tighter than the parser, which makes it a rejection rule rather than \
+         an overflow bound"
+    );
+
+    // …and every ledger control, for the same reason at ordinary depths.
+    let root = load();
+    for case in cases(&root) {
+        if let Ok(doc) = OwnIr::from_json(&document_text(case)) {
+            let name = case.get("name").and_then(Value::as_str).unwrap_or("?");
+            assert!(doc.to_value().is_ok(), "{name}: refused by the depth guard");
+        }
+    }
+}
