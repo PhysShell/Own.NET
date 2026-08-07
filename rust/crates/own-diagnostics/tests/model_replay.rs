@@ -156,6 +156,8 @@ fn every_frozen_code_is_a_known_title() {
 /// notice). Pinned here rather than via `deny_unknown_fields` on the type: the
 /// exactness belongs to this fixture, and the types may later be fed by
 /// producers whose tolerance is a separate decision.
+const ROOT_KEYS: [&str; 3] = ["comment", "schema_version", "cases"];
+const CASE_KEYS: [&str; 4] = ["name", "why", "records", "distinct_records"];
 const RECORD_KEYS: [&str; 3] = ["path", "column", "diagnostic"];
 const DIAGNOSTIC_KEYS: [&str; 7] = [
     "code",
@@ -192,12 +194,28 @@ fn fixture_shape_is_pinned_key_for_key() {
     let raw = std::fs::read_to_string(FIXTURE).expect("fixture readable");
     let root: Value = serde_json::from_str(&raw).expect("diag_model.json parses");
 
+    // Pinned at EVERY level, not just the record. The rationale above ("an added
+    // key means Python grew a field Rust silently discards") applies just as much
+    // to the envelope around the records: fixture metadata (`comment`,
+    // `schema_version`) and the per-case claim (`why`, `distinct_records`) are
+    // part of the replay contract, and nothing else would notice them changing.
+    assert_eq!(
+        key_set(&root, "root"),
+        expected(&ROOT_KEYS),
+        "fixture root key set drifted from the Python writer"
+    );
+
     for case in root
         .get("cases")
         .and_then(Value::as_array)
         .expect("'cases' array")
     {
         let name = case.get("name").and_then(Value::as_str).unwrap_or("<?>");
+        assert_eq!(
+            key_set(case, "case"),
+            expected(&CASE_KEYS),
+            "case {name:?}: case key set drifted from the Python writer"
+        );
         for record in case
             .get("records")
             .and_then(Value::as_array)
