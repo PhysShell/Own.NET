@@ -48,7 +48,7 @@
   "$defs": {
     "sourceColumn": {
       "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md §2): a producer that does not report one omits it and no consumer substitutes a value — not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).",
-      "type": "integer",
+      "type": ["integer", "null"],
       "minimum": 1,
       "maximum": 9223372036854775807
     },
@@ -108,7 +108,7 @@
       "description": "One owned-resource record (spec/OwnIR.md §4). An unreleased record is OWN001 at `line`; a released one nets balanced and stays silent.",
       "type": "object",
       "properties": {
-        "line": { "$ref": "#/$defs/sourceLine" },
+        "line": { "type": "integer" },
         "column": { "$ref": "#/$defs/sourceColumn" },
         "event": {
           "description": "The event/handle identifier for this owned resource (e.g. `bus.CustomerChanged`, `_timer.Tick`); carried into the finding message and rendered output.",
@@ -190,7 +190,7 @@
           "description": "A new owned local (Let+Acquire); kind:\"pool\" tags it a pooled buffer.",
           "properties": {
             "op": { "const": "acquire" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" },
             "kind": { "type": "string", "enum": ["pool"] }
@@ -202,7 +202,7 @@
           "description": "Release of the local's handle.",
           "properties": {
             "op": { "const": "release" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -213,7 +213,7 @@
           "description": "Use of the handle.",
           "properties": {
             "op": { "const": "use" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -224,7 +224,7 @@
           "description": "Overspan (POOL005: a full-length view of a pooled buffer).",
           "properties": {
             "op": { "const": "overspan" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -235,7 +235,7 @@
           "description": "Ownership transfer out; `var` optional (a bare return).",
           "properties": {
             "op": { "const": "return" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -246,7 +246,7 @@
           "description": "A new owning handle joined to `src`'s alias set (wrap/adopt, D5.4).",
           "properties": {
             "op": { "const": "alias_join" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" },
             "src": { "type": "string" }
@@ -258,7 +258,7 @@
           "description": "A Call checked against the callee's contract; a fresh-returning callee mints an acquire for `result` (D5.2). An optional `sig` (the callee's canonical parameter-type list, same format as a function record's `sig`) resolves the call against that overload's own summary; absent or unmatched, the name-merged summary applies (stage 2 fallback — degraded, never a wrong overload).",
           "properties": {
             "op": { "const": "call" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "callee": { "type": "string" },
             "sig": { "type": "string" },
@@ -272,7 +272,7 @@
           "description": "An If with both branches lowered.",
           "properties": {
             "op": { "const": "if" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "then": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } },
             "else": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
@@ -284,7 +284,7 @@
           "description": "A While — a back-edge the core's worklist fixpoint converges over (A1).",
           "properties": {
             "op": { "const": "while" },
-            "line": { "$ref": "#/$defs/sourceLine" },
+            "line": { "type": "integer" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
@@ -304,7 +304,7 @@
         "file": { "type": "string" },
         "line": { "$ref": "#/$defs/sourceLine" },
         "ctor_file": { "type": "string" },
-        "ctor_line": { "type": "integer" },
+        "ctor_line": { "$ref": "#/$defs/sourceLine" },
         "ctor_type": { "type": "string" },
         "root_resolve_sites": { "type": "array", "items": { "$ref": "#/$defs/site" } },
         "scope_cached": { "type": "array", "items": { "type": "string" } },

@@ -173,13 +173,65 @@ def run() -> int:
         ("sourceLine", "maximum", SPEC_INT64_MAX),
         ("sourceColumn", "minimum", 1),
         ("sourceColumn", "maximum", SPEC_INT64_MAX),
+        # `column: null` is accepted by `load()`, so the schema must permit it.
+        # `minimum`/`maximum` only constrain numbers, so the bounds above still
+        # apply to real values.
+        ("sourceColumn", "type", ["integer", "null"]),
     ):
         actual = defs.get(name, {}).get(key)
         if actual != expected:
             failures += _fail(
                 f"spec/ownir.schema.json $defs.{name}.{key} is {actual!r}, "
-                f"expected {expected} — the schema and `load()` must state the "
+                f"expected {expected!r} — the schema and `load()` must state the "
                 f"same bound or a producer can satisfy one and fail the other")
+
+    # …and the schema binds `sourceLine` on EXACTLY the paths `load()` checks.
+    #
+    # Both directions are defects and both were shipped in the first attempt at
+    # this file. Binding a path the loader ignores makes a producer schema-
+    # invalid while the door accepts it; leaving a checked path unbound makes it
+    # schema-valid while the door refuses it. A blanket search-and-replace over
+    # `"line"` did the first to `resourceRecord` and `flowOp` — the two paths
+    # §4.2 documents as unvalidated — and the second to `ctor_line`, whose key
+    # simply differs.
+    #
+    # So the map is asserted as a map, not spot-checked.
+    BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
+             "effect": ["line"], "binding": ["line"], "param": ["line"],
+             "protocolEvent": ["line"]}
+    UNBOUND = {"resourceRecord": ["line"], "flowOp": ["line"]}
+
+    def _line_refs(node: Any, key: str, out: list[Any]) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == key and isinstance(v, dict):
+                    out.append(v.get("$ref") or v.get("type"))
+                else:
+                    _line_refs(v, key, out)
+        elif isinstance(node, list):
+            for v in node:
+                _line_refs(v, key, out)
+
+    for group, expect_bound in ((BOUND, True), (UNBOUND, False)):
+        for def_name, keys in group.items():
+            for key in keys:
+                found: list[Any] = []
+                _line_refs(defs.get(def_name, {}), key, found)
+                if not found:
+                    failures += _fail(
+                        f"$defs.{def_name} has no {key!r} — the binding map is "
+                        f"stale, which means it is no longer evidence")
+                for ref in found:
+                    is_bound = ref == "#/$defs/sourceLine"
+                    if is_bound != expect_bound:
+                        want = ("$ref sourceLine" if expect_bound
+                                else "an unrestricted integer")
+                        why = ("`load()` checks this path"
+                               if expect_bound else
+                               "`load()` does NOT check this path (§4.2)")
+                        failures += _fail(
+                            f"$defs.{def_name}.{key} is {ref!r}, expected "
+                            f"{want} — {why}")
 
     # ---- line: the full signed-64 range, and one step outside each end -----
     for label, build in LINE_PATHS:
