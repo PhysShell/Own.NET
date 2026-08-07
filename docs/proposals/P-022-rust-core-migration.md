@@ -6,7 +6,7 @@ rationale below is historical and unchanged; the live sequencing is the #250
 child-issue DAG. Revised per the post-merge review in
 [`docs/notes/p022-review-notes.md`](../notes/p022-review-notes.md).
 
-### Implementation status
+## Implementation status
 
 > **Reconciled at `fdcb222`** against `rust/Cargo.toml`, the crate sources and
 > the child-issue states under #250. Written fresh from the tree, not carried
@@ -45,8 +45,8 @@ child-issue DAG. Revised per the post-merge review in
   PR #297 merged, both documents on `main`).
 
 **In progress — step 6b, `own-bridge` (#259).** It landed ahead of #250's
-*preferred* order ("preferably after #255/#256"); its *normative* blocker was
-#258 alone, which is satisfied. Per the checkpoints #259 itself defines:
+*preferred* order ("preferably after #255/#256"); its *normative* blocker
+was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 
 | #259 checkpoint | Status | Evidence / what remains |
 |---|---|---|
@@ -598,11 +598,11 @@ Throughout, Python stays authoritative; the Rust crates light up behind the ratc
 
 ## Parity-work discipline
 
-Four rules, each paid for by a real defect during step 5a (#255, PRs
-#319/#320/#321). They are written **wider than this port on purpose**: nothing
-below depends on Rust, on Python, or on the diagnostics layer, so they outlive
-P-022 and apply to the next migration that pins one implementation against
-another.
+Four rules, each paid for by a real defect during step 5a
+(#255, PRs #319/#320/#321). They are written **wider than this port on
+purpose**: nothing below depends on Rust, on Python, or on the diagnostics
+layer, so they outlive P-022 and apply to the next migration that pins one
+implementation against another.
 
 Scope: parity/migration work. This is the only home — the rules are not
 duplicated into `AGENTS.execution-surfaces.md`, because two copies of one law
@@ -670,6 +670,14 @@ The **invariant is the law**. A content hash is today's way of satisfying it in
 that holds the two lines above conforms, and swapping the mapping is not a
 violation. (Whatever is chosen must be reproducible across processes: Python's
 `hash()` randomises string hashing per run and cannot be used.)
+
+**Enforcement today is partial — the norm deliberately outruns the guard.**
+`_insertion_churn()` in `tests/test_diag_ledger_fixtures.py` computes and gates
+the **first** line only (`churn == 0`). Nothing yet asserts `delta == 1`, so a
+generator that dropped the new record entirely would still satisfy every
+executable check. The acceptance above is the norm regardless of how much of it
+is currently wired up; closing the gap is a queued test change, not a
+relaxation of the rule.
 
 **Why.** A vocabulary-derived golden exists to make *adding a member* legible.
 If insertion rewrites unrelated records, the one diff a reviewer needs is buried
