@@ -3,23 +3,35 @@
 //! `OwnIR` is the frozen seam between the frontends (the Roslyn C# extractor,
 //! `OwnTS`) and the core: a versioned JSON fact vocabulary. This crate is the
 //! Rust side of that seam. Its acceptance rule mirrors the Python reference
-//! (`ownlang/ownir.py::load`) exactly — a claim that is now **measured**, not
-//! asserted: `tests/validation_replay.rs` replays a 77-control Python-authored
-//! ledger and requires zero Rust-only accepts, zero Rust-only rejects and zero
+//! (`ownlang/ownir.py::load`) — a claim that is **measured**, not asserted:
+//! `tests/validation_replay.rs` replays a 191-control Python-authored ledger
+//! and requires zero Rust-only accepts, zero Rust-only rejects and zero
 //! error-category mismatches.
 //!
-//! That measurement was worth having. The same sentence used to sit here
-//! unbacked, and a differential sweep found **twelve** documents the reference
-//! refused and this crate accepted (#259 cp1) — mostly because a field the
-//! model never declared cannot be checked by serde, however strict serde is
-//! about the fields it *has* been told about.
+//! The measurement had to be taken twice, and the second time is the one worth
+//! reading. A first sweep of 77 controls found twelve permissive documents,
+//! fixed them, and read 0/0/0 — but the same author had written the ledger and
+//! the port, so a gap in reading BR-D1 produced a matching gap in each. A
+//! re-census built from the reference line by line opened **58** more
+//! permissive documents and **9** category mismatches. Both numbers are in the
+//! commit history on purpose: a differential oracle written by the author of
+//! the implementation measures the author's understanding until something
+//! external disagrees with it.
 //!
-//! * **typed fields are the ones the strict door validates** — everything else
-//!   rides in a flattened `extra` map, so additive optional fields a newer
-//!   frontend emits are tolerated *and preserved on round-trip* (the parity
-//!   property `tests/roundtrip.rs` pins against the repo's `OwnIR` fixtures).
-//!   A field that Python *does* validate must be declared here, or it silently
-//!   falls into `extra` and escapes checking entirely;
+//! * **the strict door is the `strict` module, not serde.** Validation runs over
+//!   the raw document and is complete before deserialization begins, because
+//!   BR-D1 interleaves shape and semantic checks per section in
+//!   document-declaration order — an order neither serde's field traversal nor
+//!   a "semantics first, shapes second" gate reproduces. serde afterwards is a
+//!   *constructor*; if it still rejects, that is a hole in the validator, and
+//!   it says so ([`VALIDATOR_HOLE`]);
+//! * **typed fields are not what makes a rule enforced** — everything
+//!   undeclared rides in a flattened `extra` map, so additive optional fields a
+//!   newer frontend emits are tolerated *and preserved on round-trip*
+//!   (`tests/roundtrip.rs`). Six fields Python validated were once absent from
+//!   this model and fell into `extra`, escaping checking entirely; that class
+//!   of bug is now caught by the validator rather than prevented by remembering
+//!   to declare things;
 //! * the **schema version gates first** (`ownir_version`, absent ⇒ v0), and a
 //!   vocabulary mismatch fails loudly with an actionable message;
 //! * JSON `true` is **not** an integer here (unlike Python, where `bool` is an
@@ -31,7 +43,9 @@
 //! Error *message* parity with Python is not claimed yet — that lands with the
 //! shared error-text fixtures (P-022 oracle section), not by copy-paste.
 
+mod protocol;
 pub mod span;
+mod strict;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -113,6 +127,16 @@ impl std::fmt::Display for OwnIrError {
 }
 
 impl std::error::Error for OwnIrError {}
+
+/// Sentinel prefix on the one error [`OwnIr::from_json`] can raise that is not
+/// a rejection.
+///
+/// Once the `strict` module has accepted a document, `serde` is only building the
+/// typed value; if it still refuses, the validator is missing a rule the model
+/// happens to encode. That is a defect in this crate, not in the document, and
+/// it must not hide inside a plausible-looking `Shape` error — so it is marked,
+/// and `validation_replay` asserts no control in the ledger reaches it.
+pub const VALIDATOR_HOLE: &str = "strict validator hole";
 
 /// The closed set of resource discriminators (IR4).
 ///
@@ -511,214 +535,17 @@ pub struct OwnIr {
     pub extra: Map<String, Value>,
 }
 
-/// The checks whose **category** must not be decided by serde.
-///
-/// Run against the raw document, before typed deserialization. A serde enum
-/// would reject `lifetime: "eternal"` perfectly well — and report it as
-/// [`OwnIrErrorKind::Shape`], when the contract violated is a closed
-/// vocabulary. Likewise a `name: 7` is an identity failure in the reference,
-/// not a type failure. Deserializing first and classifying after would make
-/// accept/reject parity green while the taxonomy quietly lied.
-///
-/// Ordered to follow BR-D1: `components` → `services` → `functions` →
-/// `protocols`.
-fn gate_semantics(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-    gate_components(obj)?;
-    gate_services(obj)?;
-    gate_params(obj)?;
-    gate_protocols(obj)
-}
-
-/// `components[]` — resource shape, then its closed vocabulary, then columns.
-fn gate_components(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-    for sub in obj
-        .get("components")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-        .filter_map(|c| c.get("subscriptions"))
-        .filter_map(Value::as_array)
-        .flatten()
-        .filter_map(Value::as_object)
-    {
-        // IR4. A present-but-unknown kind changes routing, so the strict door
-        // rejects it rather than let it mis-route. The lowering door keeps its
-        // OWN copy of this rule (#294 OD-2) — that one guards the tolerant path
-        // which bypasses this loader entirely. Two doors, not one duplicated
-        // check: removing either reopens a different hole.
-        // Shape before vocabulary, in that order: `resource` must BE a string
-        // before its value can be tested against the closed set. Checking the
-        // set first (and skipping a non-string) would let `{"resource": 7,
-        // "column": 0}` be reported as a column problem, which is the wrong
-        // contract and the wrong category.
-        match sub.get("resource") {
-            Some(Value::String(_)) | None => {}
-            Some(other) => {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Shape,
-                    format!("subscription 'resource' must be a string, got {other}"),
-                ))
-            }
-        }
-        if let Some(kind) = sub.get("resource").and_then(Value::as_str) {
-            if !KNOWN_RESOURCE_KINDS.contains(&kind) {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Vocabulary,
-                    format!(
-                        "unknown resource kind {kind:?} — a new kind is a \
-                         vocabulary change that must bump OWNIR_VERSION"
-                    ),
-                ));
-            }
-        }
-        check_column(sub.get("column"), "subscription")?;
-    }
-    Ok(())
-}
-
-/// `services[]` — name identity, then the DI lifetime vocabulary.
-fn gate_services(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-    for svc in obj
-        .get("services")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-    {
-        // The service name is the identity the DI graph joins on: empty and
-        // non-string are the same defect class, and the reference reports both
-        // with one message.
-        match svc.get("name") {
-            Some(Value::String(n)) if !n.is_empty() => {}
-            None => {}
-            _ => {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Identity,
-                    "service 'name' must be a non-empty string",
-                ))
-            }
-        }
-        if let Some(v) = svc.get("lifetime") {
-            let known = v
-                .as_str()
-                .is_some_and(|l| ["scoped", "singleton", "transient"].contains(&l));
-            if !known {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Vocabulary,
-                    format!(
-                        "service 'lifetime' must be one of \
-                         [\"scoped\", \"singleton\", \"transient\"], got {v}"
-                    ),
-                ));
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// `functions[].params[]` — name identity, then the effect vocabulary.
-fn gate_params(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-    for param in obj
-        .get("functions")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-        .filter_map(|f| f.get("params"))
-        .filter_map(Value::as_array)
-        .flatten()
-        .filter_map(Value::as_object)
-    {
-        match param.get("name") {
-            Some(Value::String(n)) if !n.is_empty() => {}
-            None => {}
-            _ => {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Identity,
-                    "parameter 'name' must be a non-empty string",
-                ))
-            }
-        }
-        if let Some(v) = param.get("effect") {
-            let known = v.is_null()
-                || v.as_str()
-                    .is_some_and(|e| ["borrow", "borrow_mut", "consume", "plain"].contains(&e));
-            if !known {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Vocabulary,
-                    format!(
-                        "parameter 'effect' must be one of \
-                         [\"borrow\", \"borrow_mut\", \"consume\", \"plain\"], got {v}"
-                    ),
-                ));
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// `protocols[]` — the identity invariant two individually valid records can
-/// only violate together.
-fn gate_protocols(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
-    for proto in obj
-        .get("protocols")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_object)
-    {
-        if let Some(name) = proto.get("name").and_then(Value::as_str) {
-            if !seen.insert(name) {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Identity,
-                    format!(
-                        "duplicate protocol name '{name}' — protocol names are \
-                         the identity findings map back by and must be unique"
-                    ),
-                ));
-            }
-        }
-    }
-    Ok(())
-}
-
-/// The 1-based source-column contract (#317).
-///
-/// A column is a positive integer or it is absent. `0` is rejected rather than
-/// read as "unknown": SARIF columns start at 1, so a `0` is a producer bug, and
-/// silently treating it as absent would hide the bug while looking correct.
-/// `true` is rejected explicitly — the reference guards the same trap because a
-/// Python `bool` is an `int`, and accepting it would fabricate column 1.
-fn check_column(value: Option<&Value>, where_: &str) -> Result<(), OwnIrError> {
-    let Some(v) = value else { return Ok(()) };
-    if v.is_null() {
-        return Ok(());
-    }
-    // `Bool` is called out rather than folded into the wildcard: it is the
-    // trap the reference guards explicitly (a Python `bool` is an `int`, so
-    // `True` would otherwise be read as column 1 — a fabricated coordinate).
-    let ok = match v {
-        Value::Number(n) => n.as_i64().is_some_and(|i| i >= 1),
-        _ => false,
-    };
-    if ok {
-        return Ok(());
-    }
-    Err(OwnIrError::new(
-        OwnIrErrorKind::Location,
-        format!("{where_} 'column' must be a 1-based integer or absent, got {v}"),
-    ))
-}
-
 impl OwnIr {
     /// Parse + shape-check an `OwnIR` JSON document — the **strict door**
-    /// (BR-D1). Mirrors the acceptance of Python `ownlang.ownir.load`,
-    /// including the observable order: JSON → root-is-object → version gate →
-    /// semantic gate → typed shapes.
+    /// (BR-D1). Accepts the same language as Python `ownlang.ownir.load`,
+    /// including the observable order in which it rejects.
+    ///
+    /// Validation runs over the **raw** document (the `strict` module) and is
+    /// finished before `serde` sees anything. That is not an optimisation of
+    /// the previous design, it is the only arrangement that can reproduce the
+    /// contract: BR-D1 interleaves shape and semantic checks per section, in
+    /// document-declaration order, and neither serde's field order nor a
+    /// "semantics first, shapes second" two-pass gate is that order.
     ///
     /// The tolerant door (`check_facts`/`to_module`, which take a document
     /// directly and never call `load`) is a *different* entry surface with its
@@ -730,11 +557,6 @@ impl OwnIr {
     /// [`OwnIrError`] on invalid JSON, a schema-version mismatch, or any field
     /// that the reference implementation would reject.
     pub fn from_json(text: &str) -> Result<Self, OwnIrError> {
-        // BR-D1 fixes the ORDER, and the spec notes it "is observable through
-        // which error fires first". A single `from_str::<Self>` would collapse
-        // that: serde would reject a malformed `components` before anything
-        // could look at `ownir_version`, reporting Shape where the reference
-        // reports Version. So the gate runs on an untyped value first.
         let raw: Value = serde_json::from_str(text)
             .map_err(|e| OwnIrError::new(OwnIrErrorKind::Json, format!("not valid JSON: {e}")))?;
         let Some(obj) = raw.as_object() else {
@@ -743,103 +565,41 @@ impl OwnIr {
                 "OwnIR root must be a JSON object",
             ));
         };
-        Self::gate_version(obj)?;
-        gate_semantics(obj)?;
-        let doc: Self = serde_json::from_value(raw).map_err(|e| {
+        strict::validate_document(obj)?;
+        // serde is the CONSTRUCTOR, not the arbiter: the document has already
+        // been accepted, so a failure here is a hole in the validator rather
+        // than a rejection. Marked with a sentinel the replay test asserts no
+        // control ever reaches — see `no_control_escapes_into_serde`.
+        serde_json::from_value(raw).map_err(|e| {
             OwnIrError::new(
                 OwnIrErrorKind::Shape,
-                format!("OwnIR facts are not valid: {e}"),
-            )
-        })?;
-        doc.validate()?;
-        Ok(doc)
-    }
-
-    /// The version gate, run against the untyped document so it precedes every
-    /// shape check exactly as BR-D1 requires.
-    ///
-    /// An absent field means the current version (the only producers that omit
-    /// it predate versioning). A present `bool` is rejected explicitly: JSON
-    /// has a real boolean type, but the reference guards the same trap because
-    /// `True` is an `int` in Python, and accepting `true` as v1 here would let
-    /// a document through that the reference refuses.
-    fn gate_version(obj: &Map<String, Value>) -> Result<(), OwnIrError> {
-        let Some(v) = obj.get("ownir_version") else {
-            return Ok(());
-        };
-        // A `Bool` deliberately falls through to `None` with everything else:
-        // the reference guards it because a Python `bool` is an `int`, and
-        // accepting `true` here would read as schema v1.
-        let ver = match v {
-            Value::Number(n) if n.is_i64() => n.as_i64(),
-            _ => None,
-        };
-        let Some(ver) = ver else {
-            return Err(OwnIrError::new(
-                OwnIrErrorKind::Version,
-                format!("OwnIR 'ownir_version' must be an integer, got {v}"),
-            ));
-        };
-        if ver != OWNIR_VERSION {
-            return Err(OwnIrError::new(
-                OwnIrErrorKind::Version,
                 format!(
-                    "OwnIR facts are schema v{ver}, but this core understands \
-                     v{OWNIR_VERSION}. Build the extractor and the core from the \
-                     same commit — the OwnIR fact vocabulary changed between the \
-                     version that produced this file and the one reading it."
+                    "{VALIDATOR_HOLE}: the strict validator accepted a document serde \
+                         then refused, so a rule is missing from it — {e}"
                 ),
-            ));
-        }
-        Ok(())
+            )
+        })
     }
 
-    /// The checks serde's typing cannot express, for a value built directly
-    /// rather than loaded.
+    /// The strict door applied to a value built in memory rather than parsed.
     ///
-    /// The full semantic gate (closed vocabularies, the 1-based column rule,
-    /// protocol identity) runs inside [`OwnIr::from_json`] against the **raw**
-    /// document, because getting the error *category* right requires checking
-    /// before serde deserializes — see [`gate_semantics`]. `from_json` is the
-    /// strict door; this is the residue a typed value can still violate.
+    /// Serializing and re-validating costs a round-trip, and buys the property
+    /// that broke this crate once already: there is exactly **one** copy of the
+    /// acceptance law. The previous design kept a second, smaller copy here, and
+    /// a mutation planted in one was caught by the other — a false "survived"
+    /// that cost real time to explain.
     ///
     /// # Errors
-    /// [`OwnIrError`] on a schema-version mismatch or an empty identity field.
+    /// [`OwnIrError`] if the value would not survive [`OwnIr::from_json`].
     pub fn validate(&self) -> Result<(), OwnIrError> {
-        let ver = self.ownir_version.unwrap_or(OWNIR_VERSION);
-        if ver != OWNIR_VERSION {
+        let value = self.to_value()?;
+        let Some(obj) = value.as_object() else {
             return Err(OwnIrError::new(
-                OwnIrErrorKind::Version,
-                format!(
-                    "OwnIR facts are schema v{ver}, but this core understands \
-                     v{OWNIR_VERSION}. Build the extractor and the core from the \
-                     same commit — the OwnIR fact vocabulary changed between the \
-                     version that produced this file and the one reading it."
-                ),
+                OwnIrErrorKind::Shape,
+                "OwnIR root must be a JSON object",
             ));
-        }
-        for s in self.services.iter().flatten() {
-            if s.name.is_empty() {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Identity,
-                    "service 'name' must be a non-empty string",
-                ));
-            }
-        }
-        for p in self
-            .functions
-            .iter()
-            .flatten()
-            .flat_map(|f| f.params.iter().flatten())
-        {
-            if p.name.is_empty() {
-                return Err(OwnIrError::new(
-                    OwnIrErrorKind::Identity,
-                    "parameter 'name' must be a non-empty string",
-                ));
-            }
-        }
-        Ok(())
+        };
+        strict::validate_document(obj)
     }
 
     /// Serialize back to a JSON value. Together with `from_json` this is the
