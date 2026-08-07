@@ -61,7 +61,13 @@
 mod diagnostic;
 mod located;
 mod render;
+mod sarif;
 
 pub use diagnostic::{title, DiagKey, Diagnostic, Evidence, Severity, UnknownCode, TITLES};
 pub use located::{DiagIdentity, EvidenceIdentity, LocatedDiagnostic};
 pub use render::sort_emission_order;
+pub use sarif::{
+    build_sarif, code_flow, related_locations, steps_for, ArtifactLocation, CodeFlow, Driver,
+    LabelledLocation, Location, Message, PhysicalLocation, Region, Rule, Run, SarifLog,
+    SarifResult, Step, ThreadFlow, ThreadFlowLocation, Tool,
+};

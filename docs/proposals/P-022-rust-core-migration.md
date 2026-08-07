@@ -33,11 +33,14 @@ child-issue DAG. Revised per the post-merge review in
   analyses (step 4; the **analysis-heart milestone**, completed in #214 /
   PR #249, replaying `diag_parity.json` and the DI/effect fact-parity
   fixtures);
-- `own-diagnostics` — the verdict model **and** the full normalized diagnostic
-  contract (step 5a, #255 **closed completed**, PRs #319/#320/#321): structural
-  identity with a non-collapsing comparison key, canonical `render` /
-  `render_pretty` text, the emission ordering contract, and a self-policing
-  ledger covering all 47 `TITLES` codes;
+- `own-diagnostics` — the verdict model, the full normalized diagnostic
+  contract (step 5a, #255 **closed completed**, PRs #319/#320/#321) and the
+  SARIF 2.1.0 projection (step 5b, #256): structural identity with a
+  non-collapsing comparison key, canonical `render` / `render_pretty` text, the
+  emission ordering contract, a self-policing ledger covering all 47 `TITLES`
+  codes, and `sarif::build_sarif` — the port of `diag_sarif.py` plus the
+  `evidence.py` builders, typed rather than free-form JSON so the crate gains no
+  runtime JSON dependency;
 - `own-lowered` — the normalized Layer 2 document the bridge lowers into (the
   differential-testing representation named by #259 checkpoint 2);
 - `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` — the normative bridge
@@ -61,7 +64,7 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | Step | Deliverable | Issue | Status |
 |---|---|---|---|
 | 5a | diagnostic messages + ordered Evidence parity | #255 | **complete** — see above |
-| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 | **ready** — its normative blocker (#255) is satisfied. The **preferred next step**: it stays on the diagnostic/output seam #255 just finished, and completing it widens #259 checkpoint 5 to its full Layer-5 surface in one pass instead of two visits |
+| 5b | SARIF projection, canonical parity | #256 | **SARIF complete** — `own_diagnostics::sarif` ports `diag_sarif.py` + `evidence.py`, replayed against 16 cases / 21 results with zero volatile fields stripped. `.ownreport.json` is **struck from this step, not deferred**: measured against the tree it is a *buffer* report (`{module, buffers[]}`), carries no diagnostics/Evidence/tool metadata, and porting it needs `ast_nodes` + `buffers.resolve` — which this step's own guardrail forbids `own-diagnostics` from reaching. See [below](#what-256-asked-for-that-the-tree-does-not-have). The OwnIR SARIF path (`DI`/`EFF`/`OBL`) stays with the bridge (#259) |
 | 5c | `own-codegen` (analysis-independent sibling) | #257 | **ready**, independent of the analysis path — parallelizable |
 | 6a | OwnIR **bridge semantics formalized** before the port | #258 | **complete** — see above |
 | 6b | Rust `own-bridge`, layered OwnIR parity | #259 | **in progress** — checkpoint table above |
@@ -69,7 +72,34 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
 | 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
-**Preferred queue:** #256 → #259 remaining (cp1 → cp4 → cp5) → #260/#269.
+**Preferred queue:** #259 remaining (cp1 → cp4 → cp5) → #260/#269.
+
+### What #256 asked for that the tree does not have
+
+Recorded here rather than left in an issue comment, because it is the second
+time a step's written scope has outrun the code it describes, and the first
+rule of the discipline section below is that the tree decides.
+
+Three of #256's requirements were unbuildable **as written**, each verified by
+running the reference rather than by reading around it:
+
+| #256 says | The tree says |
+|---|---|
+| `.ownreport.json` carries "schema/version fields, tool and run metadata, diagnostics and ordered Evidence" | it is `{module, buffers[]}` — a *buffer storage* report. Diagnostics contribute four boolean `checks` per buffer; there is no Evidence, no tool metadata, no schema version, and no path anywhere in it |
+| port it under "`own-diagnostics` must not depend on parser/CFG/analysis" | `report.py` imports `ast_nodes` and `buffers.resolve`. A faithful port needs the AST and the policy resolver, so it cannot live in this crate at all |
+| a `DI004`/`DI005` control, under "no OwnIR bridge" | those codes come from `ownir.build_sarif` over `ownir.Finding`, which is the OwnIR path the same guardrail excludes |
+| "GitHub upload of Rust-generated SARIF", under "no CLI migration" | the Rust workspace has **no binary target**; nothing can write a log. Verified instead by the structural rules an ingest enforces, over the Rust-produced value |
+
+There is also a standing house rule against the shape #256 described:
+«НЕ перегружать `.ownreport.json`» (`AGENTS.execution-surfaces.md`), and a prior
+task that recorded "`build_report` untouched" as an acceptance row
+([`evidence-coverage.md`](../tasks/evidence-coverage.md)). So the report half was
+not merely unbuilt — it was asked for in a shape the project had already refused.
+
+`.ownreport.json` is therefore **struck from step 5b**, not deferred to a later
+one: nothing about the cutover requires a Rust buffer report, and inventing a
+diagnostics-bearing report to match the issue text would have been new behaviour
+smuggled in as a port.
 
 The Datalog/Ascent rule layer stays strictly **post-cutover** (strategy step 8
 below) and deliberately has no issue yet. Throughout: Python remains
