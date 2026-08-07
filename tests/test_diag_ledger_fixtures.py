@@ -35,9 +35,9 @@ the evidence, so the coverage flag is carried per code and summarised.
 * **stale** — the generated file differs from what the current reference
   produces (the standing `--write` discipline, as in the other two slices).
 * **unstable under insertion** — adding one vocabulary member must rewrite no
-  existing record and add exactly one. This is P-022 rule 4's normative
-  acceptance, enforced by [`_insertion_effect`]; the two halves fail in opposite
-  directions and neither implies the other.
+  existing record, add exactly one, and remove none. This is P-022 rule 4's
+  normative acceptance, enforced by [`_insertion_effect`]; the three numbers fail
+  in different directions and none implies the others.
 
 Run:  python tests/test_diag_ledger_fixtures.py            (verify)
       python tests/test_diag_ledger_fixtures.py --write    (regenerate)
@@ -230,60 +230,83 @@ def run() -> int:
               f"never from its position in the sorted vocabulary — adding a family has "
               f"to be a ONE-record diff, or a real renderer change hides in the churn")
         return 1
-    if effect.delta != 1:
-        print(f"FAIL: inserting one code produced {effect.delta} new ledger record(s); "
+    if effect.added != 1:
+        print(f"FAIL: inserting one code produced {effect.added} new ledger record(s); "
               f"rule 4 requires exactly 1. Zero means the generator does not cover the "
               f"new family at all — the ledger would go quietly incomplete. More than "
               f"one means a record count is derived from the vocabulary's SIZE, which "
               f"is the churn defect wearing a different hat")
+        return 1
+    if effect.removed:
+        print(f"FAIL: inserting one code REMOVED {effect.removed} existing ledger "
+              f"record(s); rule 4 requires 0. A delta is a gain: a generator that adds "
+              f"the new record while dropping another has not grown, and the dropped "
+              f"record leaves the churn comparison entirely, so neither of the other "
+              f"two numbers can see it")
         return 1
 
     totals = data["totals"]
     print(f"diagnostic ledger OK: {totals['codes']}/{len(TITLES)} codes covered "
           f"({totals['by_family']}), "
           f"{totals['analyzer_corpus']} of them also produced by the .own corpus sweep; "
-          f"inserting a code rewrites {effect.churn} existing record(s) "
-          f"and adds {effect.delta}")
+          f"inserting a code rewrites {effect.churn} existing record(s), "
+          f"adds {effect.added} and removes {effect.removed}")
     return 0
 
 
 class _InsertionEffect(NamedTuple):
     """What inserting one vocabulary member does to the generated ledger.
 
-    The two numbers P-022 rule 4 states as normative acceptance:
+    P-022 rule 4 states the acceptance as:
 
         insert one synthetic vocabulary member
           existing-record churn == 0
           new-record delta      == 1
+
+    `added` and `removed` are both halves of what that second line *means*: a
+    delta is a gain, and a run that adds one record while quietly dropping
+    another has gained nothing. Counting only additions would accept exactly
+    that, so the measurement is split rather than the norm widened.
     """
 
     churn: int
     """EXISTING records whose content changed. Must be 0."""
-    delta: int
+    added: int
     """Records that did not exist before. Must be exactly 1."""
+    removed: int
+    """Records that existed before and are now gone. Must be 0."""
 
 
 def _insertion_effect() -> _InsertionEffect:
-    """Measure both halves of rule 4's acceptance against the live generator.
+    """Measure rule 4's acceptance against the live generator.
 
     `churn` is the half that was paid for: an index-derived shape scored 42 of
     47 here before the seed was made position-independent. Adding a family has
     to read as a single new record, or a real renderer change hides in the noise.
 
-    `delta` is the other half, and it fails in the opposite direction. Zero means
+    `added` is the other half, and it fails in the opposite direction. Zero means
     the generator did not emit the new family at all — the ledger goes quietly
     incomplete, which is precisely the gap `churn` alone cannot see, because a
     generator that skips the new code has perfect churn. Above one means some
     record count is derived from the vocabulary's *size* rather than its members,
     which is the churn defect in different clothing.
 
-    Neither number is the mechanism. A content hash satisfies both today; any
-    stable, cross-process-reproducible mapping that holds both lines conforms,
+    `removed` closes the hole the other two leave between them. A generator
+    refactored to cap the ledger at its previous size emits the probe *and*
+    drops an existing code: the dropped record is absent from `after`, so it
+    never enters the churn comparison, and the addition still counts one. Both
+    original numbers read clean while the ledger did not grow at all — measured,
+    not hypothesised (probe added, `OWN052` silently gone).
+
+    None of the three is the mechanism. A content hash satisfies them today; any
+    stable, cross-process-reproducible mapping that holds the acceptance conforms,
     and swapping it is not a violation.
 
-    A probe code is inserted mid-vocabulary (so it shifts sorted positions) and
-    removed again in a `finally`, so the live TITLES the rest of the suite sees
-    is untouched."""
+    The probe is inserted **mid-vocabulary**, not appended: `DI999` sorts at
+    position 5 of 48, between `DI005` and `EFF001`, shifting the sorted index of
+    the remaining 42 codes — which is what makes an index-derived shape score
+    churn 42 here. It is removed again in a `finally`, so the live TITLES the
+    rest of the suite sees is untouched."""
     probe = "DI999"
     if probe in TITLES:  # pragma: no cover - defensive
         raise AssertionError(
@@ -300,7 +323,8 @@ def _insertion_effect() -> _InsertionEffect:
     shared = (set(before) & set(after)) - {probe}
     return _InsertionEffect(
         churn=sum(1 for code in shared if before[code] != after[code]),
-        delta=len(set(after) - set(before)),
+        added=len(set(after) - set(before)),
+        removed=len(set(before) - set(after)),
     )
 
 
