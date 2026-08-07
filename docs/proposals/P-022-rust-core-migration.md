@@ -6,9 +6,21 @@ rationale below is historical and unchanged; the live sequencing is the #250
 child-issue DAG. Revised per the post-merge review in
 [`docs/notes/p022-review-notes.md`](../notes/p022-review-notes.md).
 
-### Implementation status (reconciled after #214/#249 — see #250/#251)
+## Implementation status
 
-**Implemented** (workspace members in `rust/Cargo.toml`, parity-gated by
+> **Reconciled at `fdcb222`** against `rust/Cargo.toml`, the crate sources and
+> the child-issue states under #250. Written fresh from the tree, not carried
+> over from an earlier reconciliation — a stale status block patched with a
+> stale fix stays stale. Statuses are **checkpoint-level**, and each open step
+> separates its *normative* blocker (what its acceptance actually requires) from
+> #250's *preferred* sequencing (what order is cheapest); conflating those is
+> what let this table drift twice already.
+>
+> Keeping it true is a rule, not a habit: see
+> [Parity-work discipline](#parity-work-discipline) below, and the status-drift
+> rule in #250.
+
+**Complete** (workspace members in `rust/Cargo.toml`, parity-gated by
 `scripts/oracle_exact.py` and the shared fixtures in `tests/fixtures/`):
 
 - `own-ir` — OwnIR serde + schema round-trip (step 1);
@@ -17,24 +29,47 @@ child-issue DAG. Revised per the post-merge review in
   `tests/fixtures/cfg_parity.json` (steps 0/3; the seam the strategy below
   said "still needs building" **is built** — `python -m ownlang cfg --format
   json` + the `--write`-regenerated parity fixtures);
-- `own-diagnostics` — the data-only diagnostics layer;
 - `own-analysis` — the worklist solver + ownership/lifetime/buffer/effect/DI
   analyses (step 4; the **analysis-heart milestone**, completed in #214 /
   PR #249, replaying `diag_parity.json` and the DI/effect fact-parity
-  fixtures).
+  fixtures);
+- `own-diagnostics` — the verdict model **and** the full normalized diagnostic
+  contract (step 5a, #255 **closed completed**, PRs #319/#320/#321): structural
+  identity with a non-collapsing comparison key, canonical `render` /
+  `render_pretty` text, the emission ordering contract, and a self-policing
+  ledger covering all 47 `TITLES` codes;
+- `own-lowered` — the normalized Layer 2 document the bridge lowers into (the
+  differential-testing representation named by #259 checkpoint 2);
+- `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` — the normative bridge
+  contract and its completeness ledger (step 6a, #258 **closed completed**;
+  PR #297 merged, both documents on `main`).
 
-**Next steps — each owned by exactly one child issue under #250:**
+**In progress — step 6b, `own-bridge` (#259).** It landed ahead of #250's
+*preferred* order ("preferably after #255/#256"); its *normative* blocker
+was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 
-| Step | Deliverable | Issue |
+| #259 checkpoint | Status | Evidence / what remains |
 |---|---|---|
-| 5a | diagnostic messages + ordered Evidence parity | #255 |
-| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 |
-| 5c | `own-codegen` (analysis-independent sibling) | #257 |
-| 6a | OwnIR **bridge semantics formalized** before the port | #258 (deliverable written — `spec/Bridge.md` + `spec/BridgeBehaviorMatrix.md` **land with PR #297**, in independent review; not on `main` yet) |
-| 6b | Rust `own-bridge`, layered OwnIR parity | #259 |
-| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269 — normalized `AnalysisTrace` + first-divergence minimizer) |
-| 7b | Rust `own-cli`: command/output/exit-code parity | #261 |
-| 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 |
+| 1 — typed OwnIR validation | **partial** | `OwnIr::from_json` + the #294 OD-2 fail-loud unknown-kind rule. Full validation acceptance/rejection parity (fixture layer 1) is out of the current slice |
+| 2 — fact lowering | **complete** | `lower()` → `own_lowered`; **27/27** `rust_replay` cases in `tests/fixtures/lowered/manifest.json` byte-exact |
+| 3 — interprocedural MOS | **complete for the stage-1 domain** | `dump_summaries()` byte-identical to `python -m ownlang summaries` across **35** `*.summaries.json` goldens. Container-valued metadata is **outside** the declared scalar-metadata parity domain — a separate #294-class door decision, not a silent gap |
+| 4 — analysis wiring | **not started** | the crate states its own boundary: "no diagnostics, no analysis" |
+| 5 — full fact-to-verdict parity | **unblocked, not done** | its comparison set (message, severity, subject, resource kind, ordered Evidence) is now delivered by #255 — but the checkpoint still needs checkpoint 4's wiring to produce verdicts to compare |
+
+**Open steps — each owned by exactly one child issue under #250:**
+
+| Step | Deliverable | Issue | Status |
+|---|---|---|---|
+| 5a | diagnostic messages + ordered Evidence parity | #255 | **complete** — see above |
+| 5b | `.ownreport.json` + SARIF projection, canonical parity | #256 | **ready** — its normative blocker (#255) is satisfied. The **preferred next step**: it stays on the diagnostic/output seam #255 just finished, and completing it widens #259 checkpoint 5 to its full Layer-5 surface in one pass instead of two visits |
+| 5c | `own-codegen` (analysis-independent sibling) | #257 | **ready**, independent of the analysis path — parallelizable |
+| 6a | OwnIR **bridge semantics formalized** before the port | #258 | **complete** — see above |
+| 6b | Rust `own-bridge`, layered OwnIR parity | #259 | **in progress** — checkpoint table above |
+| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269) | **infrastructure sliceable now**, final acceptance **blocked by #259**. Buildable against the landed checkpoints: same-input OwnIR capture + hash, reproduction-artifact format, engine protocol, trace schema, stable-ID normalization, first-divergence reduction over the *lowered*/MOS layers. Not yet declarable as shadow mode: acceptance compares end diagnostics |
+| 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
+| 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
+
+**Preferred queue:** #256 → #259 remaining (cp1 → cp4 → cp5) → #260/#269.
 
 The Datalog/Ascent rule layer stays strictly **post-cutover** (strategy step 8
 below) and deliberately has no issue yet. Throughout: Python remains
@@ -560,6 +595,99 @@ hardening is what made the verdict seam cheap — and the CFG seam has since bee
    cutover + rollback gate + Python-distribution removal is #262.
 
 Throughout, Python stays authoritative; the Rust crates light up behind the ratchet.
+
+## Parity-work discipline
+
+Four rules, each paid for by a real defect during step 5a
+(#255, PRs #319/#320/#321). They are written **wider than this port on
+purpose**: nothing below depends on Rust, on Python, or on the diagnostics
+layer, so they outlive P-022 and apply to the next migration that pins one
+implementation against another.
+
+Scope: parity/migration work. This is the only home — the rules are not
+duplicated into `AGENTS.execution-surfaces.md`, because two copies of one law
+drift, which is the failure mode the status-drift rule already exists to stop.
+
+### 1. Oracle over reviewer prose
+
+**Rule.** A reviewer finding is a *hypothesis* until reproduced against the
+reference implementation. Preserve the observed oracle behaviour, not the
+reviewer's explanation of it.
+
+**Why.** A reviewer — human or bot — can be right about *what* is wrong and
+wrong about *why*, and the explanation is what you would otherwise encode.
+
+**Failure mode paid for.** A review argued the word-boundary rule from probes
+using single-ended patterns (`\b-foo`). The reference builds a **both-ended**
+pattern (`\b…\b`), which gives a different answer at the right edge. The
+conclusion was correct; the stated reason was not, and implementing the reason
+would have been wrong. Re-probing with the real pattern shape settled it.
+
+### 2. Mutation over plausible tests
+
+**Rule.** A test written to catch a specific regression is not evidence until
+the corresponding mutation makes it fail **through the production surface it
+claims to protect**.
+
+**Why.** A test that has never failed has never been shown to test anything.
+"Through the production surface" is the load-bearing half: a test can exercise a
+private copy of the logic and pass while the public path rots.
+
+**Failure mode paid for.** The ordering replay sorted a parallel vector with a
+*copy* of the sort key and then compared only `(line, code)` — which tied
+records share by construction. `ties_keep_emission_order` would have passed
+against `sort_unstable_by`, the exact defect it was written for. Driving the
+label order through the public helper made it real.
+
+### 3. No fail-fast during mutation campaigns
+
+**Rule.** Mutation validation must expose **all** independent catching layers,
+not merely the first failing test target.
+
+**Why.** Stopping at the first failure tells you *a* test caught the mutation.
+It does not tell you which layers did and which silently would not have.
+
+**Failure mode paid for.** `cargo test` halts after the first failing target. A
+mutation appeared to be caught by one unit test only; with `--no-fail-fast` the
+same mutation showed three catchers across unit and replay layers — and a second
+mutation, invisible in the first run, was caught only at the replay layer.
+
+### 4. Insertion-stable generated goldens
+
+**Rule.** When a fixture's shape is derived from a vocabulary, it must depend on
+**stable item identity**, never on ordinal position.
+
+**Normative acceptance:**
+
+```text
+insert one synthetic vocabulary member
+  existing-record churn == 0
+  new-record delta      == 1
+```
+
+The **invariant is the law**. A content hash is today's way of satisfying it in
+`tests/test_diag_ledger_fixtures.py`, not the requirement — any stable mapping
+that holds the two lines above conforms, and swapping the mapping is not a
+violation. (Whatever is chosen must be reproducible across processes: Python's
+`hash()` randomises string hashing per run and cannot be used.)
+
+**Enforcement today is partial — the norm deliberately outruns the guard.**
+`_insertion_churn()` in `tests/test_diag_ledger_fixtures.py` computes and gates
+the **first** line only (`churn == 0`). Nothing yet asserts `delta == 1`, so a
+generator that dropped the new record entirely would still satisfy every
+executable check. The acceptance above is the norm regardless of how much of it
+is currently wired up; closing the gap is a queued test change, not a
+relaxation of the rule.
+
+**Why.** A vocabulary-derived golden exists to make *adding a member* legible.
+If insertion rewrites unrelated records, the one diff a reviewer needs is buried
+in churn, and a genuine change to the generator hides inside it.
+
+**Failure mode paid for.** The ledger rotated case shapes by sorted index.
+Inserting one code (`DI006`) rewrote **42 of 47** existing records — measured,
+not estimated. The docstring meanwhile claimed the shapes were "deterministic,
+so the golden stays stable", true only while the vocabulary never changed, which
+is the single event the ledger exists to expose.
 
 ## Open questions (to resolve as we go)
 
