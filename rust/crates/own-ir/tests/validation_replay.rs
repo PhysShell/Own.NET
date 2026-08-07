@@ -343,27 +343,43 @@ fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
     //
     // The ledger alone cannot check this: every control is a handful of levels
     // deep, so a guard set to 16 would pass against all 193 of them. Measured —
-    // that mutation SURVIVED until this document was added. So the test builds
-    // the deepest document `from_json` still accepts and pins the guard above
-    // it.
-    let mut node = serde_json::json!({"ev": "return", "line": 1});
-    for _ in 0..50 {
-        node = serde_json::json!({"ev": "if", "line": 1, "then": [node]});
+    // that mutation SURVIVED until a deep document was added here.
+    //
+    // …and a FIXED deep document is not enough either. At 50 wrappers, a guard
+    // anywhere between 51 and the parser's own ceiling still passes while
+    // rejecting documents the door accepts. So the boundary is DISCOVERED: walk
+    // depth upward until `from_json` refuses, then require the deepest document
+    // it accepted to survive `to_value`. That is the no-new-rejection contract
+    // stated exactly, instead of a sample that happens to sit under it.
+    let build = |depth: usize| {
+        let mut node = serde_json::json!({"ev": "return", "line": 1});
+        for _ in 0..depth {
+            node = serde_json::json!({"ev": "if", "line": 1, "then": [node]});
+        }
+        serde_json::to_string(&serde_json::json!({
+            "ownir_version": 0,
+            "protocol_functions": [{"name": "M", "events": [node]}]
+        }))
+        .expect("serializes")
+    };
+
+    // The parser's cap is well under this; the ceiling only stops a runaway.
+    let mut deepest_accepted: Option<(usize, OwnIr)> = None;
+    for depth in 1..512 {
+        match OwnIr::from_json(&build(depth)) {
+            Ok(doc) => deepest_accepted = Some((depth, doc)),
+            Err(_) => break,
+        }
     }
-    let deep = serde_json::json!({
-        "ownir_version": 0,
-        "protocol_functions": [{"name": "M", "events": [node]}]
-    });
-    let text = serde_json::to_string(&deep).expect("serializes");
-    let doc = OwnIr::from_json(&text).expect(
-        "a 50-level protocol tree is within serde_json's parse limit and the \
-         reference accepts it",
+    let (depth, doc) = deepest_accepted.expect(
+        "`from_json` refused even a one-level protocol tree — the parse \
+         boundary cannot be located, so this test proves nothing",
     );
     assert!(
         doc.to_value().is_ok(),
-        "the depth guard refused a document the strict door accepted — it is \
-         tighter than the parser, which makes it a rejection rule rather than \
-         an overflow bound"
+        "the depth guard refused a {depth}-level document that the strict door \
+         ACCEPTED — the guard is tighter than the parser, which makes it a new \
+         rejection rule rather than an overflow bound"
     );
 
     // …and every ledger control, for the same reason at ordinary depths.

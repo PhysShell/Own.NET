@@ -72,8 +72,8 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
 | 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
-**Preferred queue:** Python-first defensive limits → finish cp1 → cp4 → cp5 →
-#260/#269. The limits change is **not** a side quest: it closes the two measured
+**Preferred queue:** Python-first defensive limits → finish cp1 → cp4 → cp5,
+then #260/#269. The limits change is **not** a side quest: it closes the two measured
 Python-accept/Rust-reject families (source-coordinate integers beyond signed 64
 bits, and nesting depth), and until it lands cp1's 0/0/0 is a result over a set
 with two known divergence families removed from it. Closing them by widening
