@@ -500,12 +500,18 @@ fn protocol_functions(obj: &Map<String, Value>) -> Checked {
     Ok(())
 }
 
-/// The nesting depth beyond which a raw [`Value`] is refused.
+/// The nesting depth beyond which a raw [`Value`] is refused — the one
+/// normative depth number in this crate.
 ///
 /// Deliberately `serde_json`'s own parse limit: a document that could be
 /// *parsed* never exceeds it, so this bound rejects nothing
 /// [`crate::OwnIr::from_json`] would accept. It exists for values built **in
 /// memory**, which never passed a parser and therefore carry no bound at all.
+///
+/// It matches the parser rather than sitting just under some observed overflow
+/// point. Where an unguarded serialization happens to abort depends on stack
+/// size, build profile and platform — pinning a contract to that would be
+/// pinning it to one machine.
 pub(crate) const MAX_VALUE_DEPTH: usize = 128;
 
 /// Depth of a raw value, measured with an explicit stack.
