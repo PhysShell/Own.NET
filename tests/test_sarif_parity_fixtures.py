@@ -230,9 +230,11 @@ def _cases() -> list[dict[str, Any]]:
         {
             "name": "severity-intrinsic-warning-survives-error-request",
             "why": "an intrinsically WARNING diagnostic stays 'warning' even when "
-                   "the caller asks for 'error' — the override raises, never "
-                   "lowers. Note the core has only ERROR and WARNING: no SARIF "
-                   "'note' level is produced by this path today",
+                   "the caller asks for 'error' — the override LOWERS, never "
+                   "raises: severity='warning' turns an error into a warning, but "
+                   "severity='error' cannot turn a warning into an error. Note the "
+                   "core has only ERROR and WARNING: no SARIF 'note' level is "
+                   "produced by this path today",
             "filename": "sev.own",
             "severity": "error",
             "diags": [Diagnostic(code="OWN012", message="advisory", line=2,
@@ -315,21 +317,6 @@ def _render_json(data: dict[str, Any]) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 
-def canonical(node: Any) -> Any:
-    """The canonical form both sides compare.
-
-    Object keys are sorted because JSON declares objects unordered and two
-    correct serializers may disagree there. Arrays are left ALONE: `results`,
-    `relatedLocations` and thread-flow locations are ordered contracts, and
-    sorting them would erase exactly what this fixture pins.
-    """
-    if isinstance(node, dict):
-        return {k: canonical(node[k]) for k in sorted(node)}
-    if isinstance(node, list):
-        return [canonical(v) for v in node]
-    return node
-
-
 def _volatile_census(data: dict[str, Any]) -> list[str]:
     """Tokens that would force a field onto the volatile list, if any existed.
 
@@ -343,7 +330,11 @@ def _volatile_census(data: dict[str, Any]) -> list[str]:
         "iso-timestamp": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}",
         "guid": r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-",
         "posix-abs-path": r'"/(?:home|tmp|Users|var)/',
-        "nt-abs-path": r'"[A-Za-z]:\\\\(?!src)',
+        # The windows-drive-path case deliberately carries `C:\src\App\...`;
+        # exempt exactly that, not every drive path whose first segment starts
+        # with "src" — `D:\src\...` and `C:\srcgen\...` are leaks and must
+        # still be flagged.
+        "nt-abs-path": r'"(?!C:\\\\src\\\\App\\\\)[A-Za-z]:\\\\',
     }
     return [name for name, pat in patterns.items() if re.search(pat, blob)]
 

@@ -35,10 +35,12 @@
 //! | mutation | caught by |
 //! |---|---|
 //! | `Evidence.file` read as `Option`-presence | parity replay **only** |
-//! | `resource_kind` read as `Option`-presence | parity replay only |
 //! | `results` sorted by code | parity replay only |
+//! | severity direction inverted (`\|\|` → `&&`) | parity replay only |
+//! | `resource_kind` emptiness rule dropped | parity replay **and** the human render |
 //! | backslash normalization removed | parity replay **and** the uri invariant |
-//! | `region` emitted for a file-level line | parity replay only |
+//! | `region` emitted for a file-level line | parity replay **and** the ingest invariants |
+//! | `rules` truncated (dangling `ruleId`) | parity replay **and** the ingest invariants |
 //! | canonicalizer also sorting arrays | the canonicalizer's own guard |
 //!
 //! The first row is worth stating plainly, because the obvious intuition is
@@ -48,6 +50,20 @@
 //! the symptom is a silently missing evidence step, not a malformed one. Only
 //! the reference comparison sees it. A port that shipped the uri invariant and
 //! called the truthiness case covered would be wrong about its own coverage.
+//!
+//! The `resource_kind` row gained its second catcher by *deleting* code: once
+//! the suffix rule came from the shared [`Diagnostic::kind_suffix`] instead of a
+//! private copy here, breaking it fails the human render too. One owner for one
+//! user-visible text contract is worth more than the duplicate was.
+//!
+//! What is deliberately **not** asserted: a `startLine >= 1` check over
+//! `relatedLocations` and `codeFlows`. Both [`emittable`] and [`phys`] gate on
+//! `line >= 1`, and every mutation that reaches an evidence region also reaches
+//! a primary one — where the existing check fires first. Measured: breaking both
+//! gates together fails the ingest invariants via `locations`, so the extra
+//! assertion cannot be made to fail. It would grow the coverage *claim* without
+//! growing coverage. Add it if the evidence projection ever gets its own
+//! location builder, at which point it stops being vacuous.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -290,9 +306,17 @@ pub fn code_flow(steps: &[Step<'_>]) -> Vec<CodeFlow> {
 
 /// One SARIF `result` for a diagnostic.
 ///
-/// `severity` is a presentation choice that only sets `level`, and it only ever
-/// *raises*: a diagnostic that is intrinsically a warning stays a warning
-/// whatever the caller asks for.
+/// `severity` is a presentation choice that only sets `level`, and it moves in
+/// exactly one direction — **down**. Measured against the reference:
+///
+/// | request | intrinsic `Error` | intrinsic `Warning` |
+/// |---|---|---|
+/// | `"error"` (or anything else) | `error` | `warning` |
+/// | `"warning"` | `warning` | `warning` |
+///
+/// So asking for `"warning"` *lowers* an error, while asking for `"error"`
+/// cannot *raise* a warning. Stating it the other way round — as this comment
+/// originally did — inverts a user-visible severity contract.
 fn result_for(diagnostic: &Diagnostic, filename: &str, severity: &str) -> SarifResult {
     let level = if severity == "warning" || diagnostic.severity == Severity::Warning {
         "warning"
@@ -300,10 +324,9 @@ fn result_for(diagnostic: &Diagnostic, filename: &str, severity: &str) -> SarifR
         "error"
     };
     // Truthiness, not presence: an empty `resource_kind` adds no suffix.
-    let kind = match diagnostic.resource_kind.as_deref() {
-        Some(k) if !k.is_empty() => format!(" [resource: {k}]"),
-        _ => String::new(),
-    };
+    // `kind_suffix` owns that rule for the human render too — two copies of one
+    // user-visible text contract would drift independently.
+    let kind = diagnostic.kind_suffix();
     let steps = steps_for(diagnostic, filename);
     SarifResult {
         rule_id: diagnostic.code.clone(),

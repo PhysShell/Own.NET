@@ -1147,7 +1147,7 @@
     },
     {
       "name": "severity-intrinsic-warning-survives-error-request",
-      "why": "an intrinsically WARNING diagnostic stays 'warning' even when the caller asks for 'error' — the override raises, never lowers. Note the core has only ERROR and WARNING: no SARIF 'note' level is produced by this path today",
+      "why": "an intrinsically WARNING diagnostic stays 'warning' even when the caller asks for 'error' — the override LOWERS, never raises: severity='warning' turns an error into a warning, but severity='error' cannot turn a warning into an error. Note the core has only ERROR and WARNING: no SARIF 'note' level is produced by this path today",
       "filename": "sev.own",
       "severity": "error",
       "diagnostics": [
