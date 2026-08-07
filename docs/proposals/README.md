@@ -41,7 +41,7 @@ proposal is marked `done` with a pointer.
 | [P-017](P-017-multi-stack-frontends.md) | Multi-stack frontends (OwnTS / OwnJVM: OwnJava + OwnKotlin) | draft |
 | [P-020](P-020-ownts-react-effects.md) | OwnTS React effects profile (`Own.React`) — the effect-storm angle | draft |
 | [P-021](P-021-async-audit-pack.md) | Async audit pack (`Own.Async`) | draft |
-| [P-022](P-022-rust-core-migration.md) | Rust core migration: crate DAG, patterns, prior art, differential oracle (Python = golden) | in execution — steps 0–4 built (`own-ir`/`own-syntax`/`own-cfg`/`own-diagnostics`/`own-analysis`, #214/#249); remaining steps = the #250 child-issue DAG (#255–#262); Python authoritative until cutover |
+| [P-022](P-022-rust-core-migration.md) | Rust core migration: crate DAG, patterns, prior art, differential oracle (Python = golden) | in execution — steps 0–4 built (#214/#249); step 5a done (full diagnostic contract, #255 via #319/#320/#321); step 6a done (`spec/Bridge.md`, #258); step 6b underway (`own-lowered`/`own-bridge`, #259: lowering + MOS parity landed, analysis wiring open); next ready step 5b (#256); Python authoritative until cutover |
 | [P-023](P-023-architecture-guard.md) | Architecture guard (`Own.Arch`): rules.yaml intent model + dependency-graph gate + baseline ratchet | draft |
 | [P-024](P-024-security-audit-profile.md) | Security audit profile (external tools + SARIF adapters; rejects own scanner engine) | draft |
 | [P-025](P-025-obligation-protocols.md) | Obligation protocols (`Own.Protocols`): barrier-sensitive project invariants (OBL001–005) | first slice built (core + bridge + fixtures; extractor pending) |
