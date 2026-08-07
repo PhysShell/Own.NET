@@ -61,10 +61,20 @@ impl Evidence {
     /// The one-line `note:` rendering of this step.
     ///
     /// `anchor_file` is the diagnostic's own file, used when the step shares it
-    /// (`file` is `None`) — the port of `Evidence.render`.
+    /// — the port of `Evidence.render`.
+    ///
+    /// The reference writes `self.file or anchor_file`, and Python's `or` is a
+    /// **truthiness** test: an empty string falls through to the anchor exactly
+    /// as `None` does. The model accepts `Some("")` (nothing rejects it on
+    /// deserialisation), so treating it as merely "present" would render
+    /// `note: … at :3`.
     #[must_use]
     pub fn render(&self, anchor_file: &str) -> String {
-        let where_ = self.file.as_deref().unwrap_or(anchor_file);
+        let where_ = self
+            .file
+            .as_deref()
+            .filter(|f| !f.is_empty())
+            .unwrap_or(anchor_file);
         format!("  note: {} at {}:{}", self.label, where_, self.line)
     }
 }
@@ -78,17 +88,25 @@ fn is_word_char(ch: char) -> bool {
 /// The first single-quoted, non-empty group in `message` — the port of
 /// `_SUBJECT_RE = re.compile(r"'([^']+)'")`.
 ///
-/// Returns `None` for an unpaired quote or an empty `''`, matching the regex:
-/// `[^']+` requires at least one character.
+/// `[^']+` requires at least one character, so an empty `''` pair is not a
+/// match — but the engine does **not** give up there: it retries from the next
+/// position, and a later non-empty pair still wins. On `"empty '' group 'x'"`
+/// the reference returns `" group "` (the quote at index 7 opens it), not
+/// `None`. Returning `None` at the first empty pair would silently drop the
+/// quoted-name lookup and fall through to substring/indent placement.
 fn first_quoted(message: &str) -> Option<&str> {
-    let open = message.find('\'')?;
-    let rest = message.get(open.checked_add(1)?..)?;
-    let close = rest.find('\'')?;
-    let inner = rest.get(..close)?;
-    if inner.is_empty() {
-        None
-    } else {
-        Some(inner)
+    // A `'` is one byte, so every offset derived from one is a char boundary.
+    let mut from = 0_usize;
+    loop {
+        let rel = message.get(from..)?.find('\'')?;
+        let open = from.checked_add(rel)?;
+        let after_open = open.checked_add(1)?;
+        let rest = message.get(after_open..)?;
+        let close = rest.find('\'')?;
+        if close > 0 {
+            return rest.get(..close);
+        }
+        from = after_open;
     }
 }
 
@@ -113,15 +131,72 @@ fn find_word_boundary(haystack: &str, needle: &str) -> Option<usize> {
             }
             let left_ok = match start.checked_sub(1).and_then(|i| hay.get(i)) {
                 Some(&prev) => is_word_char(prev) != is_word_char(first),
-                None => true,
+                // At a string edge `\b` holds only when the adjacent NEEDLE
+                // character is a word character — a boundary is a transition
+                // involving `\w`, and a string edge supplies the `\W` side. The
+                // reference pattern is `\b…\b`, both-ended, so this applies to
+                // each edge independently: `-foo` in `-foo` does not match, and
+                // neither does `foo-` in `foo-`.
+                None => is_word_char(first),
             };
             let right_ok = match start.checked_add(need.len()).and_then(|i| hay.get(i)) {
                 Some(&next) => is_word_char(next) != is_word_char(last),
-                None => true,
+                None => is_word_char(last),
             };
             left_ok && right_ok
         })
         .map(|(start, _)| start)
+}
+
+/// Every character Python's `str.splitlines` treats as a line boundary.
+///
+/// Deliberately the full set, not just `\n`: `split('\n')` leaves a trailing
+/// `\r` on every CRLF line (which would then be rendered *inside* the source
+/// gutter and shift the caret), and treats a lone `\r` — or any of the Unicode
+/// separators — as ordinary text, putting every later line out of range.
+const LINE_BOUNDARIES: [char; 10] = [
+    '\n',       // Line Feed
+    '\r',       // Carriage Return (and, with a following \n, CRLF as ONE break)
+    '\u{000b}', // Line Tabulation
+    '\u{000c}', // Form Feed
+    '\u{001c}', // File Separator
+    '\u{001d}', // Group Separator
+    '\u{001e}', // Record Separator
+    '\u{0085}', // Next Line
+    '\u{2028}', // Line Separator
+    '\u{2029}', // Paragraph Separator
+];
+
+/// Split `source` the way Python's `str.splitlines` does.
+///
+/// Notably it does **not** leave a trailing empty element after a final
+/// boundary, which is why the reference's `lines[self.line - 1]` indexes the way
+/// it does.
+fn split_lines_python(source: &str) -> Vec<&str> {
+    let mut out: Vec<&str> = Vec::new();
+    let mut start = 0_usize;
+    let mut chars = source.char_indices().peekable();
+    while let Some((idx, ch)) = chars.next() {
+        if !LINE_BOUNDARIES.contains(&ch) {
+            continue;
+        }
+        if let Some(line) = source.get(start..idx) {
+            out.push(line);
+        }
+        let mut next = idx.saturating_add(ch.len_utf8());
+        if ch == '\r' && matches!(chars.peek(), Some(&(_, '\n'))) {
+            // CRLF is a single boundary, not two.
+            chars.next();
+            next = next.saturating_add(1);
+        }
+        start = next;
+    }
+    if let Some(tail) = source.get(start..) {
+        if !tail.is_empty() {
+            out.push(tail);
+        }
+    }
+    out
 }
 
 /// The CHARACTER index of `needle` in `haystack`, or `None` — the port of
@@ -138,10 +213,15 @@ impl Diagnostic {
     ///
     /// A verbatim passthrough, not a lookup: a profile's new tag needs no change
     /// here.
+    ///
+    /// The reference guards with `if self.resource_kind`, a **truthiness** test,
+    /// so an empty kind emits no suffix at all. The model accepts `Some("")`, so
+    /// testing mere presence would render a bare ` [resource: ]`.
     #[must_use]
     pub fn kind_suffix(&self) -> String {
         self.resource_kind
-            .as_ref()
+            .as_deref()
+            .filter(|kind| !kind.is_empty())
             .map_or_else(String::new, |kind| format!(" [resource: {kind}]"))
     }
 
@@ -205,13 +285,7 @@ impl Diagnostic {
     /// exactly as the reference does.
     #[must_use]
     pub fn render_pretty(&self, filename: &str, source: &str) -> String {
-        let lines: Vec<&str> = source.split('\n').collect();
-        // Python's `str.splitlines()` drops a single trailing newline's empty
-        // tail; `split('\n')` keeps it, so trim that one element back off.
-        let lines = match lines.split_last() {
-            Some((last, head)) if last.is_empty() && !head.is_empty() => head,
-            _ => lines.as_slice(),
-        };
+        let lines = split_lines_python(source);
         let src_line = usize::try_from(self.line)
             .ok()
             .and_then(|n| n.checked_sub(1))

@@ -107,6 +107,25 @@ _RENDER: list[tuple[str, str, str, Diagnostic, str | None]] = [
         None,
     ),
     (
+        "resource_kind_empty_emits_no_suffix",
+        "the reference guards with `if self.resource_kind` -- a TRUTHINESS test, so "
+        "an empty kind emits nothing. The model accepts Some(\"\"), and a port that "
+        "tests mere presence renders a bare ` [resource: ]`",
+        "src/A.cs",
+        _d("OWN001", "not released", 12, resource_kind=""),
+        None,
+    ),
+    (
+        "evidence_empty_file_falls_back_to_the_anchor",
+        "`self.file or anchor_file` is truthiness too: an empty string resolves to "
+        "the anchor exactly as None does, where a presence test renders `at :4`",
+        "src/A.cs",
+        _d("OWN001", "not released", 12, evidence=(
+            Evidence(line=4, label="acquired here", file=""),
+        )),
+        None,
+    ),
+    (
         "warning_severity",
         "the P-004 warning tier renders its own severity word",
         "src/A.cs",
@@ -239,6 +258,50 @@ _RENDER: list[tuple[str, str, str, Diagnostic, str | None]] = [
         "src/A.cs",
         _d("OWN020", "it's complicated", 3),
         "fn f() {\n    let a = 1;\n    whatever();\n}\n",
+    ),
+    (
+        "empty_quote_pair_does_not_end_the_scan",
+        "`[^']+` needs one character, so an empty '' pair is not a match -- but the "
+        "engine RETRIES from the next position and a later pair still wins. Here the "
+        "reference captures ' group ' (opened by the quote at index 7); stopping at "
+        "the first empty pair would silently drop the quoted-name lookup",
+        "src/A.cs",
+        _d("OWN020", "empty '' group 'x'", 3),
+        "fn f() {\n    let a = 1;\n    call( group );\n}\n",
+    ),
+    (
+        "quoted_name_with_non_word_edges_has_no_boundary",
+        "the reference pattern is BOTH-ended (`\\b...\\b`), and at a string edge a "
+        "boundary needs the adjacent needle character to be a word character. "
+        "'(a)' therefore has no whole-word match anywhere and falls to the substring "
+        "position",
+        "src/A.cs",
+        _d("OWN002", "use '(a)' after it was released", 3),
+        "fn f() {\n    let a = 1;\n    Hash((a));\n}\n",
+    ),
+    (
+        "crlf_source_drops_the_carriage_return",
+        "`str.splitlines()` treats CRLF as ONE boundary and keeps no `\\r`; a plain "
+        "split on '\\n' would render the carriage return inside the source gutter and "
+        "shift the caret",
+        "src/A.cs",
+        _d("OWN002", "use 'b' after it was released", 3),
+        "fn f() {\r\n    let a = 1;\r\n    Hash(b);\r\n}\r\n",
+    ),
+    (
+        "lone_cr_source_still_splits",
+        "a lone carriage return is a boundary for splitlines but invisible to a "
+        "'\\n' split, which would put every later line out of range",
+        "src/A.cs",
+        _d("OWN002", "use 'b' after it was released", 3),
+        "fn f() {\r    let a = 1;\r    Hash(b);\r}\r",
+    ),
+    (
+        "unicode_line_separator_is_a_boundary",
+        "U+2028 is a splitlines boundary too -- the exotic end of the same contract",
+        "src/A.cs",
+        _d("OWN002", "use 'b' after it was released", 3),
+        "fn f() {\u2028    let a = 1;\u2028    Hash(b);\u2028}\u2028",
     ),
 ]
 

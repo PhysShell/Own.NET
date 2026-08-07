@@ -159,15 +159,32 @@ fn emission_order_matches_the_reference_sequence() {
             ));
         }
 
-        // Sort label-carrying pairs so a reordering is observable by name, which
-        // is the only way a TIE reordering can be detected at all: tied records
-        // are equal under the reference key by construction.
-        let mut pairs: Vec<(String, Diagnostic)> = labels.into_iter().zip(diagnostics).collect();
+        // The label sequence must come from the PUBLIC helper, not from a
+        // restatement of its key. A tie reordering is observable only by name,
+        // and only if the helper is the thing that moved the records: sorting a
+        // parallel vector with a copy of the key would pass even against
+        // `sort_unstable_by`, which is exactly the failure this case exists for.
+        let pairs: Vec<(String, Diagnostic)> = labels.into_iter().zip(diagnostics).collect();
         let mut only_diags: Vec<Diagnostic> = pairs.iter().map(|(_, d)| d.clone()).collect();
         sort_emission_order(&mut only_diags);
-        pairs.sort_by(|a, b| (a.1.line, &a.1.code).cmp(&(b.1.line, &b.1.code)));
 
-        let produced: Vec<&str> = pairs.iter().map(|(l, _)| l.as_str()).collect();
+        // Recover each label by matching the sorted record back to an emitted
+        // one. `remove` consumes the match, so duplicates (should a case ever add
+        // one) cannot alias onto the same label twice.
+        let mut remaining = pairs;
+        let produced_owned: Vec<String> = only_diags
+            .iter()
+            .map(|d| {
+                let at = remaining
+                    .iter()
+                    .position(|(_, candidate)| candidate == d)
+                    .unwrap_or_else(|| {
+                        panic!("case {name:?}: a sorted record is not one of the emitted records")
+                    });
+                remaining.remove(at).0
+            })
+            .collect();
+        let produced: Vec<&str> = produced_owned.iter().map(String::as_str).collect();
         let expected: Vec<&str> = case
             .get("ordered_labels")
             .and_then(Value::as_array)
@@ -182,18 +199,10 @@ fn emission_order_matches_the_reference_sequence() {
              only TIED entries moved, the port either used an unstable sort or sorted \
              on more than (line, code)"
         );
-
-        // And the public helper must agree with that same key on the diagnostics
-        // themselves, so the helper is what callers can rely on.
-        let helper_keys: Vec<(u32, &str)> = only_diags
-            .iter()
-            .map(|d| (d.line, d.code.as_str()))
-            .collect();
-        let pair_keys: Vec<(u32, &str)> = pairs
-            .iter()
-            .map(|(_, d)| (d.line, d.code.as_str()))
-            .collect();
-        assert_eq!(helper_keys, pair_keys, "case {name:?}: helper key mismatch");
+        assert!(
+            remaining.is_empty(),
+            "case {name:?}: sorting dropped or duplicated records"
+        );
     }
 }
 
