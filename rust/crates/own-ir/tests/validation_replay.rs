@@ -128,28 +128,42 @@ fn the_two_loaders_accept_the_same_language() {
         }
     }
 
-    assert_eq!(
-        m.rust_only_accept,
-        0,
-        "CRITICAL permissiveness — the strict door is the gate over untrusted \
-         extractor output, and these documents are refused by the reference but \
-         analysed by the port:\n  {}\nmatrix: {m:?}",
-        permissive.join("\n  ")
-    );
-    assert_eq!(
-        m.rust_only_reject,
-        0,
-        "over-strictness — not a hole, but facts the reference analyses today \
-         would stop being analysable after cutover:\n  {}\nmatrix: {m:?}",
-        over_strict.join("\n  ")
-    );
-    assert_eq!(
-        m.kind_mismatch,
-        0,
-        "both loaders reject, but disagree about WHY. Accept/reject parity can \
-         be green while the taxonomy is decorative — this is the assertion that \
-         stops that:\n  {}\nmatrix: {m:?}",
-        mismatched.join("\n  ")
+    // One assertion covering all three failure rows, not three sequential ones.
+    // Sequential asserts report only the first non-empty row, so a census that
+    // opens 58 permissive cases and 9 category mismatches at once looks like a
+    // permissiveness problem alone — and the second round only becomes visible
+    // after the first is fixed. Measuring the whole matrix in one pass is the
+    // difference between one RED reading and a series of them.
+    let mut report = String::new();
+    if m.rust_only_accept > 0 {
+        report.push_str(&format!(
+            "\n\nCRITICAL permissiveness ({}) — the strict door is the gate over \
+             untrusted extractor output, and these documents are refused by the \
+             reference but analysed by the port:\n  {}",
+            m.rust_only_accept,
+            permissive.join("\n  ")
+        ));
+    }
+    if m.rust_only_reject > 0 {
+        report.push_str(&format!(
+            "\n\nover-strictness ({}) — not a hole, but facts the reference \
+             analyses today would stop being analysable after cutover:\n  {}",
+            m.rust_only_reject,
+            over_strict.join("\n  ")
+        ));
+    }
+    if m.kind_mismatch > 0 {
+        report.push_str(&format!(
+            "\n\ncategory mismatch ({}) — both loaders reject, but disagree \
+             about WHY. Accept/reject parity can be green while the taxonomy is \
+             decorative; this is what stops that:\n  {}",
+            m.kind_mismatch,
+            mismatched.join("\n  ")
+        ));
+    }
+    assert!(
+        report.is_empty(),
+        "the two loaders do not accept the same language.\nmatrix: {m:?}{report}"
     );
     assert_eq!(
         m.agreed_accept.saturating_add(m.agreed_reject),
