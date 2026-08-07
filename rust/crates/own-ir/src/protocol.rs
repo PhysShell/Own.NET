@@ -8,7 +8,7 @@
 //! the strict-door contract even though it lives in another module: a document
 //! the parser refuses is a document `load()` refuses. Leaving it out would not
 //! be a smaller checkpoint, it would be a strict door with a hole in it — which
-//! is what the second census measured, at 46 of 58 permissive cases.
+//! is what the second census measured, at 47 of 58 permissive cases.
 //!
 //! # What is ported, and what deliberately is not
 //!
