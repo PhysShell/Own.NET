@@ -201,37 +201,51 @@ def run() -> int:
              "protocolEvent": ["line"]}
     UNBOUND = {"resourceRecord": ["line"], "flowOp": ["line"]}
 
-    def _line_refs(node: Any, key: str, out: list[Any]) -> None:
+    # Whole subschemas, not just their `$ref`. Asserting only "the ref is not
+    # sourceLine" left an unbound path free to be tightened another way —
+    # measured: pointing `flowOp.line` at `sourceColumn`, or giving it an inline
+    # `maximum`, both SURVIVED until this kept the object.
+    def _subschemas(node: Any, key: str, out: list[Any]) -> None:
         if isinstance(node, dict):
             for k, v in node.items():
                 if k == key and isinstance(v, dict):
-                    out.append(v.get("$ref") or v.get("type"))
+                    out.append(v)
                 else:
-                    _line_refs(v, key, out)
+                    _subschemas(v, key, out)
         elif isinstance(node, list):
             for v in node:
-                _line_refs(v, key, out)
+                _subschemas(v, key, out)
+
+    # Anything that would make an UNBOUND path narrower than `load()`.
+    NARROWING = ("$ref", "minimum", "maximum", "exclusiveMinimum",
+                 "exclusiveMaximum", "enum", "const", "multipleOf")
 
     for group, expect_bound in ((BOUND, True), (UNBOUND, False)):
         for def_name, keys in group.items():
             for key in keys:
                 found: list[Any] = []
-                _line_refs(defs.get(def_name, {}), key, found)
+                _subschemas(defs.get(def_name, {}), key, found)
                 if not found:
                     failures += _fail(
                         f"$defs.{def_name} has no {key!r} — the binding map is "
                         f"stale, which means it is no longer evidence")
-                for ref in found:
-                    is_bound = ref == "#/$defs/sourceLine"
-                    if is_bound != expect_bound:
-                        want = ("$ref sourceLine" if expect_bound
-                                else "an unrestricted integer")
-                        why = ("`load()` checks this path"
-                               if expect_bound else
-                               "`load()` does NOT check this path (§4.2)")
+                for sub in found:
+                    if expect_bound:
+                        if sub.get("$ref") != "#/$defs/sourceLine":
+                            failures += _fail(
+                                f"$defs.{def_name}.{key} is {sub!r}, expected "
+                                f"$ref sourceLine — `load()` checks this path, "
+                                f"so a schema-valid document must not be able "
+                                f"to fail at the door")
+                        continue
+                    narrowed = [k for k in NARROWING if k in sub]
+                    if narrowed or sub.get("type") != "integer":
                         failures += _fail(
-                            f"$defs.{def_name}.{key} is {ref!r}, expected "
-                            f"{want} — {why}")
+                            f"$defs.{def_name}.{key} is {sub!r}, expected a "
+                            f"plain integer with no {'/'.join(NARROWING[:3])}… "
+                            f"— `load()` does NOT check this path (§4.2), so "
+                            f"any narrowing makes a document schema-invalid "
+                            f"that the door accepts")
 
     # ---- line: the full signed-64 range, and one step outside each end -----
     for label, build in LINE_PATHS:
