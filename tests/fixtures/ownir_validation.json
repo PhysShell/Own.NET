@@ -29,6 +29,7 @@
       "why": "the minimal document: absent `ownir_version` means current, and every section is optional",
       "section": "root",
       "document": {},
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -40,6 +41,7 @@
       "document": {
         "ownir_version": 0
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -57,6 +59,7 @@
         "protocols": [],
         "protocol_functions": []
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -73,6 +76,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -91,6 +95,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -132,6 +137,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -152,6 +158,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -177,6 +184,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -210,6 +218,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -230,6 +239,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "accept",
       "category": null,
       "message": ""
@@ -239,6 +249,7 @@
       "why": "a truncated document is not JSON at all — rejected before any shape check can run",
       "section": "json",
       "document": "{not json",
+      "raw": true,
       "verdict": "reject",
       "category": "json",
       "message": "<facts> is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
@@ -252,6 +263,7 @@
         2,
         3
       ],
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR root must be a JSON object"
@@ -261,15 +273,17 @@
       "why": "nor a bare string",
       "section": "root",
       "document": "hello",
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
-      "message": "<facts> is not valid JSON: Expecting value: line 1 column 1 (char 0)"
+      "message": "OwnIR root must be a JSON object"
     },
     {
       "name": "root-null",
       "why": "nor null",
       "section": "root",
       "document": null,
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR root must be a JSON object"
@@ -281,6 +295,7 @@
       "document": {
         "ownir_version": 99
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR facts are schema v99, but this core understands v0. Build the Roslyn extractor and the Python core from the same commit — the OwnIR fact vocabulary changed between the version that produced this file and the one reading it."
@@ -292,6 +307,7 @@
       "document": {
         "ownir_version": "0"
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR 'ownir_version' must be an integer, got '0'"
@@ -303,6 +319,7 @@
       "document": {
         "ownir_version": true
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR 'ownir_version' must be an integer, got True"
@@ -314,6 +331,7 @@
       "document": {
         "ownir_version": 0.0
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR 'ownir_version' must be an integer, got 0.0"
@@ -325,6 +343,7 @@
       "document": {
         "ownir_version": null
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR 'ownir_version' must be an integer, got None"
@@ -339,6 +358,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'components' must be a JSON array of objects"
@@ -354,6 +374,7 @@
           2
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'components' must be a JSON array of objects"
@@ -370,6 +391,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "each component's 'subscriptions' must be objects"
@@ -388,6 +410,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "each component's 'subscriptions' must be objects"
@@ -408,6 +431,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'resource' must be a string, got 7"
@@ -428,6 +452,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "vocabulary",
       "message": "unknown resource kind 'bogus' — a new kind is a vocabulary change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)"
@@ -448,6 +473,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "vocabulary",
       "message": "unknown resource kind '' — a new kind is a vocabulary change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)"
@@ -468,6 +494,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'type' must be a string, got 7"
@@ -488,6 +515,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'source_type' must be a string, got 7"
@@ -508,6 +536,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'source_provenance' must be a string, got 7"
@@ -528,6 +557,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'ignore_reason' must be a string, got 7"
@@ -548,6 +578,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "location",
       "message": "subscription 'column' must be a 1-based integer or absent, got 0"
@@ -568,6 +599,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "location",
       "message": "subscription 'column' must be a 1-based integer or absent, got -1"
@@ -588,6 +620,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "location",
       "message": "subscription 'column' must be a 1-based integer or absent, got True"
@@ -608,6 +641,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "location",
       "message": "subscription 'column' must be a 1-based integer or absent, got '3'"
@@ -622,6 +656,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'services' must be a JSON array of objects"
@@ -639,6 +674,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "vocabulary",
       "message": "service 'lifetime' must be one of ['scoped', 'singleton', 'transient'], got 'eternal'"
@@ -656,6 +692,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "identity",
       "message": "service 'name' must be a non-empty string"
@@ -673,6 +710,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "identity",
       "message": "service 'name' must be a non-empty string"
@@ -691,6 +729,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'deps' must be an array of strings"
@@ -711,6 +750,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'deps' must be an array of strings"
@@ -731,6 +771,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'weak_deps' must be an array of strings"
@@ -751,6 +792,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'root_resolves' must be an array of strings"
@@ -771,6 +813,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'scope_cached' must be an array of strings"
@@ -789,6 +832,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'file' must be a string"
@@ -807,6 +851,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'line' must be an integer"
@@ -825,6 +870,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'line' must be an integer"
@@ -843,6 +889,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'ctor_file' must be a string"
@@ -861,6 +908,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'ctor_line' must be an integer"
@@ -879,6 +927,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'ctor_type' must be a string"
@@ -899,6 +948,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'root_resolve_sites' must be an array of {type:str, file:str, line:int} objects"
@@ -919,6 +969,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "service 'scope_cache_sites' must be an array of {type:str, file:str, line:int} objects"
@@ -933,6 +984,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'effects' must be a JSON array of objects"
@@ -951,6 +1003,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "effect 'deps' must be an array of strings"
@@ -967,6 +1020,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "effect 'io' must be a boolean, got 'yes'"
@@ -983,6 +1037,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "effect 'line' must be an integer"
@@ -1001,6 +1056,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "effect 'bindings' must be a JSON array of objects"
@@ -1021,6 +1077,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "binding 'name' must be a string"
@@ -1041,6 +1098,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "binding 'init' must be a string"
@@ -1063,6 +1121,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "binding 'refs' must be an array of strings"
@@ -1083,6 +1142,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "binding 'line' must be an integer"
@@ -1097,6 +1157,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'functions' must be a JSON array of objects"
@@ -1113,6 +1174,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "function 'sig' must be a string, got 7"
@@ -1129,6 +1191,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "a function's 'params' must be a JSON array of objects"
@@ -1147,6 +1210,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "a function's 'params' must be a JSON array of objects"
@@ -1167,6 +1231,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "identity",
       "message": "parameter 'name' must be a non-empty string, got ''"
@@ -1187,6 +1252,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "identity",
       "message": "parameter 'name' must be a non-empty string, got 7"
@@ -1208,6 +1274,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "parameter 'line' must be an integer, got '3'"
@@ -1229,6 +1296,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "vocabulary",
       "message": "parameter 'effect' must be one of ['borrow', 'borrow_mut', 'consume', 'plain'], got 'teleport'"
@@ -1243,6 +1311,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'protocols' must be a JSON array of objects"
@@ -1272,6 +1341,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "identity",
       "message": "protocol 'P': 'opens' and 'closes' are both required"
@@ -1286,6 +1356,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'protocol_functions' must be a JSON array of objects"
@@ -1300,6 +1371,7 @@
           "a": 1
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR facts are schema v99, but this core understands v0. Build the Roslyn extractor and the Python core from the same commit — the OwnIR fact vocabulary changed between the version that produced this file and the one reading it."
@@ -1320,6 +1392,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "version",
       "message": "OwnIR facts are schema v99, but this core understands v0. Build the Roslyn extractor and the Python core from the same commit — the OwnIR fact vocabulary changed between the version that produced this file and the one reading it."
@@ -1333,6 +1406,7 @@
           "ownir_version": 99
         }
       ],
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR root must be a JSON object"
@@ -1342,6 +1416,7 @@
       "why": "an unparseable document cannot reach any structural check",
       "section": "order",
       "document": "{\"ownir_version\": 99",
+      "raw": true,
       "verdict": "reject",
       "category": "json",
       "message": "<facts> is not valid JSON: Expecting ',' delimiter: line 1 column 21 (char 20)"
@@ -1363,6 +1438,7 @@
           }
         ]
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "subscription 'resource' must be a string, got 7"
@@ -1380,6 +1456,7 @@
           "b": 2
         }
       },
+      "raw": false,
       "verdict": "reject",
       "category": "shape",
       "message": "OwnIR 'components' must be a JSON array of objects"

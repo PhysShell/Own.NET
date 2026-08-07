@@ -64,7 +64,8 @@ FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "ownir_validation.
 SCHEMA_VERSION = 1
 
 ROOT_KEYS = {"comment", "schema_version", "categories", "totals", "cases"}
-CASE_KEYS = {"name", "why", "section", "document", "verdict", "category", "message"}
+CASE_KEYS = {"name", "why", "section", "document", "raw", "verdict",
+             "category", "message"}
 
 # The candidate taxonomy. Deliberately small: one entry per *mechanism* a
 # loader can reject on, not one per message. A category is only worth having if
@@ -84,11 +85,19 @@ CATEGORIES = {
 
 
 def _c(name: str, section: str, why: str, document: Any,
-       category: str | None) -> dict[str, Any]:
-    """One control. `category` is None for a document that must be ACCEPTED."""
+       category: str | None, raw: bool = False) -> dict[str, Any]:
+    """One control. `category` is None for a document that must be ACCEPTED.
+
+    `raw=True` means `document` is the file's literal TEXT, not a value to
+    serialize — the only way to reach the JSON-parse branch. It is an explicit
+    flag rather than "a `str` document is text", because that heuristic
+    silently mis-encoded `root-string`: the intent was the JSON document
+    `"hello"`, and it was written as the unparseable bytes `hello`, which then
+    produced a category mismatch that looked like a port bug.
+    """
     assert category is None or category in CATEGORIES, f"{name}: bad category"
     return {"name": name, "section": section, "why": why,
-            "document": document, "category": category}
+            "document": document, "category": category, "raw": raw}
 
 
 def _svc(**kw: Any) -> dict[str, Any]:
@@ -155,7 +164,7 @@ def _controls() -> list[dict[str, Any]]:
         # ---- json ------------------------------------------------------------
         _c("json-not-parseable", "json",
            "a truncated document is not JSON at all — rejected before any "
-           "shape check can run", "{not json", "json"),
+           "shape check can run", "{not json", "json", raw=True),
 
         # ---- root shape ------------------------------------------------------
         _c("root-array", "root", "the root must be an object, not an array",
@@ -359,7 +368,7 @@ def _controls() -> list[dict[str, Any]]:
            [{"ownir_version": 99}], "shape"),
         _c("order-json-before-everything", "order",
            "an unparseable document cannot reach any structural check",
-           "{\"ownir_version\": 99", "json"),
+           "{\"ownir_version\": 99", "json", raw=True),
         _c("order-resource-shape-before-vocabulary", "order",
            "`resource` must be a STRING before its value can be tested against "
            "the closed set — a shape failure, not a vocabulary one",
@@ -374,7 +383,7 @@ def _controls() -> list[dict[str, Any]]:
     ]
 
 
-def _oracle(document: Any) -> tuple[str, str]:
+def _oracle(document: Any, raw: bool) -> tuple[str, str]:
     """Run the reference strict door and record its verdict.
 
     A raw string document is written verbatim so the JSON-parse branch is
@@ -391,7 +400,7 @@ def _oracle(document: Any) -> tuple[str, str]:
     path = os.path.join(directory, "facts.ownir.json")
     try:
         with open(path, "w", encoding="utf-8") as f:
-            if isinstance(document, str) and not document.strip().startswith('"'):
+            if raw:
                 f.write(document)
             else:
                 json.dump(document, f)
@@ -409,12 +418,13 @@ def _oracle(document: Any) -> tuple[str, str]:
 def build() -> dict[str, Any]:
     cases: list[dict[str, Any]] = []
     for ctl in _controls():
-        verdict, message = _oracle(ctl["document"])
+        verdict, message = _oracle(ctl["document"], ctl["raw"])
         cases.append({
             "name": ctl["name"],
             "why": ctl["why"],
             "section": ctl["section"],
             "document": ctl["document"],
+            "raw": ctl["raw"],
             "verdict": verdict,
             "category": ctl["category"],
             # Kept for a human reading a failure, NOT compared across languages:
