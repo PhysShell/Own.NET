@@ -226,9 +226,11 @@ fn column(value: Option<&Value>, what: &str) -> Checked {
 /// reference returns early in both cases. Tightening that would be a
 /// Rust-only rejection of facts that analyse today.
 ///
-/// Recursion is bounded by `serde_json`'s own 128-level parse limit — a document
-/// deep enough to exhaust the stack here never becomes a [`Value`] in the first
-/// place.
+/// Recursion here is bounded for a **parsed** document: `serde_json` caps
+/// nesting at 128 levels, so a body deep enough to exhaust the stack never
+/// becomes a [`Value`]. A value built **in memory** has no such bound, which is
+/// why [`crate::OwnIr::to_value`] depth-checks before serializing — and why
+/// that check is iterative.
 fn flow_columns(nodes: Option<&Value>, what: &str) -> Checked {
     let Some(Value::Array(items)) = nodes else {
         return Ok(());
@@ -494,6 +496,48 @@ fn protocol_functions(obj: &Map<String, Value>) -> Checked {
     )?;
     for raw in pfns {
         crate::protocol::validate_method(raw)?;
+    }
+    Ok(())
+}
+
+/// The nesting depth beyond which a raw [`Value`] is refused.
+///
+/// Deliberately `serde_json`'s own parse limit: a document that could be
+/// *parsed* never exceeds it, so this bound rejects nothing
+/// [`crate::OwnIr::from_json`] would accept. It exists for values built **in
+/// memory**, which never passed a parser and therefore carry no bound at all.
+pub(crate) const MAX_VALUE_DEPTH: usize = 128;
+
+/// Depth of a raw value, measured with an explicit stack.
+///
+/// Iterative on purpose: a recursive depth check would be the failure it is
+/// meant to prevent, and would abort the process rather than return an error —
+/// a stack overflow is not catchable.
+pub(crate) fn check_depth(value: &Value, what: &str) -> Checked {
+    let mut stack: Vec<(&Value, usize)> = vec![(value, 1)];
+    while let Some((v, depth)) = stack.pop() {
+        if depth > MAX_VALUE_DEPTH {
+            return Err(shape(format!(
+                "{what}: nested more than {MAX_VALUE_DEPTH} levels deep"
+            )));
+        }
+        let Some(next) = depth.checked_add(1) else {
+            return Err(shape(format!("{what}: nesting depth overflowed")));
+        };
+        match v {
+            Value::Array(items) => stack.extend(items.iter().map(|i| (i, next))),
+            Value::Object(map) => stack.extend(map.values().map(|i| (i, next))),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+/// [`check_depth`] over every value in a `serde(flatten)` `extra` map, which is
+/// itself one level of nesting.
+pub(crate) fn check_map_depth(map: &Map<String, Value>, what: &str) -> Checked {
+    for value in map.values() {
+        check_depth(value, what)?;
     }
     Ok(())
 }

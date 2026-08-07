@@ -605,11 +605,71 @@ impl OwnIr {
     /// Serialize back to a JSON value. Together with `from_json` this is the
     /// round-trip the oracle's first parity check rides on.
     ///
+    /// Refuses a document whose raw values nest deeper than
+    /// `strict::MAX_VALUE_DEPTH` — `serde_json::to_value` recurses over a
+    /// `Value`, and on a deep enough one it does not fail, it **aborts the
+    /// process**. A stack overflow cannot be caught, so the only place to stop
+    /// it is before serialization starts. Measured: the abort begins somewhere
+    /// between 831 and 846 levels; the limit here is 128, the same bound
+    /// `serde_json`'s parser applies, so nothing [`OwnIr::from_json`] can
+    /// accept is refused.
+    ///
     /// # Errors
-    /// [`OwnIrError`] if serialization fails (it cannot for these types, but
-    /// the contract stays honest rather than panicking).
+    /// [`OwnIrError`] if a raw value is nested too deeply, or if serialization
+    /// fails (it cannot for these types, but the contract stays honest rather
+    /// than panicking).
     pub fn to_value(&self) -> Result<Value, OwnIrError> {
+        self.check_raw_depth()?;
         serde_json::to_value(self)
             .map_err(|e| OwnIrError::new(OwnIrErrorKind::Shape, format!("serialize failed: {e}")))
+    }
+
+    /// Depth-check every raw [`Value`] the model carries.
+    ///
+    /// The *typed* nesting is fixed — root → components → subscriptions and so
+    /// on — so these are plain loops, not recursion. Only the `extra` maps, the
+    /// two protocol sections and `Subscription::column` hold values of
+    /// caller-chosen shape, and each is measured iteratively.
+    fn check_raw_depth(&self) -> Result<(), OwnIrError> {
+        strict::check_map_depth(&self.extra, "OwnIR root")?;
+        for value in self.protocols.iter().flatten() {
+            strict::check_depth(value, "protocol")?;
+        }
+        for value in self.protocol_functions.iter().flatten() {
+            strict::check_depth(value, "protocol function")?;
+        }
+        for component in self.components.iter().flatten() {
+            strict::check_map_depth(&component.extra, "component")?;
+            for sub in component.subscriptions.iter().flatten() {
+                strict::check_map_depth(&sub.extra, "subscription")?;
+                if let Some(column) = sub.column.as_ref() {
+                    strict::check_depth(column, "subscription 'column'")?;
+                }
+            }
+        }
+        for service in self.services.iter().flatten() {
+            strict::check_map_depth(&service.extra, "service")?;
+            for site in service
+                .root_resolve_sites
+                .iter()
+                .flatten()
+                .chain(service.scope_cache_sites.iter().flatten())
+            {
+                strict::check_map_depth(&site.extra, "service call site")?;
+            }
+        }
+        for effect in self.effects.iter().flatten() {
+            strict::check_map_depth(&effect.extra, "effect")?;
+            for binding in effect.bindings.iter().flatten() {
+                strict::check_map_depth(&binding.extra, "binding")?;
+            }
+        }
+        for function in self.functions.iter().flatten() {
+            strict::check_map_depth(&function.extra, "function")?;
+            for param in function.params.iter().flatten() {
+                strict::check_map_depth(&param.extra, "parameter")?;
+            }
+        }
+        Ok(())
     }
 }

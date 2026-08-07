@@ -275,8 +275,14 @@ pub(crate) fn validate_method(raw: &Value) -> Result<(), OwnIrError> {
 
 /// An ordered event list, recursive over `if` / `while`.
 ///
-/// Absent means empty; a present `null` is not a list and is rejected. Recursion
-/// is bounded by `serde_json`'s 128-level parse limit.
+/// Absent means empty; a present `null` is not a list and is rejected.
+///
+/// Recursion here is bounded for a **parsed** document by `serde_json`'s
+/// 128-level parse limit. For a value built in memory the bound is
+/// [`crate::OwnIr::to_value`]'s iterative depth check, which runs before
+/// serialization — measured, that is the constraint that actually binds:
+/// `to_value` and `validate` abort at the same depth, so a depth counter
+/// threaded through this function would never be the thing that fires.
 fn events(raw: Option<&Value>, what: &str) -> Result<(), OwnIrError> {
     let items: &[Value] = match raw {
         None => &[],
