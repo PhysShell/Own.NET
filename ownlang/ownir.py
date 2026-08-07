@@ -148,6 +148,9 @@ from .effects import Effect as ReactEffect
 from .effects import find_effect_storms
 from .evidence import code_flow, di_path_steps
 from .obligations import (
+    INT64_MAX,
+    INT64_MIN,
+    MAX_NESTING_DEPTH,
     MethodEvents,
     Protocol,
     ProtocolFactsError,
@@ -536,6 +539,21 @@ def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, A
     }
 
 
+def _check_int_range(v: int, where: str, field: str = "line") -> None:
+    """The representable range of an OwnIR source coordinate (spec/OwnIR.md §4.2).
+
+    Python integers are unbounded; a consumer's are not. Without this bound the
+    fact vocabulary is only implementable in a language with bignums, which is a
+    contract accident rather than a decision — and it surfaces downstream as a
+    port rejecting a document the reference accepted. Stated and enforced here
+    instead, Python-first.
+    """
+    if not INT64_MIN <= v <= INT64_MAX:
+        raise OwnIRError(
+            f"{where} {field!r} must fit a signed 64-bit integer, got {v} "
+            f"(spec/OwnIR.md §4.2)")
+
+
 def _check_column(v: Any, where: str) -> None:
     """Fail-loud shape check for an optional source `column` (#317).
 
@@ -554,21 +572,38 @@ def _check_column(v: Any, where: str) -> None:
     if isinstance(v, bool) or not isinstance(v, int) or v < 1:
         raise OwnIRError(
             f"{where} 'column' must be a 1-based integer or absent, got {v!r}")
+    # …and bounded above, for the same reason `line` is (spec/OwnIR.md §4.2):
+    # a column no consumer can represent is not a usable coordinate.
+    _check_int_range(v, where, "column")
 
 
-def _check_flow_columns(nodes: Any, where: str) -> None:
-    """Validate `column` on every flow op, including inside `if`/`while` bodies.
+def _check_flow_columns(nodes: Any, where: str, depth: int = 0) -> None:
+    """Validate `column` on every flow op, including inside `if`/`while` bodies,
+    and bound how deeply those bodies may nest.
 
     Recursive because a hoisted branch acquire - the path most likely to be
-    forgotten - lives inside a nested body, not at the top level."""
+    forgotten - lives inside a nested body, not at the top level.
+
+    `depth` counts enclosing bodies; the top-level list is 0. The bound is a
+    defensive limit on external input (spec/OwnIR.md §4.2), not a property real
+    code reaches - the deepest flow body in this repository's fixtures is 3."""
+    # The early return comes FIRST. Every op is probed for `then`/`else`/`body`
+    # whether or not it has them, so checking depth before this would count the
+    # absent ones and reject a body at exactly the limit — measured, not
+    # reasoned: `body nesting 32 (at limit)` was rejected until this order was
+    # fixed. Only a list that actually exists is a level.
     if not isinstance(nodes, list):
         return
+    if depth > MAX_NESTING_DEPTH:
+        raise OwnIRError(
+            f"{where} nested deeper than {MAX_NESTING_DEPTH} levels "
+            f"(spec/OwnIR.md §4.2)")
     for n in nodes:
         if not isinstance(n, dict):
             continue
         _check_column(n.get("column"), f"{where} op {n.get('op')!r}")
         for key in ("then", "else", "body"):
-            _check_flow_columns(n.get(key), where)
+            _check_flow_columns(n.get(key), where, depth + 1)
 
 
 def load(path: str) -> dict[str, Any]:
@@ -679,12 +714,14 @@ def load(path: str) -> dict[str, Any]:
         ln = s.get("line", 0)
         if not isinstance(ln, int) or isinstance(ln, bool):
             raise OwnIRError("service 'line' must be an integer")
+        _check_int_range(ln, "service")
         # the consuming-constructor location (optional, P-006 Q#1) is validated like file/line.
         if not isinstance(s.get("ctor_file", "?"), str):
             raise OwnIRError("service 'ctor_file' must be a string")
         cln = s.get("ctor_line", 0)
         if not isinstance(cln, int) or isinstance(cln, bool):
             raise OwnIRError("service 'ctor_line' must be an integer")
+        _check_int_range(cln, "service", "ctor_line")
         if not isinstance(s.get("ctor_type", ""), str):
             raise OwnIRError("service 'ctor_type' must be a string")
         # DI004 call-site metadata (optional): an array of {type, file, line} objects.
@@ -697,6 +734,8 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError(
                 "service 'root_resolve_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
+        for site in sites:
+            _check_int_range(site.get("line", 0), "service root_resolve_site")
         # DI005 (scope-cached captive): types resolved from a self-created scope and cached
         # into a field, plus their field-store sites — validated like root_resolves / its sites.
         scope_cached = s.get("scope_cached", [])
@@ -712,6 +751,8 @@ def load(path: str) -> dict[str, Any]:
             raise OwnIRError(
                 "service 'scope_cache_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
+        for site in csites:
+            _check_int_range(site.get("line", 0), "service scope_cache_site")
     # Optional reactive-effect graph (EFF001 — effect storm, P-020). Additive and
     # optional: an older core simply ignores it. Each effect carries its render-scope
     # binding table; the core (ownlang/effects.py) decides identity stability.
@@ -728,6 +769,7 @@ def load(path: str) -> dict[str, Any]:
         eln = eff.get("line", 0)
         if not isinstance(eln, int) or isinstance(eln, bool):
             raise OwnIRError("effect 'line' must be an integer")
+        _check_int_range(eln, "effect")
         binds = eff.get("bindings", [])
         if not isinstance(binds, list) or not all(isinstance(b, dict) for b in binds):
             raise OwnIRError("effect 'bindings' must be a JSON array of objects")
@@ -742,6 +784,7 @@ def load(path: str) -> dict[str, Any]:
             bln = b.get("line", 0)
             if not isinstance(bln, int) or isinstance(bln, bool):
                 raise OwnIRError("binding 'line' must be an integer")
+            _check_int_range(bln, "binding")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -777,6 +820,7 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(pl, int) or isinstance(pl, bool):
                 raise OwnIRError(
                     f"parameter 'line' must be an integer, got {pl!r}")
+            _check_int_range(pl, "parameter")
             _check_column(p.get("column"), "parameter")
             peff = p.get("effect")
             if peff is not None and peff not in _PARAM_EFFECTS:

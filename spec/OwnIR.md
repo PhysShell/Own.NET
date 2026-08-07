@@ -172,6 +172,52 @@ when a real `startLine` is present. It is what OwnAudit's `finding-occurrence/v1
 physical anchor reads (Own.NET#317, PhysShell/OwnAudit#58); a finding without one
 is anchored line-only, which is a degradation rather than a failure.
 
+### 4.2 Defensive limits on externally supplied structure (normative)
+
+`OwnIR` is untrusted input: a file a frontend wrote, that `load()` reads. Two of
+its shapes were unbounded, and an unbounded contract is only *implementable* in
+a language that happens to have the same capabilities the reference does. Both
+are now bounded, and the bound is part of the vocabulary rather than a property
+of whichever consumer reads it first.
+
+**Source-coordinate integers fit a signed 64-bit integer.**
+
+- every `line` — on services, `ctor_line`, `root_resolve_sites[]`,
+  `scope_cache_sites[]`, effects, bindings, params, and protocol events — lies
+  in `[-2^63, 2^63 - 1]`;
+- every `column` (§4.1) is `1..=2^63 - 1`, or absent, or `null`.
+
+Python integers are unbounded, so the reference accepted coordinates no other
+consumer could represent. That is not a generosity worth keeping: a coordinate
+nothing downstream can hold is not a usable coordinate, and leaving it legal
+turns every port into a source of "the reference accepted this and I cannot".
+The bound is stated here and enforced in `load()`.
+
+**Flow bodies and protocol event trees nest at most 32 levels.**
+
+`functions[].body` and `protocol_functions[].events` nest through `then`,
+`else` and `body`. The limit counts those enclosing bodies — the top-level list
+is level 0 — so a document nesting exactly 32 is accepted and 33 is rejected.
+
+32 is chosen from measurement at both ends:
+
+- the deepest nesting in any `OwnIR` fixture in this repository is **3**
+  (`tests/fixtures/lowered/hoist_neg_nested_depth.facts.json`); the deepest
+  event tree is **2**;
+- a JSON parser applying the widespread 128-level recursion cap stops accepting
+  these documents at **62** levels, because each `if` costs two JSON levels
+  (an object and an array).
+
+So the limit sits an order of magnitude above anything a producer has emitted
+and roughly half way to the ceiling a consumer can still parse. It is expressed
+in the `OwnIR` domain — nested bodies — and not in JSON levels, because nested
+bodies are the thing a frontend can reason about; the ratio between the two is
+an encoding detail.
+
+Both limits are **rejections at the strict door**, not coercions. `check_facts()`
+on un-validated facts keeps its existing degrade-to-absent behaviour: two entry
+points, two contracts, as with `column` in §4.1.
+
 ## 5. Flow bodies (`functions[]`)
 
 A flow function has a `name`, a `file`, and a `body`: an ordered list of flow
