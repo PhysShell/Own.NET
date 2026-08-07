@@ -134,33 +134,36 @@ fn the_two_loaders_accept_the_same_language() {
     // permissiveness problem alone — and the second round only becomes visible
     // after the first is fixed. Measuring the whole matrix in one pass is the
     // difference between one RED reading and a series of them.
-    let mut report = String::new();
-    if m.rust_only_accept > 0 {
-        report.push_str(&format!(
-            "\n\nCRITICAL permissiveness ({}) — the strict door is the gate over \
-             untrusted extractor output, and these documents are refused by the \
-             reference but analysed by the port:\n  {}",
+    let rows = [
+        (
             m.rust_only_accept,
-            permissive.join("\n  ")
-        ));
-    }
-    if m.rust_only_reject > 0 {
-        report.push_str(&format!(
-            "\n\nover-strictness ({}) — not a hole, but facts the reference \
-             analyses today would stop being analysable after cutover:\n  {}",
+            "CRITICAL permissiveness — the strict door is the gate over \
+             untrusted extractor output, and these documents are refused by the \
+             reference but analysed by the port",
+            &permissive,
+        ),
+        (
             m.rust_only_reject,
-            over_strict.join("\n  ")
-        ));
-    }
-    if m.kind_mismatch > 0 {
-        report.push_str(&format!(
-            "\n\ncategory mismatch ({}) — both loaders reject, but disagree \
-             about WHY. Accept/reject parity can be green while the taxonomy is \
-             decorative; this is what stops that:\n  {}",
+            "over-strictness — not a hole, but facts the reference analyses \
+             today would stop being analysable after cutover",
+            &over_strict,
+        ),
+        (
             m.kind_mismatch,
-            mismatched.join("\n  ")
-        ));
-    }
+            "category mismatch — both loaders reject, but disagree about WHY. \
+             Accept/reject parity can be green while the taxonomy is \
+             decorative; this is what stops that",
+            &mismatched,
+        ),
+    ];
+    let report = rows
+        .iter()
+        .filter(|(count, _, _)| *count > 0)
+        .map(|(count, heading, names)| {
+            format!("\n\n{heading} ({count}):\n  {}", names.join("\n  "))
+        })
+        .collect::<Vec<_>>()
+        .concat();
     assert!(
         report.is_empty(),
         "the two loaders do not accept the same language.\nmatrix: {m:?}{report}"
@@ -169,6 +172,36 @@ fn the_two_loaders_accept_the_same_language() {
         m.agreed_accept.saturating_add(m.agreed_reject),
         cases(&root).len(),
         "every control must land in an agreed row: {m:?}"
+    );
+}
+
+#[test]
+fn no_control_escapes_into_serde() {
+    // The architecture's central claim is that `strict` decides accept/reject
+    // and serde only CONSTRUCTS. That claim is falsifiable: if a document
+    // survives validation and serde still refuses it, some rule lives in the
+    // model instead of the validator — the category would be whatever serde
+    // felt like, and the ordering contract would be bypassed entirely.
+    //
+    // `from_json` marks exactly that case, and this asserts no control reaches
+    // it. Without this the design would degrade silently back into "serde is
+    // the gate" one undeclared field at a time.
+    let root = load();
+    let mut escaped: Vec<String> = Vec::new();
+    for case in cases(&root) {
+        if let Err(e) = OwnIr::from_json(&document_text(case)) {
+            if e.message.contains(own_ir::VALIDATOR_HOLE) {
+                let name = case.get("name").and_then(Value::as_str).unwrap_or("?");
+                escaped.push(format!("{name}: {}", e.message));
+            }
+        }
+    }
+    assert!(
+        escaped.is_empty(),
+        "the strict validator accepted documents serde then refused, so these \
+         rules live in the MODEL rather than the validator — their category and \
+         their ordering are both accidental:\n  {}",
+        escaped.join("\n  ")
     );
 }
 
