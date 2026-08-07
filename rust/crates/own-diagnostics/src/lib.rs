@@ -47,8 +47,21 @@
 //! This crate still owns **no rendering**: canonical message text and the
 //! ordering contract are the next slice of #255, and report/SARIF is #256.
 
+//! ## Step 5a, PR 2: canonical rendering and emission order
+//!
+//! [`Diagnostic::render`] / [`Diagnostic::render_pretty`] reproduce the
+//! reference's text, and [`sort_emission_order`] reproduces the sequence
+//! `check_module` emits — a **stable** sort on `(line, code)`, which is
+//! deliberately *not* [`DiagIdentity`]'s total order (that one exists for set
+//! operations and would reorder ties the reference leaves alone). Pinned by
+//! `tests/fixtures/diag_render.json` (regenerate: `python
+//! tests/test_diag_render_fixtures.py --write`), replayed with zero Python by
+//! `tests/render_replay.rs`.
+
 mod diagnostic;
 mod located;
+mod render;
 
 pub use diagnostic::{title, DiagKey, Diagnostic, Evidence, Severity, UnknownCode, TITLES};
 pub use located::{DiagIdentity, EvidenceIdentity, LocatedDiagnostic};
+pub use render::sort_emission_order;
