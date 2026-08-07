@@ -42,6 +42,7 @@ Run:  python tests/test_diag_ledger_fixtures.py            (verify)
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -76,33 +77,51 @@ def _family(code: str) -> str:
     return match.group(0) if match else "?"
 
 
-def _shape_for(index: int, code: str) -> Diagnostic:
+def _seed(code: str) -> int:
+    """A stable per-code value, independent of the code's position in TITLES.
+
+    Deliberately NOT the sorted index. Adding a family is the single event this
+    ledger exists to make visible, and an index-derived shape sabotages exactly
+    that: inserting one code shifts every later index, so `DI006` would rewrite
+    42 of 47 existing records (measured). A one-record change is reviewable at a
+    glance; 42 records of churn hide whether the renderer also moved.
+
+    SHA-256 rather than `hash()`, whose string hashing is randomised per process
+    and would make the golden unreproducible."""
+    digest = hashlib.sha256(code.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16)
+
+
+def _shape_for(code: str) -> Diagnostic:
     """A representative `Diagnostic` for `code`.
 
     The message is derived from the reference's own TITLE (so it is meaningful
     and cannot drift from the vocabulary), with a quoted subject spliced in so
-    the caret heuristic has something to find. Optional fields rotate by index so
-    the ledger exercises every shape across the family set rather than 47 copies
-    of the same one -- deterministic, so the golden stays stable.
+    the caret heuristic has something to find. Optional fields rotate by the
+    code's own [`_seed`], so the ledger exercises every shape across the family
+    set rather than 47 copies of one -- and each code's shape is fixed for good,
+    whatever else joins the vocabulary.
     """
     title = TITLES[code]
     message = f"'{code.lower()}_subject' -- {title}"
+    seed = _seed(code)
+    line = seed % 900 + 1
     kwargs: dict[str, object] = {}
-    if index % 2 == 0:
-        kwargs["subject"] = f"{code.lower()}_subject#{index + 1}"
-    if index % 3 == 0:
+    if seed % 2 == 0:
+        kwargs["subject"] = f"{code.lower()}_subject#{line}"
+    if seed % 3 == 0:
         kwargs["resource_kind"] = "subscription token"
-    if index % 5 == 0:
+    if seed % 5 == 0:
         kwargs["severity"] = Severity.WARNING
-    if index % 4 == 0:
+    if seed % 4 == 0:
         kwargs["evidence"] = (
             Evidence(line=1, label="acquired here", role="acquired"),
             Evidence(line=2, label="escapes here", role="escaped",
                      file="src/Other.cs"),
         )
-    elif index % 4 == 1:
+    elif seed % 4 == 1:
         kwargs["evidence"] = (Evidence(line=1, label="related step"),)
-    return Diagnostic(code=code, message=message, line=index + 1, **kwargs)  # type: ignore[arg-type]
+    return Diagnostic(code=code, message=message, line=line, **kwargs)  # type: ignore[arg-type]
 
 
 def _evidence_json(ev: Evidence) -> dict[str, object]:
@@ -124,8 +143,8 @@ def _diagnostic_json(d: Diagnostic) -> dict[str, object]:
 def build() -> dict[str, object]:
     corpus = _corpus_codes()
     cases: list[dict[str, object]] = []
-    for index, code in enumerate(sorted(TITLES)):
-        diag = _shape_for(index, code)
+    for code in sorted(TITLES):
+        diag = _shape_for(code)
         cases.append({
             "code": code,
             "family": _family(code),
@@ -199,11 +218,44 @@ def run() -> int:
               f"{orphans}")
         return 1
 
+    churn = _insertion_churn()
+    if churn:
+        print(f"FAIL: inserting one code rewrote {churn} existing ledger record(s). "
+              f"Shapes must derive from the code itself, never from its position in "
+              f"the sorted vocabulary — adding a family has to be a ONE-record diff, "
+              f"or a real renderer change hides in the churn")
+        return 1
+
     totals = data["totals"]
     print(f"diagnostic ledger OK: {totals['codes']}/{len(TITLES)} codes covered "
           f"({totals['by_family']}), "
-          f"{totals['analyzer_corpus']} of them also produced by the .own corpus sweep")
+          f"{totals['analyzer_corpus']} of them also produced by the .own corpus sweep; "
+          f"a new code rewrites {churn} existing record(s)")
     return 0
+
+
+def _insertion_churn() -> int:
+    """How many EXISTING records change when one new code joins the vocabulary.
+
+    Must be zero. This is the property that makes the ledger readable: the whole
+    point is that adding a diagnostic family shows up as a single new record a
+    reviewer can check, not as a wall of unrelated edits. An index-derived shape
+    scored 42 of 47 here before the seed was made position-independent.
+
+    A probe code is inserted mid-vocabulary (so it shifts sorted positions) and
+    removed again in a `finally`, so the live TITLES the rest of the suite sees
+    is untouched."""
+    probe = "DI999"
+    if probe in TITLES:  # pragma: no cover - defensive
+        return 0
+    before = {case["code"]: case for case in build()["cases"]}
+    TITLES[probe] = "ledger insertion probe (not a real diagnostic)"
+    try:
+        after = {case["code"]: case for case in build()["cases"]}
+    finally:
+        del TITLES[probe]
+    shared = set(before) & set(after) - {probe}
+    return sum(1 for code in shared if before[code] != after[code])
 
 
 if __name__ == "__main__":
