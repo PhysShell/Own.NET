@@ -30,7 +30,25 @@
 //! `python tests/test_diag_fixtures.py --write`); `tests/fixture.rs` validates
 //! the harness plumbing against it. The full replay (parse → lower → analyse →
 //! compare) lands with `own-analysis` at the next checkpoint.
+//!
+//! ## Step 5a (#255): structural identity
+//!
+//! [`DiagKey`] deliberately collapses everything but `(line, code)`, so two
+//! findings sharing an anchor but differing in subject, resource kind, severity
+//! or evidence are one key. Step 5a is exactly that remainder, and it needs a key
+//! that separates them: [`LocatedDiagnostic`] wraps a verdict with the
+//! primary-location identity the ported dataclass does not carry (`path`, and the
+//! optional #317 `column`), and [`DiagIdentity`] is the canonical, non-collapsing
+//! comparison key over the whole contract. Both are pinned by
+//! `tests/fixtures/diag_model.json` (regenerate: `python
+//! tests/test_diag_model_fixtures.py --write`), replayed with zero Python by
+//! `tests/model_replay.rs`.
+//!
+//! This crate still owns **no rendering**: canonical message text and the
+//! ordering contract are the next slice of #255, and report/SARIF is #256.
 
 mod diagnostic;
+mod located;
 
 pub use diagnostic::{title, DiagKey, Diagnostic, Evidence, Severity, UnknownCode, TITLES};
+pub use located::{DiagIdentity, EvidenceIdentity, LocatedDiagnostic};
