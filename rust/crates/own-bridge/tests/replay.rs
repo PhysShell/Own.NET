@@ -41,9 +41,20 @@ fn read(name: &str) -> String {
 }
 
 /// facts text → the canonical Layer 2 bytes, through the Rust pipeline only.
+///
+/// Deserialized **without** `OwnIr::from_json`, on purpose. That is the strict
+/// door (BR-D1), and this harness exercises the **tolerant** one — the path
+/// `check_facts`/`to_module` take when an embedder hands over a dict directly,
+/// never having called `load()`. Routing through the strict door would make
+/// this suite test the wrong entry surface, and since #259 cp1 taught that door
+/// to enforce IR4 it would also make `tolerant_unknown_kind` unreachable: the
+/// strict door would reject the facts before the lowerer could demonstrate that
+/// it rejects them too. The lowerer's own fail-loud check (#294 OD-2) exists
+/// precisely because this path bypasses `load()`, so the test must bypass it as
+/// well or it proves nothing.
 fn lower_bytes(facts_text: &str, case: &str) -> String {
-    let facts = own_ir::OwnIr::from_json(facts_text)
-        .unwrap_or_else(|e| panic!("{case}: own-ir rejected the shared facts: {e}"));
+    let facts: own_ir::OwnIr = serde_json::from_str(facts_text)
+        .unwrap_or_else(|e| panic!("{case}: shared facts do not deserialize: {e}"));
     let surface = match own_bridge::lower(&facts) {
         Ok(doc) => Surface::Lowered(doc),
         Err(e) => Surface::Rejected(Rejected {

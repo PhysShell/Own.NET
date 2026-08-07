@@ -53,7 +53,7 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 
 | #259 checkpoint | Status | Evidence / what remains |
 |---|---|---|
-| 1 — typed OwnIR validation | **partial** | `OwnIr::from_json` + the #294 OD-2 fail-loud unknown-kind rule. Full validation acceptance/rejection parity (fixture layer 1) is out of the current slice |
+| 1 — typed OwnIR validation | **acceptance surface closed except two named families — not yet complete** | Two censuses. The first froze 77 controls, closed twelve permissive documents and read 0/0/0 — then review found seven divergences the ledger could not express, because the same author wrote the ledger and the port and one gap in reading BR-D1 produced a matching gap in each (`_svc()` always supplied `lifetime`, so no control could omit it). The re-census is derived from `load()` and `obligations.py` line by line: **193 controls**, which opened a further **58** permissive documents and **9** category mismatches. Closing them was architectural — the strict door is now a sequential validator over the raw document (`own-ir/src/strict.rs`) reproducing BR-D1's interleaving of shape and semantics *per section, in declaration order*; `serde` is the typed constructor, and a document it rejects after validation is reported as a hole in the validator and asserted against. The obligation **acceptance grammar** is ported (`own-ir/src/protocol.rs`); protocol *analysis* is not, and is not part of what the door accepts. Taxonomy is now **seven** categories: `WellFormedness` was added for the two protocol rules whose values are all correctly typed and whose records still cannot mean anything — a category set frozen by the first census is a claim about that census, not about the contract. Matrix 31/162, 0/0/0; 31 mutations each caught, five only by the validator-hole guard and two changing nothing but a category. **Why this is not yet complete:** two Python-accept/Rust-reject families are measured and deliberately excluded from the ledger — source coordinates beyond Rust's integer range, and sufficiently deep protocol/flow nesting. 0/0/0 therefore means "over a set from which two known divergence families were removed", which is not the parity #259 asks for. Both close in one **Python-first** defensive-limit change (signed-64 coordinates; one measured domain nesting limit, at-limit accept and limit+1 reject, written into the OwnIR contract). That lands first; this checkpoint is then rebased, gains boundary controls for both families, and is re-measured before it may be called complete. #294 OD-2 remains a separate tolerant-door concern |
 | 2 — fact lowering | **complete** | `lower()` → `own_lowered`; **27/27** `rust_replay` cases in `tests/fixtures/lowered/manifest.json` byte-exact |
 | 3 — interprocedural MOS | **complete for the stage-1 domain** | `dump_summaries()` byte-identical to `python -m ownlang summaries` across **35** `*.summaries.json` goldens. Container-valued metadata is **outside** the declared scalar-metadata parity domain — a separate #294-class door decision, not a silent gap |
 | 4 — analysis wiring | **not started** | the crate states its own boundary: "no diagnostics, no analysis" |
@@ -72,7 +72,13 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
 | 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
-**Preferred queue:** #259 remaining (cp1 → cp4 → cp5) → #260/#269.
+**Preferred queue:** Python-first defensive limits → finish cp1 → cp4 → cp5,
+then #260/#269. The limits change is **not** a side quest: it closes the two measured
+Python-accept/Rust-reject families (source-coordinate integers beyond signed 64
+bits, and nesting depth), and until it lands cp1's 0/0/0 is a result over a set
+with two known divergence families removed from it. Closing them by widening
+Rust — arbitrary-precision integers, `unbounded_depth` — is refused: the limit
+belongs in the contract, not in the representation.
 
 ### What #256 asked for that the tree does not have
 
