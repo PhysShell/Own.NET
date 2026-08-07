@@ -1,6 +1,6 @@
 [package]
 name = "own-diagnostics"
-description = "Diagnostic/Evidence verdict data types (an exact data-only port of ownlang/diagnostics.py); the presentation/SARIF projection is a later P-022 step"
+description = "Diagnostic/Evidence verdict model, canonical render/ordering, and the SARIF 2.1.0 projection (an exact port of ownlang/diagnostics.py, diag_sarif.py and evidence.py)"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

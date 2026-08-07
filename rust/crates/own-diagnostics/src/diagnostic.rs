@@ -31,8 +31,9 @@ pub enum Severity {
 /// a borrow escapes, where a missing release should go). The primary
 /// [`Diagnostic::line`] stays the anchor; evidence rides alongside it.
 ///
-/// A data-only mirror of the Python `Evidence` dataclass; the `note:` / SARIF
-/// projection is a later step and is deliberately not implemented here.
+/// A data-only mirror of the Python `Evidence` dataclass. The SARIF projection
+/// of a slice of these lives in [`crate::build_sarif`] (step 5b, #256); the `note:`
+/// human-render line is [`Diagnostic::render_pretty`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Evidence {
     /// 1-based source line of this step.
