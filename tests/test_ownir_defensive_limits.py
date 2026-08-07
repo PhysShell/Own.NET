@@ -159,6 +159,28 @@ def run() -> int:
                 f"Changing a defensive limit is a contract change: update the "
                 f"spec, this literal, and the Rust side together")
 
+    # ---- the JSON schema carries the same numbers -------------------------
+    # `spec/ownir.schema.json` is the contract a NON-Python consumer validates
+    # against. If the bounds live only in `load()`, a producer can be schema-
+    # valid and still refused at the door — which is the same cross-consumer
+    # mismatch this change exists to remove, one layer out.
+    schema_path = os.path.join(
+        os.path.dirname(__file__), "..", "spec", "ownir.schema.json")
+    with open(schema_path, encoding="utf-8") as f:
+        defs = json.load(f)["$defs"]
+    for name, key, expected in (
+        ("sourceLine", "minimum", SPEC_INT64_MIN),
+        ("sourceLine", "maximum", SPEC_INT64_MAX),
+        ("sourceColumn", "minimum", 1),
+        ("sourceColumn", "maximum", SPEC_INT64_MAX),
+    ):
+        actual = defs.get(name, {}).get(key)
+        if actual != expected:
+            failures += _fail(
+                f"spec/ownir.schema.json $defs.{name}.{key} is {actual!r}, "
+                f"expected {expected} — the schema and `load()` must state the "
+                f"same bound or a producer can satisfy one and fail the other")
+
     # ---- line: the full signed-64 range, and one step outside each end -----
     for label, build in LINE_PATHS:
         for value, expect_reject in ((INT64_MIN, False), (0, False),

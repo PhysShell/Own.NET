@@ -182,10 +182,22 @@ of whichever consumer reads it first.
 
 **Source-coordinate integers fit a signed 64-bit integer.**
 
-- every `line` — on services, `ctor_line`, `root_resolve_sites[]`,
-  `scope_cache_sites[]`, effects, bindings, params, and protocol events — lies
-  in `[-2^63, 2^63 - 1]`;
+- every **validated** `line` — `services[].line`, `services[].ctor_line`,
+  `services[].root_resolve_sites[].line`, `services[].scope_cache_sites[].line`,
+  `effects[].line`, `effects[].bindings[].line`, `functions[].params[].line`,
+  `protocol_functions[].events[].line` — lies in `[-2^63, 2^63 - 1]`;
 - every `column` (§4.1) is `1..=2^63 - 1`, or absent, or `null`.
+
+The word *validated* is load-bearing, and the exception is recorded rather than
+papered over. Two line-bearing fields are checked **nowhere** by `load()` — not
+for range, and not even for type: `components[].subscriptions[].line` and the
+`line` on a flow op inside `functions[].body`. Measured, `{"line": "x"}` and
+`{"line": true}` are accepted on both. That predates this section, and both
+implementations agree about it — neither the reference nor the Rust port types
+those fields — so it is **not** a parity gap and closing it is not part of
+removing one. It is a separate contract question: whether a coordinate that no
+rule reads should nevertheless be well-formed. Until it is answered, the bound
+above claims exactly the fields it covers.
 
 Python integers are unbounded, so the reference accepted coordinates no other
 consumer could represent. That is not a generosity worth keeping: a coordinate

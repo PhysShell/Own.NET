@@ -49,7 +49,14 @@
     "sourceColumn": {
       "description": "1-based source column of the SAME node `line` anchors on. Optional and additive, so OWNIR_VERSION stays 0 (spec/OwnIR.md §2): a producer that does not report one omits it and no consumer substitutes a value — not 0, not 1, and never recovered by re-reading the source line. Rides to SARIF as region.startColumn, where the OwnAudit occurrence anchor reads it (Own.NET#317).",
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "sourceLine": {
+      "description": "A source line. Bounded to a signed 64-bit integer (spec/OwnIR.md \u00a74.2): Python integers are unbounded and the reference used to accept coordinates no other consumer could represent, which made the vocabulary implementable only in a language with bignums. A coordinate nothing downstream can hold is not a usable coordinate. Pinned to ownlang/obligations.py::INT64_MIN/INT64_MAX.",
+      "type": "integer",
+      "minimum": -9223372036854775808,
+      "maximum": 9223372036854775807
     },
     "resourceKind": {
       "description": "The resource-kind discriminator (spec/OwnIR.md §4). It selects the analysis path, so a present-but-unknown value is rejected at load (fail-loud) and a new kind must bump OWNIR_VERSION. Pinned to ownlang/ownir.py::_KNOWN_RESOURCE_KINDS.",
@@ -82,7 +89,7 @@
       "properties": {
         "type": { "type": "string" },
         "file": { "type": "string" },
-        "line": { "type": "integer" }
+        "line": { "$ref": "#/$defs/sourceLine" }
       }
     },
     "component": {
@@ -101,7 +108,7 @@
       "description": "One owned-resource record (spec/OwnIR.md §4). An unreleased record is OWN001 at `line`; a released one nets balanced and stays silent.",
       "type": "object",
       "properties": {
-        "line": { "type": "integer" },
+        "line": { "$ref": "#/$defs/sourceLine" },
         "column": { "$ref": "#/$defs/sourceColumn" },
         "event": {
           "description": "The event/handle identifier for this owned resource (e.g. `bus.CustomerChanged`, `_timer.Tick`); carried into the finding message and rendered output.",
@@ -168,7 +175,7 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
-        "line": { "type": "integer" },
+        "line": { "$ref": "#/$defs/sourceLine" },
         "column": { "$ref": "#/$defs/sourceColumn" },
         "effect": { "$ref": "#/$defs/paramEffect" }
       }
@@ -183,7 +190,7 @@
           "description": "A new owned local (Let+Acquire); kind:\"pool\" tags it a pooled buffer.",
           "properties": {
             "op": { "const": "acquire" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" },
             "kind": { "type": "string", "enum": ["pool"] }
@@ -195,7 +202,7 @@
           "description": "Release of the local's handle.",
           "properties": {
             "op": { "const": "release" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -206,7 +213,7 @@
           "description": "Use of the handle.",
           "properties": {
             "op": { "const": "use" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -217,7 +224,7 @@
           "description": "Overspan (POOL005: a full-length view of a pooled buffer).",
           "properties": {
             "op": { "const": "overspan" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -228,7 +235,7 @@
           "description": "Ownership transfer out; `var` optional (a bare return).",
           "properties": {
             "op": { "const": "return" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" }
           },
@@ -239,7 +246,7 @@
           "description": "A new owning handle joined to `src`'s alias set (wrap/adopt, D5.4).",
           "properties": {
             "op": { "const": "alias_join" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "var": { "type": "string" },
             "src": { "type": "string" }
@@ -251,7 +258,7 @@
           "description": "A Call checked against the callee's contract; a fresh-returning callee mints an acquire for `result` (D5.2). An optional `sig` (the callee's canonical parameter-type list, same format as a function record's `sig`) resolves the call against that overload's own summary; absent or unmatched, the name-merged summary applies (stage 2 fallback — degraded, never a wrong overload).",
           "properties": {
             "op": { "const": "call" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "callee": { "type": "string" },
             "sig": { "type": "string" },
@@ -265,7 +272,7 @@
           "description": "An If with both branches lowered.",
           "properties": {
             "op": { "const": "if" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "then": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } },
             "else": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
@@ -277,7 +284,7 @@
           "description": "A While — a back-edge the core's worklist fixpoint converges over (A1).",
           "properties": {
             "op": { "const": "while" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "column": { "$ref": "#/$defs/sourceColumn" },
             "body": { "type": "array", "items": { "$ref": "#/$defs/flowOp" } }
           },
@@ -295,7 +302,7 @@
         "weak_deps": { "type": "array", "items": { "type": "string" } },
         "root_resolves": { "type": "array", "items": { "type": "string" } },
         "file": { "type": "string" },
-        "line": { "type": "integer" },
+        "line": { "$ref": "#/$defs/sourceLine" },
         "ctor_file": { "type": "string" },
         "ctor_line": { "type": "integer" },
         "ctor_type": { "type": "string" },
@@ -311,7 +318,7 @@
           "description": "Whether the effect performs I/O (default false).",
           "type": "boolean"
         },
-        "line": { "type": "integer" },
+        "line": { "$ref": "#/$defs/sourceLine" },
         "deps": {
           "description": "The effect's dependency-array names.",
           "type": "array",
@@ -333,7 +340,7 @@
           "type": "string"
         },
         "refs": { "type": "array", "items": { "type": "string" } },
-        "line": { "type": "integer" }
+        "line": { "$ref": "#/$defs/sourceLine" }
       }
     },
     "protocolMatcher": {
@@ -420,7 +427,7 @@
             "ev": { "const": "assign" },
             "target": { "type": "string", "minLength": 1 },
             "value": { "type": ["boolean", "null"] },
-            "line": { "type": "integer" }
+            "line": { "$ref": "#/$defs/sourceLine" }
           },
           "required": ["ev", "target"]
         },
@@ -431,7 +438,7 @@
             "ev": { "const": "call" },
             "callee": { "type": "string", "minLength": 1 },
             "arg": { "type": ["string", "null"] },
-            "line": { "type": "integer" }
+            "line": { "$ref": "#/$defs/sourceLine" }
           },
           "required": ["ev", "callee"]
         },
@@ -440,7 +447,7 @@
           "description": "A normal method exit.",
           "properties": {
             "ev": { "const": "return" },
-            "line": { "type": "integer" }
+            "line": { "$ref": "#/$defs/sourceLine" }
           },
           "required": ["ev"]
         },
@@ -449,7 +456,7 @@
           "description": "An exceptional method exit. Frontends thread finally bodies onto exits, like the flow lowering (§5).",
           "properties": {
             "ev": { "const": "throw" },
-            "line": { "type": "integer" }
+            "line": { "$ref": "#/$defs/sourceLine" }
           },
           "required": ["ev"]
         },
@@ -458,7 +465,7 @@
           "description": "A branch with both arms lowered.",
           "properties": {
             "ev": { "const": "if" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "then": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } },
             "else": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
           },
@@ -469,7 +476,7 @@
           "description": "A loop; the checker solves the body to a local fixpoint.",
           "properties": {
             "ev": { "const": "while" },
-            "line": { "type": "integer" },
+            "line": { "$ref": "#/$defs/sourceLine" },
             "body": { "type": "array", "items": { "$ref": "#/$defs/protocolEvent" } }
           },
           "required": ["ev"]
