@@ -8,12 +8,16 @@
 //! [`own_diagnostics::TITLES`] must have a case, so a family cannot be added
 //! without a fixture.
 //!
-//! The three failure modes, each with its own test so a red build names the
-//! actual problem:
+//! The failure modes, each with its own test so a red build names the actual
+//! problem:
 //!
 //! * **missing** — a `TITLES` code with no ledger case;
 //! * **orphan** — a ledger case naming a code absent from `TITLES`;
-//! * **divergence** — the rendered text disagrees with the reference.
+//! * **divergence** — the rendered text disagrees with the reference;
+//! * **collapsed shape** — the generator still covers every code, but stopped
+//!   producing one of the optional-field arms it exists to pin. Invisible to
+//!   the divergence check, which only asks whether each case matches its *own*
+//!   recorded text: drop the two-evidence arm and that test still passes 47/47.
 //!
 //! What this does NOT claim: that the analyzer emits a given code. That is step
 //! 4's contract, pinned over the real `.own` corpus by `diag_parity.json`. The
@@ -25,7 +29,7 @@
 
 use std::collections::BTreeSet;
 
-use own_diagnostics::{title, Diagnostic, TITLES};
+use own_diagnostics::{title, Diagnostic, Severity, TITLES};
 use serde_json::Value;
 
 const FIXTURE: &str = concat!(
@@ -183,6 +187,29 @@ fn rendered_text_matches_the_reference_for_every_family() {
         }
     }
 
+    // `changed` and `unexplained` move together **by construction**: the loop
+    // above increments both on the same branch, because this replay has no
+    // mechanism for marking a difference as *explained*. That is deliberate —
+    // an explained divergence would need a reviewed entry in the fixture, and
+    // no such entry exists. Asserting the identity records the fact instead of
+    // leaving two counters that merely look independent: if an explanation
+    // channel is ever added, this line fails and forces the two to be split on
+    // purpose rather than letting `unexplained` quietly over-report.
+    //
+    // Honest about its own reach: while the tree is green this is `0 == 0` and
+    // proves nothing — the divergence branch never runs. It is a tripwire that
+    // arms only once something actually diverges, which is exactly when a
+    // silently over-reporting `unexplained` would mislead. Verified by a
+    // compound mutation (corrupt one case's recorded text so a divergence
+    // exists, and drop the `unexplained` increment): this fires first, naming
+    // the counter split rather than the divergence.
+    assert_eq!(
+        counters.changed, counters.unexplained,
+        "changed and unexplained are equal by construction; they diverged, so an \
+         explanation mechanism was introduced without separating the counters: \
+         {counters:?}"
+    );
+
     assert_eq!(
         counters.unexplained,
         0,
@@ -193,6 +220,66 @@ fn rendered_text_matches_the_reference_for_every_family() {
     assert_eq!(counters.python_only, 0, "counters: {counters:?}");
     assert_eq!(counters.rust_only, 0, "counters: {counters:?}");
     assert_eq!(counters.changed, 0, "counters: {counters:?}");
+}
+
+/// Every optional-field arm the generator can produce must still appear.
+///
+/// The ledger's value is that it renders *shapes*, not 47 copies of one shape:
+/// `_shape_for` rotates subject, resource kind, severity and evidence length by
+/// each code's own seed. Nothing so far would notice that rotation collapsing.
+/// Changing the vocabulary changes every seed-derived arm at once, so a future
+/// edit could quietly leave, say, no two-evidence case anywhere — and the
+/// rendering replay would still pass 47/47, because it only checks that each
+/// case matches its own recorded text.
+///
+/// This asserts presence, not counts: the exact split is a property of the hash
+/// and would make the test a second golden with no extra signal.
+#[test]
+fn every_optional_field_shape_is_still_exercised() {
+    let root = load();
+    let diagnostics: Vec<Diagnostic> = cases(&root)
+        .iter()
+        .map(|case| {
+            let code = code_of(case);
+            serde_json::from_value(case.get("diagnostic").expect("'diagnostic'").clone())
+                .unwrap_or_else(|e| panic!("code {code:?}: diagnostic does not load: {e}"))
+        })
+        .collect();
+
+    let count = |f: &dyn Fn(&Diagnostic) -> bool| diagnostics.iter().filter(|d| f(d)).count();
+    let arms: [(&str, usize); 9] = [
+        ("subject: present", count(&|d| d.subject.is_some())),
+        ("subject: absent", count(&|d| d.subject.is_none())),
+        (
+            "resource_kind: present",
+            count(&|d| d.resource_kind.is_some()),
+        ),
+        (
+            "resource_kind: absent",
+            count(&|d| d.resource_kind.is_none()),
+        ),
+        (
+            "severity: warning",
+            count(&|d| d.severity == Severity::Warning),
+        ),
+        ("severity: error", count(&|d| d.severity == Severity::Error)),
+        ("evidence: none", count(&|d| d.evidence.is_empty())),
+        ("evidence: one", count(&|d| d.evidence.len() == 1)),
+        ("evidence: two", count(&|d| d.evidence.len() == 2)),
+    ];
+
+    let unexercised: Vec<&str> = arms
+        .iter()
+        .filter(|(_, n)| *n == 0)
+        .map(|(name, _)| *name)
+        .collect();
+    assert!(
+        unexercised.is_empty(),
+        "{} optional-field shape arm(s) are no longer exercised by any ledger case: \
+         {unexercised:?}. The ledger stopped covering a shape it is supposed to pin — \
+         restore the rotation rather than deleting the arm. Full census: {arms:?}",
+        unexercised.len()
+    );
 }
 
 #[test]
@@ -212,7 +299,11 @@ fn analyzer_corpus_coverage_is_recorded_not_assumed() {
         .filter(|c| {
             c.get("analyzer_corpus")
                 .and_then(Value::as_bool)
-                .unwrap_or(false)
+                // `expect`, not `unwrap_or(false)`: every other accessor in this
+                // file treats a missing key as a broken fixture, and defaulting
+                // here would silently under-count coverage if the generator ever
+                // stopped emitting the flag.
+                .expect("case 'analyzer_corpus'")
         })
         .count();
     assert_eq!(

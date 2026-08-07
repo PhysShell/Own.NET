@@ -26,7 +26,7 @@ codes; the rest are either bridge-only families (DI/EFF/OBL come from
 reach. Silently rendering all 47 and calling it "full parity" would overstate
 the evidence, so the coverage flag is carried per code and summarised.
 
-## The three failure modes it closes
+## The failure modes it closes
 
 * **missing** — a code in `TITLES` with no case. The replay fails naming it, so
   adding a diagnostic without a fixture is a red build.
@@ -34,6 +34,10 @@ the evidence, so the coverage flag is carried per code and summarised.
   renamed code leaving a fixture behind.
 * **stale** — the generated file differs from what the current reference
   produces (the standing `--write` discipline, as in the other two slices).
+* **unstable under insertion** — adding one vocabulary member must rewrite no
+  existing record and add exactly one. This is P-022 rule 4's normative
+  acceptance, enforced by [`_insertion_effect`]; the two halves fail in opposite
+  directions and neither implies the other.
 
 Run:  python tests/test_diag_ledger_fixtures.py            (verify)
       python tests/test_diag_ledger_fixtures.py --write    (regenerate)
@@ -47,6 +51,7 @@ import json
 import os
 import re
 import sys
+from typing import NamedTuple
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -218,44 +223,85 @@ def run() -> int:
               f"{orphans}")
         return 1
 
-    churn = _insertion_churn()
-    if churn:
-        print(f"FAIL: inserting one code rewrote {churn} existing ledger record(s). "
-              f"Shapes must derive from the code itself, never from its position in "
-              f"the sorted vocabulary — adding a family has to be a ONE-record diff, "
-              f"or a real renderer change hides in the churn")
+    effect = _insertion_effect()
+    if effect.churn:
+        print(f"FAIL: inserting one code rewrote {effect.churn} existing ledger "
+              f"record(s); rule 4 requires 0. Shapes must derive from the code itself, "
+              f"never from its position in the sorted vocabulary — adding a family has "
+              f"to be a ONE-record diff, or a real renderer change hides in the churn")
+        return 1
+    if effect.delta != 1:
+        print(f"FAIL: inserting one code produced {effect.delta} new ledger record(s); "
+              f"rule 4 requires exactly 1. Zero means the generator does not cover the "
+              f"new family at all — the ledger would go quietly incomplete. More than "
+              f"one means a record count is derived from the vocabulary's SIZE, which "
+              f"is the churn defect wearing a different hat")
         return 1
 
     totals = data["totals"]
     print(f"diagnostic ledger OK: {totals['codes']}/{len(TITLES)} codes covered "
           f"({totals['by_family']}), "
           f"{totals['analyzer_corpus']} of them also produced by the .own corpus sweep; "
-          f"a new code rewrites {churn} existing record(s)")
+          f"inserting a code rewrites {effect.churn} existing record(s) "
+          f"and adds {effect.delta}")
     return 0
 
 
-def _insertion_churn() -> int:
-    """How many EXISTING records change when one new code joins the vocabulary.
+class _InsertionEffect(NamedTuple):
+    """What inserting one vocabulary member does to the generated ledger.
 
-    Must be zero. This is the property that makes the ledger readable: the whole
-    point is that adding a diagnostic family shows up as a single new record a
-    reviewer can check, not as a wall of unrelated edits. An index-derived shape
-    scored 42 of 47 here before the seed was made position-independent.
+    The two numbers P-022 rule 4 states as normative acceptance:
+
+        insert one synthetic vocabulary member
+          existing-record churn == 0
+          new-record delta      == 1
+    """
+
+    churn: int
+    """EXISTING records whose content changed. Must be 0."""
+    delta: int
+    """Records that did not exist before. Must be exactly 1."""
+
+
+def _insertion_effect() -> _InsertionEffect:
+    """Measure both halves of rule 4's acceptance against the live generator.
+
+    `churn` is the half that was paid for: an index-derived shape scored 42 of
+    47 here before the seed was made position-independent. Adding a family has
+    to read as a single new record, or a real renderer change hides in the noise.
+
+    `delta` is the other half, and it fails in the opposite direction. Zero means
+    the generator did not emit the new family at all — the ledger goes quietly
+    incomplete, which is precisely the gap `churn` alone cannot see, because a
+    generator that skips the new code has perfect churn. Above one means some
+    record count is derived from the vocabulary's *size* rather than its members,
+    which is the churn defect in different clothing.
+
+    Neither number is the mechanism. A content hash satisfies both today; any
+    stable, cross-process-reproducible mapping that holds both lines conforms,
+    and swapping it is not a violation.
 
     A probe code is inserted mid-vocabulary (so it shifts sorted positions) and
     removed again in a `finally`, so the live TITLES the rest of the suite sees
     is untouched."""
     probe = "DI999"
     if probe in TITLES:  # pragma: no cover - defensive
-        return 0
+        raise AssertionError(
+            f"{probe} is a real diagnostic code now, so it cannot act as the "
+            f"insertion probe; pick an unused code rather than letting this "
+            f"check silently pass"
+        )
     before = {case["code"]: case for case in build()["cases"]}
     TITLES[probe] = "ledger insertion probe (not a real diagnostic)"
     try:
         after = {case["code"]: case for case in build()["cases"]}
     finally:
         del TITLES[probe]
-    shared = set(before) & set(after) - {probe}
-    return sum(1 for code in shared if before[code] != after[code])
+    shared = (set(before) & set(after)) - {probe}
+    return _InsertionEffect(
+        churn=sum(1 for code in shared if before[code] != after[code]),
+        delta=len(set(after) - set(before)),
+    )
 
 
 if __name__ == "__main__":
