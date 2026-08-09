@@ -204,6 +204,51 @@ get LLVM-grade codegen out of C# is not to translate all of C# — it is to carv
 out a **restricted subset** where the .NET-specific invariants are cheap to
 establish. Which is precisely Result 1, arrived at independently.
 
+### What Burst actually is, and whether it helps us
+
+Burst compiles **HPC#** — "High-Performance C#", a deliberately crippled subset
+— through LLVM instead of RyuJIT. The subset is the whole trick: no classes, no
+managed heap references, no GC allocation, no exceptions in kernels; you work
+over `struct`s and `NativeArray<T>` inside Unity's job system, and you annotate
+pointers `[NoAlias]`. Under those restrictions LLVM's auto-vectorizer,
+unroller and inliner all apply, and Unity reports 10–100× on compute-heavy
+kernels.
+
+Note *why* those restrictions matter, against Result 1: forbidding managed
+references and using `NativeArray<T>` removes the object header, so there is no
+per-iteration `ldlen`; the job system's bounds are loop-invariant by
+construction, so the range checks hoist. **Burst does not beat the blockers
+found above — it defines them out of the language.** That is the entire
+mechanism.
+
+Three honest conclusions about how it helps us, in decreasing order of value:
+
+1. **As a cost calibration — the main value.** Burst is what "success" costs.
+   A funded team, a decade, and a language subset severe enough that ordinary
+   C# does not compile. It converts "could we do this?" into "this is the size
+   of the thing", which is why rung 4+ is not recommended.
+2. **As a design precedent, with a real but partial parallel here.** OwnLang is
+   already a restricted language with storage discipline enforced by
+   construction ([`spec/BufferPolicies.md`](../../spec/BufferPolicies.md):
+   `stack`/`scratch`/`pooled`/`native`, where B1 forbids stack buffers from
+   escaping). So the structural analogy `Burst : HPC#` ≈
+   `LLVM backend : OwnSharp subset` is not fantasy — a language that already
+   pins storage and escape could supply the invariants a frontend needs.
+   **But** the parallel stops exactly where Result 2 does: the invariants worth
+   supplying are range-check elimination and length immutability, and the
+   ownership content contributes **0%**. OwnLang would be helping as *a
+   restricted language*, not as *an ownership system* — so this is not a reason
+   to build it, and it does not make the ownership work pay off in codegen.
+3. **Not usable as a component.** Burst is Unity-coupled — the package, the job
+   system, `NativeArray<T>`. There is nothing to vendor or reuse outside Unity.
+
+One transferable practice, independent of any of the above: Burst ships an
+**inspector** showing the generated assembly per kernel, because even inside the
+subset, whether a loop vectorised is not predictable from the source. That is
+the same "measure, do not assume" discipline this note's `-Rpass` output and
+`DOTNET_JitDisasm` dumps applied — and the same lesson as
+[`invariant-cost-static-vs-runtime.md`](invariant-cost-static-vs-runtime.md).
+
 ## Is a PoC doable? Yes — and here is the ladder
 
 Rungs 1–3 are *already done and committed here*; the remaining cost is rung 4+.
