@@ -197,8 +197,13 @@ The caution raised earlier resolves cleanly once the word is broken up. These
 are three different states and are currently drifting toward one label:
 
 - **Collection outcome.** Success → an artifact may exist. Refusal or failure →
-  exit 2 and the artifact **must not** exist. *The existing fail-closed
-  invariant, unchanged.*
+  exit 2 and the artifact **must not** exist. *Unchanged where it already
+  holds* — and it does **not** hold everywhere: `RetentionPath` has the
+  documented contract, `DuplicateDetector` and `PropertyChangedStorm` catch
+  broadly and return 2, but `LeakHarness` catches only `ScenarioException`, so
+  a missing scenario file or a failed dump escapes `Main` with a different exit
+  code. Normalizing that is a behaviour change, not a clean-up; see the task
+  spec's caveat.
 - **Artifact validity.** Given an artifact: known schema, required fields,
   well-formed, producer contract satisfied → valid, else reject. *This is the
   layer that is missing today* (step 2 above).

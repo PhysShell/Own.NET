@@ -51,8 +51,10 @@ migration with a stated compatibility decision, not pick a winner silently.
 4. Preserve forward compatibility: unknown **fields** under a known
    family + major stay accepted.
 5. Negative fixtures/tests for every rejection case (§3).
-6. Preserve collection semantics unchanged: refusal/failure → exit 2 → **no
-   artifact**.
+6. Preserve collection semantics **as they are per producer** — do not
+   normalize them as a side effect of this task. See the caveat below: the
+   exit-2 rule is not currently universal, and making it so is a behaviour
+   change that this task does not carry.
 
 **Out of scope (explicitly do not do)**
 
@@ -78,7 +80,25 @@ Happy path alone does not close this defect. Required cases:
 | `schema` of a different runtime family | **reject** |
 | unknown major | **reject** |
 | malformed required payload | **reject** |
-| collector refusal | exit 2, no artifact — unchanged |
+| collector refusal | whatever that producer does today — unchanged (see below) |
+
+### Caveat: "failure → exit 2" is *not* a universal invariant today
+
+Checked per producer rather than assumed from the documented `RetentionPath`
+contract:
+
+| producer | failure behaviour |
+|---|---|
+| `RetentionPath` | documented 0/1/2 contract (`runtime-witness-operations.md`) |
+| `DuplicateDetector` | `catch (Exception)` → `return 2` |
+| `PropertyChangedStorm` | `catch (Exception)` → `return 2` |
+| **`LeakHarness`** | catches **only `ScenarioException`** → 2. A missing scenario file, a failed process launch, a missing window or a failed dump throws out of `Main` and exits with the runtime's unhandled-exception code, **not** 2 |
+
+So requiring exit 2 across all four families would **change collection
+semantics** — which §2's own out-of-scope list forbids. The invariant is
+therefore scoped to producers that already implement it. Normalizing
+`LeakHarness` failures is a **separate, explicitly-labelled behaviour change**
+and is *not* part of this task.
 
 The load-bearing test, which is what actually proves the hole is closed:
 
@@ -111,10 +131,28 @@ taking it here converts a small correctness fix into an architecture change.
 
 ## 6. Repository boundary
 
-The change spans both repos: producers in `Own.NET/audit/runtime/` and
-`OwnAudit/src/OwnAudit.Runtime`, readers in `OwnAudit/runtime/`. The
-heap-retention decision (§2.2) is the coupling point and should be settled once,
-in one place, before either side is edited.
+The change spans both repos.
+
+**Producers:** `Own.NET/audit/runtime/` (`RetentionPath`, `LeakHarness`,
+`DuplicateDetector`, `PropertyChangedStorm`) and `OwnAudit/src/OwnAudit.Runtime`.
+
+**Readers — both repositories, not just OwnAudit:**
+
+| reader | families it reads |
+|---|---|
+| `OwnAudit/runtime/correlate.py` | heap-retention |
+| **`Own.NET/audit/runtime/ingest.py`** | **leak-growth, duplicate-immutable, propertychanged-storm** |
+
+`ingest.py` is the active reader for three of the four families — it takes
+`--leak-harness` / `--duplicate-detector` / `--propertychanged-storm`, does a
+bare `json.loads`, and converts to SARIF with no identity check whatsoever.
+**Omitting it would be the defect in miniature**: three families would gain a
+schema identity that nothing requires anyone to validate, leaving exactly the
+hole this task exists to close. Its `--selftest` entry point is the natural home
+for the negative cases in §3.
+
+The heap-retention decision (§2.2) is the coupling point and should be settled
+once, in one place, before either side is edited.
 
 ## 7. Risks / pitfalls
 
