@@ -137,8 +137,24 @@ JSON. Three findings follow, all checkable:
 
 **No impact today** — the correlator is deliberately tolerant of unknown fields,
 which is a reasonable forward-compat choice. The risk is latent and the fix is
-cheap *now*, which is exactly the argument for settling it before a fourth
-consumer inherits the ambiguity.
+cheap *now*, which is exactly the argument for settling it before the runtime
+artifact surface expands further.
+
+### Counted by artifact family, which is what would get versioned
+
+Producers are the wrong unit — five implementations emit **four** analysis-facing
+artifact families, and it is the families that need identity:
+
+| artifact family | producer(s) | identity status |
+|---|---|---|
+| heap-retention | `RetentionPath` + `OwnAudit.Runtime` | **two conflicting identities** (`own-runtime/1` vs `ownAudit/runtime/v1`) |
+| leak-growth | `LeakHarness` | **none** |
+| duplicate-immutable | `DuplicateDetector` | **none** |
+| propertychanged-storm | `PropertyChangedStorm` | **none** |
+
+> **All four shipped runtime artifact families have an identity problem:
+> heap-retention has two conflicting schema identities; the other three have
+> none.**
 
 ### The cheap next step is versioning, not unification
 
@@ -153,7 +169,8 @@ So the minimal work that closes the real hole found above, in order:
 1. **Every analysis-facing artifact gets its own mandatory schema identity** —
    one per family, e.g. `heap-retention`, `leak-growth`,
    `duplicate-immutable`, `propertychanged-storm` (names illustrative, not
-   normative). Today four of the five producers emit no version at all.
+   normative). Today three of the five producers emit no version at all, and
+   the two that do disagree with each other — see the family table above.
 2. **Readers must validate family and major version.** Tolerant of unknown
    *fields*, intolerant of unknown *identity*:
 
@@ -232,4 +249,9 @@ recommendation for a .NET auditor.
 - OwnAudit was read at a shallow clone of `main`; the collector inventory and
   schema-string findings are about that tree plus `Own.NET/audit/runtime/` at
   this branch's base commit.
-- **Recorded, not scheduled.** No work item is filed off this note.
+- **Recorded, not scheduled** — with one exception. The identity/validation
+  defect measured above is no longer an idea from a paper but a demonstrated
+  contract hole, so it has a written spec at
+  [`docs/tasks/runtime-artifact-identity.md`](../tasks/runtime-artifact-identity.md)
+  (status: *spec, ready to implement*, explicitly **not** inserted into the
+  current sequence). Everything else here remains recorded only.
