@@ -61,6 +61,33 @@ EVENT_KINDS = frozenset({"assign", "call", "return", "throw", "if", "while"})
 # matcher vocabulary for `opens`/`closes`/`barriers`/`allow`.
 MATCHER_KINDS = frozenset({"assign", "call"})
 
+# ---------------------------------------------------------------------------
+# defensive limits on externally supplied structure (spec/OwnIR.md §4.2)
+# ---------------------------------------------------------------------------
+
+# The representable range of an OwnIR source-coordinate integer.
+#
+# Python integers are unbounded; a consumer's are not. Leaving the range open
+# means the fact vocabulary is only *implementable* in a language with bignums,
+# which is a contract accident rather than a decision — so the bound is stated
+# here and enforced, instead of being discovered downstream as a port bug.
+INT64_MIN = -(2 ** 63)
+INT64_MAX = 2 ** 63 - 1
+
+# Maximum nesting of `if`/`while` bodies in a flow body or an event tree.
+#
+# Chosen by measurement, from both ends:
+#   * the deepest nesting in any OwnIR fixture in this repository is 3
+#     (`tests/fixtures/lowered/hoist_neg_nested_depth.facts.json`);
+#   * a JSON parser applying the common 128-level recursion cap stops accepting
+#     these documents at 62 levels, because each `if` costs two JSON levels.
+# 32 sits an order of magnitude above anything a producer has emitted and
+# roughly half way to the ceiling every consumer can still parse.
+#
+# The limit is on the OwnIR *domain* — nested bodies — not on JSON nesting,
+# because that is the thing a frontend can reason about.
+MAX_NESTING_DEPTH = 32
+
 
 class ProtocolFactsError(ValueError):
     """A malformed protocol/event fact. `load()` wraps this in `OwnIRError`
@@ -212,6 +239,10 @@ def _opt_line(raw: dict[str, Any], ctx: str) -> int:
     v = raw.get("line", 0)
     if not isinstance(v, int) or isinstance(v, bool):
         raise ProtocolFactsError(f"{ctx}: 'line' must be an integer, got {v!r}")
+    if not INT64_MIN <= v <= INT64_MAX:
+        raise ProtocolFactsError(
+            f"{ctx}: 'line' must fit a signed 64-bit integer, got {v} "
+            f"(spec/OwnIR.md §4.2)")
     return v
 
 
@@ -296,9 +327,18 @@ def parse_protocol(raw: Any) -> Protocol:
                     methods=tuple(methods_raw), description=desc)
 
 
-def parse_events(raw: Any, ctx: str) -> tuple[Event, ...]:
+def parse_events(raw: Any, ctx: str, depth: int = 0) -> tuple[Event, ...]:
     """Parse an ordered event list (recursive over `if`/`while`), fail-loud on
-    an unknown `ev` — the same rule as an unknown flow op (OwnIR IR4)."""
+    an unknown `ev` — the same rule as an unknown flow op (OwnIR IR4).
+
+    `depth` counts enclosing `if`/`while` bodies; the top-level list is 0. The
+    bound is a defensive limit on external input (spec/OwnIR.md §4.2), not a
+    reachable property of real code — the deepest event tree in this
+    repository's fixtures is 2."""
+    if depth > MAX_NESTING_DEPTH:
+        raise ProtocolFactsError(
+            f"{ctx}: events nested deeper than {MAX_NESTING_DEPTH} levels "
+            f"(spec/OwnIR.md §4.2)")
     if not isinstance(raw, list):
         raise ProtocolFactsError(f"{ctx}: events must be an array, got {raw!r}")
     out: list[Event] = []
@@ -332,10 +372,11 @@ def parse_events(raw: Any, ctx: str) -> tuple[Event, ...]:
             out.append(ThrowEv(line=line))
         elif ev == "if":
             out.append(IfEv(line=line,
-                            then=parse_events(e.get("then", []), ctx),
-                            orelse=parse_events(e.get("else", []), ctx)))
+                            then=parse_events(e.get("then", []), ctx, depth + 1),
+                            orelse=parse_events(e.get("else", []), ctx, depth + 1)))
         else:  # "while" — EVENT_KINDS is closed, checked above
-            out.append(WhileEv(line=line, body=parse_events(e.get("body", []), ctx)))
+            out.append(WhileEv(
+                line=line, body=parse_events(e.get("body", []), ctx, depth + 1)))
     return tuple(out)
 
 
