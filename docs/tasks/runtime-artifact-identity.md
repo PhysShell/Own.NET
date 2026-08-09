@@ -130,3 +130,43 @@ in one place, before either side is edited.
 Record now, implement **after** the established boundary/gate work in flight.
 This is explicitly not a blocker for the current PR sequence, and inserting it
 there would turn a small fix into a detour.
+
+### This file is the canonical surface — deliberately no issue yet
+
+The lifecycle, decided when this spec was filed:
+
+```text
+finding            → docs/notes/leaf-dmir-assessment.md
+demonstrated defect → THIS FILE  (spec, ready to implement)
+                      ── no GitHub issue at this stage ──
+boundary/gate work done, task enters the execution queue
+                    → thin GitHub issue (execution handle only)
+                    → implementation PR
+                    → this spec becomes the historical record
+```
+
+**No issue exists today, on purpose.** Filing one now would create a second
+status surface for work we are deliberately not scheduling, and two copies of
+scope/acceptance to drift apart — the exact defect this task exists to fix,
+reproduced in our own process.
+
+There is a second reason to wait: §6 notes this spans both repositories and that
+the heap-retention compatibility decision must be taken once, up front. Both
+trees will move before this starts, so freezing execution metadata today buys
+stale dependencies.
+
+**When it is scheduled**, the issue is a *handle*, not a specification — it must
+not restate scope or acceptance:
+
+```text
+Title: Enforce runtime artifact family identity and major-version validation
+
+Canonical spec: docs/tasks/runtime-artifact-identity.md
+Why now:        the sequenced boundary/gate work is complete; entering the queue.
+Scope/acceptance: normative in the task spec. Do not duplicate here.
+Depends/sequencing: <actual state at scheduling time>
+Implementation PR: TBD
+```
+
+That keeps GitHub's real advantages — assignability, labels/milestone, queue
+position, PR linkage, closure — without minting a second normative document.
