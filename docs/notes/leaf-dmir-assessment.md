@@ -82,16 +82,35 @@ pretend they are one datatype.
 ### Measured against the tree, the question is already overdue
 
 The natural framing — "decide before the second dynamic consumer" — is **too
-late by two consumers**. `Own.NET/audit/runtime/` already contains four C#
-collectors:
+late by two consumers**. There are **five runtime-evidence producer
+implementations across the two repositories**: four under
+`Own.NET/audit/runtime/`, plus the lift-out producer in
+`OwnAudit/src/OwnAudit.Runtime`.
 
-| collector | output | schema field |
-|---|---|---|
-| `RetentionPath` | `runtime.json` | `"own-runtime/1"` |
-| `OwnAudit/src/OwnAudit.Runtime` (`RuntimeReport.cs`) | `runtime.json` | `"ownAudit/runtime/v1"` |
-| `LeakHarness` | `artifacts/own-audit/leak-harness.json` | none |
-| `DuplicateDetector` | `artifacts/own-audit/duplicate-detector.json` | none |
-| `PropertyChangedStorm` | `artifacts/own-audit/propertychanged-storm.json` | none |
+"Collector" is the wrong word for them, and the distinction is load-bearing
+rather than pedantic — it decides which layer a new contract belongs to.
+Verified by the APIs each one actually calls:
+
+| runtime evidence producer | acquisition it performs | material it interprets | output | schema field |
+|---|---|---|---|---|
+| `RetentionPath` | `AttachToProcess`, `procdump` | live CLR **or** `.dmp` | `runtime.json` | `"own-runtime/1"` |
+| `OwnAudit.Runtime` (`RuntimeReport.cs`) | stand-side collector | live heap | `runtime.json` | `"ownAudit/runtime/v1"` |
+| `LeakHarness` | `procdump` (orchestrates the scenario) | `.dmp` | `leak-harness.json` | none |
+| `DuplicateDetector` | `procdump` (optional) | `.dmp` | `duplicate-detector.json` | none |
+| `PropertyChangedStorm` | **none** | `.etl` captured externally | `propertychanged-storm.json` | none |
+
+`PropertyChangedStorm` is the clean case: it opens an `ETWTraceEventSource` over
+an `.etl` that PerfView/xperf/logman captured against the target's
+`OwnNet-Sematix-INPC` EventSource. It acquires nothing. So the real layering is
+**acquisition** (live attach / `.dmp` / `.etl`) → **interpretation** → 
+**analysis-facing artifact** → `correlate.py` / `ingest.py` → SARIF.
+
+That reframes takeaway (b) more sharply than "one substrate, many analyzers":
+*the acquisition representation need not — and should not — be the evidence
+representation.* A `.dmp` and an `.etl` are already good acquisition substrates
+for their jobs; turning them into a universal runtime-event JSON would unify the
+wrong layer. The thing worth sharing is a **runtime artifact contract**, not a
+collection substrate.
 
 So [`Plan.md`](../../Plan.md) categories 6 (PropertyChanged storms) and 11
 (duplicate immutable heap data, flagged there as *"the project's gold"*) are not
@@ -121,24 +140,70 @@ which is a reasonable forward-compat choice. The risk is latent and the fix is
 cheap *now*, which is exactly the argument for settling it before a fourth
 consumer inherits the ambiguity.
 
-### On the proposed shape
+### The cheap next step is versioning, not unification
 
-The hybrid — a shared envelope carrying capture/process/runtime/scenario
-identity, collector fingerprint, config digest and provenance, with
-**typed-distinct** `HeapSnapshotEvidence` vs `EventTraceEvidence` payloads — is
-the right instinct, and finding (b) above is why: snapshot and trace genuinely
-are different datatypes.
+A shared envelope carrying capture/process/scenario identity, producer
+fingerprint, config digest and provenance, with typed-distinct payloads, is the
+right *destination*. It is the wrong *first move*: it designs commonality up
+front, which is precisely the mistake Leaf avoids. Leaf's lesson is **define the
+boundary first, derive the representation second**.
 
-One caution, from finding (2) rather than from taste. Putting
-**completeness/refusal into the envelope** collides with the contract we already
-have. Today the rule is binary and out-of-band: exit 2, and **no artifact at
-all** — *"there is no verdict to record"*. Adding a `completeness: PARTIAL`
-field creates, for the first time, a valid artifact that is admittedly
-incomplete. That may well be worth it for an event trace, where partial capture
-is normal rather than exceptional. But it is a **weakening of a fail-closed
-invariant**, not a free addition, and it should be decided deliberately —
-per-payload-family, most likely — rather than inherited from a Rust paper whose
-gaps are a property of selective instrumentation we do not do.
+So the minimal work that closes the real hole found above, in order:
+
+1. **Every analysis-facing artifact gets its own mandatory schema identity** —
+   one per family, e.g. `heap-retention`, `leak-growth`,
+   `duplicate-immutable`, `propertychanged-storm` (names illustrative, not
+   normative). Today four of the five producers emit no version at all.
+2. **Readers must validate family and major version.** Tolerant of unknown
+   *fields*, intolerant of unknown *identity*:
+
+   | input | verdict |
+   |---|---|
+   | known family + known major + unknown extra fields | accept |
+   | missing schema | reject |
+   | wrong artifact family | reject |
+   | unknown major | reject |
+
+   This is the actual gap. `correlate()` currently takes a `dict` and
+   structurally duck-types it on `retained`/`type`/`count`/… — so *any* JSON
+   containing a `retained` array is treated as the contract.
+3. **Only then extract the envelope**, from commonality *proven* by four
+   shipped schemas rather than drawn in advance. Fields have to earn the right
+   to be called common.
+
+This closes the found defect now, changes no fail-closed semantics, and commits
+to no universal-envelope architecture.
+
+### Split `completeness` into three orthogonal things
+
+The caution raised earlier resolves cleanly once the word is broken up. These
+are three different states and are currently drifting toward one label:
+
+- **Collection outcome.** Success → an artifact may exist. Refusal or failure →
+  exit 2 and the artifact **must not** exist. *The existing fail-closed
+  invariant, unchanged.*
+- **Artifact validity.** Given an artifact: known schema, required fields,
+  well-formed, producer contract satisfied → valid, else reject. *This is the
+  layer that is missing today* (step 2 above).
+- **Evidence coverage.** Belongs to the **artifact family**, not to a global
+  enum. For heap retention the family contract can simply be
+  total-or-no-artifact — no `PARTIAL` ever. For an ETW trace the physics differ
+  and coverage is real data: capture interval, events lost, buffers lost, trace
+  truncated, provider-enabled interval. A valid storm artifact can legitimately
+  rest on a bounded trace if the claim it makes is bounded accordingly.
+
+That keeps "refusal → no artifact" intact, because *collector refused* and
+*collector succeeded over bounded observation* are different states, not two
+shades of one. The invariant to write down:
+
+> **Artifact existence proves successful execution of its producer contract,
+> not completeness of every possible observation. Coverage semantics belong to
+> the artifact family and must never be inferred from artifact existence
+> alone.**
+
+This is strictly better than a global `"completeness": "PARTIAL"`, which within
+a year means five different things per producer and then grows a
+`PARTIAL_BUT_USABLE`.
 
 ## The invariant worth stating separately
 
