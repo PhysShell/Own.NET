@@ -630,7 +630,10 @@ hardening is what made the verdict seam cheap — and the CFG seam has since bee
 
 ## Migration strategy (strangler-fig, bottom-up, oracle-gated)
 
-*(Status markers reconciled per #251; the plan text is otherwise as designed.)*
+*(The plan text is as designed; only the status markers are maintained. They
+track the checkpoint table above — that table is the single reconciled surface,
+and these markers are a second view of it, not a second source. Where the two
+disagree, the table wins and this list is stale.)*
 
 0. ✅ **Add the missing Python seams first**: a canonical `cfg --format json` export
    (and the exact diff harness, `scripts/oracle_exact.py`). Without these the ratchet
@@ -643,17 +646,22 @@ hardening is what made the verdict seam cheap — and the CFG seam has since bee
    diff diagnostics (no evidence) → then evidence → then SARIF, layer by layer.
    (#214 / PR #249 — the analysis heart; `own-diagnostics` shipped as its
    data-only layer.)
-5. **`own-diagnostics` (messages/Evidence — #255), report/SARIF (#256) +
+5. ◑ **`own-diagnostics` (messages/Evidence — #255), report/SARIF (#256) +
    `own-codegen` (#257)**: SARIF/report/text and C# `emit`; diff each.
-6. **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
-   interprocedural inference, verdict mapping. **Prerequisite:** the normative
-   write-up of the inference semantics (consume/borrow/fresh/alias/overwrite rules)
-   from the tech-debt register, so the port has a spec and not just
-   `test_ownir.py` examples — written as `spec/Bridge.md` +
-   `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`),
-   landing with PR #297 after independent review; implementation is #259 and
-   starts only after that review gate. Diff on the OwnIR fixtures +
-   `ownir --format sarif`.
+   ✅ #255 and #256 are complete (`own_diagnostics` carries the full normalized
+   contract and the canonical SARIF projection). #257 has not started — it is
+   *ready* and independent of the analysis path, which is why this step is a
+   partial and not a tick.
+6. ◑ **`own-bridge`**: port the OwnIR bridge — facts→core lowering, the MOS
+   interprocedural inference, verdict mapping. **Prerequisite satisfied:** the
+   normative write-up of the inference semantics
+   (consume/borrow/fresh/alias/overwrite rules) from the tech-debt register, so
+   the port has a spec and not just `test_ownir.py` examples — `spec/Bridge.md`
+   + `spec/BridgeBehaviorMatrix.md` (#258, composing `spec/Inference.md`),
+   merged via PR #297. Implementation #259 is underway: cp1 strict-door
+   validation complete, cp2 lowering complete, cp3 MOS complete for the stage-1
+   domain, cp4 analysis wiring next, cp5 full fact-to-verdict parity after cp4.
+   Diff on the OwnIR fixtures + `ownir --format sarif`.
 7. **`own-cli`**: cut over once corpus parity is ~100% (shadow mode #260 with
    #269's AnalysisTrace, then the CLI #261). Keep Python frozen as the
    oracle/spec.
