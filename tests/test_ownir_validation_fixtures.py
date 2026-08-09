@@ -63,27 +63,35 @@ consequences worth stating, because both look like inconsistencies otherwise:
   exact substitution the taxonomy exists to prevent. Seven categories are not
   worse than six; a false one is worse than both.
 
-## Integer width: measured, and deliberately not covered here
+## The two families this ledger used to exclude
 
-Python integers are unbounded. Every `line`-like and `column`-like field in
-`load()` accepts values far beyond 64 bits — measured across `services[].line`,
-`ctor_line`, `root_resolve_sites[].line`, `effects[].line`,
-`bindings[].line`, `params[].line`, `protocol_functions[].events[].line`,
-`subscriptions[].column`, `params[].column` and flow-op `column`. All accept
-`i64::MAX + 1`, `u64::MAX`, `u64::MAX + 1` and below `i64::MIN`. The single
-exception is `ownir_version`, rejected for its *value*, not its width.
+Python integers are unbounded and Python recursion is bounded only by the
+interpreter stack, so the reference accepted source coordinates and nesting
+depths no other consumer could represent. Measured across `services[].line`,
+`ctor_line`, `root_resolve_sites[].line`, `scope_cache_sites[].line`,
+`effects[].line`, `bindings[].line`, `params[].line`,
+`protocol_functions[].events[].line`, `subscriptions[].column`,
+`params[].column` and flow-op `column`: all accepted `i64::MAX + 1`,
+`u64::MAX`, `u64::MAX + 1` and below `i64::MIN`, and the reference took two
+hundred levels of event nesting. Rust refused all of it.
 
-Rust rejects all of them. That is a real Python-accept/Rust-reject divergence
-across seven field families, not one stray column.
+An earlier revision of this file pinned the boundary at `i64::MAX`, where both
+sides agreed, and said so honestly — but a ledger that removes the cases where
+the two implementations are known to disagree reports `0/0/0` over a set
+selected for producing it. That is not the parity #259 asks for.
 
-It is **not** closed by widening Rust: threading arbitrary-precision integers
-through `own-ir` and then the bridge, so that a source coordinate of nine
-quintillion can round-trip, would be an expensive way to honour a file no
-extractor can produce. The controls here therefore pin the boundary at
-`i64::MAX`, where both sides agree, and stop. Closing the range above it is a
-Python-first change — a documented defensive limit on source-coordinate
-integers, which is what #259 asks for on externally supplied input — and lands
-separately. This ledger is regenerated against that once it exists.
+Neither family was closed by widening Rust. Threading arbitrary-precision
+integers and an unbounded stack through `own-ir` so a coordinate of nine
+quintillion can round-trip would spread the accident rather than remove it.
+Both were closed **Python-first** in #326: signed-64 coordinates and a
+32-level nesting limit, written into `spec/OwnIR.md` §4.2 as defensive limits
+on externally supplied structure. Both families are now controls here.
+
+The one thing still not covered is stated where it lives:
+`components[].subscriptions[].line` and flow-op `line` are validated **nowhere**
+by `load()`, not even for type, and both implementations agree about that. It
+is an open contract question recorded in §4.2, not a parity gap, and inventing
+a control for it here would be inventing a rule neither loader has.
 
 ## What is compared, and what deliberately is not
 
@@ -147,18 +155,45 @@ CASE_KEYS = {"name", "why", "section", "document", "raw", "verdict",
 CATEGORIES = {
     "json": "the document is not JSON at all",
     "version": "the `ownir_version` gate — type or value",
-    "shape": "right place, wrong JSON type or container shape",
+    "shape": ("right place, but the value has no representable primitive or "
+              "container form the contract requires"),
     "vocabulary": "right JSON type, value outside a closed set",
     "identity": "a name slot — empty, mistyped, or duplicated",
-    "location": "a source coordinate violating the 1-based contract",
+    "location": ("a REPRESENTABLE source coordinate violating its "
+                 "coordinate-domain rule — currently the 1-based column"),
     "well_formedness": ("right types, legal vocabulary, and the record still "
                         "cannot mean anything"),
 }
 
-# The largest integer both loaders accept. Above it Python keeps going and Rust
-# stops; see "Integer width" in the module docstring for the measurement and why
-# that boundary is closed elsewhere.
+# The representable integer form of an OwnIR source coordinate (spec/OwnIR.md
+# §4.2). Both loaders accept the closed range and reject everything outside it.
+I64_MIN = -9223372036854775808
 I64_MAX = 9223372036854775807
+
+# Outside the range, and chosen because `serde_json` reaches them by two
+# DIFFERENT routes — which is exactly why the category must not be derived from
+# the route. Measured on a plain `Value`:
+#
+#   i64::MIN - 1   -> f64   (the negative side loses integer-ness immediately)
+#   i64::MAX + 1   -> u64   (an integer still, just not a signed one)
+#   u64::MAX       -> u64
+#   u64::MAX + 1   -> f64
+#
+# There is no negative u64 band, so these are not mirror images. All four are
+# the same contract violation — a value with no representable signed-64 form —
+# and all four are `shape`. Letting the parser's materialisation pick between
+# `shape` and `location` would hand the semantic category back to the
+# implementation, which is the one thing this taxonomy exists to prevent.
+BELOW_I64 = I64_MIN - 1
+ABOVE_I64 = I64_MAX + 1
+U64_MAX = 18446744073709551615
+ABOVE_U64 = U64_MAX + 1
+
+# The nesting limit on flow bodies and event trees (spec/OwnIR.md §4.2), pinned
+# at the limit and one past it. Both numbers are needed: a limit checked before
+# the early return counts bodies that are not there and rejects AT the limit,
+# which is how the reference's own off-by-one was found.
+MAX_NESTING = 32
 
 
 def _c(name: str, section: str, why: str, document: Any,
@@ -231,6 +266,28 @@ def _pfn(**kw: Any) -> dict[str, Any]:
 def _ev(*events: Any) -> dict[str, Any]:
     """A document carrying one protocol function with the given event list."""
     return {"ownir_version": 0, "protocol_functions": [_pfn(events=list(events))]}
+
+
+def _nest_flow(depth: int, key: str) -> dict[str, Any]:
+    """A flow op wrapping an `acquire` in `depth` enclosing bodies.
+
+    `key` is one of `then`/`else`/`body` — three separate recursion sites in
+    the reference, and a limit added to only one of them would still pass a
+    test that nests through `then` alone. `depth` counts the enclosing bodies,
+    so the innermost op sits at level `depth` and the top-level list is 0.
+    """
+    node: dict[str, Any] = {"op": "acquire", "column": 1}
+    for _ in range(depth):
+        node = {"op": "while" if key == "body" else "if", key: [node]}
+    return node
+
+
+def _nest_ev(depth: int, key: str) -> dict[str, Any]:
+    """The same, for an event tree — a second recursion with its own counter."""
+    node: dict[str, Any] = {"ev": "return", "line": 1}
+    for _ in range(depth):
+        node = {"ev": "while" if key == "body" else "if", "line": 1, key: [node]}
+    return node
 
 
 def _controls() -> list[dict[str, Any]]:
@@ -368,12 +425,16 @@ def _controls() -> list[dict[str, Any]]:
             "components": [{"subscriptions": [{"column": -1}]}]}, "location"),
         _c("column-bool", "components",
            "the bool-is-int trap again: `True` would otherwise be accepted as "
-           "column 1 — a fabricated coordinate",
+           "column 1 — a fabricated coordinate. `shape`, not `location`: a "
+           "bool has no integer form, so the 1-based rule never gets a value "
+           "to judge",
            {"ownir_version": 0,
-            "components": [{"subscriptions": [{"column": True}]}]}, "location"),
-        _c("column-string", "components", "a string column is not a coordinate",
+            "components": [{"subscriptions": [{"column": True}]}]}, "shape"),
+        _c("column-string", "components",
+           "a string column has no integer form either — same axis, and the "
+           "reference funnels it through the same message",
            {"ownir_version": 0,
-            "components": [{"subscriptions": [{"column": "3"}]}]}, "location"),
+            "components": [{"subscriptions": [{"column": "3"}]}]}, "shape"),
 
         # ---- services --------------------------------------------------------
         _c("services-not-array", "services", "`services` must be an array of objects",
@@ -647,10 +708,12 @@ def _controls() -> list[dict[str, Any]]:
            {"ownir_version": 0,
             "functions": [{"body": [{"op": "acquire", "column": -2}]}]},
            "location"),
-        _c("flow-column-bool", "functions", "…and the bool-is-int trap",
+        _c("flow-column-bool", "functions",
+           "…and the bool-is-int trap, which is a representability failure "
+           "wherever it appears",
            {"ownir_version": 0,
             "functions": [{"body": [{"op": "acquire", "column": True}]}]},
-           "location"),
+           "shape"),
         _c("flow-column-in-if-then", "functions",
            "recursion into `then` — a hoisted branch acquire",
            {"ownir_version": 0, "functions": [{"body": [
@@ -686,14 +749,16 @@ def _controls() -> list[dict[str, Any]]:
            {"ownir_version": 0,
             "functions": [{"params": [{"name": "p", "column": -1}]}]},
            "location"),
-        _c("param-column-bool", "functions", "…and the bool-is-int trap",
+        _c("param-column-bool", "functions",
+           "…and the bool-is-int trap on the third call site",
            {"ownir_version": 0,
             "functions": [{"params": [{"name": "p", "column": True}]}]},
-           "location"),
-        _c("param-column-string", "functions", "…and a string is no coordinate",
+           "shape"),
+        _c("param-column-string", "functions",
+           "…and a string, which has no integer form to be 1-based about",
            {"ownir_version": 0,
             "functions": [{"params": [{"name": "p", "column": "3"}]}]},
-           "location"),
+           "shape"),
 
         # ---- protocols: the acceptance grammar ------------------------------
         # `load()` delegates each record to the shared obligation parser
@@ -998,12 +1063,19 @@ def _controls() -> list[dict[str, Any]]:
            {"ownir_version": 0,
             "services": [_svc(scope_cache_sites=[{"line": True}])]}, "shape"),
 
-        # ---- integer boundaries both loaders agree on ------------------------
-        # Pinned at i64::MAX, where they still agree. Above it Python keeps
-        # accepting and Rust stops; see "Integer width" in the module docstring.
+        # ---- coordinate representability (spec/OwnIR.md §4.2) ----------------
+        # This family was measured and DELIBERATELY EXCLUDED from the previous
+        # census, because the reference accepted coordinates the port could not
+        # represent. #326 closed that Python-first, so the family belongs in
+        # the ledger now — and "0/0/0 over a set with a known divergence
+        # removed from it" stops being the result on offer.
         _c("accept-line-at-i64-max", "services",
-           "the largest line both loaders accept",
+           "the largest representable line",
            {"ownir_version": 0, "services": [_svc(line=I64_MAX)]}, None),
+        _c("accept-line-at-i64-min", "services",
+           "…and the smallest, because the range is closed at BOTH ends and a "
+           "port that bounded only the top would pass a one-sided test",
+           {"ownir_version": 0, "services": [_svc(line=I64_MIN)]}, None),
         _c("accept-column-at-i64-max", "components",
            "…and the largest column",
            {"ownir_version": 0,
@@ -1014,13 +1086,132 @@ def _controls() -> list[dict[str, Any]]:
            {"ownir_version": 0, "services": [_svc(line=-5)]}, None),
         _c("accept-zero-line", "services", "…and zero is the line default",
            {"ownir_version": 0, "services": [_svc(line=0)]}, None),
-        _c("column-float", "components",
-           "a float is not an integer coordinate even when it is whole",
-           {"ownir_version": 0,
-            "components": [{"subscriptions": [{"column": 1.0}]}]}, "location"),
-        _c("service-line-float", "services",
-           "…and the same for a line, where it is a shape failure instead",
+
+        # One step past each end, and both ends of the u64 band. The four
+        # values reach a `serde_json::Value` by two different routes (see
+        # BELOW_I64 above); they are one category because they are one
+        # contract violation.
+        _c("line-below-i64", "services",
+           "one below the range: no representable signed-64 form",
+           {"ownir_version": 0, "services": [_svc(line=BELOW_I64)]}, "shape"),
+        _c("line-above-i64", "services",
+           "…and one above. This is the value that used to escape into serde: "
+           "it is still an integer to the parser, so a raw-layer check written "
+           "as 'is it an integer' waves it through and the typed model refuses "
+           "it afterwards — a rule living in the model instead of the door",
+           {"ownir_version": 0, "services": [_svc(line=ABOVE_I64)]}, "shape"),
+        _c("line-at-u64-max", "services",
+           "…the top of the band that is still integer-shaped to the parser",
+           {"ownir_version": 0, "services": [_svc(line=U64_MAX)]}, "shape"),
+        _c("line-above-u64", "services",
+           "…and past it, where the parser gives up on integer-ness entirely. "
+           "Same verdict, same category, different route: the taxonomy must "
+           "not be able to tell these apart",
+           {"ownir_version": 0, "services": [_svc(line=ABOVE_U64)]}, "shape"),
+        _c("line-float", "services",
+           "a float is not a representable coordinate even when it is whole — "
+           "and it lands in the same branch as `line-above-u64`, which is why "
+           "one category over both is the honest reading rather than a "
+           "convenience",
            {"ownir_version": 0, "services": [_svc(line=1.0)]}, "shape"),
+
+        # Every other validated `line`, at the value that used to escape into
+        # serde. One control per call site, because a shared primitive is only
+        # shared if every site actually calls it.
+        _c("ctor-line-above-i64", "services", "the constructor coordinate",
+           {"ownir_version": 0, "services": [_svc(ctor_line=ABOVE_I64)]},
+           "shape"),
+        _c("site-line-above-i64", "services", "a root-resolve site coordinate",
+           {"ownir_version": 0,
+            "services": [_svc(root_resolve_sites=[{"line": ABOVE_I64}])]},
+           "shape"),
+        _c("scope-cache-site-line-above-i64", "services",
+           "…and the second site array, a separate loop in the reference",
+           {"ownir_version": 0,
+            "services": [_svc(scope_cache_sites=[{"line": ABOVE_I64}])]},
+           "shape"),
+        _c("effect-line-above-i64", "effects", "an effect coordinate",
+           {"ownir_version": 0, "effects": [{"line": ABOVE_I64}]}, "shape"),
+        _c("binding-line-above-i64", "effects", "…and a binding coordinate",
+           {"ownir_version": 0,
+            "effects": [{"bindings": [{"line": ABOVE_I64}]}]}, "shape"),
+        _c("param-line-above-i64", "functions", "a parameter coordinate",
+           {"ownir_version": 0,
+            "functions": [{"params": [{"name": "p", "line": ABOVE_I64}]}]},
+           "shape"),
+        _c("event-line-above-i64", "protocol_functions",
+           "…and an event coordinate, which reaches the bound through the "
+           "shared obligation parser rather than through `load()` directly",
+           {"ownir_version": 0, "protocol_functions": [
+               {"name": "M", "events": [{"ev": "return", "line": ABOVE_I64}]}]},
+           "shape"),
+
+        # `column` carries BOTH axes, which is what makes it the control that
+        # keeps them apart. Out of range is `shape`; in range and below 1 is
+        # `location`. Same field, same reference message, two mechanisms.
+        _c("column-above-i64", "components",
+           "an unrepresentable column is a representability failure…",
+           {"ownir_version": 0,
+            "components": [{"subscriptions": [{"column": ABOVE_I64}]}]},
+           "shape"),
+        _c("column-above-u64", "components", "…by either parser route…",
+           {"ownir_version": 0,
+            "components": [{"subscriptions": [{"column": ABOVE_U64}]}]},
+           "shape"),
+        _c("column-float", "components",
+           "…as is a float, even a whole one. Previously recorded as "
+           "`location` next to `line-float`'s `shape`, with a comment calling "
+           "the difference intentional — the same violation classified two "
+           "ways because the reference raises one message for both and the "
+           "category had been read off the message instead of the mechanism",
+           {"ownir_version": 0,
+            "components": [{"subscriptions": [{"column": 1.0}]}]}, "shape"),
+        _c("accept-column-at-one-still", "components",
+           "…and the 1-based rule still fires for a value that IS "
+           "representable, so the new axis did not swallow the old one",
+           {"ownir_version": 0,
+            "components": [{"subscriptions": [{"column": 1}]}]}, None),
+
+        # ---- nesting depth (spec/OwnIR.md §4.2) ------------------------------
+        # The second deliberately-excluded family. Pinned at the limit and one
+        # past, over both trees and all three recursive keys, because
+        # `then`/`else`/`body` are three separate call sites and a limit added
+        # to one of them would pass a `then`-only test.
+        _c("accept-flow-body-at-limit", "functions",
+           f"a flow body nested exactly {MAX_NESTING} levels is accepted — the "
+           f"boundary case that caught the reference's own off-by-one",
+           {"ownir_version": 0,
+            "functions": [{"body": [_nest_flow(MAX_NESTING, "then")]}]}, None),
+        _c("flow-body-past-limit", "functions",
+           "…and one level further is refused",
+           {"ownir_version": 0,
+            "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "then")]}]},
+           "shape"),
+        _c("flow-body-past-limit-else", "functions", "…through `else` as well",
+           {"ownir_version": 0,
+            "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "else")]}]},
+           "shape"),
+        _c("flow-body-past-limit-while", "functions", "…and through a loop body",
+           {"ownir_version": 0,
+            "functions": [{"body": [_nest_flow(MAX_NESTING + 1, "body")]}]},
+           "shape"),
+        _c("accept-events-at-limit", "protocol_functions",
+           f"an event tree nested exactly {MAX_NESTING} levels is accepted",
+           {"ownir_version": 0, "protocol_functions": [
+               {"name": "M", "events": [_nest_ev(MAX_NESTING, "then")]}]}, None),
+        _c("events-past-limit", "protocol_functions",
+           "…and one level further is refused",
+           {"ownir_version": 0, "protocol_functions": [
+               {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "then")]}]},
+           "shape"),
+        _c("events-past-limit-else", "protocol_functions", "…through `else`…",
+           {"ownir_version": 0, "protocol_functions": [
+               {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "else")]}]},
+           "shape"),
+        _c("events-past-limit-while", "protocol_functions", "…and a loop body",
+           {"ownir_version": 0, "protocol_functions": [
+               {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "body")]}]},
+           "shape"),
     ]
 
 

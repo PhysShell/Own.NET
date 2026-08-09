@@ -4,22 +4,22 @@
   "categories": {
     "json": "the document is not JSON at all",
     "version": "the `ownir_version` gate — type or value",
-    "shape": "right place, wrong JSON type or container shape",
+    "shape": "right place, but the value has no representable primitive or container form the contract requires",
     "vocabulary": "right JSON type, value outside a closed set",
     "identity": "a name slot — empty, mistyped, or duplicated",
-    "location": "a source coordinate violating the 1-based contract",
+    "location": "a REPRESENTABLE source coordinate violating its coordinate-domain rule — currently the 1-based column",
     "well_formedness": "right types, legal vocabulary, and the record still cannot mean anything"
   },
   "totals": {
-    "cases": 193,
-    "accepted": 31,
-    "rejected": 162,
+    "cases": 216,
+    "accepted": 35,
+    "rejected": 181,
     "by_category": {
-      "accepted": 31,
+      "accepted": 35,
       "identity": 22,
       "json": 2,
-      "location": 20,
-      "shape": 91,
+      "location": 14,
+      "shape": 116,
       "version": 7,
       "vocabulary": 18,
       "well_formedness": 2
@@ -608,7 +608,7 @@
     },
     {
       "name": "column-bool",
-      "why": "the bool-is-int trap again: `True` would otherwise be accepted as column 1 — a fabricated coordinate",
+      "why": "the bool-is-int trap again: `True` would otherwise be accepted as column 1 — a fabricated coordinate. `shape`, not `location`: a bool has no integer form, so the 1-based rule never gets a value to judge",
       "section": "components",
       "document": {
         "ownir_version": 0,
@@ -624,12 +624,12 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
+      "category": "shape",
       "message": "subscription 'column' must be a 1-based integer or absent, got True"
     },
     {
       "name": "column-string",
-      "why": "a string column is not a coordinate",
+      "why": "a string column has no integer form either — same axis, and the reference funnels it through the same message",
       "section": "components",
       "document": {
         "ownir_version": 0,
@@ -645,7 +645,7 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
+      "category": "shape",
       "message": "subscription 'column' must be a 1-based integer or absent, got '3'"
     },
     {
@@ -1999,7 +1999,7 @@
     },
     {
       "name": "flow-column-bool",
-      "why": "…and the bool-is-int trap",
+      "why": "…and the bool-is-int trap, which is a representability failure wherever it appears",
       "section": "functions",
       "document": {
         "ownir_version": 0,
@@ -2016,7 +2016,7 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
+      "category": "shape",
       "message": "function body op 'acquire' 'column' must be a 1-based integer or absent, got True"
     },
     {
@@ -2205,7 +2205,7 @@
     },
     {
       "name": "param-column-bool",
-      "why": "…and the bool-is-int trap",
+      "why": "…and the bool-is-int trap on the third call site",
       "section": "functions",
       "document": {
         "ownir_version": 0,
@@ -2222,12 +2222,12 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
+      "category": "shape",
       "message": "parameter 'column' must be a 1-based integer or absent, got True"
     },
     {
       "name": "param-column-string",
-      "why": "…and a string is no coordinate",
+      "why": "…and a string, which has no integer form to be 1-based about",
       "section": "functions",
       "document": {
         "ownir_version": 0,
@@ -2244,7 +2244,7 @@
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
+      "category": "shape",
       "message": "parameter 'column' must be a 1-based integer or absent, got '3'"
     },
     {
@@ -4064,7 +4064,7 @@
     },
     {
       "name": "accept-line-at-i64-max",
-      "why": "the largest line both loaders accept",
+      "why": "the largest representable line",
       "section": "services",
       "document": {
         "ownir_version": 0,
@@ -4073,6 +4073,25 @@
             "name": "S",
             "lifetime": "singleton",
             "line": 9223372036854775807
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-line-at-i64-min",
+      "why": "…and the smallest, because the range is closed at BOTH ends and a port that bounded only the top would pass a one-sided test",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": -9223372036854775808
           }
         ]
       },
@@ -4141,29 +4160,84 @@
       "message": ""
     },
     {
-      "name": "column-float",
-      "why": "a float is not an integer coordinate even when it is whole",
-      "section": "components",
+      "name": "line-below-i64",
+      "why": "one below the range: no representable signed-64 form",
+      "section": "services",
       "document": {
         "ownir_version": 0,
-        "components": [
+        "services": [
           {
-            "subscriptions": [
-              {
-                "column": 1.0
-              }
-            ]
+            "name": "S",
+            "lifetime": "singleton",
+            "line": -9223372036854775809
           }
         ]
       },
       "raw": false,
       "verdict": "reject",
-      "category": "location",
-      "message": "subscription 'column' must be a 1-based integer or absent, got 1.0"
+      "category": "shape",
+      "message": "service 'line' must fit a signed 64-bit integer, got -9223372036854775809 (spec/OwnIR.md §4.2)"
     },
     {
-      "name": "service-line-float",
-      "why": "…and the same for a line, where it is a shape failure instead",
+      "name": "line-above-i64",
+      "why": "…and one above. This is the value that used to escape into serde: it is still an integer to the parser, so a raw-layer check written as 'is it an integer' waves it through and the typed model refuses it afterwards — a rule living in the model instead of the door",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 9223372036854775808
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "line-at-u64-max",
+      "why": "…the top of the band that is still integer-shaped to the parser",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 18446744073709551615
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'line' must fit a signed 64-bit integer, got 18446744073709551615 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "line-above-u64",
+      "why": "…and past it, where the parser gives up on integer-ness entirely. Same verdict, same category, different route: the taxonomy must not be able to tell these apart",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "line": 18446744073709551616
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'line' must fit a signed 64-bit integer, got 18446744073709551616 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "line-float",
+      "why": "a float is not a representable coordinate even when it is whole — and it lands in the same branch as `line-above-u64`, which is why one category over both is the honest reading rather than a convenience",
       "section": "services",
       "document": {
         "ownir_version": 0,
@@ -4179,6 +4253,1859 @@
       "verdict": "reject",
       "category": "shape",
       "message": "service 'line' must be an integer"
+    },
+    {
+      "name": "ctor-line-above-i64",
+      "why": "the constructor coordinate",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "ctor_line": 9223372036854775808
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service 'ctor_line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "site-line-above-i64",
+      "why": "a root-resolve site coordinate",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "root_resolve_sites": [
+              {
+                "line": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service root_resolve_site 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "scope-cache-site-line-above-i64",
+      "why": "…and the second site array, a separate loop in the reference",
+      "section": "services",
+      "document": {
+        "ownir_version": 0,
+        "services": [
+          {
+            "name": "S",
+            "lifetime": "singleton",
+            "scope_cache_sites": [
+              {
+                "line": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "service scope_cache_site 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "effect-line-above-i64",
+      "why": "an effect coordinate",
+      "section": "effects",
+      "document": {
+        "ownir_version": 0,
+        "effects": [
+          {
+            "line": 9223372036854775808
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "effect 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "binding-line-above-i64",
+      "why": "…and a binding coordinate",
+      "section": "effects",
+      "document": {
+        "ownir_version": 0,
+        "effects": [
+          {
+            "bindings": [
+              {
+                "line": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "binding 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "param-line-above-i64",
+      "why": "a parameter coordinate",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "params": [
+              {
+                "name": "p",
+                "line": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "parameter 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "event-line-above-i64",
+      "why": "…and an event coordinate, which reaches the bound through the shared obligation parser rather than through `load()` directly",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "return",
+                "line": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': 'line' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "column-above-i64",
+      "why": "an unrepresentable column is a representability failure…",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 9223372036854775808
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "subscription 'column' must fit a signed 64-bit integer, got 9223372036854775808 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "column-above-u64",
+      "why": "…by either parser route…",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 18446744073709551616
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "subscription 'column' must fit a signed 64-bit integer, got 18446744073709551616 (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "column-float",
+      "why": "…as is a float, even a whole one. Previously recorded as `location` next to `line-float`'s `shape`, with a comment calling the difference intentional — the same violation classified two ways because the reference raises one message for both and the category had been read off the message instead of the mechanism",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "subscription 'column' must be a 1-based integer or absent, got 1.0"
+    },
+    {
+      "name": "accept-column-at-one-still",
+      "why": "…and the 1-based rule still fires for a value that IS representable, so the new axis did not swallow the old one",
+      "section": "components",
+      "document": {
+        "ownir_version": 0,
+        "components": [
+          {
+            "subscriptions": [
+              {
+                "column": 1
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "accept-flow-body-at-limit",
+      "why": "a flow body nested exactly 32 levels is accepted — the boundary case that caught the reference's own off-by-one",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "then": [
+                  {
+                    "op": "if",
+                    "then": [
+                      {
+                        "op": "if",
+                        "then": [
+                          {
+                            "op": "if",
+                            "then": [
+                              {
+                                "op": "if",
+                                "then": [
+                                  {
+                                    "op": "if",
+                                    "then": [
+                                      {
+                                        "op": "if",
+                                        "then": [
+                                          {
+                                            "op": "if",
+                                            "then": [
+                                              {
+                                                "op": "if",
+                                                "then": [
+                                                  {
+                                                    "op": "if",
+                                                    "then": [
+                                                      {
+                                                        "op": "if",
+                                                        "then": [
+                                                          {
+                                                            "op": "if",
+                                                            "then": [
+                                                              {
+                                                                "op": "if",
+                                                                "then": [
+                                                                  {
+                                                                    "op": "if",
+                                                                    "then": [
+                                                                      {
+                                                                        "op": "if",
+                                                                        "then": [
+                                                                          {
+                                                                            "op": "if",
+                                                                            "then": [
+                                                                              {
+                                                                                "op": "if",
+                                                                                "then": [
+                                                                                  {
+                                                                                    "op": "if",
+                                                                                    "then": [
+                                                                                      {
+                                                                                        "op": "if",
+                                                                                        "then": [
+                                                                                          {
+                                                                                            "op": "if",
+                                                                                            "then": [
+                                                                                              {
+                                                                                                "op": "if",
+                                                                                                "then": [
+                                                                                                  {
+                                                                                                    "op": "if",
+                                                                                                    "then": [
+                                                                                                      {
+                                                                                                        "op": "if",
+                                                                                                        "then": [
+                                                                                                          {
+                                                                                                            "op": "if",
+                                                                                                            "then": [
+                                                                                                              {
+                                                                                                                "op": "if",
+                                                                                                                "then": [
+                                                                                                                  {
+                                                                                                                    "op": "if",
+                                                                                                                    "then": [
+                                                                                                                      {
+                                                                                                                        "op": "if",
+                                                                                                                        "then": [
+                                                                                                                          {
+                                                                                                                            "op": "if",
+                                                                                                                            "then": [
+                                                                                                                              {
+                                                                                                                                "op": "if",
+                                                                                                                                "then": [
+                                                                                                                                  {
+                                                                                                                                    "op": "if",
+                                                                                                                                    "then": [
+                                                                                                                                      {
+                                                                                                                                        "op": "if",
+                                                                                                                                        "then": [
+                                                                                                                                          {
+                                                                                                                                            "op": "if",
+                                                                                                                                            "then": [
+                                                                                                                                              {
+                                                                                                                                                "op": "acquire",
+                                                                                                                                                "column": 1
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "flow-body-past-limit",
+      "why": "…and one level further is refused",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "then": [
+                  {
+                    "op": "if",
+                    "then": [
+                      {
+                        "op": "if",
+                        "then": [
+                          {
+                            "op": "if",
+                            "then": [
+                              {
+                                "op": "if",
+                                "then": [
+                                  {
+                                    "op": "if",
+                                    "then": [
+                                      {
+                                        "op": "if",
+                                        "then": [
+                                          {
+                                            "op": "if",
+                                            "then": [
+                                              {
+                                                "op": "if",
+                                                "then": [
+                                                  {
+                                                    "op": "if",
+                                                    "then": [
+                                                      {
+                                                        "op": "if",
+                                                        "then": [
+                                                          {
+                                                            "op": "if",
+                                                            "then": [
+                                                              {
+                                                                "op": "if",
+                                                                "then": [
+                                                                  {
+                                                                    "op": "if",
+                                                                    "then": [
+                                                                      {
+                                                                        "op": "if",
+                                                                        "then": [
+                                                                          {
+                                                                            "op": "if",
+                                                                            "then": [
+                                                                              {
+                                                                                "op": "if",
+                                                                                "then": [
+                                                                                  {
+                                                                                    "op": "if",
+                                                                                    "then": [
+                                                                                      {
+                                                                                        "op": "if",
+                                                                                        "then": [
+                                                                                          {
+                                                                                            "op": "if",
+                                                                                            "then": [
+                                                                                              {
+                                                                                                "op": "if",
+                                                                                                "then": [
+                                                                                                  {
+                                                                                                    "op": "if",
+                                                                                                    "then": [
+                                                                                                      {
+                                                                                                        "op": "if",
+                                                                                                        "then": [
+                                                                                                          {
+                                                                                                            "op": "if",
+                                                                                                            "then": [
+                                                                                                              {
+                                                                                                                "op": "if",
+                                                                                                                "then": [
+                                                                                                                  {
+                                                                                                                    "op": "if",
+                                                                                                                    "then": [
+                                                                                                                      {
+                                                                                                                        "op": "if",
+                                                                                                                        "then": [
+                                                                                                                          {
+                                                                                                                            "op": "if",
+                                                                                                                            "then": [
+                                                                                                                              {
+                                                                                                                                "op": "if",
+                                                                                                                                "then": [
+                                                                                                                                  {
+                                                                                                                                    "op": "if",
+                                                                                                                                    "then": [
+                                                                                                                                      {
+                                                                                                                                        "op": "if",
+                                                                                                                                        "then": [
+                                                                                                                                          {
+                                                                                                                                            "op": "if",
+                                                                                                                                            "then": [
+                                                                                                                                              {
+                                                                                                                                                "op": "if",
+                                                                                                                                                "then": [
+                                                                                                                                                  {
+                                                                                                                                                    "op": "acquire",
+                                                                                                                                                    "column": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function body nested deeper than 32 levels (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "flow-body-past-limit-else",
+      "why": "…through `else` as well",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "if",
+                "else": [
+                  {
+                    "op": "if",
+                    "else": [
+                      {
+                        "op": "if",
+                        "else": [
+                          {
+                            "op": "if",
+                            "else": [
+                              {
+                                "op": "if",
+                                "else": [
+                                  {
+                                    "op": "if",
+                                    "else": [
+                                      {
+                                        "op": "if",
+                                        "else": [
+                                          {
+                                            "op": "if",
+                                            "else": [
+                                              {
+                                                "op": "if",
+                                                "else": [
+                                                  {
+                                                    "op": "if",
+                                                    "else": [
+                                                      {
+                                                        "op": "if",
+                                                        "else": [
+                                                          {
+                                                            "op": "if",
+                                                            "else": [
+                                                              {
+                                                                "op": "if",
+                                                                "else": [
+                                                                  {
+                                                                    "op": "if",
+                                                                    "else": [
+                                                                      {
+                                                                        "op": "if",
+                                                                        "else": [
+                                                                          {
+                                                                            "op": "if",
+                                                                            "else": [
+                                                                              {
+                                                                                "op": "if",
+                                                                                "else": [
+                                                                                  {
+                                                                                    "op": "if",
+                                                                                    "else": [
+                                                                                      {
+                                                                                        "op": "if",
+                                                                                        "else": [
+                                                                                          {
+                                                                                            "op": "if",
+                                                                                            "else": [
+                                                                                              {
+                                                                                                "op": "if",
+                                                                                                "else": [
+                                                                                                  {
+                                                                                                    "op": "if",
+                                                                                                    "else": [
+                                                                                                      {
+                                                                                                        "op": "if",
+                                                                                                        "else": [
+                                                                                                          {
+                                                                                                            "op": "if",
+                                                                                                            "else": [
+                                                                                                              {
+                                                                                                                "op": "if",
+                                                                                                                "else": [
+                                                                                                                  {
+                                                                                                                    "op": "if",
+                                                                                                                    "else": [
+                                                                                                                      {
+                                                                                                                        "op": "if",
+                                                                                                                        "else": [
+                                                                                                                          {
+                                                                                                                            "op": "if",
+                                                                                                                            "else": [
+                                                                                                                              {
+                                                                                                                                "op": "if",
+                                                                                                                                "else": [
+                                                                                                                                  {
+                                                                                                                                    "op": "if",
+                                                                                                                                    "else": [
+                                                                                                                                      {
+                                                                                                                                        "op": "if",
+                                                                                                                                        "else": [
+                                                                                                                                          {
+                                                                                                                                            "op": "if",
+                                                                                                                                            "else": [
+                                                                                                                                              {
+                                                                                                                                                "op": "if",
+                                                                                                                                                "else": [
+                                                                                                                                                  {
+                                                                                                                                                    "op": "acquire",
+                                                                                                                                                    "column": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function body nested deeper than 32 levels (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "flow-body-past-limit-while",
+      "why": "…and through a loop body",
+      "section": "functions",
+      "document": {
+        "ownir_version": 0,
+        "functions": [
+          {
+            "body": [
+              {
+                "op": "while",
+                "body": [
+                  {
+                    "op": "while",
+                    "body": [
+                      {
+                        "op": "while",
+                        "body": [
+                          {
+                            "op": "while",
+                            "body": [
+                              {
+                                "op": "while",
+                                "body": [
+                                  {
+                                    "op": "while",
+                                    "body": [
+                                      {
+                                        "op": "while",
+                                        "body": [
+                                          {
+                                            "op": "while",
+                                            "body": [
+                                              {
+                                                "op": "while",
+                                                "body": [
+                                                  {
+                                                    "op": "while",
+                                                    "body": [
+                                                      {
+                                                        "op": "while",
+                                                        "body": [
+                                                          {
+                                                            "op": "while",
+                                                            "body": [
+                                                              {
+                                                                "op": "while",
+                                                                "body": [
+                                                                  {
+                                                                    "op": "while",
+                                                                    "body": [
+                                                                      {
+                                                                        "op": "while",
+                                                                        "body": [
+                                                                          {
+                                                                            "op": "while",
+                                                                            "body": [
+                                                                              {
+                                                                                "op": "while",
+                                                                                "body": [
+                                                                                  {
+                                                                                    "op": "while",
+                                                                                    "body": [
+                                                                                      {
+                                                                                        "op": "while",
+                                                                                        "body": [
+                                                                                          {
+                                                                                            "op": "while",
+                                                                                            "body": [
+                                                                                              {
+                                                                                                "op": "while",
+                                                                                                "body": [
+                                                                                                  {
+                                                                                                    "op": "while",
+                                                                                                    "body": [
+                                                                                                      {
+                                                                                                        "op": "while",
+                                                                                                        "body": [
+                                                                                                          {
+                                                                                                            "op": "while",
+                                                                                                            "body": [
+                                                                                                              {
+                                                                                                                "op": "while",
+                                                                                                                "body": [
+                                                                                                                  {
+                                                                                                                    "op": "while",
+                                                                                                                    "body": [
+                                                                                                                      {
+                                                                                                                        "op": "while",
+                                                                                                                        "body": [
+                                                                                                                          {
+                                                                                                                            "op": "while",
+                                                                                                                            "body": [
+                                                                                                                              {
+                                                                                                                                "op": "while",
+                                                                                                                                "body": [
+                                                                                                                                  {
+                                                                                                                                    "op": "while",
+                                                                                                                                    "body": [
+                                                                                                                                      {
+                                                                                                                                        "op": "while",
+                                                                                                                                        "body": [
+                                                                                                                                          {
+                                                                                                                                            "op": "while",
+                                                                                                                                            "body": [
+                                                                                                                                              {
+                                                                                                                                                "op": "while",
+                                                                                                                                                "body": [
+                                                                                                                                                  {
+                                                                                                                                                    "op": "acquire",
+                                                                                                                                                    "column": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "function body nested deeper than 32 levels (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "accept-events-at-limit",
+      "why": "an event tree nested exactly 32 levels is accepted",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "line": 1,
+                "then": [
+                  {
+                    "ev": "if",
+                    "line": 1,
+                    "then": [
+                      {
+                        "ev": "if",
+                        "line": 1,
+                        "then": [
+                          {
+                            "ev": "if",
+                            "line": 1,
+                            "then": [
+                              {
+                                "ev": "if",
+                                "line": 1,
+                                "then": [
+                                  {
+                                    "ev": "if",
+                                    "line": 1,
+                                    "then": [
+                                      {
+                                        "ev": "if",
+                                        "line": 1,
+                                        "then": [
+                                          {
+                                            "ev": "if",
+                                            "line": 1,
+                                            "then": [
+                                              {
+                                                "ev": "if",
+                                                "line": 1,
+                                                "then": [
+                                                  {
+                                                    "ev": "if",
+                                                    "line": 1,
+                                                    "then": [
+                                                      {
+                                                        "ev": "if",
+                                                        "line": 1,
+                                                        "then": [
+                                                          {
+                                                            "ev": "if",
+                                                            "line": 1,
+                                                            "then": [
+                                                              {
+                                                                "ev": "if",
+                                                                "line": 1,
+                                                                "then": [
+                                                                  {
+                                                                    "ev": "if",
+                                                                    "line": 1,
+                                                                    "then": [
+                                                                      {
+                                                                        "ev": "if",
+                                                                        "line": 1,
+                                                                        "then": [
+                                                                          {
+                                                                            "ev": "if",
+                                                                            "line": 1,
+                                                                            "then": [
+                                                                              {
+                                                                                "ev": "if",
+                                                                                "line": 1,
+                                                                                "then": [
+                                                                                  {
+                                                                                    "ev": "if",
+                                                                                    "line": 1,
+                                                                                    "then": [
+                                                                                      {
+                                                                                        "ev": "if",
+                                                                                        "line": 1,
+                                                                                        "then": [
+                                                                                          {
+                                                                                            "ev": "if",
+                                                                                            "line": 1,
+                                                                                            "then": [
+                                                                                              {
+                                                                                                "ev": "if",
+                                                                                                "line": 1,
+                                                                                                "then": [
+                                                                                                  {
+                                                                                                    "ev": "if",
+                                                                                                    "line": 1,
+                                                                                                    "then": [
+                                                                                                      {
+                                                                                                        "ev": "if",
+                                                                                                        "line": 1,
+                                                                                                        "then": [
+                                                                                                          {
+                                                                                                            "ev": "if",
+                                                                                                            "line": 1,
+                                                                                                            "then": [
+                                                                                                              {
+                                                                                                                "ev": "if",
+                                                                                                                "line": 1,
+                                                                                                                "then": [
+                                                                                                                  {
+                                                                                                                    "ev": "if",
+                                                                                                                    "line": 1,
+                                                                                                                    "then": [
+                                                                                                                      {
+                                                                                                                        "ev": "if",
+                                                                                                                        "line": 1,
+                                                                                                                        "then": [
+                                                                                                                          {
+                                                                                                                            "ev": "if",
+                                                                                                                            "line": 1,
+                                                                                                                            "then": [
+                                                                                                                              {
+                                                                                                                                "ev": "if",
+                                                                                                                                "line": 1,
+                                                                                                                                "then": [
+                                                                                                                                  {
+                                                                                                                                    "ev": "if",
+                                                                                                                                    "line": 1,
+                                                                                                                                    "then": [
+                                                                                                                                      {
+                                                                                                                                        "ev": "if",
+                                                                                                                                        "line": 1,
+                                                                                                                                        "then": [
+                                                                                                                                          {
+                                                                                                                                            "ev": "if",
+                                                                                                                                            "line": 1,
+                                                                                                                                            "then": [
+                                                                                                                                              {
+                                                                                                                                                "ev": "return",
+                                                                                                                                                "line": 1
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "accept",
+      "category": null,
+      "message": ""
+    },
+    {
+      "name": "events-past-limit",
+      "why": "…and one level further is refused",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "line": 1,
+                "then": [
+                  {
+                    "ev": "if",
+                    "line": 1,
+                    "then": [
+                      {
+                        "ev": "if",
+                        "line": 1,
+                        "then": [
+                          {
+                            "ev": "if",
+                            "line": 1,
+                            "then": [
+                              {
+                                "ev": "if",
+                                "line": 1,
+                                "then": [
+                                  {
+                                    "ev": "if",
+                                    "line": 1,
+                                    "then": [
+                                      {
+                                        "ev": "if",
+                                        "line": 1,
+                                        "then": [
+                                          {
+                                            "ev": "if",
+                                            "line": 1,
+                                            "then": [
+                                              {
+                                                "ev": "if",
+                                                "line": 1,
+                                                "then": [
+                                                  {
+                                                    "ev": "if",
+                                                    "line": 1,
+                                                    "then": [
+                                                      {
+                                                        "ev": "if",
+                                                        "line": 1,
+                                                        "then": [
+                                                          {
+                                                            "ev": "if",
+                                                            "line": 1,
+                                                            "then": [
+                                                              {
+                                                                "ev": "if",
+                                                                "line": 1,
+                                                                "then": [
+                                                                  {
+                                                                    "ev": "if",
+                                                                    "line": 1,
+                                                                    "then": [
+                                                                      {
+                                                                        "ev": "if",
+                                                                        "line": 1,
+                                                                        "then": [
+                                                                          {
+                                                                            "ev": "if",
+                                                                            "line": 1,
+                                                                            "then": [
+                                                                              {
+                                                                                "ev": "if",
+                                                                                "line": 1,
+                                                                                "then": [
+                                                                                  {
+                                                                                    "ev": "if",
+                                                                                    "line": 1,
+                                                                                    "then": [
+                                                                                      {
+                                                                                        "ev": "if",
+                                                                                        "line": 1,
+                                                                                        "then": [
+                                                                                          {
+                                                                                            "ev": "if",
+                                                                                            "line": 1,
+                                                                                            "then": [
+                                                                                              {
+                                                                                                "ev": "if",
+                                                                                                "line": 1,
+                                                                                                "then": [
+                                                                                                  {
+                                                                                                    "ev": "if",
+                                                                                                    "line": 1,
+                                                                                                    "then": [
+                                                                                                      {
+                                                                                                        "ev": "if",
+                                                                                                        "line": 1,
+                                                                                                        "then": [
+                                                                                                          {
+                                                                                                            "ev": "if",
+                                                                                                            "line": 1,
+                                                                                                            "then": [
+                                                                                                              {
+                                                                                                                "ev": "if",
+                                                                                                                "line": 1,
+                                                                                                                "then": [
+                                                                                                                  {
+                                                                                                                    "ev": "if",
+                                                                                                                    "line": 1,
+                                                                                                                    "then": [
+                                                                                                                      {
+                                                                                                                        "ev": "if",
+                                                                                                                        "line": 1,
+                                                                                                                        "then": [
+                                                                                                                          {
+                                                                                                                            "ev": "if",
+                                                                                                                            "line": 1,
+                                                                                                                            "then": [
+                                                                                                                              {
+                                                                                                                                "ev": "if",
+                                                                                                                                "line": 1,
+                                                                                                                                "then": [
+                                                                                                                                  {
+                                                                                                                                    "ev": "if",
+                                                                                                                                    "line": 1,
+                                                                                                                                    "then": [
+                                                                                                                                      {
+                                                                                                                                        "ev": "if",
+                                                                                                                                        "line": 1,
+                                                                                                                                        "then": [
+                                                                                                                                          {
+                                                                                                                                            "ev": "if",
+                                                                                                                                            "line": 1,
+                                                                                                                                            "then": [
+                                                                                                                                              {
+                                                                                                                                                "ev": "if",
+                                                                                                                                                "line": 1,
+                                                                                                                                                "then": [
+                                                                                                                                                  {
+                                                                                                                                                    "ev": "return",
+                                                                                                                                                    "line": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': events nested deeper than 32 levels (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "events-past-limit-else",
+      "why": "…through `else`…",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "if",
+                "line": 1,
+                "else": [
+                  {
+                    "ev": "if",
+                    "line": 1,
+                    "else": [
+                      {
+                        "ev": "if",
+                        "line": 1,
+                        "else": [
+                          {
+                            "ev": "if",
+                            "line": 1,
+                            "else": [
+                              {
+                                "ev": "if",
+                                "line": 1,
+                                "else": [
+                                  {
+                                    "ev": "if",
+                                    "line": 1,
+                                    "else": [
+                                      {
+                                        "ev": "if",
+                                        "line": 1,
+                                        "else": [
+                                          {
+                                            "ev": "if",
+                                            "line": 1,
+                                            "else": [
+                                              {
+                                                "ev": "if",
+                                                "line": 1,
+                                                "else": [
+                                                  {
+                                                    "ev": "if",
+                                                    "line": 1,
+                                                    "else": [
+                                                      {
+                                                        "ev": "if",
+                                                        "line": 1,
+                                                        "else": [
+                                                          {
+                                                            "ev": "if",
+                                                            "line": 1,
+                                                            "else": [
+                                                              {
+                                                                "ev": "if",
+                                                                "line": 1,
+                                                                "else": [
+                                                                  {
+                                                                    "ev": "if",
+                                                                    "line": 1,
+                                                                    "else": [
+                                                                      {
+                                                                        "ev": "if",
+                                                                        "line": 1,
+                                                                        "else": [
+                                                                          {
+                                                                            "ev": "if",
+                                                                            "line": 1,
+                                                                            "else": [
+                                                                              {
+                                                                                "ev": "if",
+                                                                                "line": 1,
+                                                                                "else": [
+                                                                                  {
+                                                                                    "ev": "if",
+                                                                                    "line": 1,
+                                                                                    "else": [
+                                                                                      {
+                                                                                        "ev": "if",
+                                                                                        "line": 1,
+                                                                                        "else": [
+                                                                                          {
+                                                                                            "ev": "if",
+                                                                                            "line": 1,
+                                                                                            "else": [
+                                                                                              {
+                                                                                                "ev": "if",
+                                                                                                "line": 1,
+                                                                                                "else": [
+                                                                                                  {
+                                                                                                    "ev": "if",
+                                                                                                    "line": 1,
+                                                                                                    "else": [
+                                                                                                      {
+                                                                                                        "ev": "if",
+                                                                                                        "line": 1,
+                                                                                                        "else": [
+                                                                                                          {
+                                                                                                            "ev": "if",
+                                                                                                            "line": 1,
+                                                                                                            "else": [
+                                                                                                              {
+                                                                                                                "ev": "if",
+                                                                                                                "line": 1,
+                                                                                                                "else": [
+                                                                                                                  {
+                                                                                                                    "ev": "if",
+                                                                                                                    "line": 1,
+                                                                                                                    "else": [
+                                                                                                                      {
+                                                                                                                        "ev": "if",
+                                                                                                                        "line": 1,
+                                                                                                                        "else": [
+                                                                                                                          {
+                                                                                                                            "ev": "if",
+                                                                                                                            "line": 1,
+                                                                                                                            "else": [
+                                                                                                                              {
+                                                                                                                                "ev": "if",
+                                                                                                                                "line": 1,
+                                                                                                                                "else": [
+                                                                                                                                  {
+                                                                                                                                    "ev": "if",
+                                                                                                                                    "line": 1,
+                                                                                                                                    "else": [
+                                                                                                                                      {
+                                                                                                                                        "ev": "if",
+                                                                                                                                        "line": 1,
+                                                                                                                                        "else": [
+                                                                                                                                          {
+                                                                                                                                            "ev": "if",
+                                                                                                                                            "line": 1,
+                                                                                                                                            "else": [
+                                                                                                                                              {
+                                                                                                                                                "ev": "if",
+                                                                                                                                                "line": 1,
+                                                                                                                                                "else": [
+                                                                                                                                                  {
+                                                                                                                                                    "ev": "return",
+                                                                                                                                                    "line": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': events nested deeper than 32 levels (spec/OwnIR.md §4.2)"
+    },
+    {
+      "name": "events-past-limit-while",
+      "why": "…and a loop body",
+      "section": "protocol_functions",
+      "document": {
+        "ownir_version": 0,
+        "protocol_functions": [
+          {
+            "name": "M",
+            "events": [
+              {
+                "ev": "while",
+                "line": 1,
+                "body": [
+                  {
+                    "ev": "while",
+                    "line": 1,
+                    "body": [
+                      {
+                        "ev": "while",
+                        "line": 1,
+                        "body": [
+                          {
+                            "ev": "while",
+                            "line": 1,
+                            "body": [
+                              {
+                                "ev": "while",
+                                "line": 1,
+                                "body": [
+                                  {
+                                    "ev": "while",
+                                    "line": 1,
+                                    "body": [
+                                      {
+                                        "ev": "while",
+                                        "line": 1,
+                                        "body": [
+                                          {
+                                            "ev": "while",
+                                            "line": 1,
+                                            "body": [
+                                              {
+                                                "ev": "while",
+                                                "line": 1,
+                                                "body": [
+                                                  {
+                                                    "ev": "while",
+                                                    "line": 1,
+                                                    "body": [
+                                                      {
+                                                        "ev": "while",
+                                                        "line": 1,
+                                                        "body": [
+                                                          {
+                                                            "ev": "while",
+                                                            "line": 1,
+                                                            "body": [
+                                                              {
+                                                                "ev": "while",
+                                                                "line": 1,
+                                                                "body": [
+                                                                  {
+                                                                    "ev": "while",
+                                                                    "line": 1,
+                                                                    "body": [
+                                                                      {
+                                                                        "ev": "while",
+                                                                        "line": 1,
+                                                                        "body": [
+                                                                          {
+                                                                            "ev": "while",
+                                                                            "line": 1,
+                                                                            "body": [
+                                                                              {
+                                                                                "ev": "while",
+                                                                                "line": 1,
+                                                                                "body": [
+                                                                                  {
+                                                                                    "ev": "while",
+                                                                                    "line": 1,
+                                                                                    "body": [
+                                                                                      {
+                                                                                        "ev": "while",
+                                                                                        "line": 1,
+                                                                                        "body": [
+                                                                                          {
+                                                                                            "ev": "while",
+                                                                                            "line": 1,
+                                                                                            "body": [
+                                                                                              {
+                                                                                                "ev": "while",
+                                                                                                "line": 1,
+                                                                                                "body": [
+                                                                                                  {
+                                                                                                    "ev": "while",
+                                                                                                    "line": 1,
+                                                                                                    "body": [
+                                                                                                      {
+                                                                                                        "ev": "while",
+                                                                                                        "line": 1,
+                                                                                                        "body": [
+                                                                                                          {
+                                                                                                            "ev": "while",
+                                                                                                            "line": 1,
+                                                                                                            "body": [
+                                                                                                              {
+                                                                                                                "ev": "while",
+                                                                                                                "line": 1,
+                                                                                                                "body": [
+                                                                                                                  {
+                                                                                                                    "ev": "while",
+                                                                                                                    "line": 1,
+                                                                                                                    "body": [
+                                                                                                                      {
+                                                                                                                        "ev": "while",
+                                                                                                                        "line": 1,
+                                                                                                                        "body": [
+                                                                                                                          {
+                                                                                                                            "ev": "while",
+                                                                                                                            "line": 1,
+                                                                                                                            "body": [
+                                                                                                                              {
+                                                                                                                                "ev": "while",
+                                                                                                                                "line": 1,
+                                                                                                                                "body": [
+                                                                                                                                  {
+                                                                                                                                    "ev": "while",
+                                                                                                                                    "line": 1,
+                                                                                                                                    "body": [
+                                                                                                                                      {
+                                                                                                                                        "ev": "while",
+                                                                                                                                        "line": 1,
+                                                                                                                                        "body": [
+                                                                                                                                          {
+                                                                                                                                            "ev": "while",
+                                                                                                                                            "line": 1,
+                                                                                                                                            "body": [
+                                                                                                                                              {
+                                                                                                                                                "ev": "while",
+                                                                                                                                                "line": 1,
+                                                                                                                                                "body": [
+                                                                                                                                                  {
+                                                                                                                                                    "ev": "return",
+                                                                                                                                                    "line": 1
+                                                                                                                                                  }
+                                                                                                                                                ]
+                                                                                                                                              }
+                                                                                                                                            ]
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    ]
+                                                                                                                                  }
+                                                                                                                                ]
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        ]
+                                                                                                                      }
+                                                                                                                    ]
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            ]
+                                                                                                          }
+                                                                                                        ]
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                ]
+                                                                                              }
+                                                                                            ]
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                ]
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        ]
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "raw": false,
+      "verdict": "reject",
+      "category": "shape",
+      "message": "protocol function 'M': events nested deeper than 32 levels (spec/OwnIR.md §4.2)"
     }
   ]
 }
