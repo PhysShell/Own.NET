@@ -53,7 +53,7 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 
 | #259 checkpoint | Status | Evidence / what remains |
 |---|---|---|
-| 1 — typed OwnIR validation | **partial** | `OwnIr::from_json` + the #294 OD-2 fail-loud unknown-kind rule. Full validation acceptance/rejection parity (fixture layer 1) is out of the current slice |
+| 1 — typed OwnIR validation | **complete — no known strict-door divergence** | Three censuses. The first froze 77 controls and read 0/0/0 — then review found seven divergences the ledger could not express, because the same author wrote the ledger and the port and one gap in reading BR-D1 produced a matching gap in each (`_svc()` always supplied `lifetime`, so no control could omit it). The second is derived from `load()` and `obligations.py` line by line: **193 controls**, opening a further **58** permissive documents and **9** category mismatches. Closing them was architectural — the strict door is a sequential validator over the raw document (`own-ir/src/strict.rs`) reproducing BR-D1's interleaving of shape and semantics *per section, in declaration order*; `serde` is the typed constructor, and a document it rejects after validation is reported as a hole in the validator and asserted against. The obligation **acceptance grammar** is ported (`own-ir/src/protocol.rs`); protocol *analysis* is not, and is not part of what the door accepts. The third census admitted the two families the second had measured and deliberately excluded — source coordinates beyond signed 64 bits, and nesting depth — once #326 closed them Python-first. That opened 7 permissive documents and 8 more category mismatches, and the classification defect underneath them was the ledger reading its category off the reference's *diagnostic* rather than off the mechanism: `_check_column` raises one message for a bool, a string, a float, an out-of-range integer and a zero alike, so a bool column was filed as a 1-based-contract violation. Taxonomy is **seven** categories on **two axes** — `Shape` is now "no representable primitive or container form", `Location` is "a representable coordinate violating its domain rule", and `WellFormedness` covers records that are typed and vocabulary-legal and still cannot mean anything. **216 controls, matrix 35/181, 0/0/0**, no control escaping into serde; 48 mutations across the three rounds, all caught. #294 OD-2 remains a separate tolerant-door concern |
 | 2 — fact lowering | **complete** | `lower()` → `own_lowered`; **27/27** `rust_replay` cases in `tests/fixtures/lowered/manifest.json` byte-exact |
 | 3 — interprocedural MOS | **complete for the stage-1 domain** | `dump_summaries()` byte-identical to `python -m ownlang summaries` across **35** `*.summaries.json` goldens. Container-valued metadata is **outside** the declared scalar-metadata parity domain — a separate #294-class door decision, not a silent gap |
 | 4 — analysis wiring | **not started** | the crate states its own boundary: "no diagnostics, no analysis" |
@@ -72,7 +72,15 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
 | 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
-**Preferred queue:** #259 remaining (cp1 → cp4 → cp5) → #260/#269.
+**Preferred queue:** #259 cp4 → cp5 → #260/#269.
+
+The defensive limits that used to head this queue landed in #326, and the order
+was load-bearing rather than tidy. cp1 could report 0/0/0 only over a set with
+two known divergence families removed from it, and closing them by widening Rust
+— arbitrary-precision integers, `unbounded_depth` — was refused: the limit
+belongs in the contract, not in the representation. Because the limits changed
+what the reference *accepts*, they had to land Python-first and cp1 had to be
+re-measured against them, not merged beside them.
 
 ### What #256 asked for that the tree does not have
 
