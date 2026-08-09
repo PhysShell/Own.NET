@@ -99,9 +99,20 @@ not an optional enhancement to it.
   multipliers.
 - **This is not evidence the rule is implementable.** Proving loop-invariance
   for a LINQ chain requires proving the receiver, the captured locals, *and* the
-  lambda are all invariant across the loop body — that is real interprocedural
-  work (P-036 territory), not a syntactic match. Nothing here estimates that
-  cost.
+  lambda are all effect-free across the loop body — real interprocedural work,
+  not a syntactic match. [P-036](../proposals/P-036-interprocedural-semantic-architecture.md)
+  is the right *host* for it (call graph, `MethodSummary`, SCC composition), but
+  **none of its five summary domains** — ownership, obligation, progress,
+  region, task — is a purity/effect-freedom domain, so this would be a sixth
+  one, and effects are owned by [P-008](../proposals/P-008-effects-and-resources.md)
+  (draft, explicitly horizon). Nothing here estimates that cost.
+- **P-036's own rules would refuse the claim by default.** Its unknown/external
+  call policy classifies `Any(userLambda)` as an unresolved or unsupported
+  target: conservative defaults, recorded degraded precision, and the standing
+  rule that a check "may not pretend the call was proven harmless". So the
+  static half would emit a *candidate with declared uncertainty*, not a verdict
+  — which is another way of arriving at the same conclusion as the body of this
+  note: the magnitude has to come from the runtime layer.
 - **`.NET 4.7.2` was not measured.** The trigger case was on Framework, where
   there is no dynamic PGO and no guarded devirtualization; these .NET 9 numbers
   are therefore a *lower* bound on the penalty, not a reproduction of it.
