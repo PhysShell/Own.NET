@@ -201,6 +201,51 @@ def run() -> int:
              "protocolEvent": ["line"]}
     UNBOUND = {"resourceRecord": ["line"], "flowOp": ["line"]}
 
+    # …and the map is CLOSED over the schema, which the per-member checks below
+    # cannot establish on their own.
+    #
+    # They walk the defs the map already names, so a new `$def` carrying a
+    # coordinate — added next year by someone who does not know this file
+    # exists — is absent from both sides and checked by neither. The map would
+    # go on passing while covering less of the schema, which is the same defect
+    # as the two mutation survivors that produced this file's current shape: an
+    # assertion that faithfully proves the completeness of a list, using the
+    # list.
+    #
+    # So the classified set is compared with the DISCOVERED one. Anything
+    # carrying `line` or `ctor_line` and belonging to neither side is RED, and
+    # the fix is to decide which side it is on rather than to widen this.
+    def _coordinate_defs(node: Any, found: set[str], name: str = "") -> set[str]:
+        if isinstance(node, dict):
+            props = node.get("properties")
+            if isinstance(props, dict) and ({"line", "ctor_line"} & props.keys()):
+                found.add(name)
+            for value in node.values():
+                _coordinate_defs(value, found, name)
+        elif isinstance(node, list):
+            for value in node:
+                _coordinate_defs(value, found, name)
+        return found
+
+    discovered = set()
+    for def_name, subschema in defs.items():
+        _coordinate_defs(subschema, discovered, def_name)
+    classified = set(BOUND) | set(UNBOUND)
+    if discovered != classified:
+        unclassified = sorted(discovered - classified)
+        phantom = sorted(classified - discovered)
+        if unclassified:
+            failures += _fail(
+                f"$defs {unclassified} carry a source coordinate and appear in "
+                f"neither BOUND nor UNBOUND — every coordinate-bearing def must "
+                f"be classified, because an unclassified one is checked by "
+                f"nothing at all")
+        if phantom:
+            failures += _fail(
+                f"the binding map names {phantom}, which no longer carry a "
+                f"coordinate — a map entry pointing at nothing has stopped "
+                f"being evidence")
+
     # Whole subschemas, not just their `$ref`. Asserting only "the ref is not
     # sourceLine" left an unbound path free to be tightened another way —
     # measured: pointing `flowOp.line` at `sourceColumn`, or giving it an inline

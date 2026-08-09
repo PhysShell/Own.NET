@@ -52,7 +52,7 @@ use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
 
-use crate::strict::{defaulted_int, name_slot, optional_string};
+use crate::strict::{defaulted_int, name_slot, optional_string, MAX_NESTING_DEPTH};
 use crate::{OwnIrError, OwnIrErrorKind};
 
 /// The closed event vocabulary of `protocol_functions[].events` — the `ev`
@@ -280,20 +280,35 @@ pub(crate) fn validate_method(raw: &Value) -> Result<(), OwnIrError> {
             )))
         }
     }
-    events(obj.get("events"), &what)
+    events(obj.get("events"), &what, 0)
 }
 
 /// An ordered event list, recursive over `if` / `while`.
 ///
 /// Absent means empty; a present `null` is not a list and is rejected.
 ///
-/// Recursion here is bounded for a **parsed** document by `serde_json`'s
-/// 128-level parse limit. For a value built in memory the bound is
-/// [`crate::OwnIr::to_value`]'s iterative depth check, which runs before
-/// serialization — measured, that is the constraint that actually binds:
-/// `to_value` and `validate` abort at the same depth, so a depth counter
-/// threaded through this function would never be the thing that fires.
-fn events(raw: Option<&Value>, what: &str) -> Result<(), OwnIrError> {
+/// Nesting is bounded by the contract's own domain limit
+/// ([`MAX_NESTING_DEPTH`], `spec/OwnIR.md` §4.2), counted in enclosing bodies
+/// with the top-level list at 0.
+///
+/// An earlier revision argued a counter here would be dead code, because
+/// `serde_json`'s 128-level parse limit and `to_value`'s guard both fired
+/// first. That was true only while the contract had no depth of its own: 32
+/// domain levels are reached at roughly 62 JSON levels, so this now fires long
+/// before either.
+///
+/// The check goes **before** the list check, which is where the reference puts
+/// it and not where the flow-body equivalent puts it. The asymmetry is real
+/// rather than sloppy: the reference reads a missing branch as
+/// `e.get("then", [])`, so an absent arm still descends a level, whereas the
+/// flow walker probes for a key that may not be there and must not count what
+/// it did not find. Two recursions, two contracts.
+fn events(raw: Option<&Value>, what: &str, depth: usize) -> Result<(), OwnIrError> {
+    if depth > MAX_NESTING_DEPTH {
+        return Err(shape(format!(
+            "{what}: events nested deeper than {MAX_NESTING_DEPTH} levels"
+        )));
+    }
     let items: &[Value] = match raw {
         None => &[],
         Some(Value::Array(items)) => items,
@@ -336,10 +351,10 @@ fn events(raw: Option<&Value>, what: &str) -> Result<(), OwnIrError> {
                 optional_string(obj, "arg", what)?;
             }
             "if" => {
-                events(obj.get("then"), what)?;
-                events(obj.get("else"), what)?;
+                events(obj.get("then"), what, depth.saturating_add(1))?;
+                events(obj.get("else"), what, depth.saturating_add(1))?;
             }
-            "while" => events(obj.get("body"), what)?,
+            "while" => events(obj.get("body"), what, depth.saturating_add(1))?,
             // "return" / "throw" carry only the line, already checked.
             _ => {}
         }

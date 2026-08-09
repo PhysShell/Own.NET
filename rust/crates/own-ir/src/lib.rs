@@ -80,14 +80,27 @@ pub enum OwnIrErrorKind {
     Json,
     /// The `ownir_version` gate — wrong type, or a version this core cannot read.
     Version,
-    /// Right place, wrong JSON type or container shape.
+    /// Right place, but the value does not have a representable primitive or
+    /// container form required by the `OwnIR` contract.
+    ///
+    /// "Representable" is a property of the contract, not of a parser: a `line`
+    /// outside signed 64 bits is `Shape` because `spec/OwnIR.md` §4.2 declares
+    /// signed-64 the representable integer form, not because `serde_json`
+    /// happened to flatten it to a float on the way in. Nesting past the §4.2
+    /// depth limit is the container half of the same rule.
     Shape,
     /// Right JSON type, value outside a closed set (resource kind, lifetime,
     /// parameter effect).
     Vocabulary,
     /// An identity field that is empty, non-string, or duplicated.
     Identity,
-    /// A source coordinate violating the 1-based contract (#317).
+    /// A **representable** source coordinate that violates its
+    /// coordinate-domain rule, currently the 1-based `column` contract (#317).
+    ///
+    /// The order matters and is the whole distinction: representability is
+    /// judged first, so this variant only ever describes a value that already
+    /// has the form the contract asks for. A bool column is `Shape`, because
+    /// there is no coordinate there for the 1-based rule to be about.
     Location,
     /// Every value has the right type and the right vocabulary, and the record
     /// still cannot mean anything — a rule that structurally never fires, a

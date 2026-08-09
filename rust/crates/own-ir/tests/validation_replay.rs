@@ -351,29 +351,58 @@ fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
     // depth upward until `from_json` refuses, then require the deepest document
     // it accepted to survive `to_value`. That is the no-new-rejection contract
     // stated exactly, instead of a sample that happens to sit under it.
+    // …and the document has to nest somewhere the strict door does NOT bound,
+    // which is the third way this test has been wrong. It used to nest a
+    // protocol event tree. That was a fair witness while the contract had no
+    // depth of its own — but §4.2 bounds event trees at 32 domain levels, so
+    // the walk now stops at 32 on a validator rule instead of at ~61 on the
+    // parser, and the assertion degrades to "the guard is looser than 32".
+    // Measured, after the depth rule landed:
+    //
+    //   witness = event tree            deepest 32, terminating error Shape
+    //   witness = unknown top section   deepest 62, terminating error Json
+    //
+    // An unknown top-level section is deliberately tolerated by the door (the
+    // ledger pins that acceptance), so nothing but the parser stops it.
     let build = |depth: usize| {
-        let mut node = serde_json::json!({"ev": "return", "line": 1});
+        let mut node = serde_json::json!({"leaf": 1});
         for _ in 0..depth {
-            node = serde_json::json!({"ev": "if", "line": 1, "then": [node]});
+            node = serde_json::json!({"nested": [node]});
         }
         serde_json::to_string(&serde_json::json!({
             "ownir_version": 0,
-            "protocol_functions": [{"name": "M", "events": [node]}]
+            "future_section": node
         }))
         .expect("serializes")
     };
 
     // The parser's cap is well under this; the ceiling only stops a runaway.
     let mut deepest_accepted: Option<(usize, OwnIr)> = None;
+    let mut stopped_by = None;
     for depth in 1..512 {
         match OwnIr::from_json(&build(depth)) {
             Ok(doc) => deepest_accepted = Some((depth, doc)),
-            Err(_) => break,
+            Err(e) => {
+                stopped_by = Some(e.kind);
+                break;
+            }
         }
     }
+    // Choosing a witness the door does not bound is not enough on its own —
+    // that is a fact about today's rules, and the last witness stopped being
+    // one silently. So the walk must END at the parser, and say so. Any future
+    // rule that shadows the parse boundary fails HERE, naming its own kind,
+    // instead of quietly redefining what this test measures.
+    assert_eq!(
+        stopped_by,
+        Some(OwnIrErrorKind::Json),
+        "the depth walk was stopped by a strict-door rule rather than by the \
+         parser, so the boundary it found is that rule's limit and not the \
+         parse ceiling — this test would then assert almost nothing"
+    );
     let (depth, doc) = deepest_accepted.expect(
-        "`from_json` refused even a one-level protocol tree — the parse \
-         boundary cannot be located, so this test proves nothing",
+        "`from_json` refused even a one-level document — the parse boundary \
+         cannot be located, so this test proves nothing",
     );
     assert!(
         doc.to_value().is_ok(),
