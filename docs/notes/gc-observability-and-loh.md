@@ -13,19 +13,32 @@ complement" argument this reuses verbatim.
 ## The one factual correction worth taking
 
 Our docs treat the Large Object Heap threshold as **85,000 bytes** of payload.
-That is the documented constant, but it is not the predicate. The GC compares
-the **full object size** — payload + object header + method table pointer +
-alignment padding — so an array whose *payload* is comfortably under the limit
-still lands on the LOH:
+That is the documented **default** constant, but it is not the predicate. Two
+things are wrong with the folklore reading:
 
-> `byte[84_999]` → 85,023 bytes with the 24-byte array header → rounds to
-> 85,024 → **allocated on the LOH.**
+1. **The threshold is configurable.** `System.GC.LOHThreshold`
+   (`runtimeconfig.json`) and `DOTNET_GCLOHThreshold` (environment, hex) raise
+   it, so 85,000 describes a default configuration, not a law.
+2. **The comparison is against full object size**, not payload — payload +
+   object header + method-table pointer + the array length field + alignment
+   padding — so an array whose *payload* sits comfortably under the limit can
+   still land on the LOH.
+
+Worked on the environment this was checked against (**.NET CoreCLR, x64,
+default GC configuration**), where that overhead is 24 bytes:
+
+> `byte[84_999]` → 85,023 bytes → rounds to 85,024 → **allocated on the LOH.**
+
+The header size is a **platform and runtime detail**, not a portable constant —
+object layout and alignment differ by architecture and runtime version, so the
+24 above should not be copied into another context as a given.
 
 The practical consequence, and the reason it is worth writing down: the familiar
 "keep buffers under 85,000" folklore is **off by roughly one header**, and a
-pool sized to exactly `85_000 - 1` is on the wrong heap. Anyone sizing a buffer
-pool against the constant should size against `85_000 - 24 - padding`, or
-simply measure.
+pool sized to exactly `85_000 - 1` is on the wrong heap under the default
+configuration. The portable advice is not a corrected arithmetic constant — it
+is **measure on your target runtime**, since both the threshold and the overhead
+can move.
 
 Where this touches our docs: [`ROADMAP.md`](../ROADMAP.md) and
 [`Plan.md`](../../Plan.md) both list LOH fragmentation in the detectability
@@ -55,7 +68,15 @@ Today our runtime layer ([`Plan.md`](../../Plan.md) §2, category 12) routes
 badly overweight for **orientation** — it means no GC fact can be established in
 CI, on Linux, or in a unit test. A `GC.GetGCMemoryInfo` /
 `GC.CollectionCount(n)` snapshot around a scenario costs nothing and needs no
-stand.
+stand — with one caveat that has to travel with it: **both are process-wide, not
+scenario-scoped.** `CollectionCount(n)` counts every collection since process
+start (and a higher-generation collection bumps the lower ones too);
+`GetGCMemoryInfo()` describes the *last* collection and returns an all-zero
+struct with `Index == 0` when none of the requested kind has happened. Parallel
+tests or background GC move both from outside the scenario. So a probe used as
+an assertion has to record counts at the scenario boundary and compare
+`GetGCMemoryInfo()` only when the GC index matches — otherwise it is a heuristic
+wearing an assertion's clothes.
 
 So: a cheap in-test GC probe is a reasonable sibling to P-034's disposal
 quarantine, under the same honest caveat P-034 already states — it proves *what

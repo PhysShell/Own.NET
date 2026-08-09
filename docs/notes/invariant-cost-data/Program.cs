@@ -31,7 +31,8 @@ static class Program
         return acc;
     }
 
-    // ---- shape B: Count() on IEnumerable (O(n)) vs .Count property ----
+    // ---- shape B: Count() on a Select-wrapped sequence (O(n) here; Count()
+    //      is O(1) when the source implements ICollection<T>) vs .Count property ----
     [MethodImpl(MethodImplOptions.NoInlining)]
     static long B_Inline(IEnumerable<int> data, int iters)
     {
@@ -48,7 +49,9 @@ static class Program
         return acc;
     }
 
-    // ---- shape C: OrderBy().First() -- allocates + sorts every iteration ----
+    // ---- shape C: OrderBy().First() -- repeated linear key scanning every
+    //      iteration (.NET 9 takes a specialized TryGetFirst path rather than
+    //      materializing and sorting a buffer) ----
     [MethodImpl(MethodImplOptions.NoInlining)]
     static long C_Inline(List<int> data, int iters)
     {
@@ -93,10 +96,15 @@ static class Program
 
     static void Row(string shape, int n, Func<long> inline, Func<long> hoisted, int reps)
     {
-        double ti = Bench(inline, reps), th = Bench(hoisted, reps);
+        // Correctness gate FIRST, and it must fail the run: timing two
+        // non-equivalent implementations produces a meaningless ratio, and a
+        // printed warning would still exit 0 and look like a good measurement.
         long a = inline(), b = hoisted();
-        string ok = a == b ? "" : $"  !! MISMATCH {a} vs {b}";
-        Console.WriteLine($"{shape,-28} n={n,-7} inline={ti,9:F4} ms  hoisted={th,9:F4} ms   penalty = {ti / th,8:F1}x{ok}");
+        if (a != b)
+            throw new InvalidOperationException($"{shape} n={n}: MISMATCH {a} vs {b}");
+
+        double ti = Bench(inline, reps), th = Bench(hoisted, reps);
+        Console.WriteLine($"{shape,-38} n={n,-7} inline={ti,9:F4} ms  hoisted={th,9:F4} ms   penalty = {ti / th,8:F1}x");
     }
 
     static void Main()
@@ -113,7 +121,7 @@ static class Program
 
             Row("A: Any(x => x > t)  [hit@0]", n, () => A_Inline(list, th, Iters), () => A_Hoisted(list, th, Iters), 20);
             Row("A: Any(x => x > t)  [miss]", n, () => A_Inline(list, int.MaxValue, Iters), () => A_Hoisted(list, int.MaxValue, Iters), 5);
-            Row("B: Count() on IEnumerable", n, () => B_Inline(seq, Iters), () => B_Hoisted(seq, Iters), 5);
+            Row("B: Count() on Select-wrapped IEnumerable", n, () => B_Inline(seq, Iters), () => B_Hoisted(seq, Iters), 5);
             Row("C: OrderBy().First()", n, () => C_Inline(list, Iters), () => C_Hoisted(list, Iters), n > 10000 ? 1 : 3);
             Row("D: .Count property (cheap)", n, () => D_Inline(list, Iters), () => D_Hoisted(list, Iters), 50);
             Console.WriteLine();

@@ -15,12 +15,16 @@ $ ./run.sh [workdir]
 | `native.c` | K1 (`dst[i] = a[i] + b[i]*3`), noalias and aliasing variants |
 | `native2.c` | K2 reduction, K3 data-dependent branch, K4 pointer chase |
 | `Program.cs` | K1 harness: RyuJIT scalar / `Vector256` / `Vector256` x4 / native |
-| `Kernels.cs` | K2-K4 harness, incl. the correctness gate across all K3 variants |
+| `Kernels.cs` | K2-K4 harness, incl. the correctness gate across all five K3 variants |
 
 Two things the harness enforces on purpose, both because they were got wrong
 first (see "Two measurement traps" in the note):
 
-- **`DOTNET_TieredCompilation=0` plus a 5000-call warmup.** A short warmup
-  measures partly-tier-0 code and inflates LLVM's advantage by ~40%.
-- **A correctness gate.** All K3 variants must return `25830282`; an unequal
+- **`DOTNET_TieredCompilation=0` plus a 5000-call warmup.** Tiering off means
+  everything compiles straight to FullOpts (non-tiered mode). A short warmup
+  under the tiered default measures partly-tier-0 code and inflates LLVM's
+  advantage by ~40%.
+- **A correctness gate.** All **five** K3 variants must agree *and* equal the
+  pinned constant `25830282` (comparing them only to each other would let a
+  shared defect through); an unequal
   accumulator width silently makes one variant do less work.

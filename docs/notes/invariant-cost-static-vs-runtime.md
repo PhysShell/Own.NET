@@ -18,8 +18,11 @@ Harness in [`invariant-cost-data/`](invariant-cost-data/), `run.sh` reproduces.
 
 Four call shapes, each written twice — evaluated inside the loop vs hoisted by
 hand — over collection sizes 4 … 100 000, inner loop fixed at 1000 iterations.
-`penalty = inline / hoisted`. Both variants are asserted to return the same
-value. .NET 9.0.316, `DOTNET_TieredCompilation=0`, steady state.
+`penalty = inline / hoisted`. The harness asserts both variants return the same
+value and **throws** if they do not, so a non-equivalent pair cannot be reported
+as a measurement. .NET 9.0.316, `DOTNET_TieredCompilation=0` — tiering off, so
+every method is compiled straight to FullOpts (non-tiered mode; "tier 1" is a
+tiering concept that does not apply when tiering is disabled).
 
 **Every row is the same syntactic shape**: a loop-invariant call in a loop body.
 A static rule matching that shape sees all of them as one finding.
@@ -30,7 +33,7 @@ A static rule matching that shape sees all of them as one finding.
 |---|---|---|---|---|
 | `A: Any(x => x > t)` — predicate hits at element 0 | 2.8× | 12.6× | 11.1× | **8.3×** |
 | `A: Any(x => x > t)` — predicate never hits | 12.2× | 164× | 898× | **1025×** |
-| `B: Count()` on `IEnumerable` | 53× | 347× | 936× | 1025× |
+| `B: Count()` on a `Select`-wrapped sequence | 53× | 347× | 936× | 1025× |
 | `C: OrderBy().First()` | 362× | 822× | 1092× | 1003× |
 | `D: .Count` property (O(1)) | 1.0× | 1.0× | 1.0×¹ | 1.0× |
 
@@ -40,9 +43,10 @@ an effect.
 ## What the numbers actually say
 
 **1. The dynamic range is three orders of magnitude — 1.0× to 1092×.** A static
-rule that reports all of these identically is not wrong, it is *useless for
-prioritisation*. Row D is a textbook false positive: perfectly matching the
-shape, costing exactly nothing, because `List.Count` is an O(1) property.
+rule that reports all of these identically is not wrong, but *it cannot rank
+this sample without runtime data*. Row D matches the shape perfectly and shows
+**no measurable penalty in this run** — `List.Count` is an O(1) property — so on
+this evidence it is the false-positive shape.
 
 **2. The killer row is A, and it settles the argument.** Compare the two `A`
 rows at n=100 000: **8.3×** versus **1025×**. The source code is
@@ -51,9 +55,15 @@ difference is the runtime *value* of `threshold` and the data distribution:
 when the predicate hits at element 0, `Any` short-circuits and collection size
 becomes irrelevant; when it never hits, the call is O(n) and the cost tracks n.
 
-No static analysis can separate those two, ever. Not a better checker, not
-whole-program analysis — the two programs are the same program. The cost lives
-entirely in data the analyzer does not have.
+A **local** rule — one reasoning about the call site without runtime or
+call-site values — cannot separate those two, because at that site the two
+programs *are* the same program. The honest scope: in this harness `Main` builds
+its data with a deterministic `Enumerable.Range` and passes constant thresholds,
+so a whole-program analyzer could in principle constant-propagate these
+particular call sites. What it could not do is predict the cost for **general,
+unknown inputs** — a `threshold` from configuration, a collection from a
+database — which is the case the rule would actually face. The cost lives in
+data the analyzer does not have.
 
 **3. Collection size does not predict cost either.** Row A[hit] is *flat* across
 n (2.8 → 12.6 → 11.1 → 8.3), while row A[miss] grows a hundredfold over the same
@@ -113,9 +123,11 @@ not an optional enhancement to it.
   static half would emit a *candidate with declared uncertainty*, not a verdict
   — which is another way of arriving at the same conclusion as the body of this
   note: the magnitude has to come from the runtime layer.
-- **`.NET 4.7.2` was not measured.** The trigger case was on Framework, where
-  there is no dynamic PGO and no guarded devirtualization; these .NET 9 numbers
-  are therefore a *lower* bound on the penalty, not a reproduction of it.
+- **`.NET 4.7.2` was not measured, and these numbers are not comparable to it.**
+  The trigger case was on Framework, which has a different JIT and a different
+  LINQ implementation; no lower-bound (or upper-bound) inference about Framework
+  follows from a .NET 9 run. Claiming one would need a matched Framework
+  measurement, which this harness does not do.
 - **No corpus.** Four shapes chosen to span the range. Whether real code
   clusters near 1× or near 1000× is unmeasured, and that distribution is what
   would actually decide whether the rule is worth building.

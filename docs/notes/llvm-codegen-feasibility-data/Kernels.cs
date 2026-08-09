@@ -132,12 +132,16 @@ static class Kernels
             t = Time(() => sink += SumFree(p, N, N), Reps);
             Console.WriteLine($"LLVM -O3 no check: {t,8:F1} ms   {elems / t / 1e6,6:F2} Gelem/s   {(elems / t / 1e6) / k2m,5:F2}x");
 
-            // correctness gate: every K3 variant must return the SAME value.
+            // correctness gate: every K3 variant must return the SAME value, and
+            // that value must be the pinned expected result -- comparing the
+            // variants only to each other would let a shared defect pass.
+            const long ExpectedFilterSum = 25_830_282;
             long r0 = FilterSumManaged(a, 200, 800), r1 = FilterSumBranchless(a, 200, 800),
                  r2 = FilterSumSimd(a, 200, 800), r3 = FilterSumNative(p, N, N, 200, 800);
             long r4 = FilterSumFree(p, N, N, 200, 800);
-            if (r0 != r1 || r0 != r2 || r0 != r3 || r0 != r4)
-                throw new Exception($"K3 MISMATCH scalar={r0} branchless={r1} simd={r2} native={r3} free={r4}");
+            if (r0 != ExpectedFilterSum || r0 != r1 || r0 != r2 || r0 != r3 || r0 != r4)
+                throw new Exception($"K3 MISMATCH expected={ExpectedFilterSum} scalar={r0} " +
+                                    $"branchless={r1} simd={r2} native={r3} free={r4}");
             long q0 = SumManaged(a), q1 = SumNative(p, N, N), q2 = SumFree(p, N, N);
             if (q0 != q1 || q0 != q2) throw new Exception($"K2 MISMATCH {q0} vs {q1} vs {q2}");
             Console.WriteLine($"\n-- K3 data-dependent branch (filter+sum) --  [all variants agree: {r0}]");

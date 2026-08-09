@@ -41,13 +41,18 @@ and reproduced by `run.sh`, so every number below is falsifiable.
 - **Controls are the point.** Every kernel carries a hand-written C# SIMD
   variant, because "LLVM beats scalar C#" is a boring claim; "LLVM beats
   *well-written* C#" is the claim that would justify building anything.
-- **Correctness gate.** All four K3 variants (scalar, branchless, hand-SIMD,
-  native) must return the identical value or the harness throws. They agree on
-  `25830282`. An early version of the SIMD control accumulated in 32-bit while
-  the scalar accumulated in 64-bit — it produced a flattering **33×** that was
-  simply *less work*. The gate exists because that mistake was made here.
-- **Steady state.** Reported numbers use `DOTNET_TieredCompilation=0` plus a
-  5000-call warmup. See the measurement traps below — this is not a detail.
+- **Correctness gate.** All **five** K3 variants — scalar, branchless,
+  hand-SIMD, native with the per-element check, and native with the check
+  hoisted — must return the identical value, and that value must equal the
+  pinned constant `25830282`, or the harness throws. An early version of the
+  SIMD control accumulated in 32-bit while the scalar accumulated in 64-bit —
+  it produced a flattering **33×** that was simply *less work*. The gate exists
+  because that mistake was made here.
+- **Steady state.** Reported numbers disable tiered compilation
+  (`DOTNET_TieredCompilation=0`, i.e. everything is compiled straight to
+  FullOpts — not "tier 1", which is a tiering concept) and additionally warm up
+  5000 calls so the tiered default is also at steady state. See the measurement
+  traps below — this is not a detail.
 
 ### Two measurement traps (both hit during this work)
 
