@@ -82,6 +82,35 @@ belongs in the contract, not in the representation. Because the limits changed
 what the reference *accepts*, they had to land Python-first and cp1 had to be
 re-measured against them, not merged beside them.
 
+### Review provenance
+
+The table above says what was *measured*. This says who *looked*, which is a
+different claim and degrades differently.
+
+- **#259 cp1 — complete, merged and evidenced; the third census/rebase round
+  (`934213c`, `351c37c`, `0738d29`) was not externally CodeRabbit-reviewed,
+  because the reviewer was rate-limited for the whole window in which those
+  commits existed before merge.** The earlier rounds on that PR were reviewed.
+
+That is a limit on **provenance**, not an open acceptance criterion, and it is
+deliberately not written as one. Nothing promised is missing: the round carries
+an unconditional 216-control census with no family excluded, the validator-hole
+guard, 48 of 48 mutations caught and a fully green CI. What is missing is a
+second pair of eyes on one round — which is worth exactly as much as a second
+pair of eyes is worth, and no more.
+
+It is recorded because the alternative is that in six months someone reads
+"cp1, 0/0/0, merged" and assumes the usual review happened on the final head.
+It did not, and an artefact cannot say so about itself: CodeRabbit's own
+walkthrough on that PR still describes a 77-case ledger from the first census,
+and its status line still reads `Review rate limited` at the merged head. An
+absent review leaves no mark on the thing it did not review.
+
+Kept here and **not** propagated to #250, the proposals index or the merged PR
+body. Those carry checkpoint state, and this does not change it — copying it
+would create four more surfaces to keep in sync for a fact that moves no
+decision, which is the drift this document already has a rule against.
+
 ### What #256 asked for that the tree does not have
 
 Recorded here rather than left in an issue comment, because it is the second
