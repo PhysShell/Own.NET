@@ -148,6 +148,84 @@ dotnet/runtime use-after-return; Nethermind ArrayPool leaks / double-return;
 AiDotNet.Tensors pooled-buffer leak / over-clear. Reproduce each, reduce it into
 `corpus/`, and confirm the checker's verdict matches the real fix.
 
+### Focused stage-2 mining packet: repeated loop-invariant-call candidates
+
+*Research seed only; does not schedule or specify a checker.*
+
+A stage-2 sub-scan for one syntactic shape — a call inside a loop whose result
+may not change across iterations. It exists to answer a prevalence question that
+[`docs/notes/invariant-cost-static-vs-runtime.md`](../notes/invariant-cost-static-vs-runtime.md)
+raised and could not answer: that note measured a **1.0×–1092× cost spread over
+four hand-picked shapes** and closed by saying the honest first step is mining,
+not a rule. This packet is that mining and nothing more.
+
+**Why three label axes and not one verdict.** "Can this call be hoisted" is not
+one property. It decomposes into three independent ones — the inputs not
+changing, the call returning the same thing when repeated, and the move itself
+being legal — and a flat safe/unsafe label destroys the only interesting
+measurement: *which* axis eats the coverage of a cheap version. (Production
+compilers keep repeatability and placement legality as separate function
+attributes, which is precedent for the decomposition — not a ready-made mapping
+onto C#.)
+
+**Per-candidate observations.** Facts only; several are deliberately
+three-valued because the scan is syntactic:
+
+| field | values |
+| --- | --- |
+| `callee_symbol` | resolved FQN, or `unresolved` |
+| `loop_kind` | `for` / `foreach` / `while` / `do` |
+| `receiver_static_type` | declared type, or none for a static call |
+| `receiver_provenance` | local / parameter / field / property / call-result / literal / unknown |
+| `capture_count`, `capture_types` | count and declared types of captured locals |
+| `writes_to_receiver_in_loop` | yes / no / unknown |
+| `writes_to_captures_in_loop` | yes / no / unknown |
+| `lambda_contains_calls` | yes / no / not-applicable |
+| `lambda_contains_ambient_reads` | static or externally-reachable reads: yes / no / unknown |
+| `result_type` | declared return type |
+| `invocation_multiplicity` | syntactic estimate of evaluations per loop entry |
+| `loop_may_execute_zero_times` | yes / no / unknown |
+| `control_transfer_in_body` | which of `break` / `continue` / `return` / `throw` occur, with positions |
+| `call_control_context` | unconditional-in-body / conditional / short-circuit-operand / nested-lambda-or-local-function / unknown |
+| `call_reachability_per_iteration` | every-entered-iteration / may-be-skipped-before-first-execution / unknown |
+
+The last two fields exist because the presence of a control transfer is not by
+itself discriminating — `var x = F(); if (c) break;` and `if (c) break; var x =
+F();` record the same `control_transfer_in_body` and have entirely different
+placement stories. The scan does not have to resolve that difference; it must
+not lose it.
+
+**Three independent labels, assigned per candidate:**
+
+| axis | values |
+| --- | --- |
+| `input_stability` | cheap-proven / disproven / unknown |
+| `call_repeatability` | cheap-proven / disproven / needs-effect-reasoning / unknown |
+| `placement_safety` | cheap-proven / disproven / needs-cfg-reasoning / unknown |
+
+…and only then a **derived** bucket: `CHEAP_PROVABLE` (all three cheap-proven) /
+`NEEDS_EFFECT_REASONING` / `NEEDS_PLACEMENT_REASONING` / `DEFINITELY_UNSAFE` /
+`UNKNOWN`. Derived — never recorded instead of the three.
+
+Collapsing the axes early is what would waste the scan: *inputs proven,
+repeatability proven, placement unknown* and *inputs proven, repeatability
+unknown, placement proven* both flatten to `UNKNOWN`, and the product question —
+which axis is the bottleneck — becomes unanswerable from the data.
+
+**Two guards on reading this packet:**
+
+> These fields are observations for prevalence measurement, not a specification
+> of a loop-hoisting checker. No individual field — including receiver
+> immutability, the absence of control-transfer syntax, or a recognised callee
+> symbol — is by itself evidence that hoisting is semantics-preserving.
+
+> The mining pass must preserve `unknown` rather than infer safety from the
+> absence of a recognised hazard.
+
+Both are here because a column list is an inviting thing to turn into a
+predicate, and `if immutable_receiver and not contains_throw: report()` is
+exactly the shape this packet exists to prevent someone deriving.
+
 ## Open questions
 
 1. Repo selection for stage 2 — top-N by stars, or weight toward the high-load
