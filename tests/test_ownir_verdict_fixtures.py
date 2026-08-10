@@ -57,6 +57,23 @@ no fixture exercises it. cp4 is not complete until it does — and the control
 belongs here, not in the fact-level file, which already answers a different
 question correctly.
 
+## Which channels GATE cp4, and which are only observed
+
+Freezing five channels is not the same as owing five channels, and the
+difference has to be written down here or the artifact will quietly widen the
+checkpoint that consumes it.
+
+    core + di + effects     cp4's gating channels — #259 cp4 is
+                            ownership/lifetime/buffer/effect/DI wiring
+    protocols + advisories  frozen OBSERVATIONS, consumed by the later full
+                            bridge/verdict parity (cp5)
+
+They are frozen now anyway, because a channel that exists in the golden cannot
+later vanish from the surface unnoticed — which is worth more than the cost of
+carrying two rows the current checkpoint does not gate on. What must not happen
+is the reverse: a green five-channel replay read as "cp4 done", turning analysis
+wiring into half of cp5 by accident.
+
 ## Why the synthetic cases are in the SAME inventory
 
 The coordinate witnesses below are not a side test. They are normative: they
