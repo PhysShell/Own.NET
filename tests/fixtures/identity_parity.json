@@ -898,6 +898,44 @@
           "systemEvents#7"
         ]
       ]
+    },
+    {
+      "name": "curated/own007-move-while-borrowed-anonymous.own",
+      "source": "module M\n\nresource R {\n    acquire New\n    release Dispose\n}\n\nfn F(x: int) {\n    let a = acquire R(x);\n    borrow a as v {\n        let b = move a;\n        release b;\n    }\n}\n",
+      "identity": [
+        [
+          11,
+          "OWN007",
+          null
+        ]
+      ]
+    },
+    {
+      "name": "curated/own007-return-while-borrowed-named.own",
+      "source": "module M\n\nresource R {\n    acquire New\n    release Dispose\n}\n\nfn H(x: int) -> R {\n    let a = acquire R(x);\n    borrow a as v {\n        return a;\n    }\n}\n",
+      "identity": [
+        [
+          11,
+          "OWN007",
+          "a#9"
+        ]
+      ]
+    },
+    {
+      "name": "curated/own010-use-after-possible-move.own",
+      "source": "module M\n\nresource R {\n    acquire New\n    release Dispose\n}\n\nfn G(c: int, x: int) {\n    let a = acquire R(x);\n    if (c) {\n        let b = move a;\n        release b;\n    }\n    use a;\n}\n",
+      "identity": [
+        [
+          14,
+          "OWN001",
+          "a#9"
+        ],
+        [
+          14,
+          "OWN010",
+          "a#9"
+        ]
+      ]
     }
   ]
 }

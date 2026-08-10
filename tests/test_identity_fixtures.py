@@ -126,6 +126,68 @@ _CURATED: tuple[tuple[str, str], ...] = (
         "    subscribe self to systemEvents;\n"
         "}\n",
     ),
+    (
+        # OWN007 has TWO emission paths with DIFFERENT identity behaviour, and
+        # this is the half that carries NONE: `_consume_like` (move/consume
+        # while borrowed) calls `err(code_borrowed, ...)` without a subject.
+        # A port that stamps OWN007 uniformly — always or never — is wrong, and
+        # only the pair below shows it.
+        "curated/own007-move-while-borrowed-anonymous.own",
+        "module M\n"
+        "\n"
+        "resource R {\n"
+        "    acquire New\n"
+        "    release Dispose\n"
+        "}\n"
+        "\n"
+        "fn F(x: int) {\n"
+        "    let a = acquire R(x);\n"
+        "    borrow a as v {\n"
+        "        let b = move a;\n"
+        "        release b;\n"
+        "    }\n"
+        "}\n",
+    ),
+    (
+        # ...and the half that DOES: returning an owner while it is borrowed is
+        # the same code through the escape path, which passes `subject=subj`.
+        # Same code, same program shape, opposite identity.
+        "curated/own007-return-while-borrowed-named.own",
+        "module M\n"
+        "\n"
+        "resource R {\n"
+        "    acquire New\n"
+        "    release Dispose\n"
+        "}\n"
+        "\n"
+        "fn H(x: int) -> R {\n"
+        "    let a = acquire R(x);\n"
+        "    borrow a as v {\n"
+        "        return a;\n"
+        "    }\n"
+        "}\n",
+    ),
+    (
+        # OWN010 — use after a move on SOME path. Reported at the use, whose
+        # line is not the origin's, so it separates origin from diagnostic line
+        # a second time on a different mechanism.
+        "curated/own010-use-after-possible-move.own",
+        "module M\n"
+        "\n"
+        "resource R {\n"
+        "    acquire New\n"
+        "    release Dispose\n"
+        "}\n"
+        "\n"
+        "fn G(c: int, x: int) {\n"
+        "    let a = acquire R(x);\n"
+        "    if (c) {\n"
+        "        let b = move a;\n"
+        "        release b;\n"
+        "    }\n"
+        "    use a;\n"
+        "}\n",
+    ),
 )
 
 
@@ -217,6 +279,23 @@ def run(write: bool = False) -> int:
     codes = {r[1] for r in named}
     if not any(c.startswith("OWN0") and c not in {"OWN014"} for c in codes):
         failures += _fail("no ownership-family diagnostic carries a subject")
+    # A code whose identity depends on the emission PATH, not on the code.
+    # `_consume_like` stamps nothing; the return-escape path stamps `subj`. A
+    # port that decided by code — `if code in {...}` — satisfies one half and
+    # fails the other, so the pair must stay split.
+    by_case = {c["name"]: c["identity"] for c in frozen.get("cases", [])}
+    anon = by_case.get("curated/own007-move-while-borrowed-anonymous.own")
+    named_own7 = by_case.get("curated/own007-return-while-borrowed-named.own")
+    if anon is None or named_own7 is None:
+        failures += _fail(
+            "the OWN007 pair is incomplete — one half alone would let a port "
+            "stamp the code uniformly and still pass")
+    elif not (anon and anon[0][2] is None and named_own7 and named_own7[0][2]):
+        failures += _fail(
+            f"the OWN007 pair no longer splits on identity ({anon!r} / "
+            f"{named_own7!r}) — it was the only witness that identity follows "
+            f"the emission path rather than the code")
+
     if "OWN014" not in codes:
         failures += _fail(
             "OWN014 carries no subject in the frozen set — the lifetime family "
