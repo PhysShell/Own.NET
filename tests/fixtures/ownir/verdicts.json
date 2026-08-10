@@ -450,6 +450,356 @@
     {
       "advisories": [],
       "core": [],
+      "di": [],
+      "document": {
+        "effects": [
+          {
+            "bindings": [
+              {
+                "init": "call",
+                "line": 1,
+                "name": "opts",
+                "refs": []
+              }
+            ],
+            "component": "A",
+            "deps": [
+              "opts"
+            ],
+            "file": "A.tsx",
+            "io": true,
+            "line": 10
+          }
+        ],
+        "module": "M",
+        "ownir_version": 0
+      },
+      "effects": [],
+      "family": "effects channel (bindings[].init: call -> no verdict)",
+      "name": "composition-effect-opaque-call-silent",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [],
+      "document": {
+        "effects": [
+          {
+            "bindings": [
+              {
+                "init": "object",
+                "line": 1,
+                "name": "opts",
+                "refs": []
+              }
+            ],
+            "component": "A",
+            "deps": [
+              "opts"
+            ],
+            "file": "A.tsx",
+            "io": false,
+            "line": 10
+          }
+        ],
+        "module": "M",
+        "ownir_version": 0
+      },
+      "effects": [],
+      "family": "effects channel (io: false -> no verdict)",
+      "name": "composition-effect-no-io-silent",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [],
+      "document": {
+        "effects": [
+          {
+            "bindings": [
+              {
+                "init": "object",
+                "line": 1,
+                "name": "opts",
+                "refs": []
+              }
+            ],
+            "component": "A",
+            "deps": [],
+            "file": "A.tsx",
+            "io": true,
+            "line": 10
+          }
+        ],
+        "module": "M",
+        "ownir_version": 0
+      },
+      "effects": [],
+      "family": "effects channel (deps: [] -> no verdict)",
+      "name": "composition-effect-no-deps-silent",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "reg.cs",
+          5,
+          "DI002"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "weak_deps": [
+              "Db"
+            ]
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "scoped",
+            "line": 6,
+            "name": "Db"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (services[].weak_deps -> DI002)",
+      "name": "composition-di002-weak-deps",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "reg.cs",
+          5,
+          "DI003"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "deps": [
+              "Conn"
+            ],
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App"
+          },
+          {
+            "disposable": true,
+            "file": "reg.cs",
+            "lifetime": "transient",
+            "line": 6,
+            "name": "Conn"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (services[].disposable -> DI003)",
+      "name": "composition-di003-transient-disposable",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "call.cs",
+          1,
+          "DI004"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "root_resolve_sites": [
+              {
+                "file": "call.cs",
+                "line": 1,
+                "type": "Conn"
+              }
+            ],
+            "root_resolves": [
+              "Conn"
+            ]
+          },
+          {
+            "disposable": true,
+            "file": "reg.cs",
+            "lifetime": "transient",
+            "line": 6,
+            "name": "Conn"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (root_resolve_sites line 1 -> site anchor)",
+      "name": "composition-di004-site-primary",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "reg.cs",
+          5,
+          "DI004"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "root_resolve_sites": [
+              {
+                "file": "call.cs",
+                "line": 0,
+                "type": "Conn"
+              }
+            ],
+            "root_resolves": [
+              "Conn"
+            ]
+          },
+          {
+            "disposable": true,
+            "file": "reg.cs",
+            "lifetime": "transient",
+            "line": 6,
+            "name": "Conn"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (root_resolve_sites line 0 -> registration anchor)",
+      "name": "composition-di004-site-fallback",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "store.cs",
+          1,
+          "DI005"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "scope_cache_sites": [
+              {
+                "file": "store.cs",
+                "line": 1,
+                "type": "Db"
+              }
+            ],
+            "scope_cached": [
+              "Db"
+            ]
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "scoped",
+            "line": 6,
+            "name": "Db"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (scope_cache_sites line 1 -> site anchor)",
+      "name": "composition-di005-site-primary",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "reg.cs",
+          5,
+          "DI005"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "scope_cache_sites": [
+              {
+                "file": "store.cs",
+                "line": 0,
+                "type": "Db"
+              }
+            ],
+            "scope_cached": [
+              "Db"
+            ]
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "scoped",
+            "line": 6,
+            "name": "Db"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (scope_cache_sites line 0 -> registration anchor)",
+      "name": "composition-di005-site-fallback",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
       "di": [
         [
           "S.cs",
