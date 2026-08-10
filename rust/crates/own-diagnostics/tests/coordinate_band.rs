@@ -1,0 +1,139 @@
+//! Acceptance groups 3 and 4 for `SourceLine`: the SARIF projection domain,
+//! and the identity re-proof.
+//!
+//! Group 4 is here because "the newtype derives `Ord` and `Hash`" is not
+//! evidence. Three of the carriers this change widened participate in a
+//! comparison key, so widening them is a change to identity, and #255's
+//! non-collapsing property has to be re-shown over the new range rather than
+//! assumed to survive it.
+
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+
+use own_diagnostics::build_sarif;
+use own_diagnostics::{DiagKey, Diagnostic, Evidence, LocatedDiagnostic};
+use own_ir::span::SourceLine;
+
+const U32_MAX: i64 = 4_294_967_295;
+const ABOVE_U32: i64 = 4_294_967_296;
+
+fn diag(line: i64) -> Diagnostic {
+    Diagnostic::new("OWN001", "not released", SourceLine(line)).expect("OWN001 is known")
+}
+
+// ---------------------------------------------------------------------------
+// Group 3 — the projection domain
+// ---------------------------------------------------------------------------
+
+/// Measured against the reference and frozen here verbatim. The gate is `>= 1`
+/// and the ceiling is gone: SARIF's admission domain is narrower **only at the
+/// bottom**, which is a property of the format, not of the verdict.
+#[test]
+fn the_sarif_region_matches_the_reference_over_the_whole_band() {
+    let expected: [(i64, Option<i64>); 6] = [
+        (i64::MIN, None),
+        (-1, None),
+        (0, None),
+        (1, Some(1)),
+        (ABOVE_U32, Some(ABOVE_U32)),
+        (i64::MAX, Some(i64::MAX)),
+    ];
+    for (line, want) in expected {
+        let log = build_sarif(&[diag(line)], "A.cs", "error");
+        let got = log.runs[0].results[0].locations[0]
+            .physical_location
+            .region
+            .as_ref()
+            .map(|r| r.start_line.get());
+        assert_eq!(
+            got, want,
+            "line {line}: SARIF region mismatch. Below 1 the reference omits \
+             the region entirely; at or above it the value is emitted verbatim, \
+             including past u32::MAX — a narrower carrier here would turn a \
+             legal startLine into a wrong one."
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Group 4 — identity re-proof
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_diag_key_separates_lines_a_u32_would_confuse() {
+    // The pairs are chosen so that a `as u32` TRUNCATION collapses them —
+    // which the first version of this test did not do, and a truncating
+    // mutation survived it. `u32::MAX + 1` truncates to 0, and `-1` truncates
+    // to `u32::MAX`, so each pair is one value the old ceiling could hold and
+    // one it could not that lands on it.
+    for (a, b) in [
+        (0_i64, ABOVE_U32),
+        (-1_i64, U32_MAX),
+        (1_i64, ABOVE_U32 + 1),
+        (i64::MIN, 0),
+    ] {
+        assert_ne!(
+            DiagKey::new(SourceLine(a), "OWN001"),
+            DiagKey::new(SourceLine(b), "OWN001"),
+            "DiagKey collapsed lines {a} and {b} — the comparison key is \
+             narrower than the coordinate it keys on"
+        );
+    }
+}
+
+#[test]
+fn a_diag_identity_does_not_collapse_on_the_line_alone() {
+    // Everything except the primary line is held identical, so the line is the
+    // only thing identity can be separating on.
+    let one = LocatedDiagnostic::new("src/A.cs", diag(ABOVE_U32));
+    let other = LocatedDiagnostic::new("src/A.cs", diag(0));
+    assert_ne!(
+        one.identity(),
+        other.identity(),
+        "two diagnostics differing ONLY in a line beyond u32::MAX share an \
+         identity — #255's non-collapsing key stops holding exactly where the \
+         old ceiling used to be"
+    );
+}
+
+#[test]
+fn an_evidence_identity_separates_secondary_lines_past_the_old_ceiling() {
+    let base = || diag(1);
+    let one = LocatedDiagnostic::new(
+        "src/A.cs",
+        base().with_evidence(vec![Evidence::new(
+            SourceLine(ABOVE_U32),
+            "registered here",
+        )]),
+    );
+    let other = LocatedDiagnostic::new(
+        "src/A.cs",
+        base().with_evidence(vec![Evidence::new(SourceLine(0), "registered here")]),
+    );
+    assert_ne!(
+        one.identity(),
+        other.identity(),
+        "evidence at two different lines beyond u32::MAX compares equal — the \
+         secondary carrier is keyed more narrowly than it is stored"
+    );
+}
+
+#[test]
+fn ordering_over_the_band_is_signed_and_total() {
+    let mut lines: Vec<SourceLine> = [1_i64, i64::MAX, -1, U32_MAX, i64::MIN, 0, ABOVE_U32]
+        .into_iter()
+        .map(SourceLine)
+        .collect();
+    lines.sort_unstable();
+    let got: Vec<i64> = lines.iter().map(|l| l.get()).collect();
+    assert_eq!(
+        got,
+        vec![i64::MIN, -1, 0, 1, U32_MAX, ABOVE_U32, i64::MAX],
+        "sorting is not signed — an unsigned ordering puts the negatives last, \
+         which would reorder every emitted diagnostic on a file that has one"
+    );
+}
