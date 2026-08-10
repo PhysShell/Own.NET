@@ -122,7 +122,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.ownir import check_facts
+from ownlang.ownir import _di_findings, check_facts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURE_DIR = os.path.join(HERE, "fixtures", "ownir")
@@ -197,7 +197,34 @@ DISCRIMINATING_PAIRS = (
     ("composition-effect-storm", "composition-effect-opaque-call-silent", "effects"),
     ("composition-effect-storm", "composition-effect-no-io-silent", "effects"),
     ("composition-effect-storm", "composition-effect-no-deps-silent", "effects"),
+    # one site vs two: the second must move the anchor, or ORDER is not being
+    # carried and a set would have done
+    ("composition-di004-site-primary",
+     "composition-di004-duplicate-sites-last-wins", "di"),
+    ("composition-di005-site-primary",
+     "composition-di005-duplicate-sites-last-wins", "di"),
+    # last-wins vs last-wins-onto-a-zero: the pair that separates "take the last
+    # site, then check >= 1" from "take the last VALID site"
+    ("composition-di004-duplicate-sites-last-wins",
+     "composition-di004-duplicate-sites-trailing-zero", "di"),
 )
+
+# Witnesses that hold a property no pair can express, and therefore cannot be
+# dropped without one. Ordering is the case in point: it is a property of ONE
+# case's verdict list, so nothing about a second case would notice its loss.
+REQUIRED_CASES = {
+    "composition-di-multi-file-ordering":
+        "the reference's cross-file verdict order, frozen",
+    "composition-di-mechanism-interleave-sort":
+        "the BR-V8 final sort in `check_facts` — the only case where the "
+        "composition's order differs from concatenating the analyses",
+}
+
+# Witnesses whose whole value is that `check_facts`'s order differs from the
+# mechanism-by-mechanism order `_di_findings` builds. Re-measured every run: a
+# document edit that made the two agree would leave the case green and holding
+# nothing, which is the decay `DISCRIMINATING_PAIRS` guards against elsewhere.
+ORDER_SENSITIVE = ("composition-di-mechanism-interleave-sort",)
 
 
 def _verdicts(facts: dict[str, Any]) -> dict[str, list[Any]]:
@@ -503,6 +530,132 @@ def _composition_witnesses() -> list[dict[str, Any]]:
                 ],
             },
         },
+
+        # ---- di: ORDER is data the composition must carry, not rearrange ----
+        # `primary_from_site` (own-analysis) resolves a duplicated entry type by
+        # taking the LAST matching site and only then applying the `>= 1` guard.
+        # That makes the sites' ORDER load-bearing all the way up: a composition
+        # that hands them over as a set, reverses them, or dedups keeping the
+        # first silently changes the anchor. Two witnesses rather than one,
+        # because `root_resolve_sites` and `scope_cache_sites` are separate
+        # wires through the adapter even though they meet at one analysis helper.
+        {
+            "name": "composition-di004-duplicate-sites-last-wins",
+            "origin": "witness",
+            "family": "di channel (root_resolve_sites duplicate entry -> last wins)",
+            "document": {
+                "ownir_version": 0,
+                "module": "M",
+                "services": [
+                    _service("App", "singleton", 5, root_resolves=["Conn"],
+                             root_resolve_sites=[_site("Conn", "first.cs", 10),
+                                                 _site("Conn", "second.cs", 20)]),
+                    _service("Conn", "transient", 6, disposable=True),
+                ],
+            },
+        },
+        {
+            "name": "composition-di005-duplicate-sites-last-wins",
+            "origin": "witness",
+            "family": "di channel (scope_cache_sites duplicate entry -> last wins)",
+            "document": {
+                "ownir_version": 0,
+                "module": "M",
+                "services": [
+                    _service("App", "singleton", 5, scope_cached=["Db"],
+                             scope_cache_sites=[_site("Db", "first.cs", 30),
+                                                _site("Db", "second.cs", 40)]),
+                    _service("Db", "scoped", 6),
+                ],
+            },
+        },
+        {
+            # The interaction of the two rules above, and the reason it is a
+            # witness rather than an inference: the reference takes the last
+            # matching site and THEN checks `>= 1`, so a trailing line-0 site
+            # falls back to the registration even though an earlier valid site
+            # exists. An adapter that "tidied up" by filtering invalid sites
+            # before handing them over would anchor at `first.cs:10` instead —
+            # a repair, not a transport, and invisible to both cases above.
+            "name": "composition-di004-duplicate-sites-trailing-zero",
+            "origin": "witness",
+            "family": "di channel (last site line 0 -> registration, not the earlier valid site)",
+            "document": {
+                "ownir_version": 0,
+                "module": "M",
+                "services": [
+                    _service("App", "singleton", 5, root_resolves=["Conn"],
+                             root_resolve_sites=[_site("Conn", "first.cs", 10),
+                                                 _site("Conn", "second.cs", 0)]),
+                    _service("Conn", "transient", 6, disposable=True),
+                ],
+            },
+        },
+        {
+            # Multi-file ordering: two verdicts, two files, facts declared in
+            # the reverse of the order the verdicts come back in.
+            #
+            # What this holds, stated honestly after measuring it: the order is
+            # established TWICE — `ownlang/di.py` sorts within each mechanism,
+            # and `check_facts` applies the BR-V8 sort over everything
+            # (`ownir.py`, key `(file, line, column or 0, code)`). So reversing
+            # the input CANNOT change this case's output, and it does not: a
+            # `services`-reversal mutation leaves it untouched. It is a frozen
+            # observation of the reference's cross-file order, not a probe of
+            # the transport.
+            #
+            # The composition's own share of ordering needs a different shape,
+            # and has one below — see the mechanism-interleave witness. Keeping
+            # both, clearly labelled, beats one case with an overstated claim.
+            "name": "composition-di-multi-file-ordering",
+            "origin": "witness",
+            "family": "di channel (multi-file verdict ordering)",
+            "document": {
+                "ownir_version": 0,
+                "module": "M",
+                "services": [
+                    {"name": "A2", "lifetime": "singleton", "file": "z.cs",
+                     "line": 3, "deps": ["Db2"]},
+                    {"name": "Db2", "lifetime": "scoped", "file": "z.cs",
+                     "line": 4},
+                    {"name": "A1", "lifetime": "singleton", "file": "a.cs",
+                     "line": 9, "deps": ["Db1"]},
+                    {"name": "Db1", "lifetime": "scoped", "file": "a.cs",
+                     "line": 10},
+                ],
+            },
+        },
+        {
+            # The ordering property the COMPOSITION actually owns.
+            #
+            # `_di_findings` appends by mechanism — every DI001, then DI002,
+            # DI003, DI004, DI005 — and only `check_facts`'s final BR-V8 sort
+            # interleaves them across mechanisms. This document is built so the
+            # two orders DISAGREE: a DI005 anchored at `a.cs:1` and a DI001 at
+            # `z.cs:9`, so mechanism order is [DI001, DI005] and sorted order is
+            # [DI005, DI001]. A composition that concatenates its analyses and
+            # skips the final sort reproduces the first and fails here.
+            #
+            # Measured, not assumed — and the harness re-measures it on every
+            # run (see the ORDER guard) so the witness cannot quietly decay into
+            # a case where both orders agree.
+            "name": "composition-di-mechanism-interleave-sort",
+            "origin": "witness",
+            "family": "di channel (BR-V8 final sort across mechanisms)",
+            "document": {
+                "ownir_version": 0,
+                "module": "M",
+                "services": [
+                    {"name": "S1", "lifetime": "singleton", "file": "z.cs",
+                     "line": 9, "deps": ["Db1"]},
+                    {"name": "Db1", "lifetime": "scoped", "file": "z.cs",
+                     "line": 10},
+                    _service("S2", "singleton", 7, scope_cached=["Db2"],
+                             scope_cache_sites=[_site("Db2", "a.cs", 1)]),
+                    _service("Db2", "scoped", 8),
+                ],
+            },
+        },
     ]
 
 
@@ -600,8 +753,30 @@ def run(write: bool = False) -> int:
                 f"{holds}, so a composition that never wires it replays this "
                 f"set clean (the `effects` hole, again)")
 
-    # ---- discrimination guard: a witness pair must actually disagree --------
+    # ---- presence guard: witnesses no pair can speak for --------------------
     by_name = {c["name"]: c for c in frozen.get("cases", [])}
+    for case_name, holds in sorted(REQUIRED_CASES.items()):
+        if case_name not in by_name:
+            failures += _fail(f"{case_name} is missing — it holds {holds}")
+
+    # ---- order guard: the interleave witness must still interleave ----------
+    # Compared against `_di_findings` — the pre-sort, mechanism-by-mechanism
+    # list — so the case is only evidence while the two genuinely differ.
+    witness_docs = {w["name"]: w["document"] for w in _composition_witnesses()}
+    for case_name in ORDER_SENSITIVE:
+        doc = witness_docs.get(case_name)
+        if doc is None:
+            failures += _fail(f"{case_name} is not among the witnesses")
+            continue
+        mechanism = [[f.file, f.line, f.code] for f in _di_findings(doc)]
+        composed = by_name.get(case_name, {}).get("di", [])
+        if mechanism == composed:
+            failures += _fail(
+                f"{case_name}: the mechanism order {mechanism} already equals "
+                f"the composed order — the case no longer distinguishes a "
+                f"composition that skips the BR-V8 final sort")
+
+    # ---- discrimination guard: a witness pair must actually disagree --------
     for primary, fallback, channel in DISCRIMINATING_PAIRS:
         a, b = by_name.get(primary), by_name.get(fallback)
         if a is None or b is None:

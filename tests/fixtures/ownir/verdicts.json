@@ -802,6 +802,276 @@
       "core": [],
       "di": [
         [
+          "second.cs",
+          20,
+          "DI004"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "root_resolve_sites": [
+              {
+                "file": "first.cs",
+                "line": 10,
+                "type": "Conn"
+              },
+              {
+                "file": "second.cs",
+                "line": 20,
+                "type": "Conn"
+              }
+            ],
+            "root_resolves": [
+              "Conn"
+            ]
+          },
+          {
+            "disposable": true,
+            "file": "reg.cs",
+            "lifetime": "transient",
+            "line": 6,
+            "name": "Conn"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (root_resolve_sites duplicate entry -> last wins)",
+      "name": "composition-di004-duplicate-sites-last-wins",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "second.cs",
+          40,
+          "DI005"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "scope_cache_sites": [
+              {
+                "file": "first.cs",
+                "line": 30,
+                "type": "Db"
+              },
+              {
+                "file": "second.cs",
+                "line": 40,
+                "type": "Db"
+              }
+            ],
+            "scope_cached": [
+              "Db"
+            ]
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "scoped",
+            "line": 6,
+            "name": "Db"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (scope_cache_sites duplicate entry -> last wins)",
+      "name": "composition-di005-duplicate-sites-last-wins",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "reg.cs",
+          5,
+          "DI004"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 5,
+            "name": "App",
+            "root_resolve_sites": [
+              {
+                "file": "first.cs",
+                "line": 10,
+                "type": "Conn"
+              },
+              {
+                "file": "second.cs",
+                "line": 0,
+                "type": "Conn"
+              }
+            ],
+            "root_resolves": [
+              "Conn"
+            ]
+          },
+          {
+            "disposable": true,
+            "file": "reg.cs",
+            "lifetime": "transient",
+            "line": 6,
+            "name": "Conn"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (last site line 0 -> registration, not the earlier valid site)",
+      "name": "composition-di004-duplicate-sites-trailing-zero",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "a.cs",
+          9,
+          "DI001"
+        ],
+        [
+          "z.cs",
+          3,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "deps": [
+              "Db2"
+            ],
+            "file": "z.cs",
+            "lifetime": "singleton",
+            "line": 3,
+            "name": "A2"
+          },
+          {
+            "file": "z.cs",
+            "lifetime": "scoped",
+            "line": 4,
+            "name": "Db2"
+          },
+          {
+            "deps": [
+              "Db1"
+            ],
+            "file": "a.cs",
+            "lifetime": "singleton",
+            "line": 9,
+            "name": "A1"
+          },
+          {
+            "file": "a.cs",
+            "lifetime": "scoped",
+            "line": 10,
+            "name": "Db1"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (multi-file verdict ordering)",
+      "name": "composition-di-multi-file-ordering",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "a.cs",
+          1,
+          "DI005"
+        ],
+        [
+          "z.cs",
+          9,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "ownir_version": 0,
+        "services": [
+          {
+            "deps": [
+              "Db1"
+            ],
+            "file": "z.cs",
+            "lifetime": "singleton",
+            "line": 9,
+            "name": "S1"
+          },
+          {
+            "file": "z.cs",
+            "lifetime": "scoped",
+            "line": 10,
+            "name": "Db1"
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "singleton",
+            "line": 7,
+            "name": "S2",
+            "scope_cache_sites": [
+              {
+                "file": "a.cs",
+                "line": 1,
+                "type": "Db2"
+              }
+            ],
+            "scope_cached": [
+              "Db2"
+            ]
+          },
+          {
+            "file": "reg.cs",
+            "lifetime": "scoped",
+            "line": 8,
+            "name": "Db2"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "di channel (BR-V8 final sort across mechanisms)",
+      "name": "composition-di-mechanism-interleave-sort",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
           "S.cs",
           -9223372036854775808,
           "DI001"
