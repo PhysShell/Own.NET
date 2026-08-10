@@ -12,14 +12,14 @@
 //! `facts.rs`. cp4 is NOT closed by this file.
 //!
 //! The golden is EXPECTED OUTPUT only, never an input to construction. Each
-//! channel is compared as an ORDERED LIST at the granularity the oracle froze —
-//! `core` is `(line, code)`, the fact-driven channels are `(path, line, code)`.
-//! Comparing as sets would drop the BR-V8 final ordering, which one case exists
-//! specifically to pin.
+//! Each channel is compared as an ORDERED LIST at the granularity the oracle
+//! froze — the fact-driven channels are `(path, line, code)`. Comparing as sets
+//! would drop the BR-V8 final ordering, which one case exists specifically to
+//! pin.
 //!
 //! `protocols` and `advisories` are frozen OBSERVATIONS for cp5. They are read
 //! here only to assert that this crate does NOT claim them: a green replay of
-//! three channels must not be readable as evidence about five.
+//! the channels below must not be readable as evidence about five.
 
 #![allow(
     clippy::unwrap_used,
@@ -129,7 +129,7 @@ fn replays_every_frozen_case_on_the_fact_driven_channels() {
 
 /// The channels cp4 does NOT own must stay unclaimed.
 ///
-/// `VerdictChannels` has three fields and the oracle freezes five. This asserts
+/// `VerdictChannels` has two fields today and the oracle freezes five. This asserts
 /// the gap is real rather than accidental: the frozen `protocols`/`advisories`
 /// rows exist, and nothing in this crate produces them — so a green replay
 /// above cannot be read as "cp4 covers five channels".

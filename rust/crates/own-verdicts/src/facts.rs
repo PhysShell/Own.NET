@@ -90,8 +90,12 @@ use own_ir::OwnIr;
 use crate::adapt::{effects as adapt_effects, services as adapt_services};
 use crate::{project, VerdictError};
 
-/// The three verdict channels cp4 gates on, at the granularity the frozen
-/// oracle compares.
+/// The verdict channels this crate can prove today, at the granularity the
+/// frozen oracle compares.
+///
+/// cp4 gates on THREE — `core`, `di`, `effects`. `core` is absent until the
+/// routing-identity prerequisite lands (see above); the field is missing rather
+/// than empty so nothing can read a green replay as covering it.
 ///
 /// Separate lists rather than one envelope: `core` is `(line, code)` and the
 /// fact-driven channels are `(path, line, code)`, and unifying them is exactly
@@ -107,14 +111,12 @@ pub struct VerdictChannels {
     pub effects: Vec<(String, SourceLine, String)>,
 }
 
-/// Compose one `OwnIR` document into the three gating channels.
+/// Compose one `OwnIR` document into the fact-driven gating channels.
 ///
 /// # Errors
 /// [`VerdictError`] when the bridge rejects the document (vocabulary skew),
-/// when the projection cannot represent it, or when the core reports a
-/// diagnostic that cannot be attributed to a known handle — the last being the
-/// reference's own fail-loud: a swallowed leak is the worst outcome for a leak
-/// checker, so a drifted lowering is raised rather than silently dropped.
+/// when the projection cannot represent it. A document that analyses
+/// cleanly returns empty channels, never an error.
 pub fn check_facts(facts: &OwnIr) -> Result<VerdictChannels, VerdictError> {
     // The bridge and the projection still run: a document the composition
     // cannot lower or project is a rejection, not an empty verdict, and the
