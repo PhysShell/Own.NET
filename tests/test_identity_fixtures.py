@@ -46,6 +46,12 @@ move/alias — the information reaches the analysis and is discarded there.
 Python uses exactly that: ownership diagnostics take `sym.origin`, and lifetime
 `OWN014` takes `source#line`.
 
+`None` is not an oversight anywhere it appears: of the reference's 28 `err`
+sites, **10 pass no subject at all** — the borrow-permission errors, the
+use-outside-region check, the effect-kind mismatches, and the `_consume_like`
+half of OWN007. So the port's rule cannot be "ownership diagnostics carry
+identity"; it is per emission path, and `None` is as normative as a string.
+
 A port that instead builds `format!("{current_name}#{diagnostic_line}")` looks
 extremely plausible and is NOT equivalent: after a move or an alias join the
 current name is not the origin name, and the diagnostic line is not the origin
@@ -283,18 +289,38 @@ def run(write: bool = False) -> int:
     # `_consume_like` stamps nothing; the return-escape path stamps `subj`. A
     # port that decided by code — `if code in {...}` — satisfies one half and
     # fails the other, so the pair must stay split.
+    #
+    # Located by CODE within each case, never by row index: today each half has
+    # exactly one row, but a reference change that emitted something before the
+    # OWN007 would silently move this guard onto a different diagnostic and it
+    # would keep passing while measuring nothing.
+    #
+    # Structural only. That the anonymous half is null and the named half is
+    # not is what no other case pins; the exact identity string is already
+    # frozen in the JSON and re-checked by the fresh-render comparison below,
+    # so repeating it here would be a second copy to drift.
     by_case = {c["name"]: c["identity"] for c in frozen.get("cases", [])}
-    anon = by_case.get("curated/own007-move-while-borrowed-anonymous.own")
-    named_own7 = by_case.get("curated/own007-return-while-borrowed-named.own")
+
+    def _rows(case_name: str, code: str) -> list[list[object]] | None:
+        rows = by_case.get(case_name)
+        return None if rows is None else [r for r in rows if r[1] == code]
+
+    anon = _rows("curated/own007-move-while-borrowed-anonymous.own", "OWN007")
+    named_own7 = _rows("curated/own007-return-while-borrowed-named.own", "OWN007")
     if anon is None or named_own7 is None:
         failures += _fail(
             "the OWN007 pair is incomplete — one half alone would let a port "
             "stamp the code uniformly and still pass")
-    elif not (anon and anon[0][2] is None and named_own7 and named_own7[0][2]):
+    elif len(anon) != 1 or len(named_own7) != 1:
         failures += _fail(
-            f"the OWN007 pair no longer splits on identity ({anon!r} / "
-            f"{named_own7!r}) — it was the only witness that identity follows "
-            f"the emission path rather than the code")
+            f"the OWN007 pair no longer has exactly one OWN007 row per half "
+            f"({len(anon)} / {len(named_own7)}) — the halves must stay minimal "
+            f"or the split they demonstrate stops being isolated")
+    elif anon[0][2] is not None or named_own7[0][2] is None:
+        failures += _fail(
+            f"the OWN007 pair no longer splits on identity ({anon[0][2]!r} / "
+            f"{named_own7[0][2]!r}) — it is the only witness that identity "
+            f"follows the emission path rather than the code")
 
     if "OWN014" not in codes:
         failures += _fail(
