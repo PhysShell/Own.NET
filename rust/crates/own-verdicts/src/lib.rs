@@ -50,6 +50,18 @@
 //! oracle compares at — `core` is `(line, code)`, the fact-driven ones are
 //! `(path, line, code)` — rather than being unified behind one envelope now.
 //! An envelope is exactly cp5's mapping work, started early and proven late.
+//!
+//! # What is here now
+//!
+//! One arm of the diagram: [`project`], the pure
+//! `LoweredDocument -> own_cfg::ast::Module` step. It is deliberately alone —
+//! `check_facts`, the DI/effect sidecars and the verdict channels are the next
+//! slice, and landing them together would let a projection defect and a
+//! composition defect explain each other through one replay.
+
+mod project;
+
+pub use project::project;
 
 /// A rejection from the composition.
 ///

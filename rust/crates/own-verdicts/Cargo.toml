@@ -29,5 +29,11 @@ own-cfg = { path = "../own-cfg" }
 own-analysis = { path = "../own-analysis" }
 own-diagnostics = { path = "../own-diagnostics" }
 
+# Test-only: the shared Layer 2 ledger (`tests/fixtures/lowered/manifest.json`)
+# is read through `own_lowered::Manifest`, which is a serde type. The crate
+# itself parses no JSON — `own_lowered::parse_document` owns that seam.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
