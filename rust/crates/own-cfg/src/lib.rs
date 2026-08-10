@@ -19,6 +19,8 @@
 //! P-022 DAG, `own-cfg` depends on `own-syntax` (and may depend on the `own-ir`
 //! span leaf) only — never on analysis or diagnostics.
 
+use own_ir::span::SourceLine;
+
 pub mod buffers;
 pub mod builder;
 pub mod ir;
@@ -49,11 +51,11 @@ pub use own_syntax::ast;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diag {
     pub code: &'static str,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 impl Diag {
-    pub(crate) const fn new(code: &'static str, line: u32) -> Self {
+    pub(crate) const fn new(code: &'static str, line: SourceLine) -> Self {
         Self { code, line }
     }
 }
@@ -95,6 +97,7 @@ mod tests {
     use super::{
         build_module, collect_policies, module_cfg_json, validate_policies, CFG_JSON_VERSION,
     };
+    use own_ir::span::SourceLine;
     use own_syntax::parse;
     use serde_json::Value;
 
@@ -141,8 +144,11 @@ mod tests {
         let src = "module M\npolicy Zeta { bogus = 1; }\npolicy Alpha { alsobad = 2; }\n";
         let module = parse(src).expect("parses");
         let diags = validate_policies(&collect_policies(&module));
-        let got: Vec<(u32, &str)> = diags.iter().map(|d| (d.line, d.code)).collect();
-        assert_eq!(got, vec![(2, "OWN030"), (3, "OWN030")]);
+        let got: Vec<(SourceLine, &str)> = diags.iter().map(|d| (d.line, d.code)).collect();
+        assert_eq!(
+            got,
+            vec![(SourceLine(2), "OWN030"), (SourceLine(3), "OWN030")]
+        );
     }
 
     #[test]
@@ -152,6 +158,6 @@ mod tests {
         assert_eq!(diags.len(), 1);
         let d = diags.first().expect("one diag");
         assert_eq!(d.code, "OWN030");
-        assert_eq!(d.line, 3);
+        assert_eq!(d.line, SourceLine(3));
     }
 }

@@ -70,7 +70,7 @@ fn buffer_value(info: Option<&BufferInfo>) -> Value {
     m.insert("trace".into(), Value::Bool(info.trace));
     m.insert("counters".into(), Value::Bool(info.counters));
     m.insert("policy_name".into(), opt_str(info.policy_name.as_deref()));
-    m.insert("line".into(), Value::from(info.line));
+    m.insert("line".into(), Value::from(info.line.get()));
     Value::Object(m)
 }
 
@@ -111,7 +111,7 @@ fn symbol_row(s: &Symbol) -> Value {
     let mut m = Map::new();
     m.insert("name".into(), Value::String(s.name.clone()));
     m.insert("kind".into(), Value::String(s.kind.py_name().to_owned()));
-    m.insert("def_line".into(), Value::from(s.def_line));
+    m.insert("def_line".into(), Value::from(s.def_line.get()));
     m.insert("is_param_borrow".into(), Value::Bool(s.is_param_borrow));
     m.insert("borrow_is_mut".into(), opt_bool(s.borrow_is_mut));
     m.insert("type_name".into(), opt_str(s.type_name.as_deref()));
@@ -132,34 +132,34 @@ fn instr_value(ins: &Instr, syms: &mut SymTable<'_>) -> Value {
             m.insert("op".into(), Value::String("acquire".into()));
             m.insert("sym".into(), syms.ref_sym(Some(*sym)));
             m.insert("resource".into(), Value::String(resource.clone()));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::AcquireBuffer { sym, info, line } => {
             m.insert("op".into(), Value::String("acquire_buffer".into()));
             m.insert("sym".into(), syms.ref_sym(Some(*sym)));
             m.insert("buffer".into(), buffer_value(Some(info)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::MoveInto { dst, src, line } => {
             m.insert("op".into(), Value::String("move_into".into()));
             m.insert("dst".into(), syms.ref_sym(Some(*dst)));
             m.insert("src".into(), syms.ref_sym(Some(*src)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::Release { sym, line } => {
             m.insert("op".into(), Value::String("release".into()));
             m.insert("sym".into(), syms.ref_sym(Some(*sym)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::Use { sym, line } => {
             m.insert("op".into(), Value::String("use".into()));
             m.insert("sym".into(), syms.ref_sym(Some(*sym)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::Overspan { sym, line } => {
             m.insert("op".into(), Value::String("overspan".into()));
             m.insert("sym".into(), syms.ref_sym(Some(*sym)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::Invoke { callee, args, line } => {
             m.insert("op".into(), Value::String("invoke".into()));
@@ -174,7 +174,7 @@ fn instr_value(ins: &Instr, syms: &mut SymTable<'_>) -> Value {
                 })
                 .collect();
             m.insert("args".into(), Value::Array(arg_vals));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::BorrowStart {
             owner,
@@ -186,7 +186,7 @@ fn instr_value(ins: &Instr, syms: &mut SymTable<'_>) -> Value {
             m.insert("owner".into(), syms.ref_sym(Some(*owner)));
             m.insert("binding".into(), syms.ref_sym(Some(*binding)));
             m.insert("mut".into(), Value::Bool(*is_mut));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::BorrowEnd {
             owner,
@@ -198,18 +198,18 @@ fn instr_value(ins: &Instr, syms: &mut SymTable<'_>) -> Value {
             m.insert("owner".into(), syms.ref_sym(Some(*owner)));
             m.insert("binding".into(), syms.ref_sym(Some(*binding)));
             m.insert("mut".into(), Value::Bool(*is_mut));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::AliasJoin { handle, src, line } => {
             m.insert("op".into(), Value::String("alias_join".into()));
             m.insert("handle".into(), syms.ref_sym(Some(*handle)));
             m.insert("src".into(), syms.ref_sym(Some(*src)));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
         Instr::Return { sym, line } => {
             m.insert("op".into(), Value::String("return".into()));
             m.insert("sym".into(), syms.ref_sym(*sym));
-            m.insert("line".into(), Value::from(*line));
+            m.insert("line".into(), Value::from(line.get()));
         }
     }
     Value::Object(m)

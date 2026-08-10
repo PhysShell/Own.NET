@@ -12,6 +12,8 @@
 //! verdict-layer contract gated later, at the `own-diagnostics`/SARIF step). The
 //! `BufferInfo` field computation is ported value-for-value.
 
+use own_ir::span::SourceLine;
+
 use std::collections::HashMap;
 
 use own_syntax::ast::{BufferIntent, Expr, PolicyValue};
@@ -121,7 +123,7 @@ pub struct BufferInfo {
     pub trace: bool,
     pub counters: bool,
     pub policy_name: Option<String>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 impl BufferInfo {
@@ -142,7 +144,7 @@ impl BufferInfo {
 pub struct Policy {
     pub name: String,
     pub settings: Vec<(String, PolicyValue)>,
-    pub line: u32,
+    pub line: SourceLine,
     pub dups: Vec<String>,
 }
 
@@ -208,7 +210,7 @@ fn opt_int(
     name: &str,
     default: i64,
     diags: &mut Vec<Diag>,
-    line: u32,
+    line: SourceLine,
 ) -> i64 {
     if let Some(e) = intent.options.get(name) {
         return match as_int(e) {
@@ -236,7 +238,7 @@ fn first_int(
     sources: &[(bool, &str)],
     default: i64,
     diags: &mut Vec<Diag>,
-    line: u32,
+    line: SourceLine,
 ) -> i64 {
     for &(from_opts, key) in sources {
         if from_opts {
@@ -267,7 +269,7 @@ fn bool_flag(
     policy_val: Option<&PolicyValue>,
     default: bool,
     diags: &mut Vec<Diag>,
-    line: u32,
+    line: SourceLine,
 ) -> bool {
     match opt_expr {
         Some(e) => match as_ident(e) {
@@ -294,7 +296,7 @@ fn trace_flag(
     policy_val: Option<&PolicyValue>,
     default: bool,
     diags: &mut Vec<Diag>,
-    line: u32,
+    line: SourceLine,
 ) -> bool {
     match opt_expr {
         Some(e) => match as_ident(e) {

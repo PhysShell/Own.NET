@@ -12,6 +12,8 @@
 //!   rather than by object reference, so the builder can mutate one block while
 //!   creating another without fighting the borrow checker.
 
+use own_ir::span::SourceLine;
+
 use own_syntax::ast::Effect;
 
 use crate::buffers::BufferInfo;
@@ -65,7 +67,7 @@ impl BlockId {
 pub struct Symbol {
     pub name: String,
     pub kind: Kind,
-    pub def_line: u32,
+    pub def_line: SourceLine,
     /// A borrowed parameter (live for the whole body); plain borrow-block
     /// bindings start not-live and are made live by `BorrowStart`.
     pub is_param_borrow: bool,
@@ -84,7 +86,7 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    const fn new(name: String, kind: Kind, def_line: u32) -> Self {
+    const fn new(name: String, kind: Kind, def_line: SourceLine) -> Self {
         Self {
             name,
             kind,
@@ -106,55 +108,55 @@ pub enum Instr {
     Acquire {
         sym: SymId,
         resource: String,
-        line: u32,
+        line: SourceLine,
     },
     AcquireBuffer {
         sym: SymId,
         info: BufferInfo,
-        line: u32,
+        line: SourceLine,
     },
     MoveInto {
         dst: SymId,
         src: SymId,
-        line: u32,
+        line: SourceLine,
     },
     Release {
         sym: SymId,
-        line: u32,
+        line: SourceLine,
     },
     Use {
         sym: SymId,
-        line: u32,
+        line: SourceLine,
     },
     Overspan {
         sym: SymId,
-        line: u32,
+        line: SourceLine,
     },
     Invoke {
         callee: String,
         args: Vec<(Option<SymId>, Effect)>,
-        line: u32,
+        line: SourceLine,
     },
     BorrowStart {
         owner: SymId,
         binding: SymId,
         is_mut: bool,
-        line: u32,
+        line: SourceLine,
     },
     BorrowEnd {
         owner: SymId,
         binding: SymId,
         is_mut: bool,
-        line: u32,
+        line: SourceLine,
     },
     AliasJoin {
         handle: SymId,
         src: SymId,
-        line: u32,
+        line: SourceLine,
     },
     Return {
         sym: Option<SymId>,
-        line: u32,
+        line: SourceLine,
     },
 }
 
@@ -206,7 +208,7 @@ pub(crate) struct SymArena {
 }
 
 impl SymArena {
-    pub(crate) fn declare(&mut self, name: String, kind: Kind, def_line: u32) -> SymId {
+    pub(crate) fn declare(&mut self, name: String, kind: Kind, def_line: SourceLine) -> SymId {
         let id = SymId(u32::try_from(self.syms.len()).unwrap_or(u32::MAX));
         self.syms.push(Symbol::new(name, kind, def_line));
         id

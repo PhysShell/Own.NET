@@ -8,6 +8,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use own_ir::span::SourceLine;
 use serde_json::Value;
 
 const FIXTURE: &str = concat!(
@@ -25,7 +26,7 @@ fn is_fact_only(code: &str) -> bool {
 /// The full Rust `check` surface: parse (own-syntax) → on error a synthetic
 /// OWN020 at the error line (the preserved Python quirk) → else the complete
 /// `check_module` composition, already sorted by `(line, code)`.
-fn rust_check(source: &str) -> Vec<(u32, String)> {
+fn rust_check(source: &str) -> Vec<(SourceLine, String)> {
     match own_syntax::parse(source) {
         Err(e) => {
             // `_collect` wraps a lex/parse failure as one OWN020 at the error line.
@@ -33,7 +34,7 @@ fn rust_check(source: &str) -> Vec<(u32, String)> {
                 own_syntax::SyntaxError::Lex(le) => le.line,
                 own_syntax::SyntaxError::Parse(pe) => pe.line,
             };
-            vec![(line, "OWN020".to_owned())]
+            vec![(SourceLine::from(line), "OWN020".to_owned())]
         }
         Ok(module) => own_analysis::check_module(&module)
             .into_iter()
@@ -42,7 +43,7 @@ fn rust_check(source: &str) -> Vec<(u32, String)> {
     }
 }
 
-fn python_diags(case: &Value) -> Vec<(u32, String)> {
+fn python_diags(case: &Value) -> Vec<(SourceLine, String)> {
     case.get("diags")
         .and_then(Value::as_array)
         .expect("case 'diags' array")
@@ -56,7 +57,7 @@ fn python_diags(case: &Value) -> Vec<(u32, String)> {
                 .and_then(Value::as_str)
                 .expect("code")
                 .to_owned();
-            (line, code)
+            (SourceLine::from(line), code)
         })
         .collect()
 }

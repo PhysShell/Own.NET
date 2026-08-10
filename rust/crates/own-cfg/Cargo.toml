@@ -8,6 +8,7 @@ publish.workspace = true
 version = "0.1.0"
 
 [dependencies]
+own-ir = { path = "../own-ir" }
 own-syntax = { path = "../own-syntax" }
 # The canonical CFG JSON seam is built as a serde_json value tree and dumped
 # through a Python-`json.dumps(indent=2, sort_keys=True)`-compatible printer, so

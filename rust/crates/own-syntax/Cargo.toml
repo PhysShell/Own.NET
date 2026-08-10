@@ -8,6 +8,9 @@ publish.workspace = true
 version = "0.1.0"
 
 [dependencies]
+# The shared span/location leaf: SourceLine lives there so a coordinate can
+# cross the workspace without dragging the parser along (P-022).
+own-ir = { path = "../own-ir" }
 unicode-properties = { workspace = true }
 
 [dev-dependencies]

@@ -22,6 +22,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use own_ir::span::SourceLine;
+
 use own_diagnostics::{title, DiagKey};
 use serde_json::Value;
 
@@ -69,13 +71,13 @@ fn load_cases() -> Vec<Case> {
                     let pair = pair.as_array().expect("each diag is a [line, code] pair");
                     let line = pair
                         .first()
-                        .and_then(Value::as_u64)
+                        .and_then(Value::as_i64)
                         .expect("diag line is a number");
                     let code = pair
                         .get(1)
                         .and_then(Value::as_str)
                         .expect("diag code is a string");
-                    DiagKey::new(u32::try_from(line).expect("line fits u32"), code)
+                    DiagKey::new(SourceLine(line), code)
                 })
                 .collect();
             Case {

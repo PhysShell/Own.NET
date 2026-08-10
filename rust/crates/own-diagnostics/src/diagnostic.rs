@@ -3,6 +3,8 @@
 //! state: these are the values `own-analysis` will construct and the oracle will
 //! compare on `(path, line, code)`.
 
+use own_ir::span::SourceLine;
+
 use serde::{Deserialize, Serialize};
 
 /// A diagnostic's severity. Serialises to the same `"error"`/`"warning"`
@@ -37,7 +39,7 @@ pub enum Severity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Evidence {
     /// 1-based source line of this step.
-    pub line: u32,
+    pub line: SourceLine,
     /// Human label for the step ("acquired here", "escapes here", …).
     pub label: String,
     /// The file of this step; `None` means "same file as the diagnostic's anchor".
@@ -57,7 +59,7 @@ fn default_role() -> String {
 impl Evidence {
     /// A `"related"` step in the same file as its diagnostic's anchor.
     #[must_use]
-    pub fn new(line: u32, label: impl Into<String>) -> Self {
+    pub fn new(line: SourceLine, label: impl Into<String>) -> Self {
         Self {
             line,
             label: label.into(),
@@ -96,7 +98,7 @@ pub struct Diagnostic {
     /// this step (message-text parity is a later, fixture-backed contract).
     pub message: String,
     /// 1-based anchor line.
-    pub line: u32,
+    pub line: SourceLine,
     /// Severity; defaults to [`Severity::Error`].
     #[serde(default)]
     pub severity: Severity,
@@ -139,7 +141,7 @@ impl Diagnostic {
     pub fn new(
         code: impl Into<String>,
         message: impl Into<String>,
-        line: u32,
+        line: SourceLine,
     ) -> Result<Self, UnknownCode> {
         let code = code.into();
         if title(&code).is_none() {
@@ -211,7 +213,7 @@ impl Diagnostic {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DiagKey {
     /// 1-based anchor line.
-    pub line: u32,
+    pub line: SourceLine,
     /// The diagnostic code.
     pub code: String,
 }
@@ -219,7 +221,7 @@ pub struct DiagKey {
 impl DiagKey {
     /// Construct a key directly (used by the fixture replay).
     #[must_use]
-    pub fn new(line: u32, code: impl Into<String>) -> Self {
+    pub fn new(line: SourceLine, code: impl Into<String>) -> Self {
         Self {
             line,
             code: code.into(),
@@ -377,6 +379,7 @@ pub static TITLES: &[(&str, &str)] = &[
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+    use own_ir::span::SourceLine;
 
     #[test]
     fn titles_are_sorted_and_unique() {
@@ -419,18 +422,18 @@ mod tests {
 
     #[test]
     fn new_rejects_unknown_code() {
-        let err = Diagnostic::new("OWN999", "nope", 1).unwrap_err();
+        let err = Diagnostic::new("OWN999", "nope", SourceLine(1)).unwrap_err();
         assert_eq!(err.0, "OWN999");
         assert!(err.to_string().contains("unknown diagnostic code"));
     }
 
     #[test]
     fn new_accepts_known_code_with_defaults() {
-        let d = Diagnostic::new("OWN001", "leak", 12).expect("OWN001 is known");
+        let d = Diagnostic::new("OWN001", "leak", SourceLine(12)).expect("OWN001 is known");
         assert_eq!(d.severity, Severity::Error);
         assert_eq!(d.subject, None);
         assert!(d.evidence.is_empty());
-        assert_eq!(d.key(), DiagKey::new(12, "OWN001"));
+        assert_eq!(d.key(), DiagKey::new(SourceLine(12), "OWN001"));
         assert!(d.title().is_some());
     }
 

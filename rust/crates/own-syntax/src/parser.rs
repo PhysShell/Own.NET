@@ -10,6 +10,8 @@
 //! condition text is joined per parse; interning/arenas come only after the
 //! differential oracle locks behaviour.
 
+use own_ir::span::SourceLine;
+
 use crate::ast;
 use crate::pyrepr::py_repr;
 use crate::token::{lex, LexError, Tok, Token};
@@ -253,7 +255,7 @@ impl Parser {
         Ok(ast::LifetimeDecl {
             name,
             longer,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -277,7 +279,7 @@ impl Parser {
         Ok(ast::PolicyDecl {
             name,
             settings,
-            line: kw.line,
+            line: kw.line.into(),
             dups: dups_of(&seen),
         })
     }
@@ -315,7 +317,7 @@ impl Parser {
                 members.push(ast::ResourceMember {
                     role: ast::MemberRole::Acquire,
                     name: m.text,
-                    line: m.line,
+                    line: m.line.into(),
                 });
             } else if self.at(Tok::Release) {
                 self.eat(Tok::Release)?;
@@ -323,7 +325,7 @@ impl Parser {
                 members.push(ast::ResourceMember {
                     role: ast::MemberRole::Release,
                     name: m.text,
-                    line: m.line,
+                    line: m.line.into(),
                 });
             } else if let Some(field) = emit_field_of(self.cur().kind) {
                 self.bump();
@@ -344,7 +346,7 @@ impl Parser {
         Ok(ast::ResourceDecl {
             name,
             members,
-            line: kw.line,
+            line: kw.line.into(),
             emit_type: emit.get("emit_type").cloned(),
             emit_acquire: emit.get("emit_acquire").cloned(),
             emit_release: emit.get("emit_release").cloned(),
@@ -378,12 +380,12 @@ impl Parser {
             name,
             params,
             ret,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
     fn parse_eparam(&mut self) -> Result<ast::EffectParam, ParseError> {
-        let line = self.cur().line;
+        let line: SourceLine = self.cur().line.into();
         if let Some(effect) = effect_of(self.cur().kind) {
             self.bump();
             let type_name = self.eat(Tok::Ident)?.text;
@@ -433,7 +435,7 @@ impl Parser {
             params,
             ret,
             body,
-            line: kw.line,
+            line: kw.line.into(),
             lifetime,
         })
     }
@@ -451,13 +453,13 @@ impl Parser {
         Ok(ast::Param {
             name: nm.text,
             ty,
-            line: nm.line,
+            line: nm.line.into(),
             lifetime,
         })
     }
 
     fn parse_type(&mut self) -> Result<ast::TypeRef, ParseError> {
-        let line = self.cur().line;
+        let line: SourceLine = self.cur().line.into();
         if self.accept(Tok::Amp).is_some() {
             let mutable = self.accept(Tok::Mut).is_some();
             let nm = self.eat(Tok::Ident)?;
@@ -546,7 +548,7 @@ impl Parser {
         self.eat(Tok::Semi)?;
         Ok(ast::Subscribe {
             source,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -559,7 +561,7 @@ impl Parser {
         Ok(ast::Let {
             name: nm.text,
             rhs,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -573,7 +575,7 @@ impl Parser {
             return Ok(ast::Expr::Acquire(ast::Acquire {
                 resource,
                 args,
-                line: kw.line,
+                line: kw.line.into(),
             }));
         }
         if self.at(Tok::Move) {
@@ -581,7 +583,7 @@ impl Parser {
             let v = self.eat(Tok::Ident)?;
             return Ok(ast::Expr::Move(ast::Move {
                 var: v.text,
-                line: kw.line,
+                line: kw.line.into(),
             }));
         }
         // buffer intent:  Namespace "." mode "(" bargs? ")"   e.g. Buffer.scratch(...)
@@ -617,7 +619,7 @@ impl Parser {
             mode,
             size: size.map(Box::new),
             options,
-            line: ns.line,
+            line: ns.line.into(),
             ns: ns.text,
             col: ns.col,
             dups: dups_of(&seen),
@@ -670,13 +672,13 @@ impl Parser {
             let t = self.eat(Tok::Int)?;
             return Ok(ast::Expr::IntLit(ast::IntLit {
                 value: int_value(&t)?,
-                line: t.line,
+                line: t.line.into(),
             }));
         }
         let t = self.eat(Tok::Ident)?;
         Ok(ast::Expr::VarRef(ast::VarRef {
             name: t.text,
-            line: t.line,
+            line: t.line.into(),
         }))
     }
 
@@ -686,7 +688,7 @@ impl Parser {
         self.eat(Tok::Semi)?;
         Ok(ast::Release {
             var: v.text,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -696,7 +698,7 @@ impl Parser {
         self.eat(Tok::Semi)?;
         Ok(ast::Use {
             var: v.text,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -706,7 +708,7 @@ impl Parser {
         self.eat(Tok::Semi)?;
         Ok(ast::Overspan {
             var: v.text,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -719,7 +721,7 @@ impl Parser {
         Ok(ast::Call {
             callee: nm.text,
             args,
-            line: nm.line,
+            line: nm.line.into(),
         })
     }
 
@@ -738,7 +740,7 @@ impl Parser {
             binding,
             kind,
             body,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -781,7 +783,7 @@ impl Parser {
             cond_text,
             then_body,
             else_body,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -792,7 +794,7 @@ impl Parser {
         Ok(ast::While {
             cond_text,
             body,
-            line: kw.line,
+            line: kw.line.into(),
         })
     }
 
@@ -804,7 +806,10 @@ impl Parser {
             None
         };
         self.eat(Tok::Semi)?;
-        Ok(ast::Return { var, line: kw.line })
+        Ok(ast::Return {
+            var,
+            line: kw.line.into(),
+        })
     }
 }
 

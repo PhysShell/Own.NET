@@ -13,6 +13,8 @@
 //!
 //! [`solver`]: crate::solver
 
+use own_ir::span::SourceLine;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use own_cfg::{Cfg, Effect, Instr, Kind, SymId};
@@ -53,9 +55,9 @@ struct State {
     /// Handle id → RID (aliasing; default 1:1, i.e. a handle denotes itself).
     handle_rid: BTreeMap<u32, u32>,
     /// RID → (line, exact) move-site provenance (OWN005 evidence only).
-    moved_at: BTreeMap<u32, (u32, bool)>,
+    moved_at: BTreeMap<u32, (SourceLine, bool)>,
     /// RID → (line, exact) acquire-site provenance (OWN001 evidence only).
-    acquired_at: BTreeMap<u32, (u32, bool)>,
+    acquired_at: BTreeMap<u32, (SourceLine, bool)>,
 }
 
 impl State {
@@ -90,7 +92,10 @@ impl State {
 
 /// Merge two RID→(line, exact) provenance maps (`analysis._join_sites`): agree on
 /// a line ⇒ keep it, `exact` AND-ed; disagree ⇒ keep the earliest line, inexact.
-fn join_sites(out: &mut BTreeMap<u32, (u32, bool)>, other: &BTreeMap<u32, (u32, bool)>) {
+fn join_sites(
+    out: &mut BTreeMap<u32, (SourceLine, bool)>,
+    other: &BTreeMap<u32, (SourceLine, bool)>,
+) {
     for (&rid, &(line_b, exact_b)) in other {
         match out.get(&rid).copied() {
             Some((line_a, exact_a)) => {
@@ -203,7 +208,7 @@ enum Emit<'a> {
 }
 
 impl Emit<'_> {
-    fn push(&mut self, code: &'static str, line: u32) {
+    fn push(&mut self, code: &'static str, line: SourceLine) {
         if let Self::Collect(sink) = self {
             // Every `code` is a compile-time TITLES constant, so `new` cannot
             // fail; the title doubles as a non-blank human message (message-text
@@ -241,7 +246,7 @@ fn loans_on(st: &State, owner: SymId) -> (u32, bool) {
 ///
 /// Note: the "consumed" and "released" cases both emit OWN002 (only the message
 /// differs in Python, and message text is not part of the checkpoint-2 contract).
-fn state_problem(st: &State, sym: SymId, emit: &mut Emit<'_>, line: u32) -> bool {
+fn state_problem(st: &State, sym: SymId, emit: &mut Emit<'_>, line: SourceLine) -> bool {
     let s = st.states(st.rid_of(sym));
     if s & OWNED == 0 {
         if s & MOVED != 0 {
@@ -267,7 +272,7 @@ fn consume_like(
     st: &State,
     sym: SymId,
     emit: &mut Emit<'_>,
-    line: u32,
+    line: SourceLine,
     code_borrowed: &'static str,
 ) {
     if state_problem(st, sym, emit, line) {
@@ -279,7 +284,7 @@ fn consume_like(
     }
 }
 
-fn check_mut_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: u32) {
+fn check_mut_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: SourceLine) {
     if state_problem(st, owner, emit, line) {
         return;
     }
@@ -291,7 +296,7 @@ fn check_mut_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: u32
     }
 }
 
-fn check_shared_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: u32) {
+fn check_shared_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: SourceLine) {
     if state_problem(st, owner, emit, line) {
         return;
     }
@@ -303,7 +308,7 @@ fn check_shared_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: 
 
 /// Report every RID still `OWNED` in `st` as a leak (OWN001), excluding a
 /// returned resource. Port of `_Analyzer.leak_check`.
-fn leak_check(st: &State, at_line: u32, emit: &mut Emit<'_>, exclude: Option<u32>) {
+fn leak_check(st: &State, at_line: SourceLine, emit: &mut Emit<'_>, exclude: Option<u32>) {
     for (&rid, &states) in &st.var {
         if Some(rid) == exclude {
             continue;
@@ -356,7 +361,7 @@ impl<'a> Ownership<'a> {
         sym: SymId,
         eff: Effect,
         emit: &mut Emit<'_>,
-        line: u32,
+        line: SourceLine,
     ) {
         let s = self.cfg.symbol(sym);
         match s.kind {
@@ -569,7 +574,7 @@ impl Analysis for Ownership<'_> {
     }
 }
 
-const fn instr_line(ins: &Instr) -> u32 {
+const fn instr_line(ins: &Instr) -> SourceLine {
     match ins {
         Instr::Acquire { line, .. }
         | Instr::AcquireBuffer { line, .. }
@@ -655,19 +660,19 @@ pub fn analyze(cfg: &Cfg) -> Vec<Diagnostic> {
     diags
 }
 
-fn last_line(cfg: &Cfg, blk: &own_cfg::Block) -> u32 {
+fn last_line(cfg: &Cfg, blk: &own_cfg::Block) -> SourceLine {
     blk.instrs
         .last()
         .map_or_else(|| first_line(cfg), instr_line)
 }
 
-fn first_line(cfg: &Cfg) -> u32 {
+fn first_line(cfg: &Cfg) -> SourceLine {
     for b in &cfg.blocks {
         if let Some(first) = b.instrs.first() {
             return instr_line(first);
         }
     }
-    0
+    SourceLine(0)
 }
 
 #[cfg(test)]

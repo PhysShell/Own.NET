@@ -10,6 +10,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use own_ir::span::SourceLine;
+
 use own_analysis::di::{self, Lifetime, Service};
 use own_analysis::effect::{Binding, Effect};
 use serde_json::Value;
@@ -27,13 +29,16 @@ fn strs(v: Option<&Value>) -> Vec<String> {
     })
 }
 
-fn u32_of(v: Option<&Value>) -> u32 {
-    v.and_then(Value::as_u64)
-        .and_then(|n| u32::try_from(n).ok())
-        .unwrap_or(0)
+/// A source coordinate out of the frozen facts.
+///
+/// Reads the full signed range. The `u32_of` above silently mapped anything
+/// past `u32::MAX` to `0` — harmless while no fixture carried such a value,
+/// and a silent clamp the moment one did.
+fn line_of(v: Option<&Value>) -> SourceLine {
+    SourceLine(v.and_then(Value::as_i64).unwrap_or(0))
 }
 
-fn sites(v: Option<&Value>) -> Vec<(String, String, u32)> {
+fn sites(v: Option<&Value>) -> Vec<(String, String, SourceLine)> {
     v.and_then(Value::as_array).map_or_else(Vec::new, |a| {
         a.iter()
             .filter_map(|t| {
@@ -41,7 +46,7 @@ fn sites(v: Option<&Value>) -> Vec<(String, String, u32)> {
                 Some((
                     t.first()?.as_str()?.to_owned(),
                     t.get(1)?.as_str()?.to_owned(),
-                    u32::try_from(t.get(2)?.as_u64()?).ok()?,
+                    SourceLine(t.get(2)?.as_i64()?),
                 ))
             })
             .collect()
@@ -66,7 +71,7 @@ fn effect_from(v: &Value) -> Effect {
                         .unwrap_or("")
                         .to_owned(),
                     refs: strs(b.get("refs")),
-                    line: u32_of(b.get("line")),
+                    line: line_of(b.get("line")),
                 })
                 .collect()
         });
@@ -84,7 +89,7 @@ fn effect_from(v: &Value) -> Effect {
             .and_then(Value::as_str)
             .unwrap_or("?")
             .to_owned(),
-        line: u32_of(v.get("line")),
+        line: line_of(v.get("line")),
     }
 }
 
@@ -110,7 +115,7 @@ fn service_from(v: &Value) -> Service {
             .and_then(Value::as_str)
             .unwrap_or("?")
             .to_owned(),
-        line: u32_of(v.get("line")),
+        line: line_of(v.get("line")),
         weak_deps: strs(v.get("weak_deps")),
         root_resolves: strs(v.get("root_resolves")),
         root_resolve_sites: sites(v.get("root_resolve_sites")),
@@ -119,7 +124,7 @@ fn service_from(v: &Value) -> Service {
     }
 }
 
-fn expected(case: &Value) -> Vec<(String, u32, String)> {
+fn expected(case: &Value) -> Vec<(String, SourceLine, String)> {
     case.get("expected")
         .and_then(Value::as_array)
         .expect("'expected'")
@@ -131,7 +136,7 @@ fn expected(case: &Value) -> Vec<(String, u32, String)> {
                     .and_then(Value::as_str)
                     .expect("file")
                     .to_owned(),
-                u32_of(row.get(1)),
+                line_of(row.get(1)),
                 row.get(2).and_then(Value::as_str).expect("code").to_owned(),
             )
         })
@@ -161,7 +166,7 @@ fn effect_fact_parity() {
             .iter()
             .map(effect_from)
             .collect();
-        let got: Vec<(String, u32, String)> = own_analysis::effect_verdicts(&effects)
+        let got: Vec<(String, SourceLine, String)> = own_analysis::effect_verdicts(&effects)
             .into_iter()
             .map(|(f, l, c)| (f, l, c.to_owned()))
             .collect();
@@ -193,7 +198,7 @@ fn di_fact_parity() {
             .iter()
             .map(service_from)
             .collect();
-        let got: Vec<(String, u32, String)> = di::di_verdicts(&services)
+        let got: Vec<(String, SourceLine, String)> = di::di_verdicts(&services)
             .into_iter()
             .map(|(f, l, c)| (f, l, c.to_owned()))
             .collect();

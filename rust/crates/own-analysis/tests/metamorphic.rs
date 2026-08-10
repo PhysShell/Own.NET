@@ -10,6 +10,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use own_diagnostics::Diagnostic;
+use own_ir::span::SourceLine;
 
 const PRELUDE: &str = "module M\n\
     resource Conn { acquire open release close }\n\
@@ -27,8 +28,8 @@ fn analyze_all(source: &str) -> Vec<Diagnostic> {
     out
 }
 
-fn keys(diags: &[Diagnostic]) -> Vec<(u32, String)> {
-    let mut v: Vec<(u32, String)> = diags.iter().map(|d| (d.line, d.code.clone())).collect();
+fn keys(diags: &[Diagnostic]) -> Vec<(SourceLine, String)> {
+    let mut v: Vec<(SourceLine, String)> = diags.iter().map(|d| (d.line, d.code.clone())).collect();
     v.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
     v
 }

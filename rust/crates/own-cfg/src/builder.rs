@@ -10,6 +10,8 @@
 //! Diagnostics carry code + line only — see the crate docs for why the human
 //! message text is deferred to the verdict/SARIF step.
 
+use own_ir::span::SourceLine;
+
 use std::collections::{HashMap, HashSet};
 
 use own_syntax::ast::{
@@ -167,7 +169,7 @@ impl<'a> Builder<'a> {
         &mut self,
         name: &str,
         kind: Kind,
-        line: u32,
+        line: SourceLine,
         is_param_borrow: bool,
         borrow_is_mut: Option<bool>,
     ) -> SymId {
@@ -188,7 +190,7 @@ impl<'a> Builder<'a> {
         id
     }
 
-    fn lookup(&mut self, name: &str, line: u32) -> Option<SymId> {
+    fn lookup(&mut self, name: &str, line: SourceLine) -> Option<SymId> {
         for sc in self.scopes.iter().rev() {
             if let Some(id) = sc.get(name) {
                 return Some(*id);
@@ -224,7 +226,7 @@ impl<'a> Builder<'a> {
         self.block_mut(block).succ = succ;
     }
 
-    fn diag(&mut self, code: &'static str, line: u32) {
+    fn diag(&mut self, code: &'static str, line: SourceLine) {
         self.diags.push(Diag::new(code, line));
     }
 

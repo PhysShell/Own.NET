@@ -37,6 +37,8 @@
 //! an output surface is PR 2's, pinned against Python; this type only guarantees
 //! that sorting is total, antisymmetric and reproducible.
 
+use own_ir::span::SourceLine;
+
 use std::num::NonZeroU32;
 
 use serde::{Deserialize, Serialize};
@@ -104,7 +106,7 @@ impl LocatedDiagnostic {
 
     /// The 1-based anchor line (delegated — the line lives on the ported value).
     #[must_use]
-    pub const fn line(&self) -> u32 {
+    pub const fn line(&self) -> SourceLine {
         self.diagnostic.line
     }
 
@@ -140,7 +142,7 @@ impl LocatedDiagnostic {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EvidenceIdentity {
     /// 1-based line of the step.
-    pub line: u32,
+    pub line: SourceLine,
     /// The step's file; `None` means "the anchor's own file" and is **not**
     /// resolved to the anchor path here — the two forms stay distinct, exactly
     /// as the reference leaves them until the SARIF seam resolves one.
@@ -174,7 +176,7 @@ pub struct DiagIdentity {
     /// Verbatim source path.
     pub path: String,
     /// 1-based anchor line.
-    pub line: u32,
+    pub line: SourceLine,
     /// Reported source column, if any (`None` sorts first).
     pub column: Option<NonZeroU32>,
     /// The diagnostic code.
@@ -199,9 +201,10 @@ pub struct DiagIdentity {
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+    use own_ir::span::SourceLine;
 
     fn diag() -> Diagnostic {
-        Diagnostic::new("OWN001", "not released", 42).expect("OWN001 is known")
+        Diagnostic::new("OWN001", "not released", SourceLine(42)).expect("OWN001 is known")
     }
 
     #[test]
@@ -251,8 +254,8 @@ mod tests {
 
     #[test]
     fn evidence_order_is_part_of_identity() {
-        let acquired = Evidence::new(10, "acquired here").with_role("acquired");
-        let escaped = Evidence::new(20, "escapes here").with_role("escaped");
+        let acquired = Evidence::new(SourceLine(10), "acquired here").with_role("acquired");
+        let escaped = Evidence::new(SourceLine(20), "escapes here").with_role("escaped");
         let forward = LocatedDiagnostic::new(
             "src/A.cs",
             diag().with_evidence(vec![acquired.clone(), escaped.clone()]),
@@ -266,12 +269,12 @@ mod tests {
     fn evidence_file_none_is_not_the_anchor_path() {
         let implicit = LocatedDiagnostic::new(
             "src/A.cs",
-            diag().with_evidence(vec![Evidence::new(3, "registered here")]),
+            diag().with_evidence(vec![Evidence::new(SourceLine(3), "registered here")]),
         );
         let explicit = LocatedDiagnostic::new(
             "src/A.cs",
             diag().with_evidence(vec![
-                Evidence::new(3, "registered here").with_file("src/A.cs")
+                Evidence::new(SourceLine(3), "registered here").with_file("src/A.cs")
             ]),
         );
         assert_ne!(implicit.identity(), explicit.identity());

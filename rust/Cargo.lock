@@ -20,6 +20,7 @@ version = "0.1.0"
 dependencies = [
  "own-cfg",
  "own-diagnostics",
+ "own-ir",
  "own-syntax",
  "serde_json",
 ]
@@ -38,6 +39,7 @@ dependencies = [
 name = "own-cfg"
 version = "0.1.0"
 dependencies = [
+ "own-ir",
  "own-syntax",
  "serde_json",
 ]
@@ -46,6 +48,7 @@ dependencies = [
 name = "own-diagnostics"
 version = "0.1.0"
 dependencies = [
+ "own-ir",
  "serde",
  "serde_json",
 ]
@@ -70,6 +73,7 @@ dependencies = [
 name = "own-syntax"
 version = "0.1.0"
 dependencies = [
+ "own-ir",
  "serde_json",
  "unicode-properties",
 ]

@@ -13,6 +13,8 @@
 //! parity lands with the bridge. `#[allow(clippy::panic)]`-free; `(line, code)`
 //! is the parity contract (EFF001 anchors at the effect's call line).
 
+use own_ir::span::SourceLine;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use own_diagnostics::{title, Diagnostic};
@@ -42,7 +44,7 @@ pub struct Binding {
     pub name: String,
     pub init: String,
     pub refs: Vec<String>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// One `useEffect`, mirroring `effects.Effect`.
@@ -57,7 +59,7 @@ pub struct Effect {
     pub io: bool,
     pub bindings: Vec<Binding>,
     pub file: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// An EFF001 finding: the effect whose IO re-fires and the unstable dependency.
@@ -70,7 +72,7 @@ pub struct EffectStorm {
     pub dep: String,
     pub origin: String,
     pub file: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 fn kind_stability(init: &str) -> Option<Stability> {
@@ -223,7 +225,7 @@ pub fn find_effect_storms(effects: &[Effect]) -> Vec<EffectStorm> {
 /// `path` is the effect's file (a fact-set can span files), so it is part of the
 /// verdict identity, not presentation.
 #[must_use]
-pub fn effect_verdicts(effects: &[Effect]) -> Vec<(String, u32, &'static str)> {
+pub fn effect_verdicts(effects: &[Effect]) -> Vec<(String, SourceLine, &'static str)> {
     find_effect_storms(effects)
         .into_iter()
         .map(|s| (s.file, s.line, "EFF001"))
@@ -253,13 +255,14 @@ pub fn effect_diagnostics(effects: &[Effect]) -> Vec<Diagnostic> {
 )]
 mod tests {
     use super::{find_effect_storms, Binding, Effect};
+    use own_ir::span::SourceLine;
 
     fn binding(name: &str, init: &str, refs: &[&str]) -> Binding {
         Binding {
             name: name.to_owned(),
             init: init.to_owned(),
             refs: refs.iter().map(|s| (*s).to_owned()).collect(),
-            line: 1,
+            line: SourceLine(1),
         }
     }
 
@@ -270,7 +273,7 @@ mod tests {
             io,
             bindings,
             file: "C.tsx".to_owned(),
-            line: 10,
+            line: SourceLine(10),
         }
     }
 
@@ -280,7 +283,7 @@ mod tests {
         let storms = find_effect_storms(&[e]);
         assert_eq!(storms.len(), 1);
         assert_eq!(storms[0].dep, "opts");
-        assert_eq!(storms[0].line, 10);
+        assert_eq!(storms[0].line, SourceLine(10));
     }
 
     #[test]

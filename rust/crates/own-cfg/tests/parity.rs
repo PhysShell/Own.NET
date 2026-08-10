@@ -18,7 +18,7 @@ const FIXTURE: &str = concat!(
     "/../../../tests/fixtures/cfg_parity.json"
 );
 
-fn expected_diags(case: &Value) -> Vec<(u64, String)> {
+fn expected_diags(case: &Value) -> Vec<(i64, String)> {
     case.get("diags")
         .and_then(Value::as_array)
         .expect("accepted case carries a 'diags' array")
@@ -27,7 +27,7 @@ fn expected_diags(case: &Value) -> Vec<(u64, String)> {
             let pair = pair.as_array().expect("each diag is a [line, code] pair");
             let line = pair
                 .first()
-                .and_then(Value::as_u64)
+                .and_then(Value::as_i64)
                 .expect("diag line is a number");
             let code = pair
                 .get(1)
@@ -84,9 +84,9 @@ fn replays_python_authored_fixtures() {
                     "canonical CFG JSON diverged from Python on case '{name}'"
                 );
 
-                let got_diags: Vec<(u64, String)> = diags
+                let got_diags: Vec<(i64, String)> = diags
                     .iter()
-                    .map(|d| (u64::from(d.line), d.code.to_owned()))
+                    .map(|d| (d.line.get(), d.code.to_owned()))
                     .collect();
                 assert_eq!(
                     got_diags,

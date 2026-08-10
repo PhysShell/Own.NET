@@ -286,7 +286,13 @@ impl Diagnostic {
     #[must_use]
     pub fn render_pretty(&self, filename: &str, source: &str) -> String {
         let lines = split_lines_python(source);
-        let src_line = usize::try_from(self.line)
+        // The one LEGITIMATE narrowing of a coordinate in the tree: this
+        // indexes the source text, so a line with no corresponding text —
+        // negative, zero, or past the file — has nothing to render and the
+        // chain already degrades to "". Converting from the raw value keeps
+        // that behaviour exactly; it is a renderer fallback, not a verdict
+        // rule, and it does not touch what the verdict carries.
+        let src_line = usize::try_from(self.line.get())
             .ok()
             .and_then(|n| n.checked_sub(1))
             .and_then(|idx| lines.get(idx))
@@ -338,8 +344,9 @@ pub fn sort_emission_order(diagnostics: &mut [Diagnostic]) {
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+    use own_ir::span::SourceLine;
 
-    fn diag(code: &str, message: &str, line: u32) -> Diagnostic {
+    fn diag(code: &str, message: &str, line: SourceLine) -> Diagnostic {
         Diagnostic::new(code, message, line).expect("known code")
     }
 
@@ -363,7 +370,7 @@ mod tests {
     fn caret_column_is_counted_in_characters() {
         // Cyrillic is 2 bytes per char: a byte offset would overshoot badly.
         let line = "    освободить поток;";
-        let d = diag("OWN003", "'поток' освобождён дважды", 1);
+        let d = diag("OWN003", "'поток' освобождён дважды", SourceLine(1));
         assert_eq!(d.caret_col(line), Some(16));
         assert!(
             line.find("поток").expect("present") > 16,
@@ -373,7 +380,7 @@ mod tests {
 
     #[test]
     fn caret_falls_back_to_indent_then_to_nothing() {
-        let d = diag("OWN020", "unsupported construct", 1);
+        let d = diag("OWN020", "unsupported construct", SourceLine(1));
         assert_eq!(d.caret_col("        deeply(indented);"), Some(9));
         assert_eq!(d.caret_col("   "), None);
         assert_eq!(d.caret_col(""), None);
@@ -382,9 +389,9 @@ mod tests {
     #[test]
     fn stable_sort_keeps_emission_order_on_ties() {
         let mut diags = vec![
-            diag("OWN001", "zulu", 5),
-            diag("OWN001", "alpha", 5),
-            diag("OWN001", "mike", 5),
+            diag("OWN001", "zulu", SourceLine(5)),
+            diag("OWN001", "alpha", SourceLine(5)),
+            diag("OWN001", "mike", SourceLine(5)),
         ];
         sort_emission_order(&mut diags);
         let messages: Vec<&str> = diags.iter().map(|d| d.message.as_str()).collect();
@@ -398,7 +405,10 @@ mod tests {
 
     #[test]
     fn codes_compare_as_strings() {
-        let mut diags = vec![diag("OWN010", "ten", 4), diag("OWN009", "nine", 4)];
+        let mut diags = vec![
+            diag("OWN010", "ten", SourceLine(4)),
+            diag("OWN009", "nine", SourceLine(4)),
+        ];
         sort_emission_order(&mut diags);
         let codes: Vec<&str> = diags.iter().map(|d| d.code.as_str()).collect();
         assert_eq!(codes, ["OWN009", "OWN010"]);

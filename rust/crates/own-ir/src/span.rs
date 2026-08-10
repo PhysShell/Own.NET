@@ -43,3 +43,57 @@ impl Span {
         self.len() == 0
     }
 }
+
+/// A source **line**, as a signed 64-bit value.
+///
+/// Signed and 64-bit because that is the language the strict door accepts:
+/// `spec/OwnIR.md` §4.2 declares the signed-64 range legal for a validated
+/// coordinate, and the reference carries whatever it accepted onto the verdict
+/// surface verbatim — measured across `i64::MIN`, `-1`, `0`, `u32::MAX + 1`
+/// and `i64::MAX`. A narrower carrier here would refuse verdicts the door
+/// admits, which is a parity boundary rather than an implementation detail.
+///
+/// It is a **carrier and nothing else**. There is deliberately no `valid()`,
+/// no clamp, no normalisation and no `TryFrom<i64>`: `SourceLine(-1)` is
+/// entirely legal. The rules about which lines *mean* something live where
+/// they already live and are not repeated here — the DI004/DI005 site sentinel
+/// and the SARIF region gate are both `>= 1`, and both keep working unchanged
+/// over a signed value. Folding either of them into this type would make the
+/// carrier decide semantics, which is the substitution the error taxonomy
+/// exists to prevent.
+///
+/// A newtype rather than a bare `i64` so a line cannot be crossed with a
+/// [`ByteOffset`] or a column by accident. `column` is **not** this type: it
+/// keeps `NonZeroU32`, because unlike a line it really does carry a 1-based
+/// contract (#317).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
+#[serde(transparent)]
+pub struct SourceLine(pub i64);
+
+impl SourceLine {
+    /// The underlying value. No interpretation, no fallback.
+    #[must_use]
+    pub const fn get(self) -> i64 {
+        self.0
+    }
+}
+
+/// Lossless widening from the lexer's line counter.
+///
+/// The parser counts newlines in a file it has in memory, so its `u32` is an
+/// honest domain and stays one. This conversion is the seam where a
+/// producer-specific bound meets the shared type: `From`, never `TryFrom`,
+/// because every `u32` is a `SourceLine` and nothing here can fail.
+impl From<u32> for SourceLine {
+    fn from(line: u32) -> Self {
+        Self(i64::from(line))
+    }
+}
+
+impl std::fmt::Display for SourceLine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}

@@ -17,6 +17,8 @@
 //!   tracks the duplicates separately in `dups`). [`OrderedMap`] mirrors
 //!   exactly that; N is tiny (option names), so a linear scan beats hashing.
 
+use own_ir::span::SourceLine;
+
 /// Insertion-ordered string-keyed map with Python-`dict` update semantics:
 /// inserting an existing key overwrites the value **in place** (first
 /// appearance keeps its position), a new key appends.
@@ -86,7 +88,7 @@ pub struct TypeRef {
     pub borrowed: bool,
     /// `&mut T`.
     pub mutable: bool,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 // ---- expressions (RHS of a let, or argument) --------------------------------
@@ -103,13 +105,13 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntLit {
     pub value: u64,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VarRef {
     pub name: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `acquire Resource(args)` → `Owned<Resource>`.
@@ -117,14 +119,14 @@ pub struct VarRef {
 pub struct Acquire {
     pub resource: String,
     pub args: Vec<Expr>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `move x` → transfers ownership, invalidates `x`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Move {
     pub var: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `Buffer.<mode>(size, name = value, ...)` → `Owned<Buffer>` with a storage policy.
@@ -139,7 +141,7 @@ pub struct BufferIntent {
     pub mode: String,
     pub size: Option<Box<Expr>>,
     pub options: OrderedMap<Expr>,
-    pub line: u32,
+    pub line: SourceLine,
     pub ns: String,
     pub col: u32,
     /// Option names that appeared more than once (sorted, deduplicated).
@@ -167,21 +169,21 @@ pub enum Stmt {
 pub struct Let {
     pub name: String,
     pub rhs: Expr,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `release x;` → consumes `x`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Release {
     pub var: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `use x;` → reads `x` (owner or live borrow).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Use {
     pub var: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `overspan x;` — a full-length pooled view (POOL005).
@@ -192,7 +194,7 @@ pub struct Use {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Overspan {
     pub var: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `callee(args);` → a call to a declared extern or local fn.
@@ -200,7 +202,7 @@ pub struct Overspan {
 pub struct Call {
     pub callee: String,
     pub args: Vec<Expr>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `name` is a *new owning handle* on the SAME resource obligation as `src`.
@@ -214,7 +216,7 @@ pub struct AliasJoin {
     pub name: String,
     /// An existing handle whose resource obligation `name` shares.
     pub src: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -223,7 +225,7 @@ pub struct BorrowBlock {
     pub binding: String,
     pub kind: BorrowKind,
     pub body: Vec<Stmt>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -232,7 +234,7 @@ pub struct If {
     pub cond_text: String,
     pub then_body: Vec<Stmt>,
     pub else_body: Vec<Stmt>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -241,13 +243,13 @@ pub struct While {
     /// the loop's back-edge.
     pub cond_text: String,
     pub body: Vec<Stmt>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Return {
     pub var: Option<String>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// `subscribe self to SOURCE;` — the current object is strongly captured by
@@ -256,7 +258,7 @@ pub struct Return {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Subscribe {
     pub source: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 // ---- top level ----------------------------------------------------------------
@@ -271,14 +273,14 @@ pub enum MemberRole {
 pub struct ResourceMember {
     pub role: MemberRole,
     pub name: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceDecl {
     pub name: String,
     pub members: Vec<ResourceMember>,
-    pub line: u32,
+    pub line: SourceLine,
     /// Optional C# emission templates; when present, codegen lowers this
     /// resource to real .NET instead of the schematic `Resource.method()` form.
     pub emit_type: Option<String>,
@@ -295,7 +297,7 @@ pub struct ResourceDecl {
 pub struct EffectParam {
     pub effect: Effect,
     pub type_name: String,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -303,14 +305,14 @@ pub struct ExternDecl {
     pub name: String,
     pub params: Vec<EffectParam>,
     pub ret: Option<TypeRef>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Param {
     pub name: String,
     pub ty: TypeRef,
-    pub line: u32,
+    pub line: SourceLine,
     /// Optional lifetime region this parameter lives at, e.g.
     /// `bus: EventBus lifetime App`. `None` when unannotated.
     pub lifetime: Option<String>,
@@ -322,7 +324,7 @@ pub struct FnDecl {
     pub params: Vec<Param>,
     pub ret: Option<TypeRef>,
     pub body: Vec<Stmt>,
-    pub line: u32,
+    pub line: SourceLine,
     /// Optional lifetime region of the object this function sets up, e.g.
     /// `fn CustomerViewModel(...) lifetime ViewModel { ... }`.
     pub lifetime: Option<String>,
@@ -334,7 +336,7 @@ pub struct FnDecl {
 pub struct LifetimeDecl {
     pub name: String,
     pub longer: Option<String>,
-    pub line: u32,
+    pub line: SourceLine,
 }
 
 /// A policy setting value: an int, or an identifier interpreted as a bool
@@ -351,7 +353,7 @@ pub enum PolicyValue {
 pub struct PolicyDecl {
     pub name: String,
     pub settings: OrderedMap<PolicyValue>,
-    pub line: u32,
+    pub line: SourceLine,
     /// Setting keys that appeared more than once (sorted, deduplicated).
     pub dups: Vec<String>,
 }

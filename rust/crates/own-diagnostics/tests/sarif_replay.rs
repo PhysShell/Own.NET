@@ -344,7 +344,7 @@ fn code_scanning_acceptance_invariants_hold_for_every_case() {
             for location in &result.locations {
                 if let Some(region) = &location.physical_location.region {
                     assert!(
-                        region.start_line >= 1,
+                        region.start_line.get() >= 1,
                         "case {name:?}: startLine must be 1-based, got {}",
                         region.start_line
                     );

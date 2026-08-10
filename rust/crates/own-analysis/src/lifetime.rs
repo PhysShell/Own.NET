@@ -10,6 +10,8 @@
 //! Parity contract (#214): `(line, code)`. The AST is read through `own_cfg::ast`
 //! (the CFG seam), so this crate keeps no production `own-syntax` edge.
 
+use own_ir::span::SourceLine;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use own_cfg::ast::{FnDecl, LifetimeDecl, Module, Stmt, Subscribe};
@@ -17,7 +19,7 @@ use own_diagnostics::{title, Diagnostic};
 
 /// Emit a `(code, line)` diagnostic (message is the title; text parity is a
 /// later step). `code` is a compile-time constant, so `new` cannot fail.
-fn push(diags: &mut Vec<Diagnostic>, code: &'static str, line: u32) {
+fn push(diags: &mut Vec<Diagnostic>, code: &'static str, line: SourceLine) {
     let msg = title(code).unwrap_or(code);
     match Diagnostic::new(code, msg, line) {
         Ok(d) => diags.push(d),
@@ -161,10 +163,11 @@ fn check_fn(
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::check_lifetimes;
+    use own_ir::span::SourceLine;
 
-    fn codes(src: &str) -> Vec<(u32, String)> {
+    fn codes(src: &str) -> Vec<(SourceLine, String)> {
         let module = own_syntax::parse(src).expect("parses");
-        let mut v: Vec<(u32, String)> = check_lifetimes(&module)
+        let mut v: Vec<(SourceLine, String)> = check_lifetimes(&module)
             .into_iter()
             .map(|d| (d.line, d.code))
             .collect();
@@ -183,7 +186,7 @@ mod tests {
             fn VM(bus: EventBus lifetime App) lifetime ViewModel {\n\
                 subscribe self to bus;\n\
             }\n";
-        assert_eq!(codes(src), vec![(6, "OWN014".to_owned())]);
+        assert_eq!(codes(src), vec![(SourceLine(6), "OWN014".to_owned())]);
     }
 
     #[test]
@@ -204,7 +207,10 @@ mod tests {
         let src = "module M\nlifetime A < B;\nlifetime B < A;\n";
         assert_eq!(
             codes(src),
-            vec![(2, "OWN036".to_owned()), (3, "OWN036".to_owned())]
+            vec![
+                (SourceLine(2), "OWN036".to_owned()),
+                (SourceLine(3), "OWN036".to_owned())
+            ]
         );
     }
 
@@ -217,7 +223,10 @@ mod tests {
             lifetime Short < Ghost;\n";
         assert_eq!(
             codes(src),
-            vec![(3, "OWN031".to_owned()), (4, "OWN030".to_owned())]
+            vec![
+                (SourceLine(3), "OWN031".to_owned()),
+                (SourceLine(4), "OWN030".to_owned())
+            ]
         );
     }
 
@@ -230,6 +239,6 @@ mod tests {
             fn VM(bus: EventBus lifetime App) lifetime ViewModel {\n\
                 if (x) { subscribe self to bus; }\n\
             }\n";
-        assert_eq!(codes(src), vec![(5, "OWN014".to_owned())]);
+        assert_eq!(codes(src), vec![(SourceLine(5), "OWN014".to_owned())]);
     }
 }

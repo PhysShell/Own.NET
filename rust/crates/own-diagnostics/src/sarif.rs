@@ -65,6 +65,8 @@
 //! growing coverage. Add it if the evidence projection ever gets its own
 //! location builder, at which point it stops being vacuous.
 
+use own_ir::span::SourceLine;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -88,7 +90,7 @@ pub struct Step<'a> {
     /// Concrete artifact path; never the empty string for an emitted step.
     pub file: &'a str,
     /// 1-based source line; `0` marks a file-level step, which is dropped.
-    pub line: u32,
+    pub line: SourceLine,
     /// Human label for what happens here.
     pub label: &'a str,
 }
@@ -103,7 +105,7 @@ pub struct ArtifactLocation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Region {
     #[serde(rename = "startLine")]
-    pub start_line: u32,
+    pub start_line: SourceLine,
 }
 
 /// A SARIF `physicalLocation`.
@@ -222,12 +224,12 @@ pub struct SarifLog {
 ///
 /// Backslashes become forward slashes so a Windows-produced log stays
 /// consumable; `region` is omitted for a file-level location.
-fn phys(file: &str, line: u32) -> PhysicalLocation {
+fn phys(file: &str, line: SourceLine) -> PhysicalLocation {
     PhysicalLocation {
         artifact_location: ArtifactLocation {
             uri: file.replace('\\', "/"),
         },
-        region: (line >= 1).then_some(Region { start_line: line }),
+        region: (line >= SourceLine(1)).then_some(Region { start_line: line }),
     }
 }
 
@@ -238,7 +240,7 @@ fn phys(file: &str, line: u32) -> PhysicalLocation {
 /// point is noise, and an empty `artifactLocation.uri` makes the whole log
 /// unprocessable for GitHub code scanning.
 const fn emittable(step: &Step<'_>) -> bool {
-    step.line >= 1 && !step.file.is_empty()
+    step.line.get() >= 1 && !step.file.is_empty()
 }
 
 /// Resolve a diagnostic's evidence into concrete steps.
