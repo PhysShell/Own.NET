@@ -1,0 +1,903 @@
+{
+  "cases": [
+    {
+      "advisories": [],
+      "core": [
+        [
+          18,
+          "OWN014"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "capture",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "ed394b38bf9636d4b9d3186937f473c24a4652c89d1aa8a6bdc5610891718ff4",
+      "source": "capture.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          24,
+          "OWN002"
+        ],
+        [
+          31,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "contract_inference",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "ff6379205bd569d81b29432f5cc7f9ed332ed73fbffb66caf946301780acc2c3",
+      "source": "contract_inference.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "Startup.cs",
+          12,
+          "DI001"
+        ],
+        [
+          "Startup.cs",
+          15,
+          "DI001"
+        ]
+      ],
+      "effects": [],
+      "name": "di",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "dd16be56d7ba44e9c7720a2a05fc110ed7b6ed0e439825dde28b623a11bcd6c0",
+      "source": "di.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          14,
+          "OWN014"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "di_capture",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "ded4138017fb3bb22b881eb8be403c0d32f712da97b3323ce891e491eb4b25da",
+      "source": "di_capture.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          10,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "disposable",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "83e0bffa0b6b2a47cb0ea3a14a53fbe7e642a8e22a44b169669e59e6f59385bb",
+      "source": "disposable.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          30,
+          "OWN001"
+        ],
+        [
+          40,
+          "OWN001"
+        ],
+        [
+          40,
+          "OWN001"
+        ],
+        [
+          44,
+          "OWN001"
+        ],
+        [
+          12,
+          "OWN001"
+        ],
+        [
+          21,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_column_anchors",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "27ff8dbde730650eb1c9d5f88540d3b2877ac421003aa32849377fc40034b961",
+      "source": "flow_column_anchors.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          20,
+          "OWN001"
+        ],
+        [
+          40,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_finally_switch",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "1f4e8c03edcb71996b680284399322aaabd691f3f77106e6b4e393618085814d",
+      "source": "flow_finally_switch.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          23,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_leak_on_else",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "d1b940bd307a08855333612e0f3ff13795093d401cc92dbd5e770618b32f57f6",
+      "source": "flow_leak_on_else.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          105,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_leak_two_exits",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "84ea590252077e8ea7f90e900370e10aaa3aaccc7f68aa6069352a53e01c4789",
+      "source": "flow_leak_two_exits.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          201,
+          "OWN001"
+        ],
+        [
+          217,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_nested_throw",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "4853fc0a7f9d2fef8818e0d66f460e060569e84a085ac8d34b9998f325cbe52a",
+      "source": "flow_nested_throw.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          10,
+          "OWN001"
+        ],
+        [
+          20,
+          "OWN001"
+        ],
+        [
+          30,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_pool_partial",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "611162009d4152cf093f0f09edf5cd55673a238773c83a676afec96800399d12",
+      "source": "flow_pool_partial.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          20,
+          "OWN001"
+        ],
+        [
+          20,
+          "OWN003"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "flow_while",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "c7483b924bba7c74096d7da37edb879d774bb021e89a86ae77e3cb5c2bd780da",
+      "source": "flow_while.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          18,
+          "OWN001"
+        ],
+        [
+          24,
+          "OWN002"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "handoff_contract",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "2ce1c5142344a2024e9720c3042aed1a34d810c4fac1bff62bf0ca7ea0bf0b61",
+      "source": "handoff_contract.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          12,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "local_disposable",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "af61aeffa4d5f5b90b73a9d7c32c4fcc43b1e299aea24d917ebc14eb78f7003a",
+      "source": "local_disposable.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          9,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "pool",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "86987f3d94bf990ce7ea4519935edde7331522203200b8870406948bd9045084",
+      "source": "pool.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [],
+      "effects": [],
+      "name": "protocol_isloaded_clean",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "a01740b7d23374f445be892db93dcc27471a807f13a29893261d9655774f52cf",
+      "source": "protocol_isloaded_clean.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [],
+      "effects": [],
+      "name": "protocol_isloaded_violation",
+      "origin": "fixture",
+      "protocols": [
+        [
+          "BigDocumentViewModel.cs",
+          241,
+          "OBL001"
+        ]
+      ],
+      "sha256": "02b88bac6b1c9a22f1c410fda97c9d428fc54a1253ab16ca74a5397a4319e8fc",
+      "source": "protocol_isloaded_violation.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          12,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "sample",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "ff6ed27d670c0873955fe35981e2d0e6604a78f33c5f0026ed4de2bae22de937",
+      "source": "sample.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          12,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "subscribe",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "683c1370c04fa1413d73b7852b2ae24d0516b8f03bf610fbfb3ee4d3ee6dbbaa",
+      "source": "subscribe.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          15,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "timer",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "60d1b8892177d360a63f109243adc59cf9026aab595c61115997791ddfe64fef",
+      "source": "timer.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          26,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "unitofwork_flow",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "c3876846771dd831c0578306d0f707f5c244ec460985d3ba3097fd4818cc0117",
+      "source": "unitofwork_flow.facts.json"
+    },
+    {
+      "advisories": [
+        [
+          "GridViewModel.cs",
+          20,
+          "OWN050"
+        ]
+      ],
+      "core": [
+        [
+          22,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "effects": [],
+      "name": "unresolved",
+      "origin": "fixture",
+      "protocols": [],
+      "sha256": "df991a3a9bbfb68b7ed5b9f97bd1d4ae4b82e3bc94d500f06df88acd13a66085",
+      "source": "unresolved.facts.json"
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          -9223372036854775808,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": -9223372036854775808,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-i64-min",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          -9223372036854775808,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": -9223372036854775808,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-i64-min",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          -1,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": -1,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-negative",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          -1,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": -1,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-negative",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          0,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": 0,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-zero",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          0,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": 0,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-zero",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          1,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": 1,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-one",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          1,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": 1,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-one",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          4294967295,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": 4294967295,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-u32-max",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          4294967295,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": 4294967295,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-u32-max",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          4294967296,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": 4294967296,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-above-u32",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          4294967296,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": 4294967296,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-above-u32",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
+      "di": [
+        [
+          "S.cs",
+          9223372036854775807,
+          "DI001"
+        ]
+      ],
+      "document": {
+        "module": "M",
+        "services": [
+          {
+            "deps": [
+              "Scop"
+            ],
+            "file": "S.cs",
+            "lifetime": "singleton",
+            "line": 9223372036854775807,
+            "name": "Sing"
+          },
+          {
+            "file": "S.cs",
+            "lifetime": "scoped",
+            "line": 2,
+            "name": "Scop"
+          }
+        ]
+      },
+      "effects": [],
+      "family": "services[].line (validated, spec/OwnIR.md \u00a74.2)",
+      "name": "coord-service-line-i64-max",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [
+        [
+          9223372036854775807,
+          "OWN001"
+        ]
+      ],
+      "di": [],
+      "document": {
+        "components": [
+          {
+            "file": "Vm.cs",
+            "name": "Vm",
+            "subscriptions": [
+              {
+                "event": "bus.X",
+                "handler": "h",
+                "line": 9223372036854775807,
+                "released": false,
+                "resource": "subscription",
+                "source": "injected"
+              }
+            ]
+          }
+        ],
+        "module": "M"
+      },
+      "effects": [],
+      "family": "subscriptions[].line (validated nowhere \u2014 \u00a74.2)",
+      "name": "coord-subscription-line-i64-max",
+      "origin": "witness",
+      "protocols": []
+    }
+  ],
+  "verdicts_version": 1
+}
