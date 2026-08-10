@@ -37,25 +37,21 @@ family — never by "which list did Python happen to append it to".
 Ordering is preserved as a LIST. `check_facts` emits in a defined order and
 BR-V8 fixes the final sort; comparing as sets would drop that entirely.
 
-## Coverage this file does NOT have, stated because it is invisible otherwise
+## The channel the corpus could not reach
 
-`effects` is **empty for every fixture in the corpus**: no `.facts.json` here
-produces `EFF001`. An empty expectation is satisfied by a port that never calls
-the effect analysis at all, so it is worth being exact about what that does and
-does not leave unproven.
+`effects` is empty for all 22 `.facts.json` fixtures: none of them produces
+`EFF001`. An empty expectation is satisfied by a port that never calls the
+effect analysis at all, so the hole was recorded here rather than left to be
+found when somebody read `0 == 0` as evidence — and then closed with a
+synthetic witness rather than left recorded.
 
-It does **not** mean the effect analysis is unproven. `EFF001` and `DI001`-`005`
-are already frozen at fact level by `tests/test_di_eff_fact_parity.py`
-(`tests/fixtures/di_eff_fact_parity.json`) and replayed with zero Python by
-`rust/crates/own-analysis/tests/fact_parity.rs` — that landed with #214, and
-the analyses themselves are not what this checkpoint is about.
-
-What is unproven here is the **composition**: that `check_facts` feeds the
-effect analysis from an `OwnIR` document and merges its verdicts into the
-combined surface. `di` has controls for that path; `effects` does not, because
-no fixture exercises it. cp4 is not complete until it does — and the control
-belongs here, not in the fact-level file, which already answers a different
-question correctly.
+The witness is deliberately an **OwnIR -> `check_facts`** document and not the
+fact-level one from #214. `EFF001` and `DI001`-`005` are already frozen at fact
+level by `tests/test_di_eff_fact_parity.py` and replayed with zero Python by
+`rust/crates/own-analysis/tests/fact_parity.rs`, so the ANALYSIS was never the
+gap. The gap was the COMPOSITION — that `check_facts` feeds the effect analysis
+from a document and merges its verdicts into the combined surface — and
+re-proving the analysis here would have left it exactly where it was.
 
 ## Which channels GATE cp4, and which are only observed
 
@@ -213,6 +209,41 @@ def _coordinate_witnesses() -> list[dict[str, Any]]:
     return cases
 
 
+def _composition_witnesses() -> list[dict[str, Any]]:
+    """Documents that close a channel the fixture corpus leaves empty.
+
+    `effects` was 0 across all 22 fixtures, and an empty expectation is
+    satisfied by a port that never calls the effect analysis at all. That was
+    recorded as a known hole rather than fixed, and it stayed a hole for
+    exactly as long as it took to write the composition it would have let
+    through.
+
+    This is deliberately an **OwnIR → `check_facts`** witness and not the
+    fact-level one from #214: `di_eff_fact_parity` already proves the effect
+    ANALYSIS, and re-proving it here would leave the actual gap — that the
+    composition feeds it — untouched.
+    """
+    return [{
+        "name": "composition-effect-storm",
+        "origin": "witness",
+        "family": "effects channel (OwnIR -> check_facts -> EFF001)",
+        "document": {
+            "ownir_version": 0,
+            "module": "M",
+            "effects": [{
+                "component": "A",
+                "file": "A.tsx",
+                "line": 10,
+                "io": True,
+                "deps": ["opts"],
+                "bindings": [
+                    {"name": "opts", "init": "object", "refs": [], "line": 1},
+                ],
+            }],
+        },
+    }]
+
+
 def build() -> dict[str, Any]:
     """Author the golden from the tree — the fixture set is DISCOVERED.
 
@@ -238,7 +269,7 @@ def build() -> dict[str, Any]:
         case.update(_verdicts(facts))
         cases.append(case)
 
-    for witness in _coordinate_witnesses():
+    for witness in _composition_witnesses() + _coordinate_witnesses():
         case = dict(witness)
         case.update(_verdicts(witness["document"]))
         cases.append(case)
@@ -307,9 +338,9 @@ def run(write: bool = False) -> int:
         f"ownir verdict oracle OK: {len(fresh['cases'])} cases "
         f"({fixtures} fixtures / {witnesses} coordinate witnesses); "
         f"channels " + ", ".join(f"{k}={v}" for k, v in counts.items())
-        + (" — effects is EMPTY across the corpus: the analysis itself is "
-           "proven by di_eff_fact_parity, but nothing here proves the "
-           "composition feeds it" if counts["effects"] == 0 else "")
+        + (" — WARNING: the effects channel is empty, so a port that never "
+           "calls the effect analysis would replay this clean"
+           if counts["effects"] == 0 else "")
     )
     return 0
 

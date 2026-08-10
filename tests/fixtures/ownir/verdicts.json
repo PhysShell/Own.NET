@@ -411,6 +411,45 @@
     {
       "advisories": [],
       "core": [],
+      "di": [],
+      "document": {
+        "effects": [
+          {
+            "bindings": [
+              {
+                "init": "object",
+                "line": 1,
+                "name": "opts",
+                "refs": []
+              }
+            ],
+            "component": "A",
+            "deps": [
+              "opts"
+            ],
+            "file": "A.tsx",
+            "io": true,
+            "line": 10
+          }
+        ],
+        "module": "M",
+        "ownir_version": 0
+      },
+      "effects": [
+        [
+          "A.tsx",
+          10,
+          "EFF001"
+        ]
+      ],
+      "family": "effects channel (OwnIR -> check_facts -> EFF001)",
+      "name": "composition-effect-storm",
+      "origin": "witness",
+      "protocols": []
+    },
+    {
+      "advisories": [],
+      "core": [],
       "di": [
         [
           "S.cs",
