@@ -53,14 +53,17 @@
 //!
 //! # What is here now
 //!
-//! One arm of the diagram: [`project`], the pure
-//! `LoweredDocument -> own_cfg::ast::Module` step. It is deliberately alone —
-//! `check_facts`, the DI/effect sidecars and the verdict channels are the next
-//! slice, and landing them together would let a projection defect and a
-//! composition defect explain each other through one replay.
+//! All three arms: [`project`] (the pure `LoweredDocument -> Module` step),
+//! the fact-native sidecar adapters, and [`check_facts`] composing them into
+//! [`VerdictChannels`]. The projection landed on its own first, so a RED in
+//! the composition replay is about orchestration rather than about something
+//! lost three floors below.
 
+mod adapt;
+mod facts;
 mod project;
 
+pub use facts::{check_facts, VerdictChannels};
 pub use project::project;
 
 /// A rejection from the composition.

@@ -29,11 +29,17 @@ own-cfg = { path = "../own-cfg" }
 own-analysis = { path = "../own-analysis" }
 own-diagnostics = { path = "../own-diagnostics" }
 
-# Test-only: the shared Layer 2 ledger (`tests/fixtures/lowered/manifest.json`)
-# is read through `own_lowered::Manifest`, which is a serde type. The crate
-# itself parses no JSON — `own_lowered::parse_document` owns that seam.
-[dev-dependencies]
+# NOT a JSON seam — this crate parses and emits nothing. It names
+# `serde_json::{Map, Value}` because that is the TYPE of `own_ir::Service.extra`
+# and `own_ir::Effect.extra`, the flattened maps the typed model deliberately
+# does not enumerate. `services[].disposable` lives in one of them, and reading
+# it is the whole reason: giving `own_ir::Service` a typed `disposable` instead
+# would let `"disposable": "false"` clear the strict door (which has no rule for
+# the field) and then fail in deserialization — a VALIDATOR_HOLE, which cp1
+# defines as a bug in the validator rather than a rejected document.
 serde_json = { workspace = true }
+
+[dev-dependencies]
 
 [lints]
 workspace = true
