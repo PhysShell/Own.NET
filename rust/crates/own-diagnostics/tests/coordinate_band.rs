@@ -14,7 +14,7 @@
     clippy::indexing_slicing
 )]
 
-use own_diagnostics::build_sarif;
+use own_diagnostics::{build_sarif, sort_emission_order};
 use own_diagnostics::{DiagKey, Diagnostic, Evidence, LocatedDiagnostic};
 use own_ir::span::SourceLine;
 
@@ -103,16 +103,22 @@ fn a_diag_identity_does_not_collapse_on_the_line_alone() {
 #[test]
 fn an_evidence_identity_separates_secondary_lines_past_the_old_ceiling() {
     let base = || diag(1);
+    // Both values are POSITIVE, and that is the point. The secondary producer
+    // is admission-gated at `>= 1`, so an evidence line of 0 never reaches
+    // identity in a real pipeline — proving non-collapse on it proves it
+    // outside the domain the property has to hold on. `1` and `u32::MAX + 2`
+    // both truncate to `1` under `as u32`, so the pair still collapses under
+    // the mutation while staying inside the admissible range.
     let one = LocatedDiagnostic::new(
         "src/A.cs",
         base().with_evidence(vec![Evidence::new(
-            SourceLine(ABOVE_U32),
+            SourceLine(ABOVE_U32 + 1),
             "registered here",
         )]),
     );
     let other = LocatedDiagnostic::new(
         "src/A.cs",
-        base().with_evidence(vec![Evidence::new(SourceLine(0), "registered here")]),
+        base().with_evidence(vec![Evidence::new(SourceLine(1), "registered here")]),
     );
     assert_ne!(
         one.identity(),
@@ -123,18 +129,22 @@ fn an_evidence_identity_separates_secondary_lines_past_the_old_ceiling() {
 }
 
 #[test]
-fn ordering_over_the_band_is_signed_and_total() {
-    let mut lines: Vec<SourceLine> = [1_i64, i64::MAX, -1, U32_MAX, i64::MIN, 0, ABOVE_U32]
+fn the_production_sorter_orders_the_band_signed() {
+    // Through `sort_emission_order`, NOT through `Vec<SourceLine>::sort`. The
+    // first version of this control sorted the newtype directly, which proves
+    // the derived `Ord` and says nothing about the emission contract — a sort
+    // key written `a.line.get() as u32` would have left it green.
+    let mut diags: Vec<Diagnostic> = [1_i64, i64::MAX, -1, U32_MAX, i64::MIN, 0, ABOVE_U32]
         .into_iter()
-        .map(SourceLine)
+        .map(diag)
         .collect();
-    lines.sort_unstable();
-    let got: Vec<i64> = lines.iter().map(|l| l.get()).collect();
+    sort_emission_order(&mut diags);
+    let got: Vec<i64> = diags.iter().map(|d| d.line.get()).collect();
     assert_eq!(
         got,
         vec![i64::MIN, -1, 0, 1, U32_MAX, ABOVE_U32, i64::MAX],
-        "sorting is not signed — an unsigned ordering puts the negatives last, \
-         which would reorder every emitted diagnostic on a file that has one"
+        "the emission order is not signed — an unsigned sort key puts the \
+         negatives last and reorders every diagnostic on a file that has one"
     );
 }
 
