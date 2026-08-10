@@ -333,10 +333,11 @@ def run(write: bool = False) -> int:
 
     counts = {c: sum(len(case[c]) for case in fresh["cases"]) for c in CHANNELS}
     fixtures = sum(1 for c in fresh["cases"] if c["origin"] == "fixture")
-    witnesses = sum(1 for c in fresh["cases"] if c["origin"] == "witness")
+    coord = sum(1 for c in fresh["cases"] if c.get("family", "").startswith("services") or c.get("family", "").startswith("subscriptions"))
+    comp = sum(1 for c in fresh["cases"] if c["origin"] == "witness") - coord
     print(
         f"ownir verdict oracle OK: {len(fresh['cases'])} cases "
-        f"({fixtures} fixtures / {witnesses} coordinate witnesses); "
+        f"({fixtures} fixtures / {coord} coordinate / {comp} composition witnesses); "
         f"channels " + ", ".join(f"{k}={v}" for k, v in counts.items())
         + (" — WARNING: the effects channel is empty, so a port that never "
            "calls the effect analysis would replay this clean"

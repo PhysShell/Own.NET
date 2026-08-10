@@ -1,0 +1,33 @@
+[package]
+name = "own-verdicts"
+description = "Composition of OwnIR facts -> analyses -> verdict channels (P-022 #259 cp4)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+version = "0.1.0"
+
+# The TOP of the DAG for the fact path. Every edge here already exists
+# elsewhere in the workspace; what is new is that one crate is allowed to hold
+# all of them at once, which is exactly what a composition crate is.
+#
+# Why this crate exists at all: `check_facts` has to read OwnIR, lower it,
+# project the result into the analysis AST, feed the fact-native sidecar
+# analyses, and build verdict channels. `own-bridge` cannot do that — its
+# contract is a pure `OwnIr -> LoweredDocument` function and `tests/dag.rs`
+# pins it to {own-ir, own-lowered} with that reason written out. Putting the
+# composition here keeps that promise instead of widening it.
+#
+# No `own-syntax`: `own_analysis::check_module` takes `own_cfg::ast::Module`,
+# and `own-cfg` re-exports the AST precisely so downstream consumers do not
+# need the parser.
+[dependencies]
+own-ir = { path = "../own-ir" }
+own-lowered = { path = "../own-lowered" }
+own-bridge = { path = "../own-bridge" }
+own-cfg = { path = "../own-cfg" }
+own-analysis = { path = "../own-analysis" }
+own-diagnostics = { path = "../own-diagnostics" }
+
+[lints]
+workspace = true

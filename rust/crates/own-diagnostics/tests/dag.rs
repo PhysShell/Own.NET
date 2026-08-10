@@ -53,6 +53,30 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).
+    // The TOP of the fact path (#259 cp4): the only crate allowed to hold every
+    // edge at once, which is what a composition crate IS. It reads OwnIR,
+    // invokes the pure OwnIR -> Layer 2 bridge, projects Layer 2 into the
+    // analysis AST, feeds the fact-native sidecar analyses from the original
+    // facts, and constructs the verdict channels.
+    //
+    // This does NOT widen own-bridge. That crate keeps exactly the two edges
+    // above and stays a pure lowering function; the composition moved up
+    // instead of the boundary moving out. No own-syntax: `check_module` takes
+    // `own_cfg::ast::Module`, and own-cfg re-exports the AST so downstream
+    // consumers never need the parser.
+    m.insert(
+        "own-verdicts",
+        [
+            "own-ir",
+            "own-lowered",
+            "own-bridge",
+            "own-cfg",
+            "own-analysis",
+            "own-diagnostics",
+        ]
+        .into_iter()
+        .collect(),
+    );
     m.insert(
         "own-analysis",
         ["own-ir", "own-cfg", "own-diagnostics"]

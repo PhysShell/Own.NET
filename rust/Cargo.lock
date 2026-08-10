@@ -79,6 +79,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "own-verdicts"
+version = "0.1.0"
+dependencies = [
+ "own-analysis",
+ "own-bridge",
+ "own-cfg",
+ "own-diagnostics",
+ "own-ir",
+ "own-lowered",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
