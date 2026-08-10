@@ -11,7 +11,7 @@
 //! divergence (40 of 51 agreeing, 11 differing in the LINE) is written out in
 //! `facts.rs`. cp4 is NOT closed by this file.
 //!
-//! The golden is EXPECTED OUTPUT only, never an input to construction. Each
+//! The golden is EXPECTED OUTPUT only, never an input to construction.
 //! Each channel is compared as an ORDERED LIST at the granularity the oracle
 //! froze — the fact-driven channels are `(path, line, code)`. Comparing as sets
 //! would drop the BR-V8 final ordering, which one case exists specifically to
