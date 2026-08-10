@@ -137,3 +137,61 @@ fn ordering_over_the_band_is_signed_and_total() {
          which would reorder every emitted diagnostic on a file that has one"
     );
 }
+
+/// The **secondary** projection path, which the primary control cannot reach.
+///
+/// `Evidence.line` travels a different route to SARIF: `steps_for` copies it
+/// into a `Step`, `emittable` applies the `>= 1` gate, and `related_locations`
+/// and `code_flow` each build a `Region` from it. So a truncation introduced in
+/// `steps_for` leaves every other control here green — `EvidenceIdentity`
+/// inspects the `Evidence`, and the primary region never passes through a
+/// `Step` at all.
+///
+/// Both consumers are asserted, not just one: they share `emittable` today, and
+/// a control that only checked `relatedLocations` would be relying on that.
+#[test]
+fn the_secondary_sarif_path_carries_evidence_lines_over_the_band() {
+    let expected: [(i64, Option<i64>); 5] = [
+        (-1, None),
+        (0, None),
+        (1, Some(1)),
+        (ABOVE_U32, Some(ABOVE_U32)),
+        (i64::MAX, Some(i64::MAX)),
+    ];
+    for (line, want) in expected {
+        let d = diag(1).with_evidence(vec![
+            Evidence::new(SourceLine(line), "registered here").with_role("registered")
+        ]);
+        let log = build_sarif(&[d], "A.cs", "error");
+        let result = &log.runs[0].results[0];
+
+        let related: Vec<i64> = result
+            .related_locations
+            .iter()
+            .filter_map(|l| l.physical_location.region.as_ref())
+            .map(|r| r.start_line.get())
+            .collect();
+        let flow: Vec<i64> = result
+            .code_flows
+            .iter()
+            .flat_map(|f| f.thread_flows.iter())
+            .flat_map(|t| t.locations.iter())
+            .filter_map(|l| l.location.physical_location.region.as_ref())
+            .map(|r| r.start_line.get())
+            .collect();
+
+        let want_vec: Vec<i64> = want.into_iter().collect();
+        assert_eq!(
+            related, want_vec,
+            "evidence line {line}: relatedLocations mismatch — below 1 the \
+             secondary location is dropped entirely, at or above it the value \
+             rides through verbatim"
+        );
+        assert_eq!(
+            flow, want_vec,
+            "evidence line {line}: codeFlows mismatch. relatedLocations and \
+             codeFlows are two separate consumers of the same Step; checking \
+             only one would lean on them sharing `emittable` today"
+        );
+    }
+}

@@ -124,17 +124,26 @@ fn an_effect_verdict_carries_every_line_the_door_accepts() {
 /// from `!= 0`.
 #[test]
 fn a_non_positive_site_takes_the_registration_fallback() {
+    // Asserted as an EXACT anchor, not as "did not use the site". The weaker
+    // form catches the `>= 1` -> `!= 0` refactor and would still pass if the
+    // fallback landed on some third coordinate — an assertion that does not
+    // say what its own name says.
     for line in [i64::MIN, -1, 0] {
-        for (file, got, code) in di_verdicts(&di004(line)) {
-            assert_ne!(
-                (file.as_str(), got.get()),
-                ("call.cs", line),
-                "{code}: a site at line {line} was used as the anchor; `>= 1` \
-                 must send it to the registration fallback. A refactor to \
-                 `!= 0` passes every previously existing test and fails here — \
-                 which is the whole reason this control exists."
-            );
-        }
+        let di004_verdicts: Vec<_> = di_verdicts(&di004(line))
+            .into_iter()
+            .filter(|(_, _, code)| *code == "DI004")
+            .collect();
+        let (file, got, _) = di004_verdicts
+            .first()
+            .unwrap_or_else(|| panic!("DI004 expected for a site at line {line}"));
+        assert_eq!(
+            (file.as_str(), got.get()),
+            ("reg.cs", 5),
+            "a site at line {line} must anchor at the REGISTRATION site \
+             (reg.cs:5). A refactor to `!= 0` passes every previously existing \
+             test and fails here — which is the whole reason this control \
+             exists — and so does a fallback that picks some other coordinate."
+        );
     }
 }
 
@@ -142,11 +151,16 @@ fn a_non_positive_site_takes_the_registration_fallback() {
 fn a_positive_site_beyond_u32_is_still_a_site() {
     // The other half: the sentinel must not have become "small enough to fit".
     for line in [1_i64, 4_294_967_296, i64::MAX] {
-        let used_site = di_verdicts(&di004(line))
-            .iter()
-            .any(|(file, got, _)| file == "call.cs" && got.get() == line);
-        assert!(
-            used_site,
+        let di004_verdicts: Vec<_> = di_verdicts(&di004(line))
+            .into_iter()
+            .filter(|(_, _, code)| *code == "DI004")
+            .collect();
+        let (file, got, _) = di004_verdicts
+            .first()
+            .unwrap_or_else(|| panic!("DI004 expected for a site at line {line}"));
+        assert_eq!(
+            (file.as_str(), got.get()),
+            ("call.cs", line),
             "a site at line {line} did not anchor the verdict — the sentinel \
              narrowed to something a u32 can hold"
         );
