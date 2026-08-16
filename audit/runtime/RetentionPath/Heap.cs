@@ -38,13 +38,24 @@ namespace OwnNet.Audit.Runtime
         private readonly DataTarget _target;
         private readonly ClrRuntime _runtime;
 
-        /// <summary>Attach to a LIVE process (suspends it for the read). No procdump needed.</summary>
-        public static RetentionWalker AttachToProcess(int pid) =>
-            new RetentionWalker(DataTarget.AttachToProcess(pid, suspend: true));
+        /// <summary>Attach to a LIVE process (suspends it for the read). No procdump needed.
+        ///
+        /// Opening the target is deliberately its OWN step, separate from
+        /// <see cref="Create"/>: it is the only one a kernel ptrace policy can
+        /// refuse. Folding the two together makes every CLR-initialisation
+        /// failure indistinguishable from a permission failure, and a caller
+        /// that cannot tell them apart will attribute one to the other.</summary>
+        public static DataTarget OpenLiveTarget(int pid) =>
+            DataTarget.AttachToProcess(pid, suspend: true);
 
         /// <summary>Read a full dump — the right choice when the target must not be paused.</summary>
-        public static RetentionWalker LoadDump(string path) =>
-            new RetentionWalker(DataTarget.LoadDump(path));
+        public static DataTarget OpenDumpTarget(string path) =>
+            DataTarget.LoadDump(path);
+
+        /// <summary>Build the CLR view over an already-opened target. Takes
+        /// ownership: on success the walker disposes the target, and on failure
+        /// the target is still the caller's to dispose.</summary>
+        public static RetentionWalker Create(DataTarget target) => new RetentionWalker(target);
 
         private RetentionWalker(DataTarget target)
         {

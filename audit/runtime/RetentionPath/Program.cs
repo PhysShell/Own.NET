@@ -60,18 +60,27 @@ namespace OwnNet.Audit.Runtime
                 return NotEvaluated(args, "usage-error", "neither --pid nor --dump was given");
             }
 
-            // Where the failure happened decides what it MEANS. Before the walker
-            // exists nothing has been read, so the failure is about the request or
-            // the target — `not_evaluated`. After it exists the heap was readable
-            // and the witness broke while looking, which is a different admission
-            // (`error`) and must not be dressed up as a polite refusal.
-            bool attached = false;
+            // WHERE the failure happened decides what it means, so the stages are
+            // tracked separately instead of being collapsed into one "did we get
+            // in" flag. Opening the target is the only step a ptrace policy can
+            // refuse; building the CLR view happens after the target is already
+            // open, so its failures say nothing about permission; and a failure
+            // during the walk is the witness breaking, not the target refusing.
+            // One bool cannot carry that, and when it tried, a CLR-initialisation
+            // failure on a live process under a restricting Yama policy came back
+            // labelled `refused-attach`.
+            DataTarget? target = null;
+            var stage = Stage.OpenTarget;
             try
             {
-                using var walker = dump != null
-                    ? RetentionWalker.LoadDump(dump)
-                    : RetentionWalker.AttachToProcess(pid);
-                attached = true;
+                target = dump != null
+                    ? RetentionWalker.OpenDumpTarget(dump)
+                    : RetentionWalker.OpenLiveTarget(pid);
+
+                stage = Stage.CreateRuntime;
+                using var walker = RetentionWalker.Create(target);
+                target = null;              // the walker owns it from here
+                stage = Stage.Walk;
 
                 switch (verb)
                 {
@@ -84,28 +93,69 @@ namespace OwnNet.Audit.Runtime
                 // A failed read must not read as "clean" — exit 2, distinct from
                 // 0 (analysed, nothing retained) and 1 (analysed, retention found).
                 Console.Error.WriteLine($"retention-path: {ex.GetType().Name}: {ex.Message}");
-                foreach (var line in AttachAdvice(pid, live: dump == null))
-                {
-                    Console.Error.WriteLine(line);
-                }
-                if (attached) return Failed(args, ex);
 
-                // `refused-attach` is a claim about PERMISSION, so it is made
-                // only where a refusing policy can be named. Everywhere else the
-                // honest statement is the weaker one — the target could not be
-                // read — with the exception carried in `detail`. Guessing
-                // "refused" from a process that merely still exists would assert
-                // something nobody observed, which is the failure mode this
-                // whole record exists to close.
-                string? policy = RefusingPolicy(pid, live: dump == null);
-                var reason = new Dictionary<string, object>
+                // Only the stage a policy could have refused gets the ptrace
+                // lecture. Printing it after the target opened would have stderr
+                // blaming the kernel while the record blames the walk — the two
+                // reading one observation is the whole point of sharing YamaScope.
+                if (stage == Stage.OpenTarget)
                 {
-                    ["code"] = policy != null ? "refused-attach" : "unreadable-target",
-                    ["detail"] = $"{ex.GetType().Name}: {ex.Message}",
-                };
-                if (policy != null) reason["policy"] = policy;
-                return NotEvaluated(args, reason);
+                    foreach (var line in AttachAdvice(pid, live: dump == null))
+                        Console.Error.WriteLine(line);
+                }
+
+                return stage == Stage.Walk
+                    ? Failed(args, ex)
+                    : NotEvaluated(args, ReadFailure(stage, pid, live: dump == null, ex));
             }
+            finally
+            {
+                // Non-null only when ownership never reached the walker.
+                target?.Dispose();
+            }
+        }
+
+        /// <summary>The stage a run reached, because the same exception means
+        /// different things at each one.</summary>
+        private enum Stage
+        {
+            /// <summary>Opening the process or dump — refusable by a ptrace policy.</summary>
+            OpenTarget,
+            /// <summary>Building the CLR view over an already-open target.</summary>
+            CreateRuntime,
+            /// <summary>Reading the heap.</summary>
+            Walk,
+        }
+
+        /// <summary>
+        /// Why the heap could not be read, said no more strongly than the
+        /// evidence allows.
+        ///
+        /// `refused-attach` is a claim about PERMISSION, so it is reserved for a
+        /// failure at the one stage a permission check applies to, with a
+        /// restricting policy actually in force. Even then the policy is recorded
+        /// as <c>policy_in_force</c>, not as the proven cause: a live process
+        /// under `ptrace_scope=1` can fail to open for reasons that have nothing
+        /// to do with Yama, and this collector cannot tell those apart. Naming
+        /// what was in force is observation; naming it as the refuser would be
+        /// the same unearned confidence the execution record exists to prevent.
+        ///
+        /// Everything else — including a target that opened and then turned out
+        /// not to be a readable CLR process — gets the weaker, true
+        /// `unreadable-target`, with the exception in `detail`.
+        /// </summary>
+        private static Dictionary<string, object> ReadFailure(
+            Stage stage, int pid, bool live, Exception ex)
+        {
+            string? policy = stage == Stage.OpenTarget ? RefusingPolicy(pid, live) : null;
+            var reason = new Dictionary<string, object>
+            {
+                ["code"] = policy != null ? "refused-attach" : "unreadable-target",
+                ["stage"] = stage == Stage.OpenTarget ? "open-target" : "create-runtime",
+                ["detail"] = $"{ex.GetType().Name}: {ex.Message}",
+            };
+            if (policy != null) reason["policy_in_force"] = policy;
+            return reason;
         }
 
         /// <summary>
@@ -126,8 +176,10 @@ namespace OwnNet.Audit.Runtime
             string? scope = YamaScope(pid, live);
             if (scope == null) yield break;
 
-            yield return "  the target is alive, so this is a PERMISSION failure: the kernel's";
-            yield return $"  Yama policy (/proc/sys/kernel/yama/ptrace_scope = {scope}) refused it.";
+            yield return "  the target is alive and the open was refused, so a PERMISSION failure";
+            yield return $"  is the likely cause: the kernel's Yama policy is restricting";
+            yield return $"  (/proc/sys/kernel/yama/ptrace_scope = {scope}). That policy being in";
+            yield return "  force is what Owen can see; it cannot prove this open is what it stopped.";
             yield return "  Owen did not look — this is NOT a verdict about the target's heap.";
 
             // Each mode restricts something different, and the remedies do not
@@ -166,13 +218,16 @@ namespace OwnNet.Audit.Runtime
             }
         }
 
-        /// <summary>The one place that decides whether a refusal was OBSERVED:
-        /// a live attach, on Linux, to a process that still exists, under a Yama
-        /// policy that is actually restricting. Returns the scope value, or null
-        /// when nothing here can be named as the refuser. Both the human advice
-        /// and the durable record read this — a diagnostic that blames the
-        /// kernel while the record blames the target would be two opinions about
-        /// one event.</summary>
+        /// <summary>The one place that decides whether a restricting policy was
+        /// OBSERVED: a live attach, on Linux, to a process that still exists,
+        /// under a Yama policy that is not permissive. Returns the scope value,
+        /// or null when there is no such policy to name.
+        ///
+        /// This proves the policy was IN FORCE, not that it caused the failure
+        /// in hand — the kernel does not tell the tracer which check rejected
+        /// it. Both the human advice and the durable record read this one
+        /// function, and both are worded to that limit, so stderr and the
+        /// artifact cannot end up holding two opinions about one event.</summary>
         private static string? YamaScope(int pid, bool live)
         {
             if (!live || !OperatingSystem.IsLinux()) return null;
@@ -186,8 +241,8 @@ namespace OwnNet.Audit.Runtime
             return scope == "0" ? null : scope;
         }
 
-        /// <summary>The refusing policy, named as the record must name it, or
-        /// null when no policy can be shown to have refused.</summary>
+        /// <summary>The restricting policy in force, named as the record names
+        /// it, or null when there is none to name.</summary>
         private static string? RefusingPolicy(int pid, bool live)
         {
             string? scope = YamaScope(pid, live);
@@ -462,7 +517,7 @@ namespace OwnNet.Audit.Runtime
                     {
                         ["classification"] = ex.GetType().Name,
                         ["detail"] = ex.Message,
-                        ["phase"] = "walk",
+                        ["stage"] = "walk",
                     },
                 }));
             return 2;
@@ -697,6 +752,29 @@ namespace OwnNet.Audit.Runtime
                 $"{Evaluated(true, someScope)["state"]}", "observed");
             Check("witness absent but evaluated is `clean`",
                 $"{Evaluated(false, someScope)["state"]}", "clean");
+
+            // 8. Stage attribution. A permission claim belongs to the one stage a
+            //    permission check applies to. The first cut of this arc gated on
+            //    "did we get a walker", which put every CLR-initialisation
+            //    failure — a target that opened fine and then turned out not to
+            //    be a managed process — under `refused-attach` whenever Yama
+            //    happened to be restricting.
+            var boom = new InvalidOperationException("the target contains no CLR");
+            var afterOpen = ReadFailure(Stage.CreateRuntime, pid: 1, live: true, ex: boom);
+            Check("a failure after the target opened is never a permission claim",
+                $"{afterOpen["code"]}", "unreadable-target");
+            Check("and it says which stage it fell over at",
+                $"{afterOpen["stage"]}", "create-runtime");
+            if (afterOpen.ContainsKey("policy_in_force"))
+                fails.Add("create-runtime failure must not cite a ptrace policy");
+
+            // A dump has no process to trace, so no policy can be in force for
+            // it — the same call must stay silent about permission there too.
+            var dumpFail = ReadFailure(Stage.OpenTarget, pid: 0, live: false, ex: boom);
+            Check("an unreadable dump is not a refusal",
+                $"{dumpFail["code"]}", "unreadable-target");
+            if (dumpFail.ContainsKey("policy_in_force"))
+                fails.Add("a dump read must not cite a ptrace policy");
 
             foreach (var f in fails)
                 Console.Error.WriteLine($"FAIL: classifier {f}");

@@ -56,15 +56,25 @@ Absence has too many preimages to carry meaning, so it is given none:
 
 > **Absence of a record means no durable knowledge, never a semantic outcome.**
 
-Every attempted evaluation writes a record when `--out` is given, and the record
-states what happened:
+Every evaluation **for which persistence was requested** — that is, every run
+given `--out` — writes a record, and the record states what happened. A run
+without `--out` asked for no durable output and gets none; the witness is a
+standalone tool with no other publication point, so `--out` is where the
+invariant applies. The record states what happened:
 
 | `execution.state` | Exit | Carries | Meaning |
 | --- | --- | --- | --- |
-| `observed` | 1 | `scope`, `verdict`, `retained` | The heap was read; a witness is present. |
-| `clean` | 0 | `scope`, `verdict`, `retained` | The heap was read; no witness. |
-| `not_evaluated` | 2 | `reason.code`, `reason.detail` | Nothing was read. No verdict is recorded. |
-| `error` | 2 | `error.classification` | The heap was readable and the walk broke. |
+| `observed` | 1 | `scope`, `retained` | The heap was read; a witness is present. |
+| `clean` | 0 | `scope`, `retained` | The heap was read; no witness. |
+| `not_evaluated` | 2 | `reason.code`, `reason.stage`, `reason.detail` | Nothing was read. No verdict is recorded. |
+| `error` | 2 | `error.classification`, `error.stage` | The heap was readable and the walk broke. |
+
+`verdict` is **command-specific, not part of the execution contract**: `roots`
+carries one (`RETAINED` / `OBSERVED_ONLY` / `ABSENT`), `census` does not, because
+"is any of this heap retained at all" is a different question with no such
+vocabulary. Inventing a census verdict to make the schema uniform would add a
+word nobody measured. What every evaluated state does owe is `scope` and
+`retained`.
 
 ```jsonc
 {
@@ -72,9 +82,10 @@ states what happened:
   "execution": {
     "state": "not_evaluated",
     "reason": {
-      "code": "refused-attach",              // usage-error | unreadable-target | refused-attach
+      "code": "refused-attach",     // usage-error | unreadable-target | refused-attach
+      "stage": "open-target",       // open-target | create-runtime
       "detail": "ClrDiagnosticsException: Could not attach to process 4213",
-      "policy": "kernel.yama.ptrace_scope=1" // only when a refuser can be named
+      "policy_in_force": "kernel.yama.ptrace_scope=1"
     }
   },
   "collector": { "tool": "retention-path", "mode": "attach", "target": "4213", … }
@@ -88,14 +99,25 @@ record carries no `verdict` key and no `retained` key **at all** — not even
 `retained: []`, which downstream reads as *"looked, found nothing"* and would
 re-create the collapse one layer up.
 
-It does not claim a refusal it did not observe. `refused-attach` is a statement
-about permission, so it is used only where a refusing policy can be named
-(`reason.policy`); every other unreadable target gets the weaker, true
-`unreadable-target` with the exception in `detail`.
+It does not claim a refusal it did not observe. A run passes through three
+stages — **open-target**, **create-runtime**, **walk** — and only the first is
+one a permission check applies to. A failure at `create-runtime` means the
+target opened and then turned out not to be a readable CLR process, which says
+nothing about permission; a failure at `walk` is the witness breaking, not the
+target refusing. So `refused-attach` is reserved for `open-target`, and the
+ptrace advice on stderr is printed at that stage only — otherwise stderr would
+blame the kernel while the record blamed the walk.
 
-`not_evaluated` and `error` are separated by *where* the failure landed: before
-the heap was readable, nothing was looked at and the target is not implicated;
-after it, the witness itself broke mid-walk and the target is not exonerated.
+Even there the claim is bounded. `policy_in_force` records that a restricting
+Yama policy **was in force**, which is what the collector can see. It does not
+record that the policy caused this particular failure, which it cannot: the
+kernel does not tell a tracer which check rejected it, and a live process under
+`ptrace_scope=1` can fail to open for unrelated reasons. Everything else gets
+the weaker, true `unreadable-target` with the exception in `detail`.
+
+`not_evaluated` and `error` are separated by the same stages: before the heap
+was readable, nothing was looked at and the target is not implicated; after it,
+the witness broke mid-walk and the target is not exonerated.
 
 **A `clean` with no `scope` is malformed, not weak.** A record that does not say
 what was looked at cannot mean "nothing was there", so consumers must route it
