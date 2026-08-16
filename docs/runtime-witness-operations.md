@@ -32,11 +32,78 @@ forbidden, this is the answer, not a workaround.
 
 Exit 2 is the one that matters here. *Not looking* and *looking and finding
 nothing* are different outcomes, and collapsing them is how a monitoring
-pipeline learns to report health it never measured. A refused attach also
-writes **no** `runtime.json` artifact — there is no verdict to record.
+pipeline learns to report health it never measured.
 
 **Proven by CI:** a denied attach exits 2, names the policy that refused, and
-leaves no artifact behind.
+records that it did not look — without recording a verdict.
+
+## The durable record
+
+An exit code lives as long as the process. Everything downstream reads the
+`runtime.json` that `--out` writes, so the three states above have to survive
+into storage or the guarantee ends with the process.
+
+Representing *"not evaluated"* by writing **no file** does not survive it.
+An absent artifact means:
+
+```text
+not evaluated  OR  never invoked  OR  the runner died before invocation
+               OR  persistence failed        OR  lost in transit
+               OR  an older format nothing reads any more
+```
+
+Absence has too many preimages to carry meaning, so it is given none:
+
+> **Absence of a record means no durable knowledge, never a semantic outcome.**
+
+Every attempted evaluation writes a record when `--out` is given, and the record
+states what happened:
+
+| `execution.state` | Exit | Carries | Meaning |
+| --- | --- | --- | --- |
+| `observed` | 1 | `scope`, `verdict`, `retained` | The heap was read; a witness is present. |
+| `clean` | 0 | `scope`, `verdict`, `retained` | The heap was read; no witness. |
+| `not_evaluated` | 2 | `reason.code`, `reason.detail` | Nothing was read. No verdict is recorded. |
+| `error` | 2 | `error.classification` | The heap was readable and the walk broke. |
+
+```jsonc
+{
+  "schema": "own-runtime/1",
+  "execution": {
+    "state": "not_evaluated",
+    "reason": {
+      "code": "refused-attach",              // usage-error | unreadable-target | refused-attach
+      "detail": "ClrDiagnosticsException: Could not attach to process 4213",
+      "policy": "kernel.yama.ptrace_scope=1" // only when a refuser can be named
+    }
+  },
+  "collector": { "tool": "retention-path", "mode": "attach", "target": "4213", … }
+}
+```
+
+Two things this record deliberately does **not** do.
+
+It does not record a verdict it did not earn. A `not_evaluated` or `error`
+record carries no `verdict` key and no `retained` key **at all** — not even
+`retained: []`, which downstream reads as *"looked, found nothing"* and would
+re-create the collapse one layer up.
+
+It does not claim a refusal it did not observe. `refused-attach` is a statement
+about permission, so it is used only where a refusing policy can be named
+(`reason.policy`); every other unreadable target gets the weaker, true
+`unreadable-target` with the exception in `detail`.
+
+`not_evaluated` and `error` are separated by *where* the failure landed: before
+the heap was readable, nothing was looked at and the target is not implicated;
+after it, the witness itself broke mid-walk and the target is not exonerated.
+
+**A `clean` with no `scope` is malformed, not weak.** A record that does not say
+what was looked at cannot mean "nothing was there", so consumers must route it
+down the schema-violation path — never read it as a quieter `not_evaluated`.
+`scope` names the population the verdict covered (`instances_on_heap`,
+`instances_reachable`, `instances_durably_retained`) separately from the budgets
+that bounded only the display (`sample_budget`, `max_hops_budget`), so a reader
+can tell a number that constrained the verdict from one that did not.
 
 ## Linux: Yama's `ptrace_scope`
 
