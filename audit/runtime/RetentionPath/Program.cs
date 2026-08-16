@@ -131,14 +131,15 @@ namespace OwnNet.Audit.Runtime
         /// Why the heap could not be read, said no more strongly than the
         /// evidence allows.
         ///
-        /// `refused-attach` is a claim about PERMISSION, so it is reserved for a
-        /// failure at the one stage a permission check applies to, with a
-        /// restricting policy actually in force. Even then the policy is recorded
-        /// as <c>policy_in_force</c>, not as the proven cause: a live process
-        /// under `ptrace_scope=1` can fail to open for reasons that have nothing
-        /// to do with Yama, and this collector cannot tell those apart. Naming
-        /// what was in force is observation; naming it as the refuser would be
-        /// the same unearned confidence the execution record exists to prevent.
+        /// `refused-attach` records a live attach that failed at `open-target`
+        /// while a restrictive policy was observed in force. It does not identify
+        /// the cause. A live process under `ptrace_scope=1` can fail to open for
+        /// reasons that have nothing to do with Yama, and the kernel does not
+        /// tell a tracer which check rejected it, so the code names a situation
+        /// and <c>policy_in_force</c> names what was seen — neither names a
+        /// culprit. Reading the code as a proven permission failure would put
+        /// back the same unearned confidence the execution record exists to
+        /// prevent: the enum is not smarter than the evidence behind it.
         ///
         /// Everything else — including a target that opened and then turned out
         /// not to be a readable CLR process — gets the weaker, true
