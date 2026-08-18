@@ -31,7 +31,10 @@ namespace OwnNet.Audit.Runtime
     /// is how a leak hunt goes wrong.
     ///
     /// The principled version of this is a dominator tree (which single reference, if cut,
-    /// frees the object — and how much memory that frees). See the README.
+    /// frees the object — and how much memory that frees). It is NOT implemented here: the
+    /// A3 witness was extracted from PR #280 without it, deliberately. See
+    /// `audit/runtime/README.md` § "Retention paths" for what the sampled histogram does and
+    /// does not answer, and Own.NET#334 for what the dominator implementation argued.
     /// </summary>
     internal sealed class RetentionWalker : IDisposable
     {
@@ -357,11 +360,6 @@ namespace OwnNet.Audit.Runtime
             string simple = dot >= 0 ? bare.Substring(dot + 1) : bare;
             return string.Equals(simple, wanted, StringComparison.Ordinal);
         }
-
-        /// <summary>
-        /// The dominator tree of the whole live graph, with retained sizes. This is the well-posed
-        /// version of "who holds it": not a path, but the one reference whose removal frees the object.
-        /// </summary>
 
         public void Dispose()
         {
