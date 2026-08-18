@@ -40,7 +40,7 @@ namespace OwnNet.Audit.Runtime
     {
         private static int Main(string[] args)
         {
-            if (args.Length == 0) return Usage();
+            if (args.Length == 0) return Usage(args, "no verb given");
             string verb = args[0].ToLowerInvariant();
 
             // The classifier boundary, pinned without a heap: the live net8
@@ -49,25 +49,43 @@ namespace OwnNet.Audit.Runtime
             if (verb == "selftest")
                 return ClassifierSelfTest() ? 0 : 1;
 
+            if (verb != "census" && verb != "roots")
+                return Usage(args, $"unknown verb '{verb}'");
+
             int pid = ArgInt(args, "--pid", 0);
             string? dump = Arg(args, "--dump");
             if (pid == 0 && dump == null)
             {
                 Console.Error.WriteLine("retention-path: need --pid <n> or --dump <path>");
-                return 2;
+                return NotEvaluated(args, "usage-error", "neither --pid nor --dump was given");
             }
 
+            // WHERE the failure happened decides what it means, so the stages are
+            // tracked separately instead of being collapsed into one "did we get
+            // in" flag. Opening the target is the only step a ptrace policy can
+            // refuse; building the CLR view happens after the target is already
+            // open, so its failures say nothing about permission; and a failure
+            // during the walk is the witness breaking, not the target refusing.
+            // One bool cannot carry that, and when it tried, a CLR-initialisation
+            // failure on a live process under a restricting Yama policy came back
+            // labelled `refused-attach`.
+            DataTarget? target = null;
+            var stage = Stage.OpenTarget;
             try
             {
-                using var walker = dump != null
-                    ? RetentionWalker.LoadDump(dump)
-                    : RetentionWalker.AttachToProcess(pid);
+                target = dump != null
+                    ? RetentionWalker.OpenDumpTarget(dump)
+                    : RetentionWalker.OpenLiveTarget(pid);
+
+                stage = Stage.CreateRuntime;
+                using var walker = RetentionWalker.Create(target);
+                target = null;              // the walker owns it from here
+                stage = Stage.Walk;
 
                 switch (verb)
                 {
                     case "census": return Census(walker, args);
-                    case "roots": return Roots(walker, args);
-                    default: return Usage();
+                    default: return Roots(walker, args);
                 }
             }
             catch (Exception ex)
@@ -75,12 +93,70 @@ namespace OwnNet.Audit.Runtime
                 // A failed read must not read as "clean" — exit 2, distinct from
                 // 0 (analysed, nothing retained) and 1 (analysed, retention found).
                 Console.Error.WriteLine($"retention-path: {ex.GetType().Name}: {ex.Message}");
-                foreach (var line in AttachAdvice(pid, live: dump == null))
+
+                // Only the stage a policy could have refused gets the ptrace
+                // lecture. Printing it after the target opened would have stderr
+                // blaming the kernel while the record blames the walk — the two
+                // reading one observation is the whole point of sharing YamaScope.
+                if (stage == Stage.OpenTarget)
                 {
-                    Console.Error.WriteLine(line);
+                    foreach (var line in AttachAdvice(pid, live: dump == null))
+                        Console.Error.WriteLine(line);
                 }
-                return 2;
+
+                return stage == Stage.Walk
+                    ? Failed(args, ex)
+                    : NotEvaluated(args, ReadFailure(stage, pid, live: dump == null, ex));
             }
+            finally
+            {
+                // Non-null only when ownership never reached the walker.
+                target?.Dispose();
+            }
+        }
+
+        /// <summary>The stage a run reached, because the same exception means
+        /// different things at each one.</summary>
+        private enum Stage
+        {
+            /// <summary>Opening the process or dump — refusable by a ptrace policy.</summary>
+            OpenTarget,
+            /// <summary>Building the CLR view over an already-open target.</summary>
+            CreateRuntime,
+            /// <summary>Reading the heap.</summary>
+            Walk,
+        }
+
+        /// <summary>
+        /// Why the heap could not be read, said no more strongly than the
+        /// evidence allows.
+        ///
+        /// `refused-attach` records a live attach that failed at `open-target`
+        /// while a restrictive policy was observed in force. It does not identify
+        /// the cause. A live process under `ptrace_scope=1` can fail to open for
+        /// reasons that have nothing to do with Yama, and the kernel does not
+        /// tell a tracer which check rejected it, so the code names a situation
+        /// and <c>policy_in_force</c> names what was seen — neither names a
+        /// culprit. Reading the code as a proven permission failure would put
+        /// back the same unearned confidence the execution record exists to
+        /// prevent: the enum is not smarter than the evidence behind it.
+        ///
+        /// Everything else — including a target that opened and then turned out
+        /// not to be a readable CLR process — gets the weaker, true
+        /// `unreadable-target`, with the exception in `detail`.
+        /// </summary>
+        private static Dictionary<string, object> ReadFailure(
+            Stage stage, int pid, bool live, Exception ex)
+        {
+            string? policy = stage == Stage.OpenTarget ? RefusingPolicy(pid, live) : null;
+            var reason = new Dictionary<string, object>
+            {
+                ["code"] = policy != null ? "refused-attach" : "unreadable-target",
+                ["stage"] = stage == Stage.OpenTarget ? "open-target" : "create-runtime",
+                ["detail"] = $"{ex.GetType().Name}: {ex.Message}",
+            };
+            if (policy != null) reason["policy_in_force"] = policy;
+            return reason;
         }
 
         /// <summary>
@@ -98,18 +174,13 @@ namespace OwnNet.Audit.Runtime
         /// </summary>
         private static IEnumerable<string> AttachAdvice(int pid, bool live)
         {
-            if (!live || !OperatingSystem.IsLinux()) yield break;
+            string? scope = YamaScope(pid, live);
+            if (scope == null) yield break;
 
-            try { using var _ = System.Diagnostics.Process.GetProcessById(pid); }
-            catch { yield break; }        // no such process: not a permission story
-
-            string scope;
-            try { scope = File.ReadAllText("/proc/sys/kernel/yama/ptrace_scope").Trim(); }
-            catch { yield break; }        // no Yama on this kernel
-            if (scope == "0") yield break;
-
-            yield return "  the target is alive, so this is a PERMISSION failure: the kernel's";
-            yield return $"  Yama policy (/proc/sys/kernel/yama/ptrace_scope = {scope}) refused it.";
+            yield return "  the target is alive and the open was refused, so a PERMISSION failure";
+            yield return $"  is the likely cause: the kernel's Yama policy is restricting";
+            yield return $"  (/proc/sys/kernel/yama/ptrace_scope = {scope}). That policy being in";
+            yield return "  force is what Owen can see; it cannot prove this open is what it stopped.";
             yield return "  Owen did not look — this is NOT a verdict about the target's heap.";
 
             // Each mode restricts something different, and the remedies do not
@@ -148,6 +219,37 @@ namespace OwnNet.Audit.Runtime
             }
         }
 
+        /// <summary>The one place that decides whether a restricting policy was
+        /// OBSERVED: a live attach, on Linux, to a process that still exists,
+        /// under a Yama policy that is not permissive. Returns the scope value,
+        /// or null when there is no such policy to name.
+        ///
+        /// This proves the policy was IN FORCE, not that it caused the failure
+        /// in hand — the kernel does not tell the tracer which check rejected
+        /// it. Both the human advice and the durable record read this one
+        /// function, and both are worded to that limit, so stderr and the
+        /// artifact cannot end up holding two opinions about one event.</summary>
+        private static string? YamaScope(int pid, bool live)
+        {
+            if (!live || !OperatingSystem.IsLinux()) return null;
+
+            try { using var _ = System.Diagnostics.Process.GetProcessById(pid); }
+            catch { return null; }        // no such process: not a permission story
+
+            string scope;
+            try { scope = File.ReadAllText("/proc/sys/kernel/yama/ptrace_scope").Trim(); }
+            catch { return null; }        // no Yama on this kernel
+            return scope == "0" ? null : scope;
+        }
+
+        /// <summary>The restricting policy in force, named as the record names
+        /// it, or null when there is none to name.</summary>
+        private static string? RefusingPolicy(int pid, bool live)
+        {
+            string? scope = YamaScope(pid, live);
+            return scope == null ? null : $"kernel.yama.ptrace_scope={scope}";
+        }
+
         private static int Census(RetentionWalker walker, string[] args)
         {
             var c = walker.Census();
@@ -166,36 +268,43 @@ namespace OwnNet.Audit.Runtime
             foreach (var kv in c.ByType.OrderByDescending(k => k.Value.Bytes).Take(top))
                 Console.WriteLine($"{Short(kv.Key),-62}{kv.Value.Count,14:N0}{Mb(kv.Value.Bytes),12:N1}");
 
-            string? outPath = Arg(args, "--out");
-            if (outPath != null)
-            {
-                // The runtime.json contract. `expected` is left at 0 — the collector does not
-                // know the budget; the scenario/config does, and correlate.py applies it.
-                var retained = c.ByType
-                    .OrderByDescending(k => k.Value.Bytes)
-                    .Take(top)
-                    .Select(kv => new Dictionary<string, object>
-                    {
-                        ["type"] = kv.Key,
-                        ["count"] = kv.Value.Count,
-                        ["expected"] = 0,
-                        ["bytes"] = kv.Value.Bytes,
-                        ["roots"] = new object[0],
-                    })
-                    .ToList();
-
-                var doc = new Dictionary<string, object>
+            // The runtime.json contract. `expected` is left at 0 — the collector does not
+            // know the budget; the scenario/config does, and correlate.py applies it.
+            var retained = c.ByType
+                .OrderByDescending(k => k.Value.Bytes)
+                .Take(top)
+                .Select(kv => new Dictionary<string, object>
                 {
-                    ["schema"] = "own-runtime/1",
-                    ["collector"] = CollectorIdentity(args),
-                    ["retained"] = retained,
-                };
-                File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
-                Console.WriteLine();
-                Console.WriteLine($"runtime.json written to {outPath}");
-            }
+                    ["type"] = kv.Key,
+                    ["count"] = kv.Value.Count,
+                    ["expected"] = 0,
+                    ["bytes"] = kv.Value.Bytes,
+                    ["roots"] = new object[0],
+                })
+                .ToList();
 
-            return c.RetainedShare > 50 ? 1 : 0;
+            // Same exit-code tiers as `roots`, so the same execution states:
+            // a majority-retained heap is something OBSERVED and worth a `roots`
+            // run; anything less is a clean look, not a silent one.
+            bool present = c.RetainedShare > 50;
+            var scope = new Dictionary<string, object>
+            {
+                ["verb"] = "census",
+                ["mode"] = Arg(args, "--dump") != null ? "dump" : "attach",
+                ["roots_enumerated"] = c.Roots,
+                ["objects_on_heap"] = c.HeapObjects,
+                ["objects_reachable"] = c.RetainedObjects,
+                ["bytes_on_heap"] = c.HeapBytes,
+                ["bytes_reachable"] = c.RetainedBytes,
+                ["retained_share_pct"] = Math.Round(c.RetainedShare, 1),
+                ["types_on_heap"] = c.ByType.Count,
+                ["types_reported"] = retained.Count,
+                ["top_budget"] = top,
+            };
+            WriteRecord(args, BuildRecord(
+                CollectorIdentity(args), Evaluated(present, scope), retained: retained));
+
+            return present ? 1 : 0;
         }
 
         private static int Roots(RetentionWalker walker, string[] args)
@@ -204,7 +313,7 @@ namespace OwnNet.Audit.Runtime
             if (type == null)
             {
                 Console.Error.WriteLine("retention-path roots: need --type <TypeName>");
-                return 2;
+                return NotEvaluated(args, "usage-error", "roots requires --type <TypeName>");
             }
             // Display budgets only — clamped to at least 1 so a pathological
             // `--sample 0` cannot suppress the root path a RETAINED verdict
@@ -214,10 +323,11 @@ namespace OwnNet.Audit.Runtime
             int maxHops = Math.Max(1, ArgInt(args, "--max-hops", 40));
 
             var report = walker.FindRetainers(type, sample, maxHops);
+            var scope = RootsScope(args, type, report, sample, maxHops);
             if (report.TotalOnHeap == 0)
             {
                 Console.WriteLine($"verdict: ABSENT — no instance of {type} is on the heap");
-                WriteArtifact(args, "ABSENT", type, 0, new List<Retainer>());
+                WriteArtifact(args, "ABSENT", type, 0, scope, new List<Retainer>());
                 return 0;
             }
             if (report.Retained == 0)
@@ -227,7 +337,8 @@ namespace OwnNet.Audit.Runtime
                 Console.WriteLine($"verdict: OBSERVED_ONLY — {report.TotalOnHeap:N0} instance(s) of {type} on the " +
                                   "heap, but none of them is reachable from a GC root " +
                                   "(garbage awaiting collection, not an established retention)");
-                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, new List<Retainer>());
+                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, scope,
+                              new List<Retainer>());
                 return 0;
             }
 
@@ -253,7 +364,8 @@ namespace OwnNet.Audit.Runtime
                     Console.WriteLine($"    via [{r.ContractKind()}], {r.Path.Count} hops:");
                     Console.Write(r.Render());
                 }
-                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, report.Retainers);
+                WriteArtifact(args, "OBSERVED_ONLY", type, report.TotalOnHeap, scope,
+                              report.Retainers);
                 return 0;
             }
 
@@ -292,7 +404,8 @@ namespace OwnNet.Audit.Runtime
                                   "really is held from many places");
             }
 
-            WriteArtifact(args, "RETAINED", report.TypeName, report.TotalOnHeap, report.Retainers);
+            WriteArtifact(args, "RETAINED", report.TypeName, report.TotalOnHeap, scope,
+                          report.Retainers);
 
             return 1;   // retention found
         }
@@ -309,20 +422,117 @@ namespace OwnNet.Audit.Runtime
         internal static string VerdictOf(IEnumerable<string> retainerKinds) =>
             retainerKinds.Any(IsDurableKind) ? "RETAINED" : "OBSERVED_ONLY";
 
-        /// <summary>The one `runtime.json` writer — every verdict emits the
+        /// <summary>The one `runtime.json` writer — every outcome emits the
         /// artifact when `--out` is given, so the ok-side of a demo is as
-        /// machine-checkable as the leak side.</summary>
-        private static void WriteArtifact(
-            string[] args, string verdict, string typeName, long count, IReadOnlyList<Retainer> retainers)
+        /// machine-checkable as the leak side, and a run that never looked is as
+        /// machine-checkable as one that did.
+        ///
+        /// The exit codes already keep three states apart (0 evaluated/absent,
+        /// 1 evaluated/present, 2 not evaluated) and then the process ends. If
+        /// storage represents "not evaluated" by writing nothing, that guarantee
+        /// does not survive it: an absent file also means never invoked, runner
+        /// died, persistence failed, artifact lost in transit, or a format
+        /// nothing reads any more. Absence has too many preimages to carry
+        /// meaning, so it is given none — the record IS the state.
+        ///
+        /// What must NOT come back is a verdict that was not earned: a
+        /// `not_evaluated` or `error` record carries no `verdict` and no
+        /// `retained` key at all. An empty `retained: []` would read downstream
+        /// as "looked, found nothing", which is the very collapse this record
+        /// exists to prevent.</summary>
+        private static void WriteRecord(string[] args, Dictionary<string, object> doc)
         {
             string? outPath = Arg(args, "--out");
             if (outPath == null) return;
+            File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
+            Console.WriteLine();
+            Console.WriteLine($"runtime.json written to {outPath}");
+        }
+
+        /// <summary>Assemble the document. Pure, so the selftest can assert the
+        /// record contract without a heap, a process, or a filesystem.</summary>
+        internal static Dictionary<string, object> BuildRecord(
+            Dictionary<string, object> collector,
+            Dictionary<string, object> execution,
+            string? verdict = null,
+            object? retained = null)
+        {
             var doc = new Dictionary<string, object>
             {
                 ["schema"] = "own-runtime/1",
-                ["verdict"] = verdict,
-                ["collector"] = CollectorIdentity(args),
-                ["retained"] = new object[]
+                ["execution"] = execution,
+                ["collector"] = collector,
+            };
+            // Only an evaluated state may carry a measurement.
+            if (verdict != null) doc["verdict"] = verdict;
+            if (retained != null) doc["retained"] = retained;
+            return doc;
+        }
+
+        /// <summary>The execution state of an evaluation that HAPPENED. `scope`
+        /// is required, not decorative: a `clean` whose scope is unknown is a
+        /// malformed record — it does not say what was looked at, so it cannot
+        /// mean "nothing was there" — and consumers must treat it as a schema
+        /// violation rather than as a quieter `not_evaluated`.</summary>
+        internal static Dictionary<string, object> Evaluated(
+            bool witnessPresent, Dictionary<string, object> scope) =>
+            new Dictionary<string, object>
+            {
+                ["state"] = witnessPresent ? "observed" : "clean",
+                ["scope"] = scope,
+            };
+
+        /// <summary>Record "I did not look, and here is why", then exit 2.</summary>
+        private static int NotEvaluated(string[] args, string code, string detail) =>
+            NotEvaluated(args, new Dictionary<string, object>
+            {
+                ["code"] = code,
+                ["detail"] = detail,
+            });
+
+        private static int NotEvaluated(string[] args, Dictionary<string, object> reason)
+        {
+            WriteRecord(args, BuildRecord(
+                CollectorIdentity(args),
+                new Dictionary<string, object>
+                {
+                    ["state"] = "not_evaluated",
+                    ["reason"] = reason,
+                }));
+            return 2;
+        }
+
+        /// <summary>Record "I looked and broke", then exit 2. Distinct from
+        /// `not_evaluated` on purpose: the heap was readable, so a partial walk
+        /// may have happened and the target is not exonerated by this outcome.
+        /// The classification is the exception type — the honest granularity a
+        /// collector has, rather than a guess at a cause.</summary>
+        private static int Failed(string[] args, Exception ex)
+        {
+            WriteRecord(args, BuildRecord(
+                CollectorIdentity(args),
+                new Dictionary<string, object>
+                {
+                    ["state"] = "error",
+                    ["error"] = new Dictionary<string, object>
+                    {
+                        ["classification"] = ex.GetType().Name,
+                        ["detail"] = ex.Message,
+                        ["stage"] = "walk",
+                    },
+                }));
+            return 2;
+        }
+
+        private static void WriteArtifact(
+            string[] args, string verdict, string typeName, long count,
+            Dictionary<string, object> scope, IReadOnlyList<Retainer> retainers)
+        {
+            var doc = BuildRecord(
+                CollectorIdentity(args),
+                Evaluated(witnessPresent: verdict == "RETAINED", scope: scope),
+                verdict,
+                new object[]
                 {
                     new Dictionary<string, object>
                     {
@@ -340,12 +550,28 @@ namespace OwnNet.Audit.Runtime
                             ["path"] = r.Path.Select(h => h.ToString()).ToList(),
                         }).ToList(),
                     },
-                },
-            };
-            File.WriteAllText(outPath, JsonConvert.SerializeObject(doc, Formatting.Indented));
-            Console.WriteLine();
-            Console.WriteLine($"runtime.json written to {outPath}");
+                });
+            WriteRecord(args, doc);
         }
+
+        /// <summary>What the `roots` walk actually covered. Population figures
+        /// come from the exact whole-population census, and the budgets that
+        /// bounded only the DISPLAY are named as budgets — a reader must be able
+        /// to tell a number that constrained the verdict from one that did not.</summary>
+        private static Dictionary<string, object> RootsScope(
+            string[] args, string typeName, RetentionReport report, int sample, int maxHops) =>
+            new Dictionary<string, object>
+            {
+                ["verb"] = "roots",
+                ["mode"] = Arg(args, "--dump") != null ? "dump" : "attach",
+                ["type"] = typeName,
+                ["instances_on_heap"] = report.TotalOnHeap,
+                ["instances_reachable"] = report.Retained,
+                ["instances_durably_retained"] = report.DurableRetained,
+                ["paths_resolved"] = report.PathsResolved,
+                ["sample_budget"] = sample,
+                ["max_hops_budget"] = maxHops,
+            };
 
         /// <summary>Who read the heap and how — so the artifact is auditable
         /// (A3): the target (pid or dump path), the collector runtime, the OS.
@@ -462,14 +688,103 @@ namespace OwnNet.Audit.Runtime
                               $"IsTransientRootKind={transient}, IsDurableKind(Classify)={durable}");
             }
 
+            // 7. The record contract (issue #331). The exit codes keep three
+            //    states apart and then the process ends; these checks pin that
+            //    the storage layer keeps them apart too, instead of letting
+            //    file-absence stand in for "not evaluated" — an absence that
+            //    also means never invoked, runner died, or artifact lost.
+            var collector = new Dictionary<string, object> { ["tool"] = "retention-path" };
+            var someScope = new Dictionary<string, object> { ["verb"] = "roots" };
+
+            void CheckRecord(string name, Dictionary<string, object> doc,
+                             string wantState, bool wantMeasurement)
+            {
+                if (!doc.TryGetValue("execution", out var exObj) ||
+                    exObj is not Dictionary<string, object> ex)
+                {
+                    fails.Add($"{name}: record has no `execution` block");
+                    return;
+                }
+                Check($"{name}: state", ex.TryGetValue("state", out var s) ? $"{s}" : "<missing>", wantState);
+
+                // Each state owes its own evidence. A state with nothing behind
+                // it is a label, and a label is what this record replaces.
+                string owes = wantState switch
+                {
+                    "observed" or "clean" => "scope",
+                    "not_evaluated" => "reason",
+                    _ => "error",
+                };
+                if (!ex.ContainsKey(owes))
+                    fails.Add($"{name}: state '{wantState}' must carry `{owes}`");
+
+                // The half that must NOT come back: an unearned verdict, or an
+                // empty `retained` that reads downstream as "looked, found
+                // nothing". Absence of the key is the point.
+                bool hasMeasurement = doc.ContainsKey("verdict") || doc.ContainsKey("retained");
+                if (hasMeasurement != wantMeasurement)
+                    fails.Add($"{name}: measurement keys present={hasMeasurement}, want {wantMeasurement}");
+            }
+
+            CheckRecord("observed record",
+                BuildRecord(collector, Evaluated(true, someScope), "RETAINED", new object[0]),
+                "observed", wantMeasurement: true);
+            CheckRecord("clean record",
+                BuildRecord(collector, Evaluated(false, someScope), "ABSENT", new object[0]),
+                "clean", wantMeasurement: true);
+            CheckRecord("not_evaluated record",
+                BuildRecord(collector, new Dictionary<string, object>
+                {
+                    ["state"] = "not_evaluated",
+                    ["reason"] = new Dictionary<string, object> { ["code"] = "refused-attach" },
+                }),
+                "not_evaluated", wantMeasurement: false);
+            CheckRecord("error record",
+                BuildRecord(collector, new Dictionary<string, object>
+                {
+                    ["state"] = "error",
+                    ["error"] = new Dictionary<string, object> { ["classification"] = "IOException" },
+                }),
+                "error", wantMeasurement: false);
+
+            // The state names follow the exit-code tiers, so a consumer can map
+            // one onto the other without a second opinion about what happened.
+            Check("witness present is `observed`",
+                $"{Evaluated(true, someScope)["state"]}", "observed");
+            Check("witness absent but evaluated is `clean`",
+                $"{Evaluated(false, someScope)["state"]}", "clean");
+
+            // 8. Stage attribution. A permission claim belongs to the one stage a
+            //    permission check applies to. The first cut of this arc gated on
+            //    "did we get a walker", which put every CLR-initialisation
+            //    failure — a target that opened fine and then turned out not to
+            //    be a managed process — under `refused-attach` whenever Yama
+            //    happened to be restricting.
+            var boom = new InvalidOperationException("the target contains no CLR");
+            var afterOpen = ReadFailure(Stage.CreateRuntime, pid: 1, live: true, ex: boom);
+            Check("a failure after the target opened is never a permission claim",
+                $"{afterOpen["code"]}", "unreadable-target");
+            Check("and it says which stage it fell over at",
+                $"{afterOpen["stage"]}", "create-runtime");
+            if (afterOpen.ContainsKey("policy_in_force"))
+                fails.Add("create-runtime failure must not cite a ptrace policy");
+
+            // A dump has no process to trace, so no policy can be in force for
+            // it — the same call must stay silent about permission there too.
+            var dumpFail = ReadFailure(Stage.OpenTarget, pid: 0, live: false, ex: boom);
+            Check("an unreadable dump is not a refusal",
+                $"{dumpFail["code"]}", "unreadable-target");
+            if (dumpFail.ContainsKey("policy_in_force"))
+                fails.Add("a dump read must not cite a ptrace policy");
+
             foreach (var f in fails)
                 Console.Error.WriteLine($"FAIL: classifier {f}");
             if (fails.Count == 0)
-                Console.WriteLine("retention-path classifier selftest OK: 16 checks passed");
+                Console.WriteLine("retention-path selftest OK: classifier, verdict and record contracts hold");
             return fails.Count == 0;
         }
 
-        private static int Usage()
+        private static int Usage(string[] args, string detail)
         {
             Console.Error.WriteLine("usage:");
             Console.Error.WriteLine("  RetentionPath selftest   # classifier fixtures, no target needed");
@@ -479,7 +794,11 @@ namespace OwnNet.Audit.Runtime
             Console.Error.WriteLine("  census      is there anything retained at all, or is the heap just uncollected garbage?");
             Console.Error.WriteLine("  roots       what holds the TYPICAL instance of a type (exact verdict; sampled, ranked paths);");
             Console.Error.WriteLine("              verdicts: RETAINED (root path shown) | OBSERVED_ONLY (no path established) | ABSENT");
-            return 2;
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("  --out       write the runtime.json record. EVERY outcome writes one, including");
+            Console.Error.WriteLine("              a run that never looked: execution.state is observed | clean |");
+            Console.Error.WriteLine("              not_evaluated | error, and only an evaluated state carries a verdict.");
+            return NotEvaluated(args, "usage-error", detail);
         }
     }
 }

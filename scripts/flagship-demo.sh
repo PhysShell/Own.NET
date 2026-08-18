@@ -72,6 +72,21 @@ m = re.search(r"still subscribed", app)
 subs = re.search(r"(\d[\d,]*) still subscribed", app)
 problems = []
 
+def check_execution(doc, want_state):
+    """An evaluated record must say WHAT it looked at. A verdict whose scope is
+    unknown cannot mean 'nothing was there' — it is malformed, not merely
+    quiet, and gets the schema-violation path rather than a lenient read."""
+    ex = doc.get("execution") or {}
+    if ex.get("state") != want_state:
+        problems.append(f"execution.state {ex.get('state')!r}, want {want_state!r}")
+    scope = ex.get("scope")
+    if not scope:
+        problems.append(f"an evaluated record without `scope` is malformed (state {ex.get('state')!r})")
+        return
+    for key in ("verb", "mode", "type", "instances_on_heap"):
+        if key not in scope:
+            problems.append(f"scope lacks {key!r}")
+
 if variant == "bad":
     if rc != 1:
         problems.append(f"witness exit {rc}, want 1 (RETAINED)")
@@ -82,6 +97,7 @@ if variant == "bad":
         doc = {}
     if doc.get("verdict") != "RETAINED":
         problems.append(f"JSON verdict {doc.get('verdict')!r}, want RETAINED")
+    check_execution(doc, "observed")
     if "verdict: RETAINED" not in human:
         problems.append("human output lacks 'verdict: RETAINED'")
     roots = (doc.get("retained") or [{}])[0].get("roots") or []
@@ -110,6 +126,7 @@ else:
         doc = {}
     if doc.get("verdict") not in ("ABSENT", "OBSERVED_ONLY"):
         problems.append(f"JSON verdict {doc.get('verdict')!r}, want ABSENT or OBSERVED_ONLY")
+    check_execution(doc, "clean")
     roots = (doc.get("retained") or [{}])[0].get("roots") or []
     durable = [r.get("kind") for r in roots if r.get("kind") not in ("stack", "finalizer")]
     if durable:
