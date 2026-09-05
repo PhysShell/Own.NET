@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "F.cs",
+      "line": 14,
+      "code": "OWN051",
+      "component": "M",
+      "event": "x",
+      "handler": "MayTake",
+      "message": "cannot verify whether 'MayTake' takes ownership of 'x' (inferred contract: may); optimistically assuming it does — 'x' is not checked past this call",
+      "kind": "ownership transfer",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

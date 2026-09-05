@@ -1,0 +1,69 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "S.cs",
+      "line": 2,
+      "code": "OWN001",
+      "component": "Skip.partial",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "S.cs",
+      "line": 12,
+      "code": "OWN001",
+      "component": "Skip.bare",
+      "event": "t",
+      "handler": "",
+      "message": "IDisposable local 't' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "S.cs",
+      "line": 21,
+      "code": "OWN001",
+      "component": "Skip.take",
+      "event": "x",
+      "handler": "",
+      "message": "IDisposable local 'x' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "S.cs",
+      "line": 41,
+      "code": "OWN001",
+      "component": "Skip.arity",
+      "event": "u",
+      "handler": "",
+      "message": "IDisposable local 'u' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "ownir_version": 0,
+  "module": "Tiers",
+  "_doc": [
+    "BR-V6: an injected-source `+=` or ignored `.Subscribe()` is the warning tier;",
+    "a static source, a timer (whatever its source), a disposable field are",
+    "error-tier (severity null); a non-empty ignore_reason suppresses (still",
+    "minted, carried) and an empty one does not; `lambda` changes no identity at",
+    "this surface; a static capture with a reason is a suppressed OWN014; the",
+    "unresolved marker is an advisory OWN050 carrying its column; DI002 is warning."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {
+          "event": "bus.A",
+          "handler": "OnA",
+          "line": 10,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected"
+        },
+        {
+          "event": "SystemEvents.B",
+          "handler": "OnB",
+          "line": 11,
+          "released": false,
+          "resource": "subscription",
+          "source": "static"
+        },
+        {
+          "event": "obs.Subscribe",
+          "handler": "",
+          "line": 12,
+          "released": false,
+          "resource": "subscribe",
+          "source": "injected"
+        },
+        {
+          "event": "src.Subscribe",
+          "handler": "",
+          "line": 13,
+          "released": false,
+          "resource": "subscribe",
+          "source": "static"
+        },
+        {
+          "event": "_timer",
+          "handler": "",
+          "line": 14,
+          "released": false,
+          "resource": "timer",
+          "source": "injected"
+        },
+        {
+          "event": "_field",
+          "handler": "",
+          "line": 15,
+          "released": false,
+          "resource": "disposable",
+          "type": "System.IO.Stream",
+          "ignore_reason": "reviewed: disposed by the owner"
+        },
+        {
+          "event": "ev.C",
+          "handler": "OnC",
+          "line": 16,
+          "released": false,
+          "resource": "subscription",
+          "source": "static",
+          "ignore_reason": ""
+        },
+        {
+          "event": "ev.D",
+          "handler": "(s, e) => Go()",
+          "line": 17,
+          "released": false,
+          "resource": "subscription",
+          "source": "static",
+          "lambda": true
+        },
+        {
+          "event": "SystemEvents.E",
+          "handler": "OnE",
+          "line": 18,
+          "released": false,
+          "resource": "capture",
+          "source": "static",
+          "ignore_reason": "legacy"
+        },
+        {
+          "event": "grid.F",
+          "handler": "OnF",
+          "line": 19,
+          "column": 9,
+          "resource": "unresolved-subscription"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "Weak",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 3,
+      "deps": [],
+      "weak_deps": [
+        "Db"
+      ]
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 4,
+      "deps": []
+    }
+  ]
+}

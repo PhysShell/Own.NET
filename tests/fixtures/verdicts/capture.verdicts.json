@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "ThemeViewModel.cs",
+      "line": 18,
+      "code": "OWN014",
+      "component": "ThemeViewModel",
+      "event": "SystemEvents.UserPreferenceChanged",
+      "handler": "OnUserPreferenceChanged",
+      "message": "event 'SystemEvents.UserPreferenceChanged' is subscribed (handler 'OnUserPreferenceChanged') to a static (process-lived) event source that outlives 'ThemeViewModel'; the strong subscription promotes 'ThemeViewModel' to the source's lifetime, so it can never be collected — a region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

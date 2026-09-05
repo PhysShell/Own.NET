@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "UnitOfWorkFlowSample.cs",
+      "line": 26,
+      "code": "OWN001",
+      "component": "CatalogService.GetProductsFromCatalogWODocuments",
+      "event": "uow",
+      "handler": "",
+      "message": "IDisposable local 'uow' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

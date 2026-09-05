@@ -1,0 +1,37 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "FlowLocalsSample.cs",
+      "line": 201,
+      "code": "OWN001",
+      "component": "FlowLocalsSample.NestedThrowLeaks",
+      "event": "nestedLeak",
+      "handler": "",
+      "message": "IDisposable local 'nestedLeak' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "FlowLocalsSample.cs",
+      "line": 217,
+      "code": "OWN001",
+      "component": "FlowLocalsSample.CtorThrowLeaksPrior",
+      "event": "ctorPrior",
+      "handler": "",
+      "message": "IDisposable local 'ctorPrior' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "ownir_version": 0,
+  "module": "Fx",
+  "components": [],
+  "_doc": [
+    "EFF001 through real effects[] facts: a fresh-object dep re-fires (storm), a",
+    "memoised dep is clean, instability propagates through a derivation chain, and",
+    "an effect without IO never fires. Anchors are the effect's own (file, line);",
+    "the list sorts by file first (Chart.tsx before Dashboard.tsx)."
+  ],
+  "effects": [
+    {
+      "component": "Dashboard",
+      "file": "Dashboard.tsx",
+      "line": 33,
+      "io": true,
+      "deps": [
+        "filters"
+      ],
+      "bindings": [
+        {
+          "name": "filters",
+          "init": "object",
+          "refs": [],
+          "line": 32
+        }
+      ]
+    },
+    {
+      "component": "Dashboard",
+      "file": "Dashboard.tsx",
+      "line": 40,
+      "io": true,
+      "deps": [
+        "stable"
+      ],
+      "bindings": [
+        {
+          "name": "stable",
+          "init": "memo",
+          "refs": [
+            "x"
+          ],
+          "line": 39
+        }
+      ]
+    },
+    {
+      "component": "Chart",
+      "file": "Chart.tsx",
+      "line": 12,
+      "io": true,
+      "deps": [
+        "c"
+      ],
+      "bindings": [
+        {
+          "name": "a",
+          "init": "array",
+          "refs": [],
+          "line": 9
+        },
+        {
+          "name": "b",
+          "init": "ident",
+          "refs": [
+            "a"
+          ],
+          "line": 10
+        },
+        {
+          "name": "c",
+          "init": "ident",
+          "refs": [
+            "b"
+          ],
+          "line": 11
+        }
+      ]
+    },
+    {
+      "component": "Quiet",
+      "file": "Quiet.tsx",
+      "line": 5,
+      "io": false,
+      "deps": [
+        "o"
+      ],
+      "bindings": [
+        {
+          "name": "o",
+          "init": "object",
+          "refs": [],
+          "line": 4
+        }
+      ]
+    }
+  ]
+}

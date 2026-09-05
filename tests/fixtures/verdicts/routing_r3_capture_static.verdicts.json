@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Win.cs",
+      "line": 5,
+      "code": "OWN014",
+      "component": "Win",
+      "event": "SystemEvents.DisplaySettingsChanged",
+      "handler": "OnD",
+      "message": "event 'SystemEvents.DisplaySettingsChanged' is subscribed (handler 'OnD') to a static (process-lived) event source that outlives 'Win'; the strong subscription promotes 'Win' to the source's lifetime, so it can never be collected — a region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

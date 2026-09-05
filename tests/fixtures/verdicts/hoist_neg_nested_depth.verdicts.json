@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
+}

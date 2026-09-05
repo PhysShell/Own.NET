@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "LocalDisposableSample.cs",
+      "line": 12,
+      "code": "OWN001",
+      "component": "Loader",
+      "event": "leaky",
+      "handler": "?",
+      "message": "local IDisposable 'leaky' (type 'MemoryStream') is created but never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

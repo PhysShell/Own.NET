@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "F.cs",
+      "line": 2,
+      "code": "OWN001",
+      "component": "M",
+      "event": "x",
+      "handler": "",
+      "message": "IDisposable local 'x' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

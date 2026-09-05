@@ -1,0 +1,27 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "reg.cs",
+      "line": -5,
+      "code": "DI001",
+      "component": "App",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          6,
+          "captures scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "DisposableFieldViewModel.cs",
+      "line": 10,
+      "code": "OWN001",
+      "component": "ReportViewModel",
+      "event": "_cts",
+      "handler": "?",
+      "message": "IDisposable field '_cts' (type 'CancellationTokenSource') is never disposed — its owner 'ReportViewModel' leaks it (leak)",
+      "kind": "disposable field",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

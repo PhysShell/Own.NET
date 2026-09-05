@@ -1,0 +1,123 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "a.tsx",
+      "line": 7,
+      "code": "EFF001",
+      "component": "A",
+      "event": "o",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'o' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'o' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "a.tsx",
+          7,
+          "effect re-runs here on 'o'"
+        ],
+        [
+          "a.tsx",
+          6,
+          "'o' gets a fresh identity here — stabilise with useMemo"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "b.cs",
+      "line": 7,
+      "code": "OWN001",
+      "component": "B",
+      "event": "E",
+      "handler": "H",
+      "message": "event 'E' is subscribed (handler 'H') but never unsubscribed — the source keeps 'B' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "f.cs",
+      "line": 7,
+      "code": "OWN001",
+      "component": "Order.F",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "f.cs",
+      "line": 7,
+      "code": "OWN002",
+      "component": "Order.F",
+      "event": "r",
+      "handler": "",
+      "message": "IDisposable local 'r' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "m.cs",
+      "line": 7,
+      "code": "DI001",
+      "component": "M",
+      "event": "S",
+      "handler": "",
+      "message": "singleton 'M' captures scoped service 'S' (captive dependency: M -> S)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "m.cs",
+          7,
+          "singleton 'M' (captor)"
+        ],
+        [
+          "m.cs",
+          8,
+          "captures scoped service 'S'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "z.cs",
+      "line": 7,
+      "code": "OWN001",
+      "component": "Z",
+      "event": "E",
+      "handler": "H",
+      "message": "event 'E' is subscribed (handler 'H') but never unsubscribed — the source keeps 'Z' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

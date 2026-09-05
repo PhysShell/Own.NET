@@ -1,0 +1,103 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Cache.cs",
+      "line": 21,
+      "code": "DI005",
+      "component": "Cache",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Cache' caches scoped service 'Db', resolved from a scope it creates, into a field: the scope is disposed when the operation ends, so the cached instance dangles (use-after-dispose) and 'Db' is promoted to application lifetime — the captive the scope was meant to avoid. Resolve it inside the scope per use and do not cache it (Cache -> Db) [singleton registered at reg.cs:5]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          5,
+          "registration of singleton 'Cache'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'Cache' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "caches scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Report.cs",
+      "line": 30,
+      "code": "DI005",
+      "component": "Report",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Report' caches scoped service 'Db', resolved from a scope it creates, into a field: the scope is disposed when the operation ends, so the cached instance dangles (use-after-dispose) and 'Db' is promoted to application lifetime — the captive the scope was meant to avoid. Resolve it inside the scope per use and do not cache it (Report -> Uow -> Db) [singleton registered at reg.cs:7]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          7,
+          "registration of singleton 'Report'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          7,
+          "singleton 'Report' (captor)"
+        ],
+        [
+          "reg.cs",
+          8,
+          "via 'Uow'"
+        ],
+        [
+          "reg.cs",
+          6,
+          "caches scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 9,
+      "code": "DI005",
+      "component": "NoSite",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'NoSite' caches scoped service 'Db', resolved from a scope it creates, into a field: the scope is disposed when the operation ends, so the cached instance dangles (use-after-dispose) and 'Db' is promoted to application lifetime — the captive the scope was meant to avoid. Resolve it inside the scope per use and do not cache it (NoSite -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          9,
+          "singleton 'NoSite' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "caches scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

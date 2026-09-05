@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "CustomerViewModel.cs",
+      "line": 12,
+      "code": "OWN001",
+      "component": "CustomerViewModel",
+      "event": "bus.CustomerChanged",
+      "handler": "OnCustomerChanged",
+      "message": "event 'bus.CustomerChanged' is subscribed (handler 'OnCustomerChanged') but never unsubscribed — the source keeps 'CustomerViewModel' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

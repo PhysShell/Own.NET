@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "VM.cs",
+      "line": 10,
+      "code": "OWN014",
+      "component": "VM",
+      "event": "bus.Changed",
+      "handler": "OnC",
+      "message": "event 'bus.Changed' is subscribed (handler 'OnC') to 'EventBus' — a DI singleton (application-lifetime) service that outlives 'VM'; the strong subscription promotes 'VM' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "VM.cs",
+          10,
+          "'VM' subscribes 'bus.Changed' to 'EventBus' here"
+        ],
+        [
+          "Startup.cs",
+          2,
+          "source 'EventBus' (singleton) registered here — outlives 'VM'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "VM.cs",
+      "line": 11,
+      "code": "OWN001",
+      "component": "VM",
+      "event": "cache.Evicted",
+      "handler": "OnE",
+      "message": "event 'cache.Evicted' is subscribed (handler 'OnE') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'VM' alive (possible leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

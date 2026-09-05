@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "FlowLocalsSample.cs",
+      "line": 20,
+      "code": "OWN001",
+      "component": "FlowLocalsSample.WhileXIter",
+      "event": "c",
+      "handler": "",
+      "message": "IDisposable local 'c' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "FlowLocalsSample.cs",
+      "line": 20,
+      "code": "OWN003",
+      "component": "FlowLocalsSample.WhileXIter",
+      "event": "c",
+      "handler": "",
+      "message": "IDisposable local 'c' is disposed more than once",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "FlowLocalsSample.cs",
+          20,
+          "acquired 'c' here"
+        ],
+        [
+          "FlowLocalsSample.cs",
+          22,
+          "released/returned here a second time"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

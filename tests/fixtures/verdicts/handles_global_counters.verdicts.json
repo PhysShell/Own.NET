@@ -1,0 +1,69 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "A.cs",
+      "line": 3,
+      "code": "OWN014",
+      "component": "A",
+      "event": "SystemEvents.A",
+      "handler": "HA",
+      "message": "event 'SystemEvents.A' is subscribed (handler 'HA') to a static (process-lived) event source that outlives 'A'; the strong subscription promotes 'A' to the source's lifetime, so it can never be collected — a region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "A.cs",
+      "line": 4,
+      "code": "OWN001",
+      "component": "A",
+      "event": "bus.A",
+      "handler": "HB",
+      "message": "event 'bus.A' is subscribed (handler 'HB') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'A' alive (possible leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "B.cs",
+      "line": 3,
+      "code": "OWN001",
+      "component": "B",
+      "event": "bus.B",
+      "handler": "HC",
+      "message": "event 'bus.B' is subscribed (handler 'HC') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'B' alive (possible leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "B.cs",
+      "line": 4,
+      "code": "OWN014",
+      "component": "B",
+      "event": "SystemEvents.B",
+      "handler": "HD",
+      "message": "event 'SystemEvents.B' is subscribed (handler 'HD') to a static (process-lived) event source that outlives 'B'; the strong subscription promotes 'B' to the source's lifetime, so it can never be collected — a region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

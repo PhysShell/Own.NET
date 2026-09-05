@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "?",
+      "line": 0,
+      "code": "DI001",
+      "component": "App",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 5,
+      "code": "DI004",
+      "component": "Loc",
+      "event": "Real",
+      "handler": "",
+      "message": "singleton 'Loc' resolves transient IDisposable 'Real' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Loc -> Real)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'Loc' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Real'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

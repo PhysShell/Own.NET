@@ -1,0 +1,121 @@
+{
+  "ownir_version": 0,
+  "module": "Skip",
+  "_doc": [
+    "BR-V2, the CLOSED skip list, one control per member the tree can reach:",
+    "OWN033 (partial `return s` -> the synthesized owned return type is not",
+    "returned on the fall-through path), OWN035 (a bare `return` beside a",
+    "`return s`), OWN034 (a `borrow` parameter handed to a `consume` position),",
+    "OWN041 (arity mismatch against the callee's contract). Each is a bridge",
+    "modeling artifact with no subject: the reference skips it and reports only",
+    "the real leaks beside it; un-skipping any one of them turns the case into a",
+    "map-or-raise refusal. OWN040 is unreachable by construction (the lowerer",
+    "drops an unresolvable callee before the core could see it)."
+  ],
+  "functions": [
+    {
+      "name": "Skip.partial",
+      "file": "S.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "s",
+          "line": 2
+        },
+        {
+          "op": "if",
+          "line": 3,
+          "then": [
+            {
+              "op": "return",
+              "var": "s",
+              "line": 4
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "Skip.bare",
+      "file": "S.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "t",
+          "line": 12
+        },
+        {
+          "op": "if",
+          "line": 13,
+          "then": [
+            {
+              "op": "return",
+              "var": "t",
+              "line": 14
+            }
+          ],
+          "else": [
+            {
+              "op": "return",
+              "line": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Skip.take",
+      "file": "S.cs",
+      "params": [
+        {
+          "name": "x",
+          "line": 21,
+          "effect": "consume"
+        }
+      ],
+      "body": []
+    },
+    {
+      "name": "Skip.borrower",
+      "file": "S.cs",
+      "params": [
+        {
+          "name": "b",
+          "line": 31,
+          "effect": "borrow"
+        }
+      ],
+      "body": [
+        {
+          "op": "call",
+          "callee": "Skip.take",
+          "args": [
+            "b"
+          ],
+          "line": 32
+        }
+      ]
+    },
+    {
+      "name": "Skip.arity",
+      "file": "S.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "u",
+          "line": 41
+        },
+        {
+          "op": "call",
+          "callee": "Skip.take",
+          "args": [
+            "u",
+            "u"
+          ],
+          "line": 42
+        }
+      ]
+    }
+  ]
+}

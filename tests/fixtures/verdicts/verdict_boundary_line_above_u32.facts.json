@@ -1,0 +1,21 @@
+{
+  "ownir_version": 0,
+  "module": "Bound",
+  "_doc": [
+    "Declared #259 cp4 divergence family, upper edge: an acquire at line 2^32 is",
+    "a leak at that coordinate for the reference; the Rust core refuses."
+  ],
+  "functions": [
+    {
+      "name": "Bound.G",
+      "file": "B.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 4294967296
+        }
+      ]
+    }
+  ]
+}

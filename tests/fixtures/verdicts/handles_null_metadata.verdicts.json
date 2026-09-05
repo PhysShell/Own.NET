@@ -1,0 +1,37 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "C.cs",
+      "line": 4,
+      "code": "OWN001",
+      "component": "C",
+      "event": "bus.Changed",
+      "handler": "OnChanged",
+      "message": "event 'bus.Changed' is subscribed (handler 'OnChanged') but never unsubscribed — the source keeps 'C' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "C.cs",
+      "line": 9,
+      "code": "OWN001",
+      "component": "C",
+      "event": "bus.Closed",
+      "handler": "OnClosed",
+      "message": "event 'bus.Closed' is subscribed (handler 'OnClosed') but never unsubscribed — the source keeps 'C' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

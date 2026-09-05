@@ -1,0 +1,32 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "CustomerViewModel.cs",
+      "line": 14,
+      "code": "OWN014",
+      "component": "CustomerViewModel",
+      "event": "_bus.CustomerChanged",
+      "handler": "OnCustomerChanged",
+      "message": "event '_bus.CustomerChanged' is subscribed (handler 'OnCustomerChanged') to 'IEventBus' — a DI singleton (application-lifetime) service that outlives 'CustomerViewModel'; the strong subscription promotes 'CustomerViewModel' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "CustomerViewModel.cs",
+          14,
+          "'CustomerViewModel' subscribes '_bus.CustomerChanged' to 'IEventBus' here"
+        ],
+        [
+          "Startup.cs",
+          10,
+          "source 'IEventBus' (singleton) registered here — outlives 'CustomerViewModel'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

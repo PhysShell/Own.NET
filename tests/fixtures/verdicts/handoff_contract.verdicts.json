@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Archiver.cs",
+      "line": 18,
+      "code": "OWN001",
+      "component": "leak",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Archiver.cs",
+      "line": 24,
+      "code": "OWN002",
+      "component": "run",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Archiver.cs",
+          24,
+          "acquired 's' here"
+        ],
+        [
+          "Archiver.cs",
+          26,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Chart.tsx",
+      "line": 12,
+      "code": "EFF001",
+      "component": "Chart",
+      "event": "c",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'c' derives from 'a', an array literal created in render scope (via c -> b -> a), so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'a' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Chart.tsx",
+          12,
+          "effect re-runs here on 'c'"
+        ],
+        [
+          "Chart.tsx",
+          9,
+          "'a' gets a fresh identity here — stabilise with useMemo"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Dashboard.tsx",
+      "line": 33,
+      "code": "EFF001",
+      "component": "Dashboard",
+      "event": "filters",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'filters' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'filters' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Dashboard.tsx",
+          33,
+          "effect re-runs here on 'filters'"
+        ],
+        [
+          "Dashboard.tsx",
+          32,
+          "'filters' gets a fresh identity here — stabilise with useMemo"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

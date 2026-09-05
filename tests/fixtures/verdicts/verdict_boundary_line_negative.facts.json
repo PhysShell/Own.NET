@@ -1,0 +1,24 @@
+{
+  "ownir_version": 0,
+  "module": "Bound",
+  "_doc": [
+    "Declared #259 cp4 divergence family: a coordinate outside the core's u32",
+    "line domain. The strict door admits every signed 64-bit line, so the",
+    "reference leaks the consume parameter at B.cs:-1; the Rust core refuses the",
+    "document rather than clamp the coordinate."
+  ],
+  "functions": [
+    {
+      "name": "Bound.F",
+      "file": "B.cs",
+      "params": [
+        {
+          "name": "p",
+          "line": -1,
+          "effect": "consume"
+        }
+      ],
+      "body": []
+    }
+  ]
+}

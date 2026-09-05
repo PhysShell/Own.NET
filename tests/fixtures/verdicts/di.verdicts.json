@@ -1,0 +1,76 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Startup.cs",
+      "line": 12,
+      "code": "DI001",
+      "component": "EmailSender",
+      "event": "AppDbContext",
+      "handler": "",
+      "message": "singleton 'EmailSender' captures scoped service 'AppDbContext' (captive dependency: EmailSender -> AppDbContext) [consumed by the 'EmailSender' constructor at EmailSender.cs:5]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [
+        [
+          "EmailSender.cs",
+          5,
+          "consuming constructor of 'EmailSender'"
+        ]
+      ],
+      "flow": [
+        [
+          "Startup.cs",
+          12,
+          "singleton 'EmailSender' (captor)"
+        ],
+        [
+          "Startup.cs",
+          13,
+          "captures scoped service 'AppDbContext'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Startup.cs",
+      "line": 15,
+      "code": "DI001",
+      "component": "ReportService",
+      "event": "AppDbContext",
+      "handler": "",
+      "message": "singleton 'ReportService' captures scoped service 'AppDbContext' (captive dependency: ReportService -> UnitOfWork -> AppDbContext) [consumed by the 'ReportService' constructor at ReportService.cs:7]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [
+        [
+          "ReportService.cs",
+          7,
+          "consuming constructor of 'ReportService'"
+        ]
+      ],
+      "flow": [
+        [
+          "Startup.cs",
+          15,
+          "singleton 'ReportService' (captor)"
+        ],
+        [
+          "Startup.cs",
+          16,
+          "via 'UnitOfWork'"
+        ],
+        [
+          "Startup.cs",
+          13,
+          "captures scoped service 'AppDbContext'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

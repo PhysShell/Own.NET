@@ -1,0 +1,61 @@
+{
+  "ownir_version": 0,
+  "module": "DiTolerant",
+  "components": [],
+  "_doc": [
+    "BR-P1 coercions on the tolerant door, restricted to shapes the typed Rust",
+    "door also constructs: a missing registration file/line reads as ('?', 0);",
+    "`disposable` counts ONLY as the JSON boolean true (a string 'true' or an int",
+    "1 is not disposable -> no DI003); a site record without a type never matches,",
+    "one without a line reads as 0 and falls back to the registration."
+  ],
+  "services": [
+    {
+      "name": "App",
+      "lifetime": "singleton",
+      "deps": [
+        "Conn",
+        "Db"
+      ]
+    },
+    {
+      "name": "Conn",
+      "lifetime": "transient",
+      "deps": [],
+      "disposable": "true"
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "deps": [],
+      "disposable": 1
+    },
+    {
+      "name": "Loc",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [],
+      "root_resolves": [
+        "Real"
+      ],
+      "root_resolve_sites": [
+        {
+          "line": 7
+        },
+        {
+          "type": "Real",
+          "file": "Loc.cs"
+        }
+      ]
+    },
+    {
+      "name": "Real",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": [],
+      "disposable": true
+    }
+  ]
+}

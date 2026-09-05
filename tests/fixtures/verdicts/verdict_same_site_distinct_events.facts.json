@@ -1,0 +1,106 @@
+{
+  "ownir_version": 0,
+  "module": "SameSite",
+  "_doc": [
+    "BR-V7's key, one pair per member: records on the same line that differ in",
+    "exactly ONE key member stay two findings — event only (bus.A/OnA vs",
+    "bus.C/OnA), handler only (bus.A/OnA vs bus.A/OnZ), component only (Vm vs Vm2,",
+    "same file), kind only (a timer and a disposable field named _t on line 7),",
+    "severity only (bus.S from an injected vs a static source on line 6),",
+    "ignore_reason only (bus.R reviewed vs not, line 8) — while an exact repeat",
+    "of the first record (the third entry) folds into one finding."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "S.cs",
+      "subscriptions": [
+        {
+          "event": "bus.A",
+          "handler": "OnA",
+          "line": 5,
+          "released": false
+        },
+        {
+          "event": "bus.B",
+          "handler": "OnB",
+          "line": 5,
+          "released": false
+        },
+        {
+          "event": "bus.A",
+          "handler": "OnA",
+          "line": 5,
+          "released": false
+        },
+        {
+          "event": "bus.C",
+          "handler": "OnA",
+          "line": 5,
+          "released": false
+        },
+        {
+          "event": "bus.A",
+          "handler": "OnZ",
+          "line": 5,
+          "released": false
+        },
+        {
+          "event": "bus.S",
+          "handler": "OnS",
+          "line": 6,
+          "released": false,
+          "resource": "subscription",
+          "source": "injected"
+        },
+        {
+          "event": "bus.S",
+          "handler": "OnS",
+          "line": 6,
+          "released": false,
+          "resource": "subscription",
+          "source": "static"
+        },
+        {
+          "event": "_t",
+          "handler": "",
+          "line": 7,
+          "released": false,
+          "resource": "timer"
+        },
+        {
+          "event": "_t",
+          "handler": "",
+          "line": 7,
+          "released": false,
+          "resource": "disposable"
+        },
+        {
+          "event": "bus.R",
+          "handler": "OnR",
+          "line": 8,
+          "released": false,
+          "ignore_reason": "reviewed"
+        },
+        {
+          "event": "bus.R",
+          "handler": "OnR",
+          "line": 8,
+          "released": false
+        }
+      ]
+    },
+    {
+      "name": "Vm2",
+      "file": "S.cs",
+      "subscriptions": [
+        {
+          "event": "bus.A",
+          "handler": "OnA",
+          "line": 5,
+          "released": false
+        }
+      ]
+    }
+  ]
+}

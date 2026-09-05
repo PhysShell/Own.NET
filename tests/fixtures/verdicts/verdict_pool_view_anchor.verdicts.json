@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "P.cs",
+      "line": 10,
+      "code": "OWN001",
+      "component": "PoolView.F",
+      "event": "b",
+      "handler": "",
+      "message": "pooled buffer 'b' is rented but never returned to the pool (leak)",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": 5
+    },
+    {
+      "file": "P.cs",
+      "line": 12,
+      "code": "OWN025",
+      "component": "PoolView.F",
+      "event": "b",
+      "handler": "",
+      "message": "pooled buffer 'b' is viewed at its full length, past the logical length it was rented for (over-read / over-clear)",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "P.cs",
+          10,
+          "rented 'b' here"
+        ],
+        [
+          "P.cs",
+          12,
+          "viewed here at full length, past what it was rented for"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

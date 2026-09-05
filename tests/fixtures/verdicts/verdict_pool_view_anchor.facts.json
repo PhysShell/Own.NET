@@ -1,0 +1,31 @@
+{
+  "ownir_version": 0,
+  "module": "PoolView",
+  "_doc": [
+    "OWN025 anchors at the VIEW site (the core's line) with column null ON",
+    "PURPOSE — the acquire's column belongs to a different node — and is tagged a",
+    "pooled buffer; the never-returned rent is an OWN001 at the Rent site with its",
+    "own column, tagged pooled buffer too."
+  ],
+  "functions": [
+    {
+      "name": "PoolView.F",
+      "file": "P.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "b",
+          "kind": "pool",
+          "line": 10,
+          "column": 5
+        },
+        {
+          "op": "overspan",
+          "var": "b",
+          "line": 12,
+          "column": 9
+        }
+      ]
+    }
+  ]
+}
