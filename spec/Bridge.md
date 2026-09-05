@@ -394,19 +394,39 @@ committed regeneration path and a zero-Python steady state:
 above are each frozen on their own, and step 7a (#260/#269) needs them
 *together* — one input, one document carrying what every layer concluded about
 it. That composition is `ownlang/repro.py` + `rust/crates/own-shadow`
-(checkpoint 1, landed): a canonical form and hash naming the input, and an
+(checkpoints 1–4, landed): a canonical form and hash naming the input; an
 artifact carrying the input, its schema version, its hash, the engine
-identifiers and each engine's per-layer output. Two points belong to this
-spec rather than to that note. First, every layer in an artifact is projected
-through the **tolerant** door on one in-memory document — mixing doors across
-layers would mean the three entries no longer describe one capture. Second,
-the artifact **composes** these surfaces and never re-encodes them: a produced
-layer's document is carried verbatim, and a surface's own `{"error": …}`
-refusal is lifted into the envelope's status so a refused layer can still name
-the surface it refused on. The artifact compares layer outputs as JSON
-*values*; **rendered-byte** parity stays with each layer's own family above.
+identifiers and each engine's per-layer output; the `AnalysisTrace` (#269)
+that normalizes those outputs into a walkable shape; and a reducer that names
+the first place two engines part company.
+
+Four points belong to this spec rather than to those notes.
+
+1. Every layer in an artifact is projected through the **tolerant** door on one
+   in-memory document — mixing doors across layers would mean the three entries
+   no longer describe one capture.
+2. The artifact **composes** these surfaces and never re-encodes them: a
+   produced layer's document is carried verbatim, and a surface's own
+   `{"error": …}` refusal is lifted into the envelope's status so a refused
+   layer can still name the surface it refused on. "Verbatim" means **in the
+   key order the layer's own surface fixes** — INF-R1
+   ([Inference.md](Inference.md) §8) makes the MOS dump's field order part of
+   the contract, and the concrete order is the sorted rendering that
+   `tests/fixtures/summaries/` pins byte-for-byte, not `dump_summaries`' dict
+   insertion order. Carrying the insertion order made two engines' MOS
+   documents differ in key order alone — a difference neither surface has.
+3. Each layer declares the **projection** its engine could produce, so a port
+   mid-migration neither emits a short document a comparison would score as
+   agreement, nor refuses a layer it can mostly produce. The artifact compares
+   layer outputs as JSON *values*; **rendered-byte** parity stays with each
+   layer's own family above.
+4. The reducer's scope is the **Layer 2 lowered document and the MOS
+   `summaries` sub-surface only**. **Layer 3** — the final diagnostics — is
+   *refused*, and the refusal is recorded in every reduction, so "not compared"
+   can never be read as "compared and agreed".
+
 Nothing there is shadow mode: comparing end diagnostics as an acceptance
-surface is #260's acceptance and is blocked on #259.
+surface is #260's acceptance and is blocked on #259 (cp5 and 4b).
 
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the
