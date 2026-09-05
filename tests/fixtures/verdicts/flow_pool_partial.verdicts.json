@@ -1,0 +1,53 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "PoolFlow.cs",
+      "line": 10,
+      "code": "OWN001",
+      "component": "PoolFlow.PartialPoolLeak",
+      "event": "buf",
+      "handler": "",
+      "message": "pooled buffer 'buf' may not be returned to the pool on every path (leak)",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "PoolFlow.cs",
+      "line": 20,
+      "code": "OWN001",
+      "component": "PoolFlow.NeverReturnedPool",
+      "event": "nbuf",
+      "handler": "",
+      "message": "pooled buffer 'nbuf' is rented but never returned to the pool (leak)",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "PoolFlow.cs",
+      "line": 30,
+      "code": "OWN001",
+      "component": "PoolFlow.DisposableControl",
+      "event": "d",
+      "handler": "",
+      "message": "IDisposable local 'd' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

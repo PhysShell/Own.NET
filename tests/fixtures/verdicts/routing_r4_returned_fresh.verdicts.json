@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "C.cs",
+      "line": 9,
+      "code": "OWN001",
+      "component": "C",
+      "event": "pub2.Changed",
+      "handler": "OnC2",
+      "message": "event 'pub2.Changed' is subscribed (handler 'OnC2') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'C' alive (possible leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

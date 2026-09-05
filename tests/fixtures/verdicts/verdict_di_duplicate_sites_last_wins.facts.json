@@ -1,0 +1,141 @@
+{
+  "ownir_version": 0,
+  "module": "DiDup",
+  "components": [],
+  "_doc": [
+    "Duplicate site records for the SAME entry type are last-wins (the reference",
+    "builds the site lookup with a dict comprehension): Twice/Cached anchor at",
+    "second.*; Trailing's last site has line 0, so last-wins picks it and the < 1",
+    "guard falls back to the registration (reg.cs:9) — a first-wins or a",
+    "first-valid-wins port would anchor at real.cs:50; Other's sites are keyed by",
+    "type, so the wrong-typed first entry is not the anchor (right.cs:60).",
+    "Negative's last site carries line -2: not a 1-based coordinate, so the anchor falls back to the registration (reg.cs:13) exactly like a line-0 site."
+  ],
+  "services": [
+    {
+      "name": "Twice",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [],
+      "root_resolves": [
+        "Conn"
+      ],
+      "root_resolve_sites": [
+        {
+          "type": "Conn",
+          "file": "first.cs",
+          "line": 10
+        },
+        {
+          "type": "Conn",
+          "file": "second.cs",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "name": "Conn",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": [],
+      "disposable": true
+    },
+    {
+      "name": "Cached",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 7,
+      "deps": [],
+      "scope_cached": [
+        "Db"
+      ],
+      "scope_cache_sites": [
+        {
+          "type": "Db",
+          "file": "first.cs",
+          "line": 30
+        },
+        {
+          "type": "Db",
+          "file": "second.cs",
+          "line": 40
+        }
+      ]
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 8,
+      "deps": []
+    },
+    {
+      "name": "Trailing",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 9,
+      "deps": [],
+      "root_resolves": [
+        "Conn"
+      ],
+      "root_resolve_sites": [
+        {
+          "type": "Conn",
+          "file": "real.cs",
+          "line": 50
+        },
+        {
+          "type": "Conn",
+          "file": "zero.cs",
+          "line": 0
+        }
+      ]
+    },
+    {
+      "name": "Other",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 11,
+      "deps": [],
+      "scope_cached": [
+        "Db"
+      ],
+      "scope_cache_sites": [
+        {
+          "type": "Other",
+          "file": "wrong.cs",
+          "line": 1
+        },
+        {
+          "type": "Db",
+          "file": "right.cs",
+          "line": 60
+        }
+      ]
+    },
+    {
+      "name": "Negative",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 13,
+      "deps": [],
+      "root_resolves": [
+        "Conn"
+      ],
+      "root_resolve_sites": [
+        {
+          "type": "Conn",
+          "file": "real.cs",
+          "line": 50
+        },
+        {
+          "type": "Conn",
+          "file": "neg.cs",
+          "line": -2
+        }
+      ]
+    }
+  ]
+}

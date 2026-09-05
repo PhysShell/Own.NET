@@ -1,0 +1,109 @@
+{
+  "ownir_version": 0,
+  "module": "Di004",
+  "components": [],
+  "_doc": [
+    "DI004 anchors at the root-resolution CALL SITE of the entry type: directly",
+    "resolved Conn at Resolver.cs:42; the disposable Pool dragged in through the",
+    "non-disposable transient Mid still anchors at Mid's call site (Wrap.cs:88);",
+    "NoSite carries no site metadata and falls back to its registration (reg.cs:10);",
+    "Plain resolves a transient whose only dependency is scoped -> silent."
+  ],
+  "services": [
+    {
+      "name": "Resolver",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [],
+      "root_resolves": [
+        "Conn"
+      ],
+      "root_resolve_sites": [
+        {
+          "type": "Conn",
+          "file": "Resolver.cs",
+          "line": 42
+        }
+      ]
+    },
+    {
+      "name": "Conn",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": [],
+      "disposable": true
+    },
+    {
+      "name": "Wrap",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 7,
+      "deps": [],
+      "root_resolves": [
+        "Mid"
+      ],
+      "root_resolve_sites": [
+        {
+          "type": "Mid",
+          "file": "Wrap.cs",
+          "line": 88
+        }
+      ]
+    },
+    {
+      "name": "Mid",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 8,
+      "deps": [
+        "Pool"
+      ]
+    },
+    {
+      "name": "Pool",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 9,
+      "deps": [],
+      "disposable": true
+    },
+    {
+      "name": "NoSite",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 10,
+      "deps": [],
+      "root_resolves": [
+        "Conn"
+      ]
+    },
+    {
+      "name": "Plain",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 11,
+      "deps": [],
+      "root_resolves": [
+        "Uow"
+      ]
+    },
+    {
+      "name": "Uow",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 12,
+      "deps": [
+        "Db"
+      ]
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 13,
+      "deps": []
+    }
+  ]
+}

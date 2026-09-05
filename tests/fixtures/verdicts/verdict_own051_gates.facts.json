@@ -1,0 +1,120 @@
+{
+  "ownir_version": 0,
+  "module": "Gates",
+  "_doc": [
+    "BR-L8 / INF-A5 advisories: an owned local dropped after a may-call is silent",
+    "plus one OWN051 (drop_user); a never-acquired value at a may-position earns",
+    "no note (plain_user); a pre-call use-after-release keeps its OWN002 beside",
+    "the OWN051 and the post-call region stays uncharged (pre_bug); a BCL",
+    "fresh-factory result counts as owned here (factory_user)."
+  ],
+  "functions": [
+    {
+      "name": "Gates.cond_rel",
+      "file": "U.cs",
+      "params": [
+        {
+          "name": "x",
+          "line": 1
+        }
+      ],
+      "body": [
+        {
+          "op": "if",
+          "line": 2,
+          "then": [
+            {
+              "op": "release",
+              "var": "x",
+              "line": 3
+            }
+          ],
+          "else": []
+        }
+      ]
+    },
+    {
+      "name": "Gates.drop_user",
+      "file": "U.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 10
+        },
+        {
+          "op": "call",
+          "callee": "Gates.cond_rel",
+          "args": [
+            "r"
+          ],
+          "line": 11
+        }
+      ]
+    },
+    {
+      "name": "Gates.plain_user",
+      "file": "U.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "Gates.cond_rel",
+          "args": [
+            "v"
+          ],
+          "line": 21
+        }
+      ]
+    },
+    {
+      "name": "Gates.pre_bug",
+      "file": "U.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 30
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 31
+        },
+        {
+          "op": "use",
+          "var": "r",
+          "line": 32
+        },
+        {
+          "op": "call",
+          "callee": "Gates.cond_rel",
+          "args": [
+            "r"
+          ],
+          "line": 33
+        }
+      ]
+    },
+    {
+      "name": "Gates.factory_user",
+      "file": "U.cs",
+      "body": [
+        {
+          "op": "call",
+          "callee": "System.IO.File.OpenRead",
+          "args": [],
+          "result": "f",
+          "line": 40
+        },
+        {
+          "op": "call",
+          "callee": "Gates.cond_rel",
+          "args": [
+            "f"
+          ],
+          "line": 41
+        }
+      ]
+    }
+  ]
+}

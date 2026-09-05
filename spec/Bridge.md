@@ -365,13 +365,30 @@ committed regeneration path and a zero-Python steady state:
   the golden used only as expected output. With **OD-2/#294 resolved**
   (IR4-everywhere fail-loud), `tolerant_unknown_kind` is now one of those
   shared cases — its `Rejected` golden pins the identical error text on both
-  sides — so there are **no `rust_replay: false` snapshots left**. Layer 1,
-  Layer 3, analysis wiring, and #259 as a whole remain open.
+  sides — so there are **no `rust_replay: false` snapshots left**. Layer 1
+  landed in `own-ir` (#259 cp1: 216 controls, 0/0/0); Layer 3 is built at the
+  checkpoint-4 surface (below); #259 as a whole remains open on cp5.
 - **Layer 3 — final normalized diagnostics.** The findings list (and its
   SARIF/github/msbuild renderings) per facts fixture, byte-exact — the outer
-  contract. Existing seeds: the end-to-end expectations in `test_ownir.py`
-  and the SARIF projections in `test_diag_sarif.py`; the `summaries` dump
-  (INF-R1) covers the MOS sub-surface.
+  contract. **Built** (#259 cp4): `ownlang/verdicts.py` is the authoritative
+  Python emitter (`VERDICTS_VERSION` keys the surface; its docstring freezes
+  the normalization decisions — every `Finding` member in declaration order,
+  the bridge's own ordering, `[file, line, label]` evidence triples, a
+  refusal as `{"error": …}`), `tests/fixtures/verdicts/` holds the goldens
+  under the frozen `manifest.json` ledger, and `tests/test_verdict_fixtures.py`
+  is the verify/`--write` harness. The cases are the swept `ownir`/`lowered`/
+  `summaries` corpora plus synthetic verdict controls, all through the
+  **tolerant door** (`check_facts` on the loaded dict, as `test_ownir.py`
+  does). On the Rust side `own_bridge::check_facts` replays every case
+  (`own-bridge/tests/verdicts.rs`); at cp4 the replay compares **identity,
+  anchor, kind and tiering** — every member but `message`, `related` and
+  `flow`, which the goldens already carry and cp5 compares. The manifest's
+  `rust_replay_excluded` ledger names the documents the Rust core **refuses
+  by a declared boundary** — a protocol-bearing document (OBL analysis not
+  ported), a coordinate outside the core's `u32` line domain, a shape the
+  typed Rust door rejects before the bridge runs (OD-1) — each with its
+  reason and an expectation the replay executes, so an exclusion cannot rot.
+  The `summaries` dump (INF-R1) covers the MOS sub-surface.
 
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the
@@ -414,7 +431,12 @@ issue to be settled *before* the port relies on it.
 
 - **OD-1 (#294 — the tolerant door's scope).** Should Rust `own-bridge` expose the
   tolerant door (BR-D2) at all, or is strict-only + a Python-side test shim
-  the porting contract?
+  the porting contract? *Measured at #259 cp4:* the Rust tolerant entry is the
+  typed `OwnIr` constructor, so BR-D2's skip-not-coerce and the finders'
+  unknown-lifetime tolerance are unreachable through it — the verdict
+  ledger's two `verdict_door_*` controls pin exactly where (the reference
+  reports a finding, the constructor refuses the document); the bridge-side
+  port of those rules is pinned at the raw-document level meanwhile.
 - **OD-2 (#294 — unknown kind on the tolerant door). RESOLVED: IR4 everywhere.**
   `to_module`/`to_own` used to silently route a present-but-unknown `resource`
   kind as `subscription` when `load()` was bypassed. The lowerer now fails loud

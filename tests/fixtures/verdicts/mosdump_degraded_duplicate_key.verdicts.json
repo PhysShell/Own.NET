@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "?",
+      "line": 0,
+      "code": "OWN052",
+      "component": "Degraded",
+      "event": "",
+      "handler": "",
+      "message": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run",
+      "kind": "method summaries",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

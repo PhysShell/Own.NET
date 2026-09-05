@@ -1,0 +1,80 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "U.cs",
+      "line": 11,
+      "code": "OWN051",
+      "component": "Gates.drop_user",
+      "event": "r",
+      "handler": "Gates.cond_rel",
+      "message": "cannot verify whether 'Gates.cond_rel' takes ownership of 'r' (inferred contract: may); optimistically assuming it does — 'r' is not checked past this call",
+      "kind": "ownership transfer",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "U.cs",
+      "line": 30,
+      "code": "OWN002",
+      "component": "Gates.pre_bug",
+      "event": "r",
+      "handler": "",
+      "message": "IDisposable local 'r' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "U.cs",
+          30,
+          "acquired 'r' here"
+        ],
+        [
+          "U.cs",
+          32,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "U.cs",
+      "line": 33,
+      "code": "OWN051",
+      "component": "Gates.pre_bug",
+      "event": "r",
+      "handler": "Gates.cond_rel",
+      "message": "cannot verify whether 'Gates.cond_rel' takes ownership of 'r' (inferred contract: may); optimistically assuming it does — 'r' is not checked past this call",
+      "kind": "ownership transfer",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "U.cs",
+      "line": 41,
+      "code": "OWN051",
+      "component": "Gates.factory_user",
+      "event": "f",
+      "handler": "Gates.cond_rel",
+      "message": "cannot verify whether 'Gates.cond_rel' takes ownership of 'f' (inferred contract: may); optimistically assuming it does — 'f' is not checked past this call",
+      "kind": "ownership transfer",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "BigDocumentViewModel.cs",
+      "line": 241,
+      "code": "OBL001",
+      "component": "BigDocumentViewModel",
+      "event": "DocumentLoading",
+      "handler": "LoadBigDocument",
+      "message": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.BigDocumentViewModel.LoadBigDocument' — 'IsLoaded = true' must happen first",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "BigDocumentViewModel.cs",
+          184,
+          "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+        ],
+        [
+          "BigDocumentViewModel.cs",
+          241,
+          "barrier 'OnPropertyChanged(Document)' fires while it is open"
+        ],
+        [
+          "BigDocumentViewModel.cs",
+          260,
+          "closed here — after the barrier has already fired"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "reg.cs",
+      "line": 9,
+      "code": "DI004",
+      "component": "Trailing",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'Trailing' resolves transient IDisposable 'Conn' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Trailing -> Conn)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          9,
+          "singleton 'Trailing' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 13,
+      "code": "DI004",
+      "component": "Negative",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'Negative' resolves transient IDisposable 'Conn' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Negative -> Conn)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          13,
+          "singleton 'Negative' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "right.cs",
+      "line": 60,
+      "code": "DI005",
+      "component": "Other",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Other' caches scoped service 'Db', resolved from a scope it creates, into a field: the scope is disposed when the operation ends, so the cached instance dangles (use-after-dispose) and 'Db' is promoted to application lifetime — the captive the scope was meant to avoid. Resolve it inside the scope per use and do not cache it (Other -> Db) [singleton registered at reg.cs:11]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          11,
+          "registration of singleton 'Other'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          11,
+          "singleton 'Other' (captor)"
+        ],
+        [
+          "reg.cs",
+          8,
+          "caches scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "second.cs",
+      "line": 20,
+      "code": "DI004",
+      "component": "Twice",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'Twice' resolves transient IDisposable 'Conn' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Twice -> Conn) [singleton registered at reg.cs:5]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          5,
+          "registration of singleton 'Twice'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'Twice' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "second.cs",
+      "line": 40,
+      "code": "DI005",
+      "component": "Cached",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Cached' caches scoped service 'Db', resolved from a scope it creates, into a field: the scope is disposed when the operation ends, so the cached instance dangles (use-after-dispose) and 'Db' is promoted to application lifetime — the captive the scope was meant to avoid. Resolve it inside the scope per use and do not cache it (Cached -> Db) [singleton registered at reg.cs:7]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          7,
+          "registration of singleton 'Cached'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          7,
+          "singleton 'Cached' (captor)"
+        ],
+        [
+          "reg.cs",
+          8,
+          "caches scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

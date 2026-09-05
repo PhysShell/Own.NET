@@ -1,0 +1,101 @@
+{
+  "ownir_version": 0,
+  "module": "Order",
+  "_doc": [
+    "BR-V8 across families and files: five findings on line 7 in five files sort",
+    "by file first (a.tsx EFF001, b.cs OWN001, f.cs OWN001+OWN002, m.cs DI001,",
+    "z.cs OWN001); within f.cs:7 two flow-local verdicts with no column sort by",
+    "code (the leak of `s` before the use-after-release of `r`)."
+  ],
+  "components": [
+    {
+      "name": "Z",
+      "file": "z.cs",
+      "subscriptions": [
+        {
+          "event": "E",
+          "handler": "H",
+          "line": 7,
+          "released": false
+        }
+      ]
+    },
+    {
+      "name": "B",
+      "file": "b.cs",
+      "subscriptions": [
+        {
+          "event": "E",
+          "handler": "H",
+          "line": 7,
+          "released": false
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "M",
+      "lifetime": "singleton",
+      "file": "m.cs",
+      "line": 7,
+      "deps": [
+        "S"
+      ]
+    },
+    {
+      "name": "S",
+      "lifetime": "scoped",
+      "file": "m.cs",
+      "line": 8,
+      "deps": []
+    }
+  ],
+  "effects": [
+    {
+      "component": "A",
+      "file": "a.tsx",
+      "line": 7,
+      "io": true,
+      "deps": [
+        "o"
+      ],
+      "bindings": [
+        {
+          "name": "o",
+          "init": "object",
+          "refs": [],
+          "line": 6
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "Order.F",
+      "file": "f.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "s",
+          "line": 7
+        },
+        {
+          "op": "acquire",
+          "var": "r",
+          "line": 7
+        },
+        {
+          "op": "release",
+          "var": "r",
+          "line": 7
+        },
+        {
+          "op": "use",
+          "var": "r",
+          "line": 7
+        }
+      ]
+    }
+  ]
+}

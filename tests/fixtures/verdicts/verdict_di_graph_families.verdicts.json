@@ -1,0 +1,130 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "reg.cs",
+      "line": 5,
+      "code": "DI001",
+      "component": "App",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'App' constructor at App.cs:3]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [
+        [
+          "App.cs",
+          3,
+          "consuming constructor of 'App'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'App' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "captures scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 5,
+      "code": "DI003",
+      "component": "App",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'App' captures transient IDisposable 'Conn': it is promoted to application lifetime and disposed only when the root provider is disposed (App -> Mid -> Conn) [consumed by the 'App' constructor at App.cs:3]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "App.cs",
+          3,
+          "consuming constructor of 'App'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'App' (captor)"
+        ],
+        [
+          "reg.cs",
+          7,
+          "via 'Mid'"
+        ],
+        [
+          "reg.cs",
+          8,
+          "captures transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 9,
+      "code": "DI002",
+      "component": "Weak",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Weak' weakly captures scoped service 'Db' (WeakReference): 'Db' is still resolved from the root provider and promoted to application lifetime — the weak reference avoids pinning it for the GC but does not fix the captive-dependency lifetime violation (Weak -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          9,
+          "singleton 'Weak' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "weakly captures scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 11,
+      "code": "DI001",
+      "component": "Inner",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'Inner' captures scoped service 'Db' (captive dependency: Inner -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          11,
+          "singleton 'Inner' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "captures scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

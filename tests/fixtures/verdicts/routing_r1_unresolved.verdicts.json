@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "C.cs",
+      "line": 3,
+      "code": "OWN050",
+      "component": "C",
+      "event": "ext.E",
+      "handler": "H",
+      "message": "cannot verify 'ext.E' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped",
+      "kind": "unresolved reference",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

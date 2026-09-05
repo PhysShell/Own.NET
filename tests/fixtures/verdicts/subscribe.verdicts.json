@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "MessengerViewModel.cs",
+      "line": 12,
+      "code": "OWN001",
+      "component": "InboxViewModel",
+      "event": "_messenger.Subscribe",
+      "handler": "?",
+      "message": "the result of '_messenger.Subscribe' is ignored — the IDisposable subscription is never disposed, leaking 'InboxViewModel' (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

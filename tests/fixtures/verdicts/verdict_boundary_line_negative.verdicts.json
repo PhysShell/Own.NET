@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "B.cs",
+      "line": -1,
+      "code": "OWN001",
+      "component": "Bound.F",
+      "event": "p",
+      "handler": "",
+      "message": "IDisposable local 'p' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

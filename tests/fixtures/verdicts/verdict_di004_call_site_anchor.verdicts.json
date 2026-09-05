@@ -1,0 +1,103 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Resolver.cs",
+      "line": 42,
+      "code": "DI004",
+      "component": "Resolver",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'Resolver' resolves transient IDisposable 'Conn' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Resolver -> Conn) [singleton registered at reg.cs:5]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          5,
+          "registration of singleton 'Resolver'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          5,
+          "singleton 'Resolver' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Wrap.cs",
+      "line": 88,
+      "code": "DI004",
+      "component": "Wrap",
+      "event": "Pool",
+      "handler": "",
+      "message": "singleton 'Wrap' resolves transient IDisposable 'Pool' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (Wrap -> Mid -> Pool) [singleton registered at reg.cs:7]",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [
+        [
+          "reg.cs",
+          7,
+          "registration of singleton 'Wrap'"
+        ]
+      ],
+      "flow": [
+        [
+          "reg.cs",
+          7,
+          "singleton 'Wrap' (captor)"
+        ],
+        [
+          "reg.cs",
+          8,
+          "via 'Mid'"
+        ],
+        [
+          "reg.cs",
+          9,
+          "leaks transient IDisposable 'Pool'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "reg.cs",
+      "line": 10,
+      "code": "DI004",
+      "component": "NoSite",
+      "event": "Conn",
+      "handler": "",
+      "message": "singleton 'NoSite' resolves transient IDisposable 'Conn' by hand from its injected root IServiceProvider (GetService/GetRequiredService — the service-locator anti-pattern): the root provider tracks every IDisposable it resolves and frees them only at application shutdown, so each call leaks a transient that should be scope-lived — resolve it from an IServiceScope instead (NoSite -> Conn)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [
+        [
+          "reg.cs",
+          10,
+          "singleton 'NoSite' (captor)"
+        ],
+        [
+          "reg.cs",
+          6,
+          "leaks transient IDisposable 'Conn'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

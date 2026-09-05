@@ -1,0 +1,28 @@
+{
+  "ownir_version": 0,
+  "module": "Bound",
+  "components": [],
+  "_doc": [
+    "Declared #259 cp4 divergence family on the DI path: a negative registration",
+    "line is a DI001 anchored at reg.cs:-5 for the reference; the Rust core",
+    "refuses (the anchor cannot be represented)."
+  ],
+  "services": [
+    {
+      "name": "App",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": -5,
+      "deps": [
+        "Db"
+      ]
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "ef.cs",
+      "line": 1,
+      "code": "OWN001",
+      "component": "Ef.C",
+      "event": "a",
+      "handler": "",
+      "message": "IDisposable local 'a' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

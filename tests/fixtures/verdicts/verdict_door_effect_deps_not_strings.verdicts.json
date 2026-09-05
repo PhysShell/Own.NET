@@ -1,0 +1,32 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Ok.tsx",
+      "line": 9,
+      "code": "EFF001",
+      "component": "Ok",
+      "event": "o",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'o' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'o' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Ok.tsx",
+          9,
+          "effect re-runs here on 'o'"
+        ],
+        [
+          "Ok.tsx",
+          8,
+          "'o' gets a fresh identity here — stabilise with useMemo"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

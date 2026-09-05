@@ -1,0 +1,90 @@
+{
+  "ownir_version": 0,
+  "module": "Di005",
+  "components": [],
+  "_doc": [
+    "DI005 anchors at the field-STORE site of the cached entry: Db cached directly",
+    "at Cache.cs:21; the scoped Db reached through the cached transient Uow anchors",
+    "at Uow's store site (Report.cs:30); NoSite falls back to its registration",
+    "(reg.cs:9); Fine caches a transient that reaches no scoped service -> silent."
+  ],
+  "services": [
+    {
+      "name": "Cache",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [],
+      "scope_cached": [
+        "Db"
+      ],
+      "scope_cache_sites": [
+        {
+          "type": "Db",
+          "file": "Cache.cs",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": []
+    },
+    {
+      "name": "Report",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 7,
+      "deps": [],
+      "scope_cached": [
+        "Uow"
+      ],
+      "scope_cache_sites": [
+        {
+          "type": "Uow",
+          "file": "Report.cs",
+          "line": 30
+        }
+      ]
+    },
+    {
+      "name": "Uow",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 8,
+      "deps": [
+        "Db"
+      ]
+    },
+    {
+      "name": "NoSite",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 9,
+      "deps": [],
+      "scope_cached": [
+        "Db"
+      ]
+    },
+    {
+      "name": "Fine",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 10,
+      "deps": [],
+      "scope_cached": [
+        "Clock"
+      ]
+    },
+    {
+      "name": "Clock",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 11,
+      "deps": []
+    }
+  ]
+}

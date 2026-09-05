@@ -1,0 +1,195 @@
+{
+  "comment": "The frozen Layer 3 case ledger (#259 cp4/cp5). The swept corpora (tests/fixtures/{ownir,lowered,summaries}) are discovered automatically; the synthetic verdict cases beside this manifest are listed exhaustively with the Bridge.md rules they pin; rust_replay_excluded names the cases whose golden is Python's truth but which the Rust core refuses by a DECLARED boundary — each with its reason and the executable expectation the Rust replay asserts (rust_refusal: 'bridge' = own_bridge::check_facts returns an error containing rust_error_contains; 'door' = the typed OwnIr constructor refuses the document, #294 OD-1). Python renders every case; an exclusion is a statement about the port, never about the reference.",
+  "verdicts_version": 1,
+  "rust_replay_excluded": [
+    {
+      "name": "protocol_isloaded_clean",
+      "reason": "declares an obligation protocol: the OBL001-005 analysis (ownlang/obligations.py) has no own-analysis port, and the bridge refuses a protocol-bearing document rather than return a verdict list with a family missing (#259 boundary; the reference reports no finding here, which a vacuous replay would have 'matched').",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "obligation protocol"
+    },
+    {
+      "name": "protocol_isloaded_violation",
+      "reason": "declares an obligation protocol and the reference reports OBL001 at BigDocumentViewModel.cs:241; the OBL analysis is not wired, so the bridge refuses the document (#259 boundary).",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "obligation protocol"
+    },
+    {
+      "name": "verdict_boundary_line_negative",
+      "reason": "coordinate outside the core's u32 line domain (a negative param line the strict door admits per spec/OwnIR.md §4.2); the reference anchors OWN001 at B.cs:-1, the Rust core refuses instead of clamping — declared cp4 divergence family.",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "outside the core's line domain"
+    },
+    {
+      "name": "verdict_boundary_line_above_u32",
+      "reason": "coordinate outside the core's u32 line domain (an acquire at 2^32); the reference anchors OWN001 there, the Rust core refuses — declared cp4 divergence family.",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "outside the core's line domain"
+    },
+    {
+      "name": "verdict_boundary_service_line_negative",
+      "reason": "coordinate outside the core's u32 line domain on the DI path (registration line -5); the reference anchors DI001 there, the Rust core refuses — declared cp4 divergence family.",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "outside the core's line domain"
+    },
+    {
+      "name": "verdict_boundary_effect_line_negative",
+      "reason": "coordinate outside the core's u32 line domain on the effect path (effect line -3); the reference anchors EFF001 there, the Rust core refuses — declared cp4 divergence family.",
+      "rust_refusal": "bridge",
+      "rust_error_contains": "outside the core's line domain"
+    },
+    {
+      "name": "verdict_door_effect_deps_not_strings",
+      "reason": "#294 OD-1: the reference's tolerant door skips a malformed effect entry (deps is a bare string) and reports the sibling; the Rust tolerant entry is the typed OwnIr constructor, which refuses the document before the bridge's skip rule can run.",
+      "rust_refusal": "door"
+    },
+    {
+      "name": "verdict_door_service_unknown_lifetime",
+      "reason": "#294 OD-1: the reference's finders ignore an unknown DI lifetime on the tolerant door; the typed Rust door refuses the document at the lifetime enum.",
+      "rust_refusal": "door"
+    }
+  ],
+  "cases": [
+    {
+      "name": "verdict_eff001_storm_and_memo",
+      "rules": [
+        "BR-P2",
+        "BR-V5",
+        "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_di_graph_families",
+      "rules": [
+        "BR-P1",
+        "BR-V1",
+        "BR-V5",
+        "BR-V6"
+      ]
+    },
+    {
+      "name": "verdict_di004_call_site_anchor",
+      "rules": [
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_di005_cache_site_anchor",
+      "rules": [
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_di_duplicate_sites_last_wins",
+      "rules": [
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_di_tolerant_typed_coercions",
+      "rules": [
+        "BR-D2",
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_multi_file_ordering",
+      "rules": [
+        "BR-V1",
+        "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_severity_tiers_and_suppression",
+      "rules": [
+        "BR-V4",
+        "BR-V5",
+        "BR-V6"
+      ]
+    },
+    {
+      "name": "verdict_own051_gates",
+      "rules": [
+        "BR-L8",
+        "INF-A5",
+        "BR-V1",
+        "BR-V6"
+      ]
+    },
+    {
+      "name": "verdict_pool_view_anchor",
+      "rules": [
+        "BR-V4",
+        "BR-V5",
+        "BR-V7"
+      ]
+    },
+    {
+      "name": "verdict_column_sort_order",
+      "rules": [
+        "BR-V5",
+        "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_same_site_distinct_events",
+      "rules": [
+        "BR-V7",
+        "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_skip_list_artifacts",
+      "rules": [
+        "BR-V2",
+        "BR-V3"
+      ]
+    },
+    {
+      "name": "verdict_boundary_line_negative",
+      "rules": [
+        "BR-L11",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_boundary_line_above_u32",
+      "rules": [
+        "BR-L11",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_boundary_service_line_negative",
+      "rules": [
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_boundary_effect_line_negative",
+      "rules": [
+        "BR-P2",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_door_effect_deps_not_strings",
+      "rules": [
+        "BR-D2",
+        "BR-P2"
+      ]
+    },
+    {
+      "name": "verdict_door_service_unknown_lifetime",
+      "rules": [
+        "BR-D2",
+        "BR-P1"
+      ]
+    }
+  ]
+}

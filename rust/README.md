@@ -15,19 +15,21 @@ change.
 
 ## Status
 
-Two of eight planned crates exist. The rest are design-only (see the crate
-topology in P-022) — populated bottom-up, oracle-gated, in this order:
+Seven of the planned crates exist (`own-lowered`, the typed Layer 2 surface,
+joined the DAG with #259). The checkpoint-level truth lives in P-022's
+implementation-status block; this table is the one-line orientation:
 
 | Crate | Status | What it is |
 |---|---|---|
-| `own-ir` | **done** (step 1) | The OwnIR fact contract (`serde` types + schema-version gate) and the span/location leaf. Port of `ownlang/ownir.py`'s schema, not its ~2000 lines of bridge logic (that's `own-bridge`, later). |
+| `own-ir` | **done** (step 1; strict door #259 cp1) | The OwnIR fact contract (`serde` types + the strict validator over the raw document) and the span/location leaf. Port of `ownlang/ownir.py`'s `load()`, not its bridge logic (that's `own-bridge`). |
 | `own-syntax` | **done** (step 2) | Lexer + recursive-descent parser + AST. Port of `ownlang/{lexer,parser,ast_nodes}.py`, with a **byte-identical error-text** contract against Python. |
-| `own-cfg` | not started | AST → CFG lowering. |
-| `own-analysis` | not started | The worklist/lattice solver: ownership, lifetime, effect, DI. |
-| `own-diagnostics` | not started | `Diagnostic`/`Evidence` types + text/SARIF rendering. |
-| `own-codegen` | not started | C# emission (`emit_*` templates), verdict-independent. |
-| `own-bridge` | not started | The OwnIR bridge: facts → core AST, interprocedural MOS inference. |
-| `own-cli` | not started | The binary; `own-oracle` is the dev-only differential harness alongside it. |
+| `own-cfg` | **done** (step 3) | AST → CFG lowering, replaying the canonical CFG-JSON seam. |
+| `own-analysis` | **done** (step 4) | The worklist/lattice solver plus ownership, lifetime, buffer-policy, effect and DI, with `(line, code)` parity on the `.own` corpus and the verdict `subject` the bridge maps through. |
+| `own-diagnostics` | **done** (steps 5a/5b) | `Diagnostic`/`Evidence` model, canonical render text, the SARIF 2.1.0 projection. |
+| `own-lowered` | **done** (#259) | The typed Layer 2 document + canonical emitter the bridge lowers into. |
+| `own-bridge` | **in progress** (#259: cp1–cp4 done, cp5 open) | The OwnIR bridge: facts → Layer 2 → core AST → analyses → verdicts (`lower`, `dump_summaries`, `check_facts`). |
+| `own-codegen` | not started (#257) | C# emission (`emit_*` templates), verdict-independent. |
+| `own-cli` | not started (#261) | The binary; `own-oracle` is the dev-only differential harness alongside it. |
 
 ## Build & test
 
@@ -39,9 +41,10 @@ cargo test
 ```
 
 Same three commands the CI job `rust (fmt + clippy + tests)` runs
-(`.github/workflows/ci.yml`) on every push. Latest run on `main`: 23 tests,
-0 failures, ~1s (`own-ir`: 10, `own-syntax`: 12 unit + 1 integration
-covering 24 fixture cases).
+(`.github/workflows/ci.yml`) on every push. Every crate's parity suites
+replay Python-authored fixtures under `tests/fixtures/` with zero Python
+present (the counts live in each suite's assertions, not here — a number
+in prose rots).
 
 `unsafe_code = "forbid"` workspace-wide, `clippy::pedantic`/`nursery` warn,
 `unwrap_used`/`indexing_slicing`/`arithmetic_side_effects`/`panic` deny — see

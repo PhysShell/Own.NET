@@ -1,0 +1,64 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "F.cs",
+      "line": 1,
+      "code": "OWN001",
+      "component": "Take",
+      "event": "p",
+      "handler": "",
+      "message": "IDisposable local 'p' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "F.cs",
+      "line": 12,
+      "code": "OWN002",
+      "component": "M",
+      "event": "c1",
+      "handler": "",
+      "message": "IDisposable local 'c1' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "F.cs",
+          12,
+          "acquired 'c1' here"
+        ],
+        [
+          "F.cs",
+          14,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "F.cs",
+      "line": 16,
+      "code": "OWN051",
+      "component": "M",
+      "event": "c2",
+      "handler": "Take",
+      "message": "cannot verify whether 'Take' takes ownership of 'c2' (inferred contract: may); optimistically assuming it does — 'c2' is not checked past this call",
+      "kind": "ownership transfer",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

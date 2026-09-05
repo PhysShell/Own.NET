@@ -1,0 +1,45 @@
+{
+  "ownir_version": 0,
+  "module": "Door",
+  "components": [],
+  "_doc": [
+    "#294 OD-1: BR-D2's skip-not-coerce on the tolerant door. The reference SKIPS",
+    "the effect whose deps is a bare string (no spurious EFF001) and reports the",
+    "well-formed sibling; the Rust tolerant entry is the typed constructor, which",
+    "refuses the document before the bridge's skip rule can run."
+  ],
+  "effects": [
+    {
+      "component": "X",
+      "file": "X.tsx",
+      "line": 1,
+      "io": true,
+      "deps": "a",
+      "bindings": [
+        {
+          "name": "a",
+          "init": "object",
+          "refs": [],
+          "line": 1
+        }
+      ]
+    },
+    {
+      "component": "Ok",
+      "file": "Ok.tsx",
+      "line": 9,
+      "io": true,
+      "deps": [
+        "o"
+      ],
+      "bindings": [
+        {
+          "name": "o",
+          "init": "object",
+          "refs": [],
+          "line": 8
+        }
+      ]
+    }
+  ]
+}

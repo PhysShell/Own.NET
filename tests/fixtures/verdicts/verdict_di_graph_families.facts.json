@@ -1,0 +1,80 @@
+{
+  "ownir_version": 0,
+  "module": "DiGraph",
+  "components": [],
+  "_doc": [
+    "DI001/DI002/DI003 through real services[] facts, in the bridge's append order",
+    "and the registration-site anchor: App captures scoped Db directly AND through",
+    "the transient Mid (reported once), and captures the transient IDisposable Conn",
+    "through Mid (DI003); Weak holds Db weakly (DI002); Outer -> Inner (singleton) ->",
+    "Db is Inner's own DI001, not Outer's."
+  ],
+  "services": [
+    {
+      "name": "App",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [
+        "Db",
+        "Mid"
+      ],
+      "ctor_file": "App.cs",
+      "ctor_line": 3,
+      "ctor_type": "App"
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": []
+    },
+    {
+      "name": "Mid",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 7,
+      "deps": [
+        "Db",
+        "Conn"
+      ]
+    },
+    {
+      "name": "Conn",
+      "lifetime": "transient",
+      "file": "reg.cs",
+      "line": 8,
+      "deps": [],
+      "disposable": true
+    },
+    {
+      "name": "Weak",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 9,
+      "deps": [],
+      "weak_deps": [
+        "Db"
+      ]
+    },
+    {
+      "name": "Outer",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 10,
+      "deps": [
+        "Inner"
+      ]
+    },
+    {
+      "name": "Inner",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 11,
+      "deps": [
+        "Db"
+      ]
+    }
+  ]
+}

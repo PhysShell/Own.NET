@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "TimerViewModel.cs",
+      "line": 15,
+      "code": "OWN001",
+      "component": "TimerViewModel",
+      "event": "_timer.Tick",
+      "handler": "OnTick",
+      "message": "timer '_timer.Tick' (handler 'OnTick') is started but never stopped or detached — the running timer keeps 'TimerViewModel' alive (leak)",
+      "kind": "timer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

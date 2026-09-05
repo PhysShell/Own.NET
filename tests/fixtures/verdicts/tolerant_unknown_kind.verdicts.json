@@ -1,0 +1,4 @@
+{
+  "verdicts_version": 1,
+  "error": "unknown resource kind 'mutex' — a new kind is a vocabulary change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)"
+}

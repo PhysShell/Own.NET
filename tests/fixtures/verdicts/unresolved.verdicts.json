@@ -1,0 +1,37 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "GridViewModel.cs",
+      "line": 20,
+      "code": "OWN050",
+      "component": "GridViewModel",
+      "event": "grid.View.CellValueChanged",
+      "handler": "OnCellChanged",
+      "message": "cannot verify 'grid.View.CellValueChanged' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped",
+      "kind": "unresolved reference",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "GridViewModel.cs",
+      "line": 22,
+      "code": "OWN001",
+      "component": "GridViewModel",
+      "event": "vm.PropertyChanged",
+      "handler": "OnProp",
+      "message": "event 'vm.PropertyChanged' is subscribed (handler 'OnProp') but never unsubscribed — the source keeps 'GridViewModel' alive (leak)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

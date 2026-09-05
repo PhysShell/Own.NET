@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "FlowLocalsSample.cs",
+      "line": 105,
+      "code": "OWN001",
+      "component": "FlowLocalsSample.TryNeverDisposed",
+      "event": "tfLeak",
+      "handler": "",
+      "message": "IDisposable local 'tfLeak' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

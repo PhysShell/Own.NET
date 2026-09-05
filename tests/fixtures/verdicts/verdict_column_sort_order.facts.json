@@ -1,0 +1,56 @@
+{
+  "ownir_version": 0,
+  "module": "Cols",
+  "_doc": [
+    "BR-V8's column member: two leaks on the SAME line are minted in the order b",
+    "(column 44) then a (column 13), so insertion order alone would list b first;",
+    "the sort key's `column or 0` puts a first. The third acquire carries column 0,",
+    "which is not a 1-based coordinate: `_as_col` degrades it to null (absent),",
+    "never to 0, and an absent column sorts before every real one.",
+    "`x` is acquired twice on line 50 (the second acquire kills the first binding, BR-L6): two leaks whose identity differs ONLY in column — the member that keeps them apart in the dedup key."
+  ],
+  "functions": [
+    {
+      "name": "Cols.F",
+      "file": "K.cs",
+      "body": [
+        {
+          "op": "acquire",
+          "var": "b",
+          "line": 40,
+          "column": 44
+        },
+        {
+          "op": "acquire",
+          "var": "a",
+          "line": 40,
+          "column": 13
+        },
+        {
+          "op": "acquire",
+          "var": "c",
+          "line": 41,
+          "column": 0
+        },
+        {
+          "op": "acquire",
+          "var": "d",
+          "line": 41,
+          "column": 3
+        },
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 50,
+          "column": 5
+        },
+        {
+          "op": "acquire",
+          "var": "x",
+          "line": 50,
+          "column": 30
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Infer.cs",
+      "line": 24,
+      "code": "OWN002",
+      "component": "run",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Infer.cs",
+          24,
+          "acquired 's' here"
+        ],
+        [
+          "Infer.cs",
+          26,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Infer.cs",
+      "line": 31,
+      "code": "OWN001",
+      "component": "keep",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

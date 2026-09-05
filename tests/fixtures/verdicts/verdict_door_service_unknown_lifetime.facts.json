@@ -1,0 +1,36 @@
+{
+  "ownir_version": 0,
+  "module": "Door",
+  "components": [],
+  "_doc": [
+    "#294 OD-1: an unknown DI lifetime is IGNORED by the reference finders on the",
+    "tolerant door (Mystery is neither scoped nor transient, so App -> Db is the",
+    "only DI001); the typed Rust door refuses the document at the lifetime enum."
+  ],
+  "services": [
+    {
+      "name": "App",
+      "lifetime": "singleton",
+      "file": "reg.cs",
+      "line": 5,
+      "deps": [
+        "Mystery",
+        "Db"
+      ]
+    },
+    {
+      "name": "Mystery",
+      "lifetime": "prototype",
+      "file": "reg.cs",
+      "line": 6,
+      "deps": []
+    },
+    {
+      "name": "Db",
+      "lifetime": "scoped",
+      "file": "reg.cs",
+      "line": 7,
+      "deps": []
+    }
+  ]
+}
