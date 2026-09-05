@@ -1,9 +1,14 @@
 //! The ownership analysis — an exact port of `ownlang/analysis.py` (the flow-
 //! sensitive loans + permissions model), built on the generic [`solver`].
 //!
-//! Parity contract (#214 checkpoint 2): `(line, code)` on the `check` surface.
-//! Message text, the evidence slice, subject/`resource_kind` and SARIF are later
-//! steps and are deliberately not reproduced here (the diagnostic still carries a
+//! Parity contract (#214 checkpoint 2): `(line, code)` on the `check` surface,
+//! plus — since the `OwnIR` bridge's analysis wiring (#259 cp4) — the verdict's
+//! **`subject`**: the symbol's stable `origin` identity (`name#line`), stamped
+//! exactly where the Python `err(...)` call passes `subject=sym.origin`. The
+//! bridge maps a core verdict back to a fact handle through that field and
+//! nothing else (BR-V3), so it is identity, not presentation. Message text,
+//! the evidence slice, `resource_kind` and SARIF remain later steps and are
+//! deliberately not reproduced here (the diagnostic still carries a
 //! human-readable title as its message so it is never blank).
 //!
 //! RID semantics map directly: Python keys resource state on `id(sym)`; here a
@@ -196,21 +201,43 @@ impl Lattice for StateFact {
 }
 
 /// A collector that emits diagnostics in phase 2 and is a no-op during the silent
-/// fixpoint (phase 1) — the port of `_Analyzer.silent`.
+/// fixpoint (phase 1) — the port of `_Analyzer.silent`. The collecting variant
+/// carries the CFG so a verdict can be stamped with its symbol's `origin`.
 enum Emit<'a> {
     Silent,
-    Collect(&'a mut Vec<Diagnostic>),
+    Collect {
+        sink: &'a mut Vec<Diagnostic>,
+        cfg: &'a Cfg,
+    },
 }
 
 impl Emit<'_> {
+    /// Emit `code` at `line` with **no** subject — the Python `err(...)` calls
+    /// that pass no `subject=` (the loan/permission codes OWN004/006/007-on-
+    /// consume/011/012/013/034/041).
     fn push(&mut self, code: &'static str, line: u32) {
-        if let Self::Collect(sink) = self {
+        self.push_at(code, line, None);
+    }
+
+    /// Emit `code` at `line`, stamped with the subject of `sym`: the symbol's
+    /// stable `origin` (`name#line`, minted by `own-cfg` at the acquire/param
+    /// site and inherited across `move`/alias) — exactly where the Python
+    /// `err(...)` call passes `subject=sym.origin`. A symbol without an origin
+    /// yields no subject, as in Python.
+    fn push_at(&mut self, code: &'static str, line: u32, sym: Option<SymId>) {
+        if let Self::Collect { sink, cfg } = self {
             // Every `code` is a compile-time TITLES constant, so `new` cannot
             // fail; the title doubles as a non-blank human message (message-text
             // parity is a later step and is not compared now).
             let msg = title(code).unwrap_or(code);
             match Diagnostic::new(code, msg, line) {
-                Ok(d) => sink.push(d),
+                Ok(d) => {
+                    let subject = sym.and_then(|s| cfg.symbol(s).origin.clone());
+                    sink.push(match subject {
+                        Some(subject) => d.with_subject(subject),
+                        None => d,
+                    });
+                }
                 Err(_) => debug_assert!(false, "own-analysis emitted an unknown code {code}"),
             }
         }
@@ -245,18 +272,18 @@ fn state_problem(st: &State, sym: SymId, emit: &mut Emit<'_>, line: u32) -> bool
     let s = st.states(st.rid_of(sym));
     if s & OWNED == 0 {
         if s & MOVED != 0 {
-            emit.push("OWN005", line);
+            emit.push_at("OWN005", line, Some(sym));
         } else {
-            emit.push("OWN002", line);
+            emit.push_at("OWN002", line, Some(sym));
         }
         return true;
     }
     if s & (RELEASED | ESCAPED) != 0 {
-        emit.push("OWN009", line);
+        emit.push_at("OWN009", line, Some(sym));
         return true;
     }
     if s & MOVED != 0 {
-        emit.push("OWN010", line);
+        emit.push_at("OWN010", line, Some(sym));
         return true;
     }
     false
@@ -303,13 +330,18 @@ fn check_shared_borrowable(st: &State, owner: SymId, emit: &mut Emit<'_>, line: 
 
 /// Report every RID still `OWNED` in `st` as a leak (OWN001), excluding a
 /// returned resource. Port of `_Analyzer.leak_check`.
+///
+/// A RID is the id of the symbol that minted it (`State::mint`), so the leaked
+/// resource's symbol — and the `origin` its subject is read from — is
+/// `SymId(rid)`; that is the Python `_sym_by_id(rid)` lookup without the
+/// object-identity indirection.
 fn leak_check(st: &State, at_line: u32, emit: &mut Emit<'_>, exclude: Option<u32>) {
     for (&rid, &states) in &st.var {
         if Some(rid) == exclude {
             continue;
         }
         if states & OWNED != 0 {
-            emit.push("OWN001", at_line);
+            emit.push_at("OWN001", at_line, Some(SymId(rid)));
         }
     }
 }
@@ -365,9 +397,9 @@ impl<'a> Ownership<'a> {
                     consume_like(st, sym, emit, line, "OWN007");
                     if let Some(buf) = &s.buffer {
                         if buf.stack_backed() {
-                            emit.push("OWN016", line);
+                            emit.push_at("OWN016", line, Some(sym));
                         } else {
-                            emit.push("OWN017", line);
+                            emit.push_at("OWN017", line, Some(sym));
                         }
                     }
                     let rid = st.rid_of(sym);
@@ -433,11 +465,11 @@ impl<'a> Ownership<'a> {
                 // released on some path") but both are OWN003; merged since only
                 // (line, code) is compared, and `s == RELEASED` ⊆ `s & RELEASED`.
                 if s & RELEASED != 0 {
-                    emit.push("OWN003", *line);
+                    emit.push_at("OWN003", *line, Some(*sym));
                 } else if !state_problem(st, *sym, emit, *line) {
                     let (shared, mutable) = loans_on(st, *sym);
                     if shared > 0 || mutable {
-                        emit.push("OWN008", *line);
+                        emit.push_at("OWN008", *line, Some(*sym));
                     }
                 }
                 st.var.insert(rid, RELEASED);
@@ -461,8 +493,8 @@ impl<'a> Ownership<'a> {
                     Kind::Plain => {}
                 }
             }
-            Instr::Overspan { line, .. } => {
-                emit.push("OWN025", *line);
+            Instr::Overspan { sym, line } => {
+                emit.push_at("OWN025", *line, Some(*sym));
             }
             Instr::Invoke { args, line, .. } => {
                 for (opt_sym, eff) in args {
@@ -504,20 +536,22 @@ impl<'a> Ownership<'a> {
                     let s = st.states(rid);
                     if s & OWNED == 0 {
                         if s & MOVED != 0 {
-                            emit.push("OWN005", *line);
+                            emit.push_at("OWN005", *line, Some(*sid));
                         } else {
-                            emit.push("OWN002", *line);
+                            emit.push_at("OWN002", *line, Some(*sid));
                         }
                     } else {
                         let (shared, mutable) = loans_on(st, *sid);
                         let symbol = self.cfg.symbol(*sid);
+                        // Unlike the consume-path OWN007 (`_consume_like`, no
+                        // subject), the return-path OWN007 carries one in Python.
                         if shared > 0 || mutable {
-                            emit.push("OWN007", *line);
+                            emit.push_at("OWN007", *line, Some(*sid));
                         } else if let Some(buf) = &symbol.buffer {
                             if buf.stack_backed() {
-                                emit.push("OWN015", *line);
+                                emit.push_at("OWN015", *line, Some(*sid));
                             } else {
-                                emit.push("OWN017", *line);
+                                emit.push_at("OWN017", *line, Some(*sid));
                             }
                         }
                     }
@@ -629,7 +663,10 @@ pub fn analyze(cfg: &Cfg) -> Vec<Diagnostic> {
     // Phase 2a: one emitting transfer per block, on its converged in-state.
     for &bid in &reachable {
         let in_st = converged_state(solution.in_fact(bid), bid);
-        let mut emit = Emit::Collect(&mut diags);
+        let mut emit = Emit::Collect {
+            sink: &mut diags,
+            cfg,
+        };
         let out = own.transfer_block(bid, &in_st, &mut emit);
         out_states.insert(bid, out);
     }
@@ -647,7 +684,10 @@ pub fn analyze(cfg: &Cfg) -> Vec<Diagnostic> {
         }
         let at_line = last_line(cfg, blk);
         if let Some(st) = out_states.get(&bid) {
-            let mut emit = Emit::Collect(&mut diags);
+            let mut emit = Emit::Collect {
+                sink: &mut diags,
+                cfg,
+            };
             leak_check(st, at_line, &mut emit, None);
         }
     }

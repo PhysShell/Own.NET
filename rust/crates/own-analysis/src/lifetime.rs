@@ -7,8 +7,12 @@
 //! longer region and it leaks (OWN014). Structural validation emits OWN030 (undefined
 //! lifetime), OWN031 (redeclared) and OWN036 (cyclic ordering).
 //!
-//! Parity contract (#214): `(line, code)`. The AST is read through `own_cfg::ast`
-//! (the CFG seam), so this crate keeps no production `own-syntax` edge.
+//! Parity contract (#214): `(line, code)` — and, since the bridge's analysis
+//! wiring (#259 cp4), the OWN014 **subject** `source#line` the Python analysis
+//! stamps so the `OwnIR` bridge can attribute the escape to the original C#
+//! subscription by identity (`ownir._handle_of`, BR-V3) instead of scraping
+//! the message. The AST is read through `own_cfg::ast` (the CFG seam), so this
+//! crate keeps no production `own-syntax` edge.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -152,7 +156,13 @@ fn check_fn(
             continue;
         };
         if longer.get(self_lt).is_some_and(|s| s.contains(src_lt)) {
-            push(diags, "OWN014", sub.line);
+            // Python: `subject=f"{sub.source}#{sub.line}"` — the captured-by
+            // source's identity, invisible to rendering, read by the bridge.
+            let msg = title("OWN014").unwrap_or("OWN014");
+            match Diagnostic::new("OWN014", msg, sub.line) {
+                Ok(d) => diags.push(d.with_subject(format!("{}#{}", sub.source, sub.line))),
+                Err(_) => debug_assert!(false, "OWN014 is a known code"),
+            }
         }
     }
 }
