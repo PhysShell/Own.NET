@@ -15,6 +15,12 @@
 //!   document carrying the input, its schema version, its hash, the engine
 //!   identifiers and each engine's outputs **per layer**, so a divergence can
 //!   be re-run from the artifact alone.
+//! * **How does an engine report those outputs?** [`capture`] is this engine's
+//!   half of the engine protocol (checkpoint 2): it drives `own-bridge`'s
+//!   three layer surfaces and reports each in the shared envelope, declaring
+//!   per layer what it could **produce** — the verdict layer is at the #259
+//!   checkpoint-4 projection and says so, rather than emitting a short
+//!   document a later comparison would score as agreement.
 //!
 //! **This is not shadow mode**, and nothing here may be read as shadow mode
 //! having been achieved. Comparing two engines' end diagnostics is #260's
@@ -29,11 +35,13 @@
 
 mod artifact;
 mod canonical;
+mod engine;
 mod json;
 
 pub use artifact::{
-    render, verify, ENGINE_ORDER, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER, REPRO_VERSION,
-    STATUS_PRODUCED, STATUS_REFUSED,
+    render, verify, ENGINE_ORDER, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER, PROJECTION_FULL,
+    PROJECTION_PARTIAL, REPRO_VERSION, STATUS_PRODUCED, STATUS_REFUSED,
 };
 pub use canonical::{canonical_bytes, canonical_hash, CanonicalHash, CANONICAL_ALGORITHM};
+pub use engine::capture;
 pub use json::{parse, Json};

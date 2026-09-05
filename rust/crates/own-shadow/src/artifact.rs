@@ -8,11 +8,14 @@
 //! silently accept an artifact whose extra members it dropped, and "unknown
 //! member" is one of the things this gate exists to report.
 
+use std::collections::BTreeSet;
+
 use crate::canonical::{canonical_hash, CANONICAL_ALGORITHM};
 use crate::json::Json;
 
-/// The artifact format version. Both engines are keyed to it.
-pub const REPRO_VERSION: i64 = 1;
+/// The artifact format version. Both engines are keyed to it. 2 added the
+/// layer envelope's `projection` (checkpoint 2, the engine protocol).
+pub const REPRO_VERSION: i64 = 2;
 
 /// The reference engine: `ownlang`, which stays authoritative until #262.
 ///
@@ -30,6 +33,12 @@ pub const LAYER_ORDER: [&str; 3] = ["lowered", "summaries", "verdicts"];
 
 pub const STATUS_PRODUCED: &str = "produced";
 pub const STATUS_REFUSED: &str = "refused";
+
+/// The projection vocabulary (the engine protocol, checkpoint 2): a layer
+/// declares whether its engine emitted the whole frozen surface, or names the
+/// members it did emit and why the rest are absent.
+pub const PROJECTION_FULL: &str = "full";
+pub const PROJECTION_PARTIAL: &str = "partial";
 
 /// Verify an artifact against itself; an empty result means verified.
 ///
@@ -171,6 +180,78 @@ fn verify_input(input: &Json, problems: &mut Vec<String>) {
     }
 }
 
+/// The engine protocol's one rule: a layer says what its engine could produce,
+/// and a **partial** projection must NAME the members it carries and say why
+/// the rest are absent. An unexplained partial is how a comparison would
+/// quietly score an unported member as agreement.
+fn verify_projection(projection: Option<&Json>, at: &str, problems: &mut Vec<String>) {
+    let Some(projection) = projection else {
+        problems.push(format!(
+            "{at}: projection is missing or not an object — every layer declares what its \
+             engine could produce"
+        ));
+        return;
+    };
+    if !matches!(projection, Json::Object(_)) {
+        problems.push(format!(
+            "{at}: projection is missing or not an object — every layer declares what its \
+             engine could produce"
+        ));
+        return;
+    }
+    unknown_members(
+        projection,
+        &["kind", "members", "reason"],
+        &format!("{at}.projection"),
+        problems,
+    );
+    match projection.get("kind").and_then(Json::as_str) {
+        Some(kind) if kind == PROJECTION_FULL => {
+            for name in ["members", "reason"] {
+                if projection.has(name) {
+                    problems.push(format!(
+                        "{at}.projection: a 'full' projection carries no {name:?} — it emits \
+                         the whole surface"
+                    ));
+                }
+            }
+        }
+        Some(kind) if kind == PROJECTION_PARTIAL => {
+            match projection.get("members").and_then(Json::as_array) {
+                Some(members)
+                    if !members.is_empty()
+                        && members
+                            .iter()
+                            .all(|m| m.as_str().is_some_and(|s| !s.is_empty())) =>
+                {
+                    let names: Vec<&str> = members.iter().filter_map(Json::as_str).collect();
+                    let unique: BTreeSet<&str> = names.iter().copied().collect();
+                    if unique.len() != names.len() {
+                        problems.push(format!("{at}.projection: duplicate member names"));
+                    }
+                }
+                _ => problems.push(format!(
+                    "{at}.projection: a 'partial' projection must NAME the members it carries"
+                )),
+            }
+            if !projection
+                .get("reason")
+                .and_then(Json::as_str)
+                .is_some_and(|r| !r.is_empty())
+            {
+                problems.push(format!(
+                    "{at}.projection: a 'partial' projection must say WHY the remaining \
+                     members are absent"
+                ));
+            }
+        }
+        other => problems.push(format!(
+            "{at}.projection: kind {other:?} is not one of \
+             [{PROJECTION_FULL:?}, {PROJECTION_PARTIAL:?}]"
+        )),
+    }
+}
+
 fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>) {
     let Some(layers) = layers.and_then(Json::as_array) else {
         problems.push(format!("{where_}.layers is missing or not an array"));
@@ -195,7 +276,14 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
         }
         unknown_members(
             layer,
-            &["layer", "surface_version", "status", "document", "error"],
+            &[
+                "layer",
+                "surface_version",
+                "projection",
+                "status",
+                "document",
+                "error",
+            ],
             &at,
             problems,
         );
@@ -204,6 +292,7 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
                 "{at}: surface_version is missing (null when the surface has none)"
             ));
         }
+        verify_projection(layer.get("projection"), &at, problems);
         match layer.get("status").and_then(Json::as_str) {
             Some(s) if s == STATUS_PRODUCED => {
                 if !layer.has("document") {

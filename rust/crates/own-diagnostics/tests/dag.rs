@@ -62,14 +62,21 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
         .collect(),
     );
     // Shadow-mode INFRASTRUCTURE (P-022 step 7a, #260/#269): the same-input
-    // capture and the reproduction-artifact format. It sits in the
-    // `own-oracle` slot of P-022's crate graph — a dev/oracle harness, which
-    // is ENTRY-POINT class, not core. Today it needs no workspace crate at
-    // all: it reads and writes the JSON surfaces the reference authors, and
-    // the engine protocol that will give it an `own-bridge` edge is a later
-    // checkpoint. Listed explicitly with an EMPTY allowed set so that edge
-    // has to be added here on purpose when it lands.
-    m.insert("own-shadow", BTreeSet::new());
+    // capture, the reproduction-artifact format, and the engine protocol. It
+    // sits in the `own-oracle` slot of P-022's crate graph — a dev/oracle
+    // harness, which is ENTRY-POINT class, not core. The own-bridge edge
+    // arrived DELIBERATELY with checkpoint 2 (the engine protocol drives the
+    // port's three layer surfaces to produce this engine's capture): own-ir
+    // for the typed door upstream of every layer, own-lowered for the Layer 2
+    // canonical emitter, own-bridge for the layers themselves. Only
+    // entry-point crates may depend on own-bridge, and this is one; the
+    // constraint runs the other way and is asserted by name below.
+    m.insert(
+        "own-shadow",
+        ["own-ir", "own-lowered", "own-bridge"]
+            .into_iter()
+            .collect(),
+    );
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).

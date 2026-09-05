@@ -37,9 +37,21 @@ sys.path.insert(0, os.path.join(ROOT, "tests"))
 
 GENERATED = os.path.join(ROOT, "docs", "generated")
 FIXDIR = os.path.join(ROOT, "tests", "fixtures", "repro")
-CAMPAIGN = os.path.join(ROOT, "docs", "notes",
-                        "p022-shadow-infra-checkpoint1-data", "campaign.json")
-RUST_TESTS = os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "repro.rs")
+# The recorded campaigns, one per checkpoint. Each stays frozen at what it
+# measured — a later checkpoint may not quietly restate an earlier one's
+# numbers — while THIS document is the live view of the slice as it stands.
+CAMPAIGNS = (
+    ("checkpoint 1 — capture and artifact",
+     os.path.join(ROOT, "docs", "notes",
+                  "p022-shadow-infra-checkpoint1-data", "campaign.json")),
+    ("checkpoint 2 — engine protocol",
+     os.path.join(ROOT, "docs", "notes",
+                  "p022-shadow-infra-checkpoint2-data", "campaign.json")),
+)
+RUST_TESTS = (
+    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "repro.rs"),
+    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "engine.rs"),
+)
 
 HEADER = (
     "<!-- GENERATED FILE — do not edit by hand.\n"
@@ -54,65 +66,114 @@ def _load(path: str) -> dict:
         return json.load(f)
 
 
-def _rust_test_names() -> list[str]:
-    """The gate's own test names, read from the source. A renamed or deleted
+def _rust_test_names() -> list[tuple[str, str]]:
+    """The gates' own test names, read from the source. A renamed or deleted
     test makes the census stale, so the document cannot go on naming a gate
     that no longer exists."""
-    with open(RUST_TESTS, encoding="utf-8") as f:
-        source = f.read()
-    return sorted(re.findall(r"#\[test\][^\n]*\n(?:#\[[^\n]*\]\n)*fn (\w+)\(", source))
+    out: list[tuple[str, str]] = []
+    for path in RUST_TESTS:
+        with open(path, encoding="utf-8") as f:
+            source = f.read()
+        target = os.path.basename(path)
+        out += [(target, name) for name in sorted(
+            re.findall(r"#\[test\][^\n]*\n(?:#\[[^\n]*\]\n)*fn (\w+)\(", source))]
+    return out
 
 
-def render_shadow_cp1() -> str:
+def render_shadow_slice() -> str:
     # Imported here, not at module scope: sys.path is extended above.
     import test_repro_fixtures as harness
 
     digests = _load(os.path.join(FIXDIR, "digests.json"))
     manifest = _load(os.path.join(FIXDIR, "manifest.json"))
-    campaign = _load(CAMPAIGN)
 
     documents = digests["documents"]
     per_corpus: dict[str, int] = {}
     for record in documents:
         per_corpus[record["corpus"]] = per_corpus.get(record["corpus"], 0) + 1
 
-    produced = refused = 0
+    # Per-engine, per-status accounting over the committed artifacts, plus the
+    # layer envelopes where the two engines' STATUS differs. That last number
+    # is the closest thing this slice has to a cross-engine measurement, and it
+    # is structural: no layer's content is compared anywhere yet.
+    engines: dict[str, dict[str, int]] = {}
+    projections: dict[str, dict[str, int]] = {}
+    status_differs: list[str] = []
     for entry in manifest["artifacts"]:
         artifact = _load(os.path.join(FIXDIR, f"{entry['name']}.repro.json"))
+        by_layer: dict[str, dict[str, str]] = {}
         for engine in artifact["engines"]:
+            eid = engine["id"]
+            tally = engines.setdefault(eid, {"produced": 0, "refused": 0})
+            proj = projections.setdefault(eid, {"full": 0, "partial": 0})
             for layer in engine["layers"]:
-                if layer["status"] == "produced":
-                    produced += 1
-                else:
-                    refused += 1
+                tally[layer["status"]] = tally.get(layer["status"], 0) + 1
+                kind = layer["projection"]["kind"]
+                proj[kind] = proj.get(kind, 0) + 1
+                by_layer.setdefault(layer["layer"], {})[eid] = layer["status"]
+        for layer_name, statuses in sorted(by_layer.items()):
+            if len(set(statuses.values())) > 1:
+                shown = ", ".join(f"{e}: {s}" for e, s in sorted(statuses.items()))
+                status_differs.append(f"| `{entry['name']}` | `{layer_name}` | {shown} |")
 
-    n_refusals = len(manifest["domain_refusals"])
-    n_artifacts = len(manifest["artifacts"])
-    totals = campaign["totals"]
-    by_layer: dict[str, int] = {}
-    for mutation in campaign["mutations"]:
-        for catcher in mutation["caught_by"]:
-            layer = catcher.split("::", 1)[0]
-            by_layer[layer] = by_layer.get(layer, 0) + 1
-    single = [m["id"] for m in campaign["mutations"] if len(m["caught_by"]) == 1]
-
+    engine_rows = "\n".join(
+        f"| `{eid}` | {t_['produced']} | {t_['refused']} | "
+        f"{projections[eid]['full']} | {projections[eid]['partial']} |"
+        for eid, t_ in sorted(engines.items()))
     corpus_rows = "\n".join(
         f"| `tests/fixtures/{corpus}` | {per_corpus[corpus]} |"
         for corpus in sorted(per_corpus))
-    mutation_rows = "\n".join(
-        f"| {m['id']} | {m['what']} | {', '.join(f'`{c}`' for c in m['caught_by']) or '—'} |"
-        for m in campaign["mutations"] if m["caught_by"] or m["status"] != "control_clean")
-    gate_rows = "\n".join(f"- `own-shadow/tests/repro.rs::{name}`"
-                          for name in _rust_test_names())
+    gate_rows = "\n".join(f"- `own-shadow/tests/{target}::{name}`"
+                           for target, name in _rust_test_names())
+    differ_rows = ("\n".join(status_differs) if status_differs
+                   else "| — | — | the two engines' statuses agree everywhere |")
+
+    n_refusals = len(manifest["domain_refusals"])
+    n_artifacts = len(manifest["artifacts"])
+    campaign_blocks = []
+    for label, path in CAMPAIGNS:
+        campaign = _load(path)
+        totals = campaign["totals"]
+        by_layer_counts: dict[str, int] = {}
+        for mutation in campaign["mutations"]:
+            for catcher in mutation["caught_by"]:
+                layer = catcher.split("::", 1)[0]
+                by_layer_counts[layer] = by_layer_counts.get(layer, 0) + 1
+        single = [m["id"] for m in campaign["mutations"] if len(m["caught_by"]) == 1]
+        rows = "\n".join(
+            f"| {m['id']} | {m['what']} | "
+            f"{', '.join(f'`{c}`' for c in m['caught_by']) or '—'} |"
+            for m in campaign["mutations"] if not m["status"].startswith("control_"))
+        attribution = ", ".join(f"`{k}` {v}" for k, v in sorted(by_layer_counts.items()))
+        campaign_blocks.append(f"""### {label} (`{campaign["campaign"]}`)
+
+| | |
+|---|---|
+| mutations | **{totals["mutations"]}** |
+| caught | **{totals["caught"]}** |
+| survived | **{totals["survived"]}** |
+| compile errors (reported as such, never as "caught") | {totals["compile_errors"]} |
+| harness-honesty controls reporting zero failures | {totals["control_clean"]} |
+| catches by layer | {attribution} |
+| mutations with exactly **one** catching layer | {len(single)} — {', '.join(single)} |
+
+| id | mutation | caught by |
+|---|---|---|
+{rows}""")
 
     return f"""{HEADER}
-# P-022 step 7a — shadow-mode infrastructure, checkpoint 1: census
+# P-022 step 7a — shadow-mode infrastructure: census
 
 **Infrastructure for shadow mode, not shadow mode.** Nothing measured here
-compares two engines' end diagnostics; that comparison is #260's acceptance
-and is blocked on #259 (cp5 and 4b). Nothing here is a parity claim either.
+compares two engines' end diagnostics — or any of their layer *contents*. That
+comparison is #260's acceptance and is blocked on #259 (cp5 and 4b). Nothing
+here is a parity claim either.
 
-## The measured set
+This document is the **live view** of the slice as it stands; each checkpoint's
+recorded mutation campaign stays frozen at what it measured, under
+`docs/notes/p022-shadow-infra-checkpoint*-data/`.
+
+## The measured set — same-input capture (checkpoint 1)
 
 | corpus | documents |
 |---|---|
@@ -130,22 +191,48 @@ checked fact rather than an assumption.
 | tamper controls (one changed character per document, refusal required) | {len(documents)} |
 | documents both engines must REFUSE to name (`domain_refusals`) | {n_refusals} |
 | reproduction artifacts committed and replayed byte-for-byte | {n_artifacts} |
-| layer envelopes carried by those artifacts — produced | {produced} |
-| layer envelopes carried by those artifacts — refused | {refused} |
 | structural negative controls on `verify` (each side) | {harness.STRUCTURAL_CONTROL_COUNT} |
 | value-level domain backstop controls | {harness.DOMAIN_BACKSTOP_COUNT} |
 
-## Divergence classification over the measured set
+## The engine protocol (checkpoint 2)
 
-**Python-only 0 / Rust-only 0 / Changed 0 / Ordering-only n/a / Unexplained 0.**
+Each engine authors only its own `engines[]` entry, and declares per layer what
+it could **produce**. Over the committed artifacts:
 
-These are enforced by a gate, not counted by this generator: the port asserts
+| engine | layers produced | layers refused | projection `full` | projection `partial` |
+|---|---|---|---|---|
+{engine_rows}
+
+The port's `partial` layers are its verdict surface: `own_bridge::check_facts`
+is at the #259 checkpoint-4 projection, which carries every `Finding` member
+except `message`, `related` and `flow`. It says so in the artifact rather than
+emitting a short document a later comparison would score as agreement, and a
+test asserts the claim matches the records byte for byte.
+
+**Layer envelopes where the two engines' status differs** — structural
+accounting, not a content comparison, and every one of them a boundary the port
+declares rather than a disagreement it stumbled into:
+
+| case | layer | statuses |
+|---|---|---|
+{differ_rows}
+
+## Divergence classification
+
+**Python-only 0 / Rust-only 0 / Changed 0 / Ordering-only n/a / Unexplained 0**,
+over the {len(documents)}-document same-input set — the only cross-engine
+quantity this slice measures.
+
+It is enforced by a gate, not counted by this generator: the port asserts
 per-document equality of the canonical identity and byte-exact equality of
 every committed artifact, so a non-zero counter is not representable as a
-passing build. *Ordering-only* is **not applicable** at this layer and is
-named rather than reported as a zero that would mean something else — the
-canonical form sorts by construction, so there is no ordered output being
-compared yet. The gates:
+passing build. *Ordering-only* is **not applicable** and is named rather than
+reported as a zero that would mean something else — the canonical form sorts by
+construction, so there is no ordered output being compared yet.
+
+A classification over *layer contents* does not exist yet, and this document
+does not invent one: the two engines' captures sit side by side in the
+artifacts and nothing reads one against the other. The gates:
 
 {gate_rows}
 
@@ -153,11 +240,11 @@ compared yet. The gates:
 
 - **End diagnostics compared as an acceptance surface** — #260's acceptance,
   blocked by #259 (cp5 and 4b). Not attempted, not approximated.
-- **The engine protocol** (how the port fills its own `engines[]` entry), the
-  **`AnalysisTrace` schema** (#269) and **stable-ID normalization**, and
+- **Any comparison of the two engines' layer contents.** The artifacts pair
+  them; nothing reads the pair. That is the reduction checkpoint's job.
+- **The `AnalysisTrace` schema** (#269) and **stable-ID normalization**, and
   **first-divergence reduction** over the lowered/MOS layers — the remaining
-  step-7a checkpoints. The artifact format has the slots; one engine fills
-  them today.
+  step-7a checkpoints.
 - **Rendered-byte parity of the three layer surfaces.** The artifact carries
   layer outputs as JSON *values*, so a rendering difference (indent,
   `ensure_ascii`) is invisible here. That contract stays with each layer's own
@@ -173,34 +260,22 @@ compared yet. The gates:
   128-level cap differ; `spec/OwnIR.md` §4.2 bounds a conforming document
   well inside both, so no conforming document reaches the difference.
 
-## Mutation campaign
+## Mutation campaigns
 
-Definition: `docs/notes/p022-shadow-infra-checkpoint1-data/mutations.json`.
-Recorded result: `.../campaign.json`. Both layers run for every mutation
-(P-022 discipline 3: no fail-fast), and every mutation edits a **production**
-surface (discipline 2).
+Definitions and recorded results live under
+`docs/notes/p022-shadow-infra-checkpoint*-data/`. Every layer runs for every
+mutation (P-022 discipline 3: no fail-fast), and every mutation edits a
+**production** surface (discipline 2). The runs are recorded, not reproduced in
+CI; what CI gates is that each definition still **anchors** to this tree and
+that each recorded result is internally consistent
+(`tests/test_generated_docs.py`).
 
-| | |
-|---|---|
-| mutations | **{totals["mutations"]}** |
-| caught | **{totals["caught"]}** |
-| survived | **{totals["survived"]}** |
-| compile errors (reported as such, never as "caught") | {totals["compile_errors"]} |
-| harness-honesty controls reporting zero failures | {totals["control_clean"]} |
-| catches attributed to the reference harness | {by_layer.get("python", 0)} |
-| catches attributed to the port's suite | {by_layer.get("rust", 0)} |
-| mutations with exactly **one** catching layer | {len(single)} |
-
-A rule with a single catcher is a rule with a single control: {', '.join(single)}.
-
-| id | mutation | caught by |
-|---|---|---|
-{mutation_rows}
+{chr(10).join(campaign_blocks)}
 """
 
 
 SURFACES = {
-    "p022-shadow-cp1-census.md": render_shadow_cp1,
+    "p022-shadow-census.md": render_shadow_slice,
 }
 
 

@@ -656,9 +656,98 @@ fn verify_refuses_each_structural_violation() {
         ),
     ));
 
+    cases.push((
+        "a layer without a projection",
+        "projection is missing",
+        with_first_layer(&artifact, |l| with_member(l, "projection", None)),
+    ));
+    cases.push((
+        "an unknown projection kind",
+        "is not one of",
+        with_first_layer(&artifact, |l| {
+            with_member(
+                l,
+                "projection",
+                Some(Json::Object(vec![(
+                    "kind".to_owned(),
+                    Json::Str("mostly".to_owned()),
+                )])),
+            )
+        }),
+    ));
+    cases.push((
+        "a partial projection naming no members",
+        "must NAME",
+        with_first_layer(&artifact, |l| {
+            with_member(
+                l,
+                "projection",
+                Some(Json::Object(vec![
+                    ("kind".to_owned(), Json::Str("partial".to_owned())),
+                    (
+                        "reason".to_owned(),
+                        Json::Str("some members are not ported".to_owned()),
+                    ),
+                ])),
+            )
+        }),
+    ));
+    cases.push((
+        "a partial projection with no reason",
+        "must say WHY",
+        with_first_layer(&artifact, |l| {
+            with_member(
+                l,
+                "projection",
+                Some(Json::Object(vec![
+                    ("kind".to_owned(), Json::Str("partial".to_owned())),
+                    (
+                        "members".to_owned(),
+                        Json::Array(vec![Json::Str("module".to_owned())]),
+                    ),
+                ])),
+            )
+        }),
+    ));
+    cases.push((
+        "a partial projection whose reason is empty",
+        "must say WHY",
+        with_first_layer(&artifact, |l| {
+            with_member(
+                l,
+                "projection",
+                Some(Json::Object(vec![
+                    ("kind".to_owned(), Json::Str("partial".to_owned())),
+                    (
+                        "members".to_owned(),
+                        Json::Array(vec![Json::Str("module".to_owned())]),
+                    ),
+                    ("reason".to_owned(), Json::Str(String::new())),
+                ])),
+            )
+        }),
+    ));
+    cases.push((
+        "a full projection carrying members",
+        "carries no",
+        with_first_layer(&artifact, |l| {
+            with_member(
+                l,
+                "projection",
+                Some(Json::Object(vec![
+                    ("kind".to_owned(), Json::Str("full".to_owned())),
+                    (
+                        "members".to_owned(),
+                        Json::Array(vec![Json::Str("module".to_owned())]),
+                    ),
+                ])),
+            )
+        }),
+    ));
+
     assert_eq!(
         cases.len(),
-        12,
+        18,
         "the structural control set changed — keep it in step with the Python side"
     );
     for (label, needle, forged) in cases {

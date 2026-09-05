@@ -168,6 +168,7 @@
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
         "rust::every_shared_document_hashes_to_the_recorded_digest",
+        "rust::this_engine_reproduces_its_committed_capture",
         "rust::verify_refuses_each_structural_violation"
       ]
     },
@@ -178,7 +179,8 @@
       "status": "caught",
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
-        "rust::every_shared_document_hashes_to_the_recorded_digest"
+        "rust::every_shared_document_hashes_to_the_recorded_digest",
+        "rust::this_engine_reproduces_its_committed_capture"
       ]
     },
     {
@@ -188,7 +190,8 @@
       "status": "caught",
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
-        "rust::every_shared_document_hashes_to_the_recorded_digest"
+        "rust::every_shared_document_hashes_to_the_recorded_digest",
+        "rust::this_engine_reproduces_its_committed_capture"
       ]
     },
     {
@@ -275,6 +278,7 @@
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
         "rust::every_shared_document_hashes_to_the_recorded_digest",
+        "rust::this_engine_reproduces_its_committed_capture",
         "rust::verify_refuses_each_structural_violation"
       ]
     },
@@ -287,6 +291,7 @@
         "rust::every_committed_artifact_round_trips_and_verifies",
         "rust::every_shared_document_hashes_to_the_recorded_digest",
         "rust::the_canonical_form_ignores_only_insignificant_text_formatting",
+        "rust::this_engine_reproduces_its_committed_capture",
         "rust::verify_refuses_each_structural_violation"
       ]
     },
@@ -296,7 +301,9 @@
       "rule": "artifact: layers are an ORDERED array in pipeline order",
       "status": "caught",
       "caught_by": [
+        "rust::both_engines_report_the_same_layers_in_the_same_order",
         "rust::every_committed_artifact_round_trips_and_verifies",
+        "rust::this_engine_reproduces_its_committed_capture",
         "rust::verify_refuses_each_structural_violation"
       ]
     },
@@ -307,6 +314,7 @@
       "status": "caught",
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
+        "rust::this_engine_reproduces_its_committed_capture",
         "rust::verify_refuses_each_structural_violation"
       ]
     }

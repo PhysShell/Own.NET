@@ -1,6 +1,6 @@
 {
-  "comment": "The frozen ledger for shadow-mode infrastructure layer 0 (P-022 step 7a, #260/#269): the same-input capture and the reproduction artifact. Hand-maintained: adding or removing a case is a deliberate contract change, and the harness requires manifest == facts == goldens exactly. 'synthetic_cases' are the canonical-form controls the shared corpora have no reason to carry; 'domain_refusals' are documents BOTH engines must refuse at parse, each with the reason (an executable ledger: the day either engine starts accepting one, its suite goes red demanding a decision); 'artifacts' is the CURATED set whose full reproduction artifact is committed and replayed by the Rust own-shadow — the properties (determinism, byte-exact round-trip, self-verification, tamper refusal) run over every swept case, while the goldens pin the format on these. This is infrastructure FOR shadow mode: nothing here compares two engines' end diagnostics.",
-  "repro_version": 1,
+  "comment": "The frozen ledger for shadow-mode infrastructure layer 0 (P-022 step 7a, #260/#269): the same-input capture and the reproduction artifact. Hand-maintained: adding or removing a case is a deliberate contract change, and the harness requires manifest == facts == goldens exactly. 'synthetic_cases' are the canonical-form controls the shared corpora have no reason to carry; 'domain_refusals' are documents BOTH engines must refuse at parse, each with the reason (an executable ledger: the day either engine starts accepting one, its suite goes red demanding a decision); 'artifacts' is the CURATED set whose full reproduction artifact is committed and replayed by the Rust own-shadow — the properties (determinism, byte-exact round-trip, self-verification, tamper refusal) run over every swept case, while the goldens pin the format on these. Format version 2 added the layer envelope's 'projection' (the engine protocol): every layer declares what its engine could produce, so a port mid-migration neither emits a short document a comparison would score as agreement nor refuses a layer it can mostly produce. This is infrastructure FOR shadow mode: nothing here compares two engines' end diagnostics.",
+  "repro_version": 2,
   "synthetic_cases": [
     {
       "name": "canonical_torture",
@@ -126,6 +126,14 @@
       "corpus": "ownir",
       "pins": [
         "a document the Rust bridge refuses by a declared #259 boundary (the obligation-protocol analysis is not ported) but the reference captures in full — the artifact records one engine's capture and takes no side on the other's"
+      ]
+    },
+    {
+      "name": "verdict_door_effect_deps_not_strings",
+      "corpus": "verdicts",
+      "pins": [
+        "a document the port's TYPED DOOR refuses (#294 OD-1): the door is upstream of every layer, so all three layers report refused with the door's text while the reference captures all three in full",
+        "the shape a first-divergence reduction must not mistake for a layer-level disagreement"
       ]
     }
   ]

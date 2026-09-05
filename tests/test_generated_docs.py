@@ -38,14 +38,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
-CAMPAIGNS = (
-    os.path.join(ROOT, "docs", "notes", "p022-shadow-infra-checkpoint1-data",
-                 "mutations.json"),
-)
-RESULTS = (
-    os.path.join(ROOT, "docs", "notes", "p022-shadow-infra-checkpoint1-data",
-                 "campaign.json"),
-)
+# One campaign per checkpoint: each stays frozen at what it measured, so a
+# later checkpoint cannot quietly restate an earlier one's numbers. Adding a
+# checkpoint means adding its pair here — a directory nobody listed is a
+# directory nobody gates.
+_DATA = ("p022-shadow-infra-checkpoint1-data", "p022-shadow-infra-checkpoint2-data")
+CAMPAIGNS = tuple(os.path.join(ROOT, "docs", "notes", d, "mutations.json")
+                  for d in _DATA)
+RESULTS = tuple(os.path.join(ROOT, "docs", "notes", d, "campaign.json")
+                for d in _DATA)
 
 
 def _check_generated() -> list[str]:

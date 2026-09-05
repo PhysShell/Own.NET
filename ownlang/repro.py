@@ -109,7 +109,8 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   decision, for the same reason). The layer order is the *pipeline* order,
   which is what a first-divergence reduction walks.
 * **One layer envelope for all three layers**: `{"layer", "surface_version",
-  "status", "document" | "error"}`. `status` is `produced` or `refused`;
+  "projection", "status", "document" | "error"}`. `status` is `produced` or
+  `refused`;
   `document` is present exactly when produced, `error` exactly when refused.
   A produced layer's document is carried **verbatim** — including the
   `lowered_version`/`verdicts_version` its own surface stamps, which
@@ -117,6 +118,21 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   a *refused* layer still name the surface it refused on. `summaries` has no
   surface version of its own (its document carries `ownir_version`), so its
   `surface_version` is `null` — absence is data.
+* **`projection` says what the engine could produce** (the engine protocol,
+  checkpoint 2). Either `{"kind": "full"}` — the engine emits the whole frozen
+  surface — or `{"kind": "partial", "members": [...], "reason": "..."}`, naming
+  the members it does emit and why the rest are absent. This is the cp4
+  discipline generalized: *a replay declares what it compares, and the golden
+  always carries everything*. Without it the format would have exactly two bad
+  options for a port that is mid-migration — emit a short document and let a
+  later comparison silently score the missing members as agreement, or refuse
+  a layer it can in fact mostly produce. The reference declares `full` on all
+  three layers by definition: its surfaces *are* the frozen ones.
+* **An engine writes only its own entry, never another's.** `--write` on
+  either side preserves the foreign engine entries it finds in a committed
+  artifact and replaces only its own. An artifact where one engine authored
+  another's capture would be a comparison of one implementation against
+  itself.
 * **One door for all three layers.** Every layer is projected from the same
   in-memory document through the **tolerant** door (`to_module` /
   `dump_summaries` / `check_facts` on the dict — never `load()`), because a
@@ -150,7 +166,8 @@ from .verdicts import project_verdicts
 
 # The artifact format version. Bump on ANY change to the frozen decisions
 # above — the committed artifacts and the Rust replay are both keyed to it.
-REPRO_VERSION = 1
+# 2 added the layer envelope's `projection` (checkpoint 2, the engine protocol).
+REPRO_VERSION = 2
 
 # The digest over the canonical form. One algorithm, named in the artifact so
 # a future change is a visible contract change rather than a silent reinterpretation
@@ -172,6 +189,16 @@ LAYER_ORDER: tuple[str, ...] = ("lowered", "summaries", "verdicts")
 
 STATUS_PRODUCED = "produced"
 STATUS_REFUSED = "refused"
+
+# The projection vocabulary (the engine protocol, checkpoint 2).
+PROJECTION_FULL = "full"
+PROJECTION_PARTIAL = "partial"
+PROJECTION_KINDS = (PROJECTION_FULL, PROJECTION_PARTIAL)
+
+# The reference emits the whole of every frozen surface, by definition: those
+# surfaces are its own output. Written once and shared, so "full" is a single
+# fact rather than three copies of a claim.
+FULL: dict[str, Any] = {"kind": PROJECTION_FULL}
 
 _I64_MIN = -(2**63)
 _I64_MAX = 2**63 - 1
@@ -285,11 +312,17 @@ def canonical_hash(value: Any) -> dict[str, Any]:
     }
 
 
-def _layer(name: str, surface_version: Any, doc: dict[str, Any]) -> dict[str, Any]:
+def _layer(name: str, surface_version: Any, doc: dict[str, Any],
+           projection: dict[str, Any] | None = None) -> dict[str, Any]:
     """One layer envelope. A surface that encodes its own refusal as
     `{"error": ...}` is LIFTED into the envelope's `refused` status; a produced
-    document is carried verbatim."""
-    entry: dict[str, Any] = {"layer": name, "surface_version": surface_version}
+    document is carried verbatim. `projection` defaults to the reference's
+    `full` — it emits the whole of every frozen surface by definition."""
+    entry: dict[str, Any] = {
+        "layer": name,
+        "surface_version": surface_version,
+        "projection": dict(projection) if projection else dict(FULL),
+    }
     error = doc.get("error")
     if error is not None:
         entry["status"] = STATUS_REFUSED
@@ -317,9 +350,25 @@ def project_layers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def project_repro(facts: dict[str, Any]) -> dict[str, Any]:
+def project_repro(facts: dict[str, Any],
+                  foreign: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Project one facts document into the canonical reproduction artifact,
-    carrying the reference engine's capture. Never mutates `facts`."""
+    carrying the reference engine's capture — and any `foreign` engine captures
+    handed in, carried through **verbatim**.
+
+    An engine writes only its own entry: this function authors
+    `python-ownlang` and never invents another engine's numbers. The foreign
+    entries come from a previously committed artifact (`--write` reads them
+    back before overwriting), which is what lets the two halves of the protocol
+    be produced independently, each with zero of the other's runtime. Never
+    mutates `facts`."""
+    engines: list[dict[str, Any]] = [
+        {"id": ENGINE_PYTHON, "layers": project_layers(facts)}]
+    for entry in foreign or []:
+        if isinstance(entry, dict) and entry.get("id") != ENGINE_PYTHON:
+            engines.append(entry)
+    engines.sort(key=lambda e: ENGINE_ORDER.index(e["id"])
+                 if e.get("id") in ENGINE_ORDER else len(ENGINE_ORDER))
     return {
         "repro_version": REPRO_VERSION,
         "input": {
@@ -330,14 +379,16 @@ def project_repro(facts: dict[str, Any]) -> dict[str, Any]:
             "canonical": canonical_hash(facts),
             "document": facts,
         },
-        "engines": [{"id": ENGINE_PYTHON, "layers": project_layers(facts)}],
+        "engines": engines,
     }
 
 
-def render_repro(facts: dict[str, Any]) -> str:
+def render_repro(facts: dict[str, Any],
+                 foreign: list[dict[str, Any]] | None = None) -> str:
     """The canonical serialized artifact: construction order, 2-space indent,
     non-ASCII preserved, trailing newline. Byte-identical on re-run."""
-    return json.dumps(project_repro(facts), indent=2, ensure_ascii=False) + "\n"
+    return json.dumps(project_repro(facts, foreign), indent=2,
+                      ensure_ascii=False) + "\n"
 
 
 def verify_repro(artifact: Any) -> list[str]:
@@ -417,6 +468,42 @@ def verify_repro(artifact: Any) -> list[str]:
     return problems
 
 
+def _verify_projection(projection: Any, at: str) -> list[str]:
+    """The engine protocol's one rule: a layer says what its engine could
+    produce, and a partial projection must NAME the members it carries and say
+    why the rest are absent. An unexplained partial is how a comparison would
+    quietly score an unported member as agreement."""
+    problems: list[str] = []
+    if not isinstance(projection, dict):
+        return [f"{at}: projection is missing or not an object — every layer "
+                f"declares what its engine could produce"]
+    extra = sorted(set(projection) - {"kind", "members", "reason"})
+    if extra:
+        problems.append(f"{at}.projection: unknown member(s): {extra}")
+    kind = projection.get("kind")
+    if kind == PROJECTION_FULL:
+        for name in ("members", "reason"):
+            if name in projection:
+                problems.append(f"{at}.projection: a 'full' projection carries "
+                                f"no {name!r} — it emits the whole surface")
+    elif kind == PROJECTION_PARTIAL:
+        members = projection.get("members")
+        if not (isinstance(members, list) and members
+                and all(isinstance(m, str) and m for m in members)):
+            problems.append(f"{at}.projection: a 'partial' projection must NAME "
+                            f"the members it carries")
+        elif sorted(set(members)) != sorted(members):
+            problems.append(f"{at}.projection: duplicate member names")
+        reason = projection.get("reason")
+        if not (isinstance(reason, str) and reason):
+            problems.append(f"{at}.projection: a 'partial' projection must say "
+                            f"WHY the remaining members are absent")
+    else:
+        problems.append(f"{at}.projection: kind {kind!r} is not one of "
+                        f"{list(PROJECTION_KINDS)}")
+    return problems
+
+
 def _verify_layers(layers: Any, where: str) -> list[str]:
     problems: list[str] = []
     if not isinstance(layers, list):
@@ -431,13 +518,15 @@ def _verify_layers(layers: Any, where: str) -> list[str]:
         if not isinstance(layer, dict):
             problems.append(f"{at} is not an object")
             continue
-        allowed = {"layer", "surface_version", "status", "document", "error"}
+        allowed = {"layer", "surface_version", "projection", "status",
+                   "document", "error"}
         extra = sorted(set(layer) - allowed)
         if extra:
             problems.append(f"{at}: unknown member(s): {extra}")
         if "surface_version" not in layer:
             problems.append(f"{at}: surface_version is missing (null when the "
                             f"surface has none)")
+        problems += _verify_projection(layer.get("projection"), at)
         status = layer.get("status")
         if status == STATUS_PRODUCED:
             if "document" not in layer:

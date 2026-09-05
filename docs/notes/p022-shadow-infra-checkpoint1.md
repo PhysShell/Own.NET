@@ -6,7 +6,7 @@
 > is blocked by #259 (cp5 and 4b); nothing here attempts it, approximates it,
 > or should be quoted as it. Written from the tree at the commit that landed
 > it; every number in it is generated — see
-> [`docs/generated/p022-shadow-cp1-census.md`](../generated/p022-shadow-cp1-census.md).
+> [`docs/generated/p022-shadow-census.md`](../generated/p022-shadow-census.md).
 
 Two questions have to be settled **before** two engines can be compared at
 all, and neither of them is a comparison:
@@ -47,12 +47,18 @@ Checkpoint 1 answers both, and nothing else.
 - DAG: `own-shadow` added to the allowed edge set with an **empty** dependency
   set, and a named test asserts no core crate — nor `own-bridge` — depends on
   it. An oracle a core crate can reach is an oracle the core can shape.
+  (Checkpoint 2 widened that set to `own-ir`/`own-lowered`/`own-bridge` — the
+  engine protocol drives the port's layer surfaces — as a deliberate, reviewed
+  edit to the same map. The constraint that runs the other way did not move.)
 
 ## Census
 
 Generated, not typed:
-[`docs/generated/p022-shadow-cp1-census.md`](../generated/p022-shadow-cp1-census.md).
-The headline figures at the time of writing: **80 documents** captured and
+[`docs/generated/p022-shadow-census.md`](../generated/p022-shadow-census.md) —
+the **live** view of the slice, which moves as later checkpoints land. What
+stays frozen at what *this* checkpoint measured is its recorded campaign,
+`p022-shadow-infra-checkpoint1-data/campaign.json`. The figures when this
+checkpoint landed: **80 documents** captured and
 digest-pinned across five corpora, **80** tamper controls, **6** documents both
 engines must refuse to name, **8** artifacts round-tripped and verified
 (carrying 21 produced and 3 refused layer envelopes), **12** structural and

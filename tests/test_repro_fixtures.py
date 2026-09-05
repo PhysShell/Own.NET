@@ -62,6 +62,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.repro import (
     CANONICAL_ALGORITHM,
+    ENGINE_PYTHON,
     REPRO_VERSION,
     ReproError,
     canonical_hash,
@@ -201,6 +202,26 @@ def _plan() -> tuple[dict[str, tuple[str, str]], dict[str, dict[str, Any]],
     return plan, refusal_entries, sorted(artifact_names), problems
 
 
+def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
+    """The engine captures already committed in an artifact that this side did
+    NOT author. `--write` reads them back and carries them through, because an
+    engine writes only its own entry: an artifact where one implementation
+    authored another's capture would be a comparison of one thing against
+    itself."""
+    if not os.path.exists(golden_path):
+        return []
+    try:
+        with open(golden_path, encoding="utf-8") as f:
+            committed = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return []
+    engines = committed.get("engines")
+    if not isinstance(engines, list):
+        return []
+    return [e for e in engines
+            if isinstance(e, dict) and e.get("id") != ENGINE_PYTHON]
+
+
 def _load(path: str) -> Any:
     """Read one facts document through the canonical loader — the domain is
     enforced on the LITERALS, which is the only place the reference can still
@@ -276,7 +297,7 @@ def _render_digests(plan: dict[str, tuple[str, str]]) -> str:
 # rather than what the reader assumes did. Public because
 # `scripts/render_checkpoint_status.py` derives the census from them rather
 # than from a number somebody typed into a document.
-STRUCTURAL_CONTROL_COUNT = 12
+STRUCTURAL_CONTROL_COUNT = 18
 DOMAIN_BACKSTOP_COUNT = 5
 
 
@@ -341,6 +362,28 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
     def drop_canonical(a: dict[str, Any]) -> None:
         del a["input"]["canonical"]
 
+    def drop_projection(a: dict[str, Any]) -> None:
+        del a["engines"][0]["layers"][0]["projection"]
+
+    def unknown_projection_kind(a: dict[str, Any]) -> None:
+        a["engines"][0]["layers"][0]["projection"] = {"kind": "mostly"}
+
+    def unnamed_partial(a: dict[str, Any]) -> None:
+        a["engines"][0]["layers"][0]["projection"] = {
+            "kind": "partial", "reason": "some members are not ported"}
+
+    def unexplained_partial(a: dict[str, Any]) -> None:
+        a["engines"][0]["layers"][0]["projection"] = {
+            "kind": "partial", "members": ["module"]}
+
+    def empty_reason_partial(a: dict[str, Any]) -> None:
+        a["engines"][0]["layers"][0]["projection"] = {
+            "kind": "partial", "members": ["module"], "reason": ""}
+
+    def full_with_members(a: dict[str, Any]) -> None:
+        a["engines"][0]["layers"][0]["projection"] = {
+            "kind": "full", "members": ["module"]}
+
     expect("a wrong format version", "repro_version", set_version)
     expect("an unknown artifact member", "unknown artifact member", add_member)
     expect("a missing layer", "frozen layers", drop_layer)
@@ -358,6 +401,15 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
     expect("an unknown layer status", "is neither", unknown_status)
     expect("a missing canonical block", "input.canonical is missing",
            drop_canonical)
+    expect("a layer without a projection", "projection is missing",
+           drop_projection)
+    expect("an unknown projection kind", "is not one of", unknown_projection_kind)
+    expect("a partial projection naming no members", "must NAME", unnamed_partial)
+    expect("a partial projection with no reason", "must say WHY",
+           unexplained_partial)
+    expect("a partial projection whose reason is empty", "must say WHY",
+           empty_reason_partial)
+    expect("a full projection carrying members", "carries no", full_with_members)
     return fails
 
 
@@ -536,7 +588,8 @@ def run() -> int:
         golden_path = os.path.join(FIXDIR, f"{case}.repro.json")
         if case not in plan:
             continue  # already reported by the ledger check
-        expected = render_repro(_load(plan[case][1]))
+        expected = render_repro(_load(plan[case][1]),
+                                _foreign_engines(golden_path))
         if not os.path.exists(golden_path):
             fails.append((
                 "artifact-golden",
@@ -613,7 +666,7 @@ def write() -> int:
     print(f"wrote {DIGESTS} ({len(plan)} documents)")
     for case in artifact_names:
         out = os.path.join(FIXDIR, f"{case}.repro.json")
-        artifact = project_repro(_load(plan[case][1]))
+        artifact = project_repro(_load(plan[case][1]), _foreign_engines(out))
         remaining = verify_repro(artifact)
         if remaining:
             print(f"ERROR: {case}: refusing to write an artifact that does not "

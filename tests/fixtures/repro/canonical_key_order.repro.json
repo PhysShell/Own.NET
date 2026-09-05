@@ -1,5 +1,5 @@
 {
-  "repro_version": 1,
+  "repro_version": 2,
   "input": {
     "ownir_version": 0,
     "canonical": {
@@ -41,6 +41,9 @@
         {
           "layer": "lowered",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "lowered_version": 1,
@@ -187,6 +190,9 @@
         {
           "layer": "summaries",
           "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "module": "KeyOrder",
@@ -199,6 +205,9 @@
         {
           "layer": "verdicts",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "verdicts_version": 1,
@@ -216,6 +225,215 @@
                 "severity": null,
                 "related": [],
                 "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "KeyOrder",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [
+              {
+                "name": "Zed",
+                "lifetime": null,
+                "params": [],
+                "ret": null,
+                "body": [
+                  {
+                    "stmt": "acquire",
+                    "handle": "sub_0",
+                    "resource": "Subscription",
+                    "line": 3
+                  },
+                  {
+                    "stmt": "acquire",
+                    "handle": "sub_1",
+                    "resource": "Subscription",
+                    "line": 4
+                  },
+                  {
+                    "stmt": "release",
+                    "handle": "sub_1",
+                    "line": 4
+                  }
+                ]
+              }
+            ],
+            "handles": [
+              {
+                "handle": "sub_0",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "resource": "subscribe",
+                "released": false
+              },
+              {
+                "handle": "sub_1",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 4,
+                "event": "a.Alpha",
+                "handler": "OnAlpha",
+                "resource": "subscribe",
+                "released": true
+              }
+            ]
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "KeyOrder",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "code": "OWN001",
+                "component": "Zed",
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
                 "ignore_reason": null,
                 "column": null
               }

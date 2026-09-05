@@ -1,6 +1,6 @@
 {
   "comment": "The canonical hash of every shared facts document (P-022 step 7a, #260/#269). Generated: python tests/test_repro_fixtures.py --write. The Rust own-shadow recomputes every digest from the same documents with zero Python, which is what makes 'both engines saw the same input' a checked fact rather than an assumption. Records are sorted by case and depend on nothing but their own case, so inserting a case churns no existing record.",
-  "repro_version": 1,
+  "repro_version": 2,
   "algorithm": "sha256",
   "documents": [
     {

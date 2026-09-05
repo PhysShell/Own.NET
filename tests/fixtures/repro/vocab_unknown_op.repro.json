@@ -1,5 +1,5 @@
 {
-  "repro_version": 1,
+  "repro_version": 2,
   "input": {
     "ownir_version": 0,
     "canonical": {
@@ -31,12 +31,18 @@
         {
           "layer": "lowered",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         },
         {
           "layer": "summaries",
           "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "module": "Vocab",
@@ -60,6 +66,72 @@
         {
           "layer": "verdicts",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+        }
+      ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Vocab",
+            "ownir_version": 0,
+            "summaries": [
+              {
+                "file": "F.cs",
+                "line": 0,
+                "method": "M",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                },
+                "source": "inferred"
+              }
+            ],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }

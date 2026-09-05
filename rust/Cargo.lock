@@ -134,6 +134,9 @@ dependencies = [
 name = "own-shadow"
 version = "0.1.0"
 dependencies = [
+ "own-bridge",
+ "own-ir",
+ "own-lowered",
  "serde",
  "serde_json",
  "sha2",

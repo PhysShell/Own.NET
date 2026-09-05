@@ -1,5 +1,5 @@
 {
-  "repro_version": 1,
+  "repro_version": 2,
   "input": {
     "ownir_version": 0,
     "canonical": {
@@ -78,6 +78,9 @@
         {
           "layer": "lowered",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "lowered_version": 1,
@@ -177,6 +180,9 @@
         {
           "layer": "summaries",
           "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "module": "DiDemo",
@@ -189,6 +195,9 @@
         {
           "layer": "verdicts",
           "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
           "status": "produced",
           "document": {
             "verdicts_version": 1,
@@ -261,6 +270,181 @@
                     "captures scoped service 'AppDbContext'"
                   ]
                 ],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "DiDemo",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "DiDemo",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "Startup.cs",
+                "line": 12,
+                "code": "DI001",
+                "component": "EmailSender",
+                "event": "AppDbContext",
+                "handler": "",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              },
+              {
+                "file": "Startup.cs",
+                "line": 15,
+                "code": "DI001",
+                "component": "ReportService",
+                "event": "AppDbContext",
+                "handler": "",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
                 "ignore_reason": null,
                 "column": null
               }
