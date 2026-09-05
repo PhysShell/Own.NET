@@ -76,8 +76,11 @@ holding is a red build demanding promotion.
    by `check_facts`, never given a verdict list with a family missing —
    `protocol_isloaded_clean` would otherwise have "matched" vacuously.
    #259's checkpoint list never names the protocol analysis; its final
-   acceptance ("full test-family inventory from #258") does. Owed to cp5 or
-   a step of its own — not silently absorbed here.
+   acceptance ("full test-family inventory from #258") does. Recorded as
+   **its own checkpoint (P-022 row 4b)**, deliberately not folded into cp5:
+   cp5 is messages, evidence and rendering, and a whole analysis family on
+   top would make the last checkpoint a bag. 4b does not block cp5; #259's
+   final acceptance needs it.
 2. **The `u32` coordinate domain (4).** The core's line is a `u32`; the
    strict door admits every signed 64-bit coordinate (`spec/OwnIR.md` §4.2)
    and the tolerant door anything `_as_int` passes. A coordinate outside
@@ -89,7 +92,12 @@ holding is a red build demanding promotion.
    `reg.cs:-5`, …). This is the cp1 pattern again: a divergence family
    outside the measured set, recorded so a decision can be taken — a
    Python-first bound in §4.2, or a wider core line type — rather than
-   "closed by widening Rust" or reported as parity.
+   "closed by widening Rust" or reported as parity. The owner's stated
+   direction on review: **Python-first tightening** — define the valid
+   coordinate domain normatively (a negative source line is meaningless),
+   teach the reference to reject it, then remove the exclusion; as its own
+   contract change with parity evidence, never by declaring the reference
+   wrong because the port is `u32`.
 3. **OD-1, measured (2).** The Rust tolerant entry is the typed `OwnIr`
    constructor, so BR-D2's skip-not-coerce (`deps: "a"`) and the finders'
    unknown-lifetime tolerance are unreachable through it: the reference
@@ -103,6 +111,18 @@ the core diagnostic's `message`, and this core's messages are still titles
 (`undefined name` vs the reference's `undefined name 'loc_0'`), so the three
 `hoist_neg_*` refusals are compared up to their `message=` member — on both
 sides, by the same function. The lowering-time refusals are byte-exact.
+
+### The `subject` tail
+
+The core change adds data to a diagnostic; whether it changes any
+**serialized** surface was checked rather than assumed. On the Rust side
+`render.rs` states it does not consult `subject`, `sarif.rs` never reads it,
+and its only carrier is `LocatedDiagnostic`/`DiagIdentity` — an in-memory
+comparison key, not an output. On the reference, `subject` is read by the
+bridge and by `report.py` (the `.ownreport.json` buffer report, struck from
+the port in #256). No Rust output surface serializes it, so "behavior
+changes: none" holds; cp5 re-checks this when the bridge's render/SARIF
+paths land.
 
 ### The dedup key, minus `message`
 
@@ -144,7 +164,15 @@ all fixed before round 2:
   lines are on stderr, test results on stdout, and capturing them
   separately loses the interleaving. Fixed by merging the streams.
 
-**Round 2: 30 mutations, 29 caught, 1 declared survivor.**
+**Round 2: 30 mutations, 29 caught, 1 declared survivor — closed on review
+(round 3): 30/30.** M19 survived because BR-V1's ERROR-only rule guards a
+state the corpus cannot produce (no facts producer reaches the one core
+pass that grades below ERROR). Leaving a normative rule permanently
+unprovable was the wrong resting place: the filter is now a pure predicate
+(`is_mapped`, BR-V1 + BR-V2 in one place) and a synthetic WARNING is driven
+through `map_core` itself — same diagnostic, same handle, ERROR → one
+finding, WARNING → none — so the mutation is caught at the unit level, with
+the corpus still unable to reach it (recorded as such below).
 
 | id | mutation | caught by |
 |---|---|---|
@@ -166,7 +194,7 @@ all fixed before round 2:
 | M16 | BR-V6 source tiering inverted | verdict replay |
 | M17 | BR-V6 an empty `ignore_reason` suppresses | verdict replay |
 | M18 | BR-V7 dedup removed | verdict replay |
-| M19 | BR-V1 ERROR-only filter removed | **survived — declared**: no warning-tier core verdict exists in this core today (Python's `validate_policies` warnings have no facts producer), so the filter has nothing to filter; kept as the faithful port, recorded as a blind spot |
+| M19 | BR-V1 ERROR-only half of the mapping predicate removed | `verdict::tests::only_error_severity_core_verdicts_are_mapped` (synthetic WARNING through `map_core`; the corpus cannot reach it — no facts producer feeds a sub-error core verdict today) |
 | M20 | `_as_col` accepts `0` | verdict replay |
 | M21 | a negative DI site line folds to `1`, not `0` | verdict replay |
 | M22 | OWN050 never minted | verdict replay |
@@ -182,9 +210,36 @@ all fixed before round 2:
 Two catching layers exist where the analysis owns the rule (M07, M12, M13,
 M30) and one where only the bridge does — the same shape as cp1's ledger:
 the bridge replay is the outer catcher, and a rule with a single catcher is a
-rule with a single control.
+rule with a single control. Two rules (M09, M19) are catchable only at the
+unit level because the production entry cannot reach them; both say so in
+the test.
 
 ## What checkpoint 5 needs
+
+The comparison matrix over the same frozen goldens — cp5 turns every
+"deferred" row into "prove" and keeps every "proven" row as a regression
+guard; **no golden is regenerated beside the cp5 implementation**, because
+"implementation disagreed with the golden → regenerate → agreement" is the
+one move this family exists to make impossible:
+
+| `Finding` surface | cp4 | cp5 |
+|---|---|---|
+| identity (`file`, `code`, `component`, `event`, `handler`) | proven | regression |
+| anchor (`line`, `column`) | proven | regression |
+| `kind` | proven | regression |
+| tiering (`advisory`, `severity`, `ignore_reason`) | proven | regression |
+| ordering and dedup | proven | regression |
+| `message` | deferred (carried) | prove |
+| `related` | deferred (carried) | prove |
+| `flow` (evidence slices) | deferred (carried) | prove |
+| rendered diagnostic (`render*`) | deferred | prove |
+| SARIF projection (`build_sarif`, bridge path) | deferred | prove |
+
+And the wording discipline that comes with it: what cp4 proved is
+"127 verdicts × the cp4 comparison projection", never "verdict parity
+complete" — the shortcut a roadmap status is made of.
+
+Concretely:
 
 - the message matrix (BR-V4) on the bridge findings, and the core diagnostic
   messages behind the map-or-raise text;
