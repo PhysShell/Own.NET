@@ -1,0 +1,246 @@
+{
+  "trace_version": 1,
+  "case": "verdict_door_effect_deps_not_strings",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
+        "bytes": 622
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Door"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Door"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[Ok.tsx:9:None:EFF001]",
+              "value": {
+                "file": "Ok.tsx",
+                "line": 9,
+                "code": "EFF001",
+                "component": "Ok",
+                "event": "o",
+                "handler": "",
+                "message": "effect re-runs on every render: dependency 'o' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'o' with useMemo/useCallback (or move it out of render)",
+                "kind": "react effect",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "Ok.tsx",
+                    9,
+                    "effect re-runs here on 'o'"
+                  ],
+                  [
+                    "Ok.tsx",
+                    8,
+                    "'o' gets a fresh identity here — stabilise with useMemo"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
+        "bytes": 622
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "steps": []
+        },
+        {
+          "layer": "summaries",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "steps": []
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "steps": []
+        }
+      ]
+    }
+  ]
+}

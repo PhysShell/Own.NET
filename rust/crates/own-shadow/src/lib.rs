@@ -21,6 +21,12 @@
 //!   per layer what it could **produce** — the verdict layer is at the #259
 //!   checkpoint-4 projection and says so, rather than emitting a short
 //!   document a later comparison would score as agreement.
+//! * **What would a comparison have to walk?** [`project_traces`] is the
+//!   `AnalysisTrace` (#269): each capture normalized so that the Layer 2
+//!   handles — global counters wearing the costume of names — become addresses
+//!   derived from what they identify, while each layer's ORDER semantics are
+//!   *declared* rather than normalized away. Producing that shape is still not
+//!   performing a comparison.
 //!
 //! **This is not shadow mode**, and nothing here may be read as shadow mode
 //! having been achieved. Comparing two engines' end diagnostics is #260's
@@ -37,6 +43,7 @@ mod artifact;
 mod canonical;
 mod engine;
 mod json;
+mod trace;
 
 pub use artifact::{
     render, verify, ENGINE_ORDER, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER, PROJECTION_FULL,
@@ -45,3 +52,7 @@ pub use artifact::{
 pub use canonical::{canonical_bytes, canonical_hash, CanonicalHash, CANONICAL_ALGORITHM};
 pub use engine::capture;
 pub use json::{parse, Json};
+pub use trace::{
+    order_semantics, project_trace, project_traces, ORDER_CANONICAL, ORDER_SIGNIFICANT,
+    TRACE_VERSION,
+};

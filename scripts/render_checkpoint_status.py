@@ -47,10 +47,14 @@ CAMPAIGNS = (
     ("checkpoint 2 — engine protocol",
      os.path.join(ROOT, "docs", "notes",
                   "p022-shadow-infra-checkpoint2-data", "campaign.json")),
+    ("checkpoint 3 — AnalysisTrace and stable-ID normalization",
+     os.path.join(ROOT, "docs", "notes",
+                  "p022-shadow-infra-checkpoint3-data", "campaign.json")),
 )
 RUST_TESTS = (
     os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "repro.rs"),
     os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "engine.rs"),
+    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "trace.rs"),
 )
 
 HEADER = (
@@ -127,6 +131,22 @@ def render_shadow_slice() -> str:
                            for target, name in _rust_test_names())
     differ_rows = ("\n".join(status_differs) if status_differs
                    else "| — | — | the two engines' statuses agree everywhere |")
+
+    # The trace surface (checkpoint 3): steps addressed, and how many of those
+    # addresses are stable ids standing in for a mint counter.
+    trace_steps = 0
+    stable_ids = 0
+    traced_layers = 0
+    for entry in manifest["artifacts"]:
+        path = os.path.join(FIXDIR, f"{entry['name']}.trace.json")
+        if not os.path.exists(path):
+            continue
+        for trace in _load(path)["traces"]:
+            for layer in trace["layers"]:
+                traced_layers += 1
+                trace_steps += len(layer["steps"])
+                stable_ids += sum(1 for s in layer["steps"]
+                                  if s["id"].startswith("handles["))
 
     n_refusals = len(manifest["domain_refusals"])
     n_artifacts = len(manifest["artifacts"])
@@ -216,6 +236,25 @@ declares rather than a disagreement it stumbled into:
 | case | layer | statuses |
 |---|---|---|
 {differ_rows}
+
+## The AnalysisTrace (checkpoint 3)
+
+Each capture is normalized into a walkable shape: internal identifiers are
+replaced by addresses derived from what they identify, and each layer's
+ordering semantics are **declared** rather than normalized away.
+
+| surface | count |
+|---|---|
+| trace layers projected (both engines, every artifact) | {traced_layers} |
+| addressed steps | {trace_steps} |
+| of those, handle addresses standing in for a mint counter | {stable_ids} |
+
+The normalization is proven on the property it exists for, over the whole
+captured corpus: permuting a document's components reshuffles the global mint
+counters (BR-L2) so the raw handle names change wholesale, and the **stable
+ids must not move** — while the lowered layer's step **order** must still
+change, because that difference is real. Both halves are asserted; a trace that
+hid the second would delete the defect the layer exists to expose.
 
 ## Divergence classification
 

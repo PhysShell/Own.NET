@@ -42,7 +42,9 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 # later checkpoint cannot quietly restate an earlier one's numbers. Adding a
 # checkpoint means adding its pair here — a directory nobody listed is a
 # directory nobody gates.
-_DATA = ("p022-shadow-infra-checkpoint1-data", "p022-shadow-infra-checkpoint2-data")
+_DATA = ("p022-shadow-infra-checkpoint1-data",
+         "p022-shadow-infra-checkpoint2-data",
+         "p022-shadow-infra-checkpoint3-data")
 CAMPAIGNS = tuple(os.path.join(ROOT, "docs", "notes", d, "mutations.json")
                   for d in _DATA)
 RESULTS = tuple(os.path.join(ROOT, "docs", "notes", d, "campaign.json")

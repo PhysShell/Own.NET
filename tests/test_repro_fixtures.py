@@ -60,15 +60,21 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from ownlang.lowered import project_lowered
 from ownlang.repro import (
     CANONICAL_ALGORITHM,
     ENGINE_PYTHON,
+    LAYER_ORDER_SEMANTICS,
     REPRO_VERSION,
     ReproError,
     canonical_hash,
     load_document,
+    normalize_handles,
     project_repro,
+    project_traces,
     render_repro,
+    render_traces,
+    stable_handle_ids,
     verify_repro,
 )
 
@@ -435,6 +441,137 @@ def _domain_backstop_controls() -> list[str]:
     return fails
 
 
+def _trace_controls(plan: dict[str, tuple[str, str]]) -> list[tuple[str, str]]:
+    """The AnalysisTrace's own properties (#269), over EVERY captured document
+    rather than the artifact subset — the normalization has to hold on the
+    corpus, not on a sample.
+
+    1. **Totality.** No counter-shaped handle survives the rewrite. Asserted
+       inside `normalize_handles`, exercised here on every lowered document.
+    2. **Bijection.** Distinct minted handles get distinct stable ids, so the
+       rewrite cannot fuse two facts into one address.
+    3. **The property the whole checkpoint exists for**: a mint-order shift
+       must NOT move a stable id. Permuting a document's components reshuffles
+       the global counters (BR-L2), so the raw names change wholesale; the
+       stable ids must be the same set. Without this, one reordered input would
+       report every handle as a difference between engines.
+    4. **Order is NOT normalized away.** The same permutation must still change
+       the lowered layer's step order — a trace that hid it would delete the
+       defect the layer exists to expose.
+    """
+    fails: list[tuple[str, str]] = []
+    shifted = 0
+    for case in sorted(plan):
+        _corpus, path = plan[case]
+        facts = _load(path)
+        document = project_lowered(facts)
+        if document.get("error") is not None:
+            continue
+        handles = document.get("handles", [])
+        rename = stable_handle_ids(handles)
+        try:
+            normalize_handles(document)
+        except ReproError as e:
+            fails.append(("trace-normalization", f"{case}: {e}"))
+            continue
+        if len(set(rename.values())) != len(rename):
+            fails.append(("trace-normalization",
+                          f"{case}: two minted handles share a stable id — the "
+                          f"rewrite fuses two facts into one address"))
+        components = facts.get("components")
+        if not (isinstance(components, list) and len(components) > 1 and handles):
+            continue
+        permuted = copy.deepcopy(facts)
+        permuted["components"] = list(reversed(permuted["components"]))
+        other = project_lowered(permuted)
+        if other.get("error") is not None:
+            continue
+        raw_a = sorted(h["handle"] for h in handles)
+        raw_b = sorted(h["handle"] for h in other.get("handles", []))
+        stable_a = sorted(stable_handle_ids(handles).values())
+        stable_b = sorted(stable_handle_ids(other.get("handles", [])).values())
+        if stable_a != stable_b:
+            fails.append(("trace-normalization",
+                          f"{case}: a mint-order shift moved a stable id "
+                          f"({stable_a} != {stable_b}) — the normalization does "
+                          f"not survive the reordering it exists for"))
+            continue
+        if raw_a == raw_b:
+            continue  # the permutation did not shift the counters here
+        shifted += 1
+    if not shifted:
+        fails.append(("trace-normalization",
+                      "no case in the corpus actually shifts the mint counters "
+                      "under permutation, so property 3 was never exercised"))
+    # 5. Totality guards a state the corpus cannot reach — every statement
+    #    references a handle the array lists, because the bridge mints both. So
+    #    the rule is driven synthetically here, at the only level that reaches
+    #    it, rather than left permanently unprovable (the resting place #259
+    #    cp4 chose for BR-V1's ERROR-only rule, for the same reason).
+    dangling = {
+        "functions": [{"body": [{"handle": "loc_1"}]}],
+        "handles": [{"handle": "loc_0", "component": "M"}],
+    }
+    try:
+        normalize_handles(dangling)
+    except ReproError as e:
+        if "not total" not in str(e) or "loc_1" not in str(e):
+            fails.append(("trace-normalization",
+                          f"a surviving counter was refused for the wrong "
+                          f"reason: {e}"))
+    else:
+        fails.append(("trace-normalization",
+                      "a handle reference the rename cannot reach was carried "
+                      "into the trace — a comparison would report a counter as "
+                      "a difference between engines"))
+    listed = {
+        "functions": [{"body": [{"handle": "loc_0"}]}],
+        "handles": [{"handle": "loc_0", "component": "M"}],
+    }
+    if normalize_handles(listed)["handles"][0].get("mint") != "loc":
+        fails.append(("trace-normalization",
+                      "the mint kind did not survive as a comparable value"))
+    return fails
+
+
+def _trace_shape_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
+    """The trace's structural rules, over the committed artifacts."""
+    fails: list[tuple[str, str]] = []
+    for case in artifact_names:
+        path = os.path.join(FIXDIR, f"{case}.repro.json")
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            artifact = json.load(f)
+        for trace in project_traces(artifact, case)["traces"]:
+            for layer in trace["layers"]:
+                where = f"{case}/{trace['engine']}/{layer['layer']}"
+                want = LAYER_ORDER_SEMANTICS.get(layer["layer"])
+                if layer["order"] != want:
+                    fails.append(("trace-shape", f"{where}: order "
+                                  f"{layer['order']!r} != the frozen {want!r}"))
+                if layer["status"] == "refused" and layer["steps"]:
+                    fails.append(("trace-shape", f"{where}: a refused layer "
+                                  f"carries steps; an empty step list that "
+                                  f"compared equal would score a refusal as "
+                                  f"agreement"))
+                if layer["status"] == "produced" and not layer["steps"]:
+                    fails.append(("trace-shape", f"{where}: a produced layer "
+                                  f"carries no steps"))
+                ids = [s["id"] for s in layer["steps"]]
+                if len(set(ids)) != len(ids):
+                    fails.append(("trace-shape", f"{where}: duplicate step ids "
+                                  f"survived disambiguation"))
+    return fails
+
+
+def _trace_goldens() -> set[str]:
+    if not os.path.isdir(FIXDIR):
+        return set()
+    return {n[: -len(".trace.json")] for n in os.listdir(FIXDIR)
+            if n.endswith(".trace.json")}
+
+
 def _artifact_goldens() -> set[str]:
     if not os.path.isdir(FIXDIR):
         return set()
@@ -626,7 +763,39 @@ def run() -> int:
             f"remove it or list the case"
         ))
 
-    # 6. Negative controls for the two gates the positive checks cannot reach.
+    # 6. The AnalysisTrace (#269): goldens in sync, and the normalization's
+    #    own properties over the whole captured corpus.
+    for case in artifact_names:
+        golden_path = os.path.join(FIXDIR, f"{case}.trace.json")
+        artifact_path = os.path.join(FIXDIR, f"{case}.repro.json")
+        if not os.path.exists(artifact_path):
+            continue
+        with open(artifact_path, encoding="utf-8") as f:
+            artifact = json.load(f)
+        expected = render_traces(artifact, case)
+        if not os.path.exists(golden_path):
+            fails.append((
+                "trace-golden",
+                f"{case}: trace golden missing; regenerate with "
+                f"'python tests/test_repro_fixtures.py --write'"))
+            continue
+        with open(golden_path, encoding="utf-8") as f:
+            actual = f.read()
+        if actual != expected:
+            fails.append((
+                "trace-golden",
+                f"{case}: trace golden is stale (a capture or the trace "
+                f"projection changed); regenerate with 'python "
+                f"tests/test_repro_fixtures.py --write' and re-run the Rust "
+                f"side (cd rust && cargo test)"))
+    for orphan in sorted(_trace_goldens() - set(artifact_names)):
+        fails.append((
+            "trace-orphan",
+            f"{orphan}: orphaned trace golden; remove it or list the case"))
+    fails += _trace_controls(plan)
+    fails += _trace_shape_controls(artifact_names)
+
+    # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0
     if artifact_names and artifact_names[0] in plan:
         reference = project_repro(_load(plan[artifact_names[0]][1]))
@@ -651,7 +820,9 @@ def run() -> int:
           f"{len(plan)} tamper controls refused, "
           f"{len(refusals)} domain-refusal controls held, "
           f"{n_structural} structural + {DOMAIN_BACKSTOP_COUNT} domain-backstop "
-          f"controls refused")
+          f"controls refused, "
+          f"{len(artifact_names)} traces projected and normalization held over "
+          f"all {len(plan)} documents")
     return 0
 
 
@@ -675,8 +846,20 @@ def write() -> int:
         with open(out, "w", encoding="utf-8") as f:
             f.write(json.dumps(artifact, indent=2, ensure_ascii=False) + "\n")
         print(f"wrote {out}")
+    for case in artifact_names:
+        artifact_path = os.path.join(FIXDIR, f"{case}.repro.json")
+        with open(artifact_path, encoding="utf-8") as f:
+            artifact = json.load(f)
+        out = os.path.join(FIXDIR, f"{case}.trace.json")
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(render_traces(artifact, case))
+        print(f"wrote {out}")
     for orphan in sorted(_artifact_goldens() - set(artifact_names)):
         path = os.path.join(FIXDIR, f"{orphan}.repro.json")
+        os.remove(path)
+        print(f"removed orphaned {path}")
+    for orphan in sorted(_trace_goldens() - set(artifact_names)):
+        path = os.path.join(FIXDIR, f"{orphan}.trace.json")
         os.remove(path)
         print(f"removed orphaned {path}")
     return 0

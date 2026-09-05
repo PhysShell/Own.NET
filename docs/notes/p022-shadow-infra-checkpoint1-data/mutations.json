@@ -1,6 +1,6 @@
 {
   "campaign": "p022-shadow-cp1",
-  "comment": "The mutation campaign for P-022 step 7a checkpoint 1 (shadow-mode infrastructure layer 0: the same-input capture and the reproduction artifact). Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test, because P-022 discipline 2 makes a test evidence only once its mutation fails through the surface it claims to protect. Both layers run for every mutation (discipline 3: no fail-fast), so the recorded result names every catching layer, not the first. M00 is the harness-honesty control. Run: python scripts/mutate_campaign.py docs/notes/p022-shadow-infra-checkpoint1-data/mutations.json --out docs/notes/p022-shadow-infra-checkpoint1-data/campaign.json Re-anchored when checkpoint 2 reshaped the layer envelope: M11 and M15 lost their anchors, which the --check gate caught before the recorded result could go on describing a tree that no longer exists.",
+  "comment": "The mutation campaign for P-022 step 7a checkpoint 1 (shadow-mode infrastructure layer 0: the same-input capture and the reproduction artifact). Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test, because P-022 discipline 2 makes a test evidence only once its mutation fails through the surface it claims to protect. Both layers run for every mutation (discipline 3: no fail-fast), so the recorded result names every catching layer, not the first. M00 is the harness-honesty control. Run: python scripts/mutate_campaign.py docs/notes/p022-shadow-infra-checkpoint1-data/mutations.json --out docs/notes/p022-shadow-infra-checkpoint1-data/campaign.json Re-anchored when checkpoint 2 reshaped the layer envelope: M11 and M15 lost their anchors, which the --check gate caught before the recorded result could go on describing a tree that no longer exists. A `rust-unit` layer runs the crate's own unit tests: without it a rule that is only reachable off the production path (a defensive assertion the corpus cannot trigger) has its catcher invisible to the campaign, and the mutation reads as a survivor when the control exists and works. Found exactly that way on cp3's M51.",
   "layers": [
     {
       "id": "python",
@@ -19,6 +19,19 @@
         "test",
         "-p",
         "own-shadow",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo_test"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--lib",
         "--no-fail-fast"
       ],
       "parser": "cargo_test"

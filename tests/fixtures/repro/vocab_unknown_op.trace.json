@@ -1,0 +1,152 @@
+{
+  "trace_version": 1,
+  "case": "vocab_unknown_op",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "c07494fb952154bcb0f026969754a20bf856c5c12b54a1c9b2aca0468315838d",
+        "bytes": 108
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "steps": []
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Vocab"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            },
+            {
+              "id": "summaries[M]",
+              "value": {
+                "method": "M",
+                "file": "F.cs",
+                "line": 0,
+                "source": "inferred",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "steps": []
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "c07494fb952154bcb0f026969754a20bf856c5c12b54a1c9b2aca0468315838d",
+        "bytes": 108
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "steps": []
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Vocab"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            },
+            {
+              "id": "summaries[M]",
+              "value": {
+                "file": "F.cs",
+                "line": 0,
+                "method": "M",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                },
+                "source": "inferred"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "steps": []
+        }
+      ]
+    }
+  ]
+}

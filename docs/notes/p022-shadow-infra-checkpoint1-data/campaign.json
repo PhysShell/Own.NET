@@ -4,7 +4,8 @@
   "comment": "A RECORDED run, not a CI gate: mutating the tree and running every layer takes minutes and cannot be part of the per-commit gates. What IS gated is the campaign DEFINITION (every anchor still resolves) and this file's internal consistency — see tests/test_generated_docs.py.",
   "layers": [
     "python",
-    "rust"
+    "rust",
+    "rust-unit"
   ],
   "totals": {
     "mutations": 30,
@@ -201,6 +202,7 @@
       "status": "caught",
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
+        "rust::every_trace_golden_is_reproduced_byte_for_byte",
         "rust::the_canonical_form_ignores_only_insignificant_text_formatting"
       ]
     },
@@ -211,6 +213,7 @@
       "status": "caught",
       "caught_by": [
         "rust::every_committed_artifact_round_trips_and_verifies",
+        "rust::every_trace_golden_is_reproduced_byte_for_byte",
         "rust::the_canonical_form_ignores_only_insignificant_text_formatting"
       ]
     },

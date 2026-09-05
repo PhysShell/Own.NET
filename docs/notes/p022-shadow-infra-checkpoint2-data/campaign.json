@@ -5,7 +5,8 @@
   "layers": [
     "python",
     "rust-repro",
-    "rust-engine"
+    "rust-engine",
+    "rust-unit"
   ],
   "totals": {
     "mutations": 11,

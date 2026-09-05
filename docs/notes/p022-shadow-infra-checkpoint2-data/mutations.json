@@ -1,6 +1,6 @@
 {
   "campaign": "p022-shadow-cp2",
-  "comment": "The mutation campaign for P-022 step 7a checkpoint 2 (the engine protocol: how each engine reports its per-layer outputs, and what it declares it could produce). Separate from the cp1 campaign on purpose — each checkpoint's evidence stays frozen at what it measured, so a later checkpoint cannot quietly restate an earlier one's numbers. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Three layers run for every mutation (discipline 3: no fail-fast), including the port's own engine suite. M00 is the harness-honesty control. Run: python scripts/mutate_campaign.py docs/notes/p022-shadow-infra-checkpoint2-data/mutations.json --out docs/notes/p022-shadow-infra-checkpoint2-data/campaign.json",
+  "comment": "The mutation campaign for P-022 step 7a checkpoint 2 (the engine protocol: how each engine reports its per-layer outputs, and what it declares it could produce). Separate from the cp1 campaign on purpose — each checkpoint's evidence stays frozen at what it measured, so a later checkpoint cannot quietly restate an earlier one's numbers. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Three layers run for every mutation (discipline 3: no fail-fast), including the port's own engine suite. M00 is the harness-honesty control. Run: python scripts/mutate_campaign.py docs/notes/p022-shadow-infra-checkpoint2-data/mutations.json --out docs/notes/p022-shadow-infra-checkpoint2-data/campaign.json A `rust-unit` layer runs the crate's own unit tests: without it a rule that is only reachable off the production path (a defensive assertion the corpus cannot trigger) has its catcher invisible to the campaign, and the mutation reads as a survivor when the control exists and works. Found exactly that way on cp3's M51.",
   "layers": [
     {
       "id": "python",
@@ -35,6 +35,19 @@
         "own-shadow",
         "--test",
         "engine",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo_test"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--lib",
         "--no-fail-fast"
       ],
       "parser": "cargo_test"

@@ -66,6 +66,25 @@ declares rather than a disagreement it stumbled into:
 | `verdict_door_effect_deps_not_strings` | `summaries` | python-ownlang: produced, rust-own-bridge: refused |
 | `verdict_door_effect_deps_not_strings` | `verdicts` | python-ownlang: produced, rust-own-bridge: refused |
 
+## The AnalysisTrace (checkpoint 3)
+
+Each capture is normalized into a walkable shape: internal identifiers are
+replaced by addresses derived from what they identify, and each layer's
+ordering semantics are **declared** rather than normalized away.
+
+| surface | count |
+|---|---|
+| trace layers projected (both engines, every artifact) | 54 |
+| addressed steps | 254 |
+| of those, handle addresses standing in for a mint counter | 12 |
+
+The normalization is proven on the property it exists for, over the whole
+captured corpus: permuting a document's components reshuffles the global mint
+counters (BR-L2) so the raw handle names change wholesale, and the **stable
+ids must not move** — while the lowered layer's step **order** must still
+change, because that difference is real. Both halves are asserted; a trace that
+hid the second would delete the defect the layer exists to expose.
+
 ## Divergence classification
 
 **Python-only 0 / Rust-only 0 / Changed 0 / Ordering-only n/a / Unexplained 0**,
@@ -92,6 +111,11 @@ artifacts and nothing reads one against the other. The gates:
 - `own-shadow/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries`
 - `own-shadow/tests/engine.rs::both_engines_report_the_same_layers_in_the_same_order`
 - `own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture`
+- `own-shadow/tests/trace.rs::a_mint_order_shift_moves_the_order_but_not_the_stable_ids`
+- `own-shadow/tests/trace.rs::a_refused_layer_carries_no_steps`
+- `own-shadow/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte`
+- `own-shadow/tests/trace.rs::no_counter_shaped_handle_survives_anywhere_in_a_trace`
+- `own-shadow/tests/trace.rs::the_declared_order_semantics_are_the_frozen_ones`
 
 ## The unmeasured set, named
 
@@ -136,7 +160,7 @@ that each recorded result is internally consistent
 | survived | **0** |
 | compile errors (reported as such, never as "caught") | 0 |
 | harness-honesty controls reporting zero failures | 1 |
-| catches by layer | `python` 19, `rust` 38 |
+| catches by layer | `python` 19, `rust` 40 |
 | mutations with exactly **one** catching layer | 15 — M04, M05, M06, M07, M08, M09, M10, M11, M12, M14, M15, M21, M24, M25, M26 |
 
 | id | mutation | caught by |
@@ -159,8 +183,8 @@ that each recorded result is internally consistent
 | M16 | the port's canonical form stops sorting object keys | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::every_shared_document_hashes_to_the_recorded_digest`, `rust::this_engine_reproduces_its_committed_capture`, `rust::verify_refuses_each_structural_violation` |
 | M17 | the port escapes U+007F, which the reference emits raw | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::every_shared_document_hashes_to_the_recorded_digest`, `rust::this_engine_reproduces_its_committed_capture` |
 | M18 | the port escapes control code points with uppercase hex | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::every_shared_document_hashes_to_the_recorded_digest`, `rust::this_engine_reproduces_its_committed_capture` |
-| M19 | the port renders the artifact with a different indent width | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::the_canonical_form_ignores_only_insignificant_text_formatting` |
-| M20 | the port renders an artifact's objects in sorted rather than document order | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::the_canonical_form_ignores_only_insignificant_text_formatting` |
+| M19 | the port renders the artifact with a different indent width | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::every_trace_golden_is_reproduced_byte_for_byte`, `rust::the_canonical_form_ignores_only_insignificant_text_formatting` |
+| M20 | the port renders an artifact's objects in sorted rather than document order | `rust::every_committed_artifact_round_trips_and_verifies`, `rust::every_trace_golden_is_reproduced_byte_for_byte`, `rust::the_canonical_form_ignores_only_insignificant_text_formatting` |
 | M21 | the port resolves a duplicate key first-wins instead of last-wins | `rust::the_canonical_form_ignores_only_insignificant_text_formatting` |
 | M22 | the port wraps an out-of-i64 integer instead of refusing it | `rust::every_declared_unnameable_document_is_refused`, `rust::values_outside_the_canonical_domain_are_refused_at_parse` |
 | M23 | the port accepts a float as an integer instead of refusing it | `rust::every_declared_unnameable_document_is_refused`, `rust::values_outside_the_canonical_domain_are_refused_at_parse` |
@@ -196,3 +220,28 @@ that each recorded result is internally consistent
 | M39 | the port reports a typed-door refusal on one layer instead of all three | `rust-engine::this_engine_reproduces_its_committed_capture` |
 | M40 | the port's verification stops rejecting a 'full' projection that names members | `rust-repro::verify_refuses_each_structural_violation` |
 | M41 | the port's verification accepts an EMPTY reason on a partial projection | `rust-repro::verify_refuses_each_structural_violation` |
+### checkpoint 3 — AnalysisTrace and stable-ID normalization (`p022-shadow-cp3`)
+
+| | |
+|---|---|
+| mutations | **11** |
+| caught | **11** |
+| survived | **0** |
+| compile errors (reported as such, never as "caught") | 0 |
+| harness-honesty controls reporting zero failures | 1 |
+| catches by layer | `python` 9, `rust-trace` 4, `rust-unit` 3 |
+| mutations with exactly **one** catching layer | 7 — M42, M43, M45, M46, M48, M50, M51 |
+
+| id | mutation | caught by |
+|---|---|---|
+| M42 | the reference derives a handle's stable id from the counter instead of the record's identity | `python::non-zero exit with no FAIL line` |
+| M43 | the reference drops `line` from a handle's identity, fusing two facts on one line-distinct site | `python::trace-golden` |
+| M44 | the reference stops disambiguating a repeated address | `python::trace-golden`, `python::trace-shape` |
+| M45 | the reference declares the lowered layer's order canonical, licensing a sort | `python::trace-golden` |
+| M46 | the reference declares the verdict layer's order canonical, hiding a tie-order defect | `python::trace-golden` |
+| M47 | the reference narrows the minted-handle pattern so `loc_` names leak through unrewritten | `python::trace-golden`, `python::trace-normalization` |
+| M48 | the reference gives a refused layer an empty step list AND drops its error | `python::trace-golden` |
+| M49 | the port derives a handle's stable id from the counter instead of the record's identity | `rust-trace::a_mint_order_shift_moves_the_order_but_not_the_stable_ids`, `rust-trace::every_trace_golden_is_reproduced_byte_for_byte`, `rust-unit::trace::tests::a_fully_listed_document_normalizes` |
+| M50 | the port declares the lowered layer's order canonical, licensing a sort | `rust-trace::every_trace_golden_is_reproduced_byte_for_byte` |
+| M51 | the port stops asserting that the handle rewrite is total | `rust-unit::trace::tests::a_handle_reference_the_rename_cannot_reach_is_refused` |
+| M52 | the port drops the mint kind from the handle record | `rust-trace::every_trace_golden_is_reproduced_byte_for_byte`, `rust-unit::trace::tests::a_fully_listed_document_normalizes` |

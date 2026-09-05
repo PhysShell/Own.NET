@@ -149,15 +149,75 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   newline, in construction order — the same rule as the Layer 2/3 families,
   and *not* the canonical form. Byte-identical on re-run.
 
+## The `AnalysisTrace` (#269; frozen)
+
+An artifact **pairs** two engines' captures; it does not make them comparable.
+Two things stand in the way, and the trace is the normalization that removes
+exactly one of them and *declares* the other.
+
+```text
+{"trace_version": 1,
+ "engine": "python-ownlang",
+ "input": {"algorithm": ..., "digest": ..., "bytes": ...},
+ "layers": [{"layer": "lowered", "status": "produced", "projection": {...},
+             "order": "significant",
+             "steps": [{"id": "<stable address>", "value": <json>}, ...]}]}
+```
+
+* **Internal identifiers are normalized away.** The lowered surface's handles
+  (`sub_0`, `cap_1`, `parg_0`, `loc_3`) are minted from **global counters in
+  document order** (BR-L2), so they are positions wearing the costume of
+  names. `stable_handle_ids` rebuilds each from the record's own identity —
+  `component | file | line | event | handler` — and every occurrence of the
+  old name anywhere in the document is rewritten. The rename is a **bijection**
+  and it is **total**: no counter-shaped name survives, which is asserted, not
+  hoped for. The mint *kind* is not thrown away — it moves into the handle
+  record as `mint`, so a routing difference (R5 minting `cap_` where R6 would
+  mint `sub_`) stays a comparable **value** on one step instead of becoming a
+  pair of "only in one engine" ids.
+* **Order is declared, never normalized away.** `order` is `significant` for
+  `lowered` (document order is semantic — BR-D4, BR-L5) and for `verdicts`
+  (BR-V8 sorts by `(file, line, column, code)` and leaves ties in construction
+  order, so position carries information), and `canonical` for `summaries`
+  (INF-R1 sorts by method key, so position carries none beyond the id).
+  Sorting a `significant` layer to make a comparison "pass" would delete the
+  very defect the layer exists to expose; declaring the semantics is what lets
+  a later comparison classify an ordering difference instead of breaking on it
+  — or missing it.
+* **Steps are addressed by identity, not position**, wherever the surface has
+  one: resources/externs/lifetimes by name, functions by name, handles by
+  their stable id, MOS summaries by method key, findings by
+  `file:line:column:code`. The **one** place position leaks back in is a
+  duplicate address, which takes a `~<n>` suffix in encounter order. The suffix
+  goes **inside the bracket** — `functions[Take~1]`, never
+  `functions[Take]~1` — uniformly for every addressed list, so that a nested
+  prefix composes (`functions[Take~1].body[0]`). Recorded because a duplicate
+  finding address is exactly the tie whose order `verdicts` declares
+  significant.
+* **Nested statement bodies stay inside their statement's value.** A `then`/
+  `else`/`while` body is part of the enclosing step rather than a step of its
+  own. Flattening deeper would need a path grammar, and the enclosing statement
+  is already the smallest unit that names a lowering site; a difference inside
+  a branch shows as a difference on that statement.
+* A **refused** layer carries its error and **no steps** — there is nothing to
+  address, and inventing an empty step list that compared equal to another
+  engine's empty one would score a refusal as agreement.
+* The trace carries the **input hash**, so a trace cannot be read against a
+  document it did not come from.
+
+Rendering is `json.dumps(indent=2, ensure_ascii=False)` + a trailing newline.
+
 The Rust side (`rust/crates/own-shadow`) parses these artifacts, recomputes
-the same digest from the same embedded document, and re-renders them
-byte-for-byte with zero Python.
+the same digest from the same embedded document, re-renders them byte-for-byte,
+produces its own capture through the same engine protocol, and projects the
+same trace — all with zero Python.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Any
 
 from .lowered import project_lowered
@@ -466,6 +526,261 @@ def verify_repro(artifact: Any) -> list[str]:
             seen.append(eid)
         problems += _verify_layers(engine.get("layers"), f"engines[{i}]")
     return problems
+
+
+# --------------------------------------------------------------------------
+# The AnalysisTrace (#269): stable-ID normalization + the comparable projection
+# --------------------------------------------------------------------------
+
+# The trace surface version. Bump on ANY change to the frozen decisions in the
+# module docstring's AnalysisTrace section.
+TRACE_VERSION = 1
+
+ORDER_SIGNIFICANT = "significant"
+ORDER_CANONICAL = "canonical"
+
+# Per-layer ordering semantics, frozen. A comparison reads this to CLASSIFY an
+# ordering difference; it never licenses sorting a layer to make one go away.
+LAYER_ORDER_SEMANTICS: dict[str, str] = {
+    "lowered": ORDER_SIGNIFICANT,    # BR-D4 / BR-L5: document + lowering order
+    "summaries": ORDER_CANONICAL,    # INF-R1: sorted by method key
+    "verdicts": ORDER_SIGNIFICANT,   # BR-V8: ties stay in construction order
+}
+
+# A minted handle: a global counter wearing the costume of a name (BR-L2).
+_MINTED_HANDLE = re.compile(r"^(sub|cap|parg|loc)_\d+$")
+
+
+def _identity(record: dict[str, Any]) -> str:
+    """A handle's identity, from the record the bridge attached to it — never
+    from the counter. The five fields are the ones every handle record carries
+    or omits meaningfully; an absent one renders as the empty string so that
+    "no handler" and "the empty handler" stay the same address (they are the
+    same fact)."""
+    return "|".join(str(record.get(k, "")) for k in
+                    ("component", "file", "line", "event", "handler"))
+
+
+def stable_handle_ids(handles: list[dict[str, Any]]) -> dict[str, str]:
+    """`minted name -> stable id`, over a Layer 2 document's handle array.
+
+    A bijection by construction: identities that repeat take a `~<n>` suffix in
+    encounter order, which is the one place position leaks back into an
+    address. Two records with the same component, file, line, event and handler
+    are the same fact seen twice, and nothing but their order distinguishes
+    them."""
+    seen: dict[str, int] = {}
+    out: dict[str, str] = {}
+    for record in handles:
+        minted = record.get("handle")
+        if not isinstance(minted, str):
+            continue
+        identity = _identity(record)
+        n = seen.get(identity, 0)
+        seen[identity] = n + 1
+        out[minted] = identity if n == 0 else f"{identity}~{n}"
+    return out
+
+
+def _rewrite(value: Any, rename: dict[str, str]) -> Any:
+    """Rewrite every string that IS a minted handle. Total by design: handle
+    names are `prefix_<digits>`, a shape no other Layer 2 string takes (module
+    names, files, events and callees are C# identifiers, paths or `$channel`
+    markers), so a whole-document rewrite cannot catch a bystander — and
+    `normalize_handles` asserts that none survives."""
+    if isinstance(value, str):
+        return rename.get(value, value)
+    if isinstance(value, list):
+        return [_rewrite(v, rename) for v in value]
+    if isinstance(value, dict):
+        return {k: _rewrite(v, rename) for k, v in value.items()}
+    return value
+
+
+def normalize_handles(document: dict[str, Any]) -> dict[str, Any]:
+    """A Layer 2 document with every minted handle replaced by its stable id,
+    and the mint KIND preserved as each handle record's `mint`.
+
+    Raises `ReproError` if a counter-shaped name survives — the rename claims
+    to be total, and a claim a test cannot fail is not a contract."""
+    handles = document.get("handles")
+    if not isinstance(handles, list):
+        return document
+    rename = stable_handle_ids(handles)
+    out: dict[str, Any] = _rewrite(document, rename)
+    for record, original in zip(out.get("handles", []), handles, strict=True):
+        minted = original.get("handle")
+        if isinstance(minted, str):
+            match = _MINTED_HANDLE.match(minted)
+            record["mint"] = match.group(1) if match else minted
+    leftovers = _minted_leftovers(out)
+    if leftovers:
+        raise ReproError(
+            f"stable-ID normalization is not total: {sorted(leftovers)[:5]} "
+            f"survived the rewrite — a handle is referenced somewhere the "
+            f"rename did not reach, and a comparison would report it as a "
+            f"difference between engines rather than as a counter")
+    return out
+
+
+def _minted_leftovers(value: Any) -> set[str]:
+    if isinstance(value, str):
+        return {value} if _MINTED_HANDLE.match(value) else set()
+    if isinstance(value, list):
+        return set().union(*(_minted_leftovers(v) for v in value)) if value else set()
+    if isinstance(value, dict):
+        return (set().union(*(_minted_leftovers(v) for v in value.values()))
+                if value else set())
+    return set()
+
+
+def _disambiguate(seen: dict[str, int], address: str) -> str:
+    """`address`, with a `~<n>` suffix when it repeats — the one place position
+    leaks back into an address.
+
+    The suffix goes INSIDE the bracket (`functions[Take~1]`, not
+    `functions[Take]~1`), uniformly for every addressed list. It disambiguates
+    *which of the repeated items*, which is a property of the item and not of
+    the path, and it is what lets a nested prefix compose:
+    `functions[Take~1].body[0]` addresses the second `Take`'s first statement.
+    The rule is spelled out because the two implementations of this schema
+    first read it two different ways — Python suffixed inside the bracket for
+    functions and outside for everything else, which the port's independent
+    reading caught."""
+    n = seen.get(address, 0)
+    seen[address] = n + 1
+    return address if n == 0 else f"{address}~{n}"
+
+
+def _steps(name: str, values: list[tuple[str, Any]]) -> list[dict[str, Any]]:
+    """Address a list of `(address, value)` pairs under one prefix."""
+    seen: dict[str, int] = {}
+    return [{"id": f"{name}[{_disambiguate(seen, address)}]", "value": value}
+            for address, value in values]
+
+
+def _lowered_steps(document: dict[str, Any]) -> list[dict[str, Any]]:
+    doc = normalize_handles(document)
+    steps: list[dict[str, Any]] = [
+        {"id": "lowered_version", "value": doc.get("lowered_version")},
+        {"id": "module", "value": doc.get("module")},
+    ]
+    for key in ("resources", "externs", "lifetimes"):
+        steps += _steps(key, [(str(e.get("name")), e)
+                                      for e in doc.get(key, [])])
+    # One disambiguator across ALL functions, and the body prefix inherits it:
+    # `Fn<loc>` and a repeated C# name both put two functions under one address
+    # (`mosdump_degraded_duplicate_key` has two `Take`s), and a per-function
+    # counter would reset and collide. Found by this family's own step-id
+    # control rather than by reading the code.
+    seen: dict[str, int] = {}
+    for fn in doc.get("functions", []):
+        address = _disambiguate(seen, str(fn.get("name")))
+        head = {k: v for k, v in fn.items() if k != "body"}
+        steps.append({"id": f"functions[{address}]", "value": head})
+        steps += _steps(f"functions[{address}].body",
+                        [(str(i), s) for i, s in enumerate(fn.get("body", []))])
+    steps += _steps("handles",
+                    [(str(h.get("handle")), h) for h in doc.get("handles", [])])
+    return steps
+
+
+def _summaries_steps(document: dict[str, Any]) -> list[dict[str, Any]]:
+    steps: list[dict[str, Any]] = [
+        {"id": "module", "value": document.get("module")},
+        {"id": "ownir_version", "value": document.get("ownir_version")},
+        {"id": "degraded", "value": document.get("degraded")},
+    ]
+    steps += _steps("summaries",
+                    [(str(s.get("method")), s) for s in document.get("summaries", [])])
+    steps += _steps("unresolved",
+                    [(str(u), u) for u in document.get("unresolved", [])])
+    return steps
+
+
+def _verdicts_steps(document: dict[str, Any]) -> list[dict[str, Any]]:
+    steps: list[dict[str, Any]] = [
+        {"id": "verdicts_version", "value": document.get("verdicts_version")},
+    ]
+    findings = document.get("findings", [])
+    steps += _steps("findings",
+                    [(f"{f.get('file')}:{f.get('line')}:{f.get('column')}:"
+                      f"{f.get('code')}", f) for f in findings])
+    return steps
+
+
+_LAYER_STEPS = {
+    "lowered": _lowered_steps,
+    "summaries": _summaries_steps,
+    "verdicts": _verdicts_steps,
+}
+
+
+def trace_layer(layer: dict[str, Any]) -> dict[str, Any]:
+    """One capture layer as a trace layer. A REFUSED layer carries its error
+    and no steps: there is nothing to address, and an empty step list that
+    compared equal to another engine's empty one would score a refusal as
+    agreement."""
+    name = layer.get("layer")
+    out: dict[str, Any] = {
+        "layer": name,
+        "status": layer.get("status"),
+        "projection": layer.get("projection"),
+        "order": LAYER_ORDER_SEMANTICS.get(str(name), ORDER_SIGNIFICANT),
+    }
+    if layer.get("status") == STATUS_REFUSED:
+        out["error"] = layer.get("error")
+        out["steps"] = []
+        return out
+    builder = _LAYER_STEPS.get(str(name))
+    if builder is None:
+        raise ReproError(
+            f"no trace projection for layer {name!r} — a layer added to "
+            f"LAYER_ORDER must be taught how to address its steps, or a "
+            f"comparison would silently skip it")
+    out["steps"] = builder(layer.get("document") or {})
+    return out
+
+
+def project_trace(artifact: dict[str, Any], engine_id: str) -> dict[str, Any]:
+    """Project one engine's capture, out of a reproduction artifact, into the
+    comparable `AnalysisTrace`. Carries the input hash so a trace cannot be
+    read against a document it did not come from."""
+    engines = artifact.get("engines", [])
+    for engine in engines:
+        if isinstance(engine, dict) and engine.get("id") == engine_id:
+            return {
+                "trace_version": TRACE_VERSION,
+                "engine": engine_id,
+                "input": artifact.get("input", {}).get("canonical"),
+                "layers": [trace_layer(layer) for layer in engine.get("layers", [])],
+            }
+    raise ReproError(
+        f"the artifact carries no capture for engine {engine_id!r} "
+        f"(present: {[e.get('id') for e in engines if isinstance(e, dict)]})")
+
+
+def project_traces(artifact: dict[str, Any], case: str) -> dict[str, Any]:
+    """Every engine's capture in one artifact, projected into traces, in the
+    artifact's engine order.
+
+    Projecting an engine's capture is not authoring it: the trace is a pure
+    normalization of a capture somebody else produced, and BOTH sides project
+    BOTH engines so that the normalization itself is cross-checked. If the two
+    implementations of the projection ever disagree, that disagreement is a
+    finding about the projection, not about either engine."""
+    return {
+        "trace_version": TRACE_VERSION,
+        "case": case,
+        "traces": [project_trace(artifact, engine["id"])
+                   for engine in artifact.get("engines", [])
+                   if isinstance(engine, dict) and isinstance(engine.get("id"), str)],
+    }
+
+
+def render_traces(artifact: dict[str, Any], case: str) -> str:
+    return json.dumps(project_traces(artifact, case), indent=2,
+                      ensure_ascii=False) + "\n"
 
 
 def _verify_projection(projection: Any, at: str) -> list[str]:
