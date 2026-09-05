@@ -46,6 +46,7 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
     Summary,
     load_definition,
     load_result,
+    provenance_problems,
     summarize,
 )
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
@@ -186,14 +187,15 @@ def render_mutations(definition: Definition | None, result: Result | None,
         lines += [f"- {p}" for p in summary.problems]
     lines += ["", "| id | rule | mutation | outcome | caught by |", "|---|---|---|---|---|"]
     recorded = {o.id: o for o in result.mutations}
+    missed = set(summary.expected_catchers_missed)
     for m in definition.mutations:
         o = recorded.get(m.id)
         if o is None:
             outcome, by = "**not recorded**", "—"
         else:
             outcome = o.outcome
-            if o.expected_catchers_hit is False:
-                outcome += " (expected catchers missed)"
+            if m.id in missed:
+                outcome += " (a required catcher did not fail)"
             by = "<br>".join(f"`{c}`" for c in o.catchers) or (o.detail or "—")
         lines.append(f"| {m.id} | {m.rule or '—'} | {m.description} | {outcome} | {by} |")
     lines.append("")
@@ -205,8 +207,10 @@ def render_mutations(definition: Definition | None, result: Result | None,
 
 def fragments() -> tuple[dict[str, str], list[str]]:
     """name -> rendered content, plus the problems that make a fragment
-    non-evidence (a broken ledger, a campaign result that does not match its
-    definition, a run over a dirty tree)."""
+    non-evidence (a broken ledger; a campaign result that does not match its
+    definition, was taken on a dirty tree, missed a required catcher, or names
+    a commit this tree does not descend from). The provenance check is the
+    gate's, not the fragment's: it never changes the rendered text."""
     out: dict[str, str] = {}
     problems: list[str] = []
     try:
@@ -216,8 +220,9 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     definition, result, campaign_problems = _load_campaign()
     problems.extend(campaign_problems)
     summary = summarize(definition, result) if definition and result else None
-    if summary is not None:
+    if summary is not None and result is not None:
         problems.extend(f"mutation campaign: {p}" for p in summary.problems)
+        problems.extend(f"mutation campaign: {p}" for p in provenance_problems(result))
     out[MUTATIONS_MD] = render_mutations(definition, result, summary)
     return out, problems
 

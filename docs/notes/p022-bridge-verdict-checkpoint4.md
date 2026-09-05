@@ -189,9 +189,11 @@ is raw outcomes only — every catching test, the commit and the definition
 hash it ran on — replayable with `scripts/mutate_campaign.py --run` on a
 clean tree. The counts and the per-mutation table are rendered into
 [`docs/generated/p022-cp4-mutations.md`](../generated/p022-cp4-mutations.md)
-and checked by the suite; a result that no longer matches its definition is
-a red build, not a stale number. The round tallies above are history — the
-recorded run is the current claim.
+and checked by the suite; a result that no longer matches its definition,
+was taken on a dirty tree, misses a catcher the definition requires, or names
+a commit the tree under test does not descend from is a red build, not a
+stale number. The round tallies above are history — the recorded run is the
+current claim.
 
 Two catching layers exist where the analysis owns the rule (M07, M12, M13,
 M30) and one where only the bridge does — the same shape as cp1's ledger:

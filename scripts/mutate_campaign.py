@@ -34,6 +34,24 @@ over a red baseline has measured nothing.
 A campaign is not a steady-state gate: it runs by hand, on a clean tree, and
 the renderer shows its provenance beside its numbers.
 
+The clean-tree contract: `git status --porcelain` (tracked and untracked,
+ignored paths excluded) must be empty before the control run, and must be
+unchanged after the control run and after every mutation is restored — a
+test that writes into the tree, or another process touching it while the
+campaign runs, voids the run instead of decorating it. Do not run the Python
+suite or cargo in the same tree meanwhile: the runner rewrites source files.
+`--allow-dirty` is for a dev run only; its result is marked and the gate
+rejects it.
+
+Evidence, not report: the result records every catching test, and the gate
+(`scripts/render_checkpoint_status.py --check`) derives whether each caught
+mutation was caught by the tests the definition names — a mutation caught
+only by something else is a missed required catcher and voids the evidence.
+Provenance: the result names the commit it ran on; the gate accepts it only
+while that commit exists and is an ancestor of HEAD, so a result from a
+rebased or deleted branch is not evidence — re-run the campaign. Neither
+check depends on HEAD's content: a refactor after the run leaves it valid.
+
 Usage:
   python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --validate
   python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run
@@ -91,7 +109,6 @@ class Outcome:
     catchers: tuple[str, ...]
     elapsed_seconds: float
     detail: str = ""
-    expected_catchers_hit: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -204,16 +221,12 @@ def _outcome_from(obj: object, where: str) -> Outcome:
     elapsed = obj.get("elapsed_seconds", 0.0)
     if isinstance(elapsed, bool) or not isinstance(elapsed, (int, float)):
         raise CampaignError(f"{where}: 'elapsed_seconds' must be a number")
-    hit = obj.get("expected_catchers_hit")
-    if hit is not None and not isinstance(hit, bool):
-        raise CampaignError(f"{where}: 'expected_catchers_hit' must be a boolean when present")
     return Outcome(
         id=_str(obj, "id", where),
         outcome=outcome,
         catchers=tuple(str(c) for c in catchers),
         elapsed_seconds=float(elapsed),
         detail=str(obj.get("detail", "")),
-        expected_catchers_hit=hit,
     )
 
 
@@ -290,6 +303,10 @@ def summarize(definition: Definition, result: Result) -> Summary:
         else:
             s.runner_error += 1
     s.expected_catchers_missed = tuple(missed)
+    if missed:
+        problems.append("caught mutations missed a required catcher (the tests the "
+                        f"definition names did not all fail): {', '.join(missed)} — "
+                        "the evidence does not prove what it claims")
     s.problems = tuple(problems)
     return s
 
@@ -300,6 +317,52 @@ def summarize(definition: Definition, result: Result) -> Summary:
 def _git(*args: str) -> str:
     return subprocess.run(["git", *args], cwd=ROOT, check=True,
                           capture_output=True, text=True).stdout.strip()
+
+
+def _git_ok(*args: str) -> bool:
+    try:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True,
+                              text=True).returncode == 0
+    except OSError:
+        return False
+
+
+def tree_status() -> str:
+    """`git status --porcelain`: tracked and untracked changes, ignored paths
+    (the cargo target dir, __pycache__) excluded. Empty means clean."""
+    return _git("status", "--porcelain")
+
+
+def assert_tree_unchanged(baseline: str, when: str) -> None:
+    now = tree_status()
+    if now != baseline:
+        raise CampaignError(f"the working tree changed {when} — the run is void:\n"
+                            f"{now or '(clean)'}")
+
+
+def provenance_problems(result: Result) -> list[str]:
+    """The gate's view of a result's provenance against the tree the gate runs
+    in: the recorded commit must exist here and be an ancestor of HEAD. This
+    refuses a result that describes a history this tree does not contain (a
+    rebased or deleted branch, a typo) without making the evidence depend on
+    HEAD's content."""
+    if result.dirty:
+        return []  # already rejected by summarize()
+    sha = result.source_commit
+    if not _git_ok("rev-parse", "--git-dir"):
+        return [f"cannot verify the provenance of source commit {sha[:12]}: not a git "
+                f"checkout"]
+    if not _git_ok("cat-file", "-e", f"{sha}^{{commit}}"):
+        shallow = _git_ok("rev-parse", "--is-shallow-repository") and (
+            _git("rev-parse", "--is-shallow-repository") == "true")
+        hint = (" (this is a shallow clone: fetch the full history, e.g. actions/checkout "
+                "with fetch-depth: 0)" if shallow
+                else " — a rebased or deleted branch? re-run the campaign")
+        return [f"source commit {sha[:12]} does not exist in this repository{hint}"]
+    if not _git_ok("merge-base", "--is-ancestor", sha, "HEAD"):
+        return [f"source commit {sha[:12]} is not an ancestor of HEAD — the run describes "
+                f"a history this tree does not contain; re-run the campaign"]
+    return []
 
 
 def workspace_packages(workspace: str) -> list[str]:
@@ -395,11 +458,13 @@ def _classify(catchers: list[str], compile_error: bool, unparsed: list[str]) -> 
 
 
 def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
-    dirty = bool(_git("status", "--porcelain", "--untracked-files=no"))
+    baseline = tree_status()
+    dirty = bool(baseline)
     if dirty and not allow_dirty:
-        raise CampaignError("the tree has uncommitted changes to tracked files; a result must "
-                            "name the commit it describes (commit first, or --allow-dirty "
-                            "for a dev run whose result is NOT evidence)")
+        raise CampaignError("the working tree is not clean (tracked or untracked changes); a "
+                            "result must describe exactly the commit it names — commit or "
+                            "remove them first, or --allow-dirty for a dev run whose result "
+                            f"is NOT evidence:\n{baseline}")
     commit = _git("rev-parse", "HEAD")
     packages = workspace_packages(definition.workspace)
     targets = sorted({m.target for m in definition.mutations})
@@ -422,6 +487,7 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
     print(f"  -> {outcome} ({len(catchers)} failing test(s))", flush=True)
     if outcome != "survived":
         raise CampaignError(f"the unmutated tree did not pass ({outcome}): the run is void")
+    assert_tree_unchanged(baseline, "during the control run")
 
     outcomes: list[Outcome] = []
     try:
@@ -429,7 +495,7 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
             print(f"{m.id}: {m.description}", flush=True)
             mutated, problem = apply(m, pristine[m.target])
             if problem:
-                outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem, None))
+                outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem))
                 print(f"  -> invalid-mutation: {problem}", flush=True)
                 continue
             with open(os.path.join(ROOT, m.target), "w", encoding="utf-8") as f:
@@ -439,12 +505,15 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
                 catchers, ce, unparsed = run_tests(definition.workspace, packages)
             finally:
                 restore()
+            assert_tree_unchanged(baseline, f"during {m.id}")
             outcome, detail = _classify(catchers, ce, unparsed)
-            hit = set(m.expected_catchers) <= set(catchers) if outcome == "caught" else None
             outcomes.append(Outcome(m.id, outcome, tuple(sorted(catchers)),
-                                    round(time.monotonic() - t0, 1), detail, hit))
-            expected = "" if hit is None else (
-                ", expected catchers " + ("hit" if hit else "MISSED"))
+                                    round(time.monotonic() - t0, 1), detail))
+            # Display only — the gate derives this from the definition and the
+            # recorded catchers; it is not a fact of the run.
+            expected = "" if outcome != "caught" else (
+                ", expected catchers " + ("hit" if set(m.expected_catchers) <= set(catchers)
+                                          else "MISSED"))
             print(f"  -> {outcome} ({len(catchers)} test(s){expected})", flush=True)
             for c in sorted(catchers):
                 print(f"       {c}", flush=True)
@@ -471,8 +540,6 @@ def _outcome_json(o: Outcome) -> dict[str, object]:
         "id": o.id, "outcome": o.outcome, "catchers": list(o.catchers),
         "elapsed_seconds": round(o.elapsed_seconds, 1),
     }
-    if o.expected_catchers_hit is not None:
-        d["expected_catchers_hit"] = o.expected_catchers_hit
     if o.detail:
         d["detail"] = o.detail
     return d
