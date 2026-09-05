@@ -523,6 +523,7 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
         with open(os.path.join(ROOT, t), encoding="utf-8") as f:
             if f.read() != text:
                 raise CampaignError(f"{t} was not restored to its pristine content")
+    assert_tree_unchanged(baseline, "before recording the result")
     return Result(
         campaign=definition.campaign,
         definition_sha256=definition.sha256,
