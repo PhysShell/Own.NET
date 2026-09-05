@@ -125,5 +125,18 @@ flow lowering), reproducing every `rust_replay: true` golden byte-for-byte.
 With OD-2/#294 resolved (IR4-everywhere fail-loud), `tolerant_unknown_kind` is
 now one of those shared cases — its `Rejected` golden pins the identical error
 text on both sides — so no Python-only cases remain. The per-case coverage of
-the fixture family is listed in the #259 foundation PR; Layer 1 and Layer 3
-remain open.
+the fixture family is listed in the #259 foundation PR. Layer 1 landed in
+`own-ir` (#259 cp1). **Layer 3 is built** (#259 cp4): `ownlang/verdicts.py` +
+`tests/fixtures/verdicts/` + `tests/test_verdict_fixtures.py`, replayed by
+`rust/crates/own-bridge/tests/verdicts.rs` through `own_bridge::check_facts`
+— so every **L3** row above has a directly-pinned end-to-end surface. At cp4
+the replay compares each finding's identity, anchor, kind and tiering; the
+rows whose substance is message text or an evidence slice (the BR-V4
+wording matrix, the `flow`/`related` steps, the BR-V9 renderings) are
+carried by the goldens and compared at cp5. Two row families are outside
+the replayed set by declaration, recorded in the manifest's
+`rust_replay_excluded` ledger with an executable expectation: the
+protocol rows (§4 BR-P3 — the OBL analysis is not ported, and the bridge
+refuses a protocol-bearing document rather than return an incomplete list)
+and the tolerant-door coercions the typed Rust constructor cannot reach
+(OD-1).
