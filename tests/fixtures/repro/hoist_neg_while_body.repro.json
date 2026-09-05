@@ -1,0 +1,212 @@
+{
+  "repro_version": 1,
+  "input": {
+    "ownir_version": 0,
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "d2ae2309b105c985d6eeda13a2eb53b72bcd56fe895ac6919023ecdca72ea1e4",
+      "bytes": 195
+    },
+    "document": {
+      "ownir_version": 0,
+      "module": "HoistNeg2",
+      "functions": [
+        {
+          "name": "M",
+          "file": "F.cs",
+          "body": [
+            {
+              "op": "while",
+              "line": 2,
+              "body": [
+                {
+                  "op": "acquire",
+                  "var": "r",
+                  "line": 3
+                }
+              ]
+            },
+            {
+              "op": "release",
+              "var": "r",
+              "line": 5
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "HoistNeg2",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [
+              {
+                "name": "M",
+                "lifetime": null,
+                "params": [],
+                "ret": null,
+                "body": [
+                  {
+                    "stmt": "while",
+                    "cond": "?",
+                    "body": [
+                      {
+                        "stmt": "acquire",
+                        "handle": "loc_0",
+                        "resource": "Disposable",
+                        "line": 3
+                      }
+                    ],
+                    "line": 2
+                  },
+                  {
+                    "stmt": "release",
+                    "handle": "loc_0",
+                    "line": 5
+                  }
+                ]
+              }
+            ],
+            "handles": [
+              {
+                "handle": "loc_0",
+                "component": "M",
+                "file": "F.cs",
+                "line": 3,
+                "event": "r",
+                "resource": "flow-local",
+                "ever_released": true,
+                "pool": false
+              }
+            ]
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "status": "produced",
+          "document": {
+            "module": "HoistNeg2",
+            "ownir_version": 0,
+            "summaries": [
+              {
+                "method": "M",
+                "file": "F.cs",
+                "line": 0,
+                "source": "inferred",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                }
+              }
+            ],
+            "unresolved": [],
+            "degraded": null
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "status": "refused",
+          "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
+        }
+      ]
+    }
+  ]
+}

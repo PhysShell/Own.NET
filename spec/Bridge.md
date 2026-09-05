@@ -390,6 +390,24 @@ committed regeneration path and a zero-Python steady state:
   reason and an expectation the replay executes, so an exclusion cannot rot.
   The `summaries` dump (INF-R1) covers the MOS sub-surface.
 
+**Composing the three layers: the reproduction artifact.** The three layers
+above are each frozen on their own, and step 7a (#260/#269) needs them
+*together* — one input, one document carrying what every layer concluded about
+it. That composition is `ownlang/repro.py` + `rust/crates/own-shadow`
+(checkpoint 1, landed): a canonical form and hash naming the input, and an
+artifact carrying the input, its schema version, its hash, the engine
+identifiers and each engine's per-layer output. Two points belong to this
+spec rather than to that note. First, every layer in an artifact is projected
+through the **tolerant** door on one in-memory document — mixing doors across
+layers would mean the three entries no longer describe one capture. Second,
+the artifact **composes** these surfaces and never re-encodes them: a produced
+layer's document is carried verbatim, and a surface's own `{"error": …}`
+refusal is lifted into the envelope's status so a refused layer can still name
+the surface it refused on. The artifact compares layer outputs as JSON
+*values*; **rendered-byte** parity stays with each layer's own family above.
+Nothing there is shadow mode: comparing end diagnostics as an acceptance
+surface is #260's acceptance and is blocked on #259.
+
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the
 Rust side replays the same files (`rust/crates/own-*/tests/parity.rs`

@@ -1,0 +1,132 @@
+{
+  "comment": "The frozen ledger for shadow-mode infrastructure layer 0 (P-022 step 7a, #260/#269): the same-input capture and the reproduction artifact. Hand-maintained: adding or removing a case is a deliberate contract change, and the harness requires manifest == facts == goldens exactly. 'synthetic_cases' are the canonical-form controls the shared corpora have no reason to carry; 'domain_refusals' are documents BOTH engines must refuse at parse, each with the reason (an executable ledger: the day either engine starts accepting one, its suite goes red demanding a decision); 'artifacts' is the CURATED set whose full reproduction artifact is committed and replayed by the Rust own-shadow — the properties (determinism, byte-exact round-trip, self-verification, tamper refusal) run over every swept case, while the goldens pin the format on these. This is infrastructure FOR shadow mode: nothing here compares two engines' end diagnostics.",
+  "repro_version": 1,
+  "synthetic_cases": [
+    {
+      "name": "canonical_torture",
+      "pins": [
+        "the canonical string-escape rule: the five two-character escapes, other C0 controls as lowercase \\u00xx, and U+007F / U+00A0 / U+2028 / U+2029 / U+FEFF emitted RAW",
+        "the canonical number domain at its accepted edges: i64 min, i64 max and zero",
+        "code-point key ordering across the ASCII/non-ASCII boundary, including the empty key, an accented key and an astral key",
+        "non-ASCII and astral text surviving the capture with ensure_ascii disabled"
+      ]
+    },
+    {
+      "name": "canonical_key_order",
+      "pins": [
+        "the canonical form is defined over the PARSED document: a file whose keys are written out of order hashes identically to the same document written in order",
+        "the artifact's own rendering keeps DOCUMENT order (BR-D4: input order is semantic) while the hash sorts — two serializations, two jobs"
+      ]
+    },
+    {
+      "name": "canonical_minimal",
+      "pins": [
+        "the smallest capturable document: every layer still reports, and the artifact still verifies",
+        "the insertion-stability probe's stand-in document (P-022 discipline 4)"
+      ]
+    }
+  ],
+  "domain_refusals": [
+    {
+      "name": "domain_negative_zero",
+      "reason": "the literal -0: this reference reads it as the integer 0, serde_json as the float -0.0. Refused rather than reconciled — a canonical form that hashed it would assert 'both engines saw the same document' while the two engines held different values. Recorded as a finding in the checkpoint note.",
+      "python_error_contains": "the literal '-0' is outside the canonical domain",
+      "rust_error_contains": "canonical domain",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    },
+    {
+      "name": "domain_float",
+      "reason": "a fractional literal: the OwnIR vocabulary has no float, and cross-language byte-agreement over one is not provable",
+      "python_error_contains": "the float literal 1.5 is outside the canonical domain",
+      "rust_error_contains": "canonical domain",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    },
+    {
+      "name": "domain_exponent",
+      "reason": "an exponent literal: both parsers read it as a float, so it is refused on the float rule even though its value is integral",
+      "python_error_contains": "the float literal 1e3 is outside the canonical domain",
+      "rust_error_contains": "canonical domain",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    },
+    {
+      "name": "domain_int_above_i64",
+      "reason": "an integer above 2**63-1: this reference's integers are unbounded, serde_json without arbitrary_precision silently reads it as an f64. spec/OwnIR.md 4.2 already bounds every validated coordinate to signed 64 bits",
+      "python_error_contains": "the integer literal 9223372036854775808 is outside the canonical domain",
+      "rust_error_contains": "canonical domain",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    },
+    {
+      "name": "domain_int_below_i64",
+      "reason": "an integer below -2**63, for the same reason as the upper bound — the domain is closed at both ends, not just where a coordinate is likely",
+      "python_error_contains": "the integer literal -9223372036854775809 is outside the canonical domain",
+      "rust_error_contains": "canonical domain",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    },
+    {
+      "name": "domain_non_finite",
+      "reason": "NaN: this reference's JSON reader accepts it as an extension and serde_json rejects it as invalid JSON, so the two engines do not agree that the document parses at all",
+      "python_error_contains": "the non-finite literal NaN is outside the canonical domain",
+      "rust_error_contains": null,
+      "rust_refusal_note": "serde_json rejects NaN as a JSON syntax error, not as a domain violation, so no shared substring is required — the refusal itself is the contract",
+      "python_error_note": "the needle names the LITERAL-level refusal on purpose: the value-level backstop refuses the same documents, so a needle matching either would let the parse-boundary check be deleted with the suite still green (round-1 survivors M05/M06/M07)"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "canonical_torture",
+      "corpus": "repro",
+      "pins": [
+        "an artifact carrying raw U+007F / U+2028 / U+2029 / U+FEFF round-trips byte-for-byte through parse and serialize"
+      ]
+    },
+    {
+      "name": "canonical_key_order",
+      "corpus": "repro",
+      "pins": [
+        "the embedded document is rendered in document order while its digest is order-independent"
+      ]
+    },
+    {
+      "name": "canonical_minimal",
+      "corpus": "repro",
+      "pins": [
+        "the minimum artifact shape: three layer envelopes, all produced"
+      ]
+    },
+    {
+      "name": "di",
+      "corpus": "ownir",
+      "pins": [
+        "a real corpus document with all three layers produced and a non-empty verdict list"
+      ]
+    },
+    {
+      "name": "vocab_unknown_op",
+      "corpus": "lowered",
+      "pins": [
+        "a fail-loud lowering: the 'lowered' and 'verdicts' layers carry status 'refused' with the reference's OwnIRError text lifted into the envelope, while 'summaries' still reports"
+      ]
+    },
+    {
+      "name": "hoist_neg_while_body",
+      "corpus": "lowered",
+      "pins": [
+        "a layer-selective refusal: 'lowered' produces, 'verdicts' refuses (the BR-V3 map-or-raise class) — the shape a first-divergence reduction has to distinguish"
+      ]
+    },
+    {
+      "name": "mosdump_degraded_duplicate_key",
+      "corpus": "summaries",
+      "pins": [
+        "the MOS 'degraded' branch is carried as a PRODUCED layer, not a refusal (INF-F6: a failed solve is a document, not an error)"
+      ]
+    },
+    {
+      "name": "protocol_isloaded_violation",
+      "corpus": "ownir",
+      "pins": [
+        "a document the Rust bridge refuses by a declared #259 boundary (the obligation-protocol analysis is not ported) but the reference captures in full — the artifact records one engine's capture and takes no side on the other's"
+      ]
+    }
+  ]
+}

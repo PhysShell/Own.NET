@@ -1,0 +1,277 @@
+{
+  "repro_version": 1,
+  "input": {
+    "ownir_version": 0,
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "92f052ccef71d87b1b80ff9e9bcd9c74ec9db30b7ad34c883af0096a83088fdd",
+      "bytes": 376
+    },
+    "document": {
+      "ownir_version": 0,
+      "module": "Degraded",
+      "functions": [
+        {
+          "name": "Take",
+          "sig": "System.IO.Stream",
+          "file": "t1.cs",
+          "params": [
+            {
+              "name": "p",
+              "line": 1
+            }
+          ],
+          "body": [
+            {
+              "op": "release",
+              "var": "p",
+              "line": 2
+            }
+          ]
+        },
+        {
+          "name": "Take",
+          "sig": "System.String",
+          "file": "t2.cs",
+          "params": [
+            {
+              "name": "p",
+              "line": 5
+            }
+          ],
+          "body": [
+            {
+              "op": "use",
+              "var": "p",
+              "line": 6
+            }
+          ]
+        },
+        {
+          "name": "Take(System.IO.Stream)",
+          "file": "clash.cs",
+          "body": []
+        }
+      ]
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Degraded",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [
+              {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "parg_0",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": false,
+                      "mutable": false
+                    },
+                    "line": 1,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null,
+                "body": [
+                  {
+                    "stmt": "release",
+                    "handle": "parg_0",
+                    "line": 2
+                  }
+                ]
+              },
+              {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "parg_1",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": true,
+                      "mutable": false
+                    },
+                    "line": 5,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null,
+                "body": [
+                  {
+                    "stmt": "use",
+                    "handle": "parg_1",
+                    "line": 6
+                  }
+                ]
+              },
+              {
+                "name": "Take(System.IO.Stream)",
+                "lifetime": null,
+                "params": [],
+                "ret": null,
+                "body": []
+              }
+            ],
+            "handles": [
+              {
+                "handle": "parg_0",
+                "component": "Take",
+                "file": "t1.cs",
+                "line": 1,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": true
+              },
+              {
+                "handle": "parg_1",
+                "component": "Take",
+                "file": "t2.cs",
+                "line": 5,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": false
+              }
+            ]
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "status": "produced",
+          "document": {
+            "module": "Degraded",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": [],
+            "degraded": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)"
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "?",
+                "line": 0,
+                "code": "OWN052",
+                "component": "Degraded",
+                "event": "",
+                "handler": "",
+                "message": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run",
+                "kind": "method summaries",
+                "advisory": true,
+                "severity": null,
+                "related": [],
+                "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

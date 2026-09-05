@@ -1,0 +1,228 @@
+{
+  "repro_version": 1,
+  "input": {
+    "ownir_version": 0,
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
+      "bytes": 283
+    },
+    "document": {
+      "module": "KeyOrder",
+      "components": [
+        {
+          "subscriptions": [
+            {
+              "released": false,
+              "resource": "subscribe",
+              "line": 3,
+              "event": "b.Zeta",
+              "handler": "OnZeta"
+            },
+            {
+              "event": "a.Alpha",
+              "line": 4,
+              "resource": "subscribe",
+              "released": true,
+              "handler": "OnAlpha"
+            }
+          ],
+          "file": "KeyOrder.cs",
+          "name": "Zed"
+        }
+      ],
+      "ownir_version": 0
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "KeyOrder",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [
+              {
+                "name": "Zed",
+                "lifetime": null,
+                "params": [],
+                "ret": null,
+                "body": [
+                  {
+                    "stmt": "acquire",
+                    "handle": "sub_0",
+                    "resource": "Subscription",
+                    "line": 3
+                  },
+                  {
+                    "stmt": "acquire",
+                    "handle": "sub_1",
+                    "resource": "Subscription",
+                    "line": 4
+                  },
+                  {
+                    "stmt": "release",
+                    "handle": "sub_1",
+                    "line": 4
+                  }
+                ]
+              }
+            ],
+            "handles": [
+              {
+                "handle": "sub_0",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "resource": "subscribe",
+                "released": false
+              },
+              {
+                "handle": "sub_1",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 4,
+                "event": "a.Alpha",
+                "handler": "OnAlpha",
+                "resource": "subscribe",
+                "released": true
+              }
+            ]
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "status": "produced",
+          "document": {
+            "module": "KeyOrder",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": [],
+            "degraded": null
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "code": "OWN001",
+                "component": "Zed",
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "message": "the result of 'b.Zeta' is ignored — the IDisposable subscription is never disposed, leaking 'Zed' (leak)",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

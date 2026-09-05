@@ -1,0 +1,14 @@
+{
+  "module": "KeyOrder",
+  "components": [
+    {
+      "subscriptions": [
+        {"released": false, "resource": "subscribe", "line": 3, "event": "b.Zeta", "handler": "OnZeta"},
+        {"event": "a.Alpha", "line": 4, "resource": "subscribe", "released": true, "handler": "OnAlpha"}
+      ],
+      "file": "KeyOrder.cs",
+      "name": "Zed"
+    }
+  ],
+  "ownir_version": 0
+}
