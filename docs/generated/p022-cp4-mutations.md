@@ -8,7 +8,7 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `6f858c6bf6a24cc0…
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `4d800872554b3a2f641dea1afedc6c5a1d2213db` |
+| recorded at commit                                         | `a529193e3acaeab435c435aff8606707cee1dad2` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-syntax` |
 | mutations                                                  | 30 |
 | caught                                                     | 30 |
