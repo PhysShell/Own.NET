@@ -1,0 +1,344 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 4 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run (on a clean tree). The recorded run lives beside this file as p022-cp4-mutations.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp4",
+  "description": "#259 cp4 analysis wiring: the BR-V1..V8 verdict mapping in own-bridge (skip list, map-or-raise subject, anchors, tiering, dedup key member by member, stable sort), the BR-D2/L8/M1 side paths, the two declared boundaries (protocol refusal, u32 coordinate refusal) and the own-analysis subject stamping the mapping rests on.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "BR-V2",
+      "description": "BR-V2 skip list: OWN033 no longer skipped (maps or raises)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\[\"OWN033\", \"OWN034\", \"OWN035\", \"OWN040\", \"OWN041\"\\]",
+      "replacement": "[\"OWN032\", \"OWN034\", \"OWN035\", \"OWN040\", \"OWN041\"]",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "BR-V5",
+      "description": "BR-V5 flow-local anchor at the core's line instead of the acquire record",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "Finding::new\\(\\s*file,\\s*anchor,\\s*&d\\.code,(\\s*if pool)",
+      "replacement": "Finding::new(file, i64::from(d.line), &d.code,\\1",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "BR-V5",
+      "description": "BR-V5 OWN025 anchored at the acquire instead of the view site",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "Finding::new\\(file, i64::from\\(d\\.line\\), \"OWN025\", \"pooled buffer\"\\)",
+      "replacement": "Finding::new(file, anchor, \"OWN025\", \"pooled buffer\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops column",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.column,(\\n\\s+f\\.code\\.clone\\(\\),)",
+      "replacement": "\\1None,\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "BR-V8",
+      "description": "BR-V8 sort key drops column",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\.then_with\\(\\|\\| a\\.column\\.unwrap_or\\(0\\)\\.cmp\\(&b\\.column\\.unwrap_or\\(0\\)\\)\\)",
+      "replacement": ".then_with(|| 0_i64.cmp(&0_i64))",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops event",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.event\\.clone\\(\\),(\\n\\s+f\\.handler\\.clone\\(\\),)",
+      "replacement": "\\1String::new(),\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M07",
+      "description": "DI004/DI005 duplicate site: last-wins becomes first-wins (own-analysis)",
+      "target": "rust/crates/own-analysis/src/di.rs",
+      "pattern": "sites\\.iter\\(\\)\\.rev\\(\\)\\.find\\(\\|\\(ty, _, _\\)\\| ty == entry\\)",
+      "replacement": "sites.iter().find(|(ty, _, _)| ty == entry)",
+      "expected_catchers": [
+        "own-analysis/tests/fact_parity.rs::di_fact_parity",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "BR-V6",
+      "description": "BR-V6 DI001 graded warning like DI002-005",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if c\\.code != \"DI001\" \\{",
+      "replacement": "if c.code != \"DI999\" {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "BR-D2",
+      "description": "BR-D2 effect deps coerced instead of skipped (raw-document path)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "Some\\(_\\) => continue,\\n(\\s+)\\};\\n(\\s+)let io = match",
+      "replacement": "Some(v) => vec![py_str(v)],\\n\\1};\\n\\2let io = match",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::malformed_effect_entries_are_skipped_not_coerced"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "BR-L8",
+      "description": "BR-L8 OWN051 owned-local gate dropped",
+      "target": "rust/crates/own-bridge/src/lower.rs",
+      "pattern": "if !owned_here\\.contains\\(arg\\) \\{",
+      "replacement": "if false && !owned_here.contains(arg) {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "BR-M1",
+      "description": "BR-M1 OWN052 note never minted",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "for _reason in &lowering\\.mos_notes \\{",
+      "replacement": "for _reason in lowering.mos_notes.iter().skip(usize::MAX) {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "BR-V3",
+      "description": "BR-V3 OWN001 leak emitted without a subject (own-analysis)",
+      "target": "rust/crates/own-analysis/src/ownership.rs",
+      "pattern": "emit\\.push_at\\(\"OWN001\", at_line, Some\\(SymId\\(rid\\)\\)\\);",
+      "replacement": "emit.push_at(\"OWN001\", at_line, None);",
+      "expected_catchers": [
+        "own-analysis/tests/subject.rs::leak_carries_the_acquire_origin",
+        "own-analysis/tests/subject.rs::origin_is_inherited_across_a_move",
+        "own-analysis/tests/subject.rs::param_leak_carries_the_param_origin",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "BR-V3",
+      "description": "BR-V3 OWN014 emitted without a subject (own-analysis)",
+      "target": "rust/crates/own-analysis/src/lifetime.rs",
+      "pattern": "Ok\\(d\\) => diags\\.push\\(d\\.with_subject\\(format!\\(\"\\{\\}#\\{\\}\", sub\\.source, sub\\.line\\)\\)\\),",
+      "replacement": "Ok(d) => diags.push(d),",
+      "expected_catchers": [
+        "own-analysis/tests/subject.rs::region_escape_carries_the_source_identity",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M14",
+      "description": "protocol boundary: a protocol-bearing document is no longer refused",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "Some\\(Value::Array\\(items\\)\\) if !items\\.is_empty\\(\\) => Err\\(",
+      "replacement": "Some(Value::Array(items)) if items.is_empty() => Err(",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M15",
+      "description": "coordinate boundary: core_line clamps instead of refusing",
+      "target": "rust/crates/own-bridge/src/ast.rs",
+      "pattern": "u32::try_from\\(line\\)\\.map_err\\(",
+      "replacement": "u32::try_from(line.clamp(0, i64::from(u32::MAX))).map_err(",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "BR-V6",
+      "description": "BR-V6 source tiering inverted (static warns, injected does not)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "_ if injected => Some\\(\"warning\"\\.to_owned\\(\\)\\),",
+      "replacement": "_ if !injected => Some(\"warning\".to_owned()),",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "BR-V6",
+      "description": "BR-V6 an empty ignore_reason suppresses",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\.filter\\(\\|v\\| truthy\\(Some\\(v\\)\\)\\)",
+      "replacement": ".filter(|v| !v.is_null())",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup removed",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "findings\\.retain\\(\\|f\\| seen\\.insert\\(dedup_key\\(f\\)\\)\\);",
+      "replacement": "findings.retain(|f| { let _ = seen.insert(dedup_key(f)); true });",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "BR-V1",
+      "description": "BR-V1 ERROR-only half of the mapping predicate removed",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "d\\.severity == Severity::Error && !SKIP",
+      "replacement": "true && !SKIP",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped"
+      ]
+    },
+    {
+      "id": "M20",
+      "description": "_as_col accepts 0 as a coordinate",
+      "target": "rust/crates/own-bridge/src/lower.rs",
+      "pattern": "v\\.and_then\\(Value::as_i64\\)\\.filter\\(\\|c\\| \\*c >= 1\\)",
+      "replacement": "v.and_then(Value::as_i64).filter(|c| *c >= 0)",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M21",
+      "description": "guarded DI site line: a negative site line becomes 1 instead of 0",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if line < 0 \\{\\n(\\s+)Ok\\(0\\)",
+      "replacement": "if line < 0 {\\n\\1Ok(1)",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M22",
+      "description": "OWN050 advisory never minted",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "!= Some\\(\"unresolved-subscription\"\\) \\{",
+      "replacement": "!= Some(\"unresolved-subscription-x\") {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "BR-V3",
+      "description": "BR-V3 handle recovered from the wrong subject separator",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\.map\\(\\|s\\| s\\.split\\('#'\\)\\.next\\(\\)\\.unwrap_or\\(s\\)\\)",
+      "replacement": ".map(|s| s.split('@').next().unwrap_or(s))",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M24",
+      "description": "OWN051 line taken from the callee record instead of the call",
+      "target": "rust/crates/own-bridge/src/lower.rs",
+      "pattern": "line: \\*cline,",
+      "replacement": "line: 0,",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops handler",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.handler\\.clone\\(\\),(\\n\\s+f\\.kind\\.clone\\(\\),)",
+      "replacement": "\\1String::new(),\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops component",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.component\\.clone\\(\\),(\\n\\s+f\\.event\\.clone\\(\\),)",
+      "replacement": "\\1String::new(),\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M27",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops kind",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.kind\\.clone\\(\\),(\\n\\s+f\\.advisory,)",
+      "replacement": "\\1String::new(),\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M28",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops severity",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.severity\\.clone\\(\\),(\\n\\s+f\\.ignore_reason\\.clone\\(\\),)",
+      "replacement": "\\1None,\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M29",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops ignore_reason",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "f\\.ignore_reason\\.clone\\(\\),(\\n\\s+\\)\\n\\})",
+      "replacement": "None,\\1",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M30",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI/effect finding line taken from the registration instead of the finder's anchor",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "Finding::new\\(c\\.file, i64::from\\(c\\.line\\), c\\.code, \"DI lifetime\"\\)",
+      "replacement": "Finding::new(c.file, 0, c.code, \"DI lifetime\")",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::di_coercions_match_the_reference",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    }
+  ]
+}

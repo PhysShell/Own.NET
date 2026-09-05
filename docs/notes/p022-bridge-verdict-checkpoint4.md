@@ -52,12 +52,18 @@
 
 ## Census
 
-| | |
-|---|---|
-| goldens (Python's truth, complete) | **77** — 22 `ownir` + 27 `lowered` + 9 `summaries` swept, **19** synthetic |
-| replayed by Rust at the cp4 surface | **69** — 5 refusals, **127** findings |
-| declared exclusions (executable) | **8** — 2 protocol documents, 4 coordinate-boundary controls, 2 OD-1 door controls |
-| Python-only / Rust-only / Changed / Ordering-only / Unexplained, over the replayed set | **0 / 0 / 0 / 0 / 0** |
+The measured census is generated, never typed:
+[`docs/generated/p022-cp4-census.md`](../generated/p022-cp4-census.md) —
+goldens by origin, the reference's refusals and findings, the exclusions
+grouped by the ledger's executable expectation, and the replayed set with its
+refusals and findings — rendered by `scripts/render_checkpoint_status.py`
+from `tests/verdict_census.py` (the one interpretation of the manifest the
+fixture harness shares) and held in sync by `tests/test_checkpoint_status.py`
+inside the suite: evidence that changes without a regenerated fragment is a
+red build. The differential counts over the replayed set are asserted by the
+Rust replay (every divergence collected, any one fails the build), so a
+green replay reads 0 / 0 / 0 / 0 / 0 by construction. What the replay
+compares is stated here because it is a declared surface, not a measurement.
 
 The **compared members** at cp4: `file, line, column, code, component, event,
 handler, kind, advisory, severity, ignore_reason`. Not compared yet:
@@ -71,7 +77,7 @@ expectation the replay executes (`rust_refusal: bridge` + an error substring,
 or `door`); the set is also pinned by name, and an exclusion that stops
 holding is a red build demanding promotion.
 
-1. **Obligation protocols (2).** `ownlang/obligations.py` has no
+1. **Obligation protocols.** `ownlang/obligations.py` has no
    `own-analysis` port. A document that declares a protocol is **refused**
    by `check_facts`, never given a verdict list with a family missing —
    `protocol_isloaded_clean` would otherwise have "matched" vacuously.
@@ -81,7 +87,7 @@ holding is a red build demanding promotion.
    cp5 is messages, evidence and rendering, and a whole analysis family on
    top would make the last checkpoint a bag. 4b does not block cp5; #259's
    final acceptance needs it.
-2. **The `u32` coordinate domain (4).** The core's line is a `u32`; the
+2. **The `u32` coordinate domain.** The core's line is a `u32`; the
    strict door admits every signed 64-bit coordinate (`spec/OwnIR.md` §4.2)
    and the tolerant door anything `_as_int` passes. A coordinate outside
    `0..=u32::MAX` on a lowered node, a DI registration line or an effect line
@@ -98,7 +104,7 @@ holding is a red build demanding promotion.
    teach the reference to reject it, then remove the exclusion; as its own
    contract change with parity evidence, never by declaring the reference
    wrong because the port is `u32`.
-3. **OD-1, measured (2).** The Rust tolerant entry is the typed `OwnIr`
+3. **OD-1, measured.** The Rust tolerant entry is the typed `OwnIr`
    constructor, so BR-D2's skip-not-coerce (`deps: "a"`) and the finders'
    unknown-lifetime tolerance are unreachable through it: the reference
    reports the sibling finding, the constructor refuses the document. The
@@ -164,48 +170,28 @@ all fixed before round 2:
   lines are on stderr, test results on stdout, and capturing them
   separately loses the interleaving. Fixed by merging the streams.
 
-**Round 2: 30 mutations, 29 caught, 1 declared survivor — closed on review
-(round 3): 30/30.** M19 survived because BR-V1's ERROR-only rule guards a
+**Round 2 caught every mutation but one; the survivor, M19, was closed on
+review in round 3.** M19 survived because BR-V1's ERROR-only rule guards a
 state the corpus cannot produce (no facts producer reaches the one core
 pass that grades below ERROR). Leaving a normative rule permanently
 unprovable was the wrong resting place: the filter is now a pure predicate
 (`is_mapped`, BR-V1 + BR-V2 in one place) and a synthetic WARNING is driven
 through `map_core` itself — same diagnostic, same handle, ERROR → one
 finding, WARNING → none — so the mutation is caught at the unit level, with
-the corpus still unable to reach it (recorded as such below).
+the corpus still unable to reach it (recorded as such in the campaign
+definition's expected catchers).
 
-| id | mutation | caught by |
-|---|---|---|
-| M01 | BR-V2 skip list: OWN033 no longer skipped | verdict replay |
-| M02 | BR-V5 flow-local anchored at the core's line, not the acquire record | verdict replay |
-| M03 | BR-V5 OWN025 anchored at the acquire, not the view site | verdict replay |
-| M04 | BR-V7 dedup key drops `column` | verdict replay |
-| M05 | BR-V8 sort key drops `column` | verdict replay |
-| M06 | BR-V7 dedup key drops `event` | verdict replay |
-| M07 | DI004/DI005 duplicate site: last-wins → first-wins (`own-analysis`) | `fact_parity::di_fact_parity` **and** verdict replay |
-| M08 | BR-V6 DI001 graded `warning` | verdict replay |
-| M09 | BR-D2 effect `deps` coerced instead of skipped | `verdict::tests::malformed_effect_entries_are_skipped_not_coerced` (raw-document level — the only reachable one, see OD-1) |
-| M10 | BR-L8 OWN051 owned-local gate dropped | verdict replay |
-| M11 | BR-M1 OWN052 never minted | verdict replay |
-| M12 | BR-V3 OWN001 emitted without a subject (`own-analysis`) | `subject.rs` ×3 **and** verdict replay |
-| M13 | BR-V3 OWN014 emitted without a subject (`own-analysis`) | `subject.rs` **and** verdict replay |
-| M14 | protocol documents no longer refused | verdict replay (the executable exclusion ledger) |
-| M15 | `core_line` clamps instead of refusing | verdict replay (the executable exclusion ledger) |
-| M16 | BR-V6 source tiering inverted | verdict replay |
-| M17 | BR-V6 an empty `ignore_reason` suppresses | verdict replay |
-| M18 | BR-V7 dedup removed | verdict replay |
-| M19 | BR-V1 ERROR-only half of the mapping predicate removed | `verdict::tests::only_error_severity_core_verdicts_are_mapped` (synthetic WARNING through `map_core`; the corpus cannot reach it — no facts producer feeds a sub-error core verdict today) |
-| M20 | `_as_col` accepts `0` | verdict replay |
-| M21 | a negative DI site line folds to `1`, not `0` | verdict replay |
-| M22 | OWN050 never minted | verdict replay |
-| M23 | BR-V3 handle read from the wrong subject separator | verdict replay |
-| M24 | OWN051 anchored at `0`, not the call line | verdict replay |
-| M25 | BR-V7 dedup key drops `handler` | verdict replay |
-| M26 | BR-V7 dedup key drops `component` | verdict replay |
-| M27 | BR-V7 dedup key drops `kind` | verdict replay |
-| M28 | BR-V7 dedup key drops `severity` | verdict replay |
-| M29 | BR-V7 dedup key drops `ignore_reason` | verdict replay |
-| M30 | DI findings anchored at `0`, not the finder's anchor | `verdict::tests::di_coercions_match_the_reference` **and** verdict replay |
+The campaign is committed as evidence, not prose. The **definition**
+`docs/evidence/p022-cp4-mutations.json` carries every mutation's target,
+pattern, replacement, rule and expected catchers, with `M00` as the honesty
+control; the **recorded run** `docs/evidence/p022-cp4-mutations.result.json`
+is raw outcomes only — every catching test, the commit and the definition
+hash it ran on — replayable with `scripts/mutate_campaign.py --run` on a
+clean tree. The counts and the per-mutation table are rendered into
+[`docs/generated/p022-cp4-mutations.md`](../generated/p022-cp4-mutations.md)
+and checked by the suite; a result that no longer matches its definition is
+a red build, not a stale number. The round tallies above are history — the
+recorded run is the current claim.
 
 Two catching layers exist where the analysis owns the rule (M07, M12, M13,
 M30) and one where only the bridge does — the same shape as cp1's ledger:
@@ -235,9 +221,10 @@ one move this family exists to make impossible:
 | rendered diagnostic (`render*`) | deferred | prove |
 | SARIF projection (`build_sarif`, bridge path) | deferred | prove |
 
-And the wording discipline that comes with it: what cp4 proved is
-"127 verdicts × the cp4 comparison projection", never "verdict parity
-complete" — the shortcut a roadmap status is made of.
+And the wording discipline that comes with it: what cp4 proved is "the
+replayed findings × the cp4 comparison projection" (the count is the
+generated census's, never a sentence's), never "verdict parity complete" —
+the shortcut a roadmap status is made of.
 
 Concretely:
 
