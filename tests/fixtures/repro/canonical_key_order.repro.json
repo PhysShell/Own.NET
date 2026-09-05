@@ -195,11 +195,11 @@
           },
           "status": "produced",
           "document": {
+            "degraded": null,
             "module": "KeyOrder",
             "ownir_version": 0,
             "summaries": [],
-            "unresolved": [],
-            "degraded": null
+            "unresolved": []
           }
         },
         {

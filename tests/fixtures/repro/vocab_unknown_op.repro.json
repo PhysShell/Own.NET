@@ -45,22 +45,22 @@
           },
           "status": "produced",
           "document": {
+            "degraded": null,
             "module": "Vocab",
             "ownir_version": 0,
             "summaries": [
               {
-                "method": "M",
                 "file": "F.cs",
                 "line": 0,
-                "source": "inferred",
+                "method": "M",
                 "params": [],
                 "returns": {
                   "owned": "none"
-                }
+                },
+                "source": "inferred"
               }
             ],
-            "unresolved": [],
-            "degraded": null
+            "unresolved": []
           }
         },
         {

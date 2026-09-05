@@ -44,7 +44,8 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 # directory nobody gates.
 _DATA = ("p022-shadow-infra-checkpoint1-data",
          "p022-shadow-infra-checkpoint2-data",
-         "p022-shadow-infra-checkpoint3-data")
+         "p022-shadow-infra-checkpoint3-data",
+         "p022-shadow-infra-checkpoint4-data")
 CAMPAIGNS = tuple(os.path.join(ROOT, "docs", "notes", d, "mutations.json")
                   for d in _DATA)
 RESULTS = tuple(os.path.join(ROOT, "docs", "notes", d, "campaign.json")

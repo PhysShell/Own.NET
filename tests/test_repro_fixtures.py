@@ -65,6 +65,7 @@ from ownlang.repro import (
     CANONICAL_ALGORITHM,
     ENGINE_PYTHON,
     LAYER_ORDER_SEMANTICS,
+    REDUCTION_SCOPE,
     REPRO_VERSION,
     ReproError,
     canonical_hash,
@@ -72,6 +73,8 @@ from ownlang.repro import (
     normalize_handles,
     project_repro,
     project_traces,
+    reduce_traces,
+    render_reduction,
     render_repro,
     render_traces,
     stable_handle_ids,
@@ -565,6 +568,182 @@ def _trace_shape_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
     return fails
 
 
+def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
+    """The reducer, proven on a SYNTHETIC divergence and on its silence.
+
+    The shape the checkpoint owes: take a real Layer 2 output, introduce **one**
+    controlled change into a copy, and show the reducer names the layer, the
+    step and the minimal difference — and that it says nothing on the unchanged
+    data. A reducer that has never reported is a reducer nobody has seen work;
+    a reducer that reports on unchanged data is worse than none."""
+    fails: list[tuple[str, str]] = []
+    # `canonical_key_order` is the control case because its lowered layer
+    # carries real flow statements with `line` fields — `di` is DI-only and has
+    # no line-bearing step, which is how the changed-field control below first
+    # ended up adding a key instead of changing one.
+    case = next((c for c in artifact_names if c == "canonical_key_order"), None)
+    if case is None:
+        return [("reduction-control",
+                 "the control case 'canonical_key_order' is not a committed "
+                 "artifact; pick another with line-bearing lowered steps")]
+    with open(os.path.join(FIXDIR, f"{case}.repro.json"), encoding="utf-8") as f:
+        artifact = json.load(f)
+    base = project_traces(artifact, case)
+
+    # 0. Silence on unchanged data.
+    quiet = reduce_traces(base)
+    if quiet["outcome"] != "identical" or quiet["first"] is not None:
+        fails.append(("reduction-control",
+                      f"{case}: the reducer reports a divergence on unchanged "
+                      f"data: {quiet['first']}"))
+
+    def lowered_of(doc: dict[str, Any], side: int) -> dict[str, Any]:
+        for layer in doc["traces"][side]["layers"]:
+            if layer["layer"] == "lowered":
+                return layer
+        raise AssertionError("no lowered layer")
+
+    def expect(label: str, kind: str, mutate: Any,
+               step: str | None = None, path: str | None = None) -> None:
+        forged = copy.deepcopy(base)
+        mutate(lowered_of(forged, 1))
+        result = reduce_traces(forged)
+        first = result["first"]
+        if result["outcome"] != "diverged" or first is None:
+            fails.append(("reduction-control",
+                          f"{case}: the reducer is SILENT on {label}"))
+            return
+        if first["kind"] != kind:
+            fails.append(("reduction-control",
+                          f"{case}: {label} classified {first['kind']!r}, "
+                          f"expected {kind!r}"))
+        if first["layer"] != "lowered":
+            fails.append(("reduction-control",
+                          f"{case}: {label} named layer {first['layer']!r}, "
+                          f"expected 'lowered'"))
+        if step is not None and first["step"] != step:
+            fails.append(("reduction-control",
+                          f"{case}: {label} named step {first['step']!r}, "
+                          f"expected {step!r}"))
+        if path is not None and first["path"] != path:
+            fails.append(("reduction-control",
+                          f"{case}: {label} named path {first['path']!r}, "
+                          f"expected {path!r} — the difference must be MINIMAL, "
+                          f"not the whole step"))
+
+    # The control changes an EXISTING field. Picking the last step blindly once
+    # picked `externs[$borrow_mut]`, which carries no `line` — so the "change"
+    # added a key instead, the reference passed on the wrong thing and the port
+    # (which replaced in place) saw a no-op and stayed silent. The two halves
+    # disagreeing is what surfaced it.
+    _steps = lowered_of(base, 1)["steps"]
+    _changeable = next((s for s in _steps
+                        if isinstance(s["value"], dict) and "line" in s["value"]), None)
+    if _changeable is None:
+        return [("reduction-control",
+                 f"{case}: no lowered step carries a `line` to change, so the "
+                 f"changed-field control cannot run")]
+    target = _changeable["id"]
+    dropped_target = _steps[-1]["id"]
+
+    def change_one_field(layer: dict[str, Any]) -> None:
+        # ONE controlled change to an existing field, deep inside a step's
+        # value: the reducer must name the field, not the step body.
+        for step in layer["steps"]:
+            if step["id"] == target:
+                step["value"]["line"] = 999_001
+                return
+
+    def drop_a_step(layer: dict[str, Any]) -> None:
+        layer["steps"] = layer["steps"][:-1]
+
+    def add_a_step(layer: dict[str, Any]) -> None:
+        layer["steps"].append({"id": "handles[synthetic|X.cs|1|E|H]", "value": {}})
+
+    def swap_two_steps(layer: dict[str, Any]) -> None:
+        steps = layer["steps"]
+        steps[0], steps[1] = steps[1], steps[0]
+
+    expect("one changed field", "changed", change_one_field, target, ".line")
+    expect("a step only the reference has", "left-only", drop_a_step,
+           dropped_target)
+    expect("a step only the port has", "right-only", add_a_step,
+           "handles[synthetic|X.cs|1|E|H]")
+    expect("the same steps in a different order", "ordering-only", swap_two_steps)
+
+    # 5. Two engines that BOTH refused a layer agree, however differently they
+    #    phrased it and however their projections were declared. Neither is
+    #    reachable from the committed corpus (both refusals there carry the same
+    #    projection), so the rule is driven synthetically at the only level that
+    #    reaches it — otherwise the short-circuit that states it is code no
+    #    mutation can disturb.
+    both_refused = copy.deepcopy(base)
+    for side, (err, proj) in enumerate((
+            ("the reference's own wording", {"kind": "full"}),
+            ("the port's own wording", {"kind": "partial", "members": ["x"],
+                                        "reason": "declared elsewhere"}))):
+        layer = lowered_of(both_refused, side)
+        layer["status"] = "refused"
+        layer["error"] = err
+        layer["projection"] = proj
+        layer["steps"] = []
+    quiet_refusal = reduce_traces(both_refused)
+    if quiet_refusal["outcome"] != "identical":
+        fails.append(("reduction-control",
+                      f"{case}: two engines that both REFUSED a layer are "
+                      f"reported as diverging ({quiet_refusal['first']}) — a "
+                      f"refusal's text and projection are each engine's own, and "
+                      f"comparing them manufactures a divergence out of message "
+                      f"vocabulary"))
+
+    # 6. Object key ORDER is a difference. Nothing in the corpus exercises it
+    #    any more (the MOS capture was fixed to carry its surface's own order),
+    #    so it needs a synthetic control or the rule is untested.
+    reordered = copy.deepcopy(base)
+    layer = lowered_of(reordered, 1)
+    victim = next((s for s in layer["steps"]
+                   if isinstance(s["value"], dict) and len(s["value"]) > 1), None)
+    if victim is None:
+        fails.append(("reduction-control",
+                      f"{case}: no lowered step has two fields to reorder"))
+    else:
+        victim["value"] = dict(reversed(list(victim["value"].items())))
+        result = reduce_traces(reordered)
+        first = result["first"] or {}
+        if result["outcome"] != "diverged" or first.get("kind") != "changed":
+            fails.append(("reduction-control",
+                          f"{case}: the same fields in a different key ORDER are "
+                          f"reported as agreement; the surfaces fix their field "
+                          f"order byte-exactly, so a port emitting them in the "
+                          f"wrong order is a real defect"))
+        elif first.get("path") != "[keys]":
+            fails.append(("reduction-control",
+                          f"{case}: a key-order difference reported path "
+                          f"{first.get('path')!r}, expected '[keys]' — the reader "
+                          f"should not have to diff two identical-looking objects"))
+
+    # The verdict layer is REFUSED, not skipped — "not compared" must never be
+    # readable as "compared and agreed".
+    if "verdicts" in REDUCTION_SCOPE:
+        fails.append(("reduction-control",
+                      "the reduction scope now includes 'verdicts' — comparing "
+                      "final diagnostics is #260's acceptance and is blocked by "
+                      "#259; widening the scope is a contract decision"))
+    refused = [o["layer"] for o in quiet["out_of_scope"]]
+    if "verdicts" not in refused:
+        fails.append(("reduction-control",
+                      "the reduction does not RECORD that it refused the "
+                      "verdict layer; a reader could take silence for agreement"))
+    return fails
+
+
+def _reduction_goldens() -> set[str]:
+    if not os.path.isdir(FIXDIR):
+        return set()
+    return {n[: -len(".reduction.json")] for n in os.listdir(FIXDIR)
+            if n.endswith(".reduction.json")}
+
+
 def _trace_goldens() -> set[str]:
     if not os.path.isdir(FIXDIR):
         return set()
@@ -795,6 +974,34 @@ def run() -> int:
     fails += _trace_controls(plan)
     fails += _trace_shape_controls(artifact_names)
 
+    # 6b. First-divergence reduction (#260 cp4): goldens in sync, plus the
+    #     reducer proven on a synthetic divergence and on its silence.
+    for case in artifact_names:
+        trace_path = os.path.join(FIXDIR, f"{case}.trace.json")
+        golden_path = os.path.join(FIXDIR, f"{case}.reduction.json")
+        if not os.path.exists(trace_path):
+            continue
+        with open(trace_path, encoding="utf-8") as f:
+            expected = render_reduction(json.load(f))
+        if not os.path.exists(golden_path):
+            fails.append((
+                "reduction-golden",
+                f"{case}: reduction golden missing; regenerate with "
+                f"'python tests/test_repro_fixtures.py --write'"))
+            continue
+        with open(golden_path, encoding="utf-8") as f:
+            if f.read() != expected:
+                fails.append((
+                    "reduction-golden",
+                    f"{case}: reduction golden is stale; regenerate with "
+                    f"'python tests/test_repro_fixtures.py --write' and re-run "
+                    f"the Rust side (cd rust && cargo test)"))
+    for orphan in sorted(_reduction_goldens() - set(artifact_names)):
+        fails.append((
+            "reduction-orphan",
+            f"{orphan}: orphaned reduction golden; remove it or list the case"))
+    fails += _reduction_controls(artifact_names)
+
     # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0
     if artifact_names and artifact_names[0] in plan:
@@ -822,7 +1029,9 @@ def run() -> int:
           f"{n_structural} structural + {DOMAIN_BACKSTOP_COUNT} domain-backstop "
           f"controls refused, "
           f"{len(artifact_names)} traces projected and normalization held over "
-          f"all {len(plan)} documents")
+          f"all {len(plan)} documents, "
+          f"{len(artifact_names)} reductions over {list(REDUCTION_SCOPE)} with "
+          f"6 synthetic-divergence controls named and 2 silence controls held")
     return 0
 
 
@@ -851,8 +1060,13 @@ def write() -> int:
         with open(artifact_path, encoding="utf-8") as f:
             artifact = json.load(f)
         out = os.path.join(FIXDIR, f"{case}.trace.json")
+        traces = project_traces(artifact, case)
         with open(out, "w", encoding="utf-8") as f:
             f.write(render_traces(artifact, case))
+        print(f"wrote {out}")
+        out = os.path.join(FIXDIR, f"{case}.reduction.json")
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(render_reduction(traces))
         print(f"wrote {out}")
     for orphan in sorted(_artifact_goldens() - set(artifact_names)):
         path = os.path.join(FIXDIR, f"{orphan}.repro.json")
@@ -860,6 +1074,10 @@ def write() -> int:
         print(f"removed orphaned {path}")
     for orphan in sorted(_trace_goldens() - set(artifact_names)):
         path = os.path.join(FIXDIR, f"{orphan}.trace.json")
+        os.remove(path)
+        print(f"removed orphaned {path}")
+    for orphan in sorted(_reduction_goldens() - set(artifact_names)):
+        path = os.path.join(FIXDIR, f"{orphan}.reduction.json")
         os.remove(path)
         print(f"removed orphaned {path}")
     return 0

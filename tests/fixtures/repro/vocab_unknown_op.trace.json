@@ -44,14 +44,14 @@
             {
               "id": "summaries[M]",
               "value": {
-                "method": "M",
                 "file": "F.cs",
                 "line": 0,
-                "source": "inferred",
+                "method": "M",
                 "params": [],
                 "returns": {
                   "owned": "none"
-                }
+                },
+                "source": "inferred"
               }
             }
           ]

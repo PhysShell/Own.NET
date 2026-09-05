@@ -1,0 +1,38 @@
+{
+  "reduction_version": 1,
+  "case": "verdict_door_effect_deps_not_strings",
+  "engines": [
+    "python-ownlang",
+    "rust-own-bridge"
+  ],
+  "scope": [
+    "lowered",
+    "summaries"
+  ],
+  "outcome": "diverged",
+  "detail": null,
+  "classification": {
+    "left-only": 0,
+    "right-only": 0,
+    "changed": 0,
+    "ordering-only": 0,
+    "status": 2,
+    "projection": 0,
+    "unexplained": 0
+  },
+  "first": {
+    "layer": "lowered",
+    "kind": "status",
+    "step": null,
+    "path": null,
+    "left": "produced",
+    "right": "refused",
+    "detail": "the two engines disagree about whether this layer produced at all; the artifacts record every such case as a DECLARED boundary, and this reducer reports it rather than judging it"
+  },
+  "out_of_scope": [
+    {
+      "layer": "verdicts",
+      "reason": "comparing final diagnostics is #260's ACCEPTANCE and is blocked by #259 (cp5 and 4b); this reducer refuses the layer rather than skipping it, so 'not compared' can never be read as 'compared and agreed'"
+    }
+  ]
+}

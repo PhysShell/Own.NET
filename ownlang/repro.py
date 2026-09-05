@@ -402,7 +402,16 @@ def project_layers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     # branch rather than raising (INF-F6), so this layer has no refusal today —
     # the envelope carries one because the *format* is uniform across layers,
     # not because this surface is expected to use it.
-    summaries = dump_summaries(facts)
+    #
+    # The document is carried in the key order its OWN surface fixes. The MOS
+    # surface's canonical form is `json.dumps(..., sort_keys=True)` — that is
+    # what `tests/fixtures/summaries/` pins byte-for-byte — so the dict's
+    # insertion order is an implementation detail of `dump_summaries`, not part
+    # of the surface. Carrying the insertion order made the two engines' MOS
+    # documents differ in key order alone (the port reads the same surface back
+    # from its rendered, sorted form), which a comparison would have reported as
+    # a divergence neither surface has. Found by the reducer, on its first run.
+    summaries = json.loads(json.dumps(dump_summaries(facts), sort_keys=True))
     return [
         _layer("lowered", lowered.get("lowered_version"), lowered),
         _layer("summaries", None, summaries),
@@ -781,6 +790,220 @@ def project_traces(artifact: dict[str, Any], case: str) -> dict[str, Any]:
 def render_traces(artifact: dict[str, Any], case: str) -> str:
     return json.dumps(project_traces(artifact, case), indent=2,
                       ensure_ascii=False) + "\n"
+
+
+# --------------------------------------------------------------------------
+# First-divergence reduction (#260 step 7a cp4)
+# --------------------------------------------------------------------------
+
+REDUCTION_VERSION = 1
+
+# The layers this reducer will walk, in pipeline order. `verdicts` is
+# DELIBERATELY absent and refused rather than merely skipped: comparing final
+# diagnostics is #260's *acceptance*, which is blocked by #259 (cp5 and 4b),
+# and infrastructure that would quietly do it on request is infrastructure that
+# turns into an unearned shadow-mode claim the first time somebody widens a
+# tuple. Widening this set is a contract decision, not a parameter.
+REDUCTION_SCOPE: tuple[str, ...] = ("lowered", "summaries")
+
+# The four content classes, plus the two that are not content differences.
+KIND_LEFT_ONLY = "left-only"
+KIND_RIGHT_ONLY = "right-only"
+KIND_CHANGED = "changed"
+KIND_ORDERING_ONLY = "ordering-only"
+KIND_STATUS = "status"
+KIND_PROJECTION = "projection"
+KIND_UNEXPLAINED = "unexplained"
+
+
+def _same(left: Any, right: Any) -> bool:
+    """Value equality with **object key order significant**, and with `bool`
+    distinct from `int`.
+
+    Python's `dict` compares order-insensitively and `True == 1`; neither is
+    right here. The Layer 2 and Layer 3 surfaces fix their field order as part
+    of a byte-exact contract, so a port emitting the right fields in the wrong
+    order is a real defect this reducer must name — and the port's own value
+    type distinguishes both, so an order-insensitive reference reducer would
+    disagree with it about what "the same" means. It did, on the first run."""
+    if isinstance(left, bool) != isinstance(right, bool):
+        return False
+    if isinstance(left, dict) and isinstance(right, dict):
+        return (list(left) == list(right)
+                and all(_same(left[k], right[k]) for k in left))
+    if isinstance(left, list) and isinstance(right, list):
+        return (len(left) == len(right)
+                and all(_same(a, b) for a, b in zip(left, right, strict=True)))
+    if isinstance(left, (dict, list)) or isinstance(right, (dict, list)):
+        return False
+    return type(left) is type(right) and bool(left == right)
+
+
+def _minimal_difference(left: Any, right: Any, path: str = "") -> tuple[str, Any, Any]:
+    """The smallest path at which two values differ, and the two values there.
+
+    "Minimal" is the point: reporting a whole 40-line statement as "changed"
+    makes the reader diff it themselves, which is how a real difference gets
+    waved through as formatting."""
+    if type(left) is not type(right):
+        return path, left, right
+    if isinstance(left, dict) and isinstance(right, dict):
+        for key in list(left) + [k for k in right if k not in left]:
+            if key not in left or key not in right or not _same(left[key], right[key]):
+                if key in left and key in right:
+                    return _minimal_difference(left[key], right[key], f"{path}.{key}")
+                return f"{path}.{key}", left.get(key), right.get(key)
+        if list(left) != list(right):
+            # Every value matches and only the key ORDER differs: name that,
+            # rather than dumping two identical-looking objects on the reader.
+            return f"{path}[keys]", list(left), list(right)
+    if isinstance(left, list) and isinstance(right, list):
+        # Deliberately NOT strict: unequal lengths are handled below, as a
+        # `[len]` difference, which reads better than a raised exception.
+        for i, (a, b) in enumerate(zip(left, right, strict=False)):
+            if not _same(a, b):
+                return _minimal_difference(a, b, f"{path}[{i}]")
+        if len(left) != len(right):
+            return f"{path}[len]", len(left), len(right)
+    return path, left, right
+
+
+def _layer_of(trace: dict[str, Any], name: str) -> dict[str, Any] | None:
+    for layer in trace.get("layers", []):
+        if isinstance(layer, dict) and layer.get("layer") == name:
+            return layer
+    return None
+
+
+def _reduce_layer(name: str, left: dict[str, Any],
+                  right: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every observation for one layer, in step order — the caller takes the
+    first. Order matters: the reducer's job is to name the FIRST divergence, so
+    it walks rather than collects a set."""
+    out: list[dict[str, Any]] = []
+    if left.get("status") != right.get("status"):
+        return [{
+            "layer": name, "kind": KIND_STATUS, "step": None, "path": None,
+            "left": left.get("status"), "right": right.get("status"),
+            "detail": ("the two engines disagree about whether this layer "
+                       "produced at all; the artifacts record every such case "
+                       "as a DECLARED boundary, and this reducer reports it "
+                       "rather than judging it"),
+        }]
+    if left.get("status") == STATUS_REFUSED:
+        # Both refused. A refusal's TEXT is each engine's own — the port's
+        # map-or-raise wording is not the reference's — so the reducer compares
+        # that two engines refused, never how they phrased it. Comparing the
+        # texts would manufacture a divergence out of a known, declared
+        # difference in message vocabulary.
+        return []
+    if left.get("projection") != right.get("projection"):
+        return [{
+            "layer": name, "kind": KIND_PROJECTION, "step": None, "path": None,
+            "left": left.get("projection"), "right": right.get("projection"),
+            "detail": ("the engines declare different projections of this "
+                       "surface, so their step values are not comparable "
+                       "member-for-member; a value comparison here would score "
+                       "an unported member as a difference"),
+        }]
+
+    left_steps = {s["id"]: s["value"] for s in left.get("steps", [])}
+    right_steps = {s["id"]: s["value"] for s in right.get("steps", [])}
+    for step in left.get("steps", []):
+        sid = step["id"]
+        if sid not in right_steps:
+            out.append({"layer": name, "kind": KIND_LEFT_ONLY, "step": sid,
+                        "path": None, "left": step["value"], "right": None,
+                        "detail": "addressed by the left engine only"})
+            continue
+        if not _same(step["value"], right_steps[sid]):
+            path, a, b = _minimal_difference(step["value"], right_steps[sid])
+            out.append({"layer": name, "kind": KIND_CHANGED, "step": sid,
+                        "path": path or ".", "left": a, "right": b,
+                        "detail": "the same address carries different values"})
+    for step in right.get("steps", []):
+        if step["id"] not in left_steps:
+            out.append({"layer": name, "kind": KIND_RIGHT_ONLY, "step": step["id"],
+                        "path": None, "left": None, "right": step["value"],
+                        "detail": "addressed by the right engine only"})
+    if out:
+        return out
+    left_order = [s["id"] for s in left.get("steps", [])]
+    right_order = [s["id"] for s in right.get("steps", [])]
+    if left_order != right_order:
+        significant = left.get("order") == ORDER_SIGNIFICANT
+        out.append({
+            "layer": name, "kind": KIND_ORDERING_ONLY, "step": None, "path": None,
+            "left": left_order, "right": right_order,
+            "detail": ("the same steps in a different sequence; this layer "
+                       "declares its order SIGNIFICANT, so the sequence is the "
+                       "difference" if significant else
+                       "the same steps in a different sequence on a layer whose "
+                       "order is CANONICAL — one engine did not canonicalize"),
+        })
+    return out
+
+
+def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
+    """Walk two engines' traces in pipeline order and name the FIRST divergence
+    — its layer, its step address and the minimal difference inside it — plus
+    a classification over the whole scope.
+
+    Silent by construction on identical data: `outcome` is `identical` and
+    `first` is `null`. Scope is [`REDUCTION_SCOPE`]; the verdict layer is
+    refused, not skipped, and the refusal is part of the output so a reader
+    cannot mistake "not compared" for "compared and agreed"."""
+    entries = traces.get("traces", [])
+    if len(entries) < 2:
+        return {
+            "reduction_version": REDUCTION_VERSION,
+            "case": traces.get("case"),
+            "engines": [e.get("engine") for e in entries],
+            "scope": list(REDUCTION_SCOPE),
+            "outcome": "single-engine",
+            "detail": ("only one engine captured this input, so there is "
+                       "nothing to reduce"),
+            "classification": {}, "first": None, "out_of_scope": [],
+        }
+    left, right = entries[0], entries[1]
+    observations: list[dict[str, Any]] = []
+    for name in LAYER_ORDER:
+        if name not in REDUCTION_SCOPE:
+            continue
+        a, b = _layer_of(left, name), _layer_of(right, name)
+        if a is None or b is None:
+            observations.append({
+                "layer": name, "kind": KIND_UNEXPLAINED, "step": None,
+                "path": None, "left": a is not None, "right": b is not None,
+                "detail": "an engine did not report this layer at all",
+            })
+            continue
+        observations += _reduce_layer(name, a, b)
+    counts = {kind: sum(1 for o in observations if o["kind"] == kind)
+              for kind in (KIND_LEFT_ONLY, KIND_RIGHT_ONLY, KIND_CHANGED,
+                           KIND_ORDERING_ONLY, KIND_STATUS, KIND_PROJECTION,
+                           KIND_UNEXPLAINED)}
+    return {
+        "reduction_version": REDUCTION_VERSION,
+        "case": traces.get("case"),
+        "engines": [left.get("engine"), right.get("engine")],
+        "scope": list(REDUCTION_SCOPE),
+        "outcome": "identical" if not observations else "diverged",
+        "detail": None,
+        "classification": counts,
+        "first": observations[0] if observations else None,
+        "out_of_scope": [
+            {"layer": name,
+             "reason": ("comparing final diagnostics is #260's ACCEPTANCE and "
+                        "is blocked by #259 (cp5 and 4b); this reducer refuses "
+                        "the layer rather than skipping it, so 'not compared' "
+                        "can never be read as 'compared and agreed'")}
+            for name in LAYER_ORDER if name not in REDUCTION_SCOPE],
+    }
+
+
+def render_reduction(traces: dict[str, Any]) -> str:
+    return json.dumps(reduce_traces(traces), indent=2, ensure_ascii=False) + "\n"
 
 
 def _verify_projection(projection: Any, at: str) -> list[str]:

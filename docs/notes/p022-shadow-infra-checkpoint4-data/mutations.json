@@ -1,0 +1,154 @@
+{
+  "campaign": "p022-shadow-cp4",
+  "comment": "The mutation campaign for P-022 step 7a checkpoint 4 (first-divergence reduction over the lowered and MOS layers). Separate from cp1/cp2/cp3 on purpose — each checkpoint's evidence stays frozen at what it measured. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Five layers run for every mutation (discipline 3: no fail-fast), including the crate's unit tests. M00 is the harness-honesty control. Run: python scripts/mutate_campaign.py docs/notes/p022-shadow-infra-checkpoint4-data/mutations.json --out docs/notes/p022-shadow-infra-checkpoint4-data/campaign.json",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": ["python3", "tests/test_repro_fixtures.py"],
+      "parser": "python_fail_lines"
+    },
+    {
+      "id": "rust-repro",
+      "cwd": "rust",
+      "command": ["cargo", "test", "-p", "own-shadow", "--test", "repro", "--no-fail-fast"],
+      "parser": "cargo_test"
+    },
+    {
+      "id": "rust-trace",
+      "cwd": "rust",
+      "command": ["cargo", "test", "-p", "own-shadow", "--test", "trace", "--no-fail-fast"],
+      "parser": "cargo_test"
+    },
+    {
+      "id": "rust-reduce",
+      "cwd": "rust",
+      "command": ["cargo", "test", "-p", "own-shadow", "--test", "reduce", "--no-fail-fast"],
+      "parser": "cargo_test"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": ["cargo", "test", "-p", "own-shadow", "--lib", "--no-fail-fast"],
+      "parser": "cargo_test"
+    }
+  ],
+  "mutations": [
+    {
+      "id": "M00",
+      "what": "harness-honesty control: no mutation at all, which must report zero failing layers",
+      "rule": "campaign hygiene",
+      "edits": []
+    },
+    {
+      "id": "M53",
+      "what": "the reference widens the reduction scope to the verdict layer",
+      "rule": "reduction: comparing final diagnostics is #260's ACCEPTANCE, blocked by #259 — the scope is a contract, not a parameter",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "REDUCTION_SCOPE: tuple[str, ...] = (\"lowered\", \"summaries\")",
+        "replace": "REDUCTION_SCOPE: tuple[str, ...] = (\"lowered\", \"summaries\", \"verdicts\")"
+      }]
+    },
+    {
+      "id": "M54",
+      "what": "the reference reports the whole step instead of the minimal difference inside it",
+      "rule": "reduction: the difference must be MINIMAL — the field, not the step body",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "                if key in left and key in right:\n                    return _minimal_difference(left[key], right[key], f\"{path}.{key}\")",
+        "replace": "                if key in left and key in right:\n                    return path, left, right"
+      }]
+    },
+    {
+      "id": "M55",
+      "what": "the reference stops noticing a step only one engine addresses",
+      "rule": "reduction: left-only / right-only are two of the four content classes",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "        if sid not in right_steps:",
+        "replace": "        if False and sid not in right_steps:"
+      }]
+    },
+    {
+      "id": "M56",
+      "what": "the reference stops noticing an ordering-only difference",
+      "rule": "reduction: on a layer whose order is declared significant, the sequence IS the difference",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "    if left_order != right_order:",
+        "replace": "    if False and left_order != right_order:"
+      }]
+    },
+    {
+      "id": "M57",
+      "what": "the reference compares two engines' refusal TEXTS, manufacturing a divergence out of message vocabulary",
+      "rule": "reduction: when both engines refused, compare THAT they refused, never how they phrased it",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "    if left.get(\"status\") == STATUS_REFUSED:",
+        "replace": "    if False and left.get(\"status\") == STATUS_REFUSED:"
+      }]
+    },
+    {
+      "id": "M58",
+      "what": "the reference reports the LAST divergence instead of the first",
+      "rule": "reduction: the reducer names the FIRST divergence in pipeline order",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "        \"first\": observations[0] if observations else None,",
+        "replace": "        \"first\": observations[-1] if observations else None,"
+      }]
+    },
+    {
+      "id": "M59",
+      "what": "the reference stops distinguishing a key-ORDER difference from agreement",
+      "rule": "reduction: object key order is significant — the surfaces fix field order byte-exactly",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "        return (list(left) == list(right)\n                and all(_same(left[k], right[k]) for k in left))",
+        "replace": "        return (set(left) == set(right)\n                and all(_same(left[k], right[k]) for k in left))"
+      }]
+    },
+    {
+      "id": "M60",
+      "what": "the reference carries the MOS document in `dump_summaries`' insertion order rather than its surface's",
+      "rule": "capture: each layer document is carried in the key order its OWN surface fixes",
+      "edits": [{
+        "file": "ownlang/repro.py",
+        "find": "    summaries = json.loads(json.dumps(dump_summaries(facts), sort_keys=True))",
+        "replace": "    summaries = dump_summaries(facts)"
+      }]
+    },
+    {
+      "id": "M61",
+      "what": "the port widens the reduction scope to the verdict layer",
+      "rule": "reduction: the scope is a contract, not a parameter",
+      "edits": [{
+        "file": "rust/crates/own-shadow/src/reduce.rs",
+        "find": "pub const REDUCTION_SCOPE: [&str; 2] = [\"lowered\", \"summaries\"];",
+        "replace": "pub const REDUCTION_SCOPE: [&str; 3] = [\"lowered\", \"summaries\", \"verdicts\"];"
+      }]
+    },
+    {
+      "id": "M62",
+      "what": "the port compares two engines' refusal texts instead of the fact that both refused",
+      "rule": "reduction: a refusal's text is each engine's own",
+      "edits": [{
+        "file": "rust/crates/own-shadow/src/reduce.rs",
+        "find": "    if ls == Some(STATUS_REFUSED) {\n        return Vec::new();\n    }",
+        "replace": "    if false && ls == Some(STATUS_REFUSED) {\n        return Vec::new();\n    }"
+      }]
+    },
+    {
+      "id": "M63",
+      "what": "the port reports the last divergence instead of the first",
+      "rule": "reduction: the reducer names the FIRST divergence in pipeline order",
+      "edits": [{
+        "file": "rust/crates/own-shadow/src/reduce.rs",
+        "find": "    let first = observations.first().cloned().unwrap_or(Json::Null);",
+        "replace": "    let first = observations.last().cloned().unwrap_or(Json::Null);"
+      }]
+    }
+  ]
+}

@@ -85,22 +85,38 @@ ids must not move** — while the lowered layer's step **order** must still
 change, because that difference is real. Both halves are asserted; a trace that
 hid the second would delete the defect the layer exists to expose.
 
-## Divergence classification
+## First-divergence reduction (checkpoint 4), and the classification
 
-**Python-only 0 / Rust-only 0 / Changed 0 / Ordering-only n/a / Unexplained 0**,
-over the 80-document same-input set — the only cross-engine
-quantity this slice measures.
+The reducer walks the pair in pipeline order over **['lowered', 'summaries']** and names the
+first place they part company: the layer, the step address and the *minimal*
+difference inside it. The `verdicts` layer is **refused, not skipped** —
+comparing final diagnostics is #260's acceptance, blocked by #259 — and the
+refusal is carried in every reduction, so "not compared" can never be read as
+"compared and agreed".
 
-It is enforced by a gate, not counted by this generator: the port asserts
-per-document equality of the canonical identity and byte-exact equality of
-every committed artifact, so a non-zero counter is not representable as a
-passing build. *Ordering-only* is **not applicable** and is named rather than
-reported as a zero that would mean something else — the canonical form sorts by
-construction, so there is no ordered output being compared yet.
+Over the 9 committed reductions, 8 are
+`identical`. The counters below are **computed** by the reducer, not implied by
+a green build:
 
-A classification over *layer contents* does not exist yet, and this document
-does not invent one: the two engines' captures sit side by side in the
-artifacts and nothing reads one against the other. The gates:
+| class | count |
+|---|---|
+| Python-only (`left-only`) | **0** |
+| Rust-only (`right-only`) | **0** |
+| Changed | **0** |
+| Ordering-only | **0** |
+| Unexplained | **0** |
+| *status* (a layer-level disagreement, each a declared boundary) | 2 |
+| *projection* (surfaces not comparable member-for-member) | 0 |
+
+`status` and `projection` are counted apart from the four content classes on
+purpose: neither is a difference in what an engine *computed*. Every `status`
+row in the table above is a boundary the port declares in its own error text —
+the unported obligation-protocol analysis, and the typed door.
+
+The same-input layer carries its own counters, and those remain gate-enforced
+rather than computed: the port asserts per-document equality of the canonical
+identity and byte-exact equality of every committed artifact and trace, so a
+non-zero counter there is not representable as a passing build. The gates:
 
 - `own-shadow/tests/repro.rs::a_changed_byte_in_the_embedded_document_is_refused`
 - `own-shadow/tests/repro.rs::every_committed_artifact_round_trips_and_verifies`
@@ -116,16 +132,22 @@ artifacts and nothing reads one against the other. The gates:
 - `own-shadow/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte`
 - `own-shadow/tests/trace.rs::no_counter_shaped_handle_survives_anywhere_in_a_trace`
 - `own-shadow/tests/trace.rs::the_declared_order_semantics_are_the_frozen_ones`
+- `own-shadow/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte`
+- `own-shadow/tests/reduce.rs::the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence`
+- `own-shadow/tests/reduce.rs::the_same_fields_in_a_different_key_order_are_a_difference`
+- `own-shadow/tests/reduce.rs::the_verdict_layer_is_refused_not_silently_skipped`
+- `own-shadow/tests/reduce.rs::two_engines_that_both_refused_a_layer_agree`
 
 ## The unmeasured set, named
 
 - **End diagnostics compared as an acceptance surface** — #260's acceptance,
   blocked by #259 (cp5 and 4b). Not attempted, not approximated.
-- **Any comparison of the two engines' layer contents.** The artifacts pair
-  them; nothing reads the pair. That is the reduction checkpoint's job.
-- **The `AnalysisTrace` schema** (#269) and **stable-ID normalization**, and
-  **first-divergence reduction** over the lowered/MOS layers — the remaining
-  step-7a checkpoints.
+- **The verdict layer.** Refused by the reducer, and recorded as refused in
+  every reduction. This is the same blocker as the row above, stated where a
+  tool could otherwise have quietly crossed it.
+- **Nested statement bodies as individual steps.** A `then`/`else`/`while` body
+  is part of its enclosing statement's step, so a difference inside a branch is
+  reported on that statement rather than on the branch's own address.
 - **Rendered-byte parity of the three layer surfaces.** The artifact carries
   layer outputs as JSON *values*, so a rendering difference (indent,
   `ensure_ascii`) is invisible here. That contract stays with each layer's own
@@ -245,3 +267,28 @@ that each recorded result is internally consistent
 | M50 | the port declares the lowered layer's order canonical, licensing a sort | `rust-trace::every_trace_golden_is_reproduced_byte_for_byte` |
 | M51 | the port stops asserting that the handle rewrite is total | `rust-unit::trace::tests::a_handle_reference_the_rename_cannot_reach_is_refused` |
 | M52 | the port drops the mint kind from the handle record | `rust-trace::every_trace_golden_is_reproduced_byte_for_byte`, `rust-unit::trace::tests::a_fully_listed_document_normalizes` |
+### checkpoint 4 — first-divergence reduction (`p022-shadow-cp4`)
+
+| | |
+|---|---|
+| mutations | **11** |
+| caught | **11** |
+| survived | **0** |
+| compile errors (reported as such, never as "caught") | 0 |
+| harness-honesty controls reporting zero failures | 1 |
+| catches by layer | `python` 9, `rust-reduce` 6 |
+| mutations with exactly **one** catching layer | 9 — M54, M55, M56, M57, M58, M59, M60, M62, M63 |
+
+| id | mutation | caught by |
+|---|---|---|
+| M53 | the reference widens the reduction scope to the verdict layer | `python::reduction-control`, `python::reduction-golden` |
+| M54 | the reference reports the whole step instead of the minimal difference inside it | `python::reduction-control` |
+| M55 | the reference stops noticing a step only one engine addresses | `python::non-zero exit with no FAIL line` |
+| M56 | the reference stops noticing an ordering-only difference | `python::reduction-control` |
+| M57 | the reference compares two engines' refusal TEXTS, manufacturing a divergence out of message vocabulary | `python::reduction-control` |
+| M58 | the reference reports the LAST divergence instead of the first | `python::reduction-golden` |
+| M59 | the reference stops distinguishing a key-ORDER difference from agreement | `python::reduction-control` |
+| M60 | the reference carries the MOS document in `dump_summaries`' insertion order rather than its surface's | `python::artifact-golden` |
+| M61 | the port widens the reduction scope to the verdict layer | `rust-reduce::every_reduction_golden_is_reproduced_byte_for_byte`, `rust-reduce::the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence`, `rust-reduce::the_verdict_layer_is_refused_not_silently_skipped`, `rust-reduce::two_engines_that_both_refused_a_layer_agree` |
+| M62 | the port compares two engines' refusal texts instead of the fact that both refused | `rust-reduce::two_engines_that_both_refused_a_layer_agree` |
+| M63 | the port reports the last divergence instead of the first | `rust-reduce::every_reduction_golden_is_reproduced_byte_for_byte` |

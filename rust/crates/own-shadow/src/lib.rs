@@ -27,6 +27,12 @@
 //!   derived from what they identify, while each layer's ORDER semantics are
 //!   *declared* rather than normalized away. Producing that shape is still not
 //!   performing a comparison.
+//! * **Where do two engines first part company?** [`reduce_traces`] walks the
+//!   pair in pipeline order over the `lowered` and `summaries` layers and names
+//!   the layer, the step and the **minimal** difference. The `verdicts` layer
+//!   is **refused, not skipped** — comparing final diagnostics is #260's
+//!   acceptance, blocked by #259 — and the refusal is carried in the output, so
+//!   "not compared" can never be read as "compared and agreed".
 //!
 //! **This is not shadow mode**, and nothing here may be read as shadow mode
 //! having been achieved. Comparing two engines' end diagnostics is #260's
@@ -43,6 +49,7 @@ mod artifact;
 mod canonical;
 mod engine;
 mod json;
+mod reduce;
 mod trace;
 
 pub use artifact::{
@@ -52,6 +59,10 @@ pub use artifact::{
 pub use canonical::{canonical_bytes, canonical_hash, CanonicalHash, CANONICAL_ALGORITHM};
 pub use engine::capture;
 pub use json::{parse, Json};
+pub use reduce::{
+    reduce_traces, KIND_CHANGED, KIND_LEFT_ONLY, KIND_ORDERING_ONLY, KIND_PROJECTION,
+    KIND_RIGHT_ONLY, KIND_STATUS, KIND_UNEXPLAINED, REDUCTION_SCOPE, REDUCTION_VERSION,
+};
 pub use trace::{
     order_semantics, project_trace, project_traces, ORDER_CANONICAL, ORDER_SIGNIFICANT,
     TRACE_VERSION,

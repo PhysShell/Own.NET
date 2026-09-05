@@ -50,11 +50,15 @@ CAMPAIGNS = (
     ("checkpoint 3 — AnalysisTrace and stable-ID normalization",
      os.path.join(ROOT, "docs", "notes",
                   "p022-shadow-infra-checkpoint3-data", "campaign.json")),
+    ("checkpoint 4 — first-divergence reduction",
+     os.path.join(ROOT, "docs", "notes",
+                  "p022-shadow-infra-checkpoint4-data", "campaign.json")),
 )
 RUST_TESTS = (
     os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "repro.rs"),
     os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "engine.rs"),
     os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "trace.rs"),
+    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "reduce.rs"),
 )
 
 HEADER = (
@@ -148,6 +152,29 @@ def render_shadow_slice() -> str:
                 stable_ids += sum(1 for s in layer["steps"]
                                   if s["id"].startswith("handles["))
 
+    # The classification, COMPUTED from the committed reductions rather than
+    # asserted. Until checkpoint 4 these counters were gate-implied; now a
+    # reducer produces them over a declared scope, and this reads them off.
+    classes = ("left-only", "right-only", "changed", "ordering-only",
+               "status", "projection", "unexplained")
+    totals_by_class = dict.fromkeys(classes, 0)
+    reduced_cases = 0
+    identical_cases = 0
+    scope: list[str] = []
+    for entry in manifest["artifacts"]:
+        path = os.path.join(FIXDIR, f"{entry['name']}.reduction.json")
+        if not os.path.exists(path):
+            continue
+        reduction = _load(path)
+        reduced_cases += 1
+        scope = reduction["scope"]
+        if reduction["outcome"] == "identical":
+            identical_cases += 1
+        for name, count in reduction.get("classification", {}).items():
+            totals_by_class[name] = totals_by_class.get(name, 0) + count
+
+    n_status = totals_by_class["status"]
+    n_projection = totals_by_class["projection"]
     n_refusals = len(manifest["domain_refusals"])
     n_artifacts = len(manifest["artifacts"])
     campaign_blocks = []
@@ -256,22 +283,38 @@ ids must not move** — while the lowered layer's step **order** must still
 change, because that difference is real. Both halves are asserted; a trace that
 hid the second would delete the defect the layer exists to expose.
 
-## Divergence classification
+## First-divergence reduction (checkpoint 4), and the classification
 
-**Python-only 0 / Rust-only 0 / Changed 0 / Ordering-only n/a / Unexplained 0**,
-over the {len(documents)}-document same-input set — the only cross-engine
-quantity this slice measures.
+The reducer walks the pair in pipeline order over **{scope}** and names the
+first place they part company: the layer, the step address and the *minimal*
+difference inside it. The `verdicts` layer is **refused, not skipped** —
+comparing final diagnostics is #260's acceptance, blocked by #259 — and the
+refusal is carried in every reduction, so "not compared" can never be read as
+"compared and agreed".
 
-It is enforced by a gate, not counted by this generator: the port asserts
-per-document equality of the canonical identity and byte-exact equality of
-every committed artifact, so a non-zero counter is not representable as a
-passing build. *Ordering-only* is **not applicable** and is named rather than
-reported as a zero that would mean something else — the canonical form sorts by
-construction, so there is no ordered output being compared yet.
+Over the {reduced_cases} committed reductions, {identical_cases} are
+`identical`. The counters below are **computed** by the reducer, not implied by
+a green build:
 
-A classification over *layer contents* does not exist yet, and this document
-does not invent one: the two engines' captures sit side by side in the
-artifacts and nothing reads one against the other. The gates:
+| class | count |
+|---|---|
+| Python-only (`left-only`) | **{totals_by_class["left-only"]}** |
+| Rust-only (`right-only`) | **{totals_by_class["right-only"]}** |
+| Changed | **{totals_by_class["changed"]}** |
+| Ordering-only | **{totals_by_class["ordering-only"]}** |
+| Unexplained | **{totals_by_class["unexplained"]}** |
+| *status* (a layer-level disagreement, each a declared boundary) | {n_status} |
+| *projection* (surfaces not comparable member-for-member) | {n_projection} |
+
+`status` and `projection` are counted apart from the four content classes on
+purpose: neither is a difference in what an engine *computed*. Every `status`
+row in the table above is a boundary the port declares in its own error text —
+the unported obligation-protocol analysis, and the typed door.
+
+The same-input layer carries its own counters, and those remain gate-enforced
+rather than computed: the port asserts per-document equality of the canonical
+identity and byte-exact equality of every committed artifact and trace, so a
+non-zero counter there is not representable as a passing build. The gates:
 
 {gate_rows}
 
@@ -279,11 +322,12 @@ artifacts and nothing reads one against the other. The gates:
 
 - **End diagnostics compared as an acceptance surface** — #260's acceptance,
   blocked by #259 (cp5 and 4b). Not attempted, not approximated.
-- **Any comparison of the two engines' layer contents.** The artifacts pair
-  them; nothing reads the pair. That is the reduction checkpoint's job.
-- **The `AnalysisTrace` schema** (#269) and **stable-ID normalization**, and
-  **first-divergence reduction** over the lowered/MOS layers — the remaining
-  step-7a checkpoints.
+- **The verdict layer.** Refused by the reducer, and recorded as refused in
+  every reduction. This is the same blocker as the row above, stated where a
+  tool could otherwise have quietly crossed it.
+- **Nested statement bodies as individual steps.** A `then`/`else`/`while` body
+  is part of its enclosing statement's step, so a difference inside a branch is
+  reported on that statement rather than on the branch's own address.
 - **Rendered-byte parity of the three layer surfaces.** The artifact carries
   layer outputs as JSON *values*, so a rendering difference (indent,
   `ensure_ascii`) is invisible here. That contract stays with each layer's own

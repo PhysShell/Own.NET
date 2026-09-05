@@ -1,0 +1,30 @@
+{
+  "reduction_version": 1,
+  "case": "protocol_isloaded_violation",
+  "engines": [
+    "python-ownlang",
+    "rust-own-bridge"
+  ],
+  "scope": [
+    "lowered",
+    "summaries"
+  ],
+  "outcome": "identical",
+  "detail": null,
+  "classification": {
+    "left-only": 0,
+    "right-only": 0,
+    "changed": 0,
+    "ordering-only": 0,
+    "status": 0,
+    "projection": 0,
+    "unexplained": 0
+  },
+  "first": null,
+  "out_of_scope": [
+    {
+      "layer": "verdicts",
+      "reason": "comparing final diagnostics is #260's ACCEPTANCE and is blocked by #259 (cp5 and 4b); this reducer refuses the layer rather than skipping it, so 'not compared' can never be read as 'compared and agreed'"
+    }
+  ]
+}

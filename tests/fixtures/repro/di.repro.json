@@ -185,11 +185,11 @@
           },
           "status": "produced",
           "document": {
+            "degraded": null,
             "module": "DiDemo",
             "ownir_version": 0,
             "summaries": [],
-            "unresolved": [],
-            "degraded": null
+            "unresolved": []
           }
         },
         {
