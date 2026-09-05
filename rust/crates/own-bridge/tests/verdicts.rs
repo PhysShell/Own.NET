@@ -436,7 +436,8 @@ fn replays_every_case_to_its_golden() {
         failures.join("\n")
     );
     eprintln!(
-        "verdict parity: {replayed} cases replayed ({refusals} refusals, {findings} findings), \
+        "cp4 verdict surface (identity/anchor/kind/tiering): {replayed} cases replayed \
+         ({refusals} refusals, {findings} findings), \
          {} declared exclusions held",
         excluded.len()
     );

@@ -179,20 +179,27 @@ fn cannot_map(d: &Diagnostic) -> BridgeError {
     ))
 }
 
-/// The core half of BR-V1: map each ERROR-severity core diagnostic through
-/// its handle record to a finding — anchor, kind and tier per BR-V4/V5/V6.
+/// BR-V1/BR-V2, as one pure predicate: a core diagnostic is mapped iff it is
+/// an ERROR-severity verdict (a sub-error core diagnostic is not a verdict)
+/// and its code is not on the closed bridge-artifact list.
+///
+/// The severity half cannot be reached from a facts document today — no
+/// producer feeds the one core pass that grades below ERROR (the buffer-policy
+/// warnings) — so it is proven on a synthetic diagnostic in this module's
+/// tests rather than left as a rule the corpus can never fail.
+fn is_mapped(d: &Diagnostic) -> bool {
+    d.severity == Severity::Error && !SKIP.contains(&d.code.as_str())
+}
+
+/// The core half of BR-V1: map each mapped core diagnostic ([`is_mapped`])
+/// through its handle record to a finding — anchor, kind and tier per
+/// BR-V4/V5/V6.
 fn map_core(
     diags: &[Diagnostic],
     records: &std::collections::HashMap<String, Obj>,
 ) -> Result<Vec<Finding>, BridgeError> {
     let mut out = Vec::new();
-    for d in diags {
-        if d.severity != Severity::Error {
-            continue;
-        }
-        if SKIP.contains(&d.code.as_str()) {
-            continue;
-        }
+    for d in diags.iter().filter(|d| is_mapped(d)) {
         let Some(rec) = handle_of(d).and_then(|h| records.get(h)) else {
             return Err(cannot_map(d));
         };
@@ -576,11 +583,54 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 mod tests {
-    use super::{di_findings, effect_findings, Obj};
+    use super::{di_findings, effect_findings, map_core, Obj};
+    use own_diagnostics::{Diagnostic, Severity};
     use serde_json::{json, Value};
+    use std::collections::HashMap;
 
     fn obj(v: &Value) -> Obj {
         v.as_object().cloned().unwrap()
+    }
+
+    /// BR-V1: only ERROR-severity core diagnostics are mapped. The production
+    /// path cannot produce a sub-error core verdict today (no facts producer
+    /// reaches the buffer-policy pass that grades below ERROR), so the rule is
+    /// proven on a synthetic WARNING driven through `map_core` itself: the
+    /// same diagnostic, same handle, ERROR → one finding, WARNING → none.
+    /// The closed BR-V2 list rides the same predicate: a skipped artifact code
+    /// with no subject must be dropped, never reach map-or-raise.
+    #[test]
+    fn only_error_severity_core_verdicts_are_mapped() {
+        let mut records: HashMap<String, Obj> = HashMap::new();
+        records.insert(
+            "sub_0".to_owned(),
+            obj(&json!({
+                "event": "bus.E", "handler": "OnE", "line": 7, "released": false,
+                "component": "Vm", "file": "Vm.cs"
+            })),
+        );
+        let error = Diagnostic::new("OWN001", "leak", 7)
+            .unwrap()
+            .with_subject("sub_0#7");
+        let warning = error.clone().with_severity(Severity::Warning);
+        let artifact = Diagnostic::new("OWN033", "return type", 0).unwrap();
+
+        let mapped = map_core(&[error], &records).unwrap();
+        assert_eq!(
+            mapped
+                .iter()
+                .map(|f| (f.file.as_str(), f.line, f.code.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("Vm.cs", 7, "OWN001")]
+        );
+        assert!(
+            map_core(&[warning], &records).unwrap().is_empty(),
+            "a sub-error core diagnostic is not a verdict (BR-V1)"
+        );
+        assert!(
+            map_core(&[artifact], &records).unwrap().is_empty(),
+            "a BR-V2 artifact is dropped before map-or-raise, subject or not"
+        );
     }
 
     /// BR-D2 tolerance (1): a malformed effect entry is SKIPPED as a whole,
