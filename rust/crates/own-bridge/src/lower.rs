@@ -1,5 +1,12 @@
 //! The `ownlang/ownir.py::to_module` port — `OwnIR` facts → the normalized
-//! Layer 2 document, restricted to the behavior the shared fixtures exercise.
+//! Layer 2 document, restricted to the behavior the shared fixtures exercise,
+//! plus (since the analysis wiring, #259 cp4) the three verdict-side outputs
+//! `to_module` hands `check_facts` beside the `Module`: the **full handle
+//! records** (`{**sub, component, file}` / the flow-local dicts, `column`
+//! included — the identity every core verdict maps back through, BR-V3), the
+//! OWN051 advisories minted during lowering (BR-L8), and the solve-failure
+//! reason for OWN052 (BR-M1). [`lower`] keeps returning the Layer 2 document
+//! alone; [`lower_full`] returns all four.
 //!
 //! The walk is deliberately DICT-SHAPED: the typed [`OwnIr`] document is
 //! re-serialized to a JSON value once and lowered by the same key-by-key
@@ -37,7 +44,43 @@ use own_lowered::{
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-type Obj = Map<String, Value>;
+pub(crate) type Obj = Map<String, Value>;
+
+/// Everything `to_module(facts, notes, advisories)` produces: the lowered
+/// document, the handle → record map, the OWN052 reasons and the OWN051 notes.
+#[derive(Debug)]
+pub(crate) struct Lowering {
+    pub doc: LoweredDocument,
+    /// Handle → the Python-shaped record (`{**sub, "component", "file"[,
+    /// "di_source_life"]}` for a subscription fact; the flow-local dict for a
+    /// `parg_`/`loc_` handle). `check_facts` reads a verdict's anchor, kind and
+    /// tiering off this record and nothing else.
+    pub handles: HashMap<String, Obj>,
+    /// `notes`: one `"{type}: {exc}"` reason per failed MOS solve (INF-F6).
+    pub mos_notes: Vec<String>,
+    /// `advisories`: the OWN051 notes, in lowering order (function order, then
+    /// the flow walk's pre-order).
+    pub advisories: Vec<Own051>,
+}
+
+/// One OWN051 advisory as `to_module` mints it: the owned local `arg` handed
+/// to `callee` at a `may`/`unknown` position on `line` of `file`, inside the
+/// function `component` (BR-L8, INF-A5).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Own051 {
+    pub file: String,
+    pub line: i64,
+    pub component: String,
+    pub arg: String,
+    pub callee: String,
+    pub transfer: &'static str,
+}
+
+/// `_as_col`: the optional 1-based column, or `None` for anything that is not
+/// a real coordinate (absent, `null`, a bool, a float, a string, `0`, negative).
+pub(crate) fn as_col(v: Option<&Value>) -> Option<i64> {
+    v.and_then(Value::as_i64).filter(|c| *c >= 1)
+}
 
 // --- Python-semantics helpers ------------------------------------------------
 
@@ -849,12 +892,18 @@ pub(crate) fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
 
 // --- the optimistic-default machinery (untrack / kill sites) ------------------
 
-/// `_unverified_transfer_calls`, reduced to the arg-name set `to_module`
-/// derives from it (the OWN051 advisory channel does not touch the lowered
-/// document, so the callee/transfer/line tuple members are not carried).
-fn unverified_arg_names(nodes: &[Value], mos: &Mos) -> HashSet<String> {
-    let mut out = HashSet::new();
-    fn walk(nodes: &[Value], mos: &Mos, out: &mut HashSet<String>) {
+/// `_unverified_transfer_calls`: every `(arg, callee, transfer, line)` where a
+/// call hands an argument to a summarized callee position whose resolved
+/// transfer is `may`/`unknown`, in the flow walk's pre-order. Two consumers,
+/// as in the reference: the arg names become the untrack set, and each hit
+/// on an owned local becomes an OWN051 advisory (`line` is `_as_int` of the
+/// call's line; the transfer is the `Transfer` enum's wire value).
+fn unverified_transfer_calls(
+    nodes: &[Value],
+    mos: &Mos,
+) -> Vec<(String, String, &'static str, i64)> {
+    let mut out = Vec::new();
+    fn walk(nodes: &[Value], mos: &Mos, out: &mut Vec<(String, String, &'static str, i64)>) {
         for n in nodes {
             let Some(n) = n.as_object() else { continue };
             match get_str(n, "op") {
@@ -865,10 +914,15 @@ fn unverified_arg_names(nodes: &[Value], mos: &Mos) -> HashSet<String> {
                             for (j, a) in args.iter().enumerate() {
                                 let j = i64::try_from(j).unwrap_or(i64::MAX);
                                 let ps = summ.params.iter().find(|q| q.index == j);
-                                if ps.is_some_and(|q| {
-                                    matches!(q.transfer, Transfer::May | Transfer::Unknown)
-                                }) {
-                                    out.insert(py_str(a));
+                                if let Some(q) = ps {
+                                    if matches!(q.transfer, Transfer::May | Transfer::Unknown) {
+                                        out.push((
+                                            py_str(a),
+                                            callee.clone(),
+                                            q.transfer.as_str(),
+                                            as_int(n.get("line")),
+                                        ));
+                                    }
                                 }
                             }
                         }
@@ -1017,14 +1071,18 @@ fn branch_hoist_safe(
     analyze(nodes, false, name, &is_acq).0
 }
 
-/// `_hoisted_branch_locals`: name → (first branch-acquire line, pool kind).
+/// `_hoisted_branch_locals`: name → (first branch-acquire line, that same
+/// acquire's column, pool kind). Line and column are read off the SAME
+/// first-seen acquire node, so a hoisted local never carries one node's line
+/// with another's column (#317).
 fn hoisted_branch_locals(
     nodes: &[Value],
     mos: &Mos,
     first_party: &HashSet<String>,
-) -> HashMap<String, (i64, bool)> {
+) -> HashMap<String, (i64, Option<i64>, bool)> {
     let mut acq_depth: HashMap<String, u32> = HashMap::new();
     let mut acq_line: HashMap<String, i64> = HashMap::new();
+    let mut acq_col: HashMap<String, Option<i64>> = HashMap::new();
     let mut acq_pool: HashMap<String, bool> = HashMap::new();
     let mut ref_depth: HashMap<String, u32> = HashMap::new();
     let mut loop_acq: HashSet<String> = HashSet::new();
@@ -1034,6 +1092,7 @@ fn hoisted_branch_locals(
         first_party: &'a HashSet<String>,
         acq_depth: &'a mut HashMap<String, u32>,
         acq_line: &'a mut HashMap<String, i64>,
+        acq_col: &'a mut HashMap<String, Option<i64>>,
         acq_pool: &'a mut HashMap<String, bool>,
         ref_depth: &'a mut HashMap<String, u32>,
         loop_acq: &'a mut HashSet<String>,
@@ -1062,6 +1121,9 @@ fn hoisted_branch_locals(
                 let d = w.acq_depth.entry(acq.clone()).or_insert(depth);
                 *d = (*d).min(depth);
                 w.acq_line.entry(acq.clone()).or_insert(line);
+                w.acq_col
+                    .entry(acq.clone())
+                    .or_insert_with(|| as_col(n.get("column")));
                 if op == Some("acquire") && n.get("kind").and_then(Value::as_str) == Some("pool") {
                     w.acq_pool.insert(acq.clone(), true);
                 }
@@ -1101,6 +1163,7 @@ fn hoisted_branch_locals(
         first_party,
         acq_depth: &mut acq_depth,
         acq_line: &mut acq_line,
+        acq_col: &mut acq_col,
         acq_pool: &mut acq_pool,
         ref_depth: &mut ref_depth,
         loop_acq: &mut loop_acq,
@@ -1120,6 +1183,7 @@ fn hoisted_branch_locals(
                 name.clone(),
                 (
                     acq_line.get(name).copied().unwrap_or(0),
+                    acq_col.get(name).copied().flatten(),
                     acq_pool.get(name).copied().unwrap_or(false),
                 ),
             )
@@ -1168,15 +1232,53 @@ fn want_maybe(rec: &Obj, key: &str) -> Result<Maybe<String>, BridgeError> {
     }
 }
 
-/// A subscription-fact handle record: `{**sub, component, file[, di_source_life]}`
-/// projected through the `_HANDLE_KEYS` allowlist by key MEMBERSHIP.
-fn subscription_entry(
-    handle: &str,
+/// The handle map under construction: the Layer 2 entries (in mint order) and
+/// the full Python-shaped records the verdict mapping reads. Every handle is
+/// pushed through here once, so the two views can never disagree.
+#[derive(Debug, Default)]
+struct HandleStore {
+    entries: Vec<HandleEntry>,
+    records: HashMap<String, Obj>,
+}
+
+impl HandleStore {
+    fn push(&mut self, handle: &str, rec: Obj) -> Result<(), BridgeError> {
+        self.entries.push(handle_entry(handle, &rec)?);
+        self.records.insert(handle.to_owned(), rec);
+        Ok(())
+    }
+}
+
+/// A record projected through the `_HANDLE_KEYS` allowlist by key MEMBERSHIP
+/// — the Layer 2 view of `{**sub, component, file[, di_source_life]}` or of a
+/// flow-local dict (whose `column` is verdict-side metadata outside the
+/// allowlist).
+fn handle_entry(handle: &str, rec: &Obj) -> Result<HandleEntry, BridgeError> {
+    Ok(HandleEntry {
+        handle: handle.to_owned(),
+        component: want_str(rec, "component")?,
+        file: want_str(rec, "file")?,
+        line: want_i64(rec, "line")?,
+        event: want_str(rec, "event")?,
+        handler: want_str(rec, "handler")?,
+        resource: want_str(rec, "resource")?,
+        released: want_bool(rec, "released")?,
+        source: want_maybe(rec, "source")?,
+        source_type: want_maybe(rec, "source_type")?,
+        di_source_life: want_str(rec, "di_source_life")?,
+        type_name: want_maybe(rec, "type")?,
+        ever_released: want_bool(rec, "ever_released")?,
+        pool: want_bool(rec, "pool")?,
+    })
+}
+
+/// A subscription-fact handle record: `{**sub, component, file[, di_source_life]}`.
+fn subscription_record(
     sub: &Obj,
     cname: &str,
     comp_file: Option<&Value>,
     di_source_life: Option<&str>,
-) -> Result<HandleEntry, BridgeError> {
+) -> Obj {
     let mut rec = sub.clone();
     rec.insert("component".to_owned(), Value::String(cname.to_owned()));
     rec.insert(
@@ -1188,50 +1290,40 @@ fn subscription_entry(
     if let Some(dl) = di_source_life {
         rec.insert("di_source_life".to_owned(), Value::String(dl.to_owned()));
     }
-    Ok(HandleEntry {
-        handle: handle.to_owned(),
-        component: want_str(&rec, "component")?,
-        file: want_str(&rec, "file")?,
-        line: want_i64(&rec, "line")?,
-        event: want_str(&rec, "event")?,
-        handler: want_str(&rec, "handler")?,
-        resource: want_str(&rec, "resource")?,
-        released: want_bool(&rec, "released")?,
-        source: want_maybe(&rec, "source")?,
-        source_type: want_maybe(&rec, "source_type")?,
-        di_source_life: want_str(&rec, "di_source_life")?,
-        type_name: want_maybe(&rec, "type")?,
-        ever_released: want_bool(&rec, "ever_released")?,
-        pool: want_bool(&rec, "pool")?,
-    })
+    rec
 }
 
-/// A flow-local handle record (`parg_*` carries no `pool` key; `loc_*` does).
-fn flow_local_entry(
-    handle: &str,
+/// A flow-local handle record, exactly the dict `to_module` builds: `file`,
+/// `line`, `column` (`_as_col`-coerced: a 1-based int or `null`), `event`,
+/// `component`, `resource: "flow-local"`, `ever_released`, and — for a `loc_*`
+/// handle only, never a `parg_*` — `pool`.
+fn flow_local_record(
     file: &str,
     line: i64,
+    column: Option<&Value>,
     event: &str,
     component: &str,
     ever_released: bool,
     pool: Option<bool>,
-) -> HandleEntry {
-    HandleEntry {
-        handle: handle.to_owned(),
-        component: Some(component.to_owned()),
-        file: Some(file.to_owned()),
-        line: Some(line),
-        event: Some(event.to_owned()),
-        handler: None,
-        resource: Some("flow-local".to_owned()),
-        released: None,
-        source: Maybe::Missing,
-        source_type: Maybe::Missing,
-        di_source_life: None,
-        type_name: Maybe::Missing,
-        ever_released: Some(ever_released),
-        pool,
+) -> Obj {
+    let mut rec = Obj::new();
+    rec.insert("file".to_owned(), Value::String(file.to_owned()));
+    rec.insert("line".to_owned(), Value::from(line));
+    rec.insert(
+        "column".to_owned(),
+        as_col(column).map_or(Value::Null, Value::from),
+    );
+    rec.insert("event".to_owned(), Value::String(event.to_owned()));
+    rec.insert("component".to_owned(), Value::String(component.to_owned()));
+    rec.insert(
+        "resource".to_owned(),
+        Value::String("flow-local".to_owned()),
+    );
+    rec.insert("ever_released".to_owned(), Value::Bool(ever_released));
+    if let Some(pool) = pool {
+        rec.insert("pool".to_owned(), Value::Bool(pool));
     }
+    rec
 }
 
 // --- DI registrations ---------------------------------------------------------
@@ -1269,15 +1361,15 @@ fn lower_fn_params(
     f: &Obj,
     ffile: &str,
     fname: &str,
-    handles: &mut Vec<HandleEntry>,
+    handles: &mut HandleStore,
     loc: &mut i64,
     localmap: &mut HashMap<String, String>,
     released: &HashSet<String>,
     mos: &Mos,
-) -> Vec<Param> {
+) -> Result<Vec<Param>, BridgeError> {
     let mut out = Vec::new();
     let Some(raw) = f.get("params").and_then(Value::as_array) else {
-        return out;
+        return Ok(out);
     };
     let summ = mos_lookup(mos, fname, call_sig(f));
     for (i, p) in raw.iter().enumerate() {
@@ -1318,15 +1410,18 @@ fn lower_fn_params(
         *loc = loc.saturating_add(1);
         let line = as_int(p.get("line"));
         localmap.insert(cname.clone(), sym.clone());
-        handles.push(flow_local_entry(
+        handles.push(
             &sym,
-            ffile,
-            line,
-            &cname,
-            fname,
-            released.contains(&cname),
-            None,
-        ));
+            flow_local_record(
+                ffile,
+                line,
+                p.get("column"),
+                &cname,
+                fname,
+                released.contains(&cname),
+                None,
+            ),
+        )?;
         out.push(Param {
             handle: sym,
             type_shape: tref,
@@ -1334,7 +1429,7 @@ fn lower_fn_params(
             lifetime: None,
         });
     }
-    out
+    Ok(out)
 }
 
 // --- flow lowering (`_lower_flow`) --------------------------------------------
@@ -1342,7 +1437,7 @@ fn lower_fn_params(
 struct FnCtx<'v, 'a> {
     ffile: &'a str,
     fname: &'a str,
-    handles: &'a mut Vec<HandleEntry>,
+    handles: &'a mut HandleStore,
     loc: &'a mut i64,
     localmap: &'a mut HashMap<String, String>,
     released: &'a HashSet<String>,
@@ -1369,15 +1464,18 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                 let handle = format!("loc_{}", ctx.loc);
                 *ctx.loc = ctx.loc.saturating_add(1);
                 ctx.localmap.insert(name.clone(), handle.clone());
-                ctx.handles.push(flow_local_entry(
+                ctx.handles.push(
                     &handle,
-                    ctx.ffile,
-                    line,
-                    &name,
-                    ctx.fname,
-                    ctx.released.contains(&name),
-                    Some(n.get("kind").and_then(Value::as_str) == Some("pool")),
-                ));
+                    flow_local_record(
+                        ctx.ffile,
+                        line,
+                        n.get("column"),
+                        &name,
+                        ctx.fname,
+                        ctx.released.contains(&name),
+                        Some(n.get("kind").and_then(Value::as_str) == Some("pool")),
+                    ),
+                )?;
                 body.push(Stmt::Acquire {
                     handle,
                     resource: "Disposable".to_owned(),
@@ -1398,15 +1496,18 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                         let handle = format!("loc_{}", ctx.loc);
                         *ctx.loc = ctx.loc.saturating_add(1);
                         ctx.localmap.insert(name.clone(), handle.clone());
-                        ctx.handles.push(flow_local_entry(
+                        ctx.handles.push(
                             &handle,
-                            ctx.ffile,
-                            line,
-                            &name,
-                            ctx.fname,
-                            ctx.released.contains(&name),
-                            Some(false),
-                        ));
+                            flow_local_record(
+                                ctx.ffile,
+                                line,
+                                n.get("column"),
+                                &name,
+                                ctx.fname,
+                                ctx.released.contains(&name),
+                                Some(false),
+                            ),
+                        )?;
                         body.push(Stmt::AliasJoin {
                             handle,
                             src: src_h,
@@ -1564,15 +1665,18 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
                             let handle = format!("loc_{}", ctx.loc);
                             *ctx.loc = ctx.loc.saturating_add(1);
                             ctx.localmap.insert(result.to_owned(), handle.clone());
-                            ctx.handles.push(flow_local_entry(
+                            ctx.handles.push(
                                 &handle,
-                                ctx.ffile,
-                                line,
-                                result,
-                                ctx.fname,
-                                ctx.released.contains(result),
-                                Some(false),
-                            ));
+                                flow_local_record(
+                                    ctx.ffile,
+                                    line,
+                                    n.get("column"),
+                                    result,
+                                    ctx.fname,
+                                    ctx.released.contains(result),
+                                    Some(false),
+                                ),
+                            )?;
                             body.push(Stmt::Acquire {
                                 handle,
                                 resource: "Disposable".to_owned(),
@@ -1599,12 +1703,16 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
 // --- the entry point ----------------------------------------------------------
 
 pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
+    lower_full(facts).map(|l| l.doc)
+}
+
+pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
     let root_value = facts.to_value().map_err(|e| BridgeError(e.to_string()))?;
     let root = root_value
         .as_object()
         .expect("a struct serializes to an object");
 
-    let mut handles: Vec<HandleEntry> = Vec::new();
+    let mut handles = HandleStore::default();
     let mut functions: Vec<Function> = Vec::new();
     let mut gid: i64 = 0;
     let mut any_capture = false;
@@ -1666,13 +1774,10 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
                 }
                 let handle = format!("cap_{gid}");
                 gid = gid.saturating_add(1);
-                handles.push(subscription_entry(
+                handles.push(
                     &handle,
-                    sub,
-                    &cname,
-                    comp.get("file"),
-                    None,
-                )?);
+                    subscription_record(sub, &cname, comp.get("file"), None),
+                )?;
                 let line = as_int(sub.get("line"));
                 params.push(Param {
                     handle: handle.clone(),
@@ -1710,13 +1815,10 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
                     let src_life = src_life.clone();
                     let handle = format!("cap_{gid}");
                     gid = gid.saturating_add(1);
-                    handles.push(subscription_entry(
+                    handles.push(
                         &handle,
-                        sub,
-                        &cname,
-                        comp.get("file"),
-                        Some(&src_life),
-                    )?);
+                        subscription_record(sub, &cname, comp.get("file"), Some(&src_life)),
+                    )?;
                     let line = as_int(sub.get("line"));
                     params.push(Param {
                         handle: handle.clone(),
@@ -1740,13 +1842,10 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
             // R6: the acquire/release token path.
             let handle = format!("sub_{gid}");
             gid = gid.saturating_add(1);
-            handles.push(subscription_entry(
+            handles.push(
                 &handle,
-                sub,
-                &cname,
-                comp.get("file"),
-                None,
-            )?);
+                subscription_record(sub, &cname, comp.get("file"), None),
+            )?;
             let Some(rtype) = resource_type(rkind) else {
                 // #294 OD-2 landed: IR4 everywhere — a present-but-unknown kind
                 // is fail-loud on the tolerant door too (Python `_route_resource`
@@ -1782,10 +1881,20 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
         Some(Value::Array(a)) => a.as_slice(),
         _ => &[], // Python: a non-list `functions` skips the whole section
     };
-    // D5.1: resolve interprocedural transfer once, up front; degradation to
-    // an empty MOS mirrors Python's exception guard (not reachable from the
-    // production skeleton builder, which never emits duplicate keys).
-    let mos_map: Mos = mos::solve(build_skeletons(raw_fns)).unwrap_or_default();
+    // D5.1: resolve interprocedural transfer once, up front; a solver failure
+    // degrades the whole layer to the empty MOS AND records the reason for
+    // OWN052 (INF-F6, BR-M1) — Python's `except Exception as exc:
+    // notes.append(f"{type(exc).__name__}: {exc}")`; the only failure a facts
+    // document can reach is the duplicate-key guard, a `ValueError` there.
+    let mut mos_notes: Vec<String> = Vec::new();
+    let mos_map: Mos = match mos::solve(build_skeletons(raw_fns)) {
+        Ok(m) => m,
+        Err(e) => {
+            mos_notes.push(format!("ValueError: {e}"));
+            Mos::default()
+        }
+    };
+    let mut advisories: Vec<Own051> = Vec::new();
     let fp_names: Vec<String> = raw_fns
         .iter()
         .filter_map(Value::as_object)
@@ -1821,37 +1930,67 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
             &mut localmap,
             &released,
             &mos_map,
-        );
+        )?;
         // the optimistic default (d5 §5): a may/unknown-contract handoff
         // discharges at a TOP-LEVEL call (kill site) or untracks whole-body.
-        let unverified = unverified_arg_names(nodes, &mos_map);
+        let unverified = unverified_transfer_calls(nodes, &mos_map);
         let kill_sites = kill_sites_for_unverified(nodes, &mos_map);
         let untracked: HashSet<String> = unverified
-            .into_iter()
+            .iter()
+            .map(|(a, _, _, _)| a.clone())
             .filter(|a| !kill_sites.contains_key(a))
             .collect();
+        // OWN051, gated on args that actually carry an obligation here (an
+        // acquired local or a fresh factory result) — a plain value passed to
+        // a may-position is not a gap worth a note (BR-L8).
+        if !unverified.is_empty() {
+            let mut owned_here = collect_vars(nodes, "acquire", "var");
+            for (v, c) in call_result_callees(nodes) {
+                if let Some((callee, sig)) = c {
+                    if callee_returns_fresh(&callee, &mos_map, &first_party, sig.as_deref()) {
+                        owned_here.insert(v);
+                    }
+                }
+            }
+            for (arg, callee, transfer, cline) in &unverified {
+                if !owned_here.contains(arg) {
+                    continue;
+                }
+                advisories.push(Own051 {
+                    file: ffile.clone(),
+                    line: *cline,
+                    component: fname.clone(),
+                    arg: arg.clone(),
+                    callee: callee.clone(),
+                    transfer,
+                });
+            }
+        }
         // cross-branch locals declared once at the outer scope; an untracked
         // local must NOT be hoisted (it would re-mint the removed obligation).
-        let hoist: BTreeMap<String, (i64, bool)> =
+        let hoist: BTreeMap<String, (i64, Option<i64>, bool)> =
             hoisted_branch_locals(nodes, &mos_map, &first_party)
                 .into_iter()
                 .filter(|(k, _)| !untracked.contains(k))
                 .collect();
         let hoisted_set: BTreeSet<String> = hoist.keys().cloned().collect();
         let mut fbody: Vec<Stmt> = Vec::new();
-        for (hname, (hline, hpool)) in &hoist {
+        for (hname, (hline, hcol, hpool)) in &hoist {
             let hh = format!("loc_{loc}");
             loc = loc.saturating_add(1);
             localmap.insert(hname.clone(), hh.clone());
-            handles.push(flow_local_entry(
+            handles.push(
                 &hh,
-                &ffile,
-                *hline,
-                hname,
-                &fname,
-                released.contains(hname),
-                Some(*hpool),
-            ));
+                flow_local_record(
+                    &ffile,
+                    *hline,
+                    hcol.map(Value::from).as_ref(),
+                    hname,
+                    &fname,
+                    released.contains(hname),
+                    Some(*hpool),
+                ),
+            )?;
             fbody.push(Stmt::Acquire {
                 handle: hh,
                 resource: "Disposable".to_owned(),
@@ -1892,17 +2031,22 @@ pub(crate) fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
     let module = root
         .get("module")
         .map_or_else(|| "Extracted".to_owned(), py_str);
-    Ok(LoweredDocument {
-        lowered_version: LOWERED_VERSION,
-        module,
-        resources: prelude_resources(),
-        externs: sink_externs(),
-        lifetimes: if any_capture {
-            capture_lifetimes()
-        } else {
-            Vec::new()
+    Ok(Lowering {
+        doc: LoweredDocument {
+            lowered_version: LOWERED_VERSION,
+            module,
+            resources: prelude_resources(),
+            externs: sink_externs(),
+            lifetimes: if any_capture {
+                capture_lifetimes()
+            } else {
+                Vec::new()
+            },
+            functions,
+            handles: handles.entries,
         },
-        functions,
-        handles,
+        handles: handles.records,
+        mos_notes,
+        advisories,
     })
 }

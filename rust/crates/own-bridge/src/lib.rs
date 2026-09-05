@@ -1,40 +1,51 @@
-//! `own-bridge` — the `OwnIR` facts → Layer 2 lowering (P-022 #259 slice 3).
+//! `own-bridge` — the `OwnIR` bridge (P-022 step 6b, #259): facts → the core
+//! → verdicts, the port of `ownlang/ownir.py` beyond its schema.
 //!
-//! The Rust port of `ownlang/ownir.py::to_module` **restricted to the behavior
-//! the shared Layer 2 fixtures exercise**: routing R1–R6, global `sub_`/`cap_`
-//! and `parg_`/`loc_` handle minting, capture/DI lifetime regions, flow
-//! lowering with the local map and kill-on-rebind, branch-local hoisting with
-//! its negative gates, `alias_join`, unmapped references, call lowering, the
-//! `$consume`/`$borrow`/`$borrow_mut` channels, the precise-overload channel
-//! vs the merged-may kill site, in-branch untrack vs top-level kill site,
-//! fresh-result minting, and the fail-loud flow-op vocabulary.
+//! Three surfaces, one per landed checkpoint family:
 //!
-//! **Pure transformation**: [`lower`] maps a typed [`own_ir::OwnIr`] document
-//! to an [`own_lowered::LoweredDocument`] (or a [`BridgeError`] whose message
-//! text is part of the parity surface — Python projects it as the `Rejected`
-//! form), and [`dump_summaries`] renders the MOS summaries document
-//! byte-identically to `python -m ownlang summaries` over the shared
-//! scalar-metadata parity domain (the inference layer's parity artifact,
-//! spec/Inference.md §8; see the function's contract for the domain
-//! boundary). No filesystem, no CLI, no
-//! diagnostics, no analysis. `OwnIR` validation parity, MOS contract
-//! *changes*, and analysis wiring stay out of scope (#294 OD-2 landed:
-//! IR4-everywhere — `tolerant_unknown_kind` is a shared `rust_replay` case
-//! whose `Rejected` golden pins the fail-loud text on both sides).
+//! * [`lower`] — `to_module` as the normalized **Layer 2** document (cp2):
+//!   routing R1–R6, global `sub_`/`cap_` and `parg_`/`loc_` handle minting,
+//!   capture/DI lifetime regions, flow lowering with the local map and
+//!   kill-on-rebind, branch-local hoisting with its negative gates,
+//!   `alias_join`, unmapped references, call lowering, the `$consume`/
+//!   `$borrow`/`$borrow_mut` channels, the precise-overload channel vs the
+//!   merged-may kill site, in-branch untrack vs top-level kill site,
+//!   fresh-result minting, and the fail-loud flow-op vocabulary;
+//! * [`dump_summaries`] — the MOS summaries document (cp3), byte-identical to
+//!   `python -m ownlang summaries` over the shared scalar-metadata parity
+//!   domain (spec/Inference.md §8; see the function's contract for the
+//!   domain boundary);
+//! * [`check_facts`] — the **analysis wiring** (cp4): the lowered module
+//!   through `own_analysis::check_module` (ownership, lifetime, buffer
+//!   policy), the `services[]`/`effects[]` blocks through the DI and effect
+//!   analyses, plus the OWN050/051/052 advisory side paths, mapped back to
+//!   their C# anchors per spec/Bridge.md §5 — at the checkpoint-4 surface
+//!   (identity, anchor, kind and tiering; messages and evidence are cp5).
 //!
-//! The oracle is byte-exact: for every `rust_replay: true` manifest case,
-//! `facts → OwnIr::from_json → lower → own_lowered::to_canonical_json` must
-//! equal the committed Python golden (`tests/replay.rs`), and every
-//! summaries-family case must reproduce its `*.summaries.json` golden
-//! through [`dump_summaries`] (`tests/summaries.rs`). The goldens are
-//! expected output ONLY — never an input to construction.
+//! **Pure transformation**, still: a typed [`own_ir::OwnIr`] document in,
+//! values out (or a [`BridgeError`] whose message text is part of the parity
+//! surface — Python projects it as the `Rejected` form). No filesystem, no
+//! CLI. The bridge prepares analysis inputs and maps analysis outputs; it
+//! owns no solver, no dataflow and no graph algorithm (BR-B1) — every verdict
+//! comes from `own-analysis`, every anchor is the analysis's own selection,
+//! and a verdict the bridge cannot attribute to a fact handle is a refusal,
+//! never a dropped finding (BR-V3).
+//!
+//! The oracles are Python-authored and replayed with zero Python: the Layer 2
+//! goldens (`tests/replay.rs`), the summaries goldens (`tests/summaries.rs`)
+//! and the verdict goldens (`tests/verdicts.rs`). Goldens are expected output
+//! ONLY — never an input to construction.
 
+mod ast;
 mod dump;
 mod lower;
 mod mos;
+mod verdict;
 
 use own_ir::OwnIr;
 use own_lowered::LoweredDocument;
+
+pub use verdict::Finding;
 
 /// A lowering rejection — the Rust twin of Python's `OwnIRError` from
 /// `to_module`. The message TEXT is part of the Layer 2 parity surface
@@ -81,4 +92,23 @@ pub fn lower(facts: &OwnIr) -> Result<LoweredDocument, BridgeError> {
 /// (not reachable for a document [`OwnIr::from_json`] accepted).
 pub fn dump_summaries(facts: &OwnIr) -> Result<String, BridgeError> {
     dump::dump_summaries(facts)
+}
+
+/// Run the core over one `OwnIR` facts document and return its findings.
+///
+/// The port of `ownlang/ownir.py::check_facts` at the #259 checkpoint-4
+/// surface — every finding mapped back to its C# anchor (see [`Finding`] for
+/// the members carried). Deterministic: the list is deduplicated on the
+/// reference's key (BR-V7) and stably sorted by `(file, line, column, code)`
+/// (BR-V8).
+///
+/// # Errors
+/// [`BridgeError`] when the lowering fails loud (vocabulary skew, an unknown
+/// resource kind), when a core verdict cannot be attributed to a fact handle
+/// (BR-V3 — the reference's `OwnIRError`), when a coordinate falls outside
+/// the core's `u32` line domain, or when the document declares an obligation
+/// protocol (the protocol analysis is not wired yet; refused rather than
+/// silently incomplete).
+pub fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
+    verdict::check_facts(facts)
 }

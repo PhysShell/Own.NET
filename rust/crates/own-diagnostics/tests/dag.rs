@@ -40,15 +40,26 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
     // never the reverse, and the surface must stay implementable without the
     // lowering that fills it.
     m.insert("own-lowered", BTreeSet::new());
-    // The OwnIR -> Layer 2 lowering (#259 slice 3): a pure transformation
-    // crate. It READS the typed fact contract (own-ir) and CONSTRUCTS the
-    // typed Layer 2 surface (own-lowered) — both arrows point INTO data
-    // leaves, never the reverse, and own-lowered stays leaf (implementable
-    // without the lowering that fills it). No analysis/diagnostics edge:
-    // lowering must stay a pure OwnIr -> LoweredDocument function.
+    // The OwnIR bridge (#259): P-022's one deliberately WIDE consumer. It
+    // READS the typed fact contract (own-ir), CONSTRUCTS the typed Layer 2
+    // surface (own-lowered) and the core AST (own-syntax), drives the
+    // own-cfg/own-analysis pipeline, and reads the verdict model
+    // (own-diagnostics) to map results back to fact handles (cp4). Every
+    // arrow points from the bridge INTO the core — the constraint runs the
+    // other way: no core crate may depend on own-bridge (none lists it), so
+    // bridge inference can never leak into the solver or the verdict layer.
     m.insert(
         "own-bridge",
-        ["own-ir", "own-lowered"].into_iter().collect(),
+        [
+            "own-ir",
+            "own-lowered",
+            "own-syntax",
+            "own-cfg",
+            "own-analysis",
+            "own-diagnostics",
+        ]
+        .into_iter()
+        .collect(),
     );
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
@@ -172,6 +183,31 @@ fn own_analysis_has_no_production_parser_edge() {
         "own-analysis grew a PRODUCTION dependency on own-syntax; read the effect \
          type via own_cfg::Effect and keep own-syntax a dev-dependency"
     );
+}
+
+#[test]
+fn no_core_crate_depends_on_the_bridge() {
+    // P-022 §fitness: own-bridge is the one deliberately wide consumer, and
+    // the constraint runs the other way — only ENTRY-POINT crates (own-cli, a
+    // future own-lsp/own-capi) may depend on it, never a core crate, so bridge
+    // inference can never leak into the solver or the verdict layer. Asserted
+    // by name so a regression says what it broke even if the map is edited.
+    let actual = workspace_edges();
+    for core in [
+        "own-ir",
+        "own-syntax",
+        "own-cfg",
+        "own-diagnostics",
+        "own-lowered",
+        "own-analysis",
+    ] {
+        let deps = actual.get(core).expect("core crate is a member");
+        assert!(
+            !deps.contains("own-bridge"),
+            "{core} grew a dependency on own-bridge; the bridge consumes the core, \
+             never the reverse"
+        );
+    }
 }
 
 #[test]

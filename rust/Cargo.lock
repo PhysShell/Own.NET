@@ -28,8 +28,12 @@ dependencies = [
 name = "own-bridge"
 version = "0.1.0"
 dependencies = [
+ "own-analysis",
+ "own-cfg",
+ "own-diagnostics",
  "own-ir",
  "own-lowered",
+ "own-syntax",
  "serde",
  "serde_json",
 ]
