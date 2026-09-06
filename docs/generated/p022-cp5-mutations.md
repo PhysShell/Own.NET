@@ -6,4 +6,8 @@ One campaign per sub-checkpoint, each frozen at what it measured. Every mutation
 
 ## checkpoint 5.1 — the message matrix and the evidence slices
 
-No campaign definition is committed (expected at `docs/evidence/p022-cp5-1.json`).
+Campaign `p022-cp5-1` — #259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member.
+
+Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+
+**No recorded run** is committed (expected at `docs/evidence/p022-cp5-1.result.json`): the campaign has a definition but no evidence. Nothing below is a number.

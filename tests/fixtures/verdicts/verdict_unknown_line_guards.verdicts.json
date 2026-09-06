@@ -1,0 +1,53 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "G.cs",
+      "line": 0,
+      "code": "OWN002",
+      "component": "Guards.UsedAfterDispose",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is used after it is disposed",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Vm.cs",
+      "line": 0,
+      "code": "OWN014",
+      "component": "Vm",
+      "event": "bus.E",
+      "handler": "OnE",
+      "message": "event 'bus.E' is subscribed (handler 'OnE') to 'Bus' — a DI singleton (application-lifetime) service that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Widget.tsx",
+      "line": 5,
+      "code": "EFF001",
+      "component": "Widget",
+      "event": "opts",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'opts' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'opts' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

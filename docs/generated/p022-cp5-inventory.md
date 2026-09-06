@@ -15,7 +15,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 25 | 23 |
 | `flowlocal_own001_partial` | bridge | flow-local OWN001, released on some path | 10 | 10 |
 | `flowlocal_own001_pool_partial` | bridge | flow-local OWN001 on a pooled buffer, returned on some path | 2 | 2 |
-| `flowlocal_own002` | bridge | flow-local use-after-dispose | 5 | 5 |
+| `flowlocal_own002` | bridge | flow-local use-after-dispose | 6 | 6 |
 | `flowlocal_own003` | bridge | flow-local double dispose | 1 | 1 |
 | `flowlocal_own009` | bridge | flow-local maybe-use-after-dispose | 1 | 1 |
 | `flowlocal_own002_pool` | bridge | flow-local use-after-return | 1 | 1 |
@@ -24,7 +24,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `flowlocal_fallback` | core-diagnostic | flow-local fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is the reference's own output. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
 | `flowlocal_fallback_pool` | core-diagnostic | flow-local pooled fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is the reference's own output. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
 | `own025_view` | bridge | OWN025 pooled-view wording | 2 | 2 |
-| `own014_di_singleton` | bridge | OWN014 captive, source registered singleton | 3 | 3 |
+| `own014_di_singleton` | bridge | OWN014 captive, source registered singleton | 4 | 4 |
 | `own014_di_scoped` | bridge | OWN014 captive, source registered scoped | 1 | 1 |
 | `own014_di_transient` | bridge | OWN014 captive, source registered transient — **not replayed**: unreachable from any facts document: `transient` is the shortest region, so no subscriber it could outlive exists, and an unrecognised lifetime never reaches `di_source_life` (the DI life map admits only the three). Pinned by `verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, whose expected text is the reference's own output | 0 | 0 |
 | `own014_di_unknown_life` | bridge | OWN014 captive, source lifetime outside the three known ones — **not replayed**: unreachable from any facts document: `transient` is the shortest region, so no subscriber it could outlive exists, and an unrecognised lifetime never reaches `di_source_life` (the DI life map admits only the three). Pinned by `verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, whose expected text is the reference's own output | 0 | 0 |
@@ -33,8 +33,8 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `own014_capture_named` | bridge | OWN014 capture of a named longer-lived source — **not replayed**: unreachable from any facts document: routing R3 mints a handle only for a source with a declared capture region, and `static` is the only entry in that table. Pinned by `verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_hand ed`, whose expected text is the reference's own output | 0 | 0 |
 | `own014_capture_lambda` | bridge | OWN014 capture on an inline lambda handler (the no-'-=' note) | 1 | 1 |
 | `token_timer` | bridge | timer wording | 4 | 4 |
-| `token_disposable_typed` | bridge | disposable field, `type` present | 4 | 4 |
-| `token_disposable_untyped` | bridge | disposable field, no `type` | 1 | 1 |
+| `token_disposable_typed` | bridge | disposable field, `type` present | 6 | 6 |
+| `token_disposable_untyped` | bridge | disposable field, no `type` | 2 | 2 |
 | `token_local_disposable_typed` | bridge | local disposable, `type` present | 1 | 1 |
 | `token_local_disposable_untyped` | bridge | local disposable, no `type` | 1 | 1 |
 | `token_subscribe_injected` | bridge | ignored Subscribe() result, injected source | 2 | 2 |
@@ -47,12 +47,12 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `advisory_own050` | bridge | OWN050 unresolved-reference note | 3 | 3 |
 | `advisory_own051` | bridge | OWN051 unverified-transfer note | 6 | 6 |
 | `advisory_own052` | bridge | OWN052 degraded-inference note | 1 | 1 |
-| `di001_message` | core-analysis | DI001 captive message (di.py) | 10 | 8 |
+| `di001_message` | core-analysis | DI001 captive message (di.py) | 11 | 9 |
 | `di002_message` | core-analysis | DI002 weak-captive message (di.py) | 2 | 2 |
 | `di003_message` | core-analysis | DI003 captured-transient message (di.py) | 1 | 1 |
 | `di004_message` | core-analysis | DI004 root-resolution message (di.py) | 7 | 7 |
 | `di005_message` | core-analysis | DI005 scope-cache message (di.py) | 5 | 5 |
-| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 6 | 4 |
+| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 7 | 5 |
 | `obl_message` | bridge-protocol | OBL001-005 message (4b, not cp5) — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 1 | 0 |
 
 ### Wording tails
@@ -62,7 +62,7 @@ Each is its own degradation rule inside an analysis message — the tail is drop
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
 | `tail_consumed_typed` | wording tail | ` [consumed by the '<impl>' constructor at f:l]` | 4 | 4 |
-| `tail_consumed_bare` | wording tail | ` [consumed by the constructor at f:l]` (impl type unknown) | 1 | 1 |
+| `tail_consumed_bare` | wording tail | ` [consumed by the constructor at f:l]` (impl type unknown) | 2 | 2 |
 | `tail_consumed_absent` | wording tail | no consuming-constructor tail (location unknown) | 8 | 6 |
 | `tail_registered` | wording tail | ` [singleton registered at f:l]` on DI004/DI005 | 7 | 7 |
 | `tail_registered_absent` | wording tail | no registration tail (the primary IS the registration) | 5 | 5 |
@@ -74,10 +74,10 @@ One row per `related`/`flow` family; a slice matching no family (or two) fails t
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
 | `di_path_1` | flow | DI retention path, one resolvable hop (the rest dropped) | 2 | 1 |
-| `di_path_2` | flow | DI retention path, captor → captured | 18 | 17 |
+| `di_path_2` | flow | DI retention path, captor → captured | 19 | 18 |
 | `di_path_3plus` | flow | DI retention path with `via` hops | 4 | 4 |
 | `di_consumer_related_typed` | related | DI consuming constructor, impl type known | 4 | 4 |
-| `di_consumer_related_bare` | related | DI consuming constructor, impl type unknown | 1 | 1 |
+| `di_consumer_related_bare` | related | DI consuming constructor, impl type unknown | 2 | 2 |
 | `di004_registration_related` | related | DI004 registration beside the call site | 3 | 3 |
 | `di005_registration_related` | related | DI005 registration beside the store site | 4 | 4 |
 | `capture_escape_flow` | flow | OWN014 subscribe site → source registration site | 4 | 4 |
@@ -101,9 +101,9 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 | `di_consumer_related_dropped` | related | DI001/2/3 with no consuming-constructor related (line < 1) | 8 | 6 |
 | `di004_related_dropped` | related | DI004 with no registration related (the primary IS the registration) | 4 | 4 |
 | `di005_related_dropped` | related | DI005 with no registration related (the primary IS the registration) | 1 | 1 |
-| `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 1 | 1 |
+| `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 2 | 2 |
 | `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 6 | 6 |
-| `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 2 | 1 |
+| `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 3 | 2 |
 | `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 43 | 41 |
 
 ## BR-V9 — rendered surfaces

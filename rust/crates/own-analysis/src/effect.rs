@@ -342,7 +342,43 @@ pub fn effect_diagnostics(effects: &[Effect]) -> Vec<Diagnostic> {
     clippy::indexing_slicing
 )]
 mod tests {
-    use super::{find_effect_storms, Binding, Effect};
+    use super::{find_effect_storms, Binding, Effect, EffectStorm};
+
+    /// The `via …` clause is guarded on a chain longer than one hop, and the
+    /// guard cannot be exercised end to end: a storm only words "derives from"
+    /// when `origin != dep`, and reaching a different origin means walking at
+    /// least one reference, so the chain always has two entries there. The
+    /// guard is defensive on both sides of the port (`ownlang/effects.py`
+    /// writes the same `len(self.path) > 1`), so it is pinned here on a
+    /// hand-built storm rather than left unproven — dropping it would put an
+    /// empty `(via )` into user-visible text.
+    #[test]
+    fn the_via_clause_is_omitted_for_a_single_hop_chain() {
+        let storm = EffectStorm {
+            component: "W".to_owned(),
+            dep: "cfg".to_owned(),
+            origin: "opts".to_owned(),
+            origin_kind: "object".to_owned(),
+            file: "W.tsx".to_owned(),
+            line: 5,
+            decl_line: 2,
+            chain: vec!["opts".to_owned()],
+        };
+        assert!(
+            !storm.message().contains("(via "),
+            "a one-hop chain carries no via clause: {}",
+            storm.message()
+        );
+        let with_hops = EffectStorm {
+            chain: vec!["cfg".to_owned(), "opts".to_owned()],
+            ..storm
+        };
+        assert!(
+            with_hops.message().contains("(via cfg -> opts)"),
+            "{}",
+            with_hops.message()
+        );
+    }
 
     fn binding(name: &str, init: &str, refs: &[&str]) -> Binding {
         Binding {

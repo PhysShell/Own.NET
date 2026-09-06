@@ -394,6 +394,18 @@
       "bytes": 960
     },
     {
+      "case": "verdict_dedup_needs_the_message",
+      "corpus": "verdicts",
+      "digest": "81fc98c8a762811e57040baeb5b02f19fa6e5b58ad1388056b73811da863f685",
+      "bytes": 663
+    },
+    {
+      "case": "verdict_degenerate_metadata",
+      "corpus": "verdicts",
+      "digest": "b068af472cf610e2860561fe4dc7177f61bc170fdfec5e81279413e7f05d9524",
+      "bytes": 856
+    },
+    {
       "case": "verdict_di004_call_site_anchor",
       "corpus": "verdicts",
       "digest": "09be7af7d79b67f5d79e462b3b9a9a5ac04eb313c1021344fdf16caf081b8aeb",
@@ -512,6 +524,12 @@
       "corpus": "verdicts",
       "digest": "526566f9b3ceb3fb45fea6af1d86d0fe722df32159a05410b5cc15fcefa48001",
       "bytes": 589
+    },
+    {
+      "case": "verdict_unknown_line_guards",
+      "corpus": "verdicts",
+      "digest": "94ee4ea27864e84ae6113ed4b17856f1c6882714a3865602a73f289bdb7ab8d2",
+      "bytes": 1216
     },
     {
       "case": "vocab_unknown_op",

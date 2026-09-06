@@ -233,6 +233,27 @@
         "BR-P2",
         "BR-V5"
       ]
+    },
+    {
+      "name": "verdict_unknown_line_guards",
+      "rules": [
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_degenerate_metadata",
+      "rules": [
+        "BR-P1",
+        "BR-V4",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_dedup_needs_the_message",
+      "rules": [
+        "BR-V4",
+        "BR-V7"
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "comment": "Mutation campaign definition for #259 checkpoint 5.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1-mutations.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-1-mutations.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "comment": "Mutation campaign definition for #259 checkpoint 5.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-1.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
   "campaign": "p022-cp5-1",
   "description": "#259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member.",
   "workspace": "rust",
@@ -201,8 +201,8 @@
       "rule": "BR-V4",
       "description": "BR-V4 OWN050 message drops the event it cannot verify",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "\"cannot verify \\'\\{\\}\\' — its declaring type is an unresolved reference \\\\",
-      "replacement": "\"cannot verify — its declaring type is an unresolved reference \\\\",
+      "pattern": "its declaring type is an unresolved reference \\\\",
+      "replacement": "its declaring type is unresolved \\\\",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
@@ -281,7 +281,7 @@
       "pattern": "let via = if self\\.chain\\.len\\(\\) > 1 \\{",
       "replacement": "let via = if !self.chain.is_empty() {",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ]
     },
     {

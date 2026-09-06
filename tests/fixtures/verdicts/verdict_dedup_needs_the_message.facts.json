@@ -1,0 +1,21 @@
+{
+  "ownir_version": 0,
+  "module": "DedupNeedsTheMessage",
+  "_doc": [
+    "BR-V7's `message` member, which cp4 could not carry and argued was",
+    "redundant. Two disposable fields share a file, line, component, event,",
+    "handler, kind, tier and suppression — every other member of the dedup key —",
+    "and differ only in the `type` that rides into the message. Without `message`",
+    "in the key the second collapses into the first and a leak is lost."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"resource": "disposable", "event": "_c", "handler": "", "line": 4, "type": "SqlConnection"},
+        {"resource": "disposable", "event": "_c", "handler": "", "line": 4, "type": "SqlTransaction"}
+      ]
+    }
+  ]
+}
