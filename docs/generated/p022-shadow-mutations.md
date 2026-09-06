@@ -64,7 +64,7 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `bd3fd24d65f53997…`, 
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `0cdbd0f4410bb5ee4a418337f567e515f4146b3b` |
+| recorded at commit                               | `d726b06192c5fd76c94b02fab1011f55a453c14c` |
 | layers run (every one, for every mutation)       | `python`, `rust-repro`, `rust-engine`, `rust-unit` |
 | mutations                                        | 11 |
 | caught                                           | 11 |
@@ -72,13 +72,8 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `bd3fd24d65f53997…`, 
 | compile-error (no evidence either way)           | 0 |
 | invalid-mutation                                 | 0 |
 | runner-error                                     | 0 |
-| caught without every expected catcher            | M35, M36 |
+| caught without every expected catcher            | none |
 | honesty control `M00` (unmutated tree must pass) | survived — as required |
-
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
-- caught mutations missed a required catcher (the tests the definition names did not all fail): M35, M36 — the evidence does not prove what it claims
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -86,8 +81,8 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `bd3fd24d65f53997…`, 
 | M32 | engine protocol: an engine writes only its own entry, and carries foreign ones through | the reference silently drops the foreign engine entries when regenerating | caught | `python::artifact-golden` |
 | M33 | engine protocol: a partial projection must NAME the members it carries | the reference's verification accepts a partial projection that names no members | caught | `python::structural-control` |
 | M34 | engine protocol: a full projection emits the whole surface and claims nothing else | the reference's verification accepts a 'full' projection that also names members | caught | `python::structural-control` |
-| M35 | engine protocol: a projection that over-claims is exactly what the field exists to prevent | the port declares its verdict layer FULL while emitting a short record (the over-claim that became reachable when the layer stopped being partial, #259 cp5.1/5.2) | caught (a required catcher did not fail) | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
-| M36 | engine protocol: a projection names exactly the members its documents carry | the port drops `column` from its verdict records while still claiming it | caught (a required catcher did not fail) | `rust-engine/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries`<br>`rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M35 | engine protocol: a projection that over-claims is exactly what the field exists to prevent | the port declares its verdict layer FULL while emitting a short record (the over-claim that became reachable when the layer stopped being partial, #259 cp5.1/5.2) | caught | `rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries`<br>`rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M36 | engine protocol: a projection names exactly the members its documents carry | the port drops `column` from its verdict records while still claiming it | caught | `rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries`<br>`rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M37 | artifact: status is produced or refused, and a refusal carries no document | the port stamps a refused layer with the 'produced' status | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M38 | artifact: surface_version is null when the surface has none — absence is data | the port claims a surface version for the MOS dump, which has none | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M39 | artifact: every engine reports exactly the frozen layers, in that order | the port reports a typed-door refusal on one layer instead of all three | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
