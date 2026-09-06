@@ -1045,6 +1045,32 @@ mod tests {
         v.as_object().cloned().unwrap()
     }
 
+    /// The reference's own wording for a branch no facts document can reach,
+    /// read from `tests/fixtures/unreachable_branches.json`.
+    ///
+    /// The controls below do NOT carry their own copy of these strings. The
+    /// file is what `tests/test_unreachable_branch_probe.py` recorded by
+    /// running `check_facts` with its lowering and core substituted — the only
+    /// way to ask the oracle about a state its own inputs cannot construct —
+    /// and reading it here is what makes "the reference says so" a re-runnable
+    /// fact instead of a claim about how carefully someone read `ownir.py`.
+    /// Compiled in, so a stale fixture is a build-time change, not a runtime
+    /// file lookup inside a unit test.
+    fn oracle(key: &str) -> String {
+        const RECORDED: &str = include_str!("../../../../tests/fixtures/unreachable_branches.json");
+        let doc: Value = serde_json::from_str(RECORDED).expect("the probe record parses");
+        assert_eq!(
+            doc.get("probe_version").and_then(Value::as_u64),
+            Some(1),
+            "the probe record changed shape — teach these controls the new version"
+        );
+        doc.get("messages")
+            .and_then(|m| m.get(key))
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| panic!("the probe record carries no '{key}'"))
+            .to_owned()
+    }
+
     /// BR-V1: only ERROR-severity core diagnostics are mapped. The production
     /// path cannot produce a sub-error core verdict today (no facts producer
     /// reaches the buffer-policy pass that grades below ERROR), so the rule is
@@ -1159,10 +1185,13 @@ mod tests {
     /// the unit level rather than left unproven or quietly dropped.
     ///
     /// The expected text of this test and the two below is the REFERENCE's own
-    /// output, not a reading of its source: `check_facts` was run with its
-    /// lowering substituted, so the oracle could be asked about a state its
-    /// inputs cannot reach. That is a probe, not a fixture — a golden would
-    /// need a facts document, which is exactly what does not exist.
+    /// output, not a reading of its source, and it is not written here either:
+    /// [`oracle`] reads it out of the record
+    /// `tests/fixtures/unreachable_branches.json`, which
+    /// `tests/test_unreachable_branch_probe.py` produces by running
+    /// `check_facts` with its lowering substituted. A probe, not a golden — a
+    /// golden would need a facts document, which is exactly what does not
+    /// exist — but a re-runnable one.
     #[test]
     fn a_flow_local_code_without_a_wording_keeps_the_core_message() {
         let mut records: HashMap<String, Obj> = HashMap::new();
@@ -1192,8 +1221,8 @@ mod tests {
         assert_eq!(
             got,
             vec![
-                "IDisposable local 's': moved 's' at A.cs:9".to_owned(),
-                "pooled buffer 's': moved 's' at A.cs:9".to_owned(),
+                oracle("flow_local_fallback_plain"),
+                oracle("flow_local_fallback_pooled"),
             ]
         );
     }
@@ -1230,18 +1259,15 @@ mod tests {
             .into_iter()
             .map(|f| f.message)
             .collect();
-        // The full sentence, not a substring: these two are the reference's own
-        // output, taken by substituting the lowering under `check_facts` so the
-        // oracle could speak about a state its inputs cannot produce.
-        let sentence = |life: &str| {
-            format!(
-                "event 'src.E' is subscribed (handler 'OnE') to 'Src' — a DI {life} service \
-                 that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's \
-                 lifetime, so it can never be collected — a captive/region escape (leak, no \
-                 release path)"
-            )
-        };
-        assert_eq!(got, vec![sentence("transient"), sentence("gremlin")]);
+        // The full sentence, not a substring, and not a sentence written here:
+        // both come from the recorded probe.
+        assert_eq!(
+            got,
+            vec![
+                oracle("own014_di_transient"),
+                oracle("own014_di_unknown_lifetime"),
+            ]
+        );
     }
 
     /// BR-V4's capture-route origin phrase. The static wording has goldens; the
@@ -1264,13 +1290,7 @@ mod tests {
             .with_subject("cap_0#9")];
         let no_services = BTreeMap::new();
         let got = map_core(&diags, &records, &no_services).unwrap();
-        assert_eq!(
-            got[0].message,
-            "event 'svc.E' is subscribed (handler 'OnE') to a longer-lived source \
-             ('container') that outlives 'Vm'; the strong subscription promotes 'Vm' to the \
-             source's lifetime, so it can never be collected — a region escape (leak, no \
-             release path)"
-        );
+        assert_eq!(got[0].message, oracle("own014_capture_named_source"));
     }
 
     /// BR-D2 tolerance (1): a malformed effect entry is SKIPPED as a whole,

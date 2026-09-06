@@ -349,11 +349,31 @@ mod tests {
     /// when `origin != dep`, and reaching a different origin means walking at
     /// least one reference, so the chain always has two entries there. The
     /// guard is defensive on both sides of the port (`ownlang/effects.py`
-    /// writes the same `len(self.path) > 1`), so it is pinned here on a
-    /// hand-built storm rather than left unproven — dropping it would put an
-    /// empty `(via )` into user-visible text.
+    /// writes the same `len(self.path) > 1`) — dropping it would put an empty
+    /// `(via )` into user-visible text.
+    ///
+    /// Both expected sentences are the REFERENCE's, read from the record
+    /// `tests/fixtures/unreachable_branches.json` that
+    /// `tests/test_unreachable_branch_probe.py` produces by constructing the
+    /// reference's own `EffectStorm`. Nothing here restates them, so this
+    /// control cannot drift into agreeing with the port instead of with Python.
     #[test]
     fn the_via_clause_is_omitted_for_a_single_hop_chain() {
+        const RECORDED: &str = include_str!("../../../../tests/fixtures/unreachable_branches.json");
+        let doc: serde_json::Value =
+            serde_json::from_str(RECORDED).expect("the probe record parses");
+        assert_eq!(
+            doc.get("probe_version").and_then(serde_json::Value::as_u64),
+            Some(1),
+            "the probe record changed shape — teach this control the new version"
+        );
+        let oracle = |key: &str| {
+            doc.get("messages")
+                .and_then(|m| m.get(key))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_else(|| panic!("the probe record carries no '{key}'"))
+                .to_owned()
+        };
         let storm = EffectStorm {
             component: "W".to_owned(),
             dep: "cfg".to_owned(),
@@ -364,19 +384,17 @@ mod tests {
             decl_line: 2,
             chain: vec!["opts".to_owned()],
         };
-        assert!(
-            !storm.message().contains("(via "),
-            "a one-hop chain carries no via clause: {}",
-            storm.message()
+        assert_eq!(
+            storm.message(),
+            oracle("eff001_single_hop_chain_has_no_via")
         );
         let with_hops = EffectStorm {
             chain: vec!["cfg".to_owned(), "opts".to_owned()],
             ..storm
         };
-        assert!(
-            with_hops.message().contains("(via cfg -> opts)"),
-            "{}",
-            with_hops.message()
+        assert_eq!(
+            with_hops.message(),
+            oracle("eff001_multi_hop_chain_has_via")
         );
     }
 

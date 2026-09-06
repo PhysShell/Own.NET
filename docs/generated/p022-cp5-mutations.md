@@ -6,15 +6,15 @@ One campaign per sub-checkpoint, each frozen at what it measured. Every mutation
 
 ## checkpoint 5.1 — the message matrix and the evidence slices
 
-Campaign `p022-cp5-1` — #259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member.
+Campaign `p022-cp5-1` — #259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member. Two mutations attack the CONTROLS rather than the port: they corrupt the recorded oracle wordings in tests/fixtures/unreachable_branches.json and require the Rust controls for the unreachable branches to fail, because a control that survives a drifting oracle record is carrying a literal and only appears to be reading the reference.
 
-Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
 | recorded at commit                                         | `d80359e6bb6b035f3d63b2625677dbdfe261822b` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
-| mutations                                                  | 40 |
+| mutations                                                  | 42 |
 | caught                                                     | 40 |
 | survived                                                   | 0 |
 | compile-error (no evidence either way)                     | 0 |
@@ -22,6 +22,11 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mu
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
+- result/definition mutation sets differ (missing ['M41', 'M42'], unknown [])
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -65,6 +70,8 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mu
 | M38 | BR-V5 | BR-V5 effect slice emitted when the mint line is unknown | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M39 | BR-V5 | BR-V5 effect slice steps reversed (mint before re-run) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M40 | BR-V7 | BR-V7 dedup key drops the message member cp5 added | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M41 | BR-V4 | the recorded oracle wording drifts and the bridge control does not notice (i.e. it carries a literal, not the reference's answer) | **not recorded** | — |
+| M42 | BR-V4 | the recorded oracle wording drifts and the effect control does not notice (the own-analysis half of the same claim) | **not recorded** | — |
 
 ## checkpoint 5.2 — the refusal text and the core message it quotes
 

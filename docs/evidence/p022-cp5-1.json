@@ -2,7 +2,7 @@
   "schema": 1,
   "comment": "Mutation campaign definition for #259 checkpoint 5.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-1.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
   "campaign": "p022-cp5-1",
-  "description": "#259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member.",
+  "description": "#259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member. Two mutations attack the CONTROLS rather than the port: they corrupt the recorded oracle wordings in tests/fixtures/unreachable_branches.json and require the Rust controls for the unreachable branches to fail, because a control that survives a drifting oracle record is carrying a literal and only appears to be reading the reference.",
   "workspace": "rust",
   "control": {
     "id": "M00",
@@ -447,6 +447,28 @@
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M41",
+      "rule": "BR-V4",
+      "description": "the recorded oracle wording drifts and the bridge control does not notice (i.e. it carries a literal, not the reference's answer)",
+      "target": "tests/fixtures/unreachable_branches.json",
+      "pattern": "\"own014_di_transient\": \"event \\'src\\.E\\'",
+      "replacement": "\"own014_di_transient\": \"event 'src.X'",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
+      ]
+    },
+    {
+      "id": "M42",
+      "rule": "BR-V4",
+      "description": "the recorded oracle wording drifts and the effect control does not notice (the own-analysis half of the same claim)",
+      "target": "tests/fixtures/unreachable_branches.json",
+      "pattern": "\\(via cfg -> opts\\)",
+      "replacement": "(via opts)",
+      "expected_catchers": [
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ]
     }
   ]

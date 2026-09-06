@@ -234,9 +234,19 @@ unrecognised DI lifetime phrases (nothing is shorter than the transient region,
 and the DI life map admits only the three lifetimes), and the capture route's
 named-source origin (routing R3 mints a handle only for a source with a
 declared capture region, and `static` is the only one). Their expected text is
-**the reference's own output**, taken by substituting the lowering under
-`check_facts` so the oracle could be asked about a state its inputs cannot
-produce — not a reading of `ownir.py`.
+**the reference's own output**, and it is not written in the Rust tests: it is
+read from `tests/fixtures/unreachable_branches.json`, which
+`tests/test_unreachable_branch_probe.py` produces by running `check_facts` with
+its lowering and core substituted — the only way to ask the oracle about a
+state its own inputs cannot construct. That makes "the reference says so" a
+re-runnable fact rather than a claim about how carefully someone read
+`ownir.py`, and it removes the second copy of the text a port could otherwise
+drift into agreeing with instead of with Python.
+
+What the probe does **not** prove is worth stating in the same breath: the
+substitution removes reachability, ordering and the pipeline around the branch,
+so it can never stand in for a golden anywhere a golden is possible. It is used
+only where one is not.
 
 Every remaining zero row in the inventory fragment now carries its disposition;
 a zero row without one renders as `GAP: no control`, so the ledger cannot go

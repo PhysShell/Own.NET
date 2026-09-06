@@ -123,19 +123,22 @@ UNREACHABLE_DI_PHRASE = (
     "subscriber it could outlive exists, and an unrecognised lifetime never reaches "
     "`di_source_life` (the DI life map admits only the three). Pinned by "
     "`verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, "
-    "whose expected text is the reference's own output"
+    "whose expected text is not written in the test: it is read from the recorded "
+    "probe `tests/fixtures/unreachable_branches.json`"
 )
 UNREACHABLE_CAPTURE_PHRASE = (
     "unreachable from any facts document: routing R3 mints a handle only for a source "
     "with a declared capture region, and `static` is the only entry in that table. Pinned "
-    "by `verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_hand "
-    "ed`, whose expected text is the reference's own output"
+    "by the `verdict::tests` control named for it, whose expected text is not written in "
+    "the test: it is read from the recorded probe "
+    "`tests/fixtures/unreachable_branches.json`"
 )
 #: The disposition of the two fallback rows: see `Branch.note`.
 UNIT_PINNED = (
     "unreachable from any facts document (the nine-op flow vocabulary raises only codes "
     "that HAVE a wording); pinned by a `verdict::tests` control driven through "
-    "`map_core`, whose expected text is the reference's own output. The core message it "
+    "`map_core`, whose expected text is read from the recorded probe "
+    "`tests/fixtures/unreachable_branches.json`. The core message it "
     "interpolates is checkpoint 5.2's"
 )
 
