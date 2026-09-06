@@ -1,0 +1,45 @@
+{
+  "ownir_version": 0,
+  "module": "Protocols",
+  "_doc": [
+    "BR-V9 over the OBL family (#259 checkpoint 4b), two surfaces in one",
+    "document:",
+    "  * OBL005 is advisory AND anchorless — file '?', line 0 — so SARIF gets",
+    "    a literal '?' artifact URI with the region omitted (OD-6) and level",
+    "    'note'. OWN052 already pins the anchorless shape; this pins that the",
+    "    protocol family reaches it too, by its own route (a dead scope rule",
+    "    rather than a failed MOS solve).",
+    "  * OBL001 carries the three-step opened -> barrier -> late-close slice,",
+    "    so `codeFlows` is rendered from a PROTOCOL slice. The existing",
+    "    evidence case builds its flow from a flow-local leak; the two reach",
+    "    the same emitter through different builders, and only bytes prove",
+    "    the emitter did not change on the way."
+  ],
+  "protocols": [
+    {
+      "name": "Ghost",
+      "opens":  {"kind": "assign", "target": "x", "value": false},
+      "closes": {"kind": "assign", "target": "x", "value": true},
+      "scope": {"methods": ["GhostViewModel.Misspelled"]}
+    },
+    {
+      "name": "DocumentLoading",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [
+        {"kind": "call", "callee": "OnPropertyChanged", "args": ["Document"]}
+      ]
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.DocViewModel.Load",
+      "file": "DocViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 12},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 18},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 24}
+      ]
+    }
+  ]
+}

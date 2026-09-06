@@ -1,0 +1,54 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "ReloadViewModel.cs",
+      "line": 10,
+      "code": "OBL004",
+      "component": "ReloadViewModel",
+      "event": "DocumentLoading",
+      "handler": "Reload",
+      "message": "obligation 'DocumentLoading' may not be closed (open on some path) when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "ReloadViewModel.cs",
+          10,
+          "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "ReloadViewModel.cs",
+      "line": 30,
+      "code": "OBL002",
+      "component": "ReloadViewModel",
+      "event": "DocumentLoading",
+      "handler": "Reload",
+      "message": "obligation 'DocumentLoading' may still be open (open on some path) when barrier 'OnPropertyChanged(Document)' fires in 'Broker.ReloadViewModel.Reload' — 'IsLoaded = true' must happen first",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "ReloadViewModel.cs",
+          10,
+          "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+        ],
+        [
+          "ReloadViewModel.cs",
+          30,
+          "barrier 'OnPropertyChanged(Document)' fires while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

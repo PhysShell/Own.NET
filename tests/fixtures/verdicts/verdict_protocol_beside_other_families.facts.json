@@ -1,0 +1,66 @@
+{
+  "ownir_version": 0,
+  "module": "Mixed",
+  "components": [
+    {
+      "name": "GridViewModel",
+      "file": "Mixed.cs",
+      "subscriptions": [
+        {
+          "event": "grid.View.CellValueChanged",
+          "handler": "OnCellChanged",
+          "line": 40,
+          "resource": "unresolved-subscription"
+        }
+      ]
+    }
+  ],
+  "_doc": [
+    "BR-V1 / BR-V8: the protocol family is APPENDED to the pipeline, not a",
+    "replacement for it. One document produces a DI001, an EFF001, an OBL001",
+    "and an OWN050, all anchored in the same file, and the final list is the",
+    "BR-V8 sort over the four — (file, line, column, code) with ties keeping",
+    "insertion order.",
+    "The append POSITION itself (protocols after effects, before OWN050) is",
+    "not observable end to end: two findings from different families never",
+    "share a code, so the code component of the sort key decides their order",
+    "before insertion order can. Recorded in the checkpoint note rather than",
+    "pretended to be a control here."
+  ],
+  "services": [
+    {"name": "App", "lifetime": "singleton", "file": "Mixed.cs", "line": 5,
+     "deps": ["Db"]},
+    {"name": "Db", "lifetime": "scoped", "file": "Mixed.cs", "line": 6}
+  ],
+  "effects": [
+    {
+      "component": "Dashboard",
+      "file": "Mixed.cs",
+      "line": 12,
+      "io": true,
+      "deps": ["filters"],
+      "bindings": [{"name": "filters", "init": "object", "refs": [], "line": 11}]
+    }
+  ],
+  "protocols": [
+    {
+      "name": "DocumentLoading",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [
+        {"kind": "call", "callee": "OnPropertyChanged", "args": ["Document"]}
+      ]
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.MixedViewModel.Load",
+      "file": "Mixed.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 20},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 25},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 28}
+      ]
+    }
+  ]
+}

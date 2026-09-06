@@ -4,7 +4,7 @@
 
 Campaign `p022-cp4` — #259 cp4 analysis wiring: the BR-V1..V8 verdict mapping in own-bridge (skip list, map-or-raise subject, anchors, tiering, dedup key member by member, stable sort), the BR-D2/L8/M1 side paths, the two declared boundaries (protocol refusal, u32 coordinate refusal) and the own-analysis subject stamping the mapping rests on.
 
-Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `15b10f36c0d2b46b…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `c4ca44f6bbc92cdd…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
@@ -18,6 +18,10 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `15b10f36c0d2b46b…
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -34,7 +38,7 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `15b10f36c0d2b46b…
 | M11 | BR-M1 | BR-M1 OWN052 note never minted | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M12 | BR-V3 | BR-V3 OWN001 leak emitted without a subject (own-analysis) | caught | `own-analysis/tests/subject.rs::leak_carries_the_acquire_origin`<br>`own-analysis/tests/subject.rs::origin_is_inherited_across_a_move`<br>`own-analysis/tests/subject.rs::param_leak_carries_the_param_origin`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M13 | BR-V3 | BR-V3 OWN014 emitted without a subject (own-analysis) | caught | `own-analysis/tests/subject.rs::region_escape_carries_the_source_identity`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M14 | — | protocol boundary: a protocol-bearing document is no longer refused | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M14 | — | protocol family silently missing: the OBL findings are computed and then dropped. Re-anchored at #259 cp4b — the rule cp4 stated as a REFUSAL (a protocol-bearing document must never get a verdict list with a family missing) is now stated as a WIRING, and this is the same rule attacked on today's tree | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M15 | — | coordinate boundary: core_line clamps instead of refusing | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M16 | BR-V6 | BR-V6 source tiering inverted (static warns, injected does not) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M17 | BR-V6 | BR-V6 an empty ignore_reason suppresses | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |

@@ -114,9 +114,6 @@ class Branch:
                                                          re.DOTALL) is not None
 
 
-#: The OBL family's disposition — see `Branch.note`.
-PROTOCOL_IS_4B = (
-    "#259 row 4b (the OBL analysis is not ported); outside cp5 by declaration")
 #: Dispositions for the rows a facts document cannot reach — see `Branch.note`.
 UNREACHABLE_DI_PHRASE = (
     "unreachable from any facts document: `transient` is the shortest region, so no "
@@ -319,11 +316,32 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
            rf"creates, into a field: .*", ("DI005",)),
     Branch("eff001_message", "BR-V4", CORE_ANALYSIS, "EFF001 storm message (effects.py)",
            rf"effect re-runs on every render: dependency '{N}'.*", ("EFF001",)),
-    # the protocol family: bridge-synthesized, but the analysis behind it is
-    # #259 row 4b and refused by the port — out of cp5's scope by declaration.
-    Branch("obl_message", "BR-V4", PROTOCOL, "OBL001-005 message (4b, not cp5)",
-           r".*", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
-           note=PROTOCOL_IS_4B),
+    # the protocol family (BR-P3). Bridge-synthesized like the matrix above,
+    # but from a violation rather than a handle record, so it is its own
+    # source: the analysis owns the verdict, the bridge owns the sentence.
+    # Deliberately line-free — OwnAudit fingerprints on (path, rule, message).
+    Branch("obl001_barrier_definite", "BR-V4", PROTOCOL,
+           "OBL001: a barrier fires while the obligation is open on every path",
+           rf"obligation '{N}' is still open when barrier '{N}' fires in '{N}' — "
+           rf"'{N}' must happen first", ("OBL001",)),
+    Branch("obl002_barrier_maybe", "BR-V4", PROTOCOL,
+           "OBL002: a barrier fires while it is open on some path",
+           rf"obligation '{N}' may still be open \(open on some path\) when barrier "
+           rf"'{N}' fires in '{N}' — '{N}' must happen first", ("OBL002",)),
+    Branch("obl003_exit_definite", "BR-V4", PROTOCOL,
+           "OBL003: the method leaves while the obligation is open on every path",
+           rf"obligation '{N}' is not closed when {N} — the object is published in its "
+           rf"in-between state; close with '{N}' on every path \(a finally block covers "
+           rf"the throw paths\)", ("OBL003",)),
+    Branch("obl004_exit_maybe", "BR-V4", PROTOCOL,
+           "OBL004: the method leaves while it is open on some path",
+           rf"obligation '{N}' may not be closed \(open on some path\) when {N} — the "
+           rf"object is published in its in-between state; close with '{N}' on every "
+           rf"path \(a finally block covers the throw paths\)", ("OBL004",)),
+    Branch("obl005_dead_rule", "BR-V4", PROTOCOL,
+           "OBL005: a scoped protocol matched no reported method (advisory)",
+           rf"protocol '{N}' is scoped to \[.*\] but no reported method matches — "
+           rf"the rule is dead \(typo in scope\.methods\?\)", ("OBL005",)),
 )
 
 # The `_consumed_suffix` / `[singleton registered at …]` tails ride inside the
@@ -340,6 +358,11 @@ MESSAGE_TAILS: tuple[tuple[str, str, tuple[str, ...], str], ...] = (
      ("DI004", "DI005"), r".* \[singleton registered at .*?:\d+\]"),
     ("tail_registered_absent", "no registration tail (the primary IS the registration)",
      ("DI004", "DI005"), r"(?!.*\[singleton registered at ).*"),
+    ("tail_obl_exit_falls_off", "`the method falls off the end` — a leak off the end "
+     "has no exit site to name", ("OBL003", "OBL004"),
+     r".* when the method falls off the end — .*"),
+    ("tail_obl_exit_via", "`'<method>' exits via return|throw` — the exit site is named",
+     ("OBL003", "OBL004"), r".* when '.*?' exits via (?:return|throw) — .*"),
 )
 
 
@@ -382,6 +405,14 @@ class SliceFamily:
 
 
 DI_CODES = ("DI001", "DI002", "DI003", "DI004", "DI005")
+OBL_CODES = ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005")
+# The four protocol step labels (BR-P3). Written out rather than matched with
+# `.*`, because which STEP a slice carries is the thing the family distinguishes
+# — a two-step slice built from the wrong pair would otherwise count as covered.
+_OBL_OPENED = rf"obligation '{N}' opens here \({N}\)"
+_OBL_BARRIER = rf"barrier '{N}' fires while it is open"
+_OBL_EXIT = rf"the method exits here via {N} while it is open"
+_OBL_LATE_CLOSE = r"closed here — after the barrier has already fired"
 _CAPTOR = rf"singleton '{N}' \(captor\)"
 _VIA = rf"via '{N}'"
 _END = r"(?:captures scoped service|weakly captures scoped service|captures transient "
@@ -422,12 +453,20 @@ SLICE_FAMILIES: tuple[SliceFamily, ...] = (
           ("OWN009", "may be used here after release on some path"),
           ("OWN025", "viewed here at full length, past what it was rented for"))
       if not (code == "OWN025" and not pool)),
-    SliceFamily("protocol_flow", "OBL opened → barrier (→ late close) — 4b, not cp5",
-                "flow", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
-                (r".*", r".*"), note=PROTOCOL_IS_4B),
-    SliceFamily("protocol_flow_3", "OBL opened → barrier → late close — 4b, not cp5",
-                "flow", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
-                (r".*", r".*", r".*"), note=PROTOCOL_IS_4B),
+    SliceFamily("protocol_flow_3", "OBL opened → barrier → late close", "flow",
+                OBL_CODES, (_OBL_OPENED, _OBL_BARRIER, _OBL_LATE_CLOSE)),
+    SliceFamily("protocol_flow_open_barrier",
+                "OBL opened → barrier, no close after it", "flow", OBL_CODES,
+                (_OBL_OPENED, _OBL_BARRIER)),
+    SliceFamily("protocol_flow_open_exit", "OBL opened → the exit it leaked through",
+                "flow", OBL_CODES, (_OBL_OPENED, _OBL_EXIT)),
+    SliceFamily("protocol_flow_open_only",
+                "OBL opened, and nothing else: a leak off the END anchors AT the open, "
+                "so its second step would repeat the first", "flow", OBL_CODES,
+                (_OBL_OPENED,)),
+    SliceFamily("protocol_flow_exit_only",
+                "OBL exit alone: the open carries no line (< 1) and its step is dropped",
+                "flow", OBL_CODES, (_OBL_EXIT,)),
 )
 
 # The degradations BR-V5 names in prose. Counted as their own rows because a
@@ -470,6 +509,9 @@ DEGRADATIONS: tuple[Degradation, ...] = (
     Degradation("flowlocal_flow_absent",
                 "OWN001 on a local/pooled record: a single-point finding, no slice "
                 "by design", "flow", ("OWN001",), ("disposable", "pooled buffer")),
+    Degradation("protocol_flow_absent",
+                "an OBL finding with no slice at all: the anchorless OBL005 by design, "
+                "and a leak whose only step has an unknown line", "flow", OBL_CODES),
 )
 
 

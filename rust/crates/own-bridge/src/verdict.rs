@@ -18,15 +18,19 @@
 //! The pipeline is BR-V1 verbatim: lower → core `check_module` → map the
 //! ERROR-severity core diagnostics only, skipping the closed BR-V2 artifact
 //! list, each through its `subject` to a known handle (or refuse, BR-V3) →
-//! append DI, effect, OWN050, OWN051 and OWN052 findings in that order → dedup
-//! (BR-V7) → stable sort by `(file, line, column or 0, code)` (BR-V8).
+//! append DI, effect, protocol, OWN050, OWN051 and OWN052 findings in that
+//! order → dedup (BR-V7) → stable sort by `(file, line, column or 0, code)`
+//! (BR-V8).
 //!
-//! **Not wired, and refused rather than skipped:** the obligation-protocol
-//! analysis (OBL001–005, `ownlang/obligations.py`) has no `own-analysis` port.
-//! A document that declares a protocol would get a verdict list with a family
-//! silently missing, so it is rejected with a [`BridgeError`] naming the
-//! boundary; the verdict fixture ledger records the two reference documents
-//! this excludes.
+//! **The obligation-protocol family is wired (#259 checkpoint 4b).** Until 4b
+//! this module *refused* a document declaring a protocol rather than return a
+//! verdict list with a family silently missing, and the verdict ledger carried
+//! the two reference documents as declared exclusions. `own-analysis` now
+//! owns the walk (`obligation.rs`), `own-ir`'s grammar builds the values both
+//! doors read, and BR-P3 below maps them: the `(kind, definite)` table, the
+//! line-free wordings, the identity derivations and the opened→barrier(→late
+//! close) slice. The two exclusions are promoted, and the goldens they were
+//! excluded against were not regenerated to get there.
 //!
 //! **The dedup key is complete.** The reference deduplicates on
 //! `(file, line, column, code, component, event, handler, message, kind,
@@ -51,7 +55,9 @@ use crate::lower::{self, as_col, Obj, Own051};
 use crate::{ast, BridgeError};
 use own_analysis::di::{self, Service, SiteTriple};
 use own_analysis::effect::{self, Binding, Effect};
+use own_analysis::obligation::{Violation, ViolationKind};
 use own_diagnostics::{Diagnostic, Severity};
+use own_ir::protocol::{self, MethodEvents, Protocol};
 use own_ir::OwnIr;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
@@ -959,19 +965,194 @@ fn dedup_key(f: &Finding) -> DedupKey {
     )
 }
 
-/// The obligation-protocol boundary: a document declaring a protocol cannot
-/// be given a complete verdict list by this core, so it is refused.
-fn refuse_protocols(root: &Obj) -> Result<(), BridgeError> {
-    match root.get("protocols") {
-        Some(Value::Array(items)) if !items.is_empty() => Err(BridgeError(format!(
-            "this document declares {} obligation protocol(s), and the protocol \
-             analysis (OBL001–005, ownlang/obligations.py) is not wired into this \
-             core yet — refusing rather than returning a verdict list with a family \
-             missing (#259 boundary; the verdict fixture ledger records the excluded \
-             reference documents)",
-            items.len()
-        ))),
-        _ => Ok(()),
+/// BR-P3: the obligation-protocol family.
+///
+/// Rules and per-method event trees parse through the **shared** grammar
+/// ([`own_ir::protocol`] — the single shape authority for both doors),
+/// `own_analysis` owns the verdicts, and this function does what the bridge
+/// owns: the `(kind, definite)` table, the wordings, the identity derivations
+/// and the evidence slice.
+///
+/// Three tolerances are the reference's, and two of them are visible only from
+/// the raw document (BR-D2): a malformed entry is **skipped as a whole** rather
+/// than patched into shape, a duplicate protocol name resolves **first-wins**,
+/// and a `protocols` / `protocol_functions` block that is not a list yields
+/// nothing. The last is unreachable through the typed `OwnIr` constructor
+/// (#294 OD-1), so it is pinned by a `verdict::tests` control driving this
+/// function on a raw object, exactly as the effect block's is.
+fn protocol_findings(root: &Obj) -> Vec<Finding> {
+    // Both blocks are checked for list-ness BEFORE either is parsed, as the
+    // reference does: a malformed sibling silences the whole family.
+    let (Some(raw_protos), Some(raw_fns)) =
+        (block(root, "protocols"), block(root, "protocol_functions"))
+    else {
+        return Vec::new();
+    };
+    let mut protocols: Vec<Protocol> = Vec::new();
+    for raw in raw_protos {
+        let Ok(parsed) = protocol::parse_protocol(raw) else {
+            continue;
+        };
+        // A duplicate name is rejected by the strict door; on this one the
+        // later record is skipped (first wins, deterministically) — the name
+        // is the identity the violation -> protocol re-pairing below needs.
+        if protocols.iter().any(|p| p.name == parsed.name) {
+            continue;
+        }
+        protocols.push(parsed);
+    }
+    let methods: Vec<MethodEvents> = raw_fns
+        .iter()
+        .filter_map(|raw| protocol::parse_method(raw).ok())
+        .collect();
+    if protocols.is_empty() {
+        return Vec::new();
+    }
+
+    let mut out = Vec::new();
+    for v in own_analysis::check_protocols(&protocols, &methods) {
+        let proto = protocols
+            .iter()
+            .find(|p| p.name == v.protocol)
+            .expect("a violation names a protocol from the list it was checked against");
+        let code = match (v.kind, v.definite) {
+            // The definite/maybe split is the same lattice story as OWN002 vs
+            // OWN009 — open on every path vs open on some path.
+            (ViolationKind::Barrier, true) => "OBL001",
+            (ViolationKind::Barrier, false) => "OBL002",
+            (ViolationKind::Exit, true) => "OBL003",
+            (ViolationKind::Exit, false) => "OBL004",
+        };
+        let mut f = Finding::new(v.file.clone(), v.line, code, "protocol obligation");
+        f.component = component_of(&v.method);
+        f.handler = String::from(v.method.rsplit('.').next().unwrap_or(&v.method));
+        f.message = protocol_message(&v, proto);
+        // BR-V5: opened — barrier (or exit) — late close, with the steps
+        // whose line is unknown dropped. An end-of-method leak anchors AT the
+        // open, so its second step would repeat the first and is not built.
+        let mut flow: Vec<(i64, String)> = vec![(
+            v.open_line,
+            format!(
+                "obligation '{}' opens here ({})",
+                v.protocol,
+                proto.opens.describe()
+            ),
+        )];
+        match v.kind {
+            ViolationKind::Barrier => flow.push((
+                v.line,
+                format!("barrier '{}' fires while it is open", v.barrier_desc),
+            )),
+            ViolationKind::Exit if v.line != v.open_line => flow.push((
+                v.line,
+                format!(
+                    "the method exits here via {} while it is open",
+                    v.barrier_desc
+                ),
+            )),
+            ViolationKind::Exit => {}
+        }
+        if let Some(close) = v.close_line {
+            flow.push((
+                close,
+                "closed here — after the barrier has already fired".to_owned(),
+            ));
+        }
+        f.flow = flow
+            .into_iter()
+            .filter(|(line, _)| *line >= 1)
+            .map(|(line, label)| (v.file.clone(), line, label))
+            .collect();
+        f.event = v.protocol;
+        out.push(f);
+    }
+    // A scoped protocol that matched no reported method is a dead rule —
+    // surfaced honestly (advisory, never fails the build), like OWN050, and
+    // anchorless like OWN052 (BR-V5; the SARIF projection of that is OD-6).
+    for p in own_analysis::unmatched_scopes(&protocols, &methods) {
+        let mut f = Finding::new("?", 0, "OBL005", "protocol obligation");
+        f.component = String::from("?");
+        f.event.clone_from(&p.name);
+        f.advisory = true;
+        let mut scope: Vec<&str> = p.methods.iter().map(String::as_str).collect();
+        scope.sort_unstable();
+        f.message = format!(
+            "protocol '{}' is scoped to {} but no reported method matches — \
+             the rule is dead (typo in scope.methods?)",
+            p.name,
+            py_list(&scope)
+        );
+        out.push(f);
+    }
+    out
+}
+
+/// `facts.get(key, [])` read as a list: absent is empty, a present non-list is
+/// the reference's "not a list" refusal of the whole family.
+fn block<'a>(root: &'a Obj, key: &str) -> Option<&'a [Value]> {
+    match root.get(key) {
+        None => Some(&[]),
+        Some(Value::Array(items)) => Some(items),
+        Some(_) => None,
+    }
+}
+
+/// `v.method.rsplit(".", 2)[-2] if "." in name else name` — the second-to-last
+/// dotted segment, or the whole name when it carries no dot.
+///
+/// Reading the second element from the right is the same value the reference's
+/// bounded split takes, including on the awkward inputs: `".Load"` and `"a..b"`
+/// both name an empty component in both implementations.
+fn component_of(method: &str) -> String {
+    String::from(method.rsplit('.').nth(1).unwrap_or(method))
+}
+
+/// `repr(sorted(methods))` — a Python list of strings, which `CPython`
+/// renders with `, ` between elements and each element through `repr`. The
+/// Layer 3 goldens compare it byte for byte, so the separator and the quote
+/// rule are both contract.
+fn py_list(items: &[&str]) -> String {
+    let rendered: Vec<String> = items.iter().map(|s| py_repr(Some(s))).collect();
+    format!("[{}]", rendered.join(", "))
+}
+
+/// BR-V4 for the OBL family. Deliberately **line-free**: `OwnAudit` fingerprints
+/// findings on `(path, rule, message)`, so a line number here would break the
+/// baseline ratchet and the FP-judge overlay on every unrelated edit. The lines
+/// live in the evidence slice instead.
+fn protocol_message(v: &Violation, proto: &Protocol) -> String {
+    let close = proto.closes.describe();
+    match v.kind {
+        ViolationKind::Barrier => {
+            let state = if v.definite {
+                "is still open"
+            } else {
+                "may still be open (open on some path)"
+            };
+            format!(
+                "obligation '{}' {state} when barrier '{}' fires in '{}' — \
+                 '{close}' must happen first",
+                v.protocol, v.barrier_desc, v.method
+            )
+        }
+        ViolationKind::Exit => {
+            let state = if v.definite {
+                "is not closed"
+            } else {
+                "may not be closed (open on some path)"
+            };
+            let exit_desc = if v.barrier_desc == "end of method" {
+                "the method falls off the end".to_owned()
+            } else {
+                format!("'{}' exits via {}", v.method, v.barrier_desc)
+            };
+            format!(
+                "obligation '{}' {state} when {exit_desc} — the object is published \
+                 in its in-between state; close with '{close}' on every path (a finally \
+                 block covers the throw paths)",
+                v.protocol
+            )
+        }
     }
 }
 
@@ -981,8 +1162,6 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
     let root = root_value
         .as_object()
         .expect("a struct serializes to an object");
-    refuse_protocols(root)?;
-
     let lowering = lower::lower_full(facts)?;
     let module = ast::to_module(&lowering.doc)?;
     let diags = own_analysis::check_module(&module);
@@ -1003,7 +1182,7 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
     let mut findings = map_core(&diags, &lowering.handles, &svc_loc)?;
     findings.extend(di_findings(root)?);
     findings.extend(effect_findings(root)?);
-    // protocol findings would append here (refused above until wired).
+    findings.extend(protocol_findings(root));
     findings.extend(unresolved_findings(root));
     findings.extend(lowering.advisories.iter().map(transfer_note));
     let module_name = root.get("module").map_or_else(|| "?".to_owned(), py_str);
@@ -1035,7 +1214,7 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 mod tests {
-    use super::{dedup, di_findings, effect_findings, map_core, Finding, Obj};
+    use super::{dedup, di_findings, effect_findings, map_core, protocol_findings, Finding, Obj};
     use own_diagnostics::{Diagnostic, Severity};
     use serde_json::{json, Value};
     use std::collections::BTreeMap;
@@ -1337,6 +1516,53 @@ mod tests {
     fn effects_block_that_is_not_a_list_yields_nothing() {
         let root = obj(&json!({"effects": "nope"}));
         assert!(effect_findings(&root).unwrap().is_empty());
+    }
+
+    /// BR-D2 on the raw document: a `protocols` or `protocol_functions` block
+    /// that is not a list silences the WHOLE family — including the sibling
+    /// block, which the reference checks before parsing either.
+    ///
+    /// Driven through `protocol_findings` directly because the typed `OwnIr`
+    /// constructor types both blocks as arrays, so no document can carry a
+    /// non-list one through the door (#294 OD-1). The same shape, and the same
+    /// reason, as `effects_block_that_is_not_a_list_yields_nothing` above.
+    #[test]
+    fn protocol_blocks_that_are_not_lists_yield_nothing() {
+        let rule = json!({
+            "name": "P",
+            "opens": {"kind": "assign", "target": "x", "value": false},
+            "closes": {"kind": "assign", "target": "x", "value": true}
+        });
+        let method = json!({
+            "name": "VM.Go", "file": "VM.cs",
+            "events": [{"ev": "assign", "target": "x", "value": false, "line": 3}]
+        });
+        // The control twin first: as LISTS these same records do report.
+        let live = obj(&json!({
+            "protocols": [&rule], "protocol_functions": [&method]
+        }));
+        assert_eq!(
+            protocol_findings(&live)
+                .iter()
+                .map(|f| f.code.as_str())
+                .collect::<Vec<_>>(),
+            vec!["OBL003"],
+            "the twin must report, or the assertions below prove nothing"
+        );
+        for root in [
+            json!({"protocols": "nope", "protocol_functions": [&method]}),
+            json!({"protocols": [&rule], "protocol_functions": "nope"}),
+            json!({"protocols": {"name": "P"}, "protocol_functions": []}),
+        ] {
+            assert!(
+                protocol_findings(&obj(&root)).is_empty(),
+                "a non-list protocol block must silence the family: {root}"
+            );
+        }
+        // Absent is not "not a list": both blocks default to empty.
+        assert!(protocol_findings(&obj(&json!({}))).is_empty());
+        assert!(protocol_findings(&obj(&json!({"protocols": [&rule]}))).is_empty());
+        assert!(protocol_findings(&obj(&json!({"protocol_functions": [&method]}))).is_empty());
     }
 
     /// BR-P1 on the raw document: `disposable` counts only as the JSON `true`,

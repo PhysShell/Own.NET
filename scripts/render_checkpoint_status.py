@@ -254,8 +254,8 @@ def render_inventory(inv: SurfaceInventory) -> str:
         "`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` "
         "— the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own "
         "finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated "
-        "verbatim; `bridge-protocol` — the OBL family, which is #259 row 4b and outside "
-        "cp5.",
+        "verbatim; `bridge-protocol` — the OBL family (BR-P3), synthesized by the "
+        "bridge from a violation the obligation analysis owns.",
         "",
     ]
     lines += _coverage_table(inv.messages)

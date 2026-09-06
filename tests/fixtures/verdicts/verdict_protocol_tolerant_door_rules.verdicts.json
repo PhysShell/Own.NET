@@ -1,0 +1,37 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Go.cs",
+      "line": 20,
+      "code": "OBL001",
+      "component": "Go",
+      "event": "Dup",
+      "handler": "Run",
+      "message": "obligation 'Dup' is still open when barrier 'Notify()' fires in 'Broker.Go.Run' — 'A = true' must happen first",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Go.cs",
+          10,
+          "obligation 'Dup' opens here (A = false)"
+        ],
+        [
+          "Go.cs",
+          20,
+          "barrier 'Notify()' fires while it is open"
+        ],
+        [
+          "Go.cs",
+          30,
+          "closed here — after the barrier has already fired"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

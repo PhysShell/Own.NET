@@ -1,0 +1,53 @@
+{
+  "ownir_version": 0,
+  "module": "Tolerant",
+  "components": [],
+  "_doc": [
+    "BR-D2 / BR-P3 on the tolerant door, three rules in one document:",
+    "  * a malformed protocols[] entry is SKIPPED AS A WHOLE, never patched",
+    "    into shape ('Broken' states no opens/closes);",
+    "  * a malformed protocol_functions[] entry is skipped the same way",
+    "    ('Broker.Bad.Events' carries an event outside the closed vocabulary);",
+    "  * a duplicate protocol name resolves FIRST-WINS, deterministically —",
+    "    the name is the identity a verdict maps back by, so the second record",
+    "    is dropped WHOLE rather than merged. The two 'Dup' records disagree",
+    "    about everything, so a mixed reading would be visible in the message:",
+    "    the first opens on an assign and closes with 'A = true'.",
+    "The strict door REJECTS this document (it fail-louds on both malformed",
+    "records and on the duplicate name); that asymmetry is BR-D1 vs BR-D2 and",
+    "is the point of the case."
+  ],
+  "protocols": [
+    {
+      "name": "Dup",
+      "opens":  {"kind": "assign", "target": "A", "value": false},
+      "closes": {"kind": "assign", "target": "A", "value": true},
+      "barriers": [{"kind": "call", "callee": "Notify"}]
+    },
+    {
+      "name": "Dup",
+      "opens":  {"kind": "call", "callee": "BeginUpdate"},
+      "closes": {"kind": "call", "callee": "EndUpdate"},
+      "barriers": [{"kind": "call", "callee": "Notify"}]
+    },
+    {"name": "Broken"}
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.Go.Run",
+      "file": "Go.cs",
+      "events": [
+        {"ev": "assign", "target": "A", "value": false, "line": 10},
+        {"ev": "call", "callee": "BeginUpdate", "line": 11},
+        {"ev": "call", "callee": "Notify", "line": 20},
+        {"ev": "assign", "target": "A", "value": true, "line": 30},
+        {"ev": "call", "callee": "EndUpdate", "line": 31}
+      ]
+    },
+    {
+      "name": "Broker.Bad.Events",
+      "file": "Bad.cs",
+      "events": [{"ev": "goto", "line": 1}]
+    }
+  ]
+}

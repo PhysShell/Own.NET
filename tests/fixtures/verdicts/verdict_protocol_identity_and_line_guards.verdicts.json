@@ -1,0 +1,124 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Bare.cs",
+      "line": 4,
+      "code": "OBL003",
+      "component": "Bare",
+      "event": "Guard",
+      "handler": "Bare",
+      "message": "obligation 'Guard' is not closed when 'Bare' exits via throw — the object is published in its in-between state; close with 'x = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Bare.cs",
+          4,
+          "the method exits here via throw while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Odd.cs",
+      "line": 13,
+      "code": "OBL003",
+      "component": "",
+      "event": "Guard",
+      "handler": "Leading",
+      "message": "obligation 'Guard' is not closed when '.Leading' exits via return — the object is published in its in-between state; close with 'x = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Odd.cs",
+          12,
+          "obligation 'Guard' opens here (x = true)"
+        ],
+        [
+          "Odd.cs",
+          13,
+          "the method exits here via return while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Odd.cs",
+      "line": 21,
+      "code": "OBL003",
+      "component": "",
+      "event": "Guard",
+      "handler": "b",
+      "message": "obligation 'Guard' is not closed when 'a..b' exits via return — the object is published in its in-between state; close with 'x = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Odd.cs",
+          20,
+          "obligation 'Guard' opens here (x = true)"
+        ],
+        [
+          "Odd.cs",
+          21,
+          "the method exits here via return while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Two.cs",
+      "line": 9,
+      "code": "OBL003",
+      "component": "Vm",
+      "event": "Guard",
+      "handler": "Two",
+      "message": "obligation 'Guard' is not closed when 'Vm.Two' exits via return — the object is published in its in-between state; close with 'x = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Two.cs",
+          6,
+          "obligation 'Guard' opens here (x = true)"
+        ],
+        [
+          "Two.cs",
+          9,
+          "the method exits here via return while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Zero.cs",
+      "line": 0,
+      "code": "OBL003",
+      "component": "Zero",
+      "event": "Guard",
+      "handler": "Zero",
+      "message": "obligation 'Guard' is not closed when the method falls off the end — the object is published in its in-between state; close with 'x = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}
