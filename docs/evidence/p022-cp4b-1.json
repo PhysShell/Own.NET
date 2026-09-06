@@ -2,7 +2,7 @@
   "schema": 1,
   "comment": "Mutation campaign definition for #259 checkpoint 4b.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4b-1.json --run (on a clean tree). The recorded run lives beside this file as p022-cp4b-1.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
   "campaign": "p022-cp4b-1",
-  "description": "#259 cp4b.1, the obligation-protocol ANALYSIS: the {OPEN, CLOSED} lattice and its min-line provenance, the definite/maybe split, the opens-before-closes-before-barriers leaf order with allow beating barrier, the never-invent asymmetry of an opaque write, the exit rules and the anchor-at-open precedent, the branch join, the loop's silent fixpoint and single emitting pass, the reachability-blind close-line evidence with its strictly-after and barriers-only rules, and the four-part sort key — plus the half of the shared grammar the analysis reads (scope matching, tracked flags, args narrowing, assign-value narrowing and the record defaults). Two mutations attack the CONTROL rather than the port: they corrupt the frozen oracle in tests/fixtures/obligation_fact_parity.json and require the replay to fail, because a replay that survives a drifting oracle is comparing against nothing.",
+  "description": "#259 cp4b.1, the obligation-protocol ANALYSIS: the {OPEN, CLOSED} lattice and its min-line provenance, the definite/maybe split, the opens-before-closes-before-barriers leaf order with allow beating barrier, the never-invent asymmetry of an opaque write, the exit rules and the anchor-at-open precedent, the branch join, the loop's silent fixpoint and single emitting pass, the reachability-blind close-line evidence with its strictly-after and barriers-only rules, and the four-part sort key — plus the half of the shared grammar the analysis reads (scope matching, tracked flags, args narrowing, assign-value narrowing and the record defaults). M16 attacks `_emit`'s own guard: the guard around the loop's emitting pass is provably redundant (emission is re-checked inside `_emit`), so no mutation of it can be non-equivalent — measured, not assumed. Two mutations attack the CONTROL rather than the port: they corrupt the frozen oracle in tests/fixtures/obligation_fact_parity.json and require the replay to fail, because a replay that survives a drifting oracle is comparing against nothing.",
   "workspace": "rust",
   "control": {
     "id": "M00",
@@ -178,11 +178,11 @@
     },
     {
       "id": "M16",
-      "rule": "obligations.walk (while) — nested silence",
-      "description": "the emitting pass runs even while an enclosing loop is still silent",
+      "rule": "obligations._emit (the silent phase)",
+      "description": "the silent phase does not suppress emission, so a loop's fixpoint iterations report. Attacks `_emit`'s guard rather than the redundant one around the emitting pass: with `_emit` guarded, removing `if !self.silent` around `walk_seq` is an EQUIVALENT mutant (measured — it survived), because a nested pass under an enclosing silent phase emits nothing either way",
       "target": "rust/crates/own-analysis/src/obligation.rs",
-      "pattern": "                if !self\\.silent \\{\\n                    self\\.walk_seq\\(body, header\\);\\n                \\}",
-      "replacement": "                {\n                    self.walk_seq(body, header);\n                }",
+      "pattern": "        if self\\.silent \\{\\n            return;\\n        \\}",
+      "replacement": "        if false {\n            return;\n        }",
       "expected_catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
         "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once"

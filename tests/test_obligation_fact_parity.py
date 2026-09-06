@@ -85,6 +85,21 @@ BATCH_UPDATE: dict[str, Any] = {
 }
 
 
+#: A protocol whose barrier matches EVERY `OnPropertyChanged` call and whose
+#: allow list names one argument — the only shape in which `allow` can actually
+#: beat a barrier. `DOC_LOAD`'s barrier and allow argument sets are disjoint, so
+#: no event of its can match both, and the rule is unobservable there (the
+#: reference's own suite has the same blind spot).
+WIDE_BARRIER: dict[str, Any] = dict(
+    DOC_LOAD, name="WideBarrier",
+    barriers=[{"kind": "call", "callee": "OnPropertyChanged"}],
+    allow=[{"kind": "call", "callee": "OnPropertyChanged", "args": ["IsBusy"]}])
+
+#: `DOC_LOAD` without its allow list. An event with an UNKNOWN argument matches
+#: neither a narrowed barrier nor a narrowed allow entry, so with an allow list
+#: present the two rules mask each other; this protocol isolates the barrier.
+NO_ALLOW: dict[str, Any] = dict(DOC_LOAD, name="DocLoadNoAllow", allow=[])
+
 #: A protocol whose barrier is an *assign* matcher rather than a call — the
 #: `target = ...` description branch, which no call barrier can reach.
 DIRTY_FLAG: dict[str, Any] = dict(
@@ -161,10 +176,14 @@ _CASES: list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]] = [
     # -- matching ---------------------------------------------------------------
     ("allow_beats_barrier",
      [DOC_LOAD], [_method(_open(), _notify("IsBusy", 20), _close())]),
+    ("allow_beats_barrier_when_one_event_matches_both",
+     [WIDE_BARRIER], [_method(_open(), _notify("IsBusy", 20), _notify(), _close())]),
     ("args_narrowing_rejects_another_argument",
      [DOC_LOAD], [_method(_open(), _notify("Totals", 20), _close())]),
     ("args_narrowing_rejects_an_unknown_argument",
      [DOC_LOAD], [_method(_open(), _notify(None, 21), _close())]),
+    ("args_narrowing_rejects_an_unknown_argument_with_no_allow_list",
+     [NO_ALLOW], [_method(_open(), _notify(None, 21), _close())]),
     ("an_unnamed_call_is_neutral",
      [DOC_LOAD], [_method(_open(), _call("RebuildIndexes", 20), _notify(), _close())]),
     ("a_bare_call_barrier_matches_any_argument",
@@ -218,6 +237,10 @@ _CASES: list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]] = [
      [_proto(exit_barriers=False)], [_method(_open(), _notify(), _close())]),
     ("exit_barriers_false_with_no_barrier_is_clean",
      [_proto(exit_barriers=False)], [_method(_open())]),
+    ("exit_barriers_false_silences_a_return_and_a_throw",
+     [_proto(exit_barriers=False)],
+     [_method(_open(), _if(20, [{"ev": "return", "line": 25}],
+                           [{"ev": "throw", "line": 26}]))]),
     ("events_after_a_top_level_return_are_unreachable",
      [DOC_LOAD], [_method(_open(), {"ev": "return", "line": 20}, _open(30),
                           _notify())]),

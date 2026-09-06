@@ -273,6 +273,85 @@
       "dead": []
     },
     {
+      "name": "allow_beats_barrier_when_one_event_matches_both",
+      "protocols": [
+        {
+          "name": "WideBarrier",
+          "opens": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": false
+          },
+          "closes": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": true
+          },
+          "barriers": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged"
+            }
+          ],
+          "allow": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "IsBusy"
+              ]
+            }
+          ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "Ns.VM.Load",
+          "file": "VM.cs",
+          "events": [
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": false,
+              "line": 10
+            },
+            {
+              "ev": "call",
+              "callee": "OnPropertyChanged",
+              "line": 20,
+              "arg": "IsBusy"
+            },
+            {
+              "ev": "call",
+              "callee": "OnPropertyChanged",
+              "line": 50,
+              "arg": "Document"
+            },
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": true,
+              "line": 90
+            }
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "protocol": "WideBarrier",
+          "method": "Ns.VM.Load",
+          "file": "VM.cs",
+          "line": 50,
+          "kind": "barrier",
+          "definite": true,
+          "open_line": 10,
+          "barrier_desc": "OnPropertyChanged(Document)",
+          "close_line": 90
+        }
+      ],
+      "dead": []
+    },
+    {
       "name": "args_narrowing_rejects_another_argument",
       "protocols": [
         {
@@ -373,6 +452,62 @@
               ]
             }
           ]
+        }
+      ],
+      "methods": [
+        {
+          "name": "Ns.VM.Load",
+          "file": "VM.cs",
+          "events": [
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": false,
+              "line": 10
+            },
+            {
+              "ev": "call",
+              "callee": "OnPropertyChanged",
+              "line": 21
+            },
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": true,
+              "line": 90
+            }
+          ]
+        }
+      ],
+      "expected": [],
+      "dead": []
+    },
+    {
+      "name": "args_narrowing_rejects_an_unknown_argument_with_no_allow_list",
+      "protocols": [
+        {
+          "name": "DocLoadNoAllow",
+          "opens": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": false
+          },
+          "closes": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": true
+          },
+          "barriers": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "Document",
+                "Rows"
+              ]
+            }
+          ],
+          "allow": []
         }
       ],
       "methods": [
@@ -1997,6 +2132,77 @@
               "target": "IsLoaded",
               "value": false,
               "line": 10
+            }
+          ]
+        }
+      ],
+      "expected": [],
+      "dead": []
+    },
+    {
+      "name": "exit_barriers_false_silences_a_return_and_a_throw",
+      "protocols": [
+        {
+          "name": "DocLoad",
+          "opens": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": false
+          },
+          "closes": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": true
+          },
+          "barriers": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "Document",
+                "Rows"
+              ]
+            }
+          ],
+          "allow": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "IsBusy",
+                "IsLoaded"
+              ]
+            }
+          ],
+          "exit_barriers": false
+        }
+      ],
+      "methods": [
+        {
+          "name": "Ns.VM.Load",
+          "file": "VM.cs",
+          "events": [
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": false,
+              "line": 10
+            },
+            {
+              "ev": "if",
+              "line": 20,
+              "then": [
+                {
+                  "ev": "return",
+                  "line": 25
+                }
+              ],
+              "else": [
+                {
+                  "ev": "throw",
+                  "line": 26
+                }
+              ]
             }
           ]
         }
