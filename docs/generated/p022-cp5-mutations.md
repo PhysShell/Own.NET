@@ -106,20 +106,16 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `5afd97cbe0d479f6ecfce8a6002c127e93bebfe2` |
+| recorded at commit                                         | `ceb8521557128bddca96ea6addb817231fde4f56` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 29 |
-| caught                                                     | 25 |
-| survived                                                   | 3 |
-| compile-error (no evidence either way)                     | 1 |
+| caught                                                     | 29 |
+| survived                                                   | 0 |
+| compile-error (no evidence either way)                     | 0 |
 | invalid-mutation                                           | 0 |
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
-
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -139,7 +135,7 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 | M14 | BR-V6 | an advisory renders as a warning instead of SARIF's note | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M15 | BR-V6 | the host severity no longer downgrades a provable leak | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M16 | BR-V6 | an intrinsic warning tier is ignored and renders as error | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M17 | BR-V9 | the SARIF rule catalogue is not sorted | survived | — |
+| M17 | BR-V9 | the SARIF rule catalogue is not sorted | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M18 | BR-V9 | the SARIF rule catalogue keeps duplicate codes | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M19 | BR-V9 | a rule's shortDescription is the code, never its title | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M20 | BR-V9 | the driver drops the ownirSchemaVersion stamp | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
@@ -148,7 +144,7 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 | M23 | BR-V9 | the artifact URI keeps a Windows backslash | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M24 | BR-V9 | an empty component/event/handler is emitted as a property | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M25 | BR-V9 | relatedLocations adopts the core's empty-file filter, dropping a step the bridge emits | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M26 | BR-V9 | relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step) | survived | — |
+| M26 | BR-V9 | relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step) | caught | `own-bridge/src/lib.rs::render::tests::a_related_step_with_no_line_is_dropped` |
 | M27 | BR-V9 | codeFlows is never built from the ordered slice | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M28 | BR-V9 | a suppressed finding loses its suppressions array | compile-error | — |
-| M29 | BR-V8 | SARIF results are sorted by code, destroying the bridge's own order | survived | — |
+| M28 | BR-V9 | a suppressed finding loses its suppressions array | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M29 | BR-V8 | SARIF results are sorted by code, destroying the bridge's own order | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
