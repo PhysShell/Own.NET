@@ -254,6 +254,13 @@
         "BR-V4",
         "BR-V7"
       ]
+    },
+    {
+      "name": "verdict_dedup_key_members",
+      "rules": [
+        "BR-V4",
+        "BR-V7"
+      ]
     }
   ]
 }

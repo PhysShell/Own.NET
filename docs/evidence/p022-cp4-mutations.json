@@ -68,12 +68,12 @@
     {
       "id": "M06",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops event",
+      "description": "BR-V7 dedup key drops event (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.event\\.clone\\(\\),(\\n\\s+f\\.handler\\.clone\\(\\),)",
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {
@@ -298,23 +298,23 @@
     {
       "id": "M27",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops kind",
+      "description": "BR-V7 dedup key drops kind (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.kind\\.clone\\(\\),(\\n\\s+f\\.advisory,)",
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {
       "id": "M28",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops severity",
+      "description": "BR-V7 dedup key drops severity (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.severity\\.clone\\(\\),(\\n\\s+f\\.ignore_reason\\.clone\\(\\),)",
       "replacement": "\\1None,\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {

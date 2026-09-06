@@ -12,7 +12,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 25 | 23 |
+| `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 27 | 25 |
 | `flowlocal_own001_partial` | bridge | flow-local OWN001, released on some path | 10 | 10 |
 | `flowlocal_own001_pool_partial` | bridge | flow-local OWN001 on a pooled buffer, returned on some path | 2 | 2 |
 | `flowlocal_own002` | bridge | flow-local use-after-dispose | 6 | 6 |
@@ -33,7 +33,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `own014_capture_named` | bridge | OWN014 capture of a named longer-lived source — **not replayed**: unreachable from any facts document: routing R3 mints a handle only for a source with a declared capture region, and `static` is the only entry in that table. Pinned by `verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_hand ed`, whose expected text is the reference's own output | 0 | 0 |
 | `own014_capture_lambda` | bridge | OWN014 capture on an inline lambda handler (the no-'-=' note) | 1 | 1 |
 | `token_timer` | bridge | timer wording | 4 | 4 |
-| `token_disposable_typed` | bridge | disposable field, `type` present | 6 | 6 |
+| `token_disposable_typed` | bridge | disposable field, `type` present | 8 | 8 |
 | `token_disposable_untyped` | bridge | disposable field, no `type` | 2 | 2 |
 | `token_local_disposable_typed` | bridge | local disposable, `type` present | 1 | 1 |
 | `token_local_disposable_untyped` | bridge | local disposable, no `type` | 1 | 1 |
@@ -104,7 +104,7 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 | `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 2 | 2 |
 | `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 6 | 6 |
 | `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 3 | 2 |
-| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 43 | 41 |
+| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 45 | 43 |
 
 ## BR-V9 — rendered surfaces
 

@@ -6,19 +6,19 @@ Computed by `tests/verdict_census.py` (the interpretation `tests/test_verdict_fi
 
 | measure                                                                              | value |
 |--------------------------------------------------------------------------------------|------:|
-| goldens — Python's complete truth, one per planned case                              | 86 |
+| goldens — Python's complete truth, one per planned case                              | 87 |
 | … swept from `tests/fixtures/ownir`                                                  | 22 |
 | … swept from `tests/fixtures/lowered`                                                | 27 |
 | … swept from `tests/fixtures/summaries`                                              | 9 |
-| … synthetic controls (`manifest.json` cases)                                         | 28 |
+| … synthetic controls (`manifest.json` cases)                                         | 29 |
 | reference refusals over all goldens                                                  | 5 |
-| reference findings over all goldens                                                  | 155 |
+| reference findings over all goldens                                                  | 159 |
 | declared Rust exclusions — the executable ledger `rust_replay_excluded`              | 8 |
 | … refused by `check_facts` with an error containing `obligation protocol`            | 2 |
 | … refused by `check_facts` with an error containing `outside the core's line domain` | 4 |
 | … refused at the typed `OwnIr` door (#294 OD-1)                                      | 2 |
-| replayed by Rust at the cp4 surface (goldens minus exclusions)                       | 78 |
+| replayed by Rust at the cp4 surface (goldens minus exclusions)                       | 79 |
 | … reference refusals among them (compared by refusal class)                          | 5 |
-| … findings among them (compared on the cp4 members)                                  | 148 |
+| … findings among them (compared on the cp4 members)                                  | 152 |
 
 The differential counts over the replayed set — Python-only, Rust-only, changed, ordering-only, unexplained — are asserted, not measured here: the Rust replay compares every replayed case's full ordered verdict list (or its refusal class) against the golden on the cp4 members, collects every divergence without fail-fast, and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.

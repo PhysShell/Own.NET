@@ -1,0 +1,31 @@
+{
+  "ownir_version": 0,
+  "module": "DedupKeyMembers",
+  "_doc": [
+    "BR-V7 key members that survive only because they are IN the key, now that",
+    "`message` is in it too. Each pair is byte-identical on every other member",
+    "INCLUDING the message, so dropping the named member collapses two findings",
+    "into one. `_c` is disposed by two different methods and the field wording",
+    "names neither, so `handler` is what keeps them apart; `s` leaks the same way",
+    "in two methods of one file and the flow-local wording names no component, so",
+    "`component` is."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"resource": "disposable", "event": "_c", "handler": "DisposeReader",
+         "line": 4, "type": "SqlConnection"},
+        {"resource": "disposable", "event": "_c", "handler": "DisposeWriter",
+         "line": 4, "type": "SqlConnection"}
+      ]
+    }
+  ],
+  "functions": [
+    {"name": "Reader.Read", "file": "Io.cs",
+     "body": [{"op": "acquire", "var": "s", "line": 3}]},
+    {"name": "Writer.Write", "file": "Io.cs",
+     "body": [{"op": "acquire", "var": "s", "line": 3}]}
+  ]
+}

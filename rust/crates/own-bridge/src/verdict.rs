@@ -880,6 +880,20 @@ type DedupKey = (
     Option<String>,
 );
 
+/// BR-V7 applied: first occurrence wins.
+///
+/// A named function rather than three lines inside `check_facts`, because it is
+/// the only place three members of the key can be shown to matter. With
+/// `message` in the key (cp5.1), `event`, `kind` and `severity` became
+/// **unobservable** end to end: every wording that varies with them names them,
+/// so no facts document can produce two findings equal on the message and
+/// differing on one of those. They are still the reference's key members, and
+/// the control for them has to drive this function directly — see the test.
+fn dedup(findings: &mut Vec<Finding>) {
+    let mut seen: HashSet<DedupKey> = HashSet::new();
+    findings.retain(|f| seen.insert(dedup_key(f)));
+}
+
 fn dedup_key(f: &Finding) -> DedupKey {
     (
         f.file.clone(),
@@ -957,9 +971,7 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
         findings.push(f);
     }
 
-    // BR-V7: first occurrence wins.
-    let mut seen: HashSet<DedupKey> = HashSet::new();
-    findings.retain(|f| seen.insert(dedup_key(f)));
+    dedup(&mut findings);
     // BR-V8: a STABLE sort — ties keep insertion order; an absent column
     // sorts as 0, before every real (>= 1) one, and is never emitted as such.
     findings.sort_by(|a, b| {
@@ -975,7 +987,7 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 mod tests {
-    use super::{di_findings, effect_findings, map_core, Obj};
+    use super::{dedup, di_findings, effect_findings, map_core, Finding, Obj};
     use own_diagnostics::{Diagnostic, Severity};
     use serde_json::{json, Value};
     use std::collections::BTreeMap;
@@ -1029,6 +1041,37 @@ mod tests {
                 .is_empty(),
             "a BR-V2 artifact is dropped before map-or-raise, subject or not"
         );
+    }
+
+    /// BR-V7's three unobservable key members. `event`, `kind` and `severity`
+    /// cannot be dropped from the key by any facts document once `message` is
+    /// in it: every wording that varies with one of them interpolates it, so a
+    /// pair equal on the message and differing on one of the three does not
+    /// exist downstream of `check_facts`. The members are the reference's all
+    /// the same, so the control drives `dedup` — the production function — on
+    /// pairs assembled here instead. (`handler` and `component` DO have such
+    /// pairs, and `verdict_dedup_key_members` is the golden that carries them.)
+    #[test]
+    fn dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member() {
+        let base = Finding::new("A.cs", 4, "OWN001", "subscription token");
+        for mutate in [
+            (|f: &mut Finding| f.event = "other".to_owned()) as fn(&mut Finding),
+            |f: &mut Finding| f.kind = "timer".to_owned(),
+            |f: &mut Finding| f.severity = Some("warning".to_owned()),
+        ] {
+            let mut twin = base.clone();
+            mutate(&mut twin);
+            let mut both = vec![base.clone(), twin];
+            dedup(&mut both);
+            assert_eq!(
+                both.len(),
+                2,
+                "BR-V7's key must separate these; message is equal on both"
+            );
+        }
+        let mut identical = vec![base.clone(), base];
+        dedup(&mut identical);
+        assert_eq!(identical.len(), 1, "first occurrence wins");
     }
 
     /// BR-V4's flow-local FALLBACK: a code with no wording of its own keeps the

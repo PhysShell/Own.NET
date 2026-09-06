@@ -1,0 +1,69 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Io.cs",
+      "line": 3,
+      "code": "OWN001",
+      "component": "Reader.Read",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Io.cs",
+      "line": 3,
+      "code": "OWN001",
+      "component": "Writer.Write",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' is never disposed (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Vm.cs",
+      "line": 4,
+      "code": "OWN001",
+      "component": "Vm",
+      "event": "_c",
+      "handler": "DisposeReader",
+      "message": "IDisposable field '_c' (type 'SqlConnection') is never disposed — its owner 'Vm' leaks it (leak)",
+      "kind": "disposable field",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Vm.cs",
+      "line": 4,
+      "code": "OWN001",
+      "component": "Vm",
+      "event": "_c",
+      "handler": "DisposeWriter",
+      "message": "IDisposable field '_c' (type 'SqlConnection') is never disposed — its owner 'Vm' leaks it (leak)",
+      "kind": "disposable field",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

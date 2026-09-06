@@ -394,6 +394,12 @@
       "bytes": 960
     },
     {
+      "case": "verdict_dedup_key_members",
+      "corpus": "verdicts",
+      "digest": "510950daa897efb50b527b16a15165441d8d84f76299d662402935a19e0c2a05",
+      "bytes": 973
+    },
+    {
       "case": "verdict_dedup_needs_the_message",
       "corpus": "verdicts",
       "digest": "81fc98c8a762811e57040baeb5b02f19fa6e5b58ad1388056b73811da863f685",

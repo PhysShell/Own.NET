@@ -251,3 +251,28 @@ A port that reached the sentence by the other branch would produce a
 byte-identical golden; that is what parity on this surface means, and it is
 stated on the row instead of being hidden behind a discriminator that does not
 exist.
+
+### The finding cp5.1 did not expect: `message` blinded three of BR-V7's controls
+
+Re-running the checkpoint-4 campaign against the cp5.1 tree turned five
+`BR-V7 dedup key drops <member>` mutations from caught into survived. That is
+not a weakening, and it is not noise: putting `message` in the key made three
+of its members **unobservable at the output surface**. Every wording that
+varies with `event`, `kind` or `severity` interpolates it, so downstream of
+`check_facts` there is no document producing two findings equal on the message
+and differing on one of the three — dropping such a member from the key can no
+longer change any output.
+
+Two of the five were recoverable and are now goldens
+(`verdict_dedup_key_members`): the disposable-field wording names no handler,
+so two `Dispose*` methods on one field are separated by `handler` alone; the
+flow-local wording names no component, so the same local leaking in two methods
+of one file is separated by `component` alone. The other three drive `dedup`
+directly — extracted from `check_facts` for exactly that reason, so the control
+runs the production function rather than a copy of it — and the campaign
+definition now names that control instead of the replay, because the replay
+genuinely cannot catch them any more.
+
+Recording the shape of it, since it will recur: **a comparison surface that
+gains a member can lose controls for the members it subsumes.** The campaign is
+what surfaced it; a green suite would not have.
