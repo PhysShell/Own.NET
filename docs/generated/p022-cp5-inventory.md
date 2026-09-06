@@ -4,7 +4,7 @@
 
 Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([census](p022-cp4-census.md)). Checkpoint 5 proves the three surfaces cp4 carried without comparing: the **messages** (BR-V4), the **evidence slices** (BR-V5) and the **rendered surfaces** (BR-V9). This fragment is the completeness ledger for those three: every branch read off `ownlang/ownir.py`, matched against the committed goldens.
 
-`all goldens` counts Python's complete truth; `replayed` counts only the cases the Rust replay runs (the ledger's `rust_replay_excluded` entries removed). A row whose **replayed** count is zero is a branch cp5 cannot prove against this corpus as it stands — a missing control, not a passing one.
+`all goldens` counts Python's complete truth; `replayed` counts only the cases the Rust replay runs (the ledger's `rust_replay_excluded` entries removed). A row whose **replayed** count is zero is a branch the golden corpus does not prove; each such row carries its **disposition** — what pins the branch instead, and why no facts document can reach it. A zero row with no disposition reads `GAP: no control`, which is a missing control, not a passing one.
 
 ## BR-V4 — message synthesis, by who owns the string
 
@@ -13,25 +13,25 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
 | `flowlocal_own001_never` | bridge | flow-local OWN001, never released | 25 | 23 |
-| `flowlocal_own001_partial` | bridge | flow-local OWN001, released on some path | 9 | 9 |
-| `flowlocal_own001_pool_partial` | bridge | flow-local OWN001 on a pooled buffer, returned on some path | 1 | 1 |
+| `flowlocal_own001_partial` | bridge | flow-local OWN001, released on some path | 10 | 10 |
+| `flowlocal_own001_pool_partial` | bridge | flow-local OWN001 on a pooled buffer, returned on some path | 2 | 2 |
 | `flowlocal_own002` | bridge | flow-local use-after-dispose | 5 | 5 |
 | `flowlocal_own003` | bridge | flow-local double dispose | 1 | 1 |
-| `flowlocal_own009` | bridge | flow-local maybe-use-after-dispose **(gap)** | 0 | 0 |
-| `flowlocal_own002_pool` | bridge | flow-local use-after-return **(gap)** | 0 | 0 |
-| `flowlocal_own003_pool` | bridge | flow-local double return **(gap)** | 0 | 0 |
-| `flowlocal_own009_pool` | bridge | flow-local maybe-use-after-return **(gap)** | 0 | 0 |
-| `flowlocal_fallback` | core-diagnostic | flow-local fallback: the core message, verbatim **(gap)** | 0 | 0 |
-| `flowlocal_fallback_pool` | core-diagnostic | flow-local pooled fallback: the core message, verbatim **(gap)** | 0 | 0 |
+| `flowlocal_own009` | bridge | flow-local maybe-use-after-dispose | 1 | 1 |
+| `flowlocal_own002_pool` | bridge | flow-local use-after-return | 1 | 1 |
+| `flowlocal_own003_pool` | bridge | flow-local double return | 1 | 1 |
+| `flowlocal_own009_pool` | bridge | flow-local maybe-use-after-return | 1 | 1 |
+| `flowlocal_fallback` | core-diagnostic | flow-local fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is the reference's own output. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
+| `flowlocal_fallback_pool` | core-diagnostic | flow-local pooled fallback: the core message, verbatim — **not replayed**: unreachable from any facts document (the nine-op flow vocabulary raises only codes that HAVE a wording); pinned by a `verdict::tests` control driven through `map_core`, whose expected text is the reference's own output. The core message it interpolates is checkpoint 5.2's | 0 | 0 |
 | `own025_view` | bridge | OWN025 pooled-view wording | 2 | 2 |
-| `own014_di_singleton` | bridge | OWN014 captive, source registered singleton | 2 | 2 |
-| `own014_di_scoped` | bridge | OWN014 captive, source registered scoped **(gap)** | 0 | 0 |
-| `own014_di_transient` | bridge | OWN014 captive, source registered transient **(gap)** | 0 | 0 |
-| `own014_di_unknown_life` | bridge | OWN014 captive, source lifetime outside the three known ones **(gap)** | 0 | 0 |
-| `own014_di_lambda` | bridge | OWN014 captive on an inline lambda handler (the no-'-=' note) **(gap)** | 0 | 0 |
+| `own014_di_singleton` | bridge | OWN014 captive, source registered singleton | 3 | 3 |
+| `own014_di_scoped` | bridge | OWN014 captive, source registered scoped | 1 | 1 |
+| `own014_di_transient` | bridge | OWN014 captive, source registered transient — **not replayed**: unreachable from any facts document: `transient` is the shortest region, so no subscriber it could outlive exists, and an unrecognised lifetime never reaches `di_source_life` (the DI life map admits only the three). Pinned by `verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, whose expected text is the reference's own output | 0 | 0 |
+| `own014_di_unknown_life` | bridge | OWN014 captive, source lifetime outside the three known ones — **not replayed**: unreachable from any facts document: `transient` is the shortest region, so no subscriber it could outlive exists, and an unrecognised lifetime never reaches `di_source_life` (the DI life map admits only the three). Pinned by `verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, whose expected text is the reference's own output | 0 | 0 |
+| `own014_di_lambda` | bridge | OWN014 captive on an inline lambda handler (the no-'-=' note) | 1 | 1 |
 | `own014_capture_static` | bridge | OWN014 capture of a static source | 5 | 5 |
-| `own014_capture_named` | bridge | OWN014 capture of a named longer-lived source **(gap)** | 0 | 0 |
-| `own014_capture_lambda` | bridge | OWN014 capture on an inline lambda handler (the no-'-=' note) **(gap)** | 0 | 0 |
+| `own014_capture_named` | bridge | OWN014 capture of a named longer-lived source — **not replayed**: unreachable from any facts document: routing R3 mints a handle only for a source with a declared capture region, and `static` is the only entry in that table. Pinned by `verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_hand ed`, whose expected text is the reference's own output | 0 | 0 |
+| `own014_capture_lambda` | bridge | OWN014 capture on an inline lambda handler (the no-'-=' note) | 1 | 1 |
 | `token_timer` | bridge | timer wording | 4 | 4 |
 | `token_disposable_typed` | bridge | disposable field, `type` present | 4 | 4 |
 | `token_disposable_untyped` | bridge | disposable field, no `type` | 1 | 1 |
@@ -41,19 +41,19 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `token_subscribe_other` | bridge | ignored Subscribe() result, any other source | 2 | 2 |
 | `pooled_never_returned` | bridge | pooled buffer never returned — the `pool` token wording AND the flow-local never-returned wording, one sentence (see `Branch`) | 4 | 4 |
 | `token_subscription_injected` | bridge | plain `+=` subscription, injected source | 8 | 8 |
-| `token_subscription_injected_lambda` | bridge | plain `+=` subscription, injected source, inline lambda **(gap)** | 0 | 0 |
+| `token_subscription_injected_lambda` | bridge | plain `+=` subscription, injected source, inline lambda | 1 | 1 |
 | `token_subscription_other` | bridge | plain `+=` subscription, any other source | 17 | 17 |
 | `token_subscription_other_lambda` | bridge | plain `+=` subscription, any other source, inline lambda | 1 | 1 |
 | `advisory_own050` | bridge | OWN050 unresolved-reference note | 3 | 3 |
 | `advisory_own051` | bridge | OWN051 unverified-transfer note | 6 | 6 |
 | `advisory_own052` | bridge | OWN052 degraded-inference note | 1 | 1 |
-| `di001_message` | core-analysis | DI001 captive message (di.py) | 8 | 6 |
+| `di001_message` | core-analysis | DI001 captive message (di.py) | 10 | 8 |
 | `di002_message` | core-analysis | DI002 weak-captive message (di.py) | 2 | 2 |
 | `di003_message` | core-analysis | DI003 captured-transient message (di.py) | 1 | 1 |
 | `di004_message` | core-analysis | DI004 root-resolution message (di.py) | 7 | 7 |
 | `di005_message` | core-analysis | DI005 scope-cache message (di.py) | 5 | 5 |
-| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 5 | 3 |
-| `obl_message` | bridge-protocol | OBL001-005 message (4b, not cp5) **(gap)** | 1 | 0 |
+| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 6 | 4 |
+| `obl_message` | bridge-protocol | OBL001-005 message (4b, not cp5) — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 1 | 0 |
 
 ### Wording tails
 
@@ -62,8 +62,8 @@ Each is its own degradation rule inside an analysis message — the tail is drop
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
 | `tail_consumed_typed` | wording tail | ` [consumed by the '<impl>' constructor at f:l]` | 4 | 4 |
-| `tail_consumed_bare` | wording tail | ` [consumed by the constructor at f:l]` (impl type unknown) **(gap)** | 0 | 0 |
-| `tail_consumed_absent` | wording tail | no consuming-constructor tail (location unknown) | 7 | 5 |
+| `tail_consumed_bare` | wording tail | ` [consumed by the constructor at f:l]` (impl type unknown) | 1 | 1 |
+| `tail_consumed_absent` | wording tail | no consuming-constructor tail (location unknown) | 8 | 6 |
 | `tail_registered` | wording tail | ` [singleton registered at f:l]` on DI004/DI005 | 7 | 7 |
 | `tail_registered_absent` | wording tail | no registration tail (the primary IS the registration) | 5 | 5 |
 
@@ -73,24 +73,24 @@ One row per `related`/`flow` family; a slice matching no family (or two) fails t
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `di_path_1` | flow | DI retention path, one resolvable hop (the rest dropped) **(gap)** | 1 | 0 |
-| `di_path_2` | flow | DI retention path, captor → captured | 17 | 16 |
+| `di_path_1` | flow | DI retention path, one resolvable hop (the rest dropped) | 2 | 1 |
+| `di_path_2` | flow | DI retention path, captor → captured | 18 | 17 |
 | `di_path_3plus` | flow | DI retention path with `via` hops | 4 | 4 |
 | `di_consumer_related_typed` | related | DI consuming constructor, impl type known | 4 | 4 |
-| `di_consumer_related_bare` | related | DI consuming constructor, impl type unknown **(gap)** | 0 | 0 |
+| `di_consumer_related_bare` | related | DI consuming constructor, impl type unknown | 1 | 1 |
 | `di004_registration_related` | related | DI004 registration beside the call site | 3 | 3 |
 | `di005_registration_related` | related | DI005 registration beside the store site | 4 | 4 |
-| `capture_escape_flow` | flow | OWN014 subscribe site → source registration site | 2 | 2 |
+| `capture_escape_flow` | flow | OWN014 subscribe site → source registration site | 4 | 4 |
 | `effect_flow` | flow | EFF001 re-run site → identity-mint site | 4 | 3 |
 | `flowlocal_flow_own002` | flow | flow-local OWN002 origin → violation | 4 | 4 |
 | `flowlocal_flow_own003` | flow | flow-local OWN003 origin → violation | 1 | 1 |
-| `flowlocal_flow_own009` | flow | flow-local OWN009 origin → violation **(gap)** | 0 | 0 |
-| `flowlocal_flow_own002_pool` | flow | flow-local OWN002 origin → violation (pooled) **(gap)** | 0 | 0 |
-| `flowlocal_flow_own003_pool` | flow | flow-local OWN003 origin → violation (pooled) **(gap)** | 0 | 0 |
-| `flowlocal_flow_own009_pool` | flow | flow-local OWN009 origin → violation (pooled) **(gap)** | 0 | 0 |
+| `flowlocal_flow_own009` | flow | flow-local OWN009 origin → violation | 1 | 1 |
+| `flowlocal_flow_own002_pool` | flow | flow-local OWN002 origin → violation (pooled) | 1 | 1 |
+| `flowlocal_flow_own003_pool` | flow | flow-local OWN003 origin → violation (pooled) | 1 | 1 |
+| `flowlocal_flow_own009_pool` | flow | flow-local OWN009 origin → violation (pooled) | 1 | 1 |
 | `flowlocal_flow_own025_pool` | flow | flow-local OWN025 origin → violation (pooled) | 2 | 2 |
-| `protocol_flow` | flow | OBL opened → barrier (→ late close) — 4b, not cp5 **(gap)** | 0 | 0 |
-| `protocol_flow_3` | flow | OBL opened → barrier → late close — 4b, not cp5 **(gap)** | 1 | 0 |
+| `protocol_flow` | flow | OBL opened → barrier (→ late close) — 4b, not cp5 — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 0 | 0 |
+| `protocol_flow_3` | flow | OBL opened → barrier → late close — 4b, not cp5 — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 1 | 0 |
 
 ### Degradations
 
@@ -98,13 +98,13 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `di_consumer_related_dropped` | related | DI001/2/3 with no consuming-constructor related (line < 1) | 7 | 5 |
+| `di_consumer_related_dropped` | related | DI001/2/3 with no consuming-constructor related (line < 1) | 8 | 6 |
 | `di004_related_dropped` | related | DI004 with no registration related (the primary IS the registration) | 4 | 4 |
 | `di005_related_dropped` | related | DI005 with no registration related (the primary IS the registration) | 1 | 1 |
-| `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) **(gap)** | 0 | 0 |
-| `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 5 | 5 |
-| `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) **(gap)** | 1 | 0 |
-| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 41 | 39 |
+| `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 1 | 1 |
+| `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 6 | 6 |
+| `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 2 | 1 |
+| `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 43 | 41 |
 
 ## BR-V9 — rendered surfaces
 
@@ -112,33 +112,33 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `human_line` | render | `file:line: sev: [code] msg [resource: kind]` **(gap)** | 0 | 0 |
-| `human_severity` | render | host severity in the human line **(gap)** | 0 | 0 |
-| `github_line` | github | `::sev file=…,line=…,title=CODE::msg` **(gap)** | 0 | 0 |
-| `github_severity` | github | host severity as the annotation level **(gap)** | 0 | 0 |
-| `github_esc_percent` | github | `%` → `%25` in the message data **(gap)** | 0 | 0 |
-| `github_esc_cr` | github | CR → `%0D` in the message data **(gap)** | 0 | 0 |
-| `github_esc_lf` | github | LF → `%0A` in the message data **(gap)** | 0 | 0 |
-| `github_esc_prop_colon` | github | `:` → `%3A` in a property value **(gap)** | 0 | 0 |
-| `github_esc_prop_comma` | github | `,` → `%2C` in a property value **(gap)** | 0 | 0 |
-| `msbuild_line` | msbuild | `file(line): sev CODE: msg [resource: kind]` **(gap)** | 0 | 0 |
-| `msbuild_severity` | msbuild | host severity in the msbuild line **(gap)** | 0 | 0 |
-| `fallback_human` | render | an unknown format falls back to the human line **(gap)** | 0 | 0 |
-| `sarif_envelope` | sarif | `$schema` + `version` + one `run` **(gap)** | 0 | 0 |
-| `sarif_driver` | sarif | `tool.driver.name` = Owen + `informationUri` **(gap)** | 0 | 0 |
-| `sarif_rules` | sarif | rule catalogue: sorted codes + `TITLES` **(gap)** | 0 | 0 |
-| `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property **(gap)** | 0 | 0 |
-| `sarif_level_note` | sarif | an advisory renders as `note` **(gap)** | 0 | 0 |
-| `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` **(gap)** | 0 | 0 |
-| `sarif_level_error` | sarif | a provable leak renders as `error` **(gap)** | 0 | 0 |
-| `sarif_level_host_warning` | sarif | `severity=warning` downgrades an error, never an advisory **(gap)** | 0 | 0 |
-| `sarif_region` | sarif | `region.startLine` for a line ≥ 1 **(gap)** | 0 | 0 |
-| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 **(gap)** | 0 | 0 |
-| `sarif_start_column` | sarif | `region.startColumn` only beside a line **(gap)** | 0 | 0 |
-| `sarif_uri_backslash` | sarif | backslashes normalised in the artifact URI **(gap)** | 0 | 0 |
-| `sarif_properties` | sarif | `resourceKind` always; component/event/handler only when non-empty **(gap)** | 0 | 0 |
-| `sarif_related` | sarif | `relatedLocations` from `related` **(gap)** | 0 | 0 |
-| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` **(gap)** | 0 | 0 |
-| `sarif_suppressions` | sarif | `suppressions` (`inSource` + justification) for a suppressed finding **(gap)** | 0 | 0 |
-| `sarif_empty` | sarif | an empty finding list is a valid, empty run **(gap)** | 0 | 0 |
-| `refusal_error` | surface | a bridge refusal projects as `{"error": …}` **(gap)** | 0 | 0 |
+| `human_line` | render | `file:line: sev: [code] msg [resource: kind]` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `human_severity` | render | host severity in the human line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_line` | github | `::sev file=…,line=…,title=CODE::msg` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_severity` | github | host severity as the annotation level — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_esc_percent` | github | `%` → `%25` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_esc_cr` | github | CR → `%0D` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_esc_lf` | github | LF → `%0A` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_esc_prop_colon` | github | `:` → `%3A` in a property value — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `github_esc_prop_comma` | github | `,` → `%2C` in a property value — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `msbuild_line` | msbuild | `file(line): sev CODE: msg [resource: kind]` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `msbuild_severity` | msbuild | host severity in the msbuild line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `fallback_human` | render | an unknown format falls back to the human line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_envelope` | sarif | `$schema` + `version` + one `run` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_driver` | sarif | `tool.driver.name` = Owen + `informationUri` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_rules` | sarif | rule catalogue: sorted codes + `TITLES` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_level_note` | sarif | an advisory renders as `note` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_level_error` | sarif | a provable leak renders as `error` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_level_host_warning` | sarif | `severity=warning` downgrades an error, never an advisory — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_region` | sarif | `region.startLine` for a line ≥ 1 — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_start_column` | sarif | `region.startColumn` only beside a line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_uri_backslash` | sarif | backslashes normalised in the artifact URI — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_properties` | sarif | `resourceKind` always; component/event/handler only when non-empty — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_related` | sarif | `relatedLocations` from `related` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_suppressions` | sarif | `suppressions` (`inSource` + justification) for a suppressed finding — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `sarif_empty` | sarif | an empty finding list is a valid, empty run — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `refusal_error` | surface | a bridge refusal projects as `{"error": …}` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |

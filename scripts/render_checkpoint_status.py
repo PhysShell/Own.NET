@@ -17,6 +17,9 @@ these generated fragments, computed from the evidence — never typed:
   from `docs/evidence/p022-cp4-mutations.json` and its `.result.json`, through
   `scripts/mutate_campaign.summarize()` (the same interpretation the runner
   prints).
+* `docs/generated/p022-cp5-mutations.md` — checkpoint 5's recorded mutation
+  campaigns, one section per sub-checkpoint, through the same
+  `summarize()` as every other campaign in the tree.
 * `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
@@ -75,6 +78,7 @@ GENERATED = os.path.join(ROOT, "docs", "generated")
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
 INVENTORY_MD = "p022-cp5-inventory.md"
+CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -87,6 +91,12 @@ SHADOW_CAMPAIGNS = (
     ("checkpoint 2 — the engine protocol", "p022-shadow-cp2"),
     ("checkpoint 3 — the AnalysisTrace and stable-ID normalization", "p022-shadow-cp3"),
     ("checkpoint 4 — first-divergence reduction", "p022-shadow-cp4"),
+)
+# One campaign per cp5 sub-checkpoint, for the same reason the shadow slice has
+# one per checkpoint: a campaign stays frozen at what it measured, so a later
+# sub-checkpoint cannot quietly restate an earlier one's numbers.
+CP5_CAMPAIGNS = (
+    ("checkpoint 5.1 — the message matrix and the evidence slices", "p022-cp5-1"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -165,8 +175,10 @@ def _coverage_table(rows: tuple[Coverage, ...]) -> list[str]:
     out = ["| ledger row | surface | what it is | all goldens | replayed |",
            "|---|---|---|---:|---:|"]
     for c in rows:
-        gap = " **(gap)**" if c.replayed == 0 else ""
-        out.append(f"| `{c.id}` | {c.detail} | {c.what}{gap} | {c.total} | {c.replayed} |")
+        what = c.what
+        if c.replayed == 0:
+            what += f" — **not replayed**: {c.note}" if c.note else " — **GAP: no control**"
+        out.append(f"| `{c.id}` | {c.detail} | {what} | {c.total} | {c.replayed} |")
     out.append("")
     return out
 
@@ -189,8 +201,10 @@ def render_inventory(inv: SurfaceInventory) -> str:
         "",
         "`all goldens` counts Python's complete truth; `replayed` counts only the cases "
         "the Rust replay runs (the ledger's `rust_replay_excluded` entries removed). A "
-        "row whose **replayed** count is zero is a branch cp5 cannot prove against this "
-        "corpus as it stands — a missing control, not a passing one.",
+        "row whose **replayed** count is zero is a branch the golden corpus does not "
+        "prove; each such row carries its **disposition** — what pins the branch instead, "
+        "and why no facts document can reach it. A zero row with no disposition reads "
+        "`GAP: no control`, which is a missing control, not a passing one.",
         "",
         "## BR-V4 — message synthesis, by who owns the string",
         "",
@@ -322,25 +336,32 @@ def _mutation_section(heading: str, definition: Definition | None, result: Resul
 # --- step 7a: the shadow-mode infrastructure slice ------------------------
 
 
-def _shadow_paths(campaign: str) -> tuple[str, str]:
+def render_shadow_mutations() -> tuple[str, list[str]]:
+    """The slice's four campaigns, one document, the same interpreter as cp4's."""
+    return render_campaign_set(
+        "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
+        "Every mutation edits a **production** surface (P-022 discipline 2) and every "
+        "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
+        "campaign stays frozen at what it measured; the counts below are derived from "
+        "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
+        SHADOW_CAMPAIGNS)
+
+
+def _campaign_paths(campaign: str) -> tuple[str, str]:
     return (os.path.join(EVIDENCE, f"{campaign}.json"),
             os.path.join(EVIDENCE, f"{campaign}.result.json"))
 
 
-def render_shadow_mutations() -> tuple[str, list[str]]:
-    """The slice's four campaigns, one document, the same interpreter as cp4's."""
-    sources = ", ".join(_rel(_shadow_paths(c)[0]) for _, c in SHADOW_CAMPAIGNS)
-    parts = [_header(f"{sources} and their .result.json"),
-             "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
-             "",
-             "Every mutation edits a **production** surface (P-022 discipline 2) and every "
-             "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
-             "campaign stays frozen at what it measured; the counts below are derived from "
-             "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
-             ""]
+def render_campaign_set(heading: str, blurb: str, campaigns: tuple[tuple[str, str], ...],
+                        ) -> tuple[str, list[str]]:
+    """A set of campaigns as one document, through the single interpreter every
+    campaign in the tree shares. Two readings of one run is how two documents
+    come to disagree about it."""
+    sources = ", ".join(_rel(_campaign_paths(c)[0]) for _, c in campaigns)
+    parts = [_header(f"{sources} and their .result.json"), heading, "", blurb, ""]
     problems: list[str] = []
-    for title, campaign in SHADOW_CAMPAIGNS:
-        definition_path, result_path = _shadow_paths(campaign)
+    for title, campaign in campaigns:
+        definition_path, result_path = _campaign_paths(campaign)
         definition, result, load_problems = _load_campaign(definition_path, result_path)
         problems.extend(f"{campaign}: {p}" for p in load_problems)
         summary = summarize(definition, result) if definition and result else None
@@ -549,6 +570,16 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     shadow, shadow_problems = render_shadow_mutations()
     out[SHADOW_MUTATIONS_MD] = shadow
     problems.extend(f"mutation campaign {p}" for p in shadow_problems)
+    cp5, cp5_problems = render_campaign_set(
+        "# P-022 checkpoint 5 — mutation campaigns",
+        "One campaign per sub-checkpoint, each frozen at what it measured. Every "
+        "mutation edits a **production** surface (P-022 discipline 2) and every "
+        "workspace member runs for every mutation (discipline 3: no fail-fast); the "
+        "counts are derived from the recorded runs by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        CP5_CAMPAIGNS)
+    out[CP5_MUTATIONS_MD] = cp5
+    problems.extend(f"mutation campaign {p}" for p in cp5_problems)
     return out, problems
 
 
@@ -593,8 +624,8 @@ def main(argv: list[str]) -> int:
         return 1
     if argv:
         print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, "
-              f"{MUTATIONS_MD}, {SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync "
-              f"with the evidence")
+              f"{MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
+              f"{SHADOW_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 

@@ -4,7 +4,7 @@
 
 Campaign `p022-cp4` — #259 cp4 analysis wiring: the BR-V1..V8 verdict mapping in own-bridge (skip list, map-or-raise subject, anchors, tiering, dedup key member by member, stable sort), the BR-D2/L8/M1 side paths, the two declared boundaries (protocol refusal, u32 coordinate refusal) and the own-analysis subject stamping the mapping rests on.
 
-Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `6f858c6bf6a24cc0…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `43bf2ccb97a7b1c0…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
@@ -18,6 +18,10 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `6f858c6bf6a24cc0…
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|

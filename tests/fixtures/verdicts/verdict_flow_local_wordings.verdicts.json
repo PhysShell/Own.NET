@@ -1,0 +1,145 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "W.cs",
+      "line": 1,
+      "code": "OWN001",
+      "component": "Wordings.MaybeUsedPlain",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' may not be disposed on every path (leak)",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "W.cs",
+      "line": 1,
+      "code": "OWN009",
+      "component": "Wordings.MaybeUsedPlain",
+      "event": "s",
+      "handler": "",
+      "message": "IDisposable local 's' may be used after disposal on some path",
+      "kind": "disposable",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "W.cs",
+          1,
+          "acquired 's' here"
+        ],
+        [
+          "W.cs",
+          5,
+          "may be used here after release on some path"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "W.cs",
+      "line": 11,
+      "code": "OWN001",
+      "component": "Wordings.MaybeUsedPooled",
+      "event": "b",
+      "handler": "",
+      "message": "pooled buffer 'b' may not be returned to the pool on every path (leak)",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "W.cs",
+      "line": 11,
+      "code": "OWN009",
+      "component": "Wordings.MaybeUsedPooled",
+      "event": "b",
+      "handler": "",
+      "message": "pooled buffer 'b' may be used after being returned on some path",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "W.cs",
+          11,
+          "rented 'b' here"
+        ],
+        [
+          "W.cs",
+          15,
+          "may be used here after release on some path"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "W.cs",
+      "line": 21,
+      "code": "OWN002",
+      "component": "Wordings.UsedAfterReturn",
+      "event": "u",
+      "handler": "",
+      "message": "pooled buffer 'u' is used after it is returned to the pool",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "W.cs",
+          21,
+          "rented 'u' here"
+        ],
+        [
+          "W.cs",
+          23,
+          "used here after it was released/returned"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "W.cs",
+      "line": 31,
+      "code": "OWN003",
+      "component": "Wordings.ReturnedTwice",
+      "event": "d",
+      "handler": "",
+      "message": "pooled buffer 'd' is returned to the pool more than once",
+      "kind": "pooled buffer",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "W.cs",
+          31,
+          "rented 'd' here"
+        ],
+        [
+          "W.cs",
+          33,
+          "released/returned here a second time"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

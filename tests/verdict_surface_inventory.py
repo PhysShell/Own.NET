@@ -97,6 +97,10 @@ class Branch:
     codes: tuple[str, ...] = ()
     kinds: tuple[str, ...] = ()
     handler_empty: bool | None = None
+    #: why this row is expected to read zero. A row at zero WITHOUT one is a
+    #: missing control; a row at zero WITH one is a recorded disposition, and
+    #: the note has to name what pins the branch instead.
+    note: str = ""
 
     def matches(self, f: dict[str, object]) -> bool:
         code, kind = f.get("code"), f.get("kind")
@@ -111,11 +115,37 @@ class Branch:
                                                          re.DOTALL) is not None
 
 
+#: The OBL family's disposition — see `Branch.note`.
+PROTOCOL_IS_4B = (
+    "#259 row 4b (the OBL analysis is not ported); outside cp5 by declaration")
+#: Dispositions for the rows a facts document cannot reach — see `Branch.note`.
+UNREACHABLE_DI_PHRASE = (
+    "unreachable from any facts document: `transient` is the shortest region, so no "
+    "subscriber it could outlive exists, and an unrecognised lifetime never reaches "
+    "`di_source_life` (the DI life map admits only the three). Pinned by "
+    "`verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`, "
+    "whose expected text is the reference's own output"
+)
+UNREACHABLE_CAPTURE_PHRASE = (
+    "unreachable from any facts document: routing R3 mints a handle only for a source "
+    "with a declared capture region, and `static` is the only entry in that table. Pinned "
+    "by `verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_hand "
+    "ed`, whose expected text is the reference's own output"
+)
+#: The disposition of the two fallback rows: see `Branch.note`.
+UNIT_PINNED = (
+    "unreachable from any facts document (the nine-op flow vocabulary raises only codes "
+    "that HAVE a wording); pinned by a `verdict::tests` control driven through "
+    "`map_core`, whose expected text is the reference's own output. The core message it "
+    "interpolates is checkpoint 5.2's"
+)
+
+
 def _flow_local(bid: str, code: str, kind: str, what: str, tail: str,
-                source: str = BRIDGE) -> Branch:
+                source: str = BRIDGE, note: str = "") -> Branch:
     noun = "pooled buffer" if kind == "pooled buffer" else "IDisposable local"
     return Branch(bid, "BR-V4", source, what,
-                  rf"{re.escape(noun)} '{N}'{tail}", (code,), (kind,))
+                  rf"{re.escape(noun)} '{N}'{tail}", (code,), (kind,), note=note)
 
 
 # --- BR-V4: the message matrix -------------------------------------------
@@ -147,10 +177,11 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
     # the two fallbacks: a flow-local code with no wording of its own keeps the
     # CORE diagnostic's message verbatim after a colon.
     _flow_local("flowlocal_fallback", "", "disposable",
-                "flow-local fallback: the core message, verbatim", r": .*", CORE_DIAGNOSTIC),
+                "flow-local fallback: the core message, verbatim", r": .*",
+                CORE_DIAGNOSTIC, UNIT_PINNED),
     _flow_local("flowlocal_fallback_pool", "", "pooled buffer",
                 "flow-local pooled fallback: the core message, verbatim",
-                r": .*", CORE_DIAGNOSTIC),
+                r": .*", CORE_DIAGNOSTIC, UNIT_PINNED),
     Branch("own025_view", "BR-V4", BRIDGE, "OWN025 pooled-view wording",
            rf"pooled buffer '{N}' is viewed at its full length, past the logical "
            rf"length it was rented for \(over-read / over-clear\)",
@@ -162,20 +193,18 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
              rf"that outlives '{N}'; the strong subscription promotes '{N}' to the "
              rf"source's lifetime, so it can never be collected — a captive/region "
              rf"escape \(leak, no release path\)",
-             (), ("subscription token",))
-      for life, label, nice in (
-          ("singleton", "singleton", "a DI singleton (application-lifetime) service"),
-          ("scoped", "scoped", "a DI scoped service"),
-          ("transient", "transient", "a DI transient service"),
-          ("unknown", "with a lifetime outside the three known ones", "a DI"))
-      if not (life == "unknown")),
+             (), ("subscription token",), note=note)
+      for life, label, nice, note in (
+          ("singleton", "singleton", "a DI singleton (application-lifetime) service", ""),
+          ("scoped", "scoped", "a DI scoped service", ""),
+          ("transient", "transient", "a DI transient service", UNREACHABLE_DI_PHRASE))),
     Branch("own014_di_unknown_life", "BR-V4", BRIDGE,
            "OWN014 captive, source lifetime outside the three known ones",
            rf"event '{N}' is subscribed \(handler '{N}'\) to '{N}' — a DI (?!singleton "
            rf"\(application-lifetime\) |scoped |transient ){N} service that outlives "
            rf"'{N}'; the strong subscription promotes '{N}' to the source's lifetime, so "
            rf"it can never be collected — a captive/region escape \(leak, no release path\)",
-           (), ("subscription token",)),
+           (), ("subscription token",), note=UNREACHABLE_DI_PHRASE),
     Branch("own014_di_lambda", "BR-V4", BRIDGE,
            "OWN014 captive on an inline lambda handler (the no-'-=' note)",
            rf"event '{N}' is subscribed \(handler '{N}'\) to '{N}' — a DI {N} that "
@@ -194,7 +223,8 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
            rf"event '{N}' is subscribed \(handler '{N}'\) to a longer-lived source "
            rf"\('{N}'\) that outlives '{N}'; the strong subscription promotes '{N}' to the "
            rf"source's lifetime, so it can never be collected — a region escape "
-           rf"\(leak, no release path\)", (), ("subscription token",)),
+           rf"\(leak, no release path\)", (), ("subscription token",),
+           note=UNREACHABLE_CAPTURE_PHRASE),
     Branch("own014_capture_lambda", "BR-V4", BRIDGE,
            "OWN014 capture on an inline lambda handler (the no-'-=' note)",
            rf"event '{N}' is subscribed \(handler '{N}'\) to (?:a static \(process-lived\) "
@@ -290,7 +320,8 @@ MESSAGE_BRANCHES: tuple[Branch, ...] = (
     # the protocol family: bridge-synthesized, but the analysis behind it is
     # #259 row 4b and refused by the port — out of cp5's scope by declaration.
     Branch("obl_message", "BR-V4", PROTOCOL, "OBL001-005 message (4b, not cp5)",
-           r".*", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005")),
+           r".*", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
+           note=PROTOCOL_IS_4B),
 )
 
 # The `_consumed_suffix` / `[singleton registered at …]` tails ride inside the
@@ -325,6 +356,8 @@ class SliceFamily:
     # `True` when `labels` is (first, repeated-middle, last) rather than an
     # exact per-step list — the DI path slices, whose middle hops repeat.
     variadic: bool = False
+    #: see `Branch.note`.
+    note: str = ""
 
     def matches(self, code: str, steps: list[list[object]]) -> bool:
         if self.codes and code not in self.codes:
@@ -389,10 +422,10 @@ SLICE_FAMILIES: tuple[SliceFamily, ...] = (
       if not (code == "OWN025" and not pool)),
     SliceFamily("protocol_flow", "OBL opened → barrier (→ late close) — 4b, not cp5",
                 "flow", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
-                (r".*", r".*")),
+                (r".*", r".*"), note=PROTOCOL_IS_4B),
     SliceFamily("protocol_flow_3", "OBL opened → barrier → late close — 4b, not cp5",
                 "flow", ("OBL001", "OBL002", "OBL003", "OBL004", "OBL005"),
-                (r".*", r".*", r".*")),
+                (r".*", r".*", r".*"), note=PROTOCOL_IS_4B),
 )
 
 # The degradations BR-V5 names in prose. Counted as their own rows because a
@@ -487,6 +520,12 @@ RENDER_BRANCHES: tuple[RenderBranch, ...] = (
 )
 
 
+#: The disposition every BR-V9 row carries while its family does not exist.
+RENDER_FAMILY_PENDING = (
+    "no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; "
+    "once it exists an uncovered row here is a missing control")
+
+
 class InventoryError(Exception):
     """The tree is not in a state an inventory may be taken over."""
 
@@ -506,6 +545,7 @@ class Coverage:
     total: int
     replayed: int
     cases: tuple[str, ...]
+    note: str = ""
 
 
 @dataclass(frozen=True)
@@ -545,11 +585,11 @@ def _load(p: Plan, fixdir: str) -> tuple[dict[str, list[dict[str, object]]], lis
 
 
 def _tally(hits: dict[str, list[str]], excluded: set[str], ledger_id: str,
-           what: str, detail: str) -> Coverage:
+           what: str, detail: str, note: str = "") -> Coverage:
     cases = hits.get(ledger_id, [])
     return Coverage(ledger_id, what, detail, len(cases),
                     sum(1 for c in cases if c not in excluded),
-                    tuple(sorted(set(cases))))
+                    tuple(sorted(set(cases))), note)
 
 
 def compute_surface_inventory(p: Plan | None = None,
@@ -630,15 +670,20 @@ def compute_surface_inventory(p: Plan | None = None,
                 render_hits.setdefault(str(rid), []).append(case)
 
     return SurfaceInventory(
-        messages=tuple(_tally(msg_hits, excluded, b.id, b.what, b.source)
+        messages=tuple(_tally(msg_hits, excluded, b.id, b.what, b.source, b.note)
                        for b in MESSAGE_BRANCHES),
         tails=tuple(_tally(tail_hits, excluded, tid, what, "wording tail")
                     for tid, what, _c, _p in MESSAGE_TAILS),
-        slices=tuple(_tally(slice_hits, excluded, fam.id, fam.what, fam.field)
+        slices=tuple(_tally(slice_hits, excluded, fam.id, fam.what, fam.field, fam.note)
                      for fam in SLICE_FAMILIES),
         degradations=tuple(_tally(degradation_hits, excluded, d.id, d.what, d.field)
                            for d in DEGRADATIONS),
-        renders=tuple(_tally(render_hits, excluded, r.id, r.what, r.surface)
+        # Until cp5.3 builds the family there is nothing to match against, so
+        # every row carries that as its disposition. The moment the family
+        # exists the note goes away and an uncovered row reads as the missing
+        # control it would then be.
+        renders=tuple(_tally(render_hits, excluded, r.id, r.what, r.surface,
+                             "" if render_exists else RENDER_FAMILY_PENDING)
                       for r in RENDER_BRANCHES),
         render_family_exists=render_exists,
     )

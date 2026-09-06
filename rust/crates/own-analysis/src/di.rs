@@ -43,11 +43,12 @@ impl Lifetime {
     }
 }
 
-/// One DI registration.
+/// One DI registration — every field of `di.Service`.
 ///
-/// Mirrors the control-flow-relevant fields of `di.Service`; presentation-only
-/// metadata (ctor/site tuples, used for evidence text) is omitted — evidence and
-/// SARIF are a later step, out of #214.
+/// #214 carried only the control-flow-relevant half; the consuming-constructor
+/// metadata below is what a finding's message tail and its `related` anchor are
+/// built from (#259 cp5), so it lands here rather than being re-derived by the
+/// bridge: the finder owns the verdict, message included (spec/Bridge.md BR-B1).
 /// A `(type, file, line)` call/store site (a `root_resolve` or `scope_cache`
 /// site), the DI004/DI005 primary anchor.
 pub type SiteTriple = (String, String, u32);
@@ -72,6 +73,15 @@ pub struct Service {
     pub scope_cached: Vec<String>,
     /// `(type, file, line)` of each `scope_cached` field store — the DI005 primary.
     pub scope_cache_sites: Vec<SiteTriple>,
+    /// The consuming constructor — where the capture is injected. A secondary
+    /// anchor distinct from the registration site, and the input of the
+    /// ` [consumed by …]` message tail. Line `0` means unknown.
+    pub ctor_file: String,
+    pub ctor_line: u32,
+    /// The IMPLEMENTATION type owning that constructor. Named in the message
+    /// instead of the (possibly interface) service name; empty or `"?"` degrades
+    /// the tail to "the constructor" rather than guessing.
+    pub ctor_type: String,
 }
 
 impl Service {
@@ -90,6 +100,9 @@ impl Service {
             root_resolve_sites: Vec::new(),
             scope_cached: Vec::new(),
             scope_cache_sites: Vec::new(),
+            ctor_file: "?".to_owned(),
+            ctor_line: 0,
+            ctor_type: String::new(),
         }
     }
 }
@@ -106,6 +119,127 @@ pub struct DiFinding {
     pub path: Vec<String>,
     pub file: String,
     pub line: u32,
+    /// The human verdict, byte-for-byte the reference's `message` property. The
+    /// bridge copies it and never rewords it (BR-B1).
+    pub message: String,
+    /// The singleton's **registration** `(file, line)`. Equal to `(file, line)`
+    /// for DI001/002/003; for DI004/DI005 it is the secondary anchor beside the
+    /// call/store-site primary, and the ` [singleton registered at …]` tail.
+    pub reg_file: String,
+    pub reg_line: u32,
+    /// The DI004 resolve-call / DI005 field-store line, `0` when the extractor
+    /// recorded none — the reference's `resolved_line` / `cached_line`. It is
+    /// what decides whether the primary came from a site (and therefore whether
+    /// the registration rides along as a `related` location), which `line`
+    /// alone cannot say once the fallback has been applied.
+    pub site_line: u32,
+    /// The consuming constructor (`Service::ctor_*` of the captor), `0` when
+    /// unknown. DI001/002/003 only — DI004/DI005 carry no consumer.
+    pub consumed_file: String,
+    pub consumed_line: u32,
+    pub consumed_type: String,
+}
+
+/// ` [consumed by the '<impl>' constructor at <file>:<line>]` — the port of
+/// `di._consumed_suffix`. Empty when the location is unknown; the type name is
+/// dropped, never guessed, when only the location is known.
+fn consumed_suffix(ctor_type: &str, file: &str, line: u32) -> String {
+    if line < 1 {
+        return String::new();
+    }
+    let owner = if ctor_type.is_empty() || ctor_type == "?" {
+        "the constructor".to_owned()
+    } else {
+        format!("the '{ctor_type}' constructor")
+    };
+    format!(" [consumed by {owner} at {file}:{line}]")
+}
+
+/// ` [singleton registered at <file>:<line>]` — the DI004/DI005 tail, present
+/// only when the primary anchor came from a call/store site AND the
+/// registration line is known (otherwise the registration IS the primary).
+fn registered_suffix(site_line: u32, reg_file: &str, reg_line: u32) -> String {
+    if site_line >= 1 && reg_line >= 1 {
+        format!(" [singleton registered at {reg_file}:{reg_line}]")
+    } else {
+        String::new()
+    }
+}
+
+/// The five verdict messages, each a verbatim port of its dataclass `message`
+/// property in `ownlang/di.py`. One function so the shared chain rendering and
+/// the two tails cannot drift apart between codes.
+fn di_message(
+    code: &str,
+    singleton: &str,
+    subject: &str,
+    path: &[String],
+    consumed: (&str, u32, &str),
+    registered: (u32, &str, u32),
+) -> String {
+    let chain = path.join(" -> ");
+    let (ctor_file, ctor_line, ctor_type) = consumed;
+    let consumed_tail = consumed_suffix(ctor_type, ctor_file, ctor_line);
+    let (site_line, reg_file, reg_line) = registered;
+    let reg_tail = registered_suffix(site_line, reg_file, reg_line);
+    match code {
+        "DI001" => format!(
+            "singleton '{singleton}' captures scoped service '{subject}' \
+             (captive dependency: {chain}){consumed_tail}"
+        ),
+        "DI002" => format!(
+            "singleton '{singleton}' weakly captures scoped service '{subject}' \
+             (WeakReference): '{subject}' is still resolved from the root provider and \
+             promoted to application lifetime — the weak reference avoids pinning it for \
+             the GC but does not fix the captive-dependency lifetime violation \
+             ({chain}){consumed_tail}"
+        ),
+        "DI003" => format!(
+            "singleton '{singleton}' captures transient IDisposable '{subject}': it is \
+             promoted to application lifetime and disposed only when the root provider is \
+             disposed ({chain}){consumed_tail}"
+        ),
+        "DI004" => format!(
+            "singleton '{singleton}' resolves transient IDisposable '{subject}' by hand \
+             from its injected root IServiceProvider (GetService/GetRequiredService — the \
+             service-locator anti-pattern): the root provider tracks every IDisposable it \
+             resolves and frees them only at application shutdown, so each call leaks a \
+             transient that should be scope-lived — resolve it from an IServiceScope \
+             instead ({chain}){reg_tail}"
+        ),
+        _ => format!(
+            "singleton '{singleton}' caches scoped service '{subject}', resolved from a \
+             scope it creates, into a field: the scope is disposed when the operation \
+             ends, so the cached instance dangles (use-after-dispose) and '{subject}' is \
+             promoted to application lifetime — the captive the scope was meant to avoid. \
+             Resolve it inside the scope per use and do not cache it ({chain}){reg_tail}"
+        ),
+    }
+}
+
+/// Fill in a finding's message from the members just set — one place, so a new
+/// construction site cannot forget it and ship an empty verdict.
+fn finished(mut f: DiFinding) -> DiFinding {
+    f.message = di_message(
+        f.code,
+        &f.singleton,
+        &f.subject,
+        &f.path,
+        (&f.consumed_file, f.consumed_line, &f.consumed_type),
+        (f.site_line, &f.reg_file, f.reg_line),
+    );
+    f
+}
+
+/// The raw call/store site line for `entry`, `0` when the extractor recorded
+/// none — the reference's `sites.get(entry, ("?", 0))[1]`, last-wins on a
+/// duplicate entry type exactly as [`primary_from_site`] reads it.
+fn site_line(sites: &[SiteTriple], entry: &str) -> u32 {
+    sites
+        .iter()
+        .rev()
+        .find(|(ty, _, _)| ty == entry)
+        .map_or(0, |(_, _, line)| *line)
 }
 
 fn by_name(services: &[Service]) -> BTreeMap<&str, &Service> {
@@ -170,14 +304,21 @@ pub fn find_captive_dependencies(services: &[Service]) -> Vec<DiFinding> {
                 match dnode.lifetime {
                     Some(Lifetime::Scoped) => {
                         if reported.insert(dep.clone()) {
-                            findings.push(DiFinding {
+                            findings.push(finished(DiFinding {
                                 code: "DI001",
                                 singleton: s.name.clone(),
                                 subject: dep.clone(),
                                 path: npath,
                                 file: s.file.clone(),
                                 line: s.line,
-                            });
+                                message: String::new(),
+                                reg_file: s.file.clone(),
+                                reg_line: s.line,
+                                site_line: 0,
+                                consumed_file: s.ctor_file.clone(),
+                                consumed_line: s.ctor_line,
+                                consumed_type: s.ctor_type.clone(),
+                            }));
                         }
                         // the violating edge is found; don't recurse past it.
                     }
@@ -214,14 +355,21 @@ pub fn find_weak_captive_dependencies(services: &[Service]) -> Vec<DiFinding> {
             match cnode.lifetime {
                 Some(Lifetime::Scoped) => {
                     if reported.insert(cur.clone()) {
-                        findings.push(DiFinding {
+                        findings.push(finished(DiFinding {
                             code: "DI002",
                             singleton: s.name.clone(),
                             subject: cur.clone(),
                             path,
                             file: s.file.clone(),
                             line: s.line,
-                        });
+                            message: String::new(),
+                            reg_file: s.file.clone(),
+                            reg_line: s.line,
+                            site_line: 0,
+                            consumed_file: s.ctor_file.clone(),
+                            consumed_line: s.ctor_line,
+                            consumed_type: s.ctor_type.clone(),
+                        }));
                     }
                 }
                 Some(Lifetime::Transient) if visited.insert(cur.clone()) => {
@@ -263,14 +411,21 @@ pub fn find_captured_transient_disposables(services: &[Service]) -> Vec<DiFindin
                 let mut npath = path.clone();
                 npath.push(dep.clone());
                 if dnode.disposable && reported.insert(dep.clone()) {
-                    findings.push(DiFinding {
+                    findings.push(finished(DiFinding {
                         code: "DI003",
                         singleton: s.name.clone(),
                         subject: dep.clone(),
                         path: npath.clone(),
                         file: s.file.clone(),
                         line: s.line,
-                    });
+                        message: String::new(),
+                        reg_file: s.file.clone(),
+                        reg_line: s.line,
+                        site_line: 0,
+                        consumed_file: s.ctor_file.clone(),
+                        consumed_line: s.ctor_line,
+                        consumed_type: s.ctor_type.clone(),
+                    }));
                 }
                 if visited.insert(dep.clone()) {
                     stack.push((dep.clone(), npath));
@@ -309,14 +464,21 @@ pub fn find_explicit_root_resolutions(services: &[Service]) -> Vec<DiFinding> {
                 // registration is the fallback when the site is unknown.
                 let entry = path.get(1).map_or("", String::as_str);
                 let (pf, pl) = primary_from_site(&s.root_resolve_sites, entry, &s.file, s.line);
-                findings.push(DiFinding {
+                findings.push(finished(DiFinding {
                     code: "DI004",
                     singleton: s.name.clone(),
                     subject: cur.clone(),
                     path: path.clone(),
                     file: pf,
                     line: pl,
-                });
+                    message: String::new(),
+                    reg_file: s.file.clone(),
+                    reg_line: s.line,
+                    site_line: site_line(&s.root_resolve_sites, entry),
+                    consumed_file: "?".to_owned(),
+                    consumed_line: 0,
+                    consumed_type: String::new(),
+                }));
             }
             if visited.insert(cur.clone()) {
                 for dep in &node.deps {
@@ -357,14 +519,21 @@ pub fn find_scope_cached_captives(services: &[Service]) -> Vec<DiFinding> {
                         // (registration fallback when unknown).
                         let (pf, pl) =
                             primary_from_site(&s.scope_cache_sites, entry, &s.file, s.line);
-                        findings.push(DiFinding {
+                        findings.push(finished(DiFinding {
                             code: "DI005",
                             singleton: s.name.clone(),
                             subject: cur.clone(),
                             path,
                             file: pf,
                             line: pl,
-                        });
+                            message: String::new(),
+                            reg_file: s.file.clone(),
+                            reg_line: s.line,
+                            site_line: site_line(&s.scope_cache_sites, entry),
+                            consumed_file: "?".to_owned(),
+                            consumed_line: 0,
+                            consumed_type: String::new(),
+                        }));
                         break; // first scoped reached — one finding per cached entry
                     }
                     Some(Lifetime::Transient) if visited.insert(cur.clone()) => {

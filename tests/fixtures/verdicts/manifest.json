@@ -190,6 +190,49 @@
         "BR-D2",
         "BR-P1"
       ]
+    },
+    {
+      "name": "verdict_flow_local_wordings",
+      "rules": [
+        "BR-V4",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_own014_wordings",
+      "rules": [
+        "BR-L1",
+        "BR-V4",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_own014_escape_slice_dropped",
+      "rules": [
+        "BR-V4",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_subscription_lambda_note",
+      "rules": [
+        "BR-V4",
+        "BR-V6"
+      ]
+    },
+    {
+      "name": "verdict_di_evidence_degradations",
+      "rules": [
+        "BR-P1",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_eff001_slice_dropped",
+      "rules": [
+        "BR-P2",
+        "BR-V5"
+      ]
     }
   ]
 }

@@ -1,0 +1,21 @@
+{
+  "ownir_version": 0,
+  "module": "SubscriptionLambdaNote",
+  "_doc": [
+    "The inline-lambda note on the INJECTED plain-subscription wording. The",
+    "corpora reach the note only on the static-source branch, so the injected one",
+    "(a different sentence, a different severity tier) had no control. `Unknown`",
+    "is deliberately unregistered: a registered source_type would route through",
+    "R5 into the OWN014 captive wording instead."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "dep.Changed", "handler": "<lambda>", "line": 7,
+         "source": "injected", "source_type": "Unknown", "lambda": true}
+      ]
+    }
+  ]
+}

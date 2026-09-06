@@ -1,26 +1,25 @@
-//! The checkpoint-4 acceptance contract (#259): for every case of the Layer 3
+//! The checkpoint-5 acceptance contract (#259): for every case of the Layer 3
 //! verdict fixture family,
 //!
 //! ```text
 //! facts.json → OwnIr (typed constructor, the tolerant entry) → own_bridge::check_facts
-//!            ≡  <case>.verdicts.json  on (file, line, column, code, component,
-//!                                        event, handler, kind, advisory,
-//!                                        severity, ignore_reason)
+//!            ≡  <case>.verdicts.json  on EVERY `Finding` member
 //! ```
 //!
 //! The golden is the reference's COMPLETE `Finding` list (`ownlang/verdicts.py`,
-//! regenerate: `python tests/test_verdict_fixtures.py --write`); this replay
-//! declares the members it compares — identity, anchor, kind and tiering. The
-//! two it does not, `message` and the evidence slices (`related`/`flow`), are
-//! checkpoint 5's, and the golden carries them already so cp5 tightens this
-//! comparison without regenerating anything.
+//! regenerate: `python tests/test_verdict_fixtures.py --write`) and this replay
+//! now compares all of it: cp4's identity, anchor, kind and tiering, plus the
+//! synthesized `message` (BR-V4) and the ordered `related` / `flow` evidence
+//! triples (BR-V5). **Not one golden was regenerated to get here** — they have
+//! carried these three members since cp4, which is the whole reason the family
+//! was built that way.
 //!
 //! Refusals compare on the reference's error text — byte-exact for a
 //! lowering-time refusal (vocabulary skew, an unknown resource kind), and up
 //! to the `message=` member for the map-or-raise class (BR-V3), whose text
 //! interpolates the core diagnostic's message that this core still carries as
-//! its title. That normalization is the one declared cp4 comparison boundary
-//! on a refusal, and it is applied to BOTH sides.
+//! its title. That normalization is the one declared comparison boundary left
+//! on a refusal, it is applied to BOTH sides, and closing it is checkpoint 5.2.
 //!
 //! Independently enforced here (not outsourced to Python):
 //! * ledger/tree equality — the swept corpora + the synthetic manifest cases
@@ -35,9 +34,8 @@
 
 #![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
-use own_bridge::Finding;
+use own_bridge::{Finding, Step};
 use serde::Deserialize;
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const FIXDIR: &str = concat!(
@@ -116,10 +114,11 @@ struct Golden {
 
 /// Every `ownir.Finding` member, strictly — a member added on the Python side
 /// goes red here until this replay is taught it (and decides whether to
-/// compare it).
+/// compare it). The evidence arrives as a fixed `(file, line, label)` TUPLE,
+/// so a golden triple of the wrong arity fails to parse rather than comparing
+/// as some shorter shape.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-#[allow(dead_code)] // `message`/`related`/`flow` are parsed (shape-locked), compared at cp5
 struct GoldenFinding {
     file: String,
     line: i64,
@@ -131,57 +130,70 @@ struct GoldenFinding {
     kind: String,
     advisory: bool,
     severity: Option<String>,
-    related: Vec<Vec<Value>>,
-    flow: Vec<Vec<Value>>,
+    related: Vec<Step>,
+    flow: Vec<Step>,
     ignore_reason: Option<String>,
     column: Option<i64>,
 }
 
-/// The checkpoint-4 comparison key.
-type Key = (
-    String,
-    i64,
-    Option<i64>,
-    String,
-    String,
-    String,
-    String,
-    String,
-    bool,
-    Option<String>,
-    Option<String>,
-);
+/// The checkpoint-5 comparison key: every member, in the reference's
+/// declaration order. A named struct rather than a tuple — fourteen members is
+/// past what the standard library derives for tuples, and a mislabelled field
+/// in a divergence report is worse than a long type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Key {
+    file: String,
+    line: i64,
+    column: Option<i64>,
+    code: String,
+    component: String,
+    event: String,
+    handler: String,
+    message: String,
+    kind: String,
+    advisory: bool,
+    severity: Option<String>,
+    related: Vec<Step>,
+    flow: Vec<Step>,
+    ignore_reason: Option<String>,
+}
 
 fn key_of_golden(f: &GoldenFinding) -> Key {
-    (
-        f.file.clone(),
-        f.line,
-        f.column,
-        f.code.clone(),
-        f.component.clone(),
-        f.event.clone(),
-        f.handler.clone(),
-        f.kind.clone(),
-        f.advisory,
-        f.severity.clone(),
-        f.ignore_reason.clone(),
-    )
+    Key {
+        file: f.file.clone(),
+        line: f.line,
+        column: f.column,
+        code: f.code.clone(),
+        component: f.component.clone(),
+        event: f.event.clone(),
+        handler: f.handler.clone(),
+        message: f.message.clone(),
+        kind: f.kind.clone(),
+        advisory: f.advisory,
+        severity: f.severity.clone(),
+        related: f.related.clone(),
+        flow: f.flow.clone(),
+        ignore_reason: f.ignore_reason.clone(),
+    }
 }
 
 fn key_of_rust(f: &Finding) -> Key {
-    (
-        f.file.clone(),
-        f.line,
-        f.column,
-        f.code.clone(),
-        f.component.clone(),
-        f.event.clone(),
-        f.handler.clone(),
-        f.kind.clone(),
-        f.advisory,
-        f.severity.clone(),
-        f.ignore_reason.clone(),
-    )
+    Key {
+        file: f.file.clone(),
+        line: f.line,
+        column: f.column,
+        code: f.code.clone(),
+        component: f.component.clone(),
+        event: f.event.clone(),
+        handler: f.handler.clone(),
+        message: f.message.clone(),
+        kind: f.kind.clone(),
+        advisory: f.advisory,
+        severity: f.severity.clone(),
+        related: f.related.clone(),
+        flow: f.flow.clone(),
+        ignore_reason: f.ignore_reason.clone(),
+    }
 }
 
 /// The refusal comparison class (see the module docs): the map-or-raise text
@@ -436,7 +448,7 @@ fn replays_every_case_to_its_golden() {
         failures.join("\n")
     );
     eprintln!(
-        "cp4 verdict surface (identity/anchor/kind/tiering): {replayed} cases replayed \
+        "cp5 verdict surface (every Finding member): {replayed} cases replayed \
          ({refusals} refusals, {findings} findings), \
          {} declared exclusions held",
         excluded.len()

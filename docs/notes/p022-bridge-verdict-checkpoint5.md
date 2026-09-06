@@ -1,11 +1,12 @@
 # P-022 step 6b (#259) — checkpoint 5: messages, evidence, rendered surfaces
 
-> Status: **checkpoint-5.0 deliverable — inventory only.** No production code
-> changed. This note names what checkpoint 5 has to prove, who owns each string
-> it must reproduce, and which branches the frozen Layer 3 goldens do *not*
-> reach today. Every count lives in the generated fragment
-> [`docs/generated/p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md);
-> nothing is typed here.
+> Status: **checkpoint 5.1 landed** (5.0 inventory + 5.1 messages and
+> evidence). This note names what checkpoint 5 has to prove, who owns each
+> string it must reproduce, and what each sub-checkpoint closed. Every count
+> lives in the generated fragments
+> [`p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md) and
+> [`p022-cp5-mutations.md`](../generated/p022-cp5-mutations.md); nothing is
+> typed here.
 
 Checkpoint 4 ([note](p022-bridge-verdict-checkpoint4.md)) proved identity,
 anchor, kind and tiering over the replayed set, and left three members of
@@ -177,3 +178,76 @@ reach the branch, and the test has to say so itself):
 The mutation campaign for each checkpoint is what makes the closure evidence
 rather than intention: a mutation the corpus does not catch is a missing
 control, and the answer is the synthetic case, never a declared survivor.
+
+## 7. What checkpoint 5.1 landed
+
+`own_bridge::Finding` grew `message`, `related` and `flow`, the BR-V4 matrix
+and the BR-V5 slice builders were ported, and `own-bridge/tests/verdicts.rs`
+now compares **every** member of the reference's `Finding` — cp4's identity,
+anchor, kind and tiering plus the three it carried without comparing. **No
+golden was regenerated or edited to reach that**: the goldens have carried
+those three members since cp4, and the replay went green against the files as
+committed.
+
+Three pieces of it are additive core data rather than bridge logic, because the
+reference puts them there and BR-B1 says the analysis owns its verdict:
+
+* `own_analysis::di::Service` regained the ctor metadata #214 had dropped as
+  "presentation-only", and `DiFinding` now carries its `message`, the
+  registration `(file, line)` its DI004/DI005 `related` needs beside the
+  call/store-site primary, and the raw `site_line` that says whether the
+  primary came from a site at all — which `line` alone cannot, once the
+  registration fallback has been applied;
+* `own_analysis::effect::EffectStorm` now carries its `message`, plus the
+  `origin_kind`, `decl_line` and reference `chain` it is built from — the
+  reference's `_Lattice` already computed the chain and the port was throwing
+  it away;
+* nothing else moved. `check_di` and `effect_diagnostics` (the `(line, code)`
+  projections) are untouched, so no existing core surface changed shape.
+
+### Divergences found, and how each was classified
+
+**None.** The first full-equality run over the 69 cases cp4 replayed was green,
+and the smoke check that the comparison bites was made explicitly (breaking one
+wording turns fourteen cases red) rather than inferred from a passing suite.
+That is a statement about the measured set only — see the next section for what
+the measured set did not contain.
+
+### Six synthetic cases, because a green replay over a corpus that never reaches a branch proves nothing about it
+
+The cp5.0 inventory named every wording and slice the goldens do not reach.
+Each one that a facts document *can* reach is now a case under the frozen
+manifest ledger — the OWN009 and pooled flow-local wordings with their slices,
+the DI-scoped and both inline-lambda OWN014 wordings, the injected-source
+lambda note, the dropped OWN014 escape slice, the bare consuming-constructor
+tail, the one-step DI retention path, and the dropped effect slice. Adding them
+rewrote **no** existing record in either the verdict ledger or the shadow
+slice's digest ledger, which is P-022 discipline rule 4 measured rather than
+asserted.
+
+Five branches a facts document *cannot* reach are pinned instead by controls in
+`verdict::tests`, driven through `map_core` — the production path — in the
+shape cp4's `M19` established: the two flow-local fallbacks (the nine-op flow
+vocabulary raises only codes that already have a wording), the `transient` and
+unrecognised DI lifetime phrases (nothing is shorter than the transient region,
+and the DI life map admits only the three lifetimes), and the capture route's
+named-source origin (routing R3 mints a handle only for a source with a
+declared capture region, and `static` is the only one). Their expected text is
+**the reference's own output**, taken by substituting the lowering under
+`check_facts` so the oracle could be asked about a state its inputs cannot
+produce — not a reading of `ownir.py`.
+
+Every remaining zero row in the inventory fragment now carries its disposition;
+a zero row without one renders as `GAP: no control`, so the ledger cannot go
+quiet about a branch nobody covered.
+
+### One property of the surface, recorded rather than papered over
+
+The pooled "rented but never returned" sentence is emitted by **two** branches
+of the matrix — the flow-local never-returned wording and the `pool` token
+wording — on the same `kind`, with the same empty `handler`. Nothing in a
+serialized `Finding` separates them, so the inventory carries them as one row.
+A port that reached the sentence by the other branch would produce a
+byte-identical golden; that is what parity on this surface means, and it is
+stated on the row instead of being hidden behind a discriminator that does not
+exist.

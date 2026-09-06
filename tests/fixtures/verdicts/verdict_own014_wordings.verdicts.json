@@ -1,0 +1,75 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Vm.cs",
+      "line": 11,
+      "code": "OWN014",
+      "component": "Vm",
+      "event": "cache.Changed",
+      "handler": "OnCache",
+      "message": "event 'cache.Changed' is subscribed (handler 'OnCache') to 'Cache' — a DI scoped service that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Vm.cs",
+          11,
+          "'Vm' subscribes 'cache.Changed' to 'Cache' here"
+        ],
+        [
+          "reg.cs",
+          3,
+          "source 'Cache' (scoped) registered here — outlives 'Vm'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Vm.cs",
+      "line": 12,
+      "code": "OWN014",
+      "component": "Vm",
+      "event": "bus.Changed",
+      "handler": "<lambda>",
+      "message": "event 'bus.Changed' is subscribed (handler '<lambda>') to 'Bus' — a DI singleton (application-lifetime) service that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path — and being an inline lambda it has no '-=' handle, so it could never be detached)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Vm.cs",
+          12,
+          "'Vm' subscribes 'bus.Changed' to 'Bus' here"
+        ],
+        [
+          "reg.cs",
+          4,
+          "source 'Bus' (singleton) registered here — outlives 'Vm'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Vm.cs",
+      "line": 13,
+      "code": "OWN014",
+      "component": "Vm",
+      "event": "SystemEvents.Session",
+      "handler": "<lambda>",
+      "message": "event 'SystemEvents.Session' is subscribed (handler '<lambda>') to a static (process-lived) event source that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's lifetime, so it can never be collected — a region escape (leak, no release path — and being an inline lambda it has no '-=' handle, so it could never be detached)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

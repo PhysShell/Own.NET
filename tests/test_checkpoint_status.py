@@ -43,6 +43,8 @@ from mutate_campaign import CampaignError, load_definition, validate  # noqa: E4
 from render_checkpoint_status import (  # noqa: E402
     CAMPAIGN,
     CENSUS_MD,
+    CP5_CAMPAIGNS,
+    CP5_MUTATIONS_MD,
     INVENTORY_MD,
     MUTATIONS_MD,
     SHADOW_CAMPAIGNS,
@@ -54,8 +56,9 @@ from render_checkpoint_status import (  # noqa: E402
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 # Every campaign definition in the tree, gated for replayability. A campaign
 # nobody listed is a campaign nobody re-anchors.
-DEFINITIONS = (CAMPAIGN, *(os.path.join(EVIDENCE, f"{campaign}.json")
-                           for _, campaign in SHADOW_CAMPAIGNS))
+DEFINITIONS = (CAMPAIGN,
+               *(os.path.join(EVIDENCE, f"{campaign}.json")
+                 for _, campaign in (*CP5_CAMPAIGNS, *SHADOW_CAMPAIGNS)))
 
 
 def _anchors() -> list[str]:
@@ -85,7 +88,8 @@ def run() -> int:
     if problems or anchors:
         return 1
     print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, "
-          f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence; "
+          f"{CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with "
+          f"the evidence; "
           f"{len(DEFINITIONS)} campaign definitions still anchor")
     return 0
 

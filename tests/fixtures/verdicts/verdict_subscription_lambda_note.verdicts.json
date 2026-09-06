@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Vm.cs",
+      "line": 7,
+      "code": "OWN001",
+      "component": "Vm",
+      "event": "dep.Changed",
+      "handler": "<lambda>",
+      "message": "event 'dep.Changed' is subscribed (handler '<lambda>') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak — and being an inline lambda it has no '-=' handle, so it could never be detached)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": "warning",
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

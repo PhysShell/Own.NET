@@ -1,0 +1,30 @@
+{
+  "ownir_version": 0,
+  "module": "Own014Wordings",
+  "_doc": [
+    "The OWN014 wordings the swept corpora never mint. `Cache` is a DI SCOPED",
+    "source captured by a transient subscriber (the corpora only ever reach the",
+    "singleton phrase); `Bus` is subscribed by an inline lambda, which appends the",
+    "no-'-=' note to the captive wording; `SystemEvents.Session` is the same note",
+    "on the capture route's own (region-escape) wording."
+  ],
+  "services": [
+    {"name": "Cache", "lifetime": "scoped", "file": "reg.cs", "line": 3, "deps": []},
+    {"name": "Bus", "lifetime": "singleton", "file": "reg.cs", "line": 4, "deps": []},
+    {"name": "Vm", "lifetime": "transient", "file": "reg.cs", "line": 5, "deps": []}
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "cache.Changed", "handler": "OnCache", "line": 11,
+         "source": "injected", "source_type": "Cache"},
+        {"event": "bus.Changed", "handler": "<lambda>", "line": 12,
+         "source": "injected", "source_type": "Bus", "lambda": true},
+        {"resource": "capture", "event": "SystemEvents.Session", "handler": "<lambda>",
+         "line": 13, "source": "static", "lambda": true}
+      ]
+    }
+  ]
+}

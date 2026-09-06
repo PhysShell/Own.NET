@@ -1,0 +1,23 @@
+{
+  "ownir_version": 0,
+  "module": "Own014NoSlice",
+  "_doc": [
+    "BR-V5's 'a slice shorter than two steps is dropped', on the OWN014 escape",
+    "slice: the source IS DI-registered (so the captive wording fires and names",
+    "its lifetime) but its registration line is unknown, so the second hop cannot",
+    "be built and the lone subscribe step is discarded rather than emitted."
+  ],
+  "services": [
+    {"name": "Bus", "lifetime": "singleton", "file": "reg.cs", "line": 0, "deps": []}
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "bus.Changed", "handler": "OnBus", "line": 11,
+         "source": "injected", "source_type": "Bus"}
+      ]
+    }
+  ]
+}
