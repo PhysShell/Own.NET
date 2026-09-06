@@ -1,0 +1,387 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 4b.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4b-1.json --run (on a clean tree). The recorded run lives beside this file as p022-cp4b-1.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp4b-1",
+  "description": "#259 cp4b.1, the obligation-protocol ANALYSIS: the {OPEN, CLOSED} lattice and its min-line provenance, the definite/maybe split, the opens-before-closes-before-barriers leaf order with allow beating barrier, the never-invent asymmetry of an opaque write, the exit rules and the anchor-at-open precedent, the branch join, the loop's silent fixpoint and single emitting pass, the reachability-blind close-line evidence with its strictly-after and barriers-only rules, and the four-part sort key — plus the half of the shared grammar the analysis reads (scope matching, tracked flags, args narrowing, assign-value narrowing and the record defaults). Two mutations attack the CONTROL rather than the port: they corrupt the frozen oracle in tests/fixtures/obligation_fact_parity.json and require the replay to fail, because a replay that survives a drifting oracle is comparing against nothing.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "OwnIR §8 lattice",
+      "description": "the merge drops the other path's states: a union becomes 'keep the left'",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "states: self\\.states\\.union\\(other\\.states\\),",
+      "replacement": "states: self.states,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "OwnIR §8 lattice",
+      "description": "open provenance joins by the LATEST line instead of the earliest",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "\\(Some\\(a\\), Some\\(b\\)\\) => Some\\(a\\.min\\(b\\)\\),",
+      "replacement": "(Some(a), Some(b)) => Some(a.max(b)),",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "OwnIR §8 lattice",
+      "description": "the state union intersects OPEN instead of joining it",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "open: self\\.open \\|\\| other\\.open,",
+      "replacement": "open: self.open && other.open,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "OwnIR §8 definite/maybe",
+      "description": "definite reads 'OPEN is possible' instead of 'OPEN on every path'",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "definite: st\\.states == States::OPEN,",
+      "replacement": "definite: st.states.open,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "obligations._leaf",
+      "description": "a re-open moves the provenance forward instead of keeping the earliest site",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "open_line: Some\\(st\\.open_line\\.map_or\\(line, \\|prev\\| prev\\.min\\(line\\)\\)\\),",
+      "replacement": "open_line: Some(st.open_line.map_or(line, |prev| prev.max(line))),",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "obligations._leaf (allow beats barrier)",
+      "description": "the allow list no longer exempts an event from the barrier check",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "if !p\\.allow\\.iter\\(\\)\\.any\\(\\|a\\| a\\.matches\\(ev\\)\\) && p\\.barriers",
+      "replacement": "if p.barriers",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "OwnIR §8 precision policy",
+      "description": "an opaque write DISCHARGES definitely instead of adding CLOSED to the set",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "states: st\\.states\\.union\\(States::CLOSED\\),",
+      "replacement": "states: States::CLOSED,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "OwnIR §8 precision policy",
+      "description": "an opaque write to an UNTRACKED member discharges the obligation",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "if p\\.tracks_target\\(target\\) \\{",
+      "replacement": "if true {",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "obligations._exit",
+      "description": "exit_barriers is ignored: return/throw always cross",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "if self\\.proto\\.exit_barriers && st\\.states\\.open \\{\\n(\\s+)self\\.emit\\(ViolationKind::Exit, line, st, desc\\.to_owned\\(\\)\\);",
+      "replacement": "if st.states.open {\n\\1self.emit(ViolationKind::Exit, line, st, desc.to_owned());",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "OwnIR §8 anchor-at-open (the OWN001 precedent)",
+      "description": "an end-of-method leak anchors at 0 instead of at the open site",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "let anchor = st\\.open_line\\.unwrap_or\\(0\\);",
+      "replacement": "let anchor = 0;",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "obligations.walk_seq",
+      "description": "a sequence keeps walking past an event that left the method",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "            if !alive \\{\\n                return \\(st, false\\);\\n            \\}\\n        \\}\\n        \\(st, true\\)",
+      "replacement": "            let _ = alive;\n        }\n        (st, true)",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "obligations.walk (if)",
+      "description": "ONE dead arm ends the method instead of both",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "                if !a1 && !a2 \\{",
+      "replacement": "                if !a1 || !a2 {",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "obligations.walk (if)",
+      "description": "the merge keeps only the then-arm instead of joining both",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "\\(left\\.join\\(right\\), true\\)",
+      "replacement": "{\n                    let _ = right;\n                    (left, true)\n                }",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "obligations.walk (while) — zero iterations",
+      "description": "the fixpoint forgets the header, so a loop can no longer run zero times",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "let next = header\\.join\\(if body_alive \\{ out \\} else \\{ State::BOTTOM \\}\\);",
+      "replacement": "let next = if body_alive { out } else { State::BOTTOM };",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "obligations.walk (while) — two-phase emission",
+      "description": "the fixpoint iterations emit, so a barrier in a loop reports more than once",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "                self\\.silent = true;",
+      "replacement": "                self.silent = was_silent;",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "obligations.walk (while) — nested silence",
+      "description": "the emitting pass runs even while an enclosing loop is still silent",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "                if !self\\.silent \\{\\n                    self\\.walk_seq\\(body, header\\);\\n                \\}",
+      "replacement": "                {\n                    self.walk_seq(body, header);\n                }",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "obligations._close_lines",
+      "description": "close lines inside a loop body are not collected as evidence",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "            Event::While \\{ body, \\.\\. \\} => close_lines\\(proto, body, out\\),",
+      "replacement": "            Event::While { .. } => {}",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "obligations.check_protocols (late close)",
+      "description": "the late close is 'at or after' the barrier instead of strictly after",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "closes\\.iter\\(\\)\\.find\\(\\|c\\| \\*\\*c > v\\.line\\)",
+      "replacement": "closes.iter().find(|c| **c >= v.line)",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "obligations.check_protocols (late close)",
+      "description": "the late-close hop is attached to exit leaks instead of barrier crossings",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "if v\\.kind == ViolationKind::Barrier \\{",
+      "replacement": "if v.kind != ViolationKind::Barrier {",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open"
+      ]
+    },
+    {
+      "id": "M20",
+      "rule": "obligations.check_protocols (sort key)",
+      "description": "violations sort by line before file",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "        a\\.file\\n            \\.cmp\\(&b\\.file\\)\\n            \\.then_with\\(\\|\\| a\\.line\\.cmp\\(&b\\.line\\)\\)",
+      "replacement": "        a.line\n            .cmp(&b.line)\n            .then_with(|| a.file.cmp(&b.file))",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "obligations.check_protocols (sort key)",
+      "description": "the protocol tiebreak is dropped from the sort key",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "            \\.then_with\\(\\|\\| a\\.protocol\\.cmp\\(&b\\.protocol\\)\\)\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M22",
+      "rule": "obligations.check_protocols (sort key)",
+      "description": "the barrier-description tiebreak is dropped from the sort key",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "            \\.then_with\\(\\|\\| a\\.barrier_desc\\.cmp\\(&b\\.barrier_desc\\)\\)\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "obligations.unmatched_scopes",
+      "description": "an UNSCOPED protocol is reported as a dead rule",
+      "target": "rust/crates/own-analysis/src/obligation.rs",
+      "pattern": "        \\.filter\\(\\|p\\| !p\\.methods\\.is_empty\\(\\) && !methods\\.iter\\(\\)\\.any\\(\\|m\\| p\\.applies_to\\(&m\\.name\\)\\)\\)",
+      "replacement": "        .filter(|p| !methods.iter().any(|m| p.applies_to(&m.name)))",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not"
+      ]
+    },
+    {
+      "id": "M24",
+      "rule": "OwnIR §8 scope (suffix match)",
+      "description": "a scope entry matches anywhere in the method name instead of as a suffix",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "\\.any\\(\\|m\\| fn_name == m \\|\\| fn_name\\.ends_with\\(&format!\\(\\\"\\.\\{m\\}\\\"\\)\\)\\)",
+      "replacement": ".any(|m| fn_name == m || fn_name.contains(m))",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "OwnIR §8 scope (empty = every method)",
+      "description": "an empty scope is inverted: a scoped protocol applies everywhere",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "        self\\.methods\\.is_empty\\(\\)\\n",
+      "replacement": "        !self.methods.is_empty()\n",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "OwnIR §8 tracked flags",
+      "description": "tracks_target ignores the member name, so every assign target is tracked",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "\\.any\\(\\|m\\| m\\.kind == MatcherKind::Assign && m\\.target == target\\)",
+      "replacement": ".any(|m| m.kind == MatcherKind::Assign)",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ]
+    },
+    {
+      "id": "M27",
+      "rule": "OwnIR §8 precision policy (unknown argument)",
+      "description": "a call with an UNKNOWN argument matches an args-narrowed matcher",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "\\|\\| arg\\.as_ref\\(\\)\\.is_some_and\\(\\|a\\| self\\.args\\.contains\\(a\\)\\)\\)",
+      "replacement": "|| arg.as_ref().map_or(true, |a| self.args.contains(a)))",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_narrowed_call_matcher_never_matches_an_unknown_argument"
+      ]
+    },
+    {
+      "id": "M28",
+      "rule": "OwnIR §8 matcher (assign value narrowing)",
+      "description": "an assign matcher ignores the written value, so a close also opens",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "\\*target == self\\.target && \\(self\\.value\\.is_none\\(\\) \\|\\| \\*value == self\\.value\\)",
+      "replacement": "*target == self.target",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M29",
+      "rule": "OwnIR §8 grammar (exit_barriers default)",
+      "description": "an absent exit_barriers defaults to false instead of true",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "let exit_barriers = match obj\\.get\\(\\\"exit_barriers\\\"\\) \\{\\n        None => true,",
+      "replacement": "let exit_barriers = match obj.get(\"exit_barriers\") {\n        None => false,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ]
+    },
+    {
+      "id": "M30",
+      "rule": "OwnIR §8 grammar (scope construction)",
+      "description": "a validated scope entry is checked and then dropped, so every scope is empty",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "                methods\\.push\\(m\\.to_owned\\(\\)\\);",
+      "replacement": "                let _ = m;",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ]
+    },
+    {
+      "id": "M31",
+      "rule": "OwnIR §8 grammar (file default)",
+      "description": "an absent protocol-function 'file' defaults to the empty string, not '?'",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "        None => \\\"\\?\\\"\\.to_owned\\(\\),",
+      "replacement": "        None => String::new(),",
+      "expected_catchers": [
+        "own-ir/src/lib.rs::protocol::tests::a_method_record_becomes_its_event_tree"
+      ]
+    },
+    {
+      "id": "M32",
+      "rule": "P-022 discipline 2 (the control is the thing under test)",
+      "description": "corrupt the frozen oracle: the anchor of the leak whose open carries no line moves off 0. The replay must fail, or it is not reading the reference's answer",
+      "target": "tests/fixtures/obligation_fact_parity.json",
+      "pattern": "\"open_line\": 0,",
+      "replacement": "\"open_line\": 1,",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    },
+    {
+      "id": "M33",
+      "rule": "P-022 discipline 2 (the control is the thing under test)",
+      "description": "corrupt the frozen oracle's dead-rule list. The replay must fail, or the unmatched_scopes half is carried without being compared",
+      "target": "tests/fixtures/obligation_fact_parity.json",
+      "pattern": "(\"name\": \"a_dead_rule_and_a_live_one_together\"[\\s\\S]*?)\"dead\": \\[\\n        \"DocLoad\"\\n      \\]",
+      "replacement": "\\1\"dead\": [\n        \"BatchUpdate\"\n      ]",
+      "expected_catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ]
+    }
+  ]
+}
