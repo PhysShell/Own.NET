@@ -546,8 +546,8 @@
     {
       "case": "verdict_protocol_tolerant_door_rules",
       "corpus": "verdicts",
-      "digest": "50d53ee22fde12a7eba63615a856bf9b6fd2de75d2e5eee22d892dad3bb40c1d",
-      "bytes": 1688
+      "digest": "d98ab7fa30b2680cf0dbb605fec21bf62a44cd824b6bee6d98a27d23c3994edc",
+      "bytes": 2018
     },
     {
       "case": "verdict_same_site_distinct_events",

@@ -123,10 +123,10 @@
     {
       "id": "M11",
       "rule": "BR-V5",
-      "description": "the opened step is dropped from every protocol slice",
+      "description": "the opened step of every protocol slice is anchored at 0, so the BR-V5 line guard drops it",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "        let mut flow: Vec<\\(i64, String\\)> = vec!\\[\\(",
-      "replacement": "        let mut flow: Vec<(i64, String)> = Vec::new();\n        let _unused = (",
+      "pattern": "\\n            v\\.open_line,\\n",
+      "replacement": "\n            0,\n",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"

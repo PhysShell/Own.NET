@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-cp4b-2",
+  "definition": "docs/evidence/p022-cp4b-2.json",
+  "definition_sha256": "79f3cbb77839e4e72027ab1ae50f830650cd501b09cf4a6247ed80de9d556f5c",
+  "source_commit": "59ef80ea2740cc538742f685933b393b91c288d6",
+  "dirty": false,
+  "recorded_at": "2026-09-06T20:53:07Z",
+  "packages": [
+    "own-analysis",
+    "own-bridge",
+    "own-cfg",
+    "own-diagnostics",
+    "own-ir",
+    "own-lowered",
+    "own-shadow",
+    "own-syntax"
+  ],
+  "command": "cargo test -p <package> --no-fail-fast, for every workspace member",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 3.9
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.3
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.3
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.1
+    },
+    {
+      "id": "M06",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.1
+    },
+    {
+      "id": "M07",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.2
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M11",
+      "outcome": "compile-error",
+      "catchers": [],
+      "elapsed_seconds": 1.3
+    },
+    {
+      "id": "M12",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.3
+    },
+    {
+      "id": "M13",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M14",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.3
+    },
+    {
+      "id": "M15",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M16",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M17",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M18",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.3
+    },
+    {
+      "id": "M19",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M20",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M21",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M22",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    },
+    {
+      "id": "M23",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M24",
+      "outcome": "survived",
+      "catchers": [],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M25",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M26",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    },
+    {
+      "id": "M27",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ],
+      "elapsed_seconds": 3.2
+    },
+    {
+      "id": "M28",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.0
+    }
+  ]
+}

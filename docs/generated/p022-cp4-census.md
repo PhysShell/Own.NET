@@ -32,6 +32,6 @@ A second family, and a different kind of comparison: its replay compares the **b
 |-----------------------------------------------------------------------|------:|
 | cases — one per BR-V9 rule group, listed exhaustively in the manifest | 9 |
 | … whose golden is a bridge refusal (nothing to render)                | 1 |
-| rendered lines compared byte-for-byte (4 formats, 2 host severities)  | 120 |
-| SARIF results compared byte-for-byte (both host severities)           | 30 |
+| rendered lines compared byte-for-byte (4 formats, 2 host severities)  | 136 |
+| SARIF results compared byte-for-byte (both host severities)           | 34 |
 | BR-V9 ledger rows pinned by at least one case                         | 31 |

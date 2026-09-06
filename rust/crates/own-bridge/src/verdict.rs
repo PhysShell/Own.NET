@@ -1537,7 +1537,19 @@ mod tests {
             "name": "VM.Go", "file": "VM.cs",
             "events": [{"ev": "assign", "target": "x", "value": false, "line": 3}]
         });
-        // The control twin first: as LISTS these same records do report.
+        // The rule is only OBSERVABLE through a SCOPED protocol: with the
+        // methods gone, "the block is not a list" and "the block is empty"
+        // differ by exactly one thing — an empty method list makes a scoped
+        // rule dead, and a silenced family says nothing at all. Measured, not
+        // guessed: an earlier version of this control used an unscoped rule
+        // and a mutation reading a non-list block as empty survived it.
+        let scoped = json!({
+            "name": "P",
+            "opens": {"kind": "assign", "target": "x", "value": false},
+            "closes": {"kind": "assign", "target": "x", "value": true},
+            "scope": {"methods": ["VM.Go"]}
+        });
+        // The control twins first: as LISTS these same records do report.
         let live = obj(&json!({
             "protocols": [&rule], "protocol_functions": [&method]
         }));
@@ -1549,9 +1561,20 @@ mod tests {
             vec!["OBL003"],
             "the twin must report, or the assertions below prove nothing"
         );
+        let dead = obj(&json!({"protocols": [&scoped], "protocol_functions": []}));
+        assert_eq!(
+            protocol_findings(&dead)
+                .iter()
+                .map(|f| f.code.as_str())
+                .collect::<Vec<_>>(),
+            vec!["OBL005"],
+            "an EMPTY method list makes a scoped rule dead — which is what the \
+             silenced family below must NOT do"
+        );
         for root in [
             json!({"protocols": "nope", "protocol_functions": [&method]}),
             json!({"protocols": [&rule], "protocol_functions": "nope"}),
+            json!({"protocols": [&scoped], "protocol_functions": "nope"}),
             json!({"protocols": {"name": "P"}, "protocol_functions": []}),
         ] {
             assert!(
@@ -1559,10 +1582,16 @@ mod tests {
                 "a non-list protocol block must silence the family: {root}"
             );
         }
-        // Absent is not "not a list": both blocks default to empty.
+        // Absent is not "not a list": both blocks default to empty, so the
+        // scoped rule is dead rather than silenced.
         assert!(protocol_findings(&obj(&json!({}))).is_empty());
         assert!(protocol_findings(&obj(&json!({"protocols": [&rule]}))).is_empty());
         assert!(protocol_findings(&obj(&json!({"protocol_functions": [&method]}))).is_empty());
+        assert_eq!(
+            protocol_findings(&obj(&json!({"protocols": [&scoped]}))).len(),
+            1,
+            "an ABSENT protocol_functions block is an empty one"
+        );
     }
 
     /// BR-P1 on the raw document: `disposable` counts only as the JSON `true`,

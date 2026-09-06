@@ -13,21 +13,53 @@
     "    so `codeFlows` is rendered from a PROTOCOL slice. The existing",
     "    evidence case builds its flow from a flow-local leak; the two reach",
     "    the same emitter through different builders, and only bytes prove",
-    "    the emitter did not change on the way."
+    "    the same emitter through different builders, and only bytes prove",
+    "    the emitter did not change on the way.",
+    "  * an OBL003 leak off the END and one through a RETURN, so the two exit",
+    "    wordings are rendered rather than only compared as values, and Ghost's",
+    "    scope carries TWO entries so the ', ' CPython puts between them is in",
+    "    the bytes as well."
   ],
   "protocols": [
     {
       "name": "Ghost",
-      "opens":  {"kind": "assign", "target": "x", "value": false},
-      "closes": {"kind": "assign", "target": "x", "value": true},
-      "scope": {"methods": ["GhostViewModel.Misspelled"]}
+      "opens": {
+        "kind": "assign",
+        "target": "x",
+        "value": false
+      },
+      "closes": {
+        "kind": "assign",
+        "target": "x",
+        "value": true
+      },
+      "scope": {
+        "methods": [
+          "GhostViewModel.Misspelled",
+          "AViewModel.Absent"
+        ]
+      }
     },
     {
       "name": "DocumentLoading",
-      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
-      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "opens": {
+        "kind": "assign",
+        "target": "IsLoaded",
+        "value": false
+      },
+      "closes": {
+        "kind": "assign",
+        "target": "IsLoaded",
+        "value": true
+      },
       "barriers": [
-        {"kind": "call", "callee": "OnPropertyChanged", "args": ["Document"]}
+        {
+          "kind": "call",
+          "callee": "OnPropertyChanged",
+          "args": [
+            "Document"
+          ]
+        }
       ]
     }
   ],
@@ -36,9 +68,53 @@
       "name": "Broker.DocViewModel.Load",
       "file": "DocViewModel.cs",
       "events": [
-        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 12},
-        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 18},
-        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 24}
+        {
+          "ev": "assign",
+          "target": "IsLoaded",
+          "value": false,
+          "line": 12
+        },
+        {
+          "ev": "call",
+          "callee": "OnPropertyChanged",
+          "arg": "Document",
+          "line": 18
+        },
+        {
+          "ev": "assign",
+          "target": "IsLoaded",
+          "value": true,
+          "line": 24
+        }
+      ]
+    },
+    {
+      "name": "Broker.DocViewModel.Abandon",
+      "file": "DocViewModel.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "IsLoaded",
+          "value": false,
+          "line": 40
+        },
+        {
+          "ev": "if",
+          "line": 41,
+          "then": [
+            {
+              "ev": "return",
+              "line": 42
+            }
+          ],
+          "else": []
+        },
+        {
+          "ev": "assign",
+          "target": "IsLoaded",
+          "value": false,
+          "line": 50
+        }
       ]
     }
   ]
