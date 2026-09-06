@@ -70,6 +70,30 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mu
 
 Campaign `p022-cp5-2` — #259 cp5.2 refusal text: the core message layer own-cfg now carries for the resolver, the seam own-analysis reads it through, and the CPython `repr` the BR-V3 map-or-raise text quotes it with — including the quote switch cp4's cut hid. Plus the shadow engine's verdict capture, which stopped being a partial projection in this checkpoint.
 
-Definition: `docs/evidence/p022-cp5-2.json` (sha256 `d7f61ffefbf9f0f5…`, 10 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp5-2.json` (sha256 `8641e3ff34598123…`, 10 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-**No recorded run** is committed (expected at `docs/evidence/p022-cp5-2.result.json`): the campaign has a definition but no evidence. Nothing below is a number.
+| measure                                                    | value |
+|------------------------------------------------------------|---|
+| recorded at commit                                         | `2a7ff6d4ab2877b930f79f09bc6f55bfbffd094e` |
+| packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
+| mutations                                                  | 10 |
+| caught                                                     | 10 |
+| survived                                                   | 0 |
+| compile-error (no evidence either way)                     | 0 |
+| invalid-mutation                                           | 0 |
+| runner-error                                               | 0 |
+| caught without every expected catcher                      | none |
+| honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+| id | rule | mutation | outcome | caught by |
+|---|---|---|---|---|
+| M01 | BR-V3 | the resolver's OWN030 message drops the name it interpolates | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M02 | BR-V3 | the resolver emits a message-less diagnostic again (the title stands in) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M03 | BR-V3 | own-analysis ignores the message own-cfg carries and substitutes the title | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M04 | BR-V3 | py_repr always single-quotes (cp4's placeholder, the bug cp5.2 found) | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M05 | BR-V3 | py_repr's quote switch inverted (double unless a quote is present) | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M06 | BR-V3 | py_repr leaves a backslash unescaped | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch` |
+| M07 | BR-V3 | py_repr leaves an ASCII control character raw | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch` |
+| M08 | BR-V3 | py_repr renders an absent subject as an empty string, not None | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M09 | engine protocol | the shadow capture emits an empty evidence slice while declaring the layer full | caught | `own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M10 | engine protocol | the shadow capture drops a member while still declaring the layer full | caught | `own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
