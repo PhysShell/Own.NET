@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-cp4",
   "definition": "docs/evidence/p022-cp4-mutations.json",
-  "definition_sha256": "43bf2ccb97a7b1c065c746ad6c1c3c900e6f3fc346fa5125b471223bbd55d173",
-  "source_commit": "299d768f5c6ae243ca93bde2bbc289c86a210ae1",
+  "definition_sha256": "15b10f36c0d2b46b5e3d4815babc57bfbebefecde0f6c5579e7e9d666bd1edb9",
+  "source_commit": "5553dae32ddf5d22592e11e84c8ed10e8c2fbc3e",
   "dirty": false,
-  "recorded_at": "2026-09-06T14:55:53Z",
+  "recorded_at": "2026-09-06T15:08:56Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,7 +22,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 3.4
+    "elapsed_seconds": 1.6
   },
   "mutations": [
     {
@@ -32,7 +32,7 @@
         "own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.0
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M02",
@@ -40,7 +40,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M03",
@@ -48,7 +48,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M04",
@@ -56,7 +56,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M05",
@@ -64,13 +64,15 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M06",
-      "outcome": "survived",
-      "catchers": [],
-      "elapsed_seconds": 3.6
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
+      ],
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M07",
@@ -79,7 +81,7 @@
         "own-analysis/tests/fact_parity.rs::di_fact_parity",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M08",
@@ -88,7 +90,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M09",
@@ -96,7 +98,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::malformed_effect_entries_are_skipped_not_coerced"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M10",
@@ -104,7 +106,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M11",
@@ -113,7 +115,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M12",
@@ -125,7 +127,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M13",
@@ -134,7 +136,7 @@
         "own-analysis/tests/subject.rs::region_escape_carries_the_source_identity",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M14",
@@ -143,7 +145,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M15",
@@ -151,7 +153,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M16",
@@ -160,7 +162,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M17",
@@ -168,15 +170,16 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M18",
       "outcome": "caught",
       "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M19",
@@ -184,7 +187,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M20",
@@ -200,7 +203,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M22",
@@ -208,7 +211,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M23",
@@ -221,7 +224,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M24",
@@ -229,31 +232,39 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M25",
-      "outcome": "survived",
-      "catchers": [],
-      "elapsed_seconds": 3.6
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M26",
-      "outcome": "survived",
-      "catchers": [],
-      "elapsed_seconds": 3.5
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M27",
-      "outcome": "survived",
-      "catchers": [],
-      "elapsed_seconds": 3.6
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
+      ],
+      "elapsed_seconds": 3.5
     },
     {
       "id": "M28",
-      "outcome": "survived",
-      "catchers": [],
-      "elapsed_seconds": 3.5
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
+      ],
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M29",
@@ -261,7 +272,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M30",
