@@ -1,326 +1,785 @@
 #!/usr/bin/env python3
-"""Run a mutation campaign and record what caught each mutation.
+"""Mutation campaign runner — replicable evidence for the P-022 discipline.
 
-P-022's parity-work discipline makes a test evidence only once its mutation
-fails **through the production surface it claims to protect** (rule 2), and
-requires **every** catching layer to be exposed rather than the first one
-(rule 3 — no fail-fast). Before this script the campaigns were run by hand and
-written up in prose, which is exactly the shape that rots: the numbers in a
-note cannot be re-derived, and a mutation whose target code has since moved
-looks the same as one that still applies.
+Rule 2 of the discipline: a test is evidence only once its mutation fails
+through the production surface. Rule 3: no fail-fast — every catching layer
+is recorded. This runner turns a campaign from a session's scratch script
+into something the tree carries and anyone can replay:
 
-So a campaign is **data**: a definition file naming each mutation as an exact
-text edit to a production file, and a result file recording, per mutation,
-which layers failed. Both live beside the checkpoint note as evidence. The
-definition is checkable in CI without running anything — every edit's `find`
-string must still occur exactly once in its target — so a campaign that no
-longer applies is a red build rather than a quiet fiction.
+* a **definition** (`docs/evidence/<campaign>.json`) lists the mutations —
+  a regex that must match its target file exactly once, the replacement, the
+  rule it attacks, and the tests expected to catch it;
+* a **result** (`docs/evidence/<campaign>.result.json`) is raw facts only:
+  per-mutation outcome, every catching test, elapsed time, and provenance
+  (the commit the run was taken on, the sha256 of the definition it ran, the
+  packages tested). Counts are derived by the renderer
+  (`scripts/render_checkpoint_status.py`), so the campaign is interpreted
+  once.
 
-## What this script guarantees
+A campaign declares **what to run** in one of two ways, and the rest of the
+contract is identical for both:
 
-* **No fail-fast, ever** (rule 3). Every layer runs for every mutation, and
-  every failing test within a layer is recorded — not the first one.
-* **Restore from a copy held in memory, never `git checkout`** (the lesson
-  from #259 cp1's third round: `git checkout` also reverts whatever else the
-  working tree was carrying). The original bytes are read before the edit and
-  written back in a `finally`, and the script refuses to start with a dirty
-  target file.
-* **Cached bytecode is invalidated on every write.** A `.pyc` is validated
-  against the source's integer mtime and size, so a same-size mutation can
-  survive a restore and poison every later row. See `_invalidate_bytecode`.
-* **A compile error is reported as a compile error**, never as "caught". A
-  mutation that does not build proves nothing about the tests.
-* **`M00` is the harness-honesty control**: a mutation entry with no edits,
-  which must report **zero** failing layers. If it does not, the campaign is
-  measuring a pre-existing red build and every other row is worthless.
+* `workspace` — every member of that cargo workspace, `cargo test -p <pkg>
+  --no-fail-fast`. The packages come from `cargo metadata`, never a typed
+  list, so a new crate is covered the day it exists.
+* `layers` — an explicit list of commands, for a campaign whose catchers do
+  not all live in one cargo workspace. The shadow-mode campaigns
+  (`p022-shadow-cp*`) are the case this exists for: their reference half is a
+  Python harness and their port half is several cargo test targets, and a
+  campaign that cannot run the layer holding a catcher cannot see it catch
+  (checkpoint 3 lost a mutation to exactly that).
 
-## Definition format
+Whichever it is, EVERY layer runs for EVERY mutation — discipline 3's no
+fail-fast applies across layers, not just within one.
 
-```json
-{
-  "campaign": "p022-shadow-cp1",
-  "comment": "...",
-  "layers": [
-    {"id": "python", "cwd": ".", "command": ["python3", "tests/test_repro_fixtures.py"],
-     "parser": "python_fail_lines"},
-    {"id": "rust", "cwd": "rust", "command": ["cargo", "test", "-p", "own-shadow",
-     "--no-fail-fast"], "parser": "cargo_test"}
-  ],
-  "mutations": [
-    {"id": "M00", "what": "harness-honesty control", "edits": []},
-    {"id": "M01", "what": "...", "rule": "...",
-     "edits": [{"file": "...", "find": "...", "replace": "..."}]}
-  ]
-}
-```
+Each mutation is applied to a pristine copy of the file and restored from
+memory (never `git checkout`), the tests run with `--no-fail-fast`, and the
+outcome is one of:
 
-`parser` decides how a layer's output is turned into catcher names:
+    caught            at least one test failed
+    survived          the mutated tree passed (a gap — or, for the control, the point)
+    compile-error     the mutation did not compile: no evidence, never "caught"
+    invalid-mutation  the pattern did not match exactly once, or the rewrite
+                      left the file unchanged (a mutation that mutates nothing)
+    runner-error      cargo failed without a parseable test failure
 
-* `cargo_test` — cargo prints `test <name> ... FAILED` on stdout and
-  `Running <target>` on stderr, and capturing them separately loses the
-  interleaving that attributes a test to its target (the #259 cp4 lesson), so
-  the two streams are **merged**.
-* `python_fail_lines` — the repo's harnesses print `FAIL: <what>` lines; the
-  distinct leading phrase of each is the catcher.
+`M00` is the honesty control: the UNMUTATED tree must pass. If it does not,
+the run is void and no result is written — a campaign that reports "caught"
+over a red baseline has measured nothing.
 
-Run:  python scripts/mutate_campaign.py <definition.json> --out <result.json>
-      python scripts/mutate_campaign.py <definition.json> --check
+A campaign is not a steady-state gate: it runs by hand, on a clean tree, and
+the renderer shows its provenance beside its numbers.
+
+The clean-tree contract: `git status --porcelain` (tracked and untracked,
+ignored paths excluded) must be empty before the control run, and must be
+unchanged after the control run and after every mutation is restored — a
+test that writes into the tree, or another process touching it while the
+campaign runs, voids the run instead of decorating it. Do not run the Python
+suite or cargo in the same tree meanwhile: the runner rewrites source files.
+`--allow-dirty` is for a dev run only; its result is marked and the gate
+rejects it.
+
+Evidence, not report: the result records every catching test, and the gate
+(`scripts/render_checkpoint_status.py --check`) derives whether each caught
+mutation was caught by the tests the definition names — a mutation caught
+only by something else is a missed required catcher and voids the evidence.
+Provenance: the result names the commit it ran on; the gate accepts it only
+while that commit exists and is an ancestor of HEAD, so a result from a
+rebased or deleted branch is not evidence — re-run the campaign. Neither
+check depends on HEAD's content: a refactor after the run leaves it valid.
+
+A mutation that edits a **Python** source needs one more thing the cargo-only
+case never did: CPython validates a cached `.pyc` by the source's integer
+mtime and size, so restoring a same-size mutation leaves the MUTATED bytecode
+in place and every later run measures the leftovers. The runner invalidates
+the cache on every write and runs Python layers with `PYTHONDONTWRITEBYTECODE`.
+This is not hypothetical: one same-size mutation (`indent=2` -> `indent=4`)
+made fifteen later mutations report a Python catcher that could not exist.
+
+Usage:
+  python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --validate
+  python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run
+      [--result PATH] [--allow-dirty]
 """
 
 from __future__ import annotations
 
 import argparse
-import importlib.util
+import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
-from typing import Any
+import time
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# `test <name> ... FAILED`. The streams are merged before matching so a test
-# name is read in the same order cargo printed its `Running <target>` line —
-# capturing them separately loses that interleaving (the #259 cp4 lesson).
-_CARGO_FAIL = re.compile(r"^test (\S+) \.\.\. FAILED", re.MULTILINE)
-_CARGO_COMPILE_ERROR = re.compile(r"^error(\[E\d+\])?: ", re.MULTILINE)
-# The repo's harnesses print `FAIL[<check>]: <detail>`; the bracketed check is
-# the catcher's identity. Without it a campaign would attribute a catch to each
-# failing CASE and report the corpus size as the catcher count — noise, not
-# evidence about which layer caught what (P-022 discipline 3).
-_PY_FAIL_TAGGED = re.compile(r"^FAIL\[([^\]]+)\]:", re.MULTILINE)
-_PY_FAIL = re.compile(r"^FAIL: (.+)$", re.MULTILINE)
+SCHEMA = 1
+OUTCOMES = ("caught", "survived", "compile-error", "invalid-mutation", "runner-error")
+_RUNNING = re.compile(r"^\s+Running (?:unittests )?(\S+) \(\S+\)$")
+_DOCTESTS = re.compile(r"^\s+Doc-tests (\S+)$")
+_FAILED = re.compile(r"^test (.+?) \.\.\. FAILED$")
+_PY_FAIL = re.compile(r"^FAIL\[([^\]]+)\]:", re.M)
 
 
-def _read(path: str) -> str:
+@dataclass(frozen=True)
+class Mutation:
+    id: str
+    description: str
+    target: str
+    pattern: str
+    replacement: str
+    expected_catchers: tuple[str, ...]
+    rule: str | None = None
+
+
+@dataclass(frozen=True)
+class Layer:
+    """One command whose failures are catchers. `parser` says how to read them:
+
+    cargo        cargo's merged output — `test <name> ... FAILED` under the
+                 `Running <target>` header that precedes it.
+    python-fail  a harness that prints `FAIL[<check>]: <detail>` lines, so a
+                 catcher is named by the CHECK it violated rather than by the
+                 case that happened to trip first. A non-zero exit with no such
+                 line is still a catch, recorded under a name that says so.
+    """
+
+    id: str
+    cwd: str
+    command: tuple[str, ...]
+    parser: str
+
+
+PARSERS = ("cargo", "python-fail")
+
+
+@dataclass(frozen=True)
+class Definition:
+    campaign: str
+    description: str
+    control_id: str
+    control_description: str
+    mutations: tuple[Mutation, ...]
+    path: str
+    sha256: str
+    workspace: str | None = None
+    layers: tuple[Layer, ...] = ()
+
+
+@dataclass(frozen=True)
+class Outcome:
+    id: str
+    outcome: str
+    catchers: tuple[str, ...]
+    elapsed_seconds: float
+    detail: str = ""
+
+
+@dataclass(frozen=True)
+class Result:
+    campaign: str
+    definition_sha256: str
+    source_commit: str
+    dirty: bool
+    recorded_at: str
+    packages: tuple[str, ...]
+    control: Outcome
+    mutations: tuple[Outcome, ...]
+    layers: tuple[str, ...] = ()
+
+    @property
+    def ran(self) -> tuple[str, ...]:
+        """What the run actually exercised — cargo packages or declared layers."""
+        return self.layers or self.packages
+
+
+@dataclass
+class Summary:
+    """The renderer's view of a campaign: counts derived from raw outcomes."""
+
+    total: int = 0
+    caught: int = 0
+    survived: int = 0
+    compile_error: int = 0
+    invalid: int = 0
+    runner_error: int = 0
+    expected_catchers_missed: tuple[str, ...] = ()
+    control_ok: bool = False
+    definition_matches: bool = False
+    dirty: bool = False
+    source_commit: str = ""
+    problems: tuple[str, ...] = ()
+
+
+class CampaignError(Exception):
+    pass
+
+
+def _sha256(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def _str(obj: dict[str, object], key: str, where: str) -> str:
+    v = obj.get(key)
+    if not isinstance(v, str) or not v:
+        raise CampaignError(f"{where}: '{key}' must be a non-empty string")
+    return v
+
+
+def load_definition(path: str) -> Definition:
     with open(path, encoding="utf-8") as f:
-        return f.read()
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise CampaignError(f"{path}: not a JSON object")
+    if data.get("schema") != SCHEMA:
+        raise CampaignError(f"{path}: schema {data.get('schema')!r} != {SCHEMA}")
+    control = data.get("control")
+    if not isinstance(control, dict):
+        raise CampaignError(f"{path}: 'control' must be an object")
+    raw = data.get("mutations")
+    if not isinstance(raw, list) or not raw:
+        raise CampaignError(f"{path}: 'mutations' must be a non-empty array")
+    mutations: list[Mutation] = []
+    for i, m in enumerate(raw):
+        if not isinstance(m, dict):
+            raise CampaignError(f"{path}: mutations[{i}] is not an object")
+        where = f"{path}: mutations[{i}]"
+        mid = _str(m, "id", where)
+        catchers = m.get("expected_catchers")
+        if not (isinstance(catchers, list) and catchers
+                and all(isinstance(c, str) and "::" in c for c in catchers)):
+            raise CampaignError(f"{where} ({mid}): 'expected_catchers' must be a non-empty "
+                                f"array of '<package>/<target>::<test>' strings")
+        rule = m.get("rule")
+        if rule is not None and not isinstance(rule, str):
+            raise CampaignError(f"{where} ({mid}): 'rule' must be a string when present")
+        mutations.append(Mutation(
+            id=mid,
+            description=_str(m, "description", where),
+            target=_str(m, "target", where),
+            pattern=_str(m, "pattern", where),
+            replacement=str(m.get("replacement", "")),
+            expected_catchers=tuple(str(c) for c in catchers),
+            rule=rule,
+        ))
+    workspace, layers = _target(data, path)
+    ids = [m.id for m in mutations]
+    control_id = _str(control, "id", f"{path}: control")
+    if len(set(ids)) != len(ids) or control_id in ids:
+        raise CampaignError(f"{path}: mutation ids must be unique and distinct from the control")
+    return Definition(
+        campaign=_str(data, "campaign", path),
+        description=_str(data, "description", path),
+        control_id=control_id,
+        control_description=_str(control, "description", f"{path}: control"),
+        mutations=tuple(mutations),
+        path=path,
+        sha256=_sha256(path),
+        workspace=workspace,
+        layers=layers,
+    )
 
 
-def _write(path: str, text: str) -> None:
+def _layer(obj: object, where: str) -> Layer:
+    if not isinstance(obj, dict):
+        raise CampaignError(f"{where}: not an object")
+    command = obj.get("command")
+    if not (isinstance(command, list) and command
+            and all(isinstance(c, str) and c for c in command)):
+        raise CampaignError(f"{where}: 'command' must be a non-empty array of strings")
+    parser = _str(obj, "parser", where)
+    if parser not in PARSERS:
+        raise CampaignError(f"{where}: unknown parser {parser!r} (one of {list(PARSERS)})")
+    return Layer(id=_str(obj, "id", where), cwd=str(obj.get("cwd", ".")),
+                 command=tuple(str(c) for c in command), parser=parser)
+
+
+def _target(data: dict[str, object], path: str) -> tuple[str | None, tuple[Layer, ...]]:
+    """`workspace` or `layers`, never both and never neither: a campaign that
+    does not say what to run cannot be replayed, and one that says it twice
+    leaves the reader guessing which half was measured."""
+    raw = data.get("layers")
+    workspace = data.get("workspace")
+    if (raw is None) == (workspace is None):
+        raise CampaignError(f"{path}: declare exactly one of 'workspace' (every member of a "
+                            f"cargo workspace) or 'layers' (explicit commands)")
+    if workspace is not None:
+        return _str(data, "workspace", path), ()
+    if not (isinstance(raw, list) and raw):
+        raise CampaignError(f"{path}: 'layers' must be a non-empty array")
+    layers = tuple(_layer(item, f"{path}: layers[{i}]") for i, item in enumerate(raw))
+    ids = [x.id for x in layers]
+    if len(set(ids)) != len(ids):
+        raise CampaignError(f"{path}: layer ids must be unique (got {ids})")
+    return None, layers
+
+
+def _outcome_from(obj: object, where: str) -> Outcome:
+    if not isinstance(obj, dict):
+        raise CampaignError(f"{where}: not an object")
+    outcome = _str(obj, "outcome", where)
+    if outcome not in OUTCOMES:
+        raise CampaignError(f"{where}: unknown outcome {outcome!r}")
+    catchers = obj.get("catchers", [])
+    if not (isinstance(catchers, list) and all(isinstance(c, str) for c in catchers)):
+        raise CampaignError(f"{where}: 'catchers' must be an array of strings")
+    elapsed = obj.get("elapsed_seconds", 0.0)
+    if isinstance(elapsed, bool) or not isinstance(elapsed, (int, float)):
+        raise CampaignError(f"{where}: 'elapsed_seconds' must be a number")
+    return Outcome(
+        id=_str(obj, "id", where),
+        outcome=outcome,
+        catchers=tuple(str(c) for c in catchers),
+        elapsed_seconds=float(elapsed),
+        detail=str(obj.get("detail", "")),
+    )
+
+
+def load_result(path: str) -> Result:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise CampaignError(f"{path}: not a JSON object")
+    if data.get("schema") != SCHEMA:
+        raise CampaignError(f"{path}: schema {data.get('schema')!r} != {SCHEMA}")
+    raw = data.get("mutations")
+    if not isinstance(raw, list):
+        raise CampaignError(f"{path}: 'mutations' must be an array")
+    packages = data.get("packages", [])
+    if not (isinstance(packages, list) and all(isinstance(p, str) for p in packages)):
+        raise CampaignError(f"{path}: 'packages' must be an array of strings")
+    layers = data.get("layers", [])
+    if not (isinstance(layers, list) and all(isinstance(x, str) for x in layers)):
+        raise CampaignError(f"{path}: 'layers' must be an array of strings")
+    if bool(packages) == bool(layers):
+        raise CampaignError(f"{path}: a result names either the cargo 'packages' or the "
+                            f"'layers' it ran, never both and never neither")
+    dirty = data.get("dirty", False)
+    if not isinstance(dirty, bool):
+        raise CampaignError(f"{path}: 'dirty' must be a boolean")
+    return Result(
+        campaign=_str(data, "campaign", path),
+        definition_sha256=_str(data, "definition_sha256", path),
+        source_commit=_str(data, "source_commit", path),
+        dirty=dirty,
+        recorded_at=_str(data, "recorded_at", path),
+        packages=tuple(str(p) for p in packages),
+        control=_outcome_from(data.get("control"), f"{path}: control"),
+        mutations=tuple(_outcome_from(m, f"{path}: mutations[{i}]") for i, m in enumerate(raw)),
+        layers=tuple(str(x) for x in layers),
+    )
+
+
+def summarize(definition: Definition, result: Result) -> Summary:
+    """Derive the counts a status surface may show — the one interpretation of
+    a recorded run. Problems make the summary unusable as evidence."""
+    s = Summary(
+        total=len(definition.mutations),
+        control_ok=(result.control.id == definition.control_id
+                    and result.control.outcome == "survived"),
+        definition_matches=(result.definition_sha256 == definition.sha256
+                            and result.campaign == definition.campaign),
+        dirty=result.dirty,
+        source_commit=result.source_commit,
+    )
+    problems: list[str] = []
+    if not s.definition_matches:
+        problems.append("the recorded result was taken over a different campaign "
+                        "definition (sha256 or campaign name differs) — re-run the campaign")
+    if not s.control_ok:
+        problems.append(f"the honesty control {definition.control_id} did not survive "
+                        f"the unmutated tree — the run measured nothing")
+    if result.dirty:
+        problems.append("the result was recorded on a dirty tree — not evidence")
+    declared = tuple(x.id for x in definition.layers)
+    if declared and tuple(result.layers) != declared:
+        problems.append(f"the result ran layers {list(result.layers)} but the definition "
+                        f"declares {list(declared)} — a campaign that did not run the layer "
+                        f"holding a catcher cannot have seen it catch; re-run the campaign")
+    if definition.workspace is not None and not result.packages:
+        problems.append("the definition names a cargo workspace but the result records no "
+                        "packages — re-run the campaign")
+    recorded = {o.id: o for o in result.mutations}
+    missing = [m.id for m in definition.mutations if m.id not in recorded]
+    extra = [i for i in recorded if i not in {m.id for m in definition.mutations}]
+    if missing or extra:
+        problems.append(f"result/definition mutation sets differ (missing {missing}, "
+                        f"unknown {extra})")
+    missed: list[str] = []
+    for m in definition.mutations:
+        o = recorded.get(m.id)
+        if o is None:
+            continue
+        if o.outcome == "caught":
+            s.caught += 1
+            if not set(m.expected_catchers) <= set(o.catchers):
+                missed.append(m.id)
+        elif o.outcome == "survived":
+            s.survived += 1
+        elif o.outcome == "compile-error":
+            s.compile_error += 1
+        elif o.outcome == "invalid-mutation":
+            s.invalid += 1
+        else:
+            s.runner_error += 1
+    s.expected_catchers_missed = tuple(missed)
+    if missed:
+        problems.append("caught mutations missed a required catcher (the tests the "
+                        f"definition names did not all fail): {', '.join(missed)} — "
+                        "the evidence does not prove what it claims")
+    s.problems = tuple(problems)
+    return s
+
+
+# --- running ---------------------------------------------------------------
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(["git", *args], cwd=ROOT, check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def _git_ok(*args: str) -> bool:
+    try:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True,
+                              text=True).returncode == 0
+    except OSError:
+        return False
+
+
+def tree_status() -> str:
+    """`git status --porcelain`: tracked and untracked changes, ignored paths
+    (the cargo target dir, __pycache__) excluded. Empty means clean."""
+    return _git("status", "--porcelain")
+
+
+def assert_tree_unchanged(baseline: str, when: str) -> None:
+    now = tree_status()
+    if now != baseline:
+        raise CampaignError(f"the working tree changed {when} — the run is void:\n"
+                            f"{now or '(clean)'}")
+
+
+def provenance_problems(result: Result) -> list[str]:
+    """The gate's view of a result's provenance against the tree the gate runs
+    in: the recorded commit must exist here and be an ancestor of HEAD. This
+    refuses a result that describes a history this tree does not contain (a
+    rebased or deleted branch, a typo) without making the evidence depend on
+    HEAD's content."""
+    if result.dirty:
+        return []  # already rejected by summarize()
+    sha = result.source_commit
+    if not _git_ok("rev-parse", "--git-dir"):
+        return [f"cannot verify the provenance of source commit {sha[:12]}: not a git "
+                f"checkout"]
+    if not _git_ok("cat-file", "-e", f"{sha}^{{commit}}"):
+        shallow = _git_ok("rev-parse", "--is-shallow-repository") and (
+            _git("rev-parse", "--is-shallow-repository") == "true")
+        hint = (" (this is a shallow clone: fetch the full history, e.g. actions/checkout "
+                "with fetch-depth: 0)" if shallow
+                else " — a rebased or deleted branch? re-run the campaign")
+        return [f"source commit {sha[:12]} does not exist in this repository{hint}"]
+    if not _git_ok("merge-base", "--is-ancestor", sha, "HEAD"):
+        return [f"source commit {sha[:12]} is not an ancestor of HEAD — the run describes "
+                f"a history this tree does not contain; re-run the campaign"]
+    return []
+
+
+def workspace_packages(workspace: str) -> list[str]:
+    """Every workspace member, from cargo itself — never a typed list."""
+    out = subprocess.run(
+        ["cargo", "metadata", "--no-deps", "--format-version", "1"],
+        cwd=os.path.join(ROOT, workspace), check=True, capture_output=True, text=True,
+    ).stdout
+    meta = json.loads(out)
+    members = {str(m) for m in meta.get("workspace_members", [])}
+    names = [str(p["name"]) for p in meta.get("packages", []) if str(p.get("id")) in members]
+    if not names:
+        raise CampaignError(f"cargo metadata lists no workspace members under {workspace}")
+    return sorted(names)
+
+
+def parse_test_output(package: str, out: str) -> tuple[list[str], bool]:
+    """(catching test ids, compile error seen) from cargo's merged output."""
+    catchers: list[str] = []
+    target = "?"
+    for line in out.splitlines():
+        m = _RUNNING.match(line)
+        if m:
+            target = m.group(1)
+            continue
+        m = _DOCTESTS.match(line)
+        if m:
+            target = "doc"
+            continue
+        m = _FAILED.match(line)
+        if m:
+            catchers.append(f"{package}/{target}::{m.group(1)}")
+    compile_error = ("could not compile" in out) or bool(re.search(r"^error\[E\d+\]", out, re.M))
+    return catchers, compile_error
+
+
+def parse_python_output(layer: str, out: str) -> tuple[list[str], bool]:
+    """(catching check ids, compile error seen) from a `FAIL[<check>]: …` harness.
+
+    Naming the CHECK rather than the case keeps a campaign's evidence stable
+    under fixture churn, and says which rule the mutation broke."""
+    catchers = [f"{layer}::{name}" for name in
+                sorted({m.group(1) for m in _PY_FAIL.finditer(out)})]
+    compile_error = ("SyntaxError:" in out or "IndentationError:" in out
+                     or "TabError:" in out)
+    return catchers, compile_error
+
+
+def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
+    env = dict(os.environ)
+    if layer.parser == "python-fail":
+        # Never leave a .pyc behind: see the cache note in the module docstring.
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+    r = subprocess.run(list(layer.command), cwd=os.path.join(ROOT, layer.cwd), env=env,
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if layer.parser == "cargo":
+        found, ce = parse_test_output(layer.id, r.stdout)
+    else:
+        found, ce = parse_python_output(layer.id, r.stdout)
+    unparsed: list[str] = []
+    if r.returncode != 0 and not found and not ce:
+        # A layer that failed without naming a check still caught something; it
+        # is recorded under a name that says the runner could not attribute it,
+        # never dropped into "survived".
+        found = [f"{layer.id}::<non-zero exit with no reported failure>"]
+        unparsed.append(f"{layer.id}: exited {r.returncode} without a parseable failure:\n"
+                        + "\n".join(r.stdout.splitlines()[-15:]))
+    return found, ce, unparsed
+
+
+def run_tests(definition: Definition) -> tuple[list[str], bool, list[str]]:
+    """Run every layer — a cargo workspace's members, or the declared commands —
+    with no fail-fast, streams merged so `Running` headers (stderr) and results
+    (stdout) keep their interleaving.
+    Returns (catchers, compile error seen, unparsed failures)."""
+    catchers: list[str] = []
+    compile_error = False
+    unparsed: list[str] = []
+    for layer in _layers_of(definition):
+        found, ce, un = _run_layer(layer)
+        catchers.extend(found)
+        compile_error = compile_error or ce
+        unparsed.extend(un)
+    return catchers, compile_error, unparsed
+
+
+def _layers_of(definition: Definition) -> tuple[Layer, ...]:
+    """The declared layers, or one cargo layer per workspace member."""
+    if definition.layers:
+        return definition.layers
+    workspace = definition.workspace
+    assert workspace is not None  # load_definition enforces one or the other
+    return tuple(
+        Layer(id=pkg, cwd=workspace, parser="cargo",
+              command=("cargo", "test", "-p", pkg, "--no-fail-fast"))
+        for pkg in workspace_packages(workspace))
+
+
+def write_source(target: str, text: str) -> None:
+    """Write a mutated (or restored) source and drop any cached bytecode for it.
+
+    CPython validates a `.pyc` by the source's integer mtime and size, so a
+    same-size rewrite inside the same second leaves the stale bytecode valid
+    and the interpreter runs the file that is no longer on disk."""
+    path = os.path.join(ROOT, target)
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
-    _invalidate_bytecode(path)
-
-
-def _invalidate_bytecode(path: str) -> None:
-    """Drop any cached bytecode for a source file we just rewrote.
-
-    CPython validates a `.pyc` against the source's **integer** mtime and its
-    **size**. A mutation that changes neither — `indent=2` → `indent=4` is
-    exactly that — is invisible to that check, so restoring the original can
-    leave the MUTATED bytecode in place and every later run silently executes
-    it. Paid for: round 2 of the cp1 campaign reported
-    `python::artifact-golden` as a catcher for fifteen Rust-only mutations,
-    which is impossible; M15 (a same-size indent change) had poisoned the
-    cache and every row after it was measuring the leftover.
-
-    The layers also run with `PYTHONDONTWRITEBYTECODE=1` (see `_layer_env`),
-    so the campaign neither reads nor writes stale caches."""
-    if not path.endswith(".py"):
+    if not target.endswith(".py"):
         return
-    cached = importlib.util.cache_from_source(path)
+    directory, name = os.path.split(path)
+    cache = os.path.join(directory, "__pycache__")
+    stem = name[:-3] + "."
+    if os.path.isdir(cache):
+        for entry in os.listdir(cache):
+            if entry.startswith(stem) and entry.endswith(".pyc"):
+                try:
+                    os.remove(os.path.join(cache, entry))
+                except OSError:  # pragma: no cover - a cache we cannot clear
+                    pass
+
+
+def apply(m: Mutation, pristine: str) -> tuple[str, str | None]:
+    """(mutated text, problem) — the pattern must match exactly once and change something."""
     try:
-        os.remove(cached)
-    except FileNotFoundError:
-        pass
+        new, n = re.subn(m.pattern, m.replacement, pristine)
+    except re.error as e:
+        return pristine, f"pattern does not compile: {e}"
+    if n != 1:
+        return pristine, f"pattern matched {n} times (must be exactly 1)"
+    if new == pristine:
+        return pristine, "rewrite leaves the file unchanged (not a mutation)"
+    return new, None
 
 
-def _layer_env() -> dict[str, str]:
-    env = dict(os.environ)
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
-    return env
-
-
-def check_definition(campaign: dict[str, Any]) -> list[str]:
-    """Verify the campaign still applies to the tree WITHOUT running anything:
-    every edit's `find` must occur exactly once in its target file, and every
-    `replace` must differ from it. A campaign whose target code has moved is a
-    campaign whose recorded result no longer describes this tree."""
+def validate(definition: Definition) -> list[str]:
     problems: list[str] = []
-    seen: set[str] = set()
-    controls = 0
-    for mutation in campaign.get("mutations", []):
-        mid = mutation.get("id")
-        if not isinstance(mid, str) or not mid:
-            problems.append(f"mutation without an id: {mutation!r}")
+    for m in definition.mutations:
+        path = os.path.join(ROOT, m.target)
+        if not os.path.isfile(path):
+            problems.append(f"{m.id}: target does not exist: {m.target}")
             continue
-        if mid in seen:
-            problems.append(f"duplicate mutation id {mid}")
-        seen.add(mid)
-        if not mutation.get("what"):
-            problems.append(f"{mid}: 'what' must say which rule the mutation breaks")
-        edits = mutation.get("edits", [])
-        if not edits:
-            controls += 1
-            continue
-        for i, edit in enumerate(edits):
-            where = f"{mid}.edits[{i}]"
-            path = os.path.join(ROOT, edit.get("file", ""))
-            if not os.path.isfile(path):
-                problems.append(f"{where}: no such file: {edit.get('file')!r}")
-                continue
-            find, replace = edit.get("find"), edit.get("replace")
-            if not isinstance(find, str) or not find:
-                problems.append(f"{where}: 'find' must be a non-empty string")
-                continue
-            if not isinstance(replace, str):
-                problems.append(f"{where}: 'replace' must be a string")
-                continue
-            if find == replace:
-                problems.append(f"{where}: 'replace' is identical to 'find' — this is "
-                                f"not a mutation (the #259 cp4 M10 lesson)")
-            occurrences = _read(path).count(find)
-            if occurrences != 1:
-                problems.append(
-                    f"{where}: 'find' occurs {occurrences} times in "
-                    f"{edit.get('file')} (must be exactly 1) — the campaign no "
-                    f"longer applies to this tree; re-anchor it and re-run")
-    if controls != 1:
-        problems.append(
-            f"a campaign needs exactly one harness-honesty control (a mutation "
-            f"with no edits); found {controls}")
-    if not campaign.get("layers"):
-        problems.append("a campaign needs at least one validation layer")
+        with open(path, encoding="utf-8") as f:
+            pristine = f.read()
+        _, problem = apply(m, pristine)
+        if problem:
+            problems.append(f"{m.id}: {problem}")
     return problems
 
 
-def _run_layer(layer: dict[str, Any]) -> tuple[list[str], bool]:
-    """(catcher names, compile_error). Streams are MERGED: cargo's `Running`
-    lines go to stderr and its test results to stdout, and capturing them
-    separately loses the interleaving that attributes a test to its target."""
-    proc = subprocess.run(
-        layer["command"],
-        cwd=os.path.join(ROOT, layer.get("cwd", ".")),
-        env=_layer_env(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
+def _classify(catchers: list[str], compile_error: bool, unparsed: list[str]) -> tuple[str, str]:
+    if compile_error:
+        return "compile-error", ""
+    if catchers:
+        return "caught", ""
+    if unparsed:
+        return "runner-error", "\n".join(unparsed)
+    return "survived", ""
+
+
+def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
+    baseline = tree_status()
+    dirty = bool(baseline)
+    if dirty and not allow_dirty:
+        raise CampaignError("the working tree is not clean (tracked or untracked changes); a "
+                            "result must describe exactly the commit it names — commit or "
+                            "remove them first, or --allow-dirty for a dev run whose result "
+                            f"is NOT evidence:\n{baseline}")
+    commit = _git("rev-parse", "HEAD")
+    layers = _layers_of(definition)
+    packages = [] if definition.layers else [x.id for x in layers]
+    targets = sorted({m.target for m in definition.mutations})
+    pristine: dict[str, str] = {}
+    for t in targets:
+        with open(os.path.join(ROOT, t), encoding="utf-8") as f:
+            pristine[t] = f.read()
+
+    def restore() -> None:
+        for t, text in pristine.items():
+            write_source(t, text)
+
+    print(f"{definition.control_id}: {definition.control_description}", flush=True)
+    print(f"  layers: {', '.join(x.id for x in layers)}", flush=True)
+    t0 = time.monotonic()
+    catchers, ce, unparsed = run_tests(definition)
+    outcome, detail = _classify(catchers, ce, unparsed)
+    control = Outcome(definition.control_id, outcome, tuple(catchers),
+                      round(time.monotonic() - t0, 1), detail)
+    print(f"  -> {outcome} ({len(catchers)} failing test(s))", flush=True)
+    if outcome != "survived":
+        raise CampaignError(f"the unmutated tree did not pass ({outcome}): the run is void")
+    assert_tree_unchanged(baseline, "during the control run")
+
+    outcomes: list[Outcome] = []
+    try:
+        for m in definition.mutations:
+            print(f"{m.id}: {m.description}", flush=True)
+            mutated, problem = apply(m, pristine[m.target])
+            if problem:
+                outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem))
+                print(f"  -> invalid-mutation: {problem}", flush=True)
+                continue
+            write_source(m.target, mutated)
+            t0 = time.monotonic()
+            try:
+                catchers, ce, unparsed = run_tests(definition)
+            finally:
+                restore()
+            assert_tree_unchanged(baseline, f"during {m.id}")
+            outcome, detail = _classify(catchers, ce, unparsed)
+            outcomes.append(Outcome(m.id, outcome, tuple(sorted(catchers)),
+                                    round(time.monotonic() - t0, 1), detail))
+            # Display only — the gate derives this from the definition and the
+            # recorded catchers; it is not a fact of the run.
+            expected = "" if outcome != "caught" else (
+                ", expected catchers " + ("hit" if set(m.expected_catchers) <= set(catchers)
+                                          else "MISSED"))
+            print(f"  -> {outcome} ({len(catchers)} test(s){expected})", flush=True)
+            for c in sorted(catchers):
+                print(f"       {c}", flush=True)
+    finally:
+        restore()
+    for t, text in pristine.items():
+        with open(os.path.join(ROOT, t), encoding="utf-8") as f:
+            if f.read() != text:
+                raise CampaignError(f"{t} was not restored to its pristine content")
+    assert_tree_unchanged(baseline, "before recording the result")
+    return Result(
+        campaign=definition.campaign,
+        definition_sha256=definition.sha256,
+        source_commit=commit + ("-dirty" if dirty else ""),
+        dirty=dirty,
+        recorded_at=datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        packages=tuple(packages),
+        control=control,
+        mutations=tuple(outcomes),
+        layers=tuple(x.id for x in layers) if definition.layers else (),
     )
-    out = proc.stdout
-    parser = layer.get("parser")
-    if parser == "cargo_test":
-        if _CARGO_COMPILE_ERROR.search(out) and not _CARGO_FAIL.search(out):
-            return [], True
-        return [f"{layer['id']}::{name}" for name in _CARGO_FAIL.findall(out)], False
-    if parser == "python_fail_lines":
-        phrases = set(_PY_FAIL_TAGGED.findall(out))
-        if not phrases:
-            # An untagged harness: collapse to the distinct leading phrase so
-            # the count still means "checks", not "cases".
-            phrases = {line.split(":")[0].strip() for line in _PY_FAIL.findall(out)}
-        if proc.returncode != 0 and not phrases:
-            phrases = {"non-zero exit with no FAIL line"}
-        return sorted(f"{layer['id']}::{p}" for p in phrases), False
-    raise SystemExit(f"unknown parser {parser!r} in layer {layer['id']!r}")
 
 
-def run_campaign(campaign: dict[str, Any]) -> dict[str, Any]:
-    layers = campaign["layers"]
-    records: list[dict[str, Any]] = []
-    for mutation in campaign["mutations"]:
-        mid = mutation["id"]
-        edits = mutation.get("edits", [])
-        originals: dict[str, str] = {}
-        try:
-            for edit in edits:
-                path = os.path.join(ROOT, edit["file"])
-                # Read the original ONCE, keep it, restore from it. Never
-                # `git checkout` — that would also revert unrelated work.
-                if path not in originals:
-                    originals[path] = _read(path)
-                current = _read(path)
-                if current.count(edit["find"]) != 1:
-                    raise SystemExit(
-                        f"{mid}: anchor for {edit['file']} is not unique any more; "
-                        f"run --check")
-                _write(path, current.replace(edit["find"], edit["replace"], 1))
-            caught: list[str] = []
-            compile_error = False
-            # EVERY layer runs, for every mutation (rule 3: no fail-fast).
-            for layer in layers:
-                names, failed_to_build = _run_layer(layer)
-                compile_error = compile_error or failed_to_build
-                caught += names
-        finally:
-            for path, text in originals.items():
-                _write(path, text)
-        if not edits:
-            status = "control_clean" if not caught else "control_dirty"
-        elif compile_error:
-            status = "compile_error"
-        elif caught:
-            status = "caught"
-        else:
-            status = "survived"
-        print(f"{mid}: {status} ({len(caught)} catcher(s)) — {mutation['what']}",
-              flush=True)
-        records.append({
-            "id": mid,
-            "what": mutation["what"],
-            "rule": mutation.get("rule"),
-            "status": status,
-            "caught_by": sorted(set(caught)),
-        })
-    totals = {
-        "mutations": sum(1 for r in records if r["status"] != "control_clean"
-                         and r["status"] != "control_dirty"),
-        "caught": sum(1 for r in records if r["status"] == "caught"),
-        "survived": sum(1 for r in records if r["status"] == "survived"),
-        "compile_errors": sum(1 for r in records if r["status"] == "compile_error"),
-        "control_clean": sum(1 for r in records if r["status"] == "control_clean"),
+def _outcome_json(o: Outcome) -> dict[str, object]:
+    d: dict[str, object] = {
+        "id": o.id, "outcome": o.outcome, "catchers": list(o.catchers),
+        "elapsed_seconds": round(o.elapsed_seconds, 1),
     }
-    return {
-        "campaign": campaign["campaign"],
-        "generated_by": "scripts/mutate_campaign.py",
-        "comment": (
-            "A RECORDED run, not a CI gate: mutating the tree and running every "
-            "layer takes minutes and cannot be part of the per-commit gates. What "
-            "IS gated is the campaign DEFINITION (every anchor still resolves) and "
-            "this file's internal consistency — see tests/test_generated_docs.py."),
-        "layers": [layer["id"] for layer in layers],
-        "totals": totals,
-        "mutations": records,
+    if o.detail:
+        d["detail"] = o.detail
+    return d
+
+
+def write_result(result: Result, definition: Definition, path: str) -> None:
+    doc: dict[str, object] = {
+        "schema": SCHEMA,
+        "comment": ("Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw "
+                    "facts only: outcomes, catchers, provenance. Counts are derived by "
+                    "scripts/render_checkpoint_status.py; regenerate this file by re-running "
+                    "the campaign, never by hand."),
+        "campaign": result.campaign,
+        "definition": os.path.relpath(definition.path, ROOT).replace(os.sep, "/"),
+        "definition_sha256": result.definition_sha256,
+        "source_commit": result.source_commit,
+        "dirty": result.dirty,
+        "recorded_at": result.recorded_at,
     }
-
-
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("definition")
-    ap.add_argument("--out", help="where to write the recorded result")
-    ap.add_argument("--check", action="store_true",
-                    help="verify the definition still applies; run nothing")
-    ap.add_argument("--only", help="run one mutation id (for re-anchoring)")
-    args = ap.parse_args()
-
-    with open(args.definition, encoding="utf-8") as f:
-        campaign = json.load(f)
-
-    problems = check_definition(campaign)
-    if problems:
-        for p in problems:
-            print(f"ERROR: {p}")
-        return 1
-    if args.check:
-        print(f"campaign '{campaign['campaign']}' definition OK: "
-              f"{len(campaign['mutations'])} mutations, every anchor resolves")
-        return 0
-
-    if args.only:
-        campaign = dict(campaign)
-        campaign["mutations"] = [m for m in campaign["mutations"]
-                                 if m["id"] in (args.only, "M00")]
-    result = run_campaign(campaign)
-    text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
-    if args.out:
-        _write(args.out, text)
-        print(f"wrote {args.out}")
+    if result.layers:
+        doc["layers"] = list(result.layers)
+        doc["command"] = "every layer the definition declares, for every mutation"
     else:
-        sys.stdout.write(text)
-    return 0 if result["totals"]["survived"] == 0 else 2
+        doc["packages"] = list(result.packages)
+        doc["command"] = "cargo test -p <package> --no-fail-fast, for every workspace member"
+    doc["control"] = _outcome_json(result.control)
+    doc["mutations"] = [_outcome_json(o) for o in result.mutations]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--campaign", required=True, help="campaign definition JSON")
+    ap.add_argument("--validate", action="store_true",
+                    help="check every mutation applies exactly once to the current tree")
+    ap.add_argument("--run", action="store_true", help="run the campaign and record the result")
+    ap.add_argument("--result", help="result path (default: <campaign>.result.json)")
+    ap.add_argument("--allow-dirty", action="store_true",
+                    help="dev run on a dirty tree; the result is marked and is not evidence")
+    args = ap.parse_args(argv)
+    try:
+        definition = load_definition(args.campaign)
+        problems = validate(definition)
+        for p in problems:
+            print(f"INVALID: {p}")
+        if problems:
+            return 1
+        print(f"campaign {definition.campaign}: {len(definition.mutations)} mutations apply "
+              f"exactly once each (sha256 {definition.sha256[:12]})")
+        if not args.run:
+            return 0
+        result = run_campaign(definition, args.allow_dirty)
+    except CampaignError as e:
+        print(f"ERROR: {e}")
+        return 1
+    out = args.result or (args.campaign[:-5] + ".result.json"
+                          if args.campaign.endswith(".json") else args.campaign + ".result.json")
+    write_result(result, definition, out)
+    s = summarize(definition, result)
+    print(f"\n{definition.campaign} @ {result.source_commit[:12]}: {s.caught}/{s.total} caught, "
+          f"{s.survived} survived, {s.compile_error} compile-error, {s.invalid} invalid, "
+          f"{s.runner_error} runner-error; expected catchers missed: "
+          f"{list(s.expected_catchers_missed) or 'none'}")
+    print(f"wrote {out}")
+    return 0 if not s.problems else 1
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

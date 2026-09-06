@@ -1,0 +1,406 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-cp1",
+  "description": "The mutation campaign for P-022 step 7a checkpoint 1 (shadow-mode infrastructure layer 0: the same-input capture and the reproduction artifact). Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test, because P-022 discipline 2 makes a test evidence only once its mutation fails through the surface it claims to protect. Both layers run for every mutation (discipline 3: no fail-fast), so the recorded result names every catching layer, not the first. M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_repro_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--lib",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "description": "the reference's canonical form stops sorting keys",
+      "rule": "canonical: keys sorted by code point",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ value,\\ sort_keys=True,\\ separators=\\(\",\",\\ \":\"\\),\\ ensure_ascii=False",
+      "replacement": "        value, sort_keys=False, separators=(\",\", \":\"), ensure_ascii=False",
+      "expected_catchers": [
+        "python::artifact-golden",
+        "python::digest-ledger"
+      ]
+    },
+    {
+      "id": "M02",
+      "description": "the reference's canonical form escapes non-ASCII instead of emitting it raw",
+      "rule": "canonical: every code point outside the C0 rule is raw",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ value,\\ sort_keys=True,\\ separators=\\(\",\",\\ \":\"\\),\\ ensure_ascii=False",
+      "replacement": "        value, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=True",
+      "expected_catchers": [
+        "python::artifact-golden",
+        "python::digest-ledger"
+      ]
+    },
+    {
+      "id": "M03",
+      "description": "the reference's canonical form re-introduces insignificant whitespace",
+      "rule": "canonical: no insignificant whitespace",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ value,\\ sort_keys=True,\\ separators=\\(\",\",\\ \":\"\\),\\ ensure_ascii=False",
+      "replacement": "        value, sort_keys=True, separators=(\", \", \": \"), ensure_ascii=False",
+      "expected_catchers": [
+        "python::artifact-golden",
+        "python::digest-ledger"
+      ]
+    },
+    {
+      "id": "M04",
+      "description": "the reference stops refusing the literal -0",
+      "rule": "canonical domain: -0 is where the two parsers disagree about what parsing means",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ if\\ value\\ ==\\ 0\\ and\\ literal\\.lstrip\\(\\)\\.startswith\\(\"\\-\"\\):",
+      "replacement": "    if False and value == 0 and literal.lstrip().startswith(\"-\"):",
+      "expected_catchers": [
+        "python::domain-refusal"
+      ]
+    },
+    {
+      "id": "M05",
+      "description": "the reference stops bounding integer literals to signed 64 bits",
+      "rule": "canonical domain: integers lie in [-2**63, 2**63-1]",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ value\\ =\\ int\\(literal\\)\\\n\\ \\ \\ \\ if\\ not\\ \\(_I64_MIN\\ <=\\ value\\ <=\\ _I64_MAX\\):",
+      "replacement": "    value = int(literal)\n    if False:",
+      "expected_catchers": [
+        "python::domain-refusal-reason"
+      ]
+    },
+    {
+      "id": "M06",
+      "description": "the reference accepts a float literal instead of refusing it",
+      "rule": "canonical domain: the OwnIR vocabulary has no float",
+      "target": "ownlang/repro.py",
+      "pattern": "def\\ _parse_float_literal\\(literal:\\ str\\)\\ \\->\\ float:\\\n\\ \\ \\ \\ raise\\ ReproError\\(",
+      "replacement": "def _parse_float_literal(literal: str) -> float:\n    return float(literal)\n    raise ReproError(",
+      "expected_catchers": [
+        "python::domain-refusal-reason"
+      ]
+    },
+    {
+      "id": "M07",
+      "description": "the reference accepts NaN/Infinity, which serde_json rejects as invalid JSON",
+      "rule": "canonical domain: both engines must agree the document parses at all",
+      "target": "ownlang/repro.py",
+      "pattern": "def\\ _parse_constant\\(literal:\\ str\\)\\ \\->\\ float:\\\n\\ \\ \\ \\ raise\\ ReproError\\(",
+      "replacement": "def _parse_constant(literal: str) -> float:\n    return float(\"nan\")\n    raise ReproError(",
+      "expected_catchers": [
+        "python::domain-refusal-reason"
+      ]
+    },
+    {
+      "id": "M08",
+      "description": "the reference's VALUE-level domain backstop stops refusing a float",
+      "rule": "canonical domain: enforced at the value level too, for an already-parsed document",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ if\\ isinstance\\(value,\\ float\\):\\\n\\ \\ \\ \\ \\ \\ \\ \\ raise\\ ReproError\\(",
+      "replacement": "    if isinstance(value, float):\n        return\n        raise ReproError(",
+      "expected_catchers": [
+        "python::domain-backstop"
+      ]
+    },
+    {
+      "id": "M09",
+      "description": "the reference's verification stops comparing the recomputed hash",
+      "rule": "artifact: the digest is a gate, recomputed from the embedded document",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ if\\ claimed\\ !=\\ actual:",
+      "replacement": "                    if False and claimed != actual:",
+      "expected_catchers": [
+        "python::tamper-refusal"
+      ]
+    },
+    {
+      "id": "M10",
+      "description": "the reference stops lifting a layer refusal into the envelope's status",
+      "rule": "artifact: one layer envelope, status produced|refused",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ error\\ =\\ doc\\.get\\(\"error\"\\)\\\n\\ \\ \\ \\ if\\ error\\ is\\ not\\ None:",
+      "replacement": "    error = doc.get(\"error\")\n    if False and error is not None:",
+      "expected_catchers": [
+        "python::artifact-golden"
+      ]
+    },
+    {
+      "id": "M11",
+      "description": "the reference stops lifting surface_version into the layer envelope",
+      "rule": "artifact: a refused layer still names the surface it refused on",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \"surface_version\":\\ surface_version,",
+      "replacement": "        \"surface_version\": None,",
+      "expected_catchers": [
+        "python::artifact-golden"
+      ]
+    },
+    {
+      "id": "M12",
+      "description": "the reference stops carrying the document's own declared schema version",
+      "rule": "artifact: input.ownir_version is the document's declared version, verbatim",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \"ownir_version\":\\ facts\\.get\\(\"ownir_version\"\\),",
+      "replacement": "            \"ownir_version\": None,",
+      "expected_catchers": [
+        "python::artifact-golden"
+      ]
+    },
+    {
+      "id": "M13",
+      "description": "the reference reorders the frozen layer vocabulary",
+      "rule": "artifact: layers are an ORDERED array in pipeline order",
+      "target": "ownlang/repro.py",
+      "pattern": "LAYER_ORDER:\\ tuple\\[str,\\ \\.\\.\\.\\]\\ =\\ \\(\"lowered\",\\ \"summaries\",\\ \"verdicts\"\\)",
+      "replacement": "LAYER_ORDER: tuple[str, ...] = (\"summaries\", \"lowered\", \"verdicts\")",
+      "expected_catchers": [
+        "python::artifact-verify",
+        "python::capture-verify"
+      ]
+    },
+    {
+      "id": "M14",
+      "description": "the reference's verification stops checking the frozen engine order",
+      "rule": "artifact: engines are an ORDERED array over the frozen vocabulary",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ elif\\ seen\\ and\\ ENGINE_ORDER\\.index\\(eid\\)\\ <\\ ENGINE_ORDER\\.index\\(seen\\[\\-1\\]\\):",
+      "replacement": "            elif False and seen and ENGINE_ORDER.index(eid) < ENGINE_ORDER.index(seen[-1]):",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "M15",
+      "description": "the reference renders the artifact with a different indent",
+      "rule": "artifact rendering: 2-space indent, byte-identical on re-run",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ return\\ json\\.dumps\\(project_repro\\(facts,\\ foreign\\),\\ indent=2,",
+      "replacement": "    return json.dumps(project_repro(facts, foreign), indent=4,",
+      "expected_catchers": [
+        "python::artifact-golden"
+      ]
+    },
+    {
+      "id": "M16",
+      "description": "the port's canonical form stops sorting object keys",
+      "rule": "canonical: keys sorted by code point",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ sorted\\.sort_by\\(\\|a,\\ b\\|\\ a\\.0\\.cmp\\(\\&b\\.0\\)\\);",
+      "replacement": "                sorted.sort_by(|a, b| b.0.cmp(&a.0));",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::every_shared_document_hashes_to_the_recorded_digest",
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M17",
+      "description": "the port escapes U+007F, which the reference emits raw",
+      "rule": "canonical escape rule: U+007F is NOT escaped",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ c\\ if\\ u32::from\\(c\\)\\ <\\ 0x20\\ =>\\ \\{",
+      "replacement": "            c if u32::from(c) < 0x20 || u32::from(c) == 0x7f => {",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::every_shared_document_hashes_to_the_recorded_digest"
+      ]
+    },
+    {
+      "id": "M18",
+      "description": "the port escapes control code points with uppercase hex",
+      "rule": "canonical escape rule: \\u00xx with LOWERCASE hex",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ let\\ _\\ =\\ write!\\(out,\\ \"\\\\\\\\u\\{:04x\\}\",\\ u32::from\\(c\\)\\);",
+      "replacement": "                let _ = write!(out, \"\\\\\\\\u{:04X}\", u32::from(c));",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::every_shared_document_hashes_to_the_recorded_digest"
+      ]
+    },
+    {
+      "id": "M19",
+      "description": "the port renders the artifact with a different indent width",
+      "rule": "artifact rendering: 2-space indent, byte-for-byte with the reference",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ for\\ _\\ in\\ 0\\.\\.level\\.saturating_mul\\(2\\)\\ \\{",
+      "replacement": "    for _ in 0..level.saturating_mul(4) {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::the_canonical_form_ignores_only_insignificant_text_formatting",
+        "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M20",
+      "description": "the port renders an artifact's objects in sorted rather than document order",
+      "rule": "artifact rendering keeps DOCUMENT order while the hash sorts — two serializations, two jobs",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ out\\.push_str\\(\"\\{\\\\n\"\\);\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ for\\ \\(i,\\ \\(key,\\ value\\)\\)\\ in\\ entries\\.iter\\(\\)\\.enumerate\\(\\)\\ \\{",
+      "replacement": "                out.push_str(\"{\\\\n\");\n                let mut entries = entries.clone();\n                entries.sort_by(|a, b| a.0.cmp(&b.0));\n                for (i, (key, value)) in entries.iter().enumerate() {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::the_canonical_form_ignores_only_insignificant_text_formatting",
+        "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M21",
+      "description": "the port resolves a duplicate key first-wins instead of last-wins",
+      "rule": "canonical: the parsed document is what CPython's dict would hold",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ if\\ let\\ Some\\(slot\\)\\ =\\ entries\\.iter_mut\\(\\)\\.find\\(\\|\\(k,\\ _\\)\\|\\ \\*k\\ ==\\ key\\)\\ \\{\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ slot\\.1\\ =\\ value;\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\}\\ else\\ \\{",
+      "replacement": "            if entries.iter().any(|(k, _)| *k == key) {\n            } else {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::the_canonical_form_ignores_only_insignificant_text_formatting"
+      ]
+    },
+    {
+      "id": "M22",
+      "description": "the port wraps an out-of-i64 integer instead of refusing it",
+      "rule": "canonical domain: integers lie in [-2**63, 2**63-1]",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ i64::try_from\\(v\\)\\.map\\(Json::Int\\)\\.map_err\\(\\|_\\|\\ \\{",
+      "replacement": "        #[allow(clippy::cast_possible_wrap)]\n        return Ok(Json::Int(v as i64));\n        #[allow(unreachable_code)]\n        i64::try_from(v).map(Json::Int).map_err(|_| {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::every_declared_unnameable_document_is_refused",
+        "rust/tests/repro.rs::values_outside_the_canonical_domain_are_refused_at_parse"
+      ]
+    },
+    {
+      "id": "M23",
+      "description": "the port accepts a float as an integer instead of refusing it",
+      "rule": "canonical domain: the OwnIR vocabulary has no float",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ fn\\ visit_f64<E:\\ de::Error>\\(self,\\ v:\\ f64\\)\\ \\->\\ Result<Self::Value,\\ E>\\ \\{",
+      "replacement": "    #[allow(clippy::cast_possible_truncation)]\n    fn visit_f64<E: de::Error>(self, v: f64) -> Result<Self::Value, E> {\n        return Ok(Json::Int(v as i64));\n        #[allow(unreachable_code)]",
+      "expected_catchers": [
+        "rust/tests/repro.rs::every_declared_unnameable_document_is_refused",
+        "rust/tests/repro.rs::values_outside_the_canonical_domain_are_refused_at_parse"
+      ]
+    },
+    {
+      "id": "M24",
+      "description": "the port's verification stops comparing the recomputed digest",
+      "rule": "artifact: the digest is a gate, recomputed from the embedded document",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "\\ \\ \\ \\ let\\ matches\\ =\\ algorithm\\ ==\\ Some\\(CANONICAL_ALGORITHM\\)",
+      "replacement": "    let matches = true || algorithm == Some(CANONICAL_ALGORITHM)",
+      "expected_catchers": [
+        "rust/tests/repro.rs::a_changed_byte_in_the_embedded_document_is_refused"
+      ]
+    },
+    {
+      "id": "M25",
+      "description": "the port's verification stops checking the frozen layer order",
+      "rule": "artifact: every engine reports exactly the frozen layers, in that order",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "\\ \\ \\ \\ if\\ names\\ !=\\ expected\\ \\{",
+      "replacement": "    if false && names != expected {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M26",
+      "description": "the port's verification stops checking the frozen engine order",
+      "rule": "artifact: engines are an ORDERED array over the frozen vocabulary",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ if\\ rank\\(id\\)\\ <\\ rank\\(previous\\)\\ \\{",
+      "replacement": "                    if false && rank(id) < rank(previous) {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M27",
+      "description": "the port renders the digest with uppercase hex",
+      "rule": "canonical hash: SHA-256, LOWERCASE hex",
+      "target": "rust/crates/own-shadow/src/canonical.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ let\\ _\\ =\\ write!\\(digest,\\ \"\\{byte:02x\\}\"\\);",
+      "replacement": "        let _ = write!(digest, \"{byte:02X}\");",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::every_shared_document_hashes_to_the_recorded_digest",
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M28",
+      "description": "the port hashes the RENDERING form instead of the canonical form",
+      "rule": "canonical: the hash is taken over the canonical bytes, not over the artifact's rendering",
+      "target": "rust/crates/own-shadow/src/canonical.rs",
+      "pattern": "\\ \\ \\ \\ value\\.to_canonical\\(\\)\\.into_bytes\\(\\)",
+      "replacement": "    value.to_pretty().into_bytes()",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::every_shared_document_hashes_to_the_recorded_digest",
+        "rust/tests/repro.rs::the_canonical_form_ignores_only_insignificant_text_formatting",
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M29",
+      "description": "the port reorders the frozen layer vocabulary",
+      "rule": "artifact: layers are an ORDERED array in pipeline order",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "pub\\ const\\ LAYER_ORDER:\\ \\[\\&str;\\ 3\\]\\ =\\ \\[\"lowered\",\\ \"summaries\",\\ \"verdicts\"\\];",
+      "replacement": "pub const LAYER_ORDER: [&str; 3] = [\"summaries\", \"lowered\", \"verdicts\"];",
+      "expected_catchers": [
+        "rust/tests/engine.rs::both_engines_report_the_same_layers_in_the_same_order",
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M30",
+      "description": "the port's `has` stops distinguishing a present member from an absent one",
+      "rule": "artifact: document present exactly when produced, error exactly when refused",
+      "target": "rust/crates/own-shadow/src/json.rs",
+      "pattern": "\\ \\ \\ \\ pub\\ fn\\ has\\(\\&self,\\ key:\\ \\&str\\)\\ \\->\\ bool\\ \\{\\\n\\ \\ \\ \\ \\ \\ \\ \\ self\\.get\\(key\\)\\.is_some\\(\\)\\\n\\ \\ \\ \\ \\}",
+      "replacement": "    pub fn has(&self, key: &str) -> bool {\n        let _ = key;\n        true\n    }",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies",
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    }
+  ]
+}

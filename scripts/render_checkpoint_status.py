@@ -1,214 +1,280 @@
 #!/usr/bin/env python3
-"""Generate the census for a P-022 checkpoint from its evidence, and check
-that the committed copy still matches.
+"""Render the P-022 checkpoint status fragments from the evidence in the tree.
 
-The rule this exists to enforce: **a number in a document is never typed by
-hand.** The #259 status table drifted twice because its counts were prose, and
-P-022's own status block now carries a rule about it. A count that a reader
-cannot re-derive is a claim, not evidence — so every figure below is read out
-of a committed artifact (`tests/fixtures/repro/*`, the campaign result) or out
-of the code that asserts it, and a stale census is a red build
-(`tests/test_generated_docs.py`).
+The status surfaces (the P-022 table, the proposals index, a checkpoint note)
+say WHAT a checkpoint proves and link here; the measured numbers live only in
+these generated fragments, computed from the evidence — never typed:
 
-What it deliberately does NOT do: invent a divergence counter. The
-Python-only / Rust-only / Changed / Ordering-only / Unexplained classification
-over a measured set is enforced by a **gate**, not counted by this script —
-the Rust replay asserts per-document equality and the build is red otherwise,
-so a non-zero counter is not representable as a passing build. The census says
-exactly that, names the test that enforces it, and names the unmeasured set
-beside it. Reporting a counter this script could not have computed would be
-the same lie in a new place.
+* `docs/generated/p022-cp4-census.md` — the verdict ledger census, from
+  `tests/verdict_census.compute_verdict_census()` (the same interpretation the
+  fixture harness uses).
+* `docs/generated/p022-cp4-mutations.md` — the recorded mutation campaign,
+  from `docs/evidence/p022-cp4-mutations.json` and its `.result.json`, through
+  `scripts/mutate_campaign.summarize()` (the same interpretation the runner
+  prints).
+* `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
+  shadow-mode INFRASTRUCTURE census, from
+  `tests/shadow_census.compute_shadow_census()` over the committed
+  reproduction artifacts, traces and reductions.
+* `docs/generated/p022-shadow-mutations.md` — that slice's four recorded
+  campaigns, through the same `summarize()` as cp4's. One interpreter for
+  every campaign in the tree: two readings of one run is how two documents
+  come to disagree about it.
 
-Run:  python scripts/render_checkpoint_status.py --write
-      python scripts/render_checkpoint_status.py --check
+Determinism: nothing in a fragment depends on HEAD, the clock or the
+environment, so an unrelated commit never changes one. The campaign fragment
+carries the campaign's own provenance (the commit the run was taken on)
+because that is data from the recorded run, not a property of the tree.
+
+Usage:
+  python scripts/render_checkpoint_status.py            # (re)write the fragments
+  python scripts/render_checkpoint_status.py --check    # exit 1 when a committed fragment
+                                                        # differs from the projection
+`tests/test_checkpoint_status.py` runs `--check` in-process inside
+`tests/run_tests.py`, so a change to the evidence without regenerating the
+fragments turns the existing Python gate red.
 """
 
 from __future__ import annotations
 
-import argparse
-import json
+import difflib
 import os
-import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, ROOT)
-sys.path.insert(0, os.path.join(ROOT, "tests"))
+for _sub in ("tests", "scripts"):
+    _p = os.path.join(ROOT, _sub)
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+from mutate_campaign import (  # noqa: E402  (sys.path set above)
+    CampaignError,
+    Definition,
+    Result,
+    Summary,
+    load_definition,
+    load_result,
+    provenance_problems,
+    summarize,
+)
+from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
+from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
 
 GENERATED = os.path.join(ROOT, "docs", "generated")
-FIXDIR = os.path.join(ROOT, "tests", "fixtures", "repro")
-# The recorded campaigns, one per checkpoint. Each stays frozen at what it
-# measured — a later checkpoint may not quietly restate an earlier one's
-# numbers — while THIS document is the live view of the slice as it stands.
-CAMPAIGNS = (
-    ("checkpoint 1 — capture and artifact",
-     os.path.join(ROOT, "docs", "notes",
-                  "p022-shadow-infra-checkpoint1-data", "campaign.json")),
-    ("checkpoint 2 — engine protocol",
-     os.path.join(ROOT, "docs", "notes",
-                  "p022-shadow-infra-checkpoint2-data", "campaign.json")),
-    ("checkpoint 3 — AnalysisTrace and stable-ID normalization",
-     os.path.join(ROOT, "docs", "notes",
-                  "p022-shadow-infra-checkpoint3-data", "campaign.json")),
-    ("checkpoint 4 — first-divergence reduction",
-     os.path.join(ROOT, "docs", "notes",
-                  "p022-shadow-infra-checkpoint4-data", "campaign.json")),
+EVIDENCE = os.path.join(ROOT, "docs", "evidence")
+CENSUS_MD = "p022-cp4-census.md"
+MUTATIONS_MD = "p022-cp4-mutations.md"
+SHADOW_CENSUS_MD = "p022-shadow-census.md"
+SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
+CAMPAIGN = os.path.join(EVIDENCE, "p022-cp4-mutations.json")
+RESULT = os.path.join(EVIDENCE, "p022-cp4-mutations.result.json")
+# One campaign per shadow checkpoint: each stays frozen at what it measured, so
+# a later checkpoint cannot quietly restate an earlier one's numbers.
+SHADOW_CAMPAIGNS = (
+    ("checkpoint 1 — same-input capture and the reproduction artifact", "p022-shadow-cp1"),
+    ("checkpoint 2 — the engine protocol", "p022-shadow-cp2"),
+    ("checkpoint 3 — the AnalysisTrace and stable-ID normalization", "p022-shadow-cp3"),
+    ("checkpoint 4 — first-divergence reduction", "p022-shadow-cp4"),
 )
-RUST_TESTS = (
-    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "repro.rs"),
-    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "engine.rs"),
-    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "trace.rs"),
-    os.path.join(ROOT, "rust", "crates", "own-shadow", "tests", "reduce.rs"),
-)
-
-HEADER = (
-    "<!-- GENERATED FILE — do not edit by hand.\n"
-    "     Regenerate: python scripts/render_checkpoint_status.py --write\n"
-    "     Checked by: tests/test_generated_docs.py (a stale copy is a red build).\n"
-    "     Every figure below is read out of committed evidence; none is typed. -->\n"
-)
+SELF = "scripts/render_checkpoint_status.py"
 
 
-def _load(path: str) -> dict:
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+def _header(sources: str) -> str:
+    return (f"<!-- GENERATED by {SELF} from {sources}. Do not edit: regenerate with "
+            f"`python {SELF}`; tests/run_tests.py fails while this file is stale. -->\n")
 
 
-def _rust_test_names() -> list[tuple[str, str]]:
-    """The gates' own test names, read from the source. A renamed or deleted
-    test makes the census stale, so the document cannot go on naming a gate
-    that no longer exists."""
-    out: list[tuple[str, str]] = []
-    for path in RUST_TESTS:
-        with open(path, encoding="utf-8") as f:
-            source = f.read()
-        target = os.path.basename(path)
-        out += [(target, name) for name in sorted(
-            re.findall(r"#\[test\][^\n]*\n(?:#\[[^\n]*\]\n)*fn (\w+)\(", source))]
-    return out
+def _rel(path: str) -> str:
+    return os.path.relpath(path, ROOT).replace(os.sep, "/")
 
 
-def render_shadow_slice() -> str:
-    # Imported here, not at module scope: sys.path is extended above.
-    import test_repro_fixtures as harness
+# --- census ---------------------------------------------------------------
 
-    digests = _load(os.path.join(FIXDIR, "digests.json"))
-    manifest = _load(os.path.join(FIXDIR, "manifest.json"))
 
-    documents = digests["documents"]
-    per_corpus: dict[str, int] = {}
-    for record in documents:
-        per_corpus[record["corpus"]] = per_corpus.get(record["corpus"], 0) + 1
+def render_census(c: Census) -> str:
+    rows: list[tuple[str, str]] = [
+        ("goldens — Python's complete truth, one per planned case", str(c.goldens))]
+    for origin, n in c.by_origin:
+        label = ("synthetic controls (`manifest.json` cases)" if origin == "synthetic"
+                 else f"swept from `tests/fixtures/{origin}`")
+        rows.append((f"… {label}", str(n)))
+    rows += [
+        ("reference refusals over all goldens", str(c.python_refusals)),
+        ("reference findings over all goldens", str(c.python_findings)),
+        ("declared Rust exclusions — the executable ledger `rust_replay_excluded`",
+         str(c.excluded)),
+    ]
+    for refusal, contains, n in c.excluded_by_expectation:
+        if refusal == "door":
+            what = "… refused at the typed `OwnIr` door (#294 OD-1)"
+        else:
+            what = f"… refused by `check_facts` with an error containing `{contains}`"
+        rows.append((what, str(n)))
+    rows += [
+        ("replayed by Rust at the cp4 surface (goldens minus exclusions)", str(c.replayed)),
+        ("… reference refusals among them (compared by refusal class)",
+         str(c.replayed_refusals)),
+        ("… findings among them (compared on the cp4 members)", str(c.replayed_findings)),
+    ]
+    width = max(len(k) for k, _ in rows)
+    lines = [
+        _header("tests/fixtures/verdicts/manifest.json and the *.verdicts.json goldens"),
+        "# P-022 checkpoint 4 — measured census",
+        "",
+        "Computed by `tests/verdict_census.py` (the interpretation "
+        "`tests/test_verdict_fixtures.py` verifies against the Python projection) over the "
+        "frozen Layer 3 ledger; the Rust half is `rust/crates/own-bridge/tests/verdicts.rs`.",
+        "",
+        f"| {'measure'.ljust(width)} | value |",
+        f"|{'-' * (width + 2)}|------:|",
+    ]
+    lines += [f"| {k.ljust(width)} | {v} |" for k, v in rows]
+    lines += [
+        "",
+        "The differential counts over the replayed set — Python-only, Rust-only, changed, "
+        "ordering-only, unexplained — are asserted, not measured here: the Rust replay "
+        "compares every replayed case's full ordered verdict list (or its refusal class) "
+        "against the golden on the cp4 members, collects every divergence without "
+        "fail-fast, and fails if one exists. A green "
+        "`cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; "
+        "a non-zero count is a red build.",
+        "",
+    ]
+    return "\n".join(lines)
 
-    # Per-engine, per-status accounting over the committed artifacts, plus the
-    # layer envelopes where the two engines' STATUS differs. That last number
-    # is the closest thing this slice has to a cross-engine measurement, and it
-    # is structural: no layer's content is compared anywhere yet.
-    engines: dict[str, dict[str, int]] = {}
-    projections: dict[str, dict[str, int]] = {}
-    status_differs: list[str] = []
-    for entry in manifest["artifacts"]:
-        artifact = _load(os.path.join(FIXDIR, f"{entry['name']}.repro.json"))
-        by_layer: dict[str, dict[str, str]] = {}
-        for engine in artifact["engines"]:
-            eid = engine["id"]
-            tally = engines.setdefault(eid, {"produced": 0, "refused": 0})
-            proj = projections.setdefault(eid, {"full": 0, "partial": 0})
-            for layer in engine["layers"]:
-                tally[layer["status"]] = tally.get(layer["status"], 0) + 1
-                kind = layer["projection"]["kind"]
-                proj[kind] = proj.get(kind, 0) + 1
-                by_layer.setdefault(layer["layer"], {})[eid] = layer["status"]
-        for layer_name, statuses in sorted(by_layer.items()):
-            if len(set(statuses.values())) > 1:
-                shown = ", ".join(f"{e}: {s}" for e, s in sorted(statuses.items()))
-                status_differs.append(f"| `{entry['name']}` | `{layer_name}` | {shown} |")
 
-    engine_rows = "\n".join(
-        f"| `{eid}` | {t_['produced']} | {t_['refused']} | "
-        f"{projections[eid]['full']} | {projections[eid]['partial']} |"
-        for eid, t_ in sorted(engines.items()))
-    corpus_rows = "\n".join(
-        f"| `tests/fixtures/{corpus}` | {per_corpus[corpus]} |"
-        for corpus in sorted(per_corpus))
-    gate_rows = "\n".join(f"- `own-shadow/tests/{target}::{name}`"
-                           for target, name in _rust_test_names())
-    differ_rows = ("\n".join(status_differs) if status_differs
-                   else "| — | — | the two engines' statuses agree everywhere |")
+# --- mutation campaign ----------------------------------------------------
 
-    # The trace surface (checkpoint 3): steps addressed, and how many of those
-    # addresses are stable ids standing in for a mint counter.
-    trace_steps = 0
-    stable_ids = 0
-    traced_layers = 0
-    for entry in manifest["artifacts"]:
-        path = os.path.join(FIXDIR, f"{entry['name']}.trace.json")
-        if not os.path.exists(path):
-            continue
-        for trace in _load(path)["traces"]:
-            for layer in trace["layers"]:
-                traced_layers += 1
-                trace_steps += len(layer["steps"])
-                stable_ids += sum(1 for s in layer["steps"]
-                                  if s["id"].startswith("handles["))
 
-    # The classification, COMPUTED from the committed reductions rather than
-    # asserted. Until checkpoint 4 these counters were gate-implied; now a
-    # reducer produces them over a declared scope, and this reads them off.
-    classes = ("left-only", "right-only", "changed", "ordering-only",
-               "status", "projection", "unexplained")
-    totals_by_class = dict.fromkeys(classes, 0)
-    reduced_cases = 0
-    identical_cases = 0
-    scope: list[str] = []
-    for entry in manifest["artifacts"]:
-        path = os.path.join(FIXDIR, f"{entry['name']}.reduction.json")
-        if not os.path.exists(path):
-            continue
-        reduction = _load(path)
-        reduced_cases += 1
-        scope = reduction["scope"]
-        if reduction["outcome"] == "identical":
-            identical_cases += 1
-        for name, count in reduction.get("classification", {}).items():
-            totals_by_class[name] = totals_by_class.get(name, 0) + count
+def _load_campaign(campaign: str = CAMPAIGN,
+                   result_path: str = RESULT) -> tuple[Definition | None, Result | None,
+                                                       list[str]]:
+    problems: list[str] = []
+    definition: Definition | None = None
+    result: Result | None = None
+    if os.path.exists(campaign):
+        try:
+            definition = load_definition(campaign)
+        except (CampaignError, OSError, ValueError) as e:
+            problems.append(f"campaign definition unreadable: {e}")
+    if definition is not None and os.path.exists(result_path):
+        try:
+            result = load_result(result_path)
+        except (CampaignError, OSError, ValueError) as e:
+            problems.append(f"campaign result unreadable: {e}")
+    return definition, result, problems
 
-    n_status = totals_by_class["status"]
-    n_projection = totals_by_class["projection"]
-    n_refusals = len(manifest["domain_refusals"])
-    n_artifacts = len(manifest["artifacts"])
-    campaign_blocks = []
-    for label, path in CAMPAIGNS:
-        campaign = _load(path)
-        totals = campaign["totals"]
-        by_layer_counts: dict[str, int] = {}
-        for mutation in campaign["mutations"]:
-            for catcher in mutation["caught_by"]:
-                layer = catcher.split("::", 1)[0]
-                by_layer_counts[layer] = by_layer_counts.get(layer, 0) + 1
-        single = [m["id"] for m in campaign["mutations"] if len(m["caught_by"]) == 1]
-        rows = "\n".join(
-            f"| {m['id']} | {m['what']} | "
-            f"{', '.join(f'`{c}`' for c in m['caught_by']) or '—'} |"
-            for m in campaign["mutations"] if not m["status"].startswith("control_"))
-        attribution = ", ".join(f"`{k}` {v}" for k, v in sorted(by_layer_counts.items()))
-        campaign_blocks.append(f"""### {label} (`{campaign["campaign"]}`)
 
-| | |
-|---|---|
-| mutations | **{totals["mutations"]}** |
-| caught | **{totals["caught"]}** |
-| survived | **{totals["survived"]}** |
-| compile errors (reported as such, never as "caught") | {totals["compile_errors"]} |
-| harness-honesty controls reporting zero failures | {totals["control_clean"]} |
-| catches by layer | {attribution} |
-| mutations with exactly **one** catching layer | {len(single)} — {', '.join(single)} |
+def render_mutations(definition: Definition | None, result: Result | None,
+                     summary: Summary | None) -> str:
+    return _header(f"{_rel(CAMPAIGN)} and {_rel(RESULT)}") + "\n" + _mutation_section(
+        "# P-022 checkpoint 4 — mutation campaign", definition, result, summary,
+        CAMPAIGN, RESULT)
 
-| id | mutation | caught by |
-|---|---|---|
-{rows}""")
 
-    return f"""{HEADER}
+def _mutation_section(heading: str, definition: Definition | None, result: Result | None,
+                      summary: Summary | None, campaign_path: str, result_path: str) -> str:
+    CAMPAIGN, RESULT = campaign_path, result_path
+    lines = [heading, ""]
+    if definition is None:
+        lines += ["No campaign definition is committed (expected at "
+                  f"`{_rel(CAMPAIGN)}`).", ""]
+        return "\n".join(lines)
+    lines += [
+        f"Campaign `{definition.campaign}` — {definition.description}",
+        "",
+        f"Definition: `{_rel(CAMPAIGN)}` (sha256 `{definition.sha256[:16]}…`, "
+        f"{len(definition.mutations)} mutations). Replay on a clean tree with "
+        f"`python scripts/mutate_campaign.py --campaign {_rel(CAMPAIGN)} --run`; the "
+        "recorded run is raw outcomes and provenance, the counts below are derived from it.",
+        "",
+    ]
+    if result is None or summary is None:
+        lines += [f"**No recorded run** is committed (expected at `{_rel(RESULT)}`): the "
+                  "campaign has a definition but no evidence. Nothing below is a number.", ""]
+        return "\n".join(lines)
+    ran = ("layers run (every one, for every mutation)" if result.layers
+           else "packages tested (every workspace member, `--no-fail-fast`)")
+    rows: list[tuple[str, str]] = [
+        ("recorded at commit", f"`{summary.source_commit}`"),
+        (ran, ", ".join(f"`{p}`" for p in result.ran)),
+        ("mutations", str(summary.total)),
+        ("caught", str(summary.caught)),
+        ("survived", str(summary.survived)),
+        ("compile-error (no evidence either way)", str(summary.compile_error)),
+        ("invalid-mutation", str(summary.invalid)),
+        ("runner-error", str(summary.runner_error)),
+        ("caught without every expected catcher",
+         ", ".join(summary.expected_catchers_missed) or "none"),
+        (f"honesty control `{definition.control_id}` (unmutated tree must pass)",
+         f"{result.control.outcome}" + (" — as required" if summary.control_ok else " — VOID")),
+    ]
+    width = max(len(k) for k, _ in rows)
+    lines += [f"| {'measure'.ljust(width)} | value |", f"|{'-' * (width + 2)}|---|"]
+    lines += [f"| {k.ljust(width)} | {v} |" for k, v in rows]
+    if summary.problems:
+        lines += ["", "**This run is not evidence:**", ""]
+        lines += [f"- {p}" for p in summary.problems]
+    lines += ["", "| id | rule | mutation | outcome | caught by |", "|---|---|---|---|---|"]
+    recorded = {o.id: o for o in result.mutations}
+    missed = set(summary.expected_catchers_missed)
+    for m in definition.mutations:
+        o = recorded.get(m.id)
+        if o is None:
+            outcome, by = "**not recorded**", "—"
+        else:
+            outcome = o.outcome
+            if m.id in missed:
+                outcome += " (a required catcher did not fail)"
+            by = "<br>".join(f"`{c}`" for c in o.catchers) or (o.detail or "—")
+        lines.append(f"| {m.id} | {m.rule or '—'} | {m.description} | {outcome} | {by} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+# --- step 7a: the shadow-mode infrastructure slice ------------------------
+
+
+def _shadow_paths(campaign: str) -> tuple[str, str]:
+    return (os.path.join(EVIDENCE, f"{campaign}.json"),
+            os.path.join(EVIDENCE, f"{campaign}.result.json"))
+
+
+def render_shadow_mutations() -> tuple[str, list[str]]:
+    """The slice's four campaigns, one document, the same interpreter as cp4's."""
+    sources = ", ".join(_rel(_shadow_paths(c)[0]) for _, c in SHADOW_CAMPAIGNS)
+    parts = [_header(f"{sources} and their .result.json"),
+             "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
+             "",
+             "Every mutation edits a **production** surface (P-022 discipline 2) and every "
+             "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
+             "campaign stays frozen at what it measured; the counts below are derived from "
+             "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
+             ""]
+    problems: list[str] = []
+    for title, campaign in SHADOW_CAMPAIGNS:
+        definition_path, result_path = _shadow_paths(campaign)
+        definition, result, load_problems = _load_campaign(definition_path, result_path)
+        problems.extend(f"{campaign}: {p}" for p in load_problems)
+        summary = summarize(definition, result) if definition and result else None
+        if summary is not None and result is not None:
+            problems.extend(f"{campaign}: {p}" for p in summary.problems)
+            problems.extend(f"{campaign}: {p}" for p in provenance_problems(result))
+        parts.append(_mutation_section(f"## {title}", definition, result, summary,
+                                       definition_path, result_path))
+    return "\n".join(parts), problems
+
+
+def render_shadow_census(c: ShadowCensus) -> str:
+    corpus_rows = "\n".join(f"| `tests/fixtures/{corpus}` | {n} |" for corpus, n in c.by_corpus)
+    engine_rows = "\n".join(f"| `{eid}` | {produced} | {refused} | {full} | {partial} |"
+                            for eid, produced, refused, full, partial in c.engines)
+    differ_rows = ("\n".join(f"| `{case}` | `{layer}` | {shown} |"
+                             for case, layer, shown in c.status_differs)
+                   or "| — | — | the two engines' statuses agree everywhere |")
+    gate_rows = "\n".join(f"- `own-shadow/tests/{target}::{name}`" for target, name in c.gates)
+    scope = list(c.scope)
+    return f"""{_header("tests/fixtures/repro/ (artifacts, traces, reductions)")}
 # P-022 step 7a — shadow-mode infrastructure: census
 
 **Infrastructure for shadow mode, not shadow mode.** Nothing measured here
@@ -216,11 +282,12 @@ compares two engines' end diagnostics — or any of their layer *contents*. That
 comparison is #260's acceptance and is blocked on #259 (cp5 and 4b). Nothing
 here is a parity claim either.
 
-This document is the **live view** of the slice as it stands; each checkpoint's
-recorded mutation campaign stays frozen at what it measured, under
-`docs/notes/p022-shadow-infra-checkpoint*-data/`. Where the slice departed from
-the brief it was given — the checkpoint grouping, the `-0` domain decision, the
-`sha2` dependency — the departures are decisions on the record in
+This document is the **live view** of the slice as it stands; the recorded
+mutation campaigns are their own fragment
+([`{SHADOW_MUTATIONS_MD}`]({SHADOW_MUTATIONS_MD})), each frozen at what it
+measured. Where the slice departed from the brief it was given — the checkpoint
+grouping, the `-0` domain decision, the `sha2` dependency — the departures are
+decisions on the record in
 [the owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md),
 which also states the byte-level boundary repeated in the unmeasured set below.
 
@@ -229,7 +296,7 @@ which also states the byte-level boundary repeated in the unmeasured set below.
 | corpus | documents |
 |---|---|
 {corpus_rows}
-| **total** | **{len(documents)}** |
+| **total** | **{c.documents}** |
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
@@ -240,12 +307,12 @@ the difference is named in the unmeasured set below.
 
 | surface | count |
 |---|---|
-| documents captured and digest-pinned | {len(documents)} |
-| tamper controls (one changed character per document, refusal required) | {len(documents)} |
-| documents both engines must REFUSE to name (`domain_refusals`) | {n_refusals} |
-| reproduction artifacts committed and replayed byte-for-byte | {n_artifacts} |
-| structural negative controls on `verify` (each side) | {harness.STRUCTURAL_CONTROL_COUNT} |
-| value-level domain backstop controls | {harness.DOMAIN_BACKSTOP_COUNT} |
+| documents captured and digest-pinned | {c.documents} |
+| tamper controls (one changed character per document, refusal required) | {c.documents} |
+| documents both engines must REFUSE to name (`domain_refusals`) | {c.domain_refusals} |
+| reproduction artifacts committed and replayed byte-for-byte | {c.artifacts} |
+| structural negative controls on `verify` (each side) | {c.structural_controls} |
+| value-level domain backstop controls | {c.domain_backstop_controls} |
 
 ## The engine protocol (checkpoint 2)
 
@@ -278,9 +345,9 @@ ordering semantics are **declared** rather than normalized away.
 
 | surface | count |
 |---|---|
-| trace layers projected (both engines, every artifact) | {traced_layers} |
-| addressed steps | {trace_steps} |
-| of those, handle addresses standing in for a mint counter | {stable_ids} |
+| trace layers projected (both engines, every artifact) | {c.trace_layers} |
+| addressed steps | {c.trace_steps} |
+| of those, handle addresses standing in for a mint counter | {c.stable_id_steps} |
 
 The normalization is proven on the property it exists for, over the whole
 captured corpus: permuting a document's components reshuffles the global mint
@@ -298,19 +365,19 @@ comparing final diagnostics is #260's acceptance, blocked by #259 — and the
 refusal is carried in every reduction, so "not compared" can never be read as
 "compared and agreed".
 
-Over the {reduced_cases} committed reductions, {identical_cases} are
+Over the {c.reductions} committed reductions, {c.identical} are
 `identical`. The counters below are **computed** by the reducer, not implied by
 a green build:
 
 | class | count |
 |---|---|
-| Python-only (`left-only`) | **{totals_by_class["left-only"]}** |
-| Rust-only (`right-only`) | **{totals_by_class["right-only"]}** |
-| Changed | **{totals_by_class["changed"]}** |
-| Ordering-only | **{totals_by_class["ordering-only"]}** |
-| Unexplained | **{totals_by_class["unexplained"]}** |
-| *status* (a layer-level disagreement, each a declared boundary) | {n_status} |
-| *projection* (surfaces not comparable member-for-member) | {n_projection} |
+| Python-only (`left-only`) | **{c.by_class["left-only"]}** |
+| Rust-only (`right-only`) | **{c.by_class["right-only"]}** |
+| Changed | **{c.by_class["changed"]}** |
+| Ordering-only | **{c.by_class["ordering-only"]}** |
+| Unexplained | **{c.by_class["unexplained"]}** |
+| *status* (a layer-level disagreement, each a declared boundary) | {c.by_class["status"]} |
+| *projection* (surfaces not comparable member-for-member) | {c.by_class["projection"]} |
 
 `status` and `projection` are counted apart from the four content classes on
 purpose: neither is a difference in what an engine *computed*. Every `status`
@@ -359,55 +426,85 @@ non-zero counter there is not representable as a passing build. The gates:
 - **Nesting-depth agreement.** CPython's recursion limit and `serde_json`'s
   128-level cap differ; `spec/OwnIR.md` §4.2 bounds a conforming document
   well inside both, so no conforming document reaches the difference.
-
-## Mutation campaigns
-
-Definitions and recorded results live under
-`docs/notes/p022-shadow-infra-checkpoint*-data/`. Every layer runs for every
-mutation (P-022 discipline 3: no fail-fast), and every mutation edits a
-**production** surface (discipline 2). The runs are recorded, not reproduced in
-CI; what CI gates is that each definition still **anchors** to this tree and
-that each recorded result is internally consistent
-(`tests/test_generated_docs.py`).
-
-{chr(10).join(campaign_blocks)}
 """
 
 
-SURFACES = {
-    "p022-shadow-census.md": render_shadow_slice,
-}
+# --- fragments ------------------------------------------------------------
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--write", action="store_true")
-    ap.add_argument("--check", action="store_true")
-    args = ap.parse_args()
-    if not (args.write or args.check):
-        ap.error("choose --write or --check")
+def fragments() -> tuple[dict[str, str], list[str]]:
+    """name -> rendered content, plus the problems that make a fragment
+    non-evidence (a broken ledger; a campaign result that does not match its
+    definition, was taken on a dirty tree, missed a required catcher, or names
+    a commit this tree does not descend from). The provenance check is the
+    gate's, not the fragment's: it never changes the rendered text."""
+    out: dict[str, str] = {}
+    problems: list[str] = []
+    try:
+        out[CENSUS_MD] = render_census(compute_verdict_census())
+    except CensusError as e:
+        problems.extend(f"verdict census: {p}" for p in e.problems)
+    definition, result, campaign_problems = _load_campaign()
+    problems.extend(campaign_problems)
+    summary = summarize(definition, result) if definition and result else None
+    if summary is not None and result is not None:
+        problems.extend(f"mutation campaign: {p}" for p in summary.problems)
+        problems.extend(f"mutation campaign: {p}" for p in provenance_problems(result))
+    out[MUTATIONS_MD] = render_mutations(definition, result, summary)
+    try:
+        out[SHADOW_CENSUS_MD] = render_shadow_census(compute_shadow_census())
+    except ShadowCensusError as e:
+        problems.extend(f"shadow census: {p}" for p in e.problems)
+    shadow, shadow_problems = render_shadow_mutations()
+    out[SHADOW_MUTATIONS_MD] = shadow
+    problems.extend(f"mutation campaign {p}" for p in shadow_problems)
+    return out, problems
 
-    os.makedirs(GENERATED, exist_ok=True)
-    stale: list[str] = []
-    for name, render in sorted(SURFACES.items()):
+
+def check() -> list[str]:
+    """Every committed fragment must equal its projection, byte for byte."""
+    rendered, problems = fragments()
+    for name, want in rendered.items():
         path = os.path.join(GENERATED, name)
-        expected = render()
-        if args.write:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(expected)
-            print(f"wrote {path}")
-            continue
         if not os.path.exists(path):
-            stale.append(f"{name}: missing")
+            problems.append(f"{_rel(path)}: missing — run `python {SELF}`")
             continue
         with open(path, encoding="utf-8") as f:
-            if f.read() != expected:
-                stale.append(f"{name}: stale")
-    for s in stale:
-        print(f"ERROR: docs/generated/{s} — regenerate with "
-              f"'python scripts/render_checkpoint_status.py --write'")
-    return 1 if stale else 0
+            have = f.read()
+        if have != want:
+            diff = "".join(difflib.unified_diff(
+                have.splitlines(keepends=True), want.splitlines(keepends=True),
+                fromfile=f"{_rel(path)} (committed)", tofile=f"{_rel(path)} (projection)", n=1))
+            problems.append(f"{_rel(path)}: stale — the evidence changed without "
+                            f"regenerating it (run `python {SELF}`):\n{diff}")
+    return problems
+
+
+def write() -> list[str]:
+    rendered, problems = fragments()
+    os.makedirs(GENERATED, exist_ok=True)
+    for name, content in rendered.items():
+        path = os.path.join(GENERATED, name)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"wrote {_rel(path)}")
+    return problems
+
+
+def main(argv: list[str]) -> int:
+    if argv and argv != ["--check"]:
+        print(__doc__)
+        return 2
+    problems = check() if argv else write()
+    for p in problems:
+        print(f"FAIL: checkpoint status {p}")
+    if problems:
+        return 1
+    if argv:
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD}, "
+              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
+    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

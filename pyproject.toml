@@ -17,7 +17,17 @@ select = ["E", "W", "F", "I", "B", "UP", "C4", "RUF"]
 
 [tool.mypy]
 # The package is held to --strict. Tests/fuzzers are not (they lean on dynamic
-# construction and an AST oracle); ruff still covers them.
+# construction and an AST oracle); ruff still covers them. The evidence tooling
+# IS held to --strict: the one interpretation of the verdict ledger and of a
+# mutation campaign that both the test gate and the status renderer depend on
+# must not be the one untyped link in the chain.
 python_version = "3.11"
-files = ["ownlang"]
+files = [
+  "ownlang",
+  "tests/verdict_census.py",
+  "scripts/mutate_campaign.py",
+  "scripts/render_checkpoint_status.py",
+]
+mypy_path = ["tests", "scripts"]
+explicit_package_bases = true
 strict = true

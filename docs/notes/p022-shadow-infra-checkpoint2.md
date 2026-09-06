@@ -106,7 +106,7 @@ distinction.
 ## Mutation campaign
 
 Definition and recorded result:
-`p022-shadow-infra-checkpoint2-data/`. Separate from checkpoint 1's on purpose
+`docs/evidence/p022-shadow-cp2.json` and its `.result.json`. Separate from checkpoint 1's on purpose
 — each checkpoint's evidence stays frozen at what it measured, so a later one
 cannot quietly restate an earlier one's numbers. Three layers run for every
 mutation (the reference harness, and the port's two suites), no fail-fast.

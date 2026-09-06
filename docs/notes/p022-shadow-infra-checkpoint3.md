@@ -109,7 +109,7 @@ collided on one address. Found by a test, not by reading.
 
 ## Mutation campaign
 
-Definition and recorded result: `p022-shadow-infra-checkpoint3-data/`.
+Definition and recorded result: `docs/evidence/p022-shadow-cp3.json` and its `.result.json`.
 **Round 1 — 11 mutations, 10 caught, 1 survivor.**
 
 M51 (the port stops asserting the handle rewrite is total) survived, and the

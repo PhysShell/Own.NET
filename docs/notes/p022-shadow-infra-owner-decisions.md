@@ -118,7 +118,7 @@ P-022 row 7a.
 - **No campaign re-runs.** Every mutation anchors into `ownlang/repro.py` or
   `own-shadow/src/`, neither of which this commit edits, so the recorded
   results still describe the tree they measured — and CI re-anchors each
-  definition on every build (`tests/test_generated_docs.py`). A campaign is
+  definition on every build (`tests/test_checkpoint_status.py`). A campaign is
   evidence about a tree, not a rite to be repeated whenever prose moves.
 - **No history rewrite.** Four checkpoints, five commits, and D-1 above.
 

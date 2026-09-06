@@ -60,7 +60,7 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   The two enforcement points say **which one fired**: a literal-level refusal
   names "the integer/float/non-finite literal", a value-level one names the
   path it walked to. That is not decoration — the round-1 mutation campaign
-  (M05/M06/M07, `docs/notes/p022-shadow-infra-checkpoint1-data/`) removed the
+  (M05/M06/M07, `docs/evidence/p022-shadow-cp1.json`) removed the
   literal-level check three times and the suite stayed green, because the
   backstop refused the same documents and the controls only asked *that*
   something refused. Distinguishable messages are what let a control pin the

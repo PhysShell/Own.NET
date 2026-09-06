@@ -193,10 +193,10 @@ def _plan() -> tuple[dict[str, tuple[str, str]], dict[str, dict[str, Any]],
                         f"the case to synthetic_cases (name, pins)")
     refusal_entries: dict[str, dict[str, Any]] = {}
     for e in refusals:
-        name = e.get("name")
-        if not isinstance(name, str):
+        entry_name = e.get("name")
+        if not isinstance(entry_name, str):
             continue
-        refusal_entries[name] = e
+        refusal_entries[entry_name] = e
         path = os.path.join(FIXDIR, f"{name}.facts.json")
         if not os.path.exists(path):
             problems.append(f"domain_refusals '{name}' has no {name}.facts.json "
@@ -600,7 +600,8 @@ def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
     def lowered_of(doc: dict[str, Any], side: int) -> dict[str, Any]:
         for layer in doc["traces"][side]["layers"]:
             if layer["layer"] == "lowered":
-                return layer
+                found: dict[str, Any] = layer
+                return found
         raise AssertionError("no lowered layer")
 
     def expect(label: str, kind: str, mutate: Any,

@@ -52,7 +52,7 @@ Checkpoint 1 answers both, and nothing else.
   curated set, replayed byte-for-byte by the port.
 - **`tests/test_repro_fixtures.py`** — verify / `--write`, and the controls.
 - **`scripts/mutate_campaign.py`** + **`scripts/render_checkpoint_status.py`**
-  + **`tests/test_generated_docs.py`** — the campaign as data and the census as
+  + **`tests/test_checkpoint_status.py`** — the campaign as data and the census as
   a generated document, both gated. See "Method" below.
 - DAG: `own-shadow` added to the allowed edge set with an **empty** dependency
   set, and a named test asserts no core crate — nor `own-bridge` — depends on
@@ -67,7 +67,7 @@ Generated, not typed:
 [`docs/generated/p022-shadow-census.md`](../generated/p022-shadow-census.md) —
 the **live** view of the slice, which moves as later checkpoints land. What
 stays frozen at what *this* checkpoint measured is its recorded campaign,
-`p022-shadow-infra-checkpoint1-data/campaign.json`. The figures when this
+`docs/evidence/p022-shadow-cp1.result.json`. The figures when this
 checkpoint landed: **80 documents** captured and
 digest-pinned across five corpora, **80** tamper controls, **6** documents both
 engines must refuse to name, **8** artifacts round-tripped and verified
@@ -202,7 +202,7 @@ already demanded them and prose was standing in:
   fiction. The recorded result's internal consistency is gated too, because a
   file written by a script is still a file somebody can edit.
 - **`scripts/render_checkpoint_status.py`.** The census is rendered from
-  committed evidence, and `tests/test_generated_docs.py` makes a stale copy a
+  committed evidence, and `tests/test_checkpoint_status.py` makes a stale copy a
   red build. The generator deliberately does **not** invent the divergence
   counters: it states that they are enforced by a gate, names the gates (read
   out of the Rust test source, so a renamed test makes the census stale), and
@@ -211,7 +211,7 @@ already demanded them and prose was standing in:
 
 ### Mutation campaign — three rounds
 
-Definition: `p022-shadow-infra-checkpoint1-data/mutations.json`. Result:
+Definition: `docs/evidence/p022-shadow-cp1.json`. Result:
 `.../campaign.json`. `M00` is the harness-honesty control.
 
 **Round 1 — 30 mutations, 27 caught, 3 survivors.** M05, M06 and M07 each

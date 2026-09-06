@@ -107,7 +107,7 @@ control now picks a step that actually carries the field, on
 
 ## Mutation campaign
 
-Definition and recorded result: `p022-shadow-infra-checkpoint4-data/`.
+Definition and recorded result: `docs/evidence/p022-shadow-cp4.json` and its `.result.json`.
 **Round 1 — 11 mutations, 8 caught, 3 survivors.**
 
 - **M57 / M62** (both sides): removing the "both refused ⇒ no comparison"
