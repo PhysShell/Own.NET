@@ -124,7 +124,7 @@
       "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"column\",\\ f\\.column\\.map_or\\(Json::Null,\\ Json::Int\\)\\),",
       "replacement": "",
       "expected_catchers": [
-        "rust-engine/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries",
+        "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ]
     },

@@ -108,7 +108,7 @@
       "pattern": "\\(\"related\", steps\\(&f\\.related\\)\\),",
       "replacement": "(\"related\", steps(&[])),",
       "expected_catchers": [
-        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ]
     },
     {
@@ -119,8 +119,8 @@
       "pattern": "\\(\"message\", Json::Str\\(f\\.message\\.clone\\(\\)\\)\\),\\n",
       "replacement": "",
       "expected_catchers": [
-        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture",
-        "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries"
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries"
       ]
     }
   ]
