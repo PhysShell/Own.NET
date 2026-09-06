@@ -1,0 +1,252 @@
+{
+  "repro_version": 2,
+  "input": {
+    "ownir_version": 0,
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
+      "bytes": 622
+    },
+    "document": {
+      "ownir_version": 0,
+      "module": "Door",
+      "components": [],
+      "_doc": [
+        "#294 OD-1: BR-D2's skip-not-coerce on the tolerant door. The reference SKIPS",
+        "the effect whose deps is a bare string (no spurious EFF001) and reports the",
+        "well-formed sibling; the Rust tolerant entry is the typed constructor, which",
+        "refuses the document before the bridge's skip rule can run."
+      ],
+      "effects": [
+        {
+          "component": "X",
+          "file": "X.tsx",
+          "line": 1,
+          "io": true,
+          "deps": "a",
+          "bindings": [
+            {
+              "name": "a",
+              "init": "object",
+              "refs": [],
+              "line": 1
+            }
+          ]
+        },
+        {
+          "component": "Ok",
+          "file": "Ok.tsx",
+          "line": 9,
+          "io": true,
+          "deps": [
+            "o"
+          ],
+          "bindings": [
+            {
+              "name": "o",
+              "init": "object",
+              "refs": [],
+              "line": 8
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Door",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Door",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "Ok.tsx",
+                "line": 9,
+                "code": "EFF001",
+                "component": "Ok",
+                "event": "o",
+                "handler": "",
+                "message": "effect re-runs on every render: dependency 'o' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'o' with useMemo/useCallback (or move it out of render)",
+                "kind": "react effect",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "Ok.tsx",
+                    9,
+                    "effect re-runs here on 'o'"
+                  ],
+                  [
+                    "Ok.tsx",
+                    8,
+                    "'o' gets a fresh identity here — stabilise with useMemo"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        }
+      ]
+    }
+  ]
+}

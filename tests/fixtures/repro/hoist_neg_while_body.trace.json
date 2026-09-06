@@ -1,0 +1,470 @@
+{
+  "trace_version": 1,
+  "case": "hoist_neg_while_body",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "d2ae2309b105c985d6eeda13a2eb53b72bcd56fe895ac6919023ecdca72ea1e4",
+        "bytes": 195
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "HoistNeg2"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[M]",
+              "value": {
+                "name": "M",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[M].body[0]",
+              "value": {
+                "stmt": "while",
+                "cond": "?",
+                "body": [
+                  {
+                    "stmt": "acquire",
+                    "handle": "M|F.cs|3|r|",
+                    "resource": "Disposable",
+                    "line": 3
+                  }
+                ],
+                "line": 2
+              }
+            },
+            {
+              "id": "functions[M].body[1]",
+              "value": {
+                "stmt": "release",
+                "handle": "M|F.cs|3|r|",
+                "line": 5
+              }
+            },
+            {
+              "id": "handles[M|F.cs|3|r|]",
+              "value": {
+                "handle": "M|F.cs|3|r|",
+                "component": "M",
+                "file": "F.cs",
+                "line": 3,
+                "event": "r",
+                "resource": "flow-local",
+                "ever_released": true,
+                "pool": false,
+                "mint": "loc"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "HoistNeg2"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            },
+            {
+              "id": "summaries[M]",
+              "value": {
+                "file": "F.cs",
+                "line": 0,
+                "method": "M",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                },
+                "source": "inferred"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding.",
+          "steps": []
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "d2ae2309b105c985d6eeda13a2eb53b72bcd56fe895ac6919023ecdca72ea1e4",
+        "bytes": 195
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "HoistNeg2"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[M]",
+              "value": {
+                "name": "M",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[M].body[0]",
+              "value": {
+                "stmt": "while",
+                "cond": "?",
+                "body": [
+                  {
+                    "stmt": "acquire",
+                    "handle": "M|F.cs|3|r|",
+                    "resource": "Disposable",
+                    "line": 3
+                  }
+                ],
+                "line": 2
+              }
+            },
+            {
+              "id": "functions[M].body[1]",
+              "value": {
+                "stmt": "release",
+                "handle": "M|F.cs|3|r|",
+                "line": 5
+              }
+            },
+            {
+              "id": "handles[M|F.cs|3|r|]",
+              "value": {
+                "handle": "M|F.cs|3|r|",
+                "component": "M",
+                "file": "F.cs",
+                "line": 3,
+                "event": "r",
+                "resource": "flow-local",
+                "ever_released": true,
+                "pool": false,
+                "mint": "loc"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "HoistNeg2"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            },
+            {
+              "id": "summaries[M]",
+              "value": {
+                "file": "F.cs",
+                "line": 0,
+                "method": "M",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                },
+                "source": "inferred"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message='undefined name'). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding.",
+          "steps": []
+        }
+      ]
+    }
+  ]
+}

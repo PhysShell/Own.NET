@@ -1,0 +1,426 @@
+{
+  "repro_version": 2,
+  "input": {
+    "ownir_version": 0,
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "f821b58b0da7e5ecb94798d1868db377876d945242a4e4d013d6499d7af7ee13",
+      "bytes": 1217
+    },
+    "document": {
+      "ownir_version": 0,
+      "module": "Extracted",
+      "components": [],
+      "protocols": [
+        {
+          "name": "DocumentLoading",
+          "description": "The document tree is inconsistent while IsLoaded == false; publishing Document/Rows/Totals in that window hands bindings a broken object.",
+          "opens": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": false
+          },
+          "closes": {
+            "kind": "assign",
+            "target": "IsLoaded",
+            "value": true
+          },
+          "barriers": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "Document",
+                "Rows",
+                "Totals",
+                "SelectedItem"
+              ]
+            }
+          ],
+          "allow": [
+            {
+              "kind": "call",
+              "callee": "OnPropertyChanged",
+              "args": [
+                "IsLoaded",
+                "IsBusy",
+                "Progress",
+                "StatusText"
+              ]
+            }
+          ],
+          "exit_barriers": true,
+          "scope": {
+            "methods": [
+              "BigDocumentViewModel.LoadBigDocument"
+            ]
+          }
+        }
+      ],
+      "protocol_functions": [
+        {
+          "name": "Broker.BigDocumentViewModel.LoadBigDocument",
+          "file": "BigDocumentViewModel.cs",
+          "events": [
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": false,
+              "line": 184
+            },
+            {
+              "ev": "call",
+              "callee": "OnPropertyChanged",
+              "arg": "IsBusy",
+              "line": 185
+            },
+            {
+              "ev": "call",
+              "callee": "RebuildIndexes",
+              "line": 190
+            },
+            {
+              "ev": "if",
+              "line": 220,
+              "then": [
+                {
+                  "ev": "call",
+                  "callee": "OnPropertyChanged",
+                  "arg": "Document",
+                  "line": 241
+                }
+              ],
+              "else": []
+            },
+            {
+              "ev": "assign",
+              "target": "IsLoaded",
+              "value": true,
+              "line": 260
+            },
+            {
+              "ev": "call",
+              "callee": "OnPropertyChanged",
+              "arg": "Document",
+              "line": 261
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Extracted",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Extracted",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "BigDocumentViewModel.cs",
+                "line": 241,
+                "code": "OBL001",
+                "component": "BigDocumentViewModel",
+                "event": "DocumentLoading",
+                "handler": "LoadBigDocument",
+                "message": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.BigDocumentViewModel.LoadBigDocument' — 'IsLoaded = true' must happen first",
+                "kind": "protocol obligation",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "BigDocumentViewModel.cs",
+                    184,
+                    "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                  ],
+                  [
+                    "BigDocumentViewModel.cs",
+                    241,
+                    "barrier 'OnPropertyChanged(Document)' fires while it is open"
+                  ],
+                  [
+                    "BigDocumentViewModel.cs",
+                    260,
+                    "closed here — after the barrier has already fired"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Extracted",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Extracted",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "status": "refused",
+          "error": "this document declares 1 obligation protocol(s), and the protocol analysis (OBL001–005, ownlang/obligations.py) is not wired into this core yet — refusing rather than returning a verdict list with a family missing (#259 boundary; the verdict fixture ledger records the excluded reference documents)"
+        }
+      ]
+    }
+  ]
+}

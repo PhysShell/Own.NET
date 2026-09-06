@@ -61,6 +61,22 @@ fn allowed_edges() -> HashMap<&'static str, BTreeSet<&'static str>> {
         .into_iter()
         .collect(),
     );
+    // Shadow-mode INFRASTRUCTURE (P-022 step 7a, #260/#269): the same-input
+    // capture, the reproduction-artifact format, and the engine protocol. It
+    // sits in the `own-oracle` slot of P-022's crate graph — a dev/oracle
+    // harness, which is ENTRY-POINT class, not core. The own-bridge edge
+    // arrived DELIBERATELY with checkpoint 2 (the engine protocol drives the
+    // port's three layer surfaces to produce this engine's capture): own-ir
+    // for the typed door upstream of every layer, own-lowered for the Layer 2
+    // canonical emitter, own-bridge for the layers themselves. Only
+    // entry-point crates may depend on own-bridge, and this is one; the
+    // constraint runs the other way and is asserted by name below.
+    m.insert(
+        "own-shadow",
+        ["own-ir", "own-lowered", "own-bridge"]
+            .into_iter()
+            .collect(),
+    );
     // own-analysis CONSTRUCTS diagnostics and consumes the cfg lowering. It reads
     // the effect type through `own_cfg::Effect`, NOT the parser — so there is no
     // production own-syntax edge (own-syntax is a dev-only edge for its tests).
@@ -206,6 +222,33 @@ fn no_core_crate_depends_on_the_bridge() {
             !deps.contains("own-bridge"),
             "{core} grew a dependency on own-bridge; the bridge consumes the core, \
              never the reverse"
+        );
+    }
+}
+
+#[test]
+fn no_core_crate_depends_on_the_shadow_harness() {
+    // The same constraint as the bridge, for the same reason: own-shadow is a
+    // dev/oracle harness (P-022 step 7a) that reads the core's surfaces to
+    // capture and reproduce them. Nothing the core computes may depend on the
+    // harness that observes it — an oracle a core crate can reach is an
+    // oracle the core can shape. own-bridge is included: the harness is
+    // downstream of the bridge, never the reverse.
+    let actual = workspace_edges();
+    for consumer in [
+        "own-ir",
+        "own-syntax",
+        "own-cfg",
+        "own-diagnostics",
+        "own-lowered",
+        "own-analysis",
+        "own-bridge",
+    ] {
+        let deps = actual.get(consumer).expect("crate is a member");
+        assert!(
+            !deps.contains("own-shadow"),
+            "{consumer} grew a dependency on own-shadow; the shadow harness observes the \
+             core, never the reverse"
         );
     }
 }

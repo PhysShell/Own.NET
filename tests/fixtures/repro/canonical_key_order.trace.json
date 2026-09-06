@@ -1,0 +1,519 @@
+{
+  "trace_version": 1,
+  "case": "canonical_key_order",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
+        "bytes": 283
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "KeyOrder"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[Zed]",
+              "value": {
+                "name": "Zed",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Zed].body[0]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "Zed|KeyOrder.cs|3|b.Zeta|OnZeta",
+                "resource": "Subscription",
+                "line": 3
+              }
+            },
+            {
+              "id": "functions[Zed].body[1]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "resource": "Subscription",
+                "line": 4
+              }
+            },
+            {
+              "id": "functions[Zed].body[2]",
+              "value": {
+                "stmt": "release",
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "line": 4
+              }
+            },
+            {
+              "id": "handles[Zed|KeyOrder.cs|3|b.Zeta|OnZeta]",
+              "value": {
+                "handle": "Zed|KeyOrder.cs|3|b.Zeta|OnZeta",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "resource": "subscribe",
+                "released": false,
+                "mint": "sub"
+              }
+            },
+            {
+              "id": "handles[Zed|KeyOrder.cs|4|a.Alpha|OnAlpha]",
+              "value": {
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 4,
+                "event": "a.Alpha",
+                "handler": "OnAlpha",
+                "resource": "subscribe",
+                "released": true,
+                "mint": "sub"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "KeyOrder"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[KeyOrder.cs:3:None:OWN001]",
+              "value": {
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "code": "OWN001",
+                "component": "Zed",
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "message": "the result of 'b.Zeta' is ignored — the IDisposable subscription is never disposed, leaking 'Zed' (leak)",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
+        "bytes": 283
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "KeyOrder"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[Zed]",
+              "value": {
+                "name": "Zed",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Zed].body[0]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "Zed|KeyOrder.cs|3|b.Zeta|OnZeta",
+                "resource": "Subscription",
+                "line": 3
+              }
+            },
+            {
+              "id": "functions[Zed].body[1]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "resource": "Subscription",
+                "line": 4
+              }
+            },
+            {
+              "id": "functions[Zed].body[2]",
+              "value": {
+                "stmt": "release",
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "line": 4
+              }
+            },
+            {
+              "id": "handles[Zed|KeyOrder.cs|3|b.Zeta|OnZeta]",
+              "value": {
+                "handle": "Zed|KeyOrder.cs|3|b.Zeta|OnZeta",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "resource": "subscribe",
+                "released": false,
+                "mint": "sub"
+              }
+            },
+            {
+              "id": "handles[Zed|KeyOrder.cs|4|a.Alpha|OnAlpha]",
+              "value": {
+                "handle": "Zed|KeyOrder.cs|4|a.Alpha|OnAlpha",
+                "component": "Zed",
+                "file": "KeyOrder.cs",
+                "line": 4,
+                "event": "a.Alpha",
+                "handler": "OnAlpha",
+                "resource": "subscribe",
+                "released": true,
+                "mint": "sub"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "KeyOrder"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[KeyOrder.cs:3:None:OWN001]",
+              "value": {
+                "file": "KeyOrder.cs",
+                "line": 3,
+                "code": "OWN001",
+                "component": "Zed",
+                "event": "b.Zeta",
+                "handler": "OnZeta",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

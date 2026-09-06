@@ -16,9 +16,25 @@ into something the tree carries and anyone can replay:
   (`scripts/render_checkpoint_status.py`), so the campaign is interpreted
   once.
 
+A campaign declares **what to run** in one of two ways, and the rest of the
+contract is identical for both:
+
+* `workspace` — every member of that cargo workspace, `cargo test -p <pkg>
+  --no-fail-fast`. The packages come from `cargo metadata`, never a typed
+  list, so a new crate is covered the day it exists.
+* `layers` — an explicit list of commands, for a campaign whose catchers do
+  not all live in one cargo workspace. The shadow-mode campaigns
+  (`p022-shadow-cp*`) are the case this exists for: their reference half is a
+  Python harness and their port half is several cargo test targets, and a
+  campaign that cannot run the layer holding a catcher cannot see it catch
+  (checkpoint 3 lost a mutation to exactly that).
+
+Whichever it is, EVERY layer runs for EVERY mutation — discipline 3's no
+fail-fast applies across layers, not just within one.
+
 Each mutation is applied to a pristine copy of the file and restored from
-memory (never `git checkout`), the tests of every workspace package run with
-`--no-fail-fast`, and the outcome is one of:
+memory (never `git checkout`), the tests run with `--no-fail-fast`, and the
+outcome is one of:
 
     caught            at least one test failed
     survived          the mutated tree passed (a gap — or, for the control, the point)
@@ -52,6 +68,14 @@ while that commit exists and is an ancestor of HEAD, so a result from a
 rebased or deleted branch is not evidence — re-run the campaign. Neither
 check depends on HEAD's content: a refactor after the run leaves it valid.
 
+A mutation that edits a **Python** source needs one more thing the cargo-only
+case never did: CPython validates a cached `.pyc` by the source's integer
+mtime and size, so restoring a same-size mutation leaves the MUTATED bytecode
+in place and every later run measures the leftovers. The runner invalidates
+the cache on every write and runs Python layers with `PYTHONDONTWRITEBYTECODE`.
+This is not hypothetical: one same-size mutation (`indent=2` -> `indent=4`)
+made fifteen later mutations report a Python catcher that could not exist.
+
 Usage:
   python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --validate
   python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run
@@ -77,6 +101,7 @@ OUTCOMES = ("caught", "survived", "compile-error", "invalid-mutation", "runner-e
 _RUNNING = re.compile(r"^\s+Running (?:unittests )?(\S+) \(\S+\)$")
 _DOCTESTS = re.compile(r"^\s+Doc-tests (\S+)$")
 _FAILED = re.compile(r"^test (.+?) \.\.\. FAILED$")
+_PY_FAIL = re.compile(r"^FAIL\[([^\]]+)\]:", re.M)
 
 
 @dataclass(frozen=True)
@@ -91,15 +116,37 @@ class Mutation:
 
 
 @dataclass(frozen=True)
+class Layer:
+    """One command whose failures are catchers. `parser` says how to read them:
+
+    cargo        cargo's merged output — `test <name> ... FAILED` under the
+                 `Running <target>` header that precedes it.
+    python-fail  a harness that prints `FAIL[<check>]: <detail>` lines, so a
+                 catcher is named by the CHECK it violated rather than by the
+                 case that happened to trip first. A non-zero exit with no such
+                 line is still a catch, recorded under a name that says so.
+    """
+
+    id: str
+    cwd: str
+    command: tuple[str, ...]
+    parser: str
+
+
+PARSERS = ("cargo", "python-fail")
+
+
+@dataclass(frozen=True)
 class Definition:
     campaign: str
     description: str
-    workspace: str
     control_id: str
     control_description: str
     mutations: tuple[Mutation, ...]
     path: str
     sha256: str
+    workspace: str | None = None
+    layers: tuple[Layer, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -121,6 +168,12 @@ class Result:
     packages: tuple[str, ...]
     control: Outcome
     mutations: tuple[Outcome, ...]
+    layers: tuple[str, ...] = ()
+
+    @property
+    def ran(self) -> tuple[str, ...]:
+        """What the run actually exercised — cargo packages or declared layers."""
+        return self.layers or self.packages
 
 
 @dataclass
@@ -193,6 +246,7 @@ def load_definition(path: str) -> Definition:
             expected_catchers=tuple(str(c) for c in catchers),
             rule=rule,
         ))
+    workspace, layers = _target(data, path)
     ids = [m.id for m in mutations]
     control_id = _str(control, "id", f"{path}: control")
     if len(set(ids)) != len(ids) or control_id in ids:
@@ -200,13 +254,48 @@ def load_definition(path: str) -> Definition:
     return Definition(
         campaign=_str(data, "campaign", path),
         description=_str(data, "description", path),
-        workspace=_str(data, "workspace", path),
         control_id=control_id,
         control_description=_str(control, "description", f"{path}: control"),
         mutations=tuple(mutations),
         path=path,
         sha256=_sha256(path),
+        workspace=workspace,
+        layers=layers,
     )
+
+
+def _layer(obj: object, where: str) -> Layer:
+    if not isinstance(obj, dict):
+        raise CampaignError(f"{where}: not an object")
+    command = obj.get("command")
+    if not (isinstance(command, list) and command
+            and all(isinstance(c, str) and c for c in command)):
+        raise CampaignError(f"{where}: 'command' must be a non-empty array of strings")
+    parser = _str(obj, "parser", where)
+    if parser not in PARSERS:
+        raise CampaignError(f"{where}: unknown parser {parser!r} (one of {list(PARSERS)})")
+    return Layer(id=_str(obj, "id", where), cwd=str(obj.get("cwd", ".")),
+                 command=tuple(str(c) for c in command), parser=parser)
+
+
+def _target(data: dict[str, object], path: str) -> tuple[str | None, tuple[Layer, ...]]:
+    """`workspace` or `layers`, never both and never neither: a campaign that
+    does not say what to run cannot be replayed, and one that says it twice
+    leaves the reader guessing which half was measured."""
+    raw = data.get("layers")
+    workspace = data.get("workspace")
+    if (raw is None) == (workspace is None):
+        raise CampaignError(f"{path}: declare exactly one of 'workspace' (every member of a "
+                            f"cargo workspace) or 'layers' (explicit commands)")
+    if workspace is not None:
+        return _str(data, "workspace", path), ()
+    if not (isinstance(raw, list) and raw):
+        raise CampaignError(f"{path}: 'layers' must be a non-empty array")
+    layers = tuple(_layer(item, f"{path}: layers[{i}]") for i, item in enumerate(raw))
+    ids = [x.id for x in layers]
+    if len(set(ids)) != len(ids):
+        raise CampaignError(f"{path}: layer ids must be unique (got {ids})")
+    return None, layers
 
 
 def _outcome_from(obj: object, where: str) -> Outcome:
@@ -243,6 +332,12 @@ def load_result(path: str) -> Result:
     packages = data.get("packages", [])
     if not (isinstance(packages, list) and all(isinstance(p, str) for p in packages)):
         raise CampaignError(f"{path}: 'packages' must be an array of strings")
+    layers = data.get("layers", [])
+    if not (isinstance(layers, list) and all(isinstance(x, str) for x in layers)):
+        raise CampaignError(f"{path}: 'layers' must be an array of strings")
+    if bool(packages) == bool(layers):
+        raise CampaignError(f"{path}: a result names either the cargo 'packages' or the "
+                            f"'layers' it ran, never both and never neither")
     dirty = data.get("dirty", False)
     if not isinstance(dirty, bool):
         raise CampaignError(f"{path}: 'dirty' must be a boolean")
@@ -255,6 +350,7 @@ def load_result(path: str) -> Result:
         packages=tuple(str(p) for p in packages),
         control=_outcome_from(data.get("control"), f"{path}: control"),
         mutations=tuple(_outcome_from(m, f"{path}: mutations[{i}]") for i, m in enumerate(raw)),
+        layers=tuple(str(x) for x in layers),
     )
 
 
@@ -279,6 +375,14 @@ def summarize(definition: Definition, result: Result) -> Summary:
                         f"the unmutated tree — the run measured nothing")
     if result.dirty:
         problems.append("the result was recorded on a dirty tree — not evidence")
+    declared = tuple(x.id for x in definition.layers)
+    if declared and tuple(result.layers) != declared:
+        problems.append(f"the result ran layers {list(result.layers)} but the definition "
+                        f"declares {list(declared)} — a campaign that did not run the layer "
+                        f"holding a catcher cannot have seen it catch; re-run the campaign")
+    if definition.workspace is not None and not result.packages:
+        problems.append("the definition names a cargo workspace but the result records no "
+                        "packages — re-run the campaign")
     recorded = {o.id: o for o in result.mutations}
     missing = [m.id for m in definition.mutations if m.id not in recorded]
     extra = [i for i in recorded if i not in {m.id for m in definition.mutations}]
@@ -399,24 +503,89 @@ def parse_test_output(package: str, out: str) -> tuple[list[str], bool]:
     return catchers, compile_error
 
 
-def run_tests(workspace: str, packages: list[str]) -> tuple[list[str], bool, list[str]]:
-    """Run every package's tests, no fail-fast, streams merged so `Running`
-    headers (stderr) and results (stdout) keep their interleaving.
+def parse_python_output(layer: str, out: str) -> tuple[list[str], bool]:
+    """(catching check ids, compile error seen) from a `FAIL[<check>]: …` harness.
+
+    Naming the CHECK rather than the case keeps a campaign's evidence stable
+    under fixture churn, and says which rule the mutation broke."""
+    catchers = [f"{layer}::{name}" for name in
+                sorted({m.group(1) for m in _PY_FAIL.finditer(out)})]
+    compile_error = ("SyntaxError:" in out or "IndentationError:" in out
+                     or "TabError:" in out)
+    return catchers, compile_error
+
+
+def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
+    env = dict(os.environ)
+    if layer.parser == "python-fail":
+        # Never leave a .pyc behind: see the cache note in the module docstring.
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+    r = subprocess.run(list(layer.command), cwd=os.path.join(ROOT, layer.cwd), env=env,
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if layer.parser == "cargo":
+        found, ce = parse_test_output(layer.id, r.stdout)
+    else:
+        found, ce = parse_python_output(layer.id, r.stdout)
+    unparsed: list[str] = []
+    if r.returncode != 0 and not found and not ce:
+        # A layer that failed without naming a check still caught something; it
+        # is recorded under a name that says the runner could not attribute it,
+        # never dropped into "survived".
+        found = [f"{layer.id}::<non-zero exit with no reported failure>"]
+        unparsed.append(f"{layer.id}: exited {r.returncode} without a parseable failure:\n"
+                        + "\n".join(r.stdout.splitlines()[-15:]))
+    return found, ce, unparsed
+
+
+def run_tests(definition: Definition) -> tuple[list[str], bool, list[str]]:
+    """Run every layer — a cargo workspace's members, or the declared commands —
+    with no fail-fast, streams merged so `Running` headers (stderr) and results
+    (stdout) keep their interleaving.
     Returns (catchers, compile error seen, unparsed failures)."""
     catchers: list[str] = []
     compile_error = False
     unparsed: list[str] = []
-    for pkg in packages:
-        r = subprocess.run(["cargo", "test", "-p", pkg, "--no-fail-fast"],
-                           cwd=os.path.join(ROOT, workspace),
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        found, ce = parse_test_output(pkg, r.stdout)
+    for layer in _layers_of(definition):
+        found, ce, un = _run_layer(layer)
         catchers.extend(found)
         compile_error = compile_error or ce
-        if r.returncode != 0 and not found and not ce:
-            unparsed.append(f"{pkg}: cargo test exited {r.returncode} without a parseable "
-                            f"failure:\n" + "\n".join(r.stdout.splitlines()[-15:]))
+        unparsed.extend(un)
     return catchers, compile_error, unparsed
+
+
+def _layers_of(definition: Definition) -> tuple[Layer, ...]:
+    """The declared layers, or one cargo layer per workspace member."""
+    if definition.layers:
+        return definition.layers
+    workspace = definition.workspace
+    assert workspace is not None  # load_definition enforces one or the other
+    return tuple(
+        Layer(id=pkg, cwd=workspace, parser="cargo",
+              command=("cargo", "test", "-p", pkg, "--no-fail-fast"))
+        for pkg in workspace_packages(workspace))
+
+
+def write_source(target: str, text: str) -> None:
+    """Write a mutated (or restored) source and drop any cached bytecode for it.
+
+    CPython validates a `.pyc` by the source's integer mtime and size, so a
+    same-size rewrite inside the same second leaves the stale bytecode valid
+    and the interpreter runs the file that is no longer on disk."""
+    path = os.path.join(ROOT, target)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    if not target.endswith(".py"):
+        return
+    directory, name = os.path.split(path)
+    cache = os.path.join(directory, "__pycache__")
+    stem = name[:-3] + "."
+    if os.path.isdir(cache):
+        for entry in os.listdir(cache):
+            if entry.startswith(stem) and entry.endswith(".pyc"):
+                try:
+                    os.remove(os.path.join(cache, entry))
+                except OSError:  # pragma: no cover - a cache we cannot clear
+                    pass
 
 
 def apply(m: Mutation, pristine: str) -> tuple[str, str | None]:
@@ -466,7 +635,8 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
                             "remove them first, or --allow-dirty for a dev run whose result "
                             f"is NOT evidence:\n{baseline}")
     commit = _git("rev-parse", "HEAD")
-    packages = workspace_packages(definition.workspace)
+    layers = _layers_of(definition)
+    packages = [] if definition.layers else [x.id for x in layers]
     targets = sorted({m.target for m in definition.mutations})
     pristine: dict[str, str] = {}
     for t in targets:
@@ -475,12 +645,12 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
 
     def restore() -> None:
         for t, text in pristine.items():
-            with open(os.path.join(ROOT, t), "w", encoding="utf-8") as f:
-                f.write(text)
+            write_source(t, text)
 
     print(f"{definition.control_id}: {definition.control_description}", flush=True)
+    print(f"  layers: {', '.join(x.id for x in layers)}", flush=True)
     t0 = time.monotonic()
-    catchers, ce, unparsed = run_tests(definition.workspace, packages)
+    catchers, ce, unparsed = run_tests(definition)
     outcome, detail = _classify(catchers, ce, unparsed)
     control = Outcome(definition.control_id, outcome, tuple(catchers),
                       round(time.monotonic() - t0, 1), detail)
@@ -498,11 +668,10 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
                 outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem))
                 print(f"  -> invalid-mutation: {problem}", flush=True)
                 continue
-            with open(os.path.join(ROOT, m.target), "w", encoding="utf-8") as f:
-                f.write(mutated)
+            write_source(m.target, mutated)
             t0 = time.monotonic()
             try:
-                catchers, ce, unparsed = run_tests(definition.workspace, packages)
+                catchers, ce, unparsed = run_tests(definition)
             finally:
                 restore()
             assert_tree_unchanged(baseline, f"during {m.id}")
@@ -533,6 +702,7 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
         packages=tuple(packages),
         control=control,
         mutations=tuple(outcomes),
+        layers=tuple(x.id for x in layers) if definition.layers else (),
     )
 
 
@@ -559,11 +729,15 @@ def write_result(result: Result, definition: Definition, path: str) -> None:
         "source_commit": result.source_commit,
         "dirty": result.dirty,
         "recorded_at": result.recorded_at,
-        "packages": list(result.packages),
-        "command": "cargo test -p <package> --no-fail-fast, for every workspace member",
-        "control": _outcome_json(result.control),
-        "mutations": [_outcome_json(o) for o in result.mutations],
     }
+    if result.layers:
+        doc["layers"] = list(result.layers)
+        doc["command"] = "every layer the definition declares, for every mutation"
+    else:
+        doc["packages"] = list(result.packages)
+        doc["command"] = "cargo test -p <package> --no-fail-fast, for every workspace member"
+    doc["control"] = _outcome_json(result.control)
+    doc["mutations"] = [_outcome_json(o) for o in result.mutations]
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2, ensure_ascii=False)
         f.write("\n")

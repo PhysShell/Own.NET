@@ -1,0 +1,487 @@
+{
+  "comment": "The canonical hash of every shared facts document (P-022 step 7a, #260/#269). Generated: python tests/test_repro_fixtures.py --write. The Rust own-shadow recomputes every digest from the same documents with zero Python, which is what makes 'both engines saw the same input' a checked fact rather than an assumption. Records are sorted by case and depend on nothing but their own case, so inserting a case churns no existing record.",
+  "repro_version": 2,
+  "algorithm": "sha256",
+  "documents": [
+    {
+      "case": "alias_join_cases",
+      "corpus": "lowered",
+      "digest": "f3ac08b8799096024dc96f9c740cdeb8838102c485440a4338da02bc1cf11a5f",
+      "bytes": 377
+    },
+    {
+      "case": "canonical_key_order",
+      "corpus": "repro",
+      "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
+      "bytes": 283
+    },
+    {
+      "case": "canonical_minimal",
+      "corpus": "repro",
+      "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+      "bytes": 38
+    },
+    {
+      "case": "canonical_torture",
+      "corpus": "repro",
+      "digest": "239383fae8175fd42dc773922af7e3dcf26c2148f99a365f8e4404db58224edd",
+      "bytes": 834
+    },
+    {
+      "case": "capture",
+      "corpus": "ownir",
+      "digest": "a3e8dbaa4f3bb7acd77fcd870ef8bec725e705197c219bcc02638e6acc65daf0",
+      "bytes": 696
+    },
+    {
+      "case": "contract_inference",
+      "corpus": "ownir",
+      "digest": "4441c9b0bc8bdcf1a16c9c157214988a80c8fe962dd32c560cd41c596e58c109",
+      "bytes": 785
+    },
+    {
+      "case": "di",
+      "corpus": "ownir",
+      "digest": "1dd40fe8691e32cbab0252b749d17fecfc905382907a1ea48b2a9eae8ae9d929",
+      "bytes": 767
+    },
+    {
+      "case": "di_capture",
+      "corpus": "ownir",
+      "digest": "acd247ddd2d7ffdd4ebaae20eba8bdb43408ae3ef0914e2a9bb5e9481bb67005",
+      "bytes": 684
+    },
+    {
+      "case": "disposable",
+      "corpus": "ownir",
+      "digest": "9a3942afd5b77c8930e43d9b931ca84dc7722b801907775a41381aab6c7e8b34",
+      "bytes": 430
+    },
+    {
+      "case": "flow_column_anchors",
+      "corpus": "ownir",
+      "digest": "a31d297c8484e461a8dd2ba9d6ddc7d28c5a5b023ad110cc3c116d2dd2e9d58e",
+      "bytes": 2288
+    },
+    {
+      "case": "flow_finally_switch",
+      "corpus": "ownir",
+      "digest": "455d7bb9e579975b883274656ddef2f4b2c5283245053255f0cb2ebbc17043d5",
+      "bytes": 1675
+    },
+    {
+      "case": "flow_kill_on_rebind",
+      "corpus": "lowered",
+      "digest": "495304a931624ee28c79d8b2a6910d06b53b193165afd7ac965419ee99c00335",
+      "bytes": 229
+    },
+    {
+      "case": "flow_leak_on_else",
+      "corpus": "ownir",
+      "digest": "d0ebae6b7d708fb28904932181eba56e8c6edd91488a3c7f0650ff1eb91f517f",
+      "bytes": 268
+    },
+    {
+      "case": "flow_leak_two_exits",
+      "corpus": "ownir",
+      "digest": "da3952837918230ce159c9d320b3820854a4fbbcdd013b8a3e0a130c86f092b4",
+      "bytes": 315
+    },
+    {
+      "case": "flow_nested_throw",
+      "corpus": "ownir",
+      "digest": "f009d8950f48fd37302564747c364d58f49a64430f2c37978bfb6c2c2fd1460b",
+      "bytes": 1667
+    },
+    {
+      "case": "flow_pool_partial",
+      "corpus": "ownir",
+      "digest": "59c43eda99a86ee30cb2a4c7781b3044142844c62f8042dbf100233ac8e0c8e6",
+      "bytes": 1426
+    },
+    {
+      "case": "flow_unmapped_refs",
+      "corpus": "lowered",
+      "digest": "8f19e263ab72914d43f5ae18da36d4196f9142f5b97810374074740eec3328f9",
+      "bytes": 245
+    },
+    {
+      "case": "flow_while",
+      "corpus": "ownir",
+      "digest": "2c67be045fad2a800d27121117af04b1f58ac42fe69ef3f63c1fabeaab5f0b94",
+      "bytes": 255
+    },
+    {
+      "case": "fn_params_ordering",
+      "corpus": "lowered",
+      "digest": "5a639b7c8ac76e5d87cb33b6196c8baf67b4f055266367123207ad924d42d260",
+      "bytes": 479
+    },
+    {
+      "case": "handles_global_counters",
+      "corpus": "lowered",
+      "digest": "cd5112cae07211e5c99f4b4d30c73612d61d8e1a7298b2396d5242253635965b",
+      "bytes": 500
+    },
+    {
+      "case": "handles_null_metadata",
+      "corpus": "lowered",
+      "digest": "fa2b63f3f16a0ab9a2d73b43dd666f79ea8690c3eb2754de071d5ee90d83826b",
+      "bytes": 304
+    },
+    {
+      "case": "handoff_contract",
+      "corpus": "ownir",
+      "digest": "a85e62876839d352a5d31d6cab2a23be7bd06cd40793a13fddb40816e06f27a8",
+      "bytes": 658
+    },
+    {
+      "case": "hoist_neg_early_return",
+      "corpus": "lowered",
+      "digest": "e2ad1e5c33eb5cdfe18b057c059d59e1097217e58b4a70b708794e4f1078c9a1",
+      "bytes": 226
+    },
+    {
+      "case": "hoist_neg_nested_depth",
+      "corpus": "lowered",
+      "digest": "d588e0d8103c327b2fad4418906b3cfe38eaf97769b17963274bf3c85b75e2b1",
+      "bytes": 242
+    },
+    {
+      "case": "hoist_neg_while_body",
+      "corpus": "lowered",
+      "digest": "d2ae2309b105c985d6eeda13a2eb53b72bcd56fe895ac6919023ecdca72ea1e4",
+      "bytes": 195
+    },
+    {
+      "case": "hoist_pool_kind",
+      "corpus": "lowered",
+      "digest": "578e1892bfa7932d76846c4216e0f2e749782e43afcf3d2dddabfbfbd28f4cb1",
+      "bytes": 271
+    },
+    {
+      "case": "hoist_positive_release",
+      "corpus": "lowered",
+      "digest": "cf6479caae0c2bb8122ceffc3056de9ac7bc58da78f33dd440e4a9b4c313bdb2",
+      "bytes": 233
+    },
+    {
+      "case": "hoist_positive_use_only",
+      "corpus": "lowered",
+      "digest": "0d02a23d958c3444865c17fd50e4b1cb29ea89bb3a1f382546bbb4d26d512038",
+      "bytes": 197
+    },
+    {
+      "case": "lines_preserved",
+      "corpus": "lowered",
+      "digest": "48b075d0a88ecf2d5d6d96f310e9a94f31e571fc7d70b2ea6f52723d459d319b",
+      "bytes": 383
+    },
+    {
+      "case": "local_disposable",
+      "corpus": "ownir",
+      "digest": "e5472c04b60a3916349df8fbb9e36d804be4a2548518de2f539c67e7fe2f589b",
+      "bytes": 319
+    },
+    {
+      "case": "mos_call_channel_overload_sig",
+      "corpus": "lowered",
+      "digest": "1ae342b45f6fadead130794925ddc7d0d96788dadf2c1b6cc531888d566ce3b6",
+      "bytes": 601
+    },
+    {
+      "case": "mos_call_direct_consume",
+      "corpus": "lowered",
+      "digest": "d6657c687e33de4fd69be1e1b61c3bf37dc09dd75d1f9b49a3d96e936f8bbf60",
+      "bytes": 269
+    },
+    {
+      "case": "mos_call_unknown_drop",
+      "corpus": "lowered",
+      "digest": "bc99586d256861fcf585c68b53b5899a52fbee1c42deea91ce53ccfc1c58c5bd",
+      "bytes": 245
+    },
+    {
+      "case": "mos_fresh_mint",
+      "corpus": "lowered",
+      "digest": "caef5f8298cf98addbbece7a24487b831dbd5bc806ac0b4225391486c9840a7e",
+      "bytes": 409
+    },
+    {
+      "case": "mos_killsite_toplevel",
+      "corpus": "lowered",
+      "digest": "b54f9fa40ee79929fe93cf51bdf1bb754b38fae729b53b8717684026fb29bec2",
+      "bytes": 403
+    },
+    {
+      "case": "mos_untrack_inbranch",
+      "corpus": "lowered",
+      "digest": "603a39cdf16770f6bdb843b5b6af1e174d018b0842cab149cf245335587e3fc3",
+      "bytes": 410
+    },
+    {
+      "case": "mosdump_degraded_duplicate_key",
+      "corpus": "summaries",
+      "digest": "92f052ccef71d87b1b80ff9e9bcd9c74ec9db30b7ad34c883af0096a83088fdd",
+      "bytes": 376
+    },
+    {
+      "case": "mosdump_explicit_effects",
+      "corpus": "summaries",
+      "digest": "0c052dc3634aed1263f4ec1eff3019d27052617390dcc0f18fc61bc5982003a6",
+      "bytes": 461
+    },
+    {
+      "case": "mosdump_nonascii_escaping",
+      "corpus": "summaries",
+      "digest": "75932fdf06e0fbbca45369c8d86672f0c252415695e5c41224f9b5c130b82037",
+      "bytes": 219
+    },
+    {
+      "case": "mosdump_overload_merge_tiebreaks",
+      "corpus": "summaries",
+      "digest": "c84e2e6bfac8830df855205fca738c3a8a14d667cc96a30198f753cf7102059c",
+      "bytes": 403
+    },
+    {
+      "case": "mosdump_partial_and_guarded",
+      "corpus": "summaries",
+      "digest": "fe5b033ed5e348728bcb9ae6223ffaddc72d1388bffe581275ac73117f6c0fc6",
+      "bytes": 525
+    },
+    {
+      "case": "mosdump_return_chains",
+      "corpus": "summaries",
+      "digest": "233213ac3f8dd75194e25a66a5d784e9622be282d88f1fe4a546d9b8f66dd36d",
+      "bytes": 894
+    },
+    {
+      "case": "mosdump_scc_cycles",
+      "corpus": "summaries",
+      "digest": "15f6a6b43a638b766baef273e5fcaa086f57ab469c44664edd15eea3a6c7fc0e",
+      "bytes": 655
+    },
+    {
+      "case": "mosdump_sig_vocabulary",
+      "corpus": "summaries",
+      "digest": "b9683de7109d84886fe703cc9a32c63e27149a976d0447121d49cbc13e81224f",
+      "bytes": 514
+    },
+    {
+      "case": "mosdump_sink_channels",
+      "corpus": "summaries",
+      "digest": "a71c3f96df86155c36ecc1b1bf7450636b19d18cb9395f56bfe1cad4c967478d",
+      "bytes": 440
+    },
+    {
+      "case": "pool",
+      "corpus": "ownir",
+      "digest": "79cb88310fefc2641559688cf9851f6199927c5ee4eed43ada7711f2547667ae",
+      "bytes": 241
+    },
+    {
+      "case": "protocol_isloaded_clean",
+      "corpus": "ownir",
+      "digest": "cc7539104ac5357e0ed76599177da95f8ea271751e64fa94adff49a399f0a95f",
+      "bytes": 1193
+    },
+    {
+      "case": "protocol_isloaded_violation",
+      "corpus": "ownir",
+      "digest": "f821b58b0da7e5ecb94798d1868db377876d945242a4e4d013d6499d7af7ee13",
+      "bytes": 1217
+    },
+    {
+      "case": "routing_r1_unresolved",
+      "corpus": "lowered",
+      "digest": "d1b7da34ce0ad0069211e3fa05d8881ab8ed1da2a5d5c5c4d472a6f14d9633a0",
+      "bytes": 171
+    },
+    {
+      "case": "routing_r2_subscribe_self",
+      "corpus": "lowered",
+      "digest": "25f7d643e602b10195cfe7358b2715f9c511bb8feb5049265fde6c6c826e6bf8",
+      "bytes": 208
+    },
+    {
+      "case": "routing_r3_capture_static",
+      "corpus": "lowered",
+      "digest": "41cf768f49af1bf0179db32a31870f0e7a2bcdc6e0f732627664935a576becc5",
+      "bytes": 421
+    },
+    {
+      "case": "routing_r4_returned_fresh",
+      "corpus": "lowered",
+      "digest": "6b4b0ef2a9a66fe9917a78fa64adcb120e152eabb8164dd2c1aa54bffbcd87e1",
+      "bytes": 358
+    },
+    {
+      "case": "routing_r5_di_capture",
+      "corpus": "lowered",
+      "digest": "da3a45a5961c42e43b75f486c081a69bb129c00d4a60e8d7210877467d41e125",
+      "bytes": 511
+    },
+    {
+      "case": "routing_r6_token_kinds",
+      "corpus": "lowered",
+      "digest": "4ada77267b035f2148303ed7174761f04d96bb36fa5bd28f4ffd7c34b0bafcf0",
+      "bytes": 675
+    },
+    {
+      "case": "sample",
+      "corpus": "ownir",
+      "digest": "fff7156e1bb4e3de0e54b88042a8ed3f9fac9be535c339d4699f916621484db1",
+      "bytes": 375
+    },
+    {
+      "case": "subscribe",
+      "corpus": "ownir",
+      "digest": "c883235a21110fc4f4271b40453e6f786fbe3efdea32cecab065e774f174ec31",
+      "bytes": 216
+    },
+    {
+      "case": "timer",
+      "corpus": "ownir",
+      "digest": "62804547e0b08ed25035805e4a7ecbc69e46fdde977d6ea12683c6165fac1044",
+      "bytes": 379
+    },
+    {
+      "case": "tolerant_unknown_kind",
+      "corpus": "lowered",
+      "digest": "b33cea96ebe7256e92543b8fc5c131a9b0be52157ee73300ca00a1f092d958d9",
+      "bytes": 150
+    },
+    {
+      "case": "unitofwork_flow",
+      "corpus": "ownir",
+      "digest": "2aa3bdb9963c1a74d7559ddf30ecacbf03b8a73f86979454bbe903c2ac956862",
+      "bytes": 324
+    },
+    {
+      "case": "unresolved",
+      "corpus": "ownir",
+      "digest": "3475a764d4449355270566bc27f7457535bd465e8294e40519ea8748525c4cbc",
+      "bytes": 309
+    },
+    {
+      "case": "verdict_boundary_effect_line_negative",
+      "corpus": "verdicts",
+      "digest": "0f55de6ce780977587f3684db6aafd955dc9b3e655adef6aaea451e048d75301",
+      "bytes": 361
+    },
+    {
+      "case": "verdict_boundary_line_above_u32",
+      "corpus": "verdicts",
+      "digest": "788dbce914bfc6cdb3afd68ecc712c8f30e4f388282aa2fbf8ae773cf21bd605",
+      "bytes": 294
+    },
+    {
+      "case": "verdict_boundary_line_negative",
+      "corpus": "verdicts",
+      "digest": "94ccd117455ca0cc0c4ae33b15669dc8107d7b34444b461788ae5644a6117ca3",
+      "bytes": 424
+    },
+    {
+      "case": "verdict_boundary_service_line_negative",
+      "corpus": "verdicts",
+      "digest": "f168053ba21a64d7d4b72a1ce8644d63308ec58f9c265fcdd266c63f23eb0b5d",
+      "bytes": 418
+    },
+    {
+      "case": "verdict_column_sort_order",
+      "corpus": "verdicts",
+      "digest": "33f0ab59bd9c1dadc09aa5b2c4f110b9540116f9b51a4e4d2e0c0085e9c96169",
+      "bytes": 960
+    },
+    {
+      "case": "verdict_di004_call_site_anchor",
+      "corpus": "verdicts",
+      "digest": "09be7af7d79b67f5d79e462b3b9a9a5ac04eb313c1021344fdf16caf081b8aeb",
+      "bytes": 1410
+    },
+    {
+      "case": "verdict_di005_cache_site_anchor",
+      "corpus": "verdicts",
+      "digest": "ae041b3d718acac511214765f00efaac3ef77b70d2f0296ff7b1abeaf17f6292",
+      "bytes": 1137
+    },
+    {
+      "case": "verdict_di_duplicate_sites_last_wins",
+      "corpus": "verdicts",
+      "digest": "33aff7fd9961eed97afe9bd78b0271d0333ab27734df86bccfee2e892a226fb6",
+      "bytes": 1888
+    },
+    {
+      "case": "verdict_di_graph_families",
+      "corpus": "verdicts",
+      "digest": "f6f1dd6bc8ac40468e2252b10e6856dc510be0a38ac4c426fb656c25ecffd457",
+      "bytes": 1077
+    },
+    {
+      "case": "verdict_di_tolerant_typed_coercions",
+      "corpus": "verdicts",
+      "digest": "db35f35c937b9014c3c3ca14c983ad9f0504925b233cbfbb457885fd60e9ddf0",
+      "bytes": 901
+    },
+    {
+      "case": "verdict_door_effect_deps_not_strings",
+      "corpus": "verdicts",
+      "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
+      "bytes": 622
+    },
+    {
+      "case": "verdict_door_service_unknown_lifetime",
+      "corpus": "verdicts",
+      "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+      "bytes": 541
+    },
+    {
+      "case": "verdict_eff001_storm_and_memo",
+      "corpus": "verdicts",
+      "digest": "68d132b1eb434c314635ace94f186ea4f080cb04e79fc26d0d2feb3846f80fb5",
+      "bytes": 1054
+    },
+    {
+      "case": "verdict_multi_file_ordering",
+      "corpus": "verdicts",
+      "digest": "ba871ddc6cc81bd4e3185e51855561ab4b9ed5bd3b400f308a87987bad80d2a0",
+      "bytes": 1036
+    },
+    {
+      "case": "verdict_own051_gates",
+      "corpus": "verdicts",
+      "digest": "ff3d7627f6143425985ad86aedb3f6fb962118c72de6e1b047ba8bf0026238ec",
+      "bytes": 1262
+    },
+    {
+      "case": "verdict_pool_view_anchor",
+      "corpus": "verdicts",
+      "digest": "67a62185aec92d3afdd043816def76b1d69fce13a3fa5339c61cefb69c823504",
+      "bytes": 493
+    },
+    {
+      "case": "verdict_same_site_distinct_events",
+      "corpus": "verdicts",
+      "digest": "657cb50c6df9feecf3c9791f02a6555aed08810d622b182313ca507623e37c41",
+      "bytes": 1543
+    },
+    {
+      "case": "verdict_severity_tiers_and_suppression",
+      "corpus": "verdicts",
+      "digest": "10ffbd221bd11913531b3b672dabd966dee52983330856941358b0d9416819ad",
+      "bytes": 1916
+    },
+    {
+      "case": "verdict_skip_list_artifacts",
+      "corpus": "verdicts",
+      "digest": "7cec84e88b7002fc0dced5d9c086cbf5763f6b26a6d4f5b8236f47bb67646299",
+      "bytes": 1460
+    },
+    {
+      "case": "vocab_unknown_op",
+      "corpus": "lowered",
+      "digest": "c07494fb952154bcb0f026969754a20bf856c5c12b54a1c9b2aca0468315838d",
+      "bytes": 108
+    }
+  ]
+}

@@ -1,0 +1,575 @@
+{
+  "trace_version": 1,
+  "case": "mosdump_degraded_duplicate_key",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "92f052ccef71d87b1b80ff9e9bcd9c74ec9db30b7ad34c883af0096a83088fdd",
+        "bytes": 376
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Degraded"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[Take]",
+              "value": {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "Take|t1.cs|1|p|",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": false,
+                      "mutable": false
+                    },
+                    "line": 1,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Take].body[0]",
+              "value": {
+                "stmt": "release",
+                "handle": "Take|t1.cs|1|p|",
+                "line": 2
+              }
+            },
+            {
+              "id": "functions[Take~1]",
+              "value": {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "Take|t2.cs|5|p|",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": true,
+                      "mutable": false
+                    },
+                    "line": 5,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Take~1].body[0]",
+              "value": {
+                "stmt": "use",
+                "handle": "Take|t2.cs|5|p|",
+                "line": 6
+              }
+            },
+            {
+              "id": "functions[Take(System.IO.Stream)]",
+              "value": {
+                "name": "Take(System.IO.Stream)",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "handles[Take|t1.cs|1|p|]",
+              "value": {
+                "handle": "Take|t1.cs|1|p|",
+                "component": "Take",
+                "file": "t1.cs",
+                "line": 1,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": true,
+                "mint": "parg"
+              }
+            },
+            {
+              "id": "handles[Take|t2.cs|5|p|]",
+              "value": {
+                "handle": "Take|t2.cs|5|p|",
+                "component": "Take",
+                "file": "t2.cs",
+                "line": 5,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": false,
+                "mint": "parg"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Degraded"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)"
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[?:0:None:OWN052]",
+              "value": {
+                "file": "?",
+                "line": 0,
+                "code": "OWN052",
+                "component": "Degraded",
+                "event": "",
+                "handler": "",
+                "message": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run",
+                "kind": "method summaries",
+                "advisory": true,
+                "severity": null,
+                "related": [],
+                "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "92f052ccef71d87b1b80ff9e9bcd9c74ec9db30b7ad34c883af0096a83088fdd",
+        "bytes": 376
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Degraded"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[Take]",
+              "value": {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "Take|t1.cs|1|p|",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": false,
+                      "mutable": false
+                    },
+                    "line": 1,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Take].body[0]",
+              "value": {
+                "stmt": "release",
+                "handle": "Take|t1.cs|1|p|",
+                "line": 2
+              }
+            },
+            {
+              "id": "functions[Take~1]",
+              "value": {
+                "name": "Take",
+                "lifetime": null,
+                "params": [
+                  {
+                    "handle": "Take|t2.cs|5|p|",
+                    "type": {
+                      "name": "Disposable",
+                      "borrowed": true,
+                      "mutable": false
+                    },
+                    "line": 5,
+                    "lifetime": null
+                  }
+                ],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[Take~1].body[0]",
+              "value": {
+                "stmt": "use",
+                "handle": "Take|t2.cs|5|p|",
+                "line": 6
+              }
+            },
+            {
+              "id": "functions[Take(System.IO.Stream)]",
+              "value": {
+                "name": "Take(System.IO.Stream)",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "handles[Take|t1.cs|1|p|]",
+              "value": {
+                "handle": "Take|t1.cs|1|p|",
+                "component": "Take",
+                "file": "t1.cs",
+                "line": 1,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": true,
+                "mint": "parg"
+              }
+            },
+            {
+              "id": "handles[Take|t2.cs|5|p|]",
+              "value": {
+                "handle": "Take|t2.cs|5|p|",
+                "component": "Take",
+                "file": "t2.cs",
+                "line": 5,
+                "event": "p",
+                "resource": "flow-local",
+                "ever_released": false,
+                "mint": "parg"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Degraded"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": "ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)"
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[?:0:None:OWN052]",
+              "value": {
+                "file": "?",
+                "line": 0,
+                "code": "OWN052",
+                "component": "Degraded",
+                "event": "",
+                "handler": "",
+                "kind": "method summaries",
+                "advisory": true,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -72,12 +72,15 @@ was #258 alone, which is satisfied. Per the checkpoints #259 itself defines:
 | 5c | `own-codegen` (analysis-independent sibling) | #257 | **ready**, independent of the analysis path — parallelizable |
 | 6a | OwnIR **bridge semantics formalized** before the port | #258 | **complete** — see above |
 | 6b | Rust `own-bridge`, layered OwnIR parity | #259 | **in progress** — checkpoint table above |
-| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269) | **infrastructure sliceable now**, final acceptance **blocked by #259**. Buildable against the landed checkpoints: same-input OwnIR capture + hash, reproduction-artifact format, engine protocol, trace schema, stable-ID normalization, first-divergence reduction over the *lowered*/MOS layers. Not yet declarable as shadow mode: acceptance compares end diagnostics |
+| 7a | dual-engine shadow mode + zero-diff reproduction artifacts | #260 (supported by #269) | **infrastructure COMPLETE — checkpoints 1–4 landed**; final acceptance **still blocked by #259**. Every item this row listed as *sliceable now* is built and replayed with zero of the other engine's runtime: cp1 same-input `OwnIR` capture + canonical hash and the reproduction-artifact format; cp2 the **engine protocol** (each engine declares what it could *produce*); cp3 the **`AnalysisTrace`** (#269 — stable-ID normalization, per-layer ordering semantics *declared* rather than normalized away); cp4 **first-divergence reduction** over the *lowered*/MOS layers, naming layer, step and the minimal difference. `ownlang/repro.py` is the reference emitter, `own-shadow` the port's half. **80 documents** digest-pinned and re-hashed **0/0/0**, **9** artifacts + **9** traces + **9** reductions reproduced byte-for-byte, **80** tamper controls, **6** executable domain refusals, **18** structural + **5** backstop controls per side, campaigns **30/30**, **11/11**, **11/11**, **11/11** caught. Divergence classification, now **computed** by the reducer rather than gate-implied: left-only 0 / right-only 0 / changed 0 / ordering-only 0 / unexplained 0, with 2 `status` observations, both boundaries the port declares ([cp1](../notes/p022-shadow-infra-checkpoint1.md), [cp2](../notes/p022-shadow-infra-checkpoint2.md), [cp3](../notes/p022-shadow-infra-checkpoint3.md), [cp4](../notes/p022-shadow-infra-checkpoint4.md), [generated census](../generated/p022-shadow-census.md)). Four **findings**, each recorded and resolved as a contract decision rather than by bending either engine: `-0` reads as an integer in CPython's `json` and a float in `serde_json`; the trace schema was ambiguous about where a duplicate address takes its `~n`; the capture carried the MOS document in a key order its own surface does not fix; and the two reducers disagreed about whether object key order is significant. **Still NOT shadow mode and not parity**: the reducer *refuses* the verdict layer and records the refusal, because acceptance compares end diagnostics and needs #259 cp5 + 4b. Crossing that line is a contract decision — the scope, engine and layer vocabularies are frozen constants with tests that fail when they move. **Also not proved: #260's raw-byte same-input invariant.** What cp1 establishes is shared *canonical document identity*; canonical-equivalent input is not byte-identical input, so acceptance must additionally prove that both engines consumed the identical captured byte sequence. Three departures from the slice's brief — capture and the artifact format kept as one checkpoint, the `-0` domain narrowing (an engine divergence the brief said to report rather than decide), and `sha2` for `own-shadow` only — are ratified on the record in the [owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md) |
 | 7b | Rust `own-cli`: command/output/exit-code parity | #261 | blocked — needs the production bridge and the output surfaces |
 | 8 | Rust-default **cutover**, rollback gate, Python distribution removal | #262 | blocked by #260/#261 and final parity |
 
 **Preferred queue:** #259 cp5 → 4b (protocol analysis) → #260/#269. 4b does
-not block cp5; #259's final acceptance needs it.
+not block cp5; #259's final acceptance needs it. The #260/#269 *infrastructure*
+slice runs in parallel by design — it is measured on the landed checkpoints and
+takes no position on the ones that are open, which is why its first checkpoint
+could land without waiting on cp5.
 
 The defensive limits that used to head this queue landed in #326, and the order
 was load-bearing rather than tidy. cp1 could report 0/0/0 only over a set with
@@ -214,7 +217,17 @@ Arrow = "is depended on by" (dependency → dependent, i.e. build order):
 
   {all of the above, incl. own-bridge} ─▶ own-cli  (check / emit / cfg / report / ownir / explain)
                         own-cli ◀─ own-oracle  (dev/test: differential harness vs Python)
+                                   own-shadow  (dev/test: shadow-mode INFRASTRUCTURE — step 7a)
 ```
+
+`own-shadow` occupies the `own-oracle` slot for step 7a and is entry-point
+class, not core. It holds the canonical `OwnIR` document identity and the
+reproduction-artifact format (checkpoint 1, landed); the engine protocol that
+will give it an `own-bridge` edge is a later checkpoint, so today it depends on
+no workspace crate at all. The constraint runs the other way and is asserted by
+name in `own-diagnostics/tests/dag.rs`: **no core crate — nor `own-bridge` —
+may depend on it.** An oracle a core crate can reach is an oracle the core can
+shape.
 
 The non-obvious edge is **`own-analysis → own-diagnostics`**: the solver *constructs*
 `Diagnostic`/`Evidence` values (in Python, `analysis.py` imports and builds them from

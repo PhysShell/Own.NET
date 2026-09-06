@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-cp2",
+  "description": "The mutation campaign for P-022 step 7a checkpoint 2 (the engine protocol: how each engine reports its per-layer outputs, and what it declares it could produce). Separate from the cp1 campaign on purpose — each checkpoint's evidence stays frozen at what it measured, so a later checkpoint cannot quietly restate an earlier one's numbers. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Three layers run for every mutation (discipline 3: no fail-fast), including the port's own engine suite. M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_repro_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust-repro",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--test",
+        "repro",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-engine",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--test",
+        "engine",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--lib",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M31",
+      "description": "the reference stops declaring a projection on its layers",
+      "rule": "engine protocol: every layer declares what its engine could produce",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \"projection\":\\ dict\\(projection\\)\\ if\\ projection\\ else\\ dict\\(FULL\\),",
+      "replacement": "        \"projection\": dict(projection) if projection else {\"kind\": \"partial\"},",
+      "expected_catchers": [
+        "python::artifact-golden",
+        "python::capture-verify"
+      ]
+    },
+    {
+      "id": "M32",
+      "description": "the reference silently drops the foreign engine entries when regenerating",
+      "rule": "engine protocol: an engine writes only its own entry, and carries foreign ones through",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ if\\ isinstance\\(entry,\\ dict\\)\\ and\\ entry\\.get\\(\"id\"\\)\\ !=\\ ENGINE_PYTHON:",
+      "replacement": "        if False and isinstance(entry, dict) and entry.get(\"id\") != ENGINE_PYTHON:",
+      "expected_catchers": [
+        "python::artifact-golden"
+      ]
+    },
+    {
+      "id": "M33",
+      "description": "the reference's verification accepts a partial projection that names no members",
+      "rule": "engine protocol: a partial projection must NAME the members it carries",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ elif\\ kind\\ ==\\ PROJECTION_PARTIAL:\\\n\\ \\ \\ \\ \\ \\ \\ \\ members\\ =\\ projection\\.get\\(\"members\"\\)",
+      "replacement": "    elif kind == PROJECTION_PARTIAL:\n        return problems\n        members = projection.get(\"members\")",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "M34",
+      "description": "the reference's verification accepts a 'full' projection that also names members",
+      "rule": "engine protocol: a full projection emits the whole surface and claims nothing else",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ if\\ kind\\ ==\\ PROJECTION_FULL:\\\n\\ \\ \\ \\ \\ \\ \\ \\ for\\ name\\ in\\ \\(\"members\",\\ \"reason\"\\):",
+      "replacement": "    if kind == PROJECTION_FULL:\n        return problems\n        for name in (\"members\", \"reason\"):",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "M35",
+      "description": "the port declares its verdict layer FULL while it is at the checkpoint-4 projection",
+      "rule": "engine protocol: a projection that over-claims is exactly what the field exists to prevent",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\ \\ \\ \\ let\\ projection\\ =\\ partial_projection\\(\\&VERDICT_MEMBERS,\\ VERDICT_PROJECTION_REASON\\);",
+      "replacement": "    let projection = full_projection();",
+      "expected_catchers": [
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M36",
+      "description": "the port drops `column` from its verdict records while still claiming it",
+      "rule": "engine protocol: a projection names exactly the members its documents carry",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"column\",\\ f\\.column\\.map_or\\(Json::Null,\\ Json::Int\\)\\),",
+      "replacement": "",
+      "expected_catchers": [
+        "rust-engine/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries",
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M37",
+      "description": "the port stamps a refused layer with the 'produced' status",
+      "rule": "artifact: status is produced or refused, and a refusal carries no document",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\(\"status\",\\ Json::Str\\(STATUS_REFUSED\\.to_owned\\(\\)\\)\\),",
+      "replacement": "        (\"status\", Json::Str(STATUS_PRODUCED.to_owned())),",
+      "expected_catchers": [
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M38",
+      "description": "the port claims a surface version for the MOS dump, which has none",
+      "rule": "artifact: surface_version is null when the surface has none — absence is data",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\ \\ \\ \\ Ok\\(produced\\(\"summaries\",\\ Json::Null,\\ full_projection\\(\\),\\ value\\)\\)",
+      "replacement": "    Ok(produced(\"summaries\", Json::Int(1), full_projection(), value))",
+      "expected_catchers": [
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M39",
+      "description": "the port reports a typed-door refusal on one layer instead of all three",
+      "rule": "artifact: every engine reports exactly the frozen layers, in that order",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ LAYER_ORDER\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.iter\\(\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.map\\(\\|layer\\|\\ refused\\(layer,\\ Json::Null,\\ full_projection\\(\\),\\ \\&text\\)\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.collect\\(\\)",
+      "replacement": "            LAYER_ORDER\n                .iter()\n                .take(1)\n                .map(|layer| refused(layer, Json::Null, full_projection(), &text))\n                .collect()",
+      "expected_catchers": [
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M40",
+      "description": "the port's verification stops rejecting a 'full' projection that names members",
+      "rule": "engine protocol: a full projection emits the whole surface and claims nothing else",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ if\\ projection\\.has\\(name\\)\\ \\{",
+      "replacement": "                if false && projection.has(name) {",
+      "expected_catchers": [
+        "rust-repro/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "M41",
+      "description": "the port's verification accepts an EMPTY reason on a partial projection",
+      "rule": "engine protocol: a partial projection must say WHY the remaining members are absent",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.is_some_and\\(\\|r\\|\\ !r\\.is_empty\\(\\)\\)",
+      "replacement": "                .is_some_and(|r| r.is_empty() || !r.is_empty())",
+      "expected_catchers": [
+        "rust-repro/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    }
+  ]
+}

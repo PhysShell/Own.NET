@@ -1,0 +1,457 @@
+{
+  "trace_version": 1,
+  "case": "canonical_torture",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "239383fae8175fd42dc773922af7e3dcf26c2148f99a365f8e4404db58224edd",
+        "bytes": 834
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Tortureé漢字😀"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[TortureView]",
+              "value": {
+                "name": "TortureView",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[TortureView].body[0]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "TortureView|Törture.cs|7|bus.Subscribe|On漢",
+                "resource": "Subscription",
+                "line": 7
+              }
+            },
+            {
+              "id": "handles[TortureView|Törture.cs|7|bus.Subscribe|On漢]",
+              "value": {
+                "handle": "TortureView|Törture.cs|7|bus.Subscribe|On漢",
+                "component": "TortureView",
+                "file": "Törture.cs",
+                "line": 7,
+                "event": "bus.Subscribe",
+                "handler": "On漢",
+                "resource": "subscribe",
+                "released": false,
+                "mint": "sub"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Tortureé漢字😀"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[Törture.cs:7:None:OWN001]",
+              "value": {
+                "file": "Törture.cs",
+                "line": 7,
+                "code": "OWN001",
+                "component": "TortureView",
+                "event": "bus.Subscribe",
+                "handler": "On漢",
+                "message": "the result of 'bus.Subscribe' is ignored — the IDisposable subscription is never disposed, leaking 'TortureView' (leak)",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "239383fae8175fd42dc773922af7e3dcf26c2148f99a365f8e4404db58224edd",
+        "bytes": 834
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Tortureé漢字😀"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "functions[TortureView]",
+              "value": {
+                "name": "TortureView",
+                "lifetime": null,
+                "params": [],
+                "ret": null
+              }
+            },
+            {
+              "id": "functions[TortureView].body[0]",
+              "value": {
+                "stmt": "acquire",
+                "handle": "TortureView|Törture.cs|7|bus.Subscribe|On漢",
+                "resource": "Subscription",
+                "line": 7
+              }
+            },
+            {
+              "id": "handles[TortureView|Törture.cs|7|bus.Subscribe|On漢]",
+              "value": {
+                "handle": "TortureView|Törture.cs|7|bus.Subscribe|On漢",
+                "component": "TortureView",
+                "file": "Törture.cs",
+                "line": 7,
+                "event": "bus.Subscribe",
+                "handler": "On漢",
+                "resource": "subscribe",
+                "released": false,
+                "mint": "sub"
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Tortureé漢字😀"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[Törture.cs:7:None:OWN001]",
+              "value": {
+                "file": "Törture.cs",
+                "line": 7,
+                "code": "OWN001",
+                "component": "TortureView",
+                "event": "bus.Subscribe",
+                "handler": "On漢",
+                "kind": "subscription token",
+                "advisory": false,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

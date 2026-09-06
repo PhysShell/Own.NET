@@ -12,6 +12,14 @@ these generated fragments, computed from the evidence — never typed:
   from `docs/evidence/p022-cp4-mutations.json` and its `.result.json`, through
   `scripts/mutate_campaign.summarize()` (the same interpretation the runner
   prints).
+* `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
+  shadow-mode INFRASTRUCTURE census, from
+  `tests/shadow_census.compute_shadow_census()` over the committed
+  reproduction artifacts, traces and reductions.
+* `docs/generated/p022-shadow-mutations.md` — that slice's four recorded
+  campaigns, through the same `summarize()` as cp4's. One interpreter for
+  every campaign in the tree: two readings of one run is how two documents
+  come to disagree about it.
 
 Determinism: nothing in a fragment depends on HEAD, the clock or the
 environment, so an unrelated commit never changes one. The campaign fragment
@@ -49,13 +57,25 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
     provenance_problems,
     summarize,
 )
+from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
 
 GENERATED = os.path.join(ROOT, "docs", "generated")
+EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
-CAMPAIGN = os.path.join(ROOT, "docs", "evidence", "p022-cp4-mutations.json")
-RESULT = os.path.join(ROOT, "docs", "evidence", "p022-cp4-mutations.result.json")
+SHADOW_CENSUS_MD = "p022-shadow-census.md"
+SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
+CAMPAIGN = os.path.join(EVIDENCE, "p022-cp4-mutations.json")
+RESULT = os.path.join(EVIDENCE, "p022-cp4-mutations.result.json")
+# One campaign per shadow checkpoint: each stays frozen at what it measured, so
+# a later checkpoint cannot quietly restate an earlier one's numbers.
+SHADOW_CAMPAIGNS = (
+    ("checkpoint 1 — same-input capture and the reproduction artifact", "p022-shadow-cp1"),
+    ("checkpoint 2 — the engine protocol", "p022-shadow-cp2"),
+    ("checkpoint 3 — the AnalysisTrace and stable-ID normalization", "p022-shadow-cp3"),
+    ("checkpoint 4 — first-divergence reduction", "p022-shadow-cp4"),
+)
 SELF = "scripts/render_checkpoint_status.py"
 
 
@@ -126,18 +146,20 @@ def render_census(c: Census) -> str:
 # --- mutation campaign ----------------------------------------------------
 
 
-def _load_campaign() -> tuple[Definition | None, Result | None, list[str]]:
+def _load_campaign(campaign: str = CAMPAIGN,
+                   result_path: str = RESULT) -> tuple[Definition | None, Result | None,
+                                                       list[str]]:
     problems: list[str] = []
     definition: Definition | None = None
     result: Result | None = None
-    if os.path.exists(CAMPAIGN):
+    if os.path.exists(campaign):
         try:
-            definition = load_definition(CAMPAIGN)
+            definition = load_definition(campaign)
         except (CampaignError, OSError, ValueError) as e:
             problems.append(f"campaign definition unreadable: {e}")
-    if definition is not None and os.path.exists(RESULT):
+    if definition is not None and os.path.exists(result_path):
         try:
-            result = load_result(RESULT)
+            result = load_result(result_path)
         except (CampaignError, OSError, ValueError) as e:
             problems.append(f"campaign result unreadable: {e}")
     return definition, result, problems
@@ -145,8 +167,15 @@ def _load_campaign() -> tuple[Definition | None, Result | None, list[str]]:
 
 def render_mutations(definition: Definition | None, result: Result | None,
                      summary: Summary | None) -> str:
-    lines = [_header(f"{_rel(CAMPAIGN)} and {_rel(RESULT)}"),
-             "# P-022 checkpoint 4 — mutation campaign", ""]
+    return _header(f"{_rel(CAMPAIGN)} and {_rel(RESULT)}") + "\n" + _mutation_section(
+        "# P-022 checkpoint 4 — mutation campaign", definition, result, summary,
+        CAMPAIGN, RESULT)
+
+
+def _mutation_section(heading: str, definition: Definition | None, result: Result | None,
+                      summary: Summary | None, campaign_path: str, result_path: str) -> str:
+    CAMPAIGN, RESULT = campaign_path, result_path
+    lines = [heading, ""]
     if definition is None:
         lines += ["No campaign definition is committed (expected at "
                   f"`{_rel(CAMPAIGN)}`).", ""]
@@ -164,10 +193,11 @@ def render_mutations(definition: Definition | None, result: Result | None,
         lines += [f"**No recorded run** is committed (expected at `{_rel(RESULT)}`): the "
                   "campaign has a definition but no evidence. Nothing below is a number.", ""]
         return "\n".join(lines)
+    ran = ("layers run (every one, for every mutation)" if result.layers
+           else "packages tested (every workspace member, `--no-fail-fast`)")
     rows: list[tuple[str, str]] = [
         ("recorded at commit", f"`{summary.source_commit}`"),
-        ("packages tested (every workspace member, `--no-fail-fast`)",
-         ", ".join(f"`{p}`" for p in result.packages)),
+        (ran, ", ".join(f"`{p}`" for p in result.ran)),
         ("mutations", str(summary.total)),
         ("caught", str(summary.caught)),
         ("survived", str(summary.survived)),
@@ -202,6 +232,203 @@ def render_mutations(definition: Definition | None, result: Result | None,
     return "\n".join(lines)
 
 
+# --- step 7a: the shadow-mode infrastructure slice ------------------------
+
+
+def _shadow_paths(campaign: str) -> tuple[str, str]:
+    return (os.path.join(EVIDENCE, f"{campaign}.json"),
+            os.path.join(EVIDENCE, f"{campaign}.result.json"))
+
+
+def render_shadow_mutations() -> tuple[str, list[str]]:
+    """The slice's four campaigns, one document, the same interpreter as cp4's."""
+    sources = ", ".join(_rel(_shadow_paths(c)[0]) for _, c in SHADOW_CAMPAIGNS)
+    parts = [_header(f"{sources} and their .result.json"),
+             "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
+             "",
+             "Every mutation edits a **production** surface (P-022 discipline 2) and every "
+             "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
+             "campaign stays frozen at what it measured; the counts below are derived from "
+             "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
+             ""]
+    problems: list[str] = []
+    for title, campaign in SHADOW_CAMPAIGNS:
+        definition_path, result_path = _shadow_paths(campaign)
+        definition, result, load_problems = _load_campaign(definition_path, result_path)
+        problems.extend(f"{campaign}: {p}" for p in load_problems)
+        summary = summarize(definition, result) if definition and result else None
+        if summary is not None and result is not None:
+            problems.extend(f"{campaign}: {p}" for p in summary.problems)
+            problems.extend(f"{campaign}: {p}" for p in provenance_problems(result))
+        parts.append(_mutation_section(f"## {title}", definition, result, summary,
+                                       definition_path, result_path))
+    return "\n".join(parts), problems
+
+
+def render_shadow_census(c: ShadowCensus) -> str:
+    corpus_rows = "\n".join(f"| `tests/fixtures/{corpus}` | {n} |" for corpus, n in c.by_corpus)
+    engine_rows = "\n".join(f"| `{eid}` | {produced} | {refused} | {full} | {partial} |"
+                            for eid, produced, refused, full, partial in c.engines)
+    differ_rows = ("\n".join(f"| `{case}` | `{layer}` | {shown} |"
+                             for case, layer, shown in c.status_differs)
+                   or "| — | — | the two engines' statuses agree everywhere |")
+    gate_rows = "\n".join(f"- `own-shadow/tests/{target}::{name}`" for target, name in c.gates)
+    scope = list(c.scope)
+    return f"""{_header("tests/fixtures/repro/ (artifacts, traces, reductions)")}
+# P-022 step 7a — shadow-mode infrastructure: census
+
+**Infrastructure for shadow mode, not shadow mode.** Nothing measured here
+compares two engines' end diagnostics — or any of their layer *contents*. That
+comparison is #260's acceptance and is blocked on #259 (cp5 and 4b). Nothing
+here is a parity claim either.
+
+This document is the **live view** of the slice as it stands; the recorded
+mutation campaigns are their own fragment
+([`{SHADOW_MUTATIONS_MD}`]({SHADOW_MUTATIONS_MD})), each frozen at what it
+measured. Where the slice departed from the brief it was given — the checkpoint
+grouping, the `-0` domain decision, the `sha2` dependency — the departures are
+decisions on the record in
+[the owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md),
+which also states the byte-level boundary repeated in the unmeasured set below.
+
+## The measured set — same-input capture (checkpoint 1)
+
+| corpus | documents |
+|---|---|
+{corpus_rows}
+| **total** | **{c.documents}** |
+
+Every one of those documents is canonicalized and hashed by the reference
+(`ownlang/repro.py`) and re-hashed from the same file by the port
+(`own-shadow`), which is what makes "both engines saw the same input" a
+checked fact rather than an assumption — **at the level of canonical document
+identity**. That is a weaker statement than #260's acceptance invariant, and
+the difference is named in the unmeasured set below.
+
+| surface | count |
+|---|---|
+| documents captured and digest-pinned | {c.documents} |
+| tamper controls (one changed character per document, refusal required) | {c.documents} |
+| documents both engines must REFUSE to name (`domain_refusals`) | {c.domain_refusals} |
+| reproduction artifacts committed and replayed byte-for-byte | {c.artifacts} |
+| structural negative controls on `verify` (each side) | {c.structural_controls} |
+| value-level domain backstop controls | {c.domain_backstop_controls} |
+
+## The engine protocol (checkpoint 2)
+
+Each engine authors only its own `engines[]` entry, and declares per layer what
+it could **produce**. Over the committed artifacts:
+
+| engine | layers produced | layers refused | projection `full` | projection `partial` |
+|---|---|---|---|---|
+{engine_rows}
+
+The port's `partial` layers are its verdict surface: `own_bridge::check_facts`
+is at the #259 checkpoint-4 projection, which carries every `Finding` member
+except `message`, `related` and `flow`. It says so in the artifact rather than
+emitting a short document a later comparison would score as agreement, and a
+test asserts the claim matches the records byte for byte.
+
+**Layer envelopes where the two engines' status differs** — structural
+accounting, not a content comparison, and every one of them a boundary the port
+declares rather than a disagreement it stumbled into:
+
+| case | layer | statuses |
+|---|---|---|
+{differ_rows}
+
+## The AnalysisTrace (checkpoint 3)
+
+Each capture is normalized into a walkable shape: internal identifiers are
+replaced by addresses derived from what they identify, and each layer's
+ordering semantics are **declared** rather than normalized away.
+
+| surface | count |
+|---|---|
+| trace layers projected (both engines, every artifact) | {c.trace_layers} |
+| addressed steps | {c.trace_steps} |
+| of those, handle addresses standing in for a mint counter | {c.stable_id_steps} |
+
+The normalization is proven on the property it exists for, over the whole
+captured corpus: permuting a document's components reshuffles the global mint
+counters (BR-L2) so the raw handle names change wholesale, and the **stable
+ids must not move** — while the lowered layer's step **order** must still
+change, because that difference is real. Both halves are asserted; a trace that
+hid the second would delete the defect the layer exists to expose.
+
+## First-divergence reduction (checkpoint 4), and the classification
+
+The reducer walks the pair in pipeline order over **{scope}** and names the
+first place they part company: the layer, the step address and the *minimal*
+difference inside it. The `verdicts` layer is **refused, not skipped** —
+comparing final diagnostics is #260's acceptance, blocked by #259 — and the
+refusal is carried in every reduction, so "not compared" can never be read as
+"compared and agreed".
+
+Over the {c.reductions} committed reductions, {c.identical} are
+`identical`. The counters below are **computed** by the reducer, not implied by
+a green build:
+
+| class | count |
+|---|---|
+| Python-only (`left-only`) | **{c.by_class["left-only"]}** |
+| Rust-only (`right-only`) | **{c.by_class["right-only"]}** |
+| Changed | **{c.by_class["changed"]}** |
+| Ordering-only | **{c.by_class["ordering-only"]}** |
+| Unexplained | **{c.by_class["unexplained"]}** |
+| *status* (a layer-level disagreement, each a declared boundary) | {c.by_class["status"]} |
+| *projection* (surfaces not comparable member-for-member) | {c.by_class["projection"]} |
+
+`status` and `projection` are counted apart from the four content classes on
+purpose: neither is a difference in what an engine *computed*. Every `status`
+row in the table above is a boundary the port declares in its own error text —
+the unported obligation-protocol analysis, and the typed door.
+
+The same-input layer carries its own counters, and those remain gate-enforced
+rather than computed: the port asserts per-document equality of the canonical
+identity and byte-exact equality of every committed artifact and trace, so a
+non-zero counter there is not representable as a passing build. The gates:
+
+{gate_rows}
+
+## The unmeasured set, named
+
+- **#260's raw-byte same-input invariant.** #260 asks that the `OwnIR`
+  document be produced or loaded exactly once, that the **raw bytes** be
+  hashed, and that *those exact bytes* reach both engines. What this slice
+  proves is shared **canonical document identity**: each engine parses the
+  file and agrees on the canonical form's digest. Canonical-equivalent input
+  is not byte-identical input — two files differing in whitespace, in object
+  key order, or in duplicate-key resolution share one canonical identity,
+  because ignoring exactly those differences is the canonical form's job.
+  Acceptance must therefore prove the byte-level invariant separately; until
+  it does, "same input" here means canonical identity and nothing stronger
+  ([owner decision B-1](../notes/p022-shadow-infra-owner-decisions.md)).
+- **End diagnostics compared as an acceptance surface** — #260's acceptance,
+  blocked by #259 (cp5 and 4b). Not attempted, not approximated.
+- **The verdict layer.** Refused by the reducer, and recorded as refused in
+  every reduction. This is the same blocker as the row above, stated where a
+  tool could otherwise have quietly crossed it.
+- **Nested statement bodies as individual steps.** A `then`/`else`/`while` body
+  is part of its enclosing statement's step, so a difference inside a branch is
+  reported on that statement rather than on the branch's own address.
+- **Rendered-byte parity of the three layer surfaces.** The artifact carries
+  layer outputs as JSON *values*, so a rendering difference (indent,
+  `ensure_ascii`) is invisible here. That contract stays with each layer's own
+  fixture family (`tests/test_lowered_fixtures.py`,
+  `tests/test_summaries_fixtures.py`, `tests/test_verdict_fixtures.py`).
+- **The strict door.** Every layer in an artifact is projected through the
+  **tolerant** door, so that the three entries describe one capture. Strict-door
+  behaviour is Layer 1's own family (`own-ir`'s validation controls).
+- **Engine build identity.** The artifact names *which* engine, never which
+  build of it — a version stamp would make an artifact non-reproducible from
+  the same inputs.
+- **Nesting-depth agreement.** CPython's recursion limit and `serde_json`'s
+  128-level cap differ; `spec/OwnIR.md` §4.2 bounds a conforming document
+  well inside both, so no conforming document reaches the difference.
+"""
+
+
 # --- fragments ------------------------------------------------------------
 
 
@@ -224,6 +451,13 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         problems.extend(f"mutation campaign: {p}" for p in summary.problems)
         problems.extend(f"mutation campaign: {p}" for p in provenance_problems(result))
     out[MUTATIONS_MD] = render_mutations(definition, result, summary)
+    try:
+        out[SHADOW_CENSUS_MD] = render_shadow_census(compute_shadow_census())
+    except ShadowCensusError as e:
+        problems.extend(f"shadow census: {p}" for p in e.problems)
+    shadow, shadow_problems = render_shadow_mutations()
+    out[SHADOW_MUTATIONS_MD] = shadow
+    problems.extend(f"mutation campaign {p}" for p in shadow_problems)
     return out, problems
 
 
@@ -267,8 +501,8 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     if argv:
-        print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD} "
-              f"in sync with the evidence")
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD}, "
+              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 

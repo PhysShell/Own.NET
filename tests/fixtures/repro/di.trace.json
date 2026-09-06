@@ -1,0 +1,467 @@
+{
+  "trace_version": 1,
+  "case": "di",
+  "traces": [
+    {
+      "trace_version": 1,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "1dd40fe8691e32cbab0252b749d17fecfc905382907a1ea48b2a9eae8ae9d929",
+        "bytes": 767
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "DiDemo"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "DiDemo"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[Startup.cs:12:None:DI001]",
+              "value": {
+                "file": "Startup.cs",
+                "line": 12,
+                "code": "DI001",
+                "component": "EmailSender",
+                "event": "AppDbContext",
+                "handler": "",
+                "message": "singleton 'EmailSender' captures scoped service 'AppDbContext' (captive dependency: EmailSender -> AppDbContext) [consumed by the 'EmailSender' constructor at EmailSender.cs:5]",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "related": [
+                  [
+                    "EmailSender.cs",
+                    5,
+                    "consuming constructor of 'EmailSender'"
+                  ]
+                ],
+                "flow": [
+                  [
+                    "Startup.cs",
+                    12,
+                    "singleton 'EmailSender' (captor)"
+                  ],
+                  [
+                    "Startup.cs",
+                    13,
+                    "captures scoped service 'AppDbContext'"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            },
+            {
+              "id": "findings[Startup.cs:15:None:DI001]",
+              "value": {
+                "file": "Startup.cs",
+                "line": 15,
+                "code": "DI001",
+                "component": "ReportService",
+                "event": "AppDbContext",
+                "handler": "",
+                "message": "singleton 'ReportService' captures scoped service 'AppDbContext' (captive dependency: ReportService -> UnitOfWork -> AppDbContext) [consumed by the 'ReportService' constructor at ReportService.cs:7]",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "related": [
+                  [
+                    "ReportService.cs",
+                    7,
+                    "consuming constructor of 'ReportService'"
+                  ]
+                ],
+                "flow": [
+                  [
+                    "Startup.cs",
+                    15,
+                    "singleton 'ReportService' (captor)"
+                  ],
+                  [
+                    "Startup.cs",
+                    16,
+                    "via 'UnitOfWork'"
+                  ],
+                  [
+                    "Startup.cs",
+                    13,
+                    "captures scoped service 'AppDbContext'"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 1,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "1dd40fe8691e32cbab0252b749d17fecfc905382907a1ea48b2a9eae8ae9d929",
+        "bytes": 767
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "DiDemo"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "DiDemo"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "partial",
+            "members": [
+              "file",
+              "line",
+              "code",
+              "component",
+              "event",
+              "handler",
+              "kind",
+              "advisory",
+              "severity",
+              "ignore_reason",
+              "column"
+            ],
+            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[Startup.cs:12:None:DI001]",
+              "value": {
+                "file": "Startup.cs",
+                "line": 12,
+                "code": "DI001",
+                "component": "EmailSender",
+                "event": "AppDbContext",
+                "handler": "",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              }
+            },
+            {
+              "id": "findings[Startup.cs:15:None:DI001]",
+              "value": {
+                "file": "Startup.cs",
+                "line": 15,
+                "code": "DI001",
+                "component": "ReportService",
+                "event": "AppDbContext",
+                "handler": "",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

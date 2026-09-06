@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-cp3",
+  "description": "The mutation campaign for P-022 step 7a checkpoint 3 (the AnalysisTrace, #269: stable-ID normalization and declared per-layer ordering semantics). Separate from the cp1/cp2 campaigns on purpose — each checkpoint's evidence stays frozen at what it measured. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Four layers run for every mutation (discipline 3: no fail-fast). M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_repro_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust-repro",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--test",
+        "repro",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-engine",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--test",
+        "engine",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-trace",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--test",
+        "trace",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-unit",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--lib",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M42",
+      "description": "the reference derives a handle's stable id from the counter instead of the record's identity",
+      "rule": "trace: internal identifiers are normalized away by IDENTITY, never by position",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ return\\ \"\\|\"\\.join\\(str\\(record\\.get\\(k,\\ \"\"\\)\\)\\ for\\ k\\ in\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"component\",\\ \"file\",\\ \"line\",\\ \"event\",\\ \"handler\"\\)\\)",
+      "replacement": "    return str(record.get(\"handle\", \"\"))",
+      "expected_catchers": [
+        "python::<non-zero exit with no reported failure>"
+      ]
+    },
+    {
+      "id": "M43",
+      "description": "the reference drops `line` from a handle's identity, fusing two facts on one line-distinct site",
+      "rule": "trace: the rename is a BIJECTION — it may not fuse two facts into one address",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"component\",\\ \"file\",\\ \"line\",\\ \"event\",\\ \"handler\"\\)\\)",
+      "replacement": "                    (\"component\", \"file\", \"event\", \"handler\"))",
+      "expected_catchers": [
+        "python::trace-golden"
+      ]
+    },
+    {
+      "id": "M44",
+      "description": "the reference stops disambiguating a repeated address",
+      "rule": "trace: a duplicate address takes a ~<n> suffix, inside the bracket",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ return\\ address\\ if\\ n\\ ==\\ 0\\ else\\ f\"\\{address\\}\\~\\{n\\}\"",
+      "replacement": "    return address",
+      "expected_catchers": [
+        "python::trace-golden",
+        "python::trace-shape"
+      ]
+    },
+    {
+      "id": "M45",
+      "description": "the reference declares the lowered layer's order canonical, licensing a sort",
+      "rule": "trace: order is DECLARED, never normalized away — lowered order is semantic (BR-D4/BR-L5)",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \"lowered\":\\ ORDER_SIGNIFICANT,\\ \\ \\ \\ \\#\\ BR\\-D4\\ /\\ BR\\-L5:\\ document\\ \\+\\ lowering\\ order",
+      "replacement": "    \"lowered\": ORDER_CANONICAL,    # BR-D4 / BR-L5: document + lowering order",
+      "expected_catchers": [
+        "python::trace-golden"
+      ]
+    },
+    {
+      "id": "M46",
+      "description": "the reference declares the verdict layer's order canonical, hiding a tie-order defect",
+      "rule": "trace: BR-V8 leaves ties in construction order, so position carries information",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \"verdicts\":\\ ORDER_SIGNIFICANT,\\ \\ \\ \\#\\ BR\\-V8:\\ ties\\ stay\\ in\\ construction\\ order",
+      "replacement": "    \"verdicts\": ORDER_CANONICAL,   # BR-V8: ties stay in construction order",
+      "expected_catchers": [
+        "python::trace-golden"
+      ]
+    },
+    {
+      "id": "M47",
+      "description": "the reference narrows the minted-handle pattern so `loc_` names leak through unrewritten",
+      "rule": "trace: the rename is TOTAL — no counter-shaped name survives",
+      "target": "ownlang/repro.py",
+      "pattern": "\\(sub\\|cap\\|parg\\|loc\\)_",
+      "replacement": "(sub|cap|parg)_",
+      "expected_catchers": [
+        "python::trace-golden",
+        "python::trace-normalization"
+      ]
+    },
+    {
+      "id": "M48",
+      "description": "the reference gives a refused layer an empty step list AND drops its error",
+      "rule": "trace: a refused layer carries its error and no steps",
+      "target": "ownlang/repro.py",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ out\\[\"error\"\\]\\ =\\ layer\\.get\\(\"error\"\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ out\\[\"steps\"\\]\\ =\\ \\[\\]",
+      "replacement": "        out[\"error\"] = None\n        out[\"steps\"] = []",
+      "expected_catchers": [
+        "python::trace-golden"
+      ]
+    },
+    {
+      "id": "M49",
+      "description": "the port derives a handle's stable id from the counter instead of the record's identity",
+      "rule": "trace: internal identifiers are normalized away by IDENTITY, never by position",
+      "target": "rust/crates/own-shadow/src/trace.rs",
+      "pattern": "\\ \\ \\ \\ \\[\"component\",\\ \"file\",\\ \"line\",\\ \"event\",\\ \"handler\"\\]",
+      "replacement": "    [\"handle\"]",
+      "expected_catchers": [
+        "rust-trace/tests/trace.rs::a_mint_order_shift_moves_the_order_but_not_the_stable_ids",
+        "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
+        "rust-unit/src/lib.rs::trace::tests::a_fully_listed_document_normalizes"
+      ]
+    },
+    {
+      "id": "M50",
+      "description": "the port declares the lowered layer's order canonical, licensing a sort",
+      "rule": "trace: order is DECLARED, never normalized away",
+      "target": "rust/crates/own-shadow/src/trace.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \"summaries\"\\ =>\\ ORDER_CANONICAL,\\\n\\ \\ \\ \\ \\ \\ \\ \\ _\\ =>\\ ORDER_SIGNIFICANT,",
+      "replacement": "        \"summaries\" | \"lowered\" => ORDER_CANONICAL,\n        _ => ORDER_SIGNIFICANT,",
+      "expected_catchers": [
+        "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M51",
+      "description": "the port stops asserting that the handle rewrite is total",
+      "rule": "trace: a claim nothing can falsify is not a contract",
+      "target": "rust/crates/own-shadow/src/trace.rs",
+      "pattern": "\\ \\ \\ \\ if\\ leftovers\\.is_empty\\(\\)\\ \\{",
+      "replacement": "    if true || leftovers.is_empty() {",
+      "expected_catchers": [
+        "rust-unit/src/lib.rs::trace::tests::a_handle_reference_the_rename_cannot_reach_is_refused"
+      ]
+    },
+    {
+      "id": "M52",
+      "description": "the port drops the mint kind from the handle record",
+      "rule": "trace: the mint kind is preserved as a comparable VALUE so a routing difference stays one step",
+      "target": "rust/crates/own-shadow/src/trace.rs",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ fields\\.push\\(\\(\"mint\"\\.to_owned\\(\\),\\ Json::Str\\(mint\\)\\)\\);",
+      "replacement": "                            let _ = mint;",
+      "expected_catchers": [
+        "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
+        "rust-unit/src/lib.rs::trace::tests::a_fully_listed_document_normalizes"
+      ]
+    }
+  ]
+}

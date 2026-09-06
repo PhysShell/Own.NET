@@ -1,0 +1,36 @@
+{
+  "ownir_version": 0,
+  "module": "Tortureé漢字😀",
+  "canonical_probe": {
+    "i64_max": 9223372036854775807,
+    "i64_min": -9223372036854775808,
+    "zero": 0,
+    "booleans": [true, false],
+    "null": null,
+    "empty_object": {},
+    "empty_array": [],
+    "empty_string": "",
+    "two_char_escapes": "\b\t\n\f\r",
+    "other_c0_controls": "\u0000\u0001\u001f",
+    "delete_is_not_escaped": "\u007f",
+    "quote_and_backslash": "he said \"hi\" \\ back",
+    "nbsp": " ",
+    "line_and_paragraph_separators": "  ",
+    "byte_order_mark": "﻿",
+    "astral": "😀",
+    "😀": "an astral key sorts after every ASCII key",
+    "é": "an accented key sorts after every ASCII key",
+    "": "the empty key sorts first",
+    "Z": "uppercase Z sorts before lowercase a",
+    "a": "lowercase a"
+  },
+  "components": [
+    {
+      "name": "TortureView",
+      "file": "Törture.cs",
+      "subscriptions": [
+        {"event": "bus.Subscribe", "handler": "On漢", "line": 7, "released": false, "resource": "subscribe"}
+      ]
+    }
+  ]
+}

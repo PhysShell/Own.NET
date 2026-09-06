@@ -1,0 +1,41 @@
+# Shadow-mode INFRASTRUCTURE (P-022 step 7a, #260/#269) — layer 0: the
+# same-input capture and the reproduction artifact.
+#
+# Not shadow mode: this crate builds no comparison of two engines' end
+# diagnostics. That comparison is #260's acceptance and is blocked on #259
+# (cp5 and 4b).
+#
+# It is an ENTRY-POINT-class crate in the P-022 fitness sense — a dev/oracle
+# harness in the `own-oracle` slot of the crate graph. Checkpoint 2 (the engine
+# protocol) is what gives it the own-bridge/own-ir/own-lowered edges: it drives
+# the port's three layer surfaces to produce this engine's capture. The
+# constraint runs the other way and is asserted by name: no core crate — nor
+# own-bridge itself — may depend on it (own-diagnostics/tests/dag.rs). An
+# oracle a core crate can reach is an oracle the core can shape.
+[package]
+name = "own-shadow"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Shadow-mode infrastructure layer 0: canonical OwnIR document identity (hash) and the reproduction-artifact format, replaying the Python-authored artifacts with zero Python (P-022 step 7a)"
+
+[dependencies]
+serde = { workspace = true }
+# The artifact is JSON on the wire; this crate parses it into its OWN
+# order-preserving value type (serde_json::Value is a BTreeMap and would lose
+# the document order the artifact's rendering carries) and writes both the
+# canonical and the pretty form itself.
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+# The engine protocol (checkpoint 2): this crate DRIVES the port's layer
+# surfaces to produce its own capture. own-bridge for all three layers,
+# own-ir for the typed door upstream of them, own-lowered for the Layer 2
+# canonical emitter. Every arrow points from the harness INTO the port.
+own-ir = { path = "../own-ir" }
+own-lowered = { path = "../own-lowered" }
+own-bridge = { path = "../own-bridge" }
+
+[lints]
+workspace = true
