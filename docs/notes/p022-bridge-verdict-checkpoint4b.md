@@ -1,26 +1,28 @@
 # P-022 step 6b (#259) — checkpoint 4b: the obligation-protocol analysis (OBL001–005)
 
-> Status: **4b.0 complete — inventory only, no production code.** This note is
-> the checkpoint's plan and its completeness ledger: every behaviour of
-> `ownlang/obligations.py` and of the bridge's BR-P3 mapping, each one named
-> with what will pin it (a row in the new fact-parity family, a synthetic
-> Layer 3 case, or both), plus what the two existing reference documents
-> already reach and what they do not. Counts are not typed here: they live in
-> the generated fragments ([census](../generated/p022-cp4-census.md),
-> [surface inventory](../generated/p022-cp5-inventory.md)) and the prose links.
+> Status: **checkpoint 4b complete — Layer 3 parity over the measured set,
+> protocol family included.** 4b.0 the inventory, 4b.1 the analysis and its
+> fact-parity family, 4b.2 the bridge and the promotion, 4b.3 the status
+> surfaces. This note is both the plan and the completeness ledger: every
+> behaviour of `ownlang/obligations.py` and of the bridge's BR-P3 mapping,
+> named with what pins it, plus what the corpus reached before and what it
+> reaches now. Counts are not typed here: they live in the generated fragments
+> ([census](../generated/p022-cp4-census.md),
+> [surface inventory](../generated/p022-cp5-inventory.md),
+> [campaigns](../generated/p022-cp4b-mutations.md)) and the prose links.
 
 Checkpoints 1–5 ([cp4](p022-bridge-verdict-checkpoint4.md),
 [cp5](p022-bridge-verdict-checkpoint5.md)) took `own_bridge::check_facts` to
 Layer 3 parity over the measured set, on the full `Finding` and on the rendered
-surfaces. One analysis family is missing from the Rust side entirely: the
-obligation protocols. Today the bridge **refuses** a document with a non-empty
+surfaces. One analysis family was missing from the Rust side entirely: the
+obligation protocols. The bridge **refused** a document with a non-empty
 `protocols[]` (`own-bridge/src/verdict.rs::refuse_protocols`) rather than
 return a verdict list with a family silently absent, and the two reference
-documents `protocol_isloaded_clean` / `protocol_isloaded_violation` sit in the
+documents `protocol_isloaded_clean` / `protocol_isloaded_violation` sat in the
 verdict ledger's `rust_replay_excluded` with the executable expectation
 "`check_facts` errors, and the error contains `obligation protocol`".
 
-4b removes that refusal. It is its own checkpoint rather than a fourth job for
+4b removed that refusal. It is its own checkpoint rather than a fourth job for
 cp5 because `obligations.py` is a path-sensitive analysis of its own — a
 lattice, a walker, a matcher language — and cp5's scope was messages, evidence
 and rendering.
@@ -47,14 +49,15 @@ excluded documents; the status surfaces.
    reducer's scope stays `["lowered", "summaries"]`: comparing end diagnostics
    is #260's acceptance and moving that line is #260's decision, not 4b's.
 
-## 1. What the two existing reference documents already reach
+## 1. What the two existing reference documents reached (the starting point)
 
-Both are excluded from the Rust replay, so at the **replayed** set the protocol
-family is at nothing: the surface-inventory rows `obl_message`, `protocol_flow`
-and `protocol_flow_3` all report no replayed coverage, each with the recorded
-disposition "row 4b". Over **all goldens** — Python's complete truth, which is
-what 4b inherits as its starting corpus — the picture is narrower than the row
-names suggest, and it was measured rather than assumed
+Both were excluded from the Rust replay, so over the **replayed** set the
+protocol family was at nothing: the surface-inventory rows `obl_message`,
+`protocol_flow` and `protocol_flow_3` all reported no replayed coverage, each
+with the recorded disposition "row 4b". Over **all goldens** — Python's
+complete truth, which is what 4b inherited as its starting corpus — the picture
+was narrower than the row names suggest, and it was measured rather than
+assumed
 (`tests/verdict_surface_inventory.py`, rendered into
 [`p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md)):
 
@@ -69,18 +72,21 @@ names suggest, and it was measured rather than assumed
 `protocol_isloaded_clean` contributes no finding, which is the point of it: it
 is the silence twin, and a vacuous replay would have "matched" it.
 
-So the corpus reaches exactly one shape: an OBL001 barrier crossing, definite,
+So the corpus reached exactly one shape: an OBL001 barrier crossing, definite,
 inside an `if` branch, with a late close, on a dotted method name matched by a
 `Type.Method` scope suffix, past an allow-listed call and a call the protocol
-does not name. Everything else in §2 and §3 below has **no golden**: OBL002,
+does not name. Everything else in §2 and §3 below had **no golden**: OBL002,
 OBL003, OBL004, OBL005, every exit anchor, every loop, `exit_barriers: false`,
 the opaque-write asymmetry, args-narrowing and the unknown argument, exact
 scope matching, duplicate protocol names, the malformed-entry skip, the
-non-list blocks, the sort key, and the two-step slice itself.
+non-list blocks, the sort key, and the two-step slice itself. Every one of
+them has a control now, and the inventory counts them over the replayed set —
+the `.*` placeholder row is gone, replaced by five wordings, two exit_desc
+tails, five precise slice shapes and an empty-slice degradation.
 
 ## 2. The analysis, behaviour by behaviour (`ownlang/obligations.py`)
 
-Each row is a future case in the new analysis-level fact-parity family
+Each row is a case in the analysis-level fact-parity family
 (`tests/fixtures/obligation_fact_parity.json`, generator
 `tests/test_obligation_fact_parity.py`, Rust replay in `own-analysis/tests`),
 seeded from `tests/test_obligations.py` §1. The family freezes each violation
@@ -175,9 +181,10 @@ The order is the semantics — opens, then closes, then barriers:
 
 Each row is a synthetic Layer 3 case under the frozen verdict ledger
 (`verdict_protocol_*`, insertion-stable: no existing record rewritten), unless
-it is already reached by `protocol_isloaded_violation`.
+`protocol_isloaded_violation` already reached it. The third column is what the
+corpus reached **before** 4b; every row is covered now.
 
-| # | Behaviour | Reached today? |
+| # | Behaviour | Reached before 4b? |
 |---|---|---|
 | H1 | `(barrier, definite)` → **OBL001** | yes |
 | H2 | `(barrier, maybe)` → **OBL002** | no |
@@ -214,9 +221,9 @@ it is already reached by `protocol_isloaded_violation`.
 
 | half | reference | port |
 |---|---|---|
-| the acceptance grammar (already ported) | `parse_protocol` / `parse_matcher` / `parse_events` / `parse_method` | `own-ir/src/protocol.rs` |
-| the lattice, the walker, `check_protocols`, `unmatched_scopes` | `obligations.py` | **new** `own-analysis/src/obligation.rs`, beside `di.rs` / `effect.rs` |
-| the `(kind, definite)` → code table, the messages, the slice | `ownir.py::_protocol_findings` / `_protocol_message` | `own-bridge/src/verdict.rs`, where `refuse_protocols` is today |
+| the acceptance grammar (ported at cp1) | `parse_protocol` / `parse_matcher` / `parse_events` / `parse_method` | `own-ir/src/protocol.rs` — now also the typed constructor |
+| the lattice, the walker, `check_protocols`, `unmatched_scopes` | `obligations.py` | `own-analysis/src/obligation.rs`, beside `di.rs` / `effect.rs` |
+| the `(kind, definite)` → code table, the messages, the slice | `ownir.py::_protocol_findings` / `_protocol_message` | `own-bridge/src/verdict.rs`, where `refuse_protocols` was |
 
 The typed `Protocol` / `Matcher` / `MethodEvents` / event values are built by
 **one** implementation of the grammar with two consumers, not a second parser
@@ -243,11 +250,11 @@ quietly coercing a document into shape. If a synthetic case needs such a
 document to travel through the door, it becomes a **declared** `verdict_door_*`
 exclusion with a reason — never a silent coercion.
 
-## 4. The surfaces 4b moves
+## 4. The surfaces 4b moved
 
 | surface | change |
 |---|---|
-| `tests/fixtures/verdicts/manifest.json` | the two protocol entries leave `rust_replay_excluded`; the new `verdict_protocol_*` cases join `cases` (insertion-stable) |
+| `tests/fixtures/verdicts/manifest.json` | the two protocol entries left `rust_replay_excluded`; the new `verdict_protocol_*` cases joined `cases` (insertion-stable) |
 | `own-bridge/tests/verdicts.rs` | the pinned exclusion set shrinks by the two promoted names — the deliberate contract change this checkpoint exists for |
 | `tests/fixtures/verdicts/protocol_isloaded_*.verdicts.json` | **not regenerated**. They are Python's truth as committed; the replay must converge on them as they are |
 | `tests/verdict_surface_inventory.py` | `obl_message` becomes per-code rows counted over the replayed set; `protocol_flow` / `protocol_flow_3` lose the "4b, not cp5" disposition and must each carry replayed coverage |
@@ -263,7 +270,12 @@ exclusion with a reason — never a silent coercion.
 ## 5. Stop conditions
 
 Recorded before the work, so that hitting one is a decision and not a
-temptation:
+temptation. **None was hit**: no golden and no `ownlang/` line was touched to
+make something agree, no divergence looked like a reference bug, every
+semantics question was answered by `obligations.py` or `spec/OwnIR.md` §8, the
+two doors needed no new ledger member (the one door-unreachable rule is pinned
+at the raw-document level, as cp4 established), and every synthetic case built
+inside the existing grammar.
 
 * wanting to touch a golden or `ownlang/` to make something agree;
 * a divergence that looks like a **Python** bug — P-025's standing red line is
@@ -274,7 +286,137 @@ temptation:
   ledger member;
 * a synthetic case that cannot be built without changing the grammar.
 
-## 6. The wording 4b earns
+## 6. What landed, and what it cost
+
+### 6.1 The four commits
+
+| checkpoint | what it did |
+|---|---|
+| **4b.0** | this note: the behaviour ledger, and the measured picture of what the corpus reached |
+| **4b.1** | `own-analysis/src/obligation.rs`; `own-ir/src/protocol.rs` from validate-only to validate-and-construct; `tests/test_obligation_fact_parity.py` + its fixture + `own-analysis/tests/obligation_parity.rs`; campaign `p022-cp4b-1` |
+| **4b.2** | `refuse_protocols` removed and BR-P3 mapped in its BR-V1 place; both exclusions promoted; seven synthetic Layer 3 cases and one rendered case; the surface inventory's OBL rows made real; the shadow artifact regenerated; campaign `p022-cp4b-2` |
+| **4b.3** | the status surfaces: P-022 row 4b and its queue, `spec/Bridge.md` §6, the behavior matrix, the cp4/cp5 history banners, the proposals index, and both campaigns registered in the renderer and in the replayability gate |
+
+### 6.2 Python source of truth, and the frozen fixtures
+
+`ownlang/` is **unchanged** — not one line of `obligations.py` or `ownir.py`.
+Every Python file 4b adds is an observer or a generator, in the shape
+`verdicts.py` and `lowered.py` established.
+
+| family | authored by | replayed by |
+|---|---|---|
+| analysis-level violations (new) | `python tests/test_obligation_fact_parity.py --write` → `tests/fixtures/obligation_fact_parity.json` | `cargo test -p own-analysis --test obligation_parity` |
+| Layer 3 verdicts | `python tests/test_verdict_fixtures.py --write` | `cargo test -p own-bridge --test verdicts` |
+| rendered surfaces | `python tests/test_verdict_render_fixtures.py --write` | `cargo test -p own-bridge --test renders` |
+| reproduction artifacts | `python tests/test_repro_fixtures.py --write` **and** `OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine` (each engine writes only its own entry) | `cargo test -p own-shadow` |
+
+Steady state runs **zero Python**: `cd rust && cargo test --workspace`.
+
+### 6.3 Production dependency changes
+
+One: `own-analysis → own-ir`, an edge the DAG test already allowed, made
+explicit rather than borrowed through `own-cfg`'s re-export. No new crate, and
+no core crate depends on the bridge — the constraint that keeps bridge
+inference out of the solver is untouched.
+
+### 6.4 Behaviour changes in Python
+
+**None.** The reference is the oracle; every divergence was resolved by
+changing the port.
+
+### 6.5 The differential over the measured set
+
+Python-only, Rust-only, changed, ordering-only and unexplained are **0** on
+every axis, and that is asserted rather than tallied: the Layer 3 replay
+compares every replayed case's full ordered verdict list on every `Finding`
+member, collects every divergence without fail-fast, and fails if one exists;
+the analysis-level replay does the same over every violation member and the
+dead-rule list. A green `cargo test --workspace` is 0/0/0/0/0 by construction.
+The measured set itself is the [census](../generated/p022-cp4-census.md) and
+the [surface inventory](../generated/p022-cp5-inventory.md); the unmeasured
+set is now the coordinate-domain controls and the OD-1 door controls, and
+nothing else.
+
+### 6.6 What the campaigns found
+
+Both campaigns are recorded in full
+([fragment](../generated/p022-cp4b-mutations.md); definitions and raw results
+under `docs/evidence/p022-cp4b-{1,2}.json`). Each was run twice, because the
+first run of each found real holes — which is the whole point of running one:
+
+**4b.1 (the analysis).** Three survivors, two of them inherited from the
+reference's own suite:
+
+* *`allow` beats `barrier` was unobservable.* The canonical test protocol's
+  barrier arguments and allow arguments are **disjoint**, so no event can match
+  both and deleting the allow check changes nothing. `tests/test_obligations.py`
+  has the same blind spot. A protocol whose barrier matches every
+  `OnPropertyChanged` and whose allow names one argument is the only shape in
+  which the rule fires at all.
+* *`exit_barriers: false` was only tested against the end-of-method leak*, which
+  `run()` guards separately — the guard on `return`/`throw` had no case.
+* *the unknown-argument rule was masked by the allow list*: with the narrowing
+  inverted, an unknown argument matches the **allow** entry too, and allow wins.
+
+A fourth mutation survived correctly: the `if !self.silent` guard around a
+loop's emitting pass is **provably redundant**, because `_emit` re-checks the
+flag. It is an equivalent mutant, the reference carries the same redundant
+guard, and the mutation now attacks `_emit`'s guard — where the two-phase
+discipline is actually enforced.
+
+**4b.2 (the bridge).** Four findings:
+
+* *first-wins was rescued by dedup.* Two duplicate records naming the **same**
+  barrier produce two byte-identical findings, which BR-V7 collapses — so the
+  rule was invisible through its own control. The records now name different
+  barriers.
+* *the malformed-method skip only proved the easy half*: the bad record was
+  last, so a port that stopped at the first bad entry behaved identically.
+* *the non-list-block control was vacuous*: with no protocols there is nothing
+  to report either way. The rule is observable only through a **scoped**
+  protocol, where an empty method list makes the rule dead and a silenced
+  family says nothing.
+* *the rendered surfaces reached two of the five codes*, so neither exit
+  wording nor the `, ` `CPython` puts between scope entries was in the compared
+  bytes.
+
+Both campaigns now read fully caught with no missed catchers, on a clean tree.
+
+### 6.7 Two things measured, not claimed
+
+1. **BR-V5's "a slice shorter than two steps is dropped" does not apply on the
+   protocol path.** `_protocol_findings` filters steps with `line < 1` and
+   stops there; it never drops a short slice. So a leak off the end carries a
+   **one-step** slice (its second step would repeat the first), and one whose
+   open has no line carries **none**. The port reproduces the reference
+   exactly, and the surface inventory grew the families to match rather than
+   the port being bent to the prose. Whether the spec sentence or the code is
+   wrong is a Python-first question 4b does not answer.
+2. **The family's append position is unobservable end to end.** BR-V1 puts
+   protocol findings after effects and before OWN050, but BR-V8 sorts by
+   `(file, line, column, code)` and two findings from different families never
+   share a code — so the code component decides before insertion order can.
+   Recorded here rather than dressed up as a control, the same way cp5.1
+   recorded that three dedup-key members became unobservable once `message`
+   joined the key.
+
+### 6.8 The one golden family that was regenerated
+
+`tests/fixtures/repro/protocol_isloaded_violation.{repro,trace}.json`. The
+Rust engine's `verdicts` layer moves from `refused` to `produced` and now
+carries the same finding the reference does — the artifact is a record of what
+each engine could produce, so a promotion changes it by construction. Same
+shape of change as #339's `partial` → `full`, and stated for the same reason.
+The `own-shadow` **reducer** is untouched: its scope is still
+`["lowered", "summaries"]` and it still records the verdict layer as refused in
+every reduction, because crossing that line is #260's acceptance, not 4b's.
+
+Everything else regenerated is an insertion into a ledger whose records depend
+only on themselves — `tests/fixtures/repro/digests.json` gained the new
+synthetic documents with **zero** existing records rewritten, and the verdict
+manifest gained its cases the same way.
+
+## 7. The wording 4b earns
 
 > Layer 3 parity over the measured set, protocol family included; unmeasured
 > set: coordinate-domain controls (decision owed), OD-1 door controls.

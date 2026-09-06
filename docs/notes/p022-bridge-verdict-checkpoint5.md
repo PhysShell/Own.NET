@@ -9,6 +9,13 @@
 > [`p022-cp5-mutations.md`](../generated/p022-cp5-mutations.md); nothing is
 > typed here.
 
+> **Read the protocol paragraphs below as history.** #259 checkpoint 4b
+> ([note](p022-bridge-verdict-checkpoint4b.md)) ported the obligation
+> analysis, wired it through the bridge and **promoted both protocol
+> documents out of `rust_replay_excluded`**. Where this note says the OBL
+> analysis is not ported, or that a protocol-bearing document is refused,
+> it describes the state at the time it was written.
+
 Checkpoint 4 ([note](p022-bridge-verdict-checkpoint4.md)) proved identity,
 anchor, kind and tiering over the replayed set, and left three members of
 `ownir.Finding` carried by the goldens but not compared: `message`, `related`

@@ -10,7 +10,8 @@
 > diagnostics, S = the `summaries` dump) the Rust port must replay it at. A
 > layer marked **L3 ✅** is one whose substance the Rust replay now compares in
 > full rather than carries — the BR-V4 wording matrix and the BR-V9 renderings,
-> which #259 cp4 left deferred and cp5 proved.
+> which #259 cp4 left deferred and cp5 proved, and the BR-P3 protocol rows,
+> which cp4b ported and promoted out of the exclusion ledger.
 > **No family may be silently omitted here**; a new `test_ownir.py` family
 > without a row (or vice-versa) is a red build in spirit — reviewers enforce
 > it until a generated cross-check exists (see OD-7).
@@ -76,7 +77,9 @@
 |---|---|---|---|---|
 | DI graph finders' verdict sets + messages + anchor metadata (DI001/002/003/004/005 unit layer) | `ownlang/di.py` (not the bridge) | BR-B1, BR-P1 | L805–L1048 (18) | (core suite) |
 | advisory codes OWN051/OWN052 registered in `TITLES` (spec↔code drift guard) | `diagnostics.TITLES` | INF-P2/P3 | L1937 | — |
-| effects re-validation skip-not-coerce; protocol first-wins on tolerant door | `_effect_findings`, `_protocol_findings` | BR-D2, BR-P2/P3 | (pinned in `test_effects.py` / `test_obligations.py`) | L3 |
+| effects re-validation skip-not-coerce; protocol first-wins on tolerant door | `_effect_findings`, `_protocol_findings` | BR-D2, BR-P2/P3 | (pinned in `test_effects.py` / `test_obligations.py`) | L3 ✅ |
+| obligation protocols: the lattice, the leaf order, the exits, the loop's single emission, the evidence and the sort key | `ownlang/obligations.py` (not the bridge) | BR-B1, BR-P3 | `test_obligations.py` §1 + `tests/test_obligation_fact_parity.py` | (core suite) |
+| protocol verdict mapping: `(kind, definite)` → OBL001–004, the four line-free wordings, component/handler, the opened→barrier(→late-close) slice, the anchorless OBL005 | `_protocol_findings`, `_protocol_message` | BR-P3, BR-V4/V5/V6 | `test_obligations.py` §3 + the `verdict_protocol_*` Layer 3 cases | L3 ✅ |
 
 ## (e) Verdict mapping
 
@@ -141,9 +144,14 @@ and the BR-V5 `related`/`flow` slices — and every refusal in full; and
 directly-pinned end-to-end surface, and no row's substance is carried without
 being compared. Which wording, slice family and rendering rule the corpus
 reaches — and the recorded disposition of each one it cannot — is the generated
-ledger [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md). Two
-row families are outside the replayed set by declaration, recorded in the
-manifest's `rust_replay_excluded` ledger with an executable expectation: the
-protocol rows (§4 BR-P3 — the OBL analysis is not ported, and the bridge
-refuses a protocol-bearing document rather than return an incomplete list) and
-the tolerant-door coercions the typed Rust constructor cannot reach (OD-1).
+ledger [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md).
+The **protocol rows** (§4 BR-P3) were the first of two row families outside the
+replayed set: the OBL analysis had no port, so the bridge refused a
+protocol-bearing document rather than return an incomplete list. #259
+checkpoint 4b closed that — the analysis is `own-analysis`'s, the typed values
+come from the one grammar in `own-ir`, the bridge maps them, and both reference
+documents are promoted out of `rust_replay_excluded` and replayed against the
+goldens exactly as they were committed. What is still outside the replayed set,
+recorded in that ledger with an executable expectation, is the coordinate
+boundary (a decision #259 owes) and the tolerant-door coercions the typed Rust
+constructor cannot reach (OD-1).
