@@ -197,13 +197,13 @@ def _plan() -> tuple[dict[str, tuple[str, str]], dict[str, dict[str, Any]],
         if not isinstance(entry_name, str):
             continue
         refusal_entries[entry_name] = e
-        path = os.path.join(FIXDIR, f"{name}.facts.json")
+        path = os.path.join(FIXDIR, f"{entry_name}.facts.json")
         if not os.path.exists(path):
-            problems.append(f"domain_refusals '{name}' has no {name}.facts.json "
-                            f"under fixtures/repro")
+            problems.append(f"domain_refusals '{entry_name}' has no "
+                            f"{entry_name}.facts.json under fixtures/repro")
         # A refusal control must not also be a capturable case: `plan` swept
         # the directory, so remove it and say so if it was never there.
-        plan.pop(name, None)
+        plan.pop(entry_name, None)
     artifact_names = [e["name"] for e in artifacts if isinstance(e.get("name"), str)]
     for phantom in sorted(set(artifact_names) - set(plan)):
         problems.append(f"manifest artifacts names '{phantom}', which is not a "
