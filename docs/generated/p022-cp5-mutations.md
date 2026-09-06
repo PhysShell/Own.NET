@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `c574a91f64466ecb…`, 40 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `d2872ee5f7540126ce0a8b42706ee08dcf5e40c0` |
+| recorded at commit                                         | `d80359e6bb6b035f3d63b2625677dbdfe261822b` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 40 |
 | caught                                                     | 40 |
