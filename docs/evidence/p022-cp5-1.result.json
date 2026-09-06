@@ -1,0 +1,351 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-cp5-1",
+  "definition": "docs/evidence/p022-cp5-1.json",
+  "definition_sha256": "c574a91f64466ecb376bc0652d8b26065d762735565349cf3769e4d3b0ea9d8a",
+  "source_commit": "d2872ee5f7540126ce0a8b42706ee08dcf5e40c0",
+  "dirty": false,
+  "recorded_at": "2026-09-06T14:53:15Z",
+  "packages": [
+    "own-analysis",
+    "own-bridge",
+    "own-cfg",
+    "own-diagnostics",
+    "own-ir",
+    "own-lowered",
+    "own-shadow",
+    "own-syntax"
+  ],
+  "command": "cargo test -p <package> --no-fail-fast, for every workspace member",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 1.4
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 2.8
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.0
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.2
+    },
+    {
+      "id": "M06",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message"
+      ],
+      "elapsed_seconds": 4.2
+    },
+    {
+      "id": "M07",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
+      ],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two",
+        "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M11",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed"
+      ],
+      "elapsed_seconds": 4.1
+    },
+    {
+      "id": "M12",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.1
+    },
+    {
+      "id": "M13",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M14",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    },
+    {
+      "id": "M15",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M16",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.0
+    },
+    {
+      "id": "M17",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.0
+    },
+    {
+      "id": "M18",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.0
+    },
+    {
+      "id": "M19",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M20",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M21",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.0
+    },
+    {
+      "id": "M22",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M23",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M24",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M25",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
+      ],
+      "elapsed_seconds": 4.1
+    },
+    {
+      "id": "M26",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.2
+    },
+    {
+      "id": "M27",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M28",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M29",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M30",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M31",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.1
+    },
+    {
+      "id": "M32",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.9
+    },
+    {
+      "id": "M33",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M34",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.8
+    },
+    {
+      "id": "M35",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.7
+    },
+    {
+      "id": "M36",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    },
+    {
+      "id": "M37",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.4
+    },
+    {
+      "id": "M38",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M39",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.5
+    },
+    {
+      "id": "M40",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 3.6
+    }
+  ]
+}
