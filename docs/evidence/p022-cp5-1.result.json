@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-cp5-1",
   "definition": "docs/evidence/p022-cp5-1.json",
-  "definition_sha256": "c574a91f64466ecb376bc0652d8b26065d762735565349cf3769e4d3b0ea9d8a",
-  "source_commit": "d80359e6bb6b035f3d63b2625677dbdfe261822b",
+  "definition_sha256": "2b4651e54f2862f5b7bdce8f2f682a2bdbd6826677f383736ed7f359ba334d50",
+  "source_commit": "cdff105ca43ec5b1ced2bd25a8216f4f7b65deb3",
   "dirty": false,
-  "recorded_at": "2026-09-06T15:21:04Z",
+  "recorded_at": "2026-09-06T17:30:57Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,7 +22,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 1.7
+    "elapsed_seconds": 1.6
   },
   "mutations": [
     {
@@ -31,7 +31,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M02",
@@ -47,7 +47,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M04",
@@ -55,7 +55,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.3
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M05",
@@ -63,7 +63,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M06",
@@ -71,7 +71,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M07",
@@ -79,7 +79,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M08",
@@ -87,7 +87,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M09",
@@ -95,9 +95,10 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two",
         "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M10",
@@ -105,7 +106,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M11",
@@ -113,7 +114,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M12",
@@ -121,7 +122,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M13",
@@ -137,7 +138,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M15",
@@ -145,7 +146,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M16",
@@ -153,20 +154,22 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M17",
       "outcome": "caught",
       "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M18",
       "outcome": "caught",
       "catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
       "elapsed_seconds": 4.4
@@ -177,23 +180,27 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.3
     },
     {
       "id": "M20",
       "outcome": "caught",
       "catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M21",
       "outcome": "caught",
       "catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.3
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M22",
@@ -201,7 +208,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M23",
@@ -209,7 +216,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M24",
@@ -225,7 +232,7 @@
       "catchers": [
         "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M26",
@@ -233,7 +240,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M27",
@@ -241,7 +248,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M28",
@@ -249,7 +256,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M29",
@@ -257,15 +264,17 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M30",
       "outcome": "caught",
       "catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M31",
@@ -273,7 +282,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M32",
@@ -281,7 +290,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.4
     },
     {
       "id": "M33",
@@ -289,7 +298,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M34",
@@ -297,7 +306,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M35",
@@ -305,7 +314,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M36",
@@ -313,7 +322,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M37",
@@ -321,7 +330,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M38",
@@ -329,7 +338,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M39",
@@ -337,13 +346,29 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M40",
       "outcome": "caught",
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 4.1
+    },
+    {
+      "id": "M41",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
+      ],
+      "elapsed_seconds": 4.2
+    },
+    {
+      "id": "M42",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ],
       "elapsed_seconds": 3.7
     }

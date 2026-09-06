@@ -12,21 +12,16 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `d80359e6bb6b035f3d63b2625677dbdfe261822b` |
+| recorded at commit                                         | `cdff105ca43ec5b1ced2bd25a8216f4f7b65deb3` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 42 |
-| caught                                                     | 40 |
+| caught                                                     | 42 |
 | survived                                                   | 0 |
 | compile-error (no evidence either way)                     | 0 |
 | invalid-mutation                                           | 0 |
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
-
-**This run is not evidence:**
-
-- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
-- result/definition mutation sets differ (missing ['M41', 'M42'], unknown [])
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -38,7 +33,7 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 | M06 | BR-V4 | BR-V4 fallback drops the core message it is there to carry | caught | `own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message` |
 | M07 | BR-V4 | BR-V4 every DI lifetime takes the singleton nice phrase | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M08 | BR-V4 | BR-V4 an unrecognised DI lifetime is hidden behind a generic phrase | caught | `own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two` |
-| M09 | BR-V4 | BR-V4 lambda note appended whether or not the handler is a lambda | caught | `own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`<br>`own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M09 | BR-V4 | BR-V4 lambda note appended whether or not the handler is a lambda | caught | `own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`<br>`own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed`<br>`own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M10 | BR-V4 | BR-V4 lambda note never appended | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M11 | BR-V4 | BR-V4 the capture route words every source as static | caught | `own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed` |
 | M12 | BR-V4 | BR-V4 timer wording drops the handler | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
@@ -46,11 +41,11 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 | M14 | BR-V4 | BR-V4 local-disposable wording collapses onto the field wording | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M15 | BR-V4 | BR-V4 an injected Subscribe() result takes the provable-leak wording | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M16 | BR-V4 | BR-V4 pool token wording says 'disposed' | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M17 | BR-V4 | BR-V4 an injected subscription takes the provable-leak wording | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M18 | BR-V4 | BR-V4 OWN050 message drops the event it cannot verify | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M17 | BR-V4 | BR-V4 an injected subscription takes the provable-leak wording | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M18 | BR-V4 | BR-V4 OWN050 message drops the event it cannot verify | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M19 | BR-V4 | BR-V4 OWN051 message drops the inferred contract | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M20 | BR-V4 | BR-V4 OWN052 message drops the solve-failure reason | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M21 | BR-V4 | di.py chain separator changed (the retention path in the message) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M20 | BR-V4 | BR-V4 OWN052 message drops the solve-failure reason | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M21 | BR-V4 | di.py chain separator changed (the retention path in the message) | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M22 | BR-V4 | di.py consumed tail names the service instead of dropping an unknown impl | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M23 | BR-V4 | di.py registration tail emitted even when the primary IS the registration | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M24 | BR-V4 | effects.py kind phrase collapses onto the object-literal one | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
@@ -59,7 +54,7 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 | M27 | BR-V5 | BR-V5 flow-local origin always words as an acquire, never a rent | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M28 | BR-V5 | BR-V5 flow-local slice keeps a step whose line is unknown | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M29 | BR-V5 | BR-V5 flow-local slice emitted when both sites coincide | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M30 | BR-V5 | BR-V5 DI path labels the last hop as a pass-through `via` | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M30 | BR-V5 | BR-V5 DI path labels the last hop as a pass-through `via` | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M31 | BR-V5 | BR-V5 DI path emits a hop whose registration site is unknown | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M32 | BR-V5 | BR-V5 DI end label ignores the family (every path 'captures scoped') | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M33 | BR-V5 | BR-V5 DI consumer related emitted even with an unknown ctor line | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
@@ -70,8 +65,8 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 | M38 | BR-V5 | BR-V5 effect slice emitted when the mint line is unknown | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M39 | BR-V5 | BR-V5 effect slice steps reversed (mint before re-run) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M40 | BR-V7 | BR-V7 dedup key drops the message member cp5 added | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M41 | BR-V4 | the recorded oracle wording drifts and the bridge control does not notice (i.e. it carries a literal, not the reference's answer) | **not recorded** | — |
-| M42 | BR-V4 | the recorded oracle wording drifts and the effect control does not notice (the own-analysis half of the same claim) | **not recorded** | — |
+| M41 | BR-V4 | the recorded oracle wording drifts and the bridge control does not notice (i.e. it carries a literal, not the reference's answer) | caught | `own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two` |
+| M42 | BR-V4 | the recorded oracle wording drifts and the effect control does not notice (the own-analysis half of the same claim) | caught | `own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain` |
 
 ## checkpoint 5.2 — the refusal text and the core message it quotes
 
