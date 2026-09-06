@@ -8,6 +8,11 @@ these generated fragments, computed from the evidence — never typed:
 * `docs/generated/p022-cp4-census.md` — the verdict ledger census, from
   `tests/verdict_census.compute_verdict_census()` (the same interpretation the
   fixture harness uses).
+* `docs/generated/p022-cp5-inventory.md` — the checkpoint-5 SURFACE inventory,
+  from `tests/verdict_surface_inventory.compute_surface_inventory()`: which
+  BR-V4 wording branch, BR-V5 evidence family and BR-V9 rendered-surface rule
+  the frozen goldens already reach, and which are not reached at all. The
+  census counts the ledger; this one says what the ledger covers.
 * `docs/generated/p022-cp4-mutations.md` — the recorded mutation campaign,
   from `docs/evidence/p022-cp4-mutations.json` and its `.result.json`, through
   `scripts/mutate_campaign.summarize()` (the same interpretation the runner
@@ -59,10 +64,17 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
 )
 from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
+from verdict_surface_inventory import (  # noqa: E402
+    Coverage,
+    InventoryError,
+    SurfaceInventory,
+    compute_surface_inventory,
+)
 
 GENERATED = os.path.join(ROOT, "docs", "generated")
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
+INVENTORY_MD = "p022-cp5-inventory.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -140,6 +152,81 @@ def render_census(c: Census) -> str:
         "a non-zero count is a red build.",
         "",
     ]
+    return "\n".join(lines)
+
+
+# --- checkpoint 5: the surface inventory ----------------------------------
+
+
+def _coverage_table(rows: tuple[Coverage, ...]) -> list[str]:
+    """One ledger as a table: id, what it is, and the two measured counts. A row
+    at zero over the replayed set is a gap, marked so a reader does not have to
+    compare two numbers to find it."""
+    out = ["| ledger row | surface | what it is | all goldens | replayed |",
+           "|---|---|---|---:|---:|"]
+    for c in rows:
+        gap = " **(gap)**" if c.replayed == 0 else ""
+        out.append(f"| `{c.id}` | {c.detail} | {c.what}{gap} | {c.total} | {c.replayed} |")
+    out.append("")
+    return out
+
+
+def render_inventory(inv: SurfaceInventory) -> str:
+    """The cp5 surface ledger. Every count is matched out of the committed
+    goldens by `tests/verdict_surface_inventory.py`; a finding or slice the
+    ledger cannot place fails the gate rather than being rounded away."""
+    lines = [
+        _header("tests/fixtures/verdicts/*.verdicts.json through "
+                "tests/verdict_surface_inventory.py"),
+        "# P-022 checkpoint 5 — surface inventory (what the frozen goldens reach)",
+        "",
+        "Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set "
+        "([census](" + CENSUS_MD + ")). Checkpoint 5 proves the three surfaces cp4 "
+        "carried without comparing: the **messages** (BR-V4), the **evidence slices** "
+        "(BR-V5) and the **rendered surfaces** (BR-V9). This fragment is the "
+        "completeness ledger for those three: every branch read off `ownlang/ownir.py`, "
+        "matched against the committed goldens.",
+        "",
+        "`all goldens` counts Python's complete truth; `replayed` counts only the cases "
+        "the Rust replay runs (the ledger's `rust_replay_excluded` entries removed). A "
+        "row whose **replayed** count is zero is a branch cp5 cannot prove against this "
+        "corpus as it stands — a missing control, not a passing one.",
+        "",
+        "## BR-V4 — message synthesis, by who owns the string",
+        "",
+        "`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` "
+        "— the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own "
+        "finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated "
+        "verbatim; `bridge-protocol` — the OBL family, which is #259 row 4b and outside "
+        "cp5.",
+        "",
+    ]
+    lines += _coverage_table(inv.messages)
+    lines += ["### Wording tails", "",
+              "Each is its own degradation rule inside an analysis message — the tail is "
+              "dropped, not blanked, when its location is unknown.", ""]
+    lines += _coverage_table(inv.tails)
+    lines += ["## BR-V5 — evidence slices", "",
+              "One row per `related`/`flow` family; a slice matching no family (or two) "
+              "fails the gate.", ""]
+    lines += _coverage_table(inv.slices)
+    lines += ["### Degradations", "",
+              "The rules that produce an EMPTY slice: a step whose line is unknown is "
+              "omitted, and a slice left shorter than two steps is dropped. Counted "
+              "separately, because a rule only ever seen firing positively has no "
+              "negative control.", ""]
+    lines += _coverage_table(inv.degradations)
+    lines += ["## BR-V9 — rendered surfaces", ""]
+    if inv.render_family_exists:
+        lines += ["Coverage is matched out of the `tests/fixtures/verdict_renders/` "
+                  "family's `pins` ledger.", ""]
+    else:
+        lines += ["**No fixture family exists yet.** `render_finding` and `build_sarif` "
+                  "on the bridge path have no golden of their own: checkpoint 5.3 builds "
+                  "`tests/fixtures/verdict_renders/`, and every row below reads zero "
+                  "until it does. The rows are declared here so the gap is a ledger "
+                  "entry rather than an omission.", ""]
+    lines += _coverage_table(inv.renders)
     return "\n".join(lines)
 
 
@@ -444,6 +531,10 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         out[CENSUS_MD] = render_census(compute_verdict_census())
     except CensusError as e:
         problems.extend(f"verdict census: {p}" for p in e.problems)
+    try:
+        out[INVENTORY_MD] = render_inventory(compute_surface_inventory())
+    except InventoryError as e:
+        problems.extend(f"cp5 surface inventory: {p}" for p in e.problems)
     definition, result, campaign_problems = _load_campaign()
     problems.extend(campaign_problems)
     summary = summarize(definition, result) if definition and result else None
@@ -501,8 +592,9 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     if argv:
-        print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD}, "
-              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, "
+              f"{MUTATIONS_MD}, {SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync "
+              f"with the evidence")
     return 0
 
 
