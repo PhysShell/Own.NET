@@ -218,7 +218,11 @@ here is a parity claim either.
 
 This document is the **live view** of the slice as it stands; each checkpoint's
 recorded mutation campaign stays frozen at what it measured, under
-`docs/notes/p022-shadow-infra-checkpoint*-data/`.
+`docs/notes/p022-shadow-infra-checkpoint*-data/`. Where the slice departed from
+the brief it was given — the checkpoint grouping, the `-0` domain decision, the
+`sha2` dependency — the departures are decisions on the record in
+[the owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md),
+which also states the byte-level boundary repeated in the unmeasured set below.
 
 ## The measured set — same-input capture (checkpoint 1)
 
@@ -230,7 +234,9 @@ recorded mutation campaign stays frozen at what it measured, under
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
 (`own-shadow`), which is what makes "both engines saw the same input" a
-checked fact rather than an assumption.
+checked fact rather than an assumption — **at the level of canonical document
+identity**. That is a weaker statement than #260's acceptance invariant, and
+the difference is named in the unmeasured set below.
 
 | surface | count |
 |---|---|
@@ -320,6 +326,17 @@ non-zero counter there is not representable as a passing build. The gates:
 
 ## The unmeasured set, named
 
+- **#260's raw-byte same-input invariant.** #260 asks that the `OwnIR`
+  document be produced or loaded exactly once, that the **raw bytes** be
+  hashed, and that *those exact bytes* reach both engines. What this slice
+  proves is shared **canonical document identity**: each engine parses the
+  file and agrees on the canonical form's digest. Canonical-equivalent input
+  is not byte-identical input — two files differing in whitespace, in object
+  key order, or in duplicate-key resolution share one canonical identity,
+  because ignoring exactly those differences is the canonical form's job.
+  Acceptance must therefore prove the byte-level invariant separately; until
+  it does, "same input" here means canonical identity and nothing stronger
+  ([owner decision B-1](../notes/p022-shadow-infra-owner-decisions.md)).
 - **End diagnostics compared as an acceptance surface** — #260's acceptance,
   blocked by #259 (cp5 and 4b). Not attempted, not approximated.
 - **The verdict layer.** Refused by the reducer, and recorded as refused in

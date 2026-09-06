@@ -400,7 +400,7 @@ identifiers and each engine's per-layer output; the `AnalysisTrace` (#269)
 that normalizes those outputs into a walkable shape; and a reducer that names
 the first place two engines part company.
 
-Four points belong to this spec rather than to those notes.
+Five points belong to this spec rather than to those notes.
 
 1. Every layer in an artifact is projected through the **tolerant** door on one
    in-memory document — mixing doors across layers would mean the three entries
@@ -424,6 +424,14 @@ Four points belong to this spec rather than to those notes.
    `summaries` sub-surface only**. **Layer 3** — the final diagnostics — is
    *refused*, and the refusal is recorded in every reduction, so "not compared"
    can never be read as "compared and agreed".
+5. "Same input" in an artifact means **canonical document identity**: both
+   engines parsed the file and agree on the digest of its canonical form. It
+   does **not** mean the two engines consumed identical bytes, and the
+   canonical form cannot be made to mean that — ignoring insignificant
+   whitespace, object key order and duplicate-key resolution is precisely what
+   it is for. #260's acceptance invariant is the byte-level one (hash the raw
+   bytes, feed *those* bytes to both engines), so acceptance must prove it
+   separately; this composition does not.
 
 Nothing there is shadow mode: comparing end diagnostics as an acceptance
 surface is #260's acceptance and is blocked on #259 (cp5 and 4b).

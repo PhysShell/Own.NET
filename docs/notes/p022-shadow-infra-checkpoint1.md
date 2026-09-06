@@ -7,6 +7,16 @@
 > or should be quoted as it. Written from the tree at the commit that landed
 > it; every number in it is generated — see
 > [`docs/generated/p022-shadow-census.md`](../generated/p022-shadow-census.md).
+>
+> **Two owner decisions were taken about this checkpoint after it landed**, and
+> the note is left as written rather than edited to match them: it carries
+> *both* of the brief's first two items where the brief asked for a checkpoint
+> each (D-1), and the `-0` contract decision below was the checkpoint's to
+> *report*, not to take (D-2). Both are ratified, with reasons, in
+> [the owner-decision ledger](p022-shadow-infra-owner-decisions.md) — which
+> also states the boundary this note words too strongly: what is proved here is
+> **canonical document identity**, not #260's raw-byte same-input invariant
+> (B-1).
 
 Two questions have to be settled **before** two engines can be compared at
 all, and neither of them is a comparison:
@@ -96,6 +106,12 @@ engines saw the same document"* while the two engines held different values —
 which is the exact lie this surface exists to prevent. Reconciling instead of
 refusing would have meant picking one parser's reading and calling the other
 wrong, which is a contract decision this checkpoint has no standing to take.
+
+> Nor, as the owner's review pointed out, had it standing to take the
+> *narrowing* — an engine divergence was the brief's stop-and-report trigger,
+> and this paragraph declines the decision in the sentence before taking one.
+> The outcome stands, now as an owner decision:
+> [D-2](p022-shadow-infra-owner-decisions.md).
 
 It costs the contract nothing: `spec/OwnIR.md` §4.2 already bounds every
 validated coordinate to signed 64 bits, and no `OwnIR` producer emits `-0`
