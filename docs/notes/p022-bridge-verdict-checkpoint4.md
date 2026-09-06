@@ -62,7 +62,8 @@ fixture harness shares) and held in sync by `tests/test_checkpoint_status.py`
 inside the suite: evidence that changes without a regenerated fragment is a
 red build. The differential counts over the replayed set are asserted by the
 Rust replay (every divergence collected, any one fails the build), so a
-green replay reads 0 / 0 / 0 / 0 / 0 by construction. What the replay
+green replay is itself the assertion that none of them is non-zero — the counts
+belong to the generated fragment above, not to this note. What the replay
 compares is stated here because it is a declared surface, not a measurement.
 
 The **compared members** at cp4: `file, line, column, code, component, event,
