@@ -127,3 +127,79 @@ def pinned_rows(p: Plan | None = None) -> dict[str, tuple[str, ...]]:
         for row in case.pins:
             out.setdefault(row, []).append(case.name)
     return {row: tuple(sorted(names)) for row, names in out.items()}
+
+
+class RenderCensusError(Exception):
+    """The tree is not in a state a rendered-surface census may be taken over."""
+
+    def __init__(self, problems: list[str]) -> None:
+        super().__init__("; ".join(problems))
+        self.problems = tuple(problems)
+
+
+@dataclass(frozen=True)
+class RenderCensus:
+    """What the rendered-surface family contains, computed from the tree.
+
+    `refusals` counts the cases whose golden is a bridge refusal (nothing to
+    render); `rendered_lines` is every line the three line-per-finding surfaces
+    emit across both host severities, and `sarif_results` every SARIF result —
+    the two numbers that say how much text the replay compares byte for byte.
+    """
+
+    cases: int
+    refusals: int
+    rendered_lines: int
+    sarif_results: int
+    pinned_rows: int
+
+
+def compute_render_census(p: Plan | None = None) -> RenderCensus:
+    """Count the family. Raises `RenderCensusError` on any ledger problem or a
+    missing/orphaned/malformed golden — a census over a broken tree is the
+    stale number this module exists to prevent."""
+    if p is None:
+        p = plan()
+    problems = list(p.problems)
+    on_disk = goldens_on_disk()
+    for missing in sorted(set(p.cases) - on_disk):
+        problems.append(f"{missing}: golden missing")
+    for orphan in sorted(on_disk - set(p.cases)):
+        problems.append(f"{orphan}: orphaned golden (not a planned case)")
+    if not p.cases and not problems:
+        problems.append("no cases planned")
+    if problems:
+        raise RenderCensusError(problems)
+
+    refusals = lines = results = 0
+    for name in sorted(p.cases):
+        with open(p.golden_path(name), encoding="utf-8") as f:
+            doc = json.load(f)
+        if not isinstance(doc, dict):
+            problems.append(f"{name}: golden is not a JSON object")
+            continue
+        if doc.get("renders_version") != p.renders_version:
+            problems.append(f"{name}: golden renders_version "
+                            f"{doc.get('renders_version')!r} != manifest "
+                            f"{p.renders_version!r}")
+            continue
+        if isinstance(doc.get("error"), str):
+            refusals += 1
+            continue
+        for surface in ("human", "github", "msbuild", "unknown-format"):
+            per_severity = doc.get(surface)
+            if not isinstance(per_severity, dict):
+                problems.append(f"{name}: golden has no '{surface}' surface")
+                continue
+            lines += sum(len(v) for v in per_severity.values() if isinstance(v, list))
+        sarif = doc.get("sarif")
+        if not isinstance(sarif, dict):
+            problems.append(f"{name}: golden has no 'sarif' surface")
+            continue
+        for log in sarif.values():
+            runs = log.get("runs", []) if isinstance(log, dict) else []
+            for run in runs:
+                results += len(run.get("results", []))
+    if problems:
+        raise RenderCensusError(problems)
+    return RenderCensus(len(p.cases), refusals, lines, results, len(pinned_rows(p)))

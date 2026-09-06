@@ -5,9 +5,13 @@ The status surfaces (the P-022 table, the proposals index, a checkpoint note)
 say WHAT a checkpoint proves and link here; the measured numbers live only in
 these generated fragments, computed from the evidence — never typed:
 
-* `docs/generated/p022-cp4-census.md` — the verdict ledger census, from
-  `tests/verdict_census.compute_verdict_census()` (the same interpretation the
-  fixture harness uses).
+* `docs/generated/p022-cp4-census.md` — the Layer 3 census: the verdict ledger
+  from `tests/verdict_census.compute_verdict_census()` and the rendered-surface
+  family from `tests/verdict_render_census.compute_render_census()` (in both
+  cases the same interpretation the fixture harnesses use). The filename is
+  checkpoint 4's, because that is where the fragment was introduced and two
+  notes link it; what it DESCRIBES is the current comparison surface, which the
+  document says in its own first paragraph.
 * `docs/generated/p022-cp5-inventory.md` — the checkpoint-5 SURFACE inventory,
   from `tests/verdict_surface_inventory.compute_surface_inventory()`: which
   BR-V4 wording branch, BR-V5 evidence family and BR-V9 rendered-surface rule
@@ -67,6 +71,11 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
 )
 from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
+from verdict_render_census import (  # noqa: E402
+    RenderCensus,
+    RenderCensusError,
+    compute_render_census,
+)
 from verdict_surface_inventory import (  # noqa: E402
     Coverage,
     InventoryError,
@@ -115,7 +124,7 @@ def _rel(path: str) -> str:
 # --- census ---------------------------------------------------------------
 
 
-def render_census(c: Census) -> str:
+def render_census(c: Census, r: RenderCensus | None) -> str:
     rows: list[tuple[str, str]] = [
         ("goldens — Python's complete truth, one per planned case", str(c.goldens))]
     for origin, n in c.by_origin:
@@ -135,19 +144,28 @@ def render_census(c: Census) -> str:
             what = f"… refused by `check_facts` with an error containing `{contains}`"
         rows.append((what, str(n)))
     rows += [
-        ("replayed by Rust at the cp4 surface (goldens minus exclusions)", str(c.replayed)),
-        ("… reference refusals among them (compared by refusal class)",
-         str(c.replayed_refusals)),
-        ("… findings among them (compared on the cp4 members)", str(c.replayed_findings)),
+        ("replayed by Rust (goldens minus exclusions)", str(c.replayed)),
+        ("… reference refusals among them (compared in full)", str(c.replayed_refusals)),
+        ("… findings among them (compared on every `Finding` member)",
+         str(c.replayed_findings)),
     ]
     width = max(len(k) for k, _ in rows)
     lines = [
-        _header("tests/fixtures/verdicts/manifest.json and the *.verdicts.json goldens"),
-        "# P-022 checkpoint 4 — measured census",
+        _header("tests/fixtures/verdicts/ and tests/fixtures/verdict_renders/ "
+                "(manifests + goldens)"),
+        "# P-022 #259 — the Layer 3 measured census",
         "",
-        "Computed by `tests/verdict_census.py` (the interpretation "
-        "`tests/test_verdict_fixtures.py` verifies against the Python projection) over the "
-        "frozen Layer 3 ledger; the Rust half is `rust/crates/own-bridge/tests/verdicts.rs`.",
+        "Computed by `tests/verdict_census.py` and `tests/verdict_render_census.py` (the "
+        "interpretations the two fixture harnesses verify against the Python projections) "
+        "over the frozen ledgers; the Rust halves are "
+        "`rust/crates/own-bridge/tests/verdicts.rs` and `.../tests/renders.rs`.",
+        "",
+        "**The surface this describes is checkpoint 5's**: the verdict replay compares "
+        "EVERY `Finding` member (`message`, `related` and `flow` included) and every "
+        "refusal in full, and the rendered-surface replay compares bytes. At checkpoint 4 "
+        "the same ledger was compared on identity, anchor, kind and tiering only, and "
+        "refusals up to their `message=` member; the counts below are the ledger's either "
+        "way, which is why one fragment serves both and says which surface it means.",
         "",
         f"| {'measure'.ljust(width)} | value |",
         f"|{'-' * (width + 2)}|------:|",
@@ -157,13 +175,36 @@ def render_census(c: Census) -> str:
         "",
         "The differential counts over the replayed set — Python-only, Rust-only, changed, "
         "ordering-only, unexplained — are asserted, not measured here: the Rust replay "
-        "compares every replayed case's full ordered verdict list (or its refusal class) "
-        "against the golden on the cp4 members, collects every divergence without "
-        "fail-fast, and fails if one exists. A green "
-        "`cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; "
-        "a non-zero count is a red build.",
+        "compares every replayed case's full ordered verdict list (or its refusal text) "
+        "against the golden on every member, collects every divergence without fail-fast, "
+        "and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is "
+        "0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.",
+        "",
+        "## The rendered surfaces (BR-V9)",
+        "",
+        "A second family, and a different kind of comparison: its replay compares the "
+        "**bytes**, because SARIF key order is part of this surface. Cases are listed, "
+        "never swept — one exists to exercise a BR-V9 rule, and which rows each pins is "
+        "the join the [surface inventory](" + INVENTORY_MD + ") reports on.",
         "",
     ]
+    if r is None:
+        lines += ["The family could not be counted (see the gate's problems).", ""]
+        return "\n".join(lines)
+    render_rows = [
+        ("cases — one per BR-V9 rule group, listed exhaustively in the manifest",
+         str(r.cases)),
+        ("… whose golden is a bridge refusal (nothing to render)", str(r.refusals)),
+        ("rendered lines compared byte-for-byte (4 formats, 2 host severities)",
+         str(r.rendered_lines)),
+        ("SARIF results compared byte-for-byte (both host severities)",
+         str(r.sarif_results)),
+        ("BR-V9 ledger rows pinned by at least one case", str(r.pinned_rows)),
+    ]
+    width = max(len(k) for k, _ in render_rows)
+    lines += [f"| {'measure'.ljust(width)} | value |", f"|{'-' * (width + 2)}|------:|"]
+    lines += [f"| {k.ljust(width)} | {v} |" for k, v in render_rows]
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -559,8 +600,13 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     gate's, not the fragment's: it never changes the rendered text."""
     out: dict[str, str] = {}
     problems: list[str] = []
+    renders: RenderCensus | None = None
     try:
-        out[CENSUS_MD] = render_census(compute_verdict_census())
+        renders = compute_render_census()
+    except RenderCensusError as e:
+        problems.extend(f"rendered-surface census: {p}" for p in e.problems)
+    try:
+        out[CENSUS_MD] = render_census(compute_verdict_census(), renders)
     except CensusError as e:
         problems.extend(f"verdict census: {p}" for p in e.problems)
     try:

@@ -71,6 +71,11 @@ handler, kind, advisory, severity, ignore_reason`. Not compared yet:
 `message`, `related`, `flow` — the goldens carry them, cp5 compares them
 without regenerating a golden.
 
+> Read as history. **#259 cp5 has since landed** and the replay compares every
+> member, plus every refusal in full; the census fragment linked above
+> describes that surface, not this one, and says so in its first paragraph.
+> See [the cp5 note](p022-bridge-verdict-checkpoint5.md).
+
 ### The unmeasured set is named, not hidden
 
 Each exclusion is an entry in `rust_replay_excluded` with a reason and an

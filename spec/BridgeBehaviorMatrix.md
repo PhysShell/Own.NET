@@ -7,7 +7,10 @@
 > this ledger was generated on — they drift with edits; the *family names* are
 > the stable identity), and the parity-fixture **layer** (§6 of Bridge.md:
 > L1 = validation, L2 = normalized lowered representation, L3 = normalized
-> diagnostics, S = the `summaries` dump) the Rust port must replay it at.
+> diagnostics, S = the `summaries` dump) the Rust port must replay it at. A
+> layer marked **L3 ✅** is one whose substance the Rust replay now compares in
+> full rather than carries — the BR-V4 wording matrix and the BR-V9 renderings,
+> which #259 cp4 left deferred and cp5 proved.
 > **No family may be silently omitted here**; a new `test_ownir.py` family
 > without a row (or vice-versa) is a red build in spirit — reviewers enforce
 > it until a generated cross-check exists (see OD-7).
@@ -84,20 +87,20 @@
 | publisher provenance: `returned_fresh` silent; unknown value keeps warning; beats DI hop | routing R4 | BR-L1 | L208–L230 (4) | L3 |
 | suppression: non-empty reason suppresses (still minted); empty does not; SARIF `suppressions` | BR-V6 | — | L271–L293 (4) | L3 |
 | subscribe tiering (self/injected/static) | routing R2 + BR-V4 | — | L328–L341 (3) | L3 |
-| per-kind findings: timer / disposable field / ignored subscribe / pool / local-disposable (location, wording, tag, released-twin silence) | BR-V4 | message matrix | L523–L617 (11) | L3 |
-| flow-local OWN001 wording split (`ever_released`), component naming, kind tags | BR-V4 | — | L643–L671 (6) | L3 |
+| per-kind findings: timer / disposable field / ignored subscribe / pool / local-disposable (location, wording, tag, released-twin silence) | BR-V4 | message matrix | L523–L617 (11) | L3 ✅ |
+| flow-local OWN001 wording split (`ever_released`), component naming, kind tags | BR-V4 | — | L643–L671 (6) | L3 ✅ |
 | exception-edge dedup (one OWN001 per acquire across exits); nested-throw recall; finally+switch; pool labelling; while fixpoint verdicts | BR-V7 + core lowering | — | L691–L774 (5) | L3 |
 | DI bridge findings: severity, anchors (DI004 call site / DI005 store site + registration `related`), flows, not-double-reported | BR-P1, BR-V5 | — | L855–L1180 (17) | L3 |
 | OWN050 advisory: location/message/kind; coexists with real OWN001 | `_unresolved_findings` | BR-V1/V6 | L1262–L1275 (3) | L3 |
 | OWN014 captures: static source, released silent, injected conservative, lambda note; DI-sourced escalation + proven-safe transient + additive fallback; escape flow slice | routing R3/R5, BR-V4/V5 | — | L1306–L1408 (8) | L3 |
 | flow evidence slices: handoff OWN002 2-step; consume-param OWN001 maps (no "cannot map back"); timer with incidental source keeps its path; OWN025 Rent→view flow | BR-V3/V5 | — | L1455–L1482 (3), L3004 | L3 |
-| SARIF projection: envelope, driver, rules, results, levels, `--severity warning`, empty run, oracle round-trip | `build_sarif` | BR-V9 | L3081–L3139 (11) | L3 |
+| SARIF projection: envelope, driver, rules, results, levels, `--severity warning`, empty run, oracle round-trip | `build_sarif` | BR-V9 | L3081–L3139 (11) | L3 ✅ |
 
 ## (f) Rendering / CLI surfaces
 
 | Behavior | Source | Rule | Pinned by | Layer |
 |---|---|---|---|---|
-| `github` / `msbuild` / fallback-human renders; escaping; severity pass-through; msbuild default stays `error` | `render_finding` | BR-V9 | L3038–L3074 (8) | L3 |
+| `github` / `msbuild` / fallback-human renders; escaping; severity pass-through; msbuild default stays `error` | `render_finding` | BR-V9 | L3038–L3074 (8) | L3 ✅ |
 
 ## Open decisions cross-reference
 
@@ -126,17 +129,21 @@ With OD-2/#294 resolved (IR4-everywhere fail-loud), `tolerant_unknown_kind` is
 now one of those shared cases — its `Rejected` golden pins the identical error
 text on both sides — so no Python-only cases remain. The per-case coverage of
 the fixture family is listed in the #259 foundation PR. Layer 1 landed in
-`own-ir` (#259 cp1). **Layer 3 is built** (#259 cp4): `ownlang/verdicts.py` +
+`own-ir` (#259 cp1). **Layer 3 is built and fully compared** (#259 cp4 built
+it, cp5 finished the comparison), in two families: `ownlang/verdicts.py` +
 `tests/fixtures/verdicts/` + `tests/test_verdict_fixtures.py`, replayed by
-`rust/crates/own-bridge/tests/verdicts.rs` through `own_bridge::check_facts`
-— so every **L3** row above has a directly-pinned end-to-end surface. At cp4
-the replay compares each finding's identity, anchor, kind and tiering; the
-rows whose substance is message text or an evidence slice (the BR-V4
-wording matrix, the `flow`/`related` steps, the BR-V9 renderings) are
-carried by the goldens and compared at cp5. Two row families are outside
-the replayed set by declaration, recorded in the manifest's
-`rust_replay_excluded` ledger with an executable expectation: the
+`rust/crates/own-bridge/tests/verdicts.rs` through `own_bridge::check_facts` on
+**every `Finding` member** — identity, anchor, kind, tiering, the BR-V4 message
+and the BR-V5 `related`/`flow` slices — and every refusal in full; and
+`ownlang/renders.py` + `tests/fixtures/verdict_renders/` +
+`tests/test_verdict_render_fixtures.py`, replayed **byte for byte** by
+`.../tests/renders.rs` for the BR-V9 surfaces. So every **L3** row above has a
+directly-pinned end-to-end surface, and no row's substance is carried without
+being compared. Which wording, slice family and rendering rule the corpus
+reaches — and the recorded disposition of each one it cannot — is the generated
+ledger [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md). Two
+row families are outside the replayed set by declaration, recorded in the
+manifest's `rust_replay_excluded` ledger with an executable expectation: the
 protocol rows (§4 BR-P3 — the OBL analysis is not ported, and the bridge
-refuses a protocol-bearing document rather than return an incomplete list)
-and the tolerant-door coercions the typed Rust constructor cannot reach
-(OD-1).
+refuses a protocol-bearing document rather than return an incomplete list) and
+the tolerant-door coercions the typed Rust constructor cannot reach (OD-1).

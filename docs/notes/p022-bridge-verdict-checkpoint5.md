@@ -1,7 +1,8 @@
 # P-022 step 6b (#259) — checkpoint 5: messages, evidence, rendered surfaces
 
-> Status: **checkpoints 5.0–5.3 landed** (inventory, messages and evidence,
-> refusal text, rendered surfaces). This note names what checkpoint 5 has to prove, who owns each
+> Status: **checkpoint 5 complete at its surface** — 5.0 inventory, 5.1
+> messages and evidence, 5.2 refusal text, 5.3 rendered surfaces, 5.4 the
+> status surfaces and the census. This note names what checkpoint 5 has to prove, who owns each
 > string it must reproduce, and what each sub-checkpoint closed. Every count
 > lives in the generated fragments
 > [`p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md) and
@@ -76,7 +77,7 @@ threw away.
 
 ## 2. The evidence slices (BR-V5)
 
-Seven families and six degradation rules, one ledger row each in the fragment:
+Every family, and every degradation rule, is one ledger row in the fragment:
 the DI retention path through `di_path_steps` (one, two, and `via`-hop
 lengths), the DI consuming-constructor `related` (with and without a known impl
 type), the DI004 and DI005 registration `related`, the OWN014 escape slice
@@ -138,7 +139,7 @@ Two constraints it inherits:
 * **No `ownlang/` production change.** New observer modules only, exactly as
   `verdicts.py` and `lowered.py` are.
 * **`rust_replay_excluded` neither grows nor shrinks** without an owner
-  decision. Its three families stay as cp4 left them: the protocol documents
+  decision. Its families stay as cp4 left them: the protocol documents
   (row 4b), the `u32` coordinate-domain controls (a contract decision the owner
   has stated a direction for — Python-first tightening — but has not taken), and
   the OD-1 typed-door controls (measured).
@@ -213,7 +214,7 @@ wording turns fourteen cases red) rather than inferred from a passing suite.
 That is a statement about the measured set only — see the next section for what
 the measured set did not contain.
 
-### Six synthetic cases, because a green replay over a corpus that never reaches a branch proves nothing about it
+### Synthetic cases, because a green replay over a corpus that never reaches a branch proves nothing about it
 
 The cp5.0 inventory named every wording and slice the goldens do not reach.
 Each one that a facts document *can* reach is now a case under the frozen
@@ -225,7 +226,7 @@ rewrote **no** existing record in either the verdict ledger or the shadow
 slice's digest ledger, which is P-022 discipline rule 4 measured rather than
 asserted.
 
-Five branches a facts document *cannot* reach are pinned instead by controls in
+The branches a facts document *cannot* reach are pinned instead by controls in
 `verdict::tests`, driven through `map_core` — the production path — in the
 shape cp4's `M19` established: the two flow-local fallbacks (the nine-op flow
 vocabulary raises only codes that already have a wording), the `transient` and
@@ -345,10 +346,11 @@ the Layer 3 pattern, and a Rust replay that compares the **bytes**.
   one format `render_finding` does not know, so the fallback is *rendered*
   rather than asserted equal to the human line. `RENDERS_VERSION` keys the
   surface and the docstring freezes the normalization.
-* **`tests/fixtures/verdict_renders/`** — seven targeted cases under a frozen
+* **`tests/fixtures/verdict_renders/`** — targeted cases under a frozen
   manifest ledger, each naming the BR-V9 rows it is the control for. Listed,
   never swept: rendering the whole verdict corpus at two severities would
-  freeze megabytes to prove less than seven documents chosen for the rules.
+  freeze megabytes to prove less than a handful of documents chosen for the
+  rules do.
 * **`tests/test_verdict_render_fixtures.py`** — verify/`--write`, with stale,
   missing and orphaned each a red build.
 * **`own-bridge/tests/renders.rs`** — replays every case with zero Python and
@@ -391,3 +393,40 @@ join is computed rather than asserted: the row ledger lives in
 and a row nobody pins reads `GAP: no control` while a case pinning a row the
 ledger does not know is a hard problem. The counts are in
 [the generated fragment](../generated/p022-cp5-inventory.md).
+
+## 10. What checkpoint 5.4 landed
+
+The status surfaces, brought level with what the tree proves — and nothing
+more.
+
+* **The census** (`docs/generated/p022-cp4-census.md`) now describes the cp5
+  comparison surface and counts the rendered-surface family beside the verdict
+  ledger, through `tests/verdict_render_census.py` — the one interpretation the
+  render harness and the inventory also use. The filename stays cp4's, because
+  that is where the fragment was introduced and two notes link it; what it
+  *describes* it says in its own first paragraph, which is the honest way to
+  keep one census for one ledger.
+* **The mutation campaigns** for 5.1, 5.2 and 5.3 are registered like cp4's and
+  the shadow slice's, rendered into `docs/generated/p022-cp5-mutations.md` by
+  the same single interpreter and held by the same gate: a result that no
+  longer matches its definition, was taken on a dirty tree, missed a required
+  catcher, or names a commit this tree does not descend from is a red build.
+* **`spec/Bridge.md` §6** and **`spec/BridgeBehaviorMatrix.md`** move the BR-V4
+  wording rows and the BR-V9 rendering rows from "carried by the goldens,
+  compared at cp5" to compared — marked `L3 ✅` in the matrix, with the legend
+  saying what the mark means. The P-022 status row and the proposals index move
+  with them.
+* **No count is typed** into any of them. Every number lives in a generated
+  fragment; the prose links.
+
+### The wording this checkpoint earns, and the wording it does not
+
+> Layer 3 parity over the measured set at the full `Finding` and the rendered
+> surfaces; unmeasured set: protocol documents (row 4b), coordinate-domain
+> controls (decision owed), OD-1 door controls.
+
+Not "verdict parity complete" — the protocol family is a whole analysis that
+is not ported, and the bridge refuses rather than answers for it. Not "#259
+complete" — row 4b and the coordinate decision are both outstanding. Not
+"shadow mode": the reducer still refuses the verdict layer, which is #260's
+boundary. And not "P-022 done" by any reading.
