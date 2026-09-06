@@ -104,7 +104,7 @@
       "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ if\\ sid\\ not\\ in\\ right_steps:",
       "replacement": "        if False and sid not in right_steps:",
       "expected_catchers": [
-        "python::non-zero exit with no FAIL line"
+        "python::<non-zero exit with no reported failure>"
       ]
     },
     {

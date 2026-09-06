@@ -81,7 +81,7 @@
       "pattern": "\\ \\ \\ \\ return\\ \"\\|\"\\.join\\(str\\(record\\.get\\(k,\\ \"\"\\)\\)\\ for\\ k\\ in\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"component\",\\ \"file\",\\ \"line\",\\ \"event\",\\ \"handler\"\\)\\)",
       "replacement": "    return str(record.get(\"handle\", \"\"))",
       "expected_catchers": [
-        "python::non-zero exit with no FAIL line"
+        "python::<non-zero exit with no reported failure>"
       ]
     },
     {
