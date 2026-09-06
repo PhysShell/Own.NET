@@ -25,6 +25,7 @@ python_version = "3.11"
 files = [
   "ownlang",
   "tests/verdict_census.py",
+  "tests/verdict_render_census.py",
   "tests/verdict_surface_inventory.py",
   "scripts/mutate_campaign.py",
   "scripts/render_checkpoint_status.py",

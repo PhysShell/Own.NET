@@ -108,37 +108,37 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 
 ## BR-V9 — rendered surfaces
 
-**No fixture family exists yet.** `render_finding` and `build_sarif` on the bridge path have no golden of their own: checkpoint 5.3 builds `tests/fixtures/verdict_renders/`, and every row below reads zero until it does. The rows are declared here so the gap is a ledger entry rather than an omission.
+Coverage is matched out of the `tests/fixtures/verdict_renders/` family's `pins` ledger.
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `human_line` | render | `file:line: sev: [code] msg [resource: kind]` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `human_severity` | render | host severity in the human line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_line` | github | `::sev file=…,line=…,title=CODE::msg` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_severity` | github | host severity as the annotation level — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_esc_percent` | github | `%` → `%25` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_esc_cr` | github | CR → `%0D` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_esc_lf` | github | LF → `%0A` in the message data — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_esc_prop_colon` | github | `:` → `%3A` in a property value — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `github_esc_prop_comma` | github | `,` → `%2C` in a property value — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `msbuild_line` | msbuild | `file(line): sev CODE: msg [resource: kind]` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `msbuild_severity` | msbuild | host severity in the msbuild line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `fallback_human` | render | an unknown format falls back to the human line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_envelope` | sarif | `$schema` + `version` + one `run` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_driver` | sarif | `tool.driver.name` = Owen + `informationUri` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_rules` | sarif | rule catalogue: sorted codes + `TITLES` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_level_note` | sarif | an advisory renders as `note` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_level_error` | sarif | a provable leak renders as `error` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_level_host_warning` | sarif | `severity=warning` downgrades an error, never an advisory — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_region` | sarif | `region.startLine` for a line ≥ 1 — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_start_column` | sarif | `region.startColumn` only beside a line — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_uri_backslash` | sarif | backslashes normalised in the artifact URI — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_properties` | sarif | `resourceKind` always; component/event/handler only when non-empty — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_related` | sarif | `relatedLocations` from `related` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_suppressions` | sarif | `suppressions` (`inSource` + justification) for a suppressed finding — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `sarif_empty` | sarif | an empty finding list is a valid, empty run — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
-| `refusal_error` | surface | a bridge refusal projects as `{"error": …}` — **not replayed**: no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; once it exists an uncovered row here is a missing control | 0 | 0 |
+| `human_line` | render | `file:line: sev: [code] msg [resource: kind]` | 1 | 1 |
+| `human_severity` | render | host severity in the human line | 1 | 1 |
+| `github_line` | github | `::sev file=…,line=…,title=CODE::msg` | 1 | 1 |
+| `github_severity` | github | host severity as the annotation level | 1 | 1 |
+| `github_esc_percent` | github | `%` → `%25` in the message data | 1 | 1 |
+| `github_esc_cr` | github | CR → `%0D` in the message data | 1 | 1 |
+| `github_esc_lf` | github | LF → `%0A` in the message data | 1 | 1 |
+| `github_esc_prop_colon` | github | `:` → `%3A` in a property value | 1 | 1 |
+| `github_esc_prop_comma` | github | `,` → `%2C` in a property value | 1 | 1 |
+| `msbuild_line` | msbuild | `file(line): sev CODE: msg [resource: kind]` | 1 | 1 |
+| `msbuild_severity` | msbuild | host severity in the msbuild line | 1 | 1 |
+| `fallback_human` | render | an unknown format falls back to the human line | 1 | 1 |
+| `sarif_envelope` | sarif | `$schema` + `version` + one `run` | 1 | 1 |
+| `sarif_driver` | sarif | `tool.driver.name` = Owen + `informationUri` | 1 | 1 |
+| `sarif_rules` | sarif | rule catalogue: sorted codes + `TITLES` | 1 | 1 |
+| `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property | 1 | 1 |
+| `sarif_level_note` | sarif | an advisory renders as `note` | 1 | 1 |
+| `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` | 1 | 1 |
+| `sarif_level_error` | sarif | a provable leak renders as `error` | 1 | 1 |
+| `sarif_level_host_warning` | sarif | `severity=warning` downgrades an error, never an advisory | 1 | 1 |
+| `sarif_region` | sarif | `region.startLine` for a line ≥ 1 | 1 | 1 |
+| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 | 1 | 1 |
+| `sarif_start_column` | sarif | `region.startColumn` only beside a line | 1 | 1 |
+| `sarif_uri_backslash` | sarif | backslashes normalised in the artifact URI | 1 | 1 |
+| `sarif_properties` | sarif | `resourceKind` always; component/event/handler only when non-empty | 1 | 1 |
+| `sarif_related` | sarif | `relatedLocations` from `related` | 1 | 1 |
+| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` | 1 | 1 |
+| `sarif_suppressions` | sarif | `suppressions` (`inSource` + justification) for a suppressed finding | 1 | 1 |
+| `sarif_empty` | sarif | an empty finding list is a valid, empty run | 1 | 1 |
+| `refusal_error` | surface | a bridge refusal projects as `{"error": …}` | 1 | 1 |

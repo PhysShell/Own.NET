@@ -21,10 +21,11 @@ column is **computed from the tree**, never typed:
   step count, plus the two degradation rules (a step with `line < 1` is
   omitted; a slice shorter than two steps is dropped) as their own rows.
 * **BR-V9 — rendered surfaces.** The `render_finding`/`build_sarif` branches.
-  These have **no fixture family yet** — cp5.3 builds one — so their coverage is
-  reported against `tests/fixtures/verdict_renders/` and reads zero until it
-  exists. The rows are declared here now so the gap is a ledger entry rather
-  than an omission.
+  Coverage is the join of the row ledger below with the `pins` each case of the
+  `tests/fixtures/verdict_renders/` family declares (read through
+  `verdict_render_census`). The two halves are deliberately apart: a row nobody
+  pins is reported here, and a case pinning a row this ledger does not know is
+  a problem rather than a silent extra.
 
 Self-policing, in the same spirit as the census: every golden finding must
 match **exactly one** BR-V4 branch and every non-empty slice exactly one BR-V5
@@ -44,12 +45,10 @@ import re
 from dataclasses import dataclass
 
 from verdict_census import FIXDIR, GOLDEN_SUFFIX, Plan, plan
+from verdict_render_census import pinned_rows
+from verdict_render_census import plan as render_plan
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# cp5.3's rendered-surface family. Absent until that checkpoint lands; the
-# BR-V9 ledger below reports every row uncovered while it is.
-RENDER_FIXDIR = os.path.join(HERE, "fixtures", "verdict_renders")
-RENDER_SUFFIX = ".renders.json"
 
 # --- message sources ------------------------------------------------------
 # Who owns the string. The distinction is the whole point of the cp5.0
@@ -524,6 +523,8 @@ RENDER_BRANCHES: tuple[RenderBranch, ...] = (
 RENDER_FAMILY_PENDING = (
     "no fixture family yet — checkpoint 5.3 builds `tests/fixtures/verdict_renders/`; "
     "once it exists an uncovered row here is a missing control")
+#: A rendered case pins a ROW, not a golden's own count, so its `all goldens`
+#: and `replayed` columns are the same number: the family has no excluded set.
 
 
 class InventoryError(Exception):
@@ -656,18 +657,18 @@ def compute_surface_inventory(p: Plan | None = None,
     if problems:
         raise InventoryError(problems)
 
-    render_exists = os.path.isdir(RENDER_FIXDIR)
-    render_hits: dict[str, list[str]] = {}
-    if render_exists:
-        for name in sorted(os.listdir(RENDER_FIXDIR)):
-            if not name.endswith(RENDER_SUFFIX):
-                continue
-            case = name[: -len(RENDER_SUFFIX)]
-            with open(os.path.join(RENDER_FIXDIR, name), encoding="utf-8") as handle:
-                doc = json.load(handle)
-            pins = doc.get("pins", []) if isinstance(doc, dict) else []
-            for rid in pins if isinstance(pins, list) else []:
-                render_hits.setdefault(str(rid), []).append(case)
+    rp = render_plan()
+    problems.extend(f"rendered-surface ledger: {p_}" for p_ in rp.problems)
+    render_exists = bool(rp.cases)
+    render_hits: dict[str, list[str]] = {
+        row: list(cases) for row, cases in pinned_rows(rp).items()
+    }
+    known_rows = {r.id for r in RENDER_BRANCHES}
+    for unknown in sorted(set(render_hits) - known_rows):
+        problems.append(f"rendered-surface case(s) {render_hits[unknown]} pin "
+                        f"'{unknown}', which is not a BR-V9 ledger row")
+    if problems:
+        raise InventoryError(problems)
 
     return SurfaceInventory(
         messages=tuple(_tally(msg_hits, excluded, b.id, b.what, b.source, b.note)

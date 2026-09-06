@@ -1,0 +1,59 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [],
+    "warning": []
+  },
+  "github": {
+    "error": [],
+    "warning": []
+  },
+  "msbuild": {
+    "error": [],
+    "warning": []
+  },
+  "unknown-format": {
+    "error": [],
+    "warning": []
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": []
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": []
+        }
+      ]
+    }
+  }
+}

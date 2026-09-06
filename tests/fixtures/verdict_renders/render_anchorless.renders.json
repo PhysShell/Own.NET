@@ -1,0 +1,131 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [
+      "?:0: error: [OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ],
+    "warning": [
+      "?:0: warning: [OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ]
+  },
+  "github": {
+    "error": [
+      "::error file=?,line=0,title=OWN052::[OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ],
+    "warning": [
+      "::warning file=?,line=0,title=OWN052::[OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ]
+  },
+  "msbuild": {
+    "error": [
+      "?(0): error OWN052: interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ],
+    "warning": [
+      "?(0): warning OWN052: interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ]
+  },
+  "unknown-format": {
+    "error": [
+      "?:0: error: [OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ],
+    "warning": [
+      "?:0: warning: [OWN052] interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+    ]
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN052",
+                  "shortDescription": {
+                    "text": "interprocedural summary inference failed -- method summaries skipped"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN052",
+              "level": "note",
+              "message": {
+                "text": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "?"
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "method summaries",
+                "component": "Anchorless"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN052",
+                  "shortDescription": {
+                    "text": "interprocedural summary inference failed -- method summaries skipped"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN052",
+              "level": "note",
+              "message": {
+                "text": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run [resource: method summaries]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "?"
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "method summaries",
+                "component": "Anchorless"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

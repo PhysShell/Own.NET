@@ -1,0 +1,19 @@
+{
+  "ownir_version": 0,
+  "module": "Evidence",
+  "_doc": [
+    "The two evidence projections: `related` -> relatedLocations and the ordered",
+    "`flow` -> codeFlows. `Blank` records a consuming ctor whose FILE is empty:",
+    "the bridge's relatedLocations builder filters on the line alone, unlike the",
+    "core's own `evidence.related_locations`, which also requires a non-empty",
+    "file — so this one emits an empty uri and the golden pins that difference",
+    "rather than letting a port 'reuse' the core builder and silently drop it."
+  ],
+  "services": [
+    {"name": "App", "lifetime": "singleton", "file": "reg.cs", "line": 5, "deps": ["Db"],
+     "ctor_file": "App.cs", "ctor_line": 3, "ctor_type": "AppService"},
+    {"name": "Db", "lifetime": "scoped", "file": "reg.cs", "line": 6, "deps": []},
+    {"name": "Blank", "lifetime": "singleton", "file": "reg.cs", "line": 8, "deps": ["Db"],
+     "ctor_file": "", "ctor_line": 4, "ctor_type": "BlankService"}
+  ]
+}

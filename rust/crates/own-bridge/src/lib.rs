@@ -40,11 +40,13 @@ mod ast;
 mod dump;
 mod lower;
 mod mos;
+mod render;
 mod verdict;
 
 use own_ir::OwnIr;
 use own_lowered::LoweredDocument;
 
+pub use render::{build_sarif, render_finding, SarifLog};
 pub use verdict::{Finding, Step};
 
 /// A lowering rejection — the Rust twin of Python's `OwnIRError` from

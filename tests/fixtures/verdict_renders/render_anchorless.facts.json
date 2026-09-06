@@ -1,0 +1,20 @@
+{
+  "ownir_version": 0,
+  "module": "Anchorless",
+  "_doc": [
+    "OWN052 is anchorless by nature (file '?', line 0), so its SARIF location",
+    "carries an artifact uri and NO region — a region at line 0 would be a",
+    "schema-invalid coordinate, and a substituted line would be a well-formed",
+    "one pointing nowhere. The solve is forced to fail by a bare name colliding",
+    "with the sig-qualified key its overload set already occupies."
+  ],
+  "functions": [
+    {"name": "Take", "sig": "System.IO.Stream", "file": "t1.cs",
+     "params": [{"name": "p", "line": 1}],
+     "body": [{"op": "release", "var": "p", "line": 2}]},
+    {"name": "Take", "sig": "System.String", "file": "t2.cs",
+     "params": [{"name": "p", "line": 5}],
+     "body": [{"op": "use", "var": "p", "line": 6}]},
+    {"name": "Take(System.IO.Stream)", "file": "clash.cs", "body": []}
+  ]
+}

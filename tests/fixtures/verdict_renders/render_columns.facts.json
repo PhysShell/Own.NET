@@ -1,0 +1,19 @@
+{
+  "ownir_version": 0,
+  "module": "Columns",
+  "_doc": [
+    "A reported column rides into SARIF as region.startColumn, and only ever",
+    "beside a real startLine. The second record reports no column at all, so",
+    "its region carries the line alone — absence is data, never substituted."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "bus.Anchored", "handler": "OnA", "line": 9, "column": 17, "source": "static"},
+        {"event": "bus.Bare", "handler": "OnB", "line": 10, "source": "static"}
+      ]
+    }
+  ]
+}

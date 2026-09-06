@@ -1,0 +1,201 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [
+      "Vm.cs:9: error: [OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:10: error: [OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ],
+    "warning": [
+      "Vm.cs:9: warning: [OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:10: warning: [OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ]
+  },
+  "github": {
+    "error": [
+      "::error file=Vm.cs,line=9,title=OWN001::[OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::error file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ],
+    "warning": [
+      "::warning file=Vm.cs,line=9,title=OWN001::[OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::warning file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ]
+  },
+  "msbuild": {
+    "error": [
+      "Vm.cs(9): error OWN001: event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(10): error OWN001: event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ],
+    "warning": [
+      "Vm.cs(9): warning OWN001: event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(10): warning OWN001: event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ]
+  },
+  "unknown-format": {
+    "error": [
+      "Vm.cs:9: error: [OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:10: error: [OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ],
+    "warning": [
+      "Vm.cs:9: warning: [OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:10: warning: [OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+    ]
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN001",
+                  "shortDescription": {
+                    "text": "owned resource not released on all paths (possible leak)"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN001",
+              "level": "error",
+              "message": {
+                "text": "event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 9,
+                      "startColumn": 17
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Anchored",
+                "handler": "OnA"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "error",
+              "message": {
+                "text": "event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 10
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Bare",
+                "handler": "OnB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN001",
+                  "shortDescription": {
+                    "text": "owned resource not released on all paths (possible leak)"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 9,
+                      "startColumn": 17
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Anchored",
+                "handler": "OnA"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 10
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Bare",
+                "handler": "OnB"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "comment": "The rendered-surface fixture ledger (P-022 #259 checkpoint 5.3, spec/Bridge.md BR-V9). Each case names its facts document beside this file, the BR rules it pins, and the `pins` — the BR-V9 ledger rows it is the control for, which tests/verdict_surface_inventory.py reads to say whether a rule has one. Python is authoritative: regenerate with python tests/test_verdict_render_fixtures.py --write.",
+  "renders_version": 1,
+  "cases": [
+    {
+      "name": "render_anchorless",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_region_omitted"
+      ]
+    },
+    {
+      "name": "render_columns",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_start_column"
+      ]
+    },
+    {
+      "name": "render_empty",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_empty"
+      ]
+    },
+    {
+      "name": "render_escaping",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "github_esc_percent",
+        "github_esc_cr",
+        "github_esc_lf",
+        "github_esc_prop_colon",
+        "github_esc_prop_comma",
+        "sarif_uri_backslash"
+      ]
+    },
+    {
+      "name": "render_evidence_slices",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_related",
+        "sarif_code_flows"
+      ]
+    },
+    {
+      "name": "render_refusal",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "refusal_error"
+      ]
+    },
+    {
+      "name": "render_tiers_and_levels",
+      "rules": [
+        "BR-V9"
+      ],
+      "pins": [
+        "human_line",
+        "human_severity",
+        "github_line",
+        "github_severity",
+        "msbuild_line",
+        "msbuild_severity",
+        "fallback_human",
+        "sarif_envelope",
+        "sarif_driver",
+        "sarif_rules",
+        "sarif_schema_version",
+        "sarif_level_note",
+        "sarif_level_warning",
+        "sarif_level_error",
+        "sarif_level_host_warning",
+        "sarif_region",
+        "sarif_properties",
+        "sarif_suppressions"
+      ]
+    }
+  ]
+}

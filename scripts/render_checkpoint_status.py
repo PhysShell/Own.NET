@@ -98,6 +98,7 @@ SHADOW_CAMPAIGNS = (
 CP5_CAMPAIGNS = (
     ("checkpoint 5.1 — the message matrix and the evidence slices", "p022-cp5-1"),
     ("checkpoint 5.2 — the refusal text and the core message it quotes", "p022-cp5-2"),
+    ("checkpoint 5.3 — the rendered surfaces", "p022-cp5-3"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 

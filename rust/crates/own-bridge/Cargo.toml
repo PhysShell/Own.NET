@@ -25,9 +25,10 @@ own-cfg = { path = "../own-cfg" }
 own-analysis = { path = "../own-analysis" }
 own-diagnostics = { path = "../own-diagnostics" }
 serde_json.workspace = true
-
-[dev-dependencies]
-# The summaries-family manifest is parsed typed+strict in tests/summaries.rs.
+# The BR-V9 SARIF log (#259 cp5.3) is typed structs whose FIELD ORDER is the
+# surface: the reference builds Python dicts and `json.dumps` writes them in
+# insertion order, so the shape is checked at compile time rather than
+# assembled as a free-form value.
 serde.workspace = true
 
 [lints]

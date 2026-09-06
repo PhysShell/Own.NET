@@ -1,7 +1,7 @@
 # P-022 step 6b (#259) — checkpoint 5: messages, evidence, rendered surfaces
 
-> Status: **checkpoints 5.0–5.2 landed** (inventory, messages and evidence,
-> refusal text). This note names what checkpoint 5 has to prove, who owns each
+> Status: **checkpoints 5.0–5.3 landed** (inventory, messages and evidence,
+> refusal text, rendered surfaces). This note names what checkpoint 5 has to prove, who owns each
 > string it must reproduce, and what each sub-checkpoint closed. Every count
 > lives in the generated fragments
 > [`p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md) and
@@ -333,3 +333,61 @@ over a short document — the over-claim that became reachable the moment nothin
 was partial — was unchecked. It now validates both kinds, and the shadow cp2
 campaign's `M35` was re-anchored from the lie that is no longer possible
 (declare full while partial) to the one that is (declare full while short).
+
+## 9. What checkpoint 5.3 landed
+
+BR-V9 had no golden of any kind. It has one now: a new fixture family built to
+the Layer 3 pattern, and a Rust replay that compares the **bytes**.
+
+* **`ownlang/renders.py`** — an observer beside `verdicts.py`, imported by
+  nothing in the production path. It calls `render_finding` and `build_sarif`
+  and records what they returned: every format at both host severities, plus
+  one format `render_finding` does not know, so the fallback is *rendered*
+  rather than asserted equal to the human line. `RENDERS_VERSION` keys the
+  surface and the docstring freezes the normalization.
+* **`tests/fixtures/verdict_renders/`** — seven targeted cases under a frozen
+  manifest ledger, each naming the BR-V9 rows it is the control for. Listed,
+  never swept: rendering the whole verdict corpus at two severities would
+  freeze megabytes to prove less than seven documents chosen for the rules.
+* **`tests/test_verdict_render_fixtures.py`** — verify/`--write`, with stale,
+  missing and orphaned each a red build.
+* **`own-bridge/tests/renders.rs`** — replays every case with zero Python and
+  compares byte for byte. Not a value comparison: SARIF key order is part of
+  this surface, and a value comparison would score a reordered log as
+  agreement. The Rust side reconstructs the document through typed structs
+  whose field order *is* the emitter's key order, because `serde_json`'s map
+  type sorts and would have quietly produced a different document.
+
+### Reuse where the format is shared, and the one place it is not
+
+`codeFlows` is `own_diagnostics::code_flow` verbatim — the two SARIF paths
+genuinely share that projection. `relatedLocations` is **not**, and reusing it
+would have been a bug: the core's builder drops a step whose file is empty
+(an empty `artifactLocation.uri` makes a log unprocessable for GitHub code
+scanning, the invariant `evidence.py` names), while the bridge's inline
+comprehension in `ownir.py` filters on the line alone and emits the empty uri.
+Python is the oracle, so the port reproduces the reference's behaviour and
+`render_evidence_slices` is the golden that goes red if someone "simplifies"
+the two into one.
+
+Nothing in `own-diagnostics` changed. The bridge's SARIF differs from the
+core's in `properties`, `suppressions`, `region.startColumn` and the
+`ownirSchemaVersion` driver stamp, so those are the bridge's own types.
+
+### The `subject` tail, closed
+
+Checkpoint 4 established that no Rust output surface serializes a diagnostic's
+`subject` and promised to re-check once the bridge grew render and SARIF paths.
+It is re-checked over the **bytes**, on both sides — the Python harness and the
+Rust replay each scan the rendered document for a `subject` key — rather than
+restated. `ownir.Finding` has no such member, so a bridge surface that emitted
+one would be inventing a field.
+
+### Coverage
+
+Every BR-V9 row in the inventory ledger is pinned by at least one case, and the
+join is computed rather than asserted: the row ledger lives in
+`tests/verdict_surface_inventory.py`, the `pins` live in the fixture manifest,
+and a row nobody pins reads `GAP: no control` while a case pinning a row the
+ledger does not know is a hard problem. The counts are in
+[the generated fragment](../generated/p022-cp5-inventory.md).

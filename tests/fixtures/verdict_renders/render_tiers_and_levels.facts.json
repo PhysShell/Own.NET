@@ -1,0 +1,26 @@
+{
+  "ownir_version": 0,
+  "module": "Tiers",
+  "_doc": [
+    "One document carrying all three SARIF levels and both suppression states:",
+    "an advisory OWN050 (note), an injected subscription (intrinsic warning), a",
+    "static-source leak (error), and a suppressed finding that stays in results",
+    "with a `suppressions` array. Rendered at both host severities, so the",
+    "downgrade rule is visible: --severity warning lowers the error and leaves",
+    "the note a note."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "bus.Injected", "handler": "OnI", "line": 10, "source": "injected"},
+        {"event": "SystemEvents.Static", "handler": "OnS", "line": 11, "source": "static"},
+        {"event": "bus.Ignored", "handler": "OnG", "line": 12, "source": "static",
+         "ignore_reason": "owned by the host container"},
+        {"resource": "unresolved-subscription", "event": "ext.Unknown", "handler": "OnU",
+         "line": 13}
+      ]
+    }
+  ]
+}
