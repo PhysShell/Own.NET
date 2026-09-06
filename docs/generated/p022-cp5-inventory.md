@@ -126,7 +126,8 @@ Coverage is matched out of the `tests/fixtures/verdict_renders/` family's `pins`
 | `fallback_human` | render | an unknown format falls back to the human line | 1 | 1 |
 | `sarif_envelope` | sarif | `$schema` + `version` + one `run` | 1 | 1 |
 | `sarif_driver` | sarif | `tool.driver.name` = Owen + `informationUri` | 1 | 1 |
-| `sarif_rules` | sarif | rule catalogue: sorted codes + `TITLES` | 1 | 1 |
+| `sarif_rules` | sarif | rule catalogue: sorted, deduplicated + `TITLES` | 2 | 2 |
+| `sarif_result_order` | sarif | results keep the bridge's own order (BR-V8), never the catalogue's | 1 | 1 |
 | `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property | 1 | 1 |
 | `sarif_level_note` | sarif | an advisory renders as `note` | 1 | 1 |
 | `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` | 1 | 1 |

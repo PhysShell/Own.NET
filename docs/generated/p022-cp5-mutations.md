@@ -102,6 +102,53 @@ Definition: `docs/evidence/p022-cp5-2.json` (sha256 `8641e3ff34598123…`, 10 mu
 
 Campaign `p022-cp5-3` — #259 cp5.3 rendered surfaces (BR-V9): the three line-per-finding formats and their host-severity pass-through, every workflow-command escaping rule in both directions and in the order they compose, and the bridge's SARIF log — level mapping, sorted and deduplicated rule catalogue with titles, the ownirSchemaVersion stamp, region omission and startColumn, backslash normalisation, conditional properties, both evidence projections (including the one place reusing the core's builder would be a bug), suppressions, and the result order.
 
-Definition: `docs/evidence/p022-cp5-3.json` (sha256 `40a48ca22c09ccfd…`, 29 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-3.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-3.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-**No recorded run** is committed (expected at `docs/evidence/p022-cp5-3.result.json`): the campaign has a definition but no evidence. Nothing below is a number.
+| measure                                                    | value |
+|------------------------------------------------------------|---|
+| recorded at commit                                         | `5afd97cbe0d479f6ecfce8a6002c127e93bebfe2` |
+| packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
+| mutations                                                  | 29 |
+| caught                                                     | 25 |
+| survived                                                   | 3 |
+| compile-error (no evidence either way)                     | 1 |
+| invalid-mutation                                           | 0 |
+| runner-error                                               | 0 |
+| caught without every expected catcher                      | none |
+| honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
+
+| id | rule | mutation | outcome | caught by |
+|---|---|---|---|---|
+| M01 | BR-V9 | the human line drops the [resource:] tag | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M02 | BR-V9 | the human line hard-codes error, ignoring the host severity | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M03 | BR-V9 | the github annotation swaps its file and line properties | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M04 | BR-V9 | the github annotation hard-codes the error level | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M05 | BR-V9 | workflow-command data leaves '%' unescaped | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M06 | BR-V9 | workflow-command data leaves CR unescaped | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M07 | BR-V9 | workflow-command data leaves LF unescaped | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M08 | BR-V9 | a workflow-command property value leaves ':' unescaped | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M09 | BR-V9 | a workflow-command property value leaves ',' unescaped | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M10 | BR-V9 | a property value escapes its separators BEFORE the data, double-escaping the % | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M11 | BR-V9 | the msbuild line uses the human separator instead of parentheses | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M12 | BR-V9 | the msbuild line hard-codes error, ignoring the host severity | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M13 | BR-V9 | an unknown format falls back to the github annotation, not the human line | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M14 | BR-V6 | an advisory renders as a warning instead of SARIF's note | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M15 | BR-V6 | the host severity no longer downgrades a provable leak | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M16 | BR-V6 | an intrinsic warning tier is ignored and renders as error | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M17 | BR-V9 | the SARIF rule catalogue is not sorted | survived | — |
+| M18 | BR-V9 | the SARIF rule catalogue keeps duplicate codes | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M19 | BR-V9 | a rule's shortDescription is the code, never its title | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M20 | BR-V9 | the driver drops the ownirSchemaVersion stamp | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M21 | BR-V9 | a region is emitted for a file-level (line < 1) finding | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M22 | BR-V9 | startColumn is emitted as null when the producer reported none | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M23 | BR-V9 | the artifact URI keeps a Windows backslash | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M24 | BR-V9 | an empty component/event/handler is emitted as a property | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M25 | BR-V9 | relatedLocations adopts the core's empty-file filter, dropping a step the bridge emits | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M26 | BR-V9 | relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step) | survived | — |
+| M27 | BR-V9 | codeFlows is never built from the ordered slice | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M28 | BR-V9 | a suppressed finding loses its suppressions array | compile-error | — |
+| M29 | BR-V8 | SARIF results are sorted by code, destroying the bridge's own order | survived | — |

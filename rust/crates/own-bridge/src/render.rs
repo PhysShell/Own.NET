@@ -352,3 +352,44 @@ pub fn build_sarif(findings: &[Finding], severity: &str) -> SarifLog {
         }],
     }
 }
+
+#[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing
+)]
+mod tests {
+    use super::{related_locations, Step};
+
+    /// The bridge's `relatedLocations` drops a step whose line is unknown. No
+    /// facts document can produce one — `_consumer_related` and the DI004/DI005
+    /// builders each require their line to be `>= 1` before they emit a step at
+    /// all — so the filter is defensive, and the rendered goldens cannot
+    /// exercise it. It is the reference's rule either way, and a port that
+    /// dropped it would emit `"startLine": 0`, which is not a SARIF coordinate.
+    ///
+    /// The empty-FILE half of this builder is the opposite case and needs no
+    /// unit test: it is reachable, and `render_evidence_slices` is its golden.
+    #[test]
+    fn a_related_step_with_no_line_is_dropped() {
+        let steps: Vec<Step> = vec![
+            ("a.cs".to_owned(), 0, "no line".to_owned()),
+            ("b.cs".to_owned(), -3, "negative line".to_owned()),
+            ("c.cs".to_owned(), 4, "kept".to_owned()),
+        ];
+        let out = related_locations(&steps);
+        assert_eq!(out.len(), 1, "only the resolvable step survives");
+        assert_eq!(out[0].message.text, "kept");
+        assert_eq!(
+            out[0]
+                .physical_location
+                .region
+                .as_ref()
+                .expect("a kept step carries its region")
+                .start_line,
+            4
+        );
+    }
+}

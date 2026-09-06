@@ -1,0 +1,24 @@
+{
+  "ownir_version": 0,
+  "module": "Catalogue",
+  "_doc": [
+    "The SARIF log's TWO orderings, in a document where they disagree. The",
+    "advisory OWN050 is at the first line and the leaks after it, so the results",
+    "run OWN050, OWN001, OWN001 in the bridge's own order (BR-V8) while the rule",
+    "catalogue must run OWN001, OWN050 — sorted and deduplicated. A log that",
+    "sorted its results, or left its catalogue in encounter order, or listed",
+    "OWN001 twice, all read plausibly and are all wrong."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"resource": "unresolved-subscription", "event": "ext.Unknown", "handler": "OnU",
+         "line": 1},
+        {"event": "bus.First", "handler": "OnF", "line": 5, "source": "static"},
+        {"event": "bus.Second", "handler": "OnS", "line": 6, "source": "static"}
+      ]
+    }
+  ]
+}

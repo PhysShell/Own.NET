@@ -287,12 +287,12 @@
     {
       "id": "M26",
       "rule": "BR-V9",
-      "description": "relatedLocations keeps a step whose line is unknown",
+      "description": "relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step)",
       "target": "rust/crates/own-bridge/src/render.rs",
       "pattern": "\\.filter\\(\\|\\(_, line, _\\)\\| \\*line >= 1\\)\\n",
       "replacement": "",
       "expected_catchers": [
-        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+        "own-bridge/src/lib.rs::render::tests::a_related_step_with_no_line_is_dropped"
       ]
     },
     {
@@ -312,7 +312,7 @@
       "description": "a suppressed finding loses its suppressions array",
       "target": "rust/crates/own-bridge/src/render.rs",
       "pattern": "suppressions: f\\n(\\s+)\\.ignore_reason\\n(\\s+)\\.as_ref\\(\\)",
-      "replacement": "suppressions: None\n\\1.as_ref()\n\\2.map(|_: &String| unreachable!())",
+      "replacement": "suppressions: f\n\\1.ignore_reason\n\\2.as_ref()\n\\2.filter(|_| false)",
       "expected_catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ]

@@ -63,6 +63,17 @@
       ]
     },
     {
+      "name": "render_rule_catalogue",
+      "rules": [
+        "BR-V8",
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_rules",
+        "sarif_result_order"
+      ]
+    },
+    {
       "name": "render_tiers_and_levels",
       "rules": [
         "BR-V9"
