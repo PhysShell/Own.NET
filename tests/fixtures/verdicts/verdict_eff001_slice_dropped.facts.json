@@ -1,0 +1,13 @@
+{
+  "ownir_version": 0,
+  "module": "Eff001NoSlice",
+  "_doc": [
+    "BR-V5's line-guard on the effect slice: the storm is a verdict either way,",
+    "but an effect whose own call line is unknown cannot anchor the re-run hop,",
+    "so no slice is emitted (and none is faked at line 0)."
+  ],
+  "effects": [
+    {"component": "Widget", "file": "Widget.tsx", "line": 0, "io": true, "deps": ["opts"],
+     "bindings": [{"name": "opts", "init": "object", "refs": [], "line": 4}]}
+  ]
+}

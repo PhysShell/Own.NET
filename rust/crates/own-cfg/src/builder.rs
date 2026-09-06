@@ -194,7 +194,14 @@ impl<'a> Builder<'a> {
                 return Some(*id);
             }
         }
-        self.diag("OWN030", line);
+        // The reference interpolates the unresolved name, and the bridge's
+        // map-or-raise refusal quotes this message verbatim (BR-V3), so it is
+        // the one resolver text this core carries rather than a title.
+        self.diags.push(Diag::with_message(
+            "OWN030",
+            line,
+            format!("undefined name '{name}'"),
+        ));
         None
     }
 

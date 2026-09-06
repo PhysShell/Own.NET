@@ -1,0 +1,42 @@
+{
+  "ownir_version": 0,
+  "module": "UnknownLineGuards",
+  "_doc": [
+    "BR-V5's line guards, one per slice builder, each on a record that IS a",
+    "verdict but cannot anchor its slice. `s` is used after disposal but its",
+    "acquire line is unknown, so the flow-local origin hop has nowhere to point;",
+    "`bus.E` is a proven captive whose SUBSCRIBE line is unknown, so the escape",
+    "slice is never started; the `Widget` effect fires at a known line but the",
+    "identity it depends on is minted at an unknown one, so the second hop is",
+    "missing. Every one of the three emits its verdict and NO slice — a fake",
+    "step at line 0 would be a well-formed coordinate pointing nowhere."
+  ],
+  "services": [
+    {"name": "Bus", "lifetime": "singleton", "file": "reg.cs", "line": 3, "deps": []}
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "Vm.cs",
+      "subscriptions": [
+        {"event": "bus.E", "handler": "OnE", "line": 0,
+         "source": "injected", "source_type": "Bus"}
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "Guards.UsedAfterDispose",
+      "file": "G.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 0},
+        {"op": "release", "var": "s", "line": 2},
+        {"op": "use", "var": "s", "line": 3}
+      ]
+    }
+  ],
+  "effects": [
+    {"component": "Widget", "file": "Widget.tsx", "line": 5, "io": true, "deps": ["opts"],
+     "bindings": [{"name": "opts", "init": "object", "refs": [], "line": 0}]}
+  ]
+}

@@ -1,0 +1,415 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [
+      "reg.cs:5: error: [DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs:8: error: [DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ],
+    "warning": [
+      "reg.cs:5: warning: [DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs:8: warning: [DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ]
+  },
+  "github": {
+    "error": [
+      "::error file=reg.cs,line=5,title=DI001::[DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "::error file=reg.cs,line=8,title=DI001::[DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ],
+    "warning": [
+      "::warning file=reg.cs,line=5,title=DI001::[DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "::warning file=reg.cs,line=8,title=DI001::[DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ]
+  },
+  "msbuild": {
+    "error": [
+      "reg.cs(5): error DI001: singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs(8): error DI001: singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ],
+    "warning": [
+      "reg.cs(5): warning DI001: singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs(8): warning DI001: singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ]
+  },
+  "unknown-format": {
+    "error": [
+      "reg.cs:5: error: [DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs:8: error: [DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ],
+    "warning": [
+      "reg.cs:5: warning: [DI001] singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]",
+      "reg.cs:8: warning: [DI001] singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+    ]
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "DI001",
+                  "shortDescription": {
+                    "text": "captive dependency: a shorter-lived service is captured by a longer-lived one"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "DI001",
+              "level": "error",
+              "message": {
+                "text": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "reg.cs"
+                    },
+                    "region": {
+                      "startLine": 5
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "DI lifetime",
+                "component": "App",
+                "event": "Db"
+              },
+              "relatedLocations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "App.cs"
+                    },
+                    "region": {
+                      "startLine": 3
+                    }
+                  },
+                  "message": {
+                    "text": "consuming constructor of 'AppService'"
+                  }
+                }
+              ],
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 5
+                              }
+                            },
+                            "message": {
+                              "text": "singleton 'App' (captor)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 6
+                              }
+                            },
+                            "message": {
+                              "text": "captures scoped service 'Db'"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "DI001",
+              "level": "error",
+              "message": {
+                "text": "singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "reg.cs"
+                    },
+                    "region": {
+                      "startLine": 8
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "DI lifetime",
+                "component": "Blank",
+                "event": "Db"
+              },
+              "relatedLocations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": ""
+                    },
+                    "region": {
+                      "startLine": 4
+                    }
+                  },
+                  "message": {
+                    "text": "consuming constructor of 'BlankService'"
+                  }
+                }
+              ],
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 8
+                              }
+                            },
+                            "message": {
+                              "text": "singleton 'Blank' (captor)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 6
+                              }
+                            },
+                            "message": {
+                              "text": "captures scoped service 'Db'"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "DI001",
+                  "shortDescription": {
+                    "text": "captive dependency: a shorter-lived service is captured by a longer-lived one"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "DI001",
+              "level": "warning",
+              "message": {
+                "text": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db) [consumed by the 'AppService' constructor at App.cs:3] [resource: DI lifetime]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "reg.cs"
+                    },
+                    "region": {
+                      "startLine": 5
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "DI lifetime",
+                "component": "App",
+                "event": "Db"
+              },
+              "relatedLocations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "App.cs"
+                    },
+                    "region": {
+                      "startLine": 3
+                    }
+                  },
+                  "message": {
+                    "text": "consuming constructor of 'AppService'"
+                  }
+                }
+              ],
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 5
+                              }
+                            },
+                            "message": {
+                              "text": "singleton 'App' (captor)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 6
+                              }
+                            },
+                            "message": {
+                              "text": "captures scoped service 'Db'"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "DI001",
+              "level": "warning",
+              "message": {
+                "text": "singleton 'Blank' captures scoped service 'Db' (captive dependency: Blank -> Db) [consumed by the 'BlankService' constructor at :4] [resource: DI lifetime]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "reg.cs"
+                    },
+                    "region": {
+                      "startLine": 8
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "DI lifetime",
+                "component": "Blank",
+                "event": "Db"
+              },
+              "relatedLocations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": ""
+                    },
+                    "region": {
+                      "startLine": 4
+                    }
+                  },
+                  "message": {
+                    "text": "consuming constructor of 'BlankService'"
+                  }
+                }
+              ],
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 8
+                              }
+                            },
+                            "message": {
+                              "text": "singleton 'Blank' (captor)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "reg.cs"
+                              },
+                              "region": {
+                                "startLine": 6
+                              }
+                            },
+                            "message": {
+                              "text": "captures scoped service 'Db'"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

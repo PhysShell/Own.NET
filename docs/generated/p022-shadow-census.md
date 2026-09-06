@@ -24,8 +24,8 @@ which also states the byte-level boundary repeated in the unmeasured set below.
 | `tests/fixtures/ownir` | 22 |
 | `tests/fixtures/repro` | 3 |
 | `tests/fixtures/summaries` | 9 |
-| `tests/fixtures/verdicts` | 19 |
-| **total** | **80** |
+| `tests/fixtures/verdicts` | 29 |
+| **total** | **90** |
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
@@ -36,8 +36,8 @@ the difference is named in the unmeasured set below.
 
 | surface | count |
 |---|---|
-| documents captured and digest-pinned | 80 |
-| tamper controls (one changed character per document, refusal required) | 80 |
+| documents captured and digest-pinned | 90 |
+| tamper controls (one changed character per document, refusal required) | 90 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 9 |
 | structural negative controls on `verify` (each side) | 18 |
@@ -51,13 +51,22 @@ it could **produce**. Over the committed artifacts:
 | engine | layers produced | layers refused | projection `full` | projection `partial` |
 |---|---|---|---|---|
 | `python-ownlang` | 24 | 3 | 27 | 0 |
-| `rust-own-bridge` | 20 | 7 | 19 | 8 |
+| `rust-own-bridge` | 20 | 7 | 27 | 0 |
 
-The port's `partial` layers are its verdict surface: `own_bridge::check_facts`
-is at the #259 checkpoint-4 projection, which carries every `Finding` member
-except `message`, `related` and `flow`. It says so in the artifact rather than
-emitting a short document a later comparison would score as agreement, and a
-test asserts the claim matches the records byte for byte.
+The port's `partial` column read non-zero until #259 cp5.1/5.2: its verdict
+surface sat at the checkpoint-4 projection, carrying every `Finding` member
+except `message`, `related` and `flow`, and said so in the artifact rather than
+emitting a short document a later comparison would score as agreement. Those
+members are ported, so the layer is `full` and no partial projection remains —
+a fact about this port's progress, not a reason to drop the field. The check
+moved with it: it now asserts a `full` claim against the complete Layer 3
+record too, because a `full` declared over a short document is the over-claim
+that became reachable the moment nothing was partial.
+
+**Still not shadow mode, and still not the verdict layer entering it.** The
+reducer REFUSES the verdict layer and records the refusal in every reduction;
+what changed above is one engine's declaration of what it puts in the
+envelope.
 
 **Layer envelopes where the two engines' status differs** — structural
 accounting, not a content comparison, and every one of them a boundary the port
@@ -129,7 +138,7 @@ non-zero counter there is not representable as a passing build. The gates:
 - `own-shadow/tests/repro.rs::the_canonical_form_ignores_only_insignificant_text_formatting`
 - `own-shadow/tests/repro.rs::values_outside_the_canonical_domain_are_refused_at_parse`
 - `own-shadow/tests/repro.rs::verify_refuses_each_structural_violation`
-- `own-shadow/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries`
+- `own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries`
 - `own-shadow/tests/engine.rs::both_engines_report_the_same_layers_in_the_same_order`
 - `own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture`
 - `own-shadow/tests/trace.rs::a_mint_order_shift_moves_the_order_but_not_the_stable_ids`

@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-cp5-2",
+  "definition": "docs/evidence/p022-cp5-2.json",
+  "definition_sha256": "8641e3ff34598123a194ab64111f033c345f6bb1846544c76c62a59230d39c08",
+  "source_commit": "2a7ff6d4ab2877b930f79f09bc6f55bfbffd094e",
+  "dirty": false,
+  "recorded_at": "2026-09-06T15:54:56Z",
+  "packages": [
+    "own-analysis",
+    "own-bridge",
+    "own-cfg",
+    "own-diagnostics",
+    "own-ir",
+    "own-lowered",
+    "own-shadow",
+    "own-syntax"
+  ],
+  "command": "cargo test -p <package> --no-fail-fast, for every workspace member",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 8.4
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 5.0
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.5
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M06",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ],
+      "elapsed_seconds": 4.3
+    },
+    {
+      "id": "M07",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.9
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.3
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ],
+      "elapsed_seconds": 4.1
+    }
+  ]
+}

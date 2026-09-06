@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Vm.cs",
+      "line": 11,
+      "code": "OWN014",
+      "component": "Vm",
+      "event": "bus.Changed",
+      "handler": "OnBus",
+      "message": "event 'bus.Changed' is subscribed (handler 'OnBus') to 'Bus' — a DI singleton (application-lifetime) service that outlives 'Vm'; the strong subscription promotes 'Vm' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

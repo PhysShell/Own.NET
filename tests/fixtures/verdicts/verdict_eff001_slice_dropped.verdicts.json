@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Widget.tsx",
+      "line": 0,
+      "code": "EFF001",
+      "component": "Widget",
+      "event": "opts",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'opts' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'opts' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

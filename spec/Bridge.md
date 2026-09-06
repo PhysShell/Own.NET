@@ -366,29 +366,47 @@ committed regeneration path and a zero-Python steady state:
   (IR4-everywhere fail-loud), `tolerant_unknown_kind` is now one of those
   shared cases — its `Rejected` golden pins the identical error text on both
   sides — so there are **no `rust_replay: false` snapshots left**. Layer 1
-  landed in `own-ir` (#259 cp1: 216 controls, 0/0/0); Layer 3 is built at the
-  checkpoint-4 surface (below); #259 as a whole remains open on cp5.
-- **Layer 3 — final normalized diagnostics.** The findings list (and its
-  SARIF/github/msbuild renderings) per facts fixture, byte-exact — the outer
-  contract. **Built** (#259 cp4): `ownlang/verdicts.py` is the authoritative
-  Python emitter (`VERDICTS_VERSION` keys the surface; its docstring freezes
-  the normalization decisions — every `Finding` member in declaration order,
-  the bridge's own ordering, `[file, line, label]` evidence triples, a
-  refusal as `{"error": …}`), `tests/fixtures/verdicts/` holds the goldens
-  under the frozen `manifest.json` ledger, and `tests/test_verdict_fixtures.py`
-  is the verify/`--write` harness. The cases are the swept `ownir`/`lowered`/
-  `summaries` corpora plus synthetic verdict controls, all through the
-  **tolerant door** (`check_facts` on the loaded dict, as `test_ownir.py`
-  does). On the Rust side `own_bridge::check_facts` replays every case
-  (`own-bridge/tests/verdicts.rs`); at cp4 the replay compares **identity,
-  anchor, kind and tiering** — every member but `message`, `related` and
-  `flow`, which the goldens already carry and cp5 compares. The manifest's
-  `rust_replay_excluded` ledger names the documents the Rust core **refuses
-  by a declared boundary** — a protocol-bearing document (OBL analysis not
-  ported), a coordinate outside the core's `u32` line domain, a shape the
-  typed Rust door rejects before the bridge runs (OD-1) — each with its
-  reason and an expectation the replay executes, so an exclusion cannot rot.
-  The `summaries` dump (INF-R1) covers the MOS sub-surface.
+  landed in `own-ir` (#259 cp1: 216 controls, 0/0/0); Layer 3 is built and fully
+  compared (below); #259 as a whole remains open on **row 4b** (the
+  obligation-protocol analysis) and the coordinate-domain decision.
+- **Layer 3 — final normalized diagnostics.** The findings list per facts
+  fixture, and its SARIF/github/msbuild renderings — the outer contract, in
+  **two families**. Built at #259 cp4, fully compared at cp5:
+
+  - *the verdict list*: `ownlang/verdicts.py` is the authoritative Python
+    emitter (`VERDICTS_VERSION` keys the surface; its docstring freezes the
+    normalization — every `Finding` member in declaration order, the bridge's
+    own ordering, `[file, line, label]` evidence triples, a refusal as
+    `{"error": …}`), `tests/fixtures/verdicts/` holds the goldens under the
+    frozen `manifest.json` ledger, and `tests/test_verdict_fixtures.py` is the
+    verify/`--write` harness. The cases are the swept `ownir`/`lowered`/
+    `summaries` corpora plus synthetic verdict controls, all through the
+    **tolerant door** (`check_facts` on the loaded dict, as `test_ownir.py`
+    does). `own_bridge::check_facts` replays every case
+    (`own-bridge/tests/verdicts.rs`) and compares **every `Finding` member** —
+    identity, anchor, kind, tiering, the BR-V4 message and the BR-V5
+    `related`/`flow` slices — plus every refusal **in full**, with no
+    normalization on either side. No golden was regenerated to reach that:
+    they have carried all three of the late members since cp4.
+  - *the rendered surfaces* (BR-V9): `ownlang/renders.py` is the authoritative
+    emitter (`RENDERS_VERSION` keys the surface; every format at both host
+    severities, plus one format `render_finding` does not know so the fallback
+    is rendered rather than assumed), `tests/fixtures/verdict_renders/` holds
+    the goldens under their own frozen ledger — cases are **listed, never
+    swept**, each naming the BR-V9 rules it is the control for —
+    `tests/test_verdict_render_fixtures.py` is the harness, and
+    `own-bridge/tests/renders.rs` replays them **byte for byte**, because
+    SARIF key order is part of this surface.
+
+  The manifest's `rust_replay_excluded` ledger names the documents the Rust
+  core **refuses by a declared boundary** — a protocol-bearing document (OBL
+  analysis not ported), a coordinate outside the core's `u32` line domain, a
+  shape the typed Rust door rejects before the bridge runs (OD-1) — each with
+  its reason and an expectation the replay executes, so an exclusion cannot
+  rot. The `summaries` dump (INF-R1) covers the MOS sub-surface. Which BR-V4
+  wording, BR-V5 slice family and BR-V9 rule the corpus reaches — and the
+  recorded disposition of every one it does not — is the generated ledger
+  [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md).
 
 **Composing the three layers: the reproduction artifact.** The three layers
 above are each frozen on their own, and step 7a (#260/#269) needs them

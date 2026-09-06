@@ -106,13 +106,14 @@
     },
     {
       "id": "M35",
-      "description": "the port declares its verdict layer FULL while it is at the checkpoint-4 projection",
+      "description": "the port declares its verdict layer FULL while emitting a short record (the over-claim that became reachable when the layer stopped being partial, #259 cp5.1/5.2)",
       "rule": "engine protocol: a projection that over-claims is exactly what the field exists to prevent",
       "target": "rust/crates/own-shadow/src/engine.rs",
-      "pattern": "\\ \\ \\ \\ let\\ projection\\ =\\ partial_projection\\(\\&VERDICT_MEMBERS,\\ VERDICT_PROJECTION_REASON\\);",
-      "replacement": "    let projection = full_projection();",
+      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"message\",\\ Json::Str\\(f\\.message\\.clone\\(\\)\\)\\),\\n",
+      "replacement": "",
       "expected_catchers": [
-        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+        "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries"
       ]
     },
     {
@@ -123,7 +124,7 @@
       "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\(\"column\",\\ f\\.column\\.map_or\\(Json::Null,\\ Json::Int\\)\\),",
       "replacement": "",
       "expected_catchers": [
-        "rust-engine/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries",
+        "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ]
     },

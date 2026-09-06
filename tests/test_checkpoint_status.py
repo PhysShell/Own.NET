@@ -2,9 +2,11 @@
 """Gate: the generated checkpoint status fragments equal their projection, and
 every recorded mutation campaign can still be replayed.
 
-`docs/generated/p022-cp4-*.md` and `docs/generated/p022-shadow-*.md` are
-rendered from the evidence in the tree by `scripts/render_checkpoint_status.py`
-(the verdict ledger census through `tests/verdict_census.py`; the step-7a
+`docs/generated/p022-cp4-*.md`, `docs/generated/p022-cp5-*.md` and
+`docs/generated/p022-shadow-*.md` are rendered from the evidence in the tree by
+`scripts/render_checkpoint_status.py` (the verdict ledger census through
+`tests/verdict_census.py`; the cp5 surface inventory through
+`tests/verdict_surface_inventory.py`; the step-7a
 census through `tests/shadow_census.py`; every recorded mutation campaign
 through `scripts/mutate_campaign.py`). This module runs its `--check`
 in-process, so a change to the evidence without regenerating the fragments — or
@@ -41,6 +43,9 @@ from mutate_campaign import CampaignError, load_definition, validate  # noqa: E4
 from render_checkpoint_status import (  # noqa: E402
     CAMPAIGN,
     CENSUS_MD,
+    CP5_CAMPAIGNS,
+    CP5_MUTATIONS_MD,
+    INVENTORY_MD,
     MUTATIONS_MD,
     SHADOW_CAMPAIGNS,
     SHADOW_CENSUS_MD,
@@ -51,8 +56,9 @@ from render_checkpoint_status import (  # noqa: E402
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 # Every campaign definition in the tree, gated for replayability. A campaign
 # nobody listed is a campaign nobody re-anchors.
-DEFINITIONS = (CAMPAIGN, *(os.path.join(EVIDENCE, f"{campaign}.json")
-                           for _, campaign in SHADOW_CAMPAIGNS))
+DEFINITIONS = (CAMPAIGN,
+               *(os.path.join(EVIDENCE, f"{campaign}.json")
+                 for _, campaign in (*CP5_CAMPAIGNS, *SHADOW_CAMPAIGNS)))
 
 
 def _anchors() -> list[str]:
@@ -81,8 +87,9 @@ def run() -> int:
               f"tree; re-anchor it (the recorded result stays valid for the commit it names)")
     if problems or anchors:
         return 1
-    print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
-          f"{SHADOW_MUTATIONS_MD} in sync with the evidence; "
+    print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, "
+          f"{CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with "
+          f"the evidence; "
           f"{len(DEFINITIONS)} campaign definitions still anchor")
     return 0
 

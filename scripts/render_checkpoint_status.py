@@ -5,13 +5,25 @@ The status surfaces (the P-022 table, the proposals index, a checkpoint note)
 say WHAT a checkpoint proves and link here; the measured numbers live only in
 these generated fragments, computed from the evidence — never typed:
 
-* `docs/generated/p022-cp4-census.md` — the verdict ledger census, from
-  `tests/verdict_census.compute_verdict_census()` (the same interpretation the
-  fixture harness uses).
+* `docs/generated/p022-cp4-census.md` — the Layer 3 census: the verdict ledger
+  from `tests/verdict_census.compute_verdict_census()` and the rendered-surface
+  family from `tests/verdict_render_census.compute_render_census()` (in both
+  cases the same interpretation the fixture harnesses use). The filename is
+  checkpoint 4's, because that is where the fragment was introduced and two
+  notes link it; what it DESCRIBES is the current comparison surface, which the
+  document says in its own first paragraph.
+* `docs/generated/p022-cp5-inventory.md` — the checkpoint-5 SURFACE inventory,
+  from `tests/verdict_surface_inventory.compute_surface_inventory()`: which
+  BR-V4 wording branch, BR-V5 evidence family and BR-V9 rendered-surface rule
+  the frozen goldens already reach, and which are not reached at all. The
+  census counts the ledger; this one says what the ledger covers.
 * `docs/generated/p022-cp4-mutations.md` — the recorded mutation campaign,
   from `docs/evidence/p022-cp4-mutations.json` and its `.result.json`, through
   `scripts/mutate_campaign.summarize()` (the same interpretation the runner
   prints).
+* `docs/generated/p022-cp5-mutations.md` — checkpoint 5's recorded mutation
+  campaigns, one section per sub-checkpoint, through the same
+  `summarize()` as every other campaign in the tree.
 * `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
@@ -59,10 +71,23 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
 )
 from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
+from verdict_render_census import (  # noqa: E402
+    RenderCensus,
+    RenderCensusError,
+    compute_render_census,
+)
+from verdict_surface_inventory import (  # noqa: E402
+    Coverage,
+    InventoryError,
+    SurfaceInventory,
+    compute_surface_inventory,
+)
 
 GENERATED = os.path.join(ROOT, "docs", "generated")
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
+INVENTORY_MD = "p022-cp5-inventory.md"
+CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -75,6 +100,14 @@ SHADOW_CAMPAIGNS = (
     ("checkpoint 2 — the engine protocol", "p022-shadow-cp2"),
     ("checkpoint 3 — the AnalysisTrace and stable-ID normalization", "p022-shadow-cp3"),
     ("checkpoint 4 — first-divergence reduction", "p022-shadow-cp4"),
+)
+# One campaign per cp5 sub-checkpoint, for the same reason the shadow slice has
+# one per checkpoint: a campaign stays frozen at what it measured, so a later
+# sub-checkpoint cannot quietly restate an earlier one's numbers.
+CP5_CAMPAIGNS = (
+    ("checkpoint 5.1 — the message matrix and the evidence slices", "p022-cp5-1"),
+    ("checkpoint 5.2 — the refusal text and the core message it quotes", "p022-cp5-2"),
+    ("checkpoint 5.3 — the rendered surfaces", "p022-cp5-3"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -91,7 +124,7 @@ def _rel(path: str) -> str:
 # --- census ---------------------------------------------------------------
 
 
-def render_census(c: Census) -> str:
+def render_census(c: Census, r: RenderCensus | None) -> str:
     rows: list[tuple[str, str]] = [
         ("goldens — Python's complete truth, one per planned case", str(c.goldens))]
     for origin, n in c.by_origin:
@@ -111,19 +144,28 @@ def render_census(c: Census) -> str:
             what = f"… refused by `check_facts` with an error containing `{contains}`"
         rows.append((what, str(n)))
     rows += [
-        ("replayed by Rust at the cp4 surface (goldens minus exclusions)", str(c.replayed)),
-        ("… reference refusals among them (compared by refusal class)",
-         str(c.replayed_refusals)),
-        ("… findings among them (compared on the cp4 members)", str(c.replayed_findings)),
+        ("replayed by Rust (goldens minus exclusions)", str(c.replayed)),
+        ("… reference refusals among them (compared in full)", str(c.replayed_refusals)),
+        ("… findings among them (compared on every `Finding` member)",
+         str(c.replayed_findings)),
     ]
     width = max(len(k) for k, _ in rows)
     lines = [
-        _header("tests/fixtures/verdicts/manifest.json and the *.verdicts.json goldens"),
-        "# P-022 checkpoint 4 — measured census",
+        _header("tests/fixtures/verdicts/ and tests/fixtures/verdict_renders/ "
+                "(manifests + goldens)"),
+        "# P-022 #259 — the Layer 3 measured census",
         "",
-        "Computed by `tests/verdict_census.py` (the interpretation "
-        "`tests/test_verdict_fixtures.py` verifies against the Python projection) over the "
-        "frozen Layer 3 ledger; the Rust half is `rust/crates/own-bridge/tests/verdicts.rs`.",
+        "Computed by `tests/verdict_census.py` and `tests/verdict_render_census.py` (the "
+        "interpretations the two fixture harnesses verify against the Python projections) "
+        "over the frozen ledgers; the Rust halves are "
+        "`rust/crates/own-bridge/tests/verdicts.rs` and `.../tests/renders.rs`.",
+        "",
+        "**The surface this describes is checkpoint 5's**: the verdict replay compares "
+        "EVERY `Finding` member (`message`, `related` and `flow` included) and every "
+        "refusal in full, and the rendered-surface replay compares bytes. At checkpoint 4 "
+        "the same ledger was compared on identity, anchor, kind and tiering only, and "
+        "refusals up to their `message=` member; the counts below are the ledger's either "
+        "way, which is why one fragment serves both and says which surface it means.",
         "",
         f"| {'measure'.ljust(width)} | value |",
         f"|{'-' * (width + 2)}|------:|",
@@ -133,13 +175,115 @@ def render_census(c: Census) -> str:
         "",
         "The differential counts over the replayed set — Python-only, Rust-only, changed, "
         "ordering-only, unexplained — are asserted, not measured here: the Rust replay "
-        "compares every replayed case's full ordered verdict list (or its refusal class) "
-        "against the golden on the cp4 members, collects every divergence without "
-        "fail-fast, and fails if one exists. A green "
-        "`cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; "
-        "a non-zero count is a red build.",
+        "compares every replayed case's full ordered verdict list (or its refusal text) "
+        "against the golden on every member, collects every divergence without fail-fast, "
+        "and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is "
+        "0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.",
+        "",
+        "## The rendered surfaces (BR-V9)",
+        "",
+        "A second family, and a different kind of comparison: its replay compares the "
+        "**bytes**, because SARIF key order is part of this surface. Cases are listed, "
+        "never swept — one exists to exercise a BR-V9 rule, and which rows each pins is "
+        "the join the [surface inventory](" + INVENTORY_MD + ") reports on.",
         "",
     ]
+    if r is None:
+        lines += ["The family could not be counted (see the gate's problems).", ""]
+        return "\n".join(lines)
+    render_rows = [
+        ("cases — one per BR-V9 rule group, listed exhaustively in the manifest",
+         str(r.cases)),
+        ("… whose golden is a bridge refusal (nothing to render)", str(r.refusals)),
+        ("rendered lines compared byte-for-byte (4 formats, 2 host severities)",
+         str(r.rendered_lines)),
+        ("SARIF results compared byte-for-byte (both host severities)",
+         str(r.sarif_results)),
+        ("BR-V9 ledger rows pinned by at least one case", str(r.pinned_rows)),
+    ]
+    width = max(len(k) for k, _ in render_rows)
+    lines += [f"| {'measure'.ljust(width)} | value |", f"|{'-' * (width + 2)}|------:|"]
+    lines += [f"| {k.ljust(width)} | {v} |" for k, v in render_rows]
+    lines.append("")
+    return "\n".join(lines)
+
+
+# --- checkpoint 5: the surface inventory ----------------------------------
+
+
+def _coverage_table(rows: tuple[Coverage, ...]) -> list[str]:
+    """One ledger as a table: id, what it is, and the two measured counts. A row
+    at zero over the replayed set is a gap, marked so a reader does not have to
+    compare two numbers to find it."""
+    out = ["| ledger row | surface | what it is | all goldens | replayed |",
+           "|---|---|---|---:|---:|"]
+    for c in rows:
+        what = c.what
+        if c.replayed == 0:
+            what += f" — **not replayed**: {c.note}" if c.note else " — **GAP: no control**"
+        out.append(f"| `{c.id}` | {c.detail} | {what} | {c.total} | {c.replayed} |")
+    out.append("")
+    return out
+
+
+def render_inventory(inv: SurfaceInventory) -> str:
+    """The cp5 surface ledger. Every count is matched out of the committed
+    goldens by `tests/verdict_surface_inventory.py`; a finding or slice the
+    ledger cannot place fails the gate rather than being rounded away."""
+    lines = [
+        _header("tests/fixtures/verdicts/*.verdicts.json through "
+                "tests/verdict_surface_inventory.py"),
+        "# P-022 checkpoint 5 — surface inventory (what the frozen goldens reach)",
+        "",
+        "Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set "
+        "([census](" + CENSUS_MD + ")). Checkpoint 5 proves the three surfaces cp4 "
+        "carried without comparing: the **messages** (BR-V4), the **evidence slices** "
+        "(BR-V5) and the **rendered surfaces** (BR-V9). This fragment is the "
+        "completeness ledger for those three: every branch read off `ownlang/ownir.py`, "
+        "matched against the committed goldens.",
+        "",
+        "`all goldens` counts Python's complete truth; `replayed` counts only the cases "
+        "the Rust replay runs (the ledger's `rust_replay_excluded` entries removed). A "
+        "row whose **replayed** count is zero is a branch the golden corpus does not "
+        "prove; each such row carries its **disposition** — what pins the branch instead, "
+        "and why no facts document can reach it. A zero row with no disposition reads "
+        "`GAP: no control`, which is a missing control, not a passing one.",
+        "",
+        "## BR-V4 — message synthesis, by who owns the string",
+        "",
+        "`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` "
+        "— the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own "
+        "finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated "
+        "verbatim; `bridge-protocol` — the OBL family, which is #259 row 4b and outside "
+        "cp5.",
+        "",
+    ]
+    lines += _coverage_table(inv.messages)
+    lines += ["### Wording tails", "",
+              "Each is its own degradation rule inside an analysis message — the tail is "
+              "dropped, not blanked, when its location is unknown.", ""]
+    lines += _coverage_table(inv.tails)
+    lines += ["## BR-V5 — evidence slices", "",
+              "One row per `related`/`flow` family; a slice matching no family (or two) "
+              "fails the gate.", ""]
+    lines += _coverage_table(inv.slices)
+    lines += ["### Degradations", "",
+              "The rules that produce an EMPTY slice: a step whose line is unknown is "
+              "omitted, and a slice left shorter than two steps is dropped. Counted "
+              "separately, because a rule only ever seen firing positively has no "
+              "negative control.", ""]
+    lines += _coverage_table(inv.degradations)
+    lines += ["## BR-V9 — rendered surfaces", ""]
+    if inv.render_family_exists:
+        lines += ["Coverage is matched out of the `tests/fixtures/verdict_renders/` "
+                  "family's `pins` ledger.", ""]
+    else:
+        lines += ["**No fixture family exists yet.** `render_finding` and `build_sarif` "
+                  "on the bridge path have no golden of their own: checkpoint 5.3 builds "
+                  "`tests/fixtures/verdict_renders/`, and every row below reads zero "
+                  "until it does. The rows are declared here so the gap is a ledger "
+                  "entry rather than an omission.", ""]
+    lines += _coverage_table(inv.renders)
     return "\n".join(lines)
 
 
@@ -235,25 +379,32 @@ def _mutation_section(heading: str, definition: Definition | None, result: Resul
 # --- step 7a: the shadow-mode infrastructure slice ------------------------
 
 
-def _shadow_paths(campaign: str) -> tuple[str, str]:
+def render_shadow_mutations() -> tuple[str, list[str]]:
+    """The slice's four campaigns, one document, the same interpreter as cp4's."""
+    return render_campaign_set(
+        "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
+        "Every mutation edits a **production** surface (P-022 discipline 2) and every "
+        "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
+        "campaign stays frozen at what it measured; the counts below are derived from "
+        "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
+        SHADOW_CAMPAIGNS)
+
+
+def _campaign_paths(campaign: str) -> tuple[str, str]:
     return (os.path.join(EVIDENCE, f"{campaign}.json"),
             os.path.join(EVIDENCE, f"{campaign}.result.json"))
 
 
-def render_shadow_mutations() -> tuple[str, list[str]]:
-    """The slice's four campaigns, one document, the same interpreter as cp4's."""
-    sources = ", ".join(_rel(_shadow_paths(c)[0]) for _, c in SHADOW_CAMPAIGNS)
-    parts = [_header(f"{sources} and their .result.json"),
-             "# P-022 step 7a — shadow-mode infrastructure: mutation campaigns",
-             "",
-             "Every mutation edits a **production** surface (P-022 discipline 2) and every "
-             "declared layer runs for every mutation (discipline 3: no fail-fast). Each "
-             "campaign stays frozen at what it measured; the counts below are derived from "
-             "the recorded runs by `scripts/mutate_campaign.summarize()`, never typed.",
-             ""]
+def render_campaign_set(heading: str, blurb: str, campaigns: tuple[tuple[str, str], ...],
+                        ) -> tuple[str, list[str]]:
+    """A set of campaigns as one document, through the single interpreter every
+    campaign in the tree shares. Two readings of one run is how two documents
+    come to disagree about it."""
+    sources = ", ".join(_rel(_campaign_paths(c)[0]) for _, c in campaigns)
+    parts = [_header(f"{sources} and their .result.json"), heading, "", blurb, ""]
     problems: list[str] = []
-    for title, campaign in SHADOW_CAMPAIGNS:
-        definition_path, result_path = _shadow_paths(campaign)
+    for title, campaign in campaigns:
+        definition_path, result_path = _campaign_paths(campaign)
         definition, result, load_problems = _load_campaign(definition_path, result_path)
         problems.extend(f"{campaign}: {p}" for p in load_problems)
         summary = summarize(definition, result) if definition and result else None
@@ -323,11 +474,20 @@ it could **produce**. Over the committed artifacts:
 |---|---|---|---|---|
 {engine_rows}
 
-The port's `partial` layers are its verdict surface: `own_bridge::check_facts`
-is at the #259 checkpoint-4 projection, which carries every `Finding` member
-except `message`, `related` and `flow`. It says so in the artifact rather than
-emitting a short document a later comparison would score as agreement, and a
-test asserts the claim matches the records byte for byte.
+The port's `partial` column read non-zero until #259 cp5.1/5.2: its verdict
+surface sat at the checkpoint-4 projection, carrying every `Finding` member
+except `message`, `related` and `flow`, and said so in the artifact rather than
+emitting a short document a later comparison would score as agreement. Those
+members are ported, so the layer is `full` and no partial projection remains —
+a fact about this port's progress, not a reason to drop the field. The check
+moved with it: it now asserts a `full` claim against the complete Layer 3
+record too, because a `full` declared over a short document is the over-claim
+that became reachable the moment nothing was partial.
+
+**Still not shadow mode, and still not the verdict layer entering it.** The
+reducer REFUSES the verdict layer and records the refusal in every reduction;
+what changed above is one engine's declaration of what it puts in the
+envelope.
 
 **Layer envelopes where the two engines' status differs** — structural
 accounting, not a content comparison, and every one of them a boundary the port
@@ -440,10 +600,19 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     gate's, not the fragment's: it never changes the rendered text."""
     out: dict[str, str] = {}
     problems: list[str] = []
+    renders: RenderCensus | None = None
     try:
-        out[CENSUS_MD] = render_census(compute_verdict_census())
+        renders = compute_render_census()
+    except RenderCensusError as e:
+        problems.extend(f"rendered-surface census: {p}" for p in e.problems)
+    try:
+        out[CENSUS_MD] = render_census(compute_verdict_census(), renders)
     except CensusError as e:
         problems.extend(f"verdict census: {p}" for p in e.problems)
+    try:
+        out[INVENTORY_MD] = render_inventory(compute_surface_inventory())
+    except InventoryError as e:
+        problems.extend(f"cp5 surface inventory: {p}" for p in e.problems)
     definition, result, campaign_problems = _load_campaign()
     problems.extend(campaign_problems)
     summary = summarize(definition, result) if definition and result else None
@@ -458,6 +627,16 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     shadow, shadow_problems = render_shadow_mutations()
     out[SHADOW_MUTATIONS_MD] = shadow
     problems.extend(f"mutation campaign {p}" for p in shadow_problems)
+    cp5, cp5_problems = render_campaign_set(
+        "# P-022 checkpoint 5 — mutation campaigns",
+        "One campaign per sub-checkpoint, each frozen at what it measured. Every "
+        "mutation edits a **production** surface (P-022 discipline 2) and every "
+        "workspace member runs for every mutation (discipline 3: no fail-fast); the "
+        "counts are derived from the recorded runs by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        CP5_CAMPAIGNS)
+    out[CP5_MUTATIONS_MD] = cp5
+    problems.extend(f"mutation campaign {p}" for p in cp5_problems)
     return out, problems
 
 
@@ -501,8 +680,9 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     if argv:
-        print(f"checkpoint status fragments OK: {CENSUS_MD}, {MUTATIONS_MD}, "
-              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, "
+              f"{MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
+              f"{SHADOW_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 

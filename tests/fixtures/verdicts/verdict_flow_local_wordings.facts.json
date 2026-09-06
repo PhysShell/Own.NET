@@ -1,0 +1,50 @@
+{
+  "ownir_version": 0,
+  "module": "FlowLocalWordings",
+  "_doc": [
+    "BR-V4's flow-local wordings the swept corpora never mint, one function each",
+    "so a handle cannot be shared: OWN009 (may-use-after-release) on a plain",
+    "IDisposable and on a pooled buffer, and the pooled twins of OWN002",
+    "(use-after-return) and OWN003 (double return). Each also carries its BR-V5",
+    "origin -> violation slice, so the 'rented' vs 'acquired' origin wording is",
+    "pinned on both sides of the pool split."
+  ],
+  "functions": [
+    {
+      "name": "Wordings.MaybeUsedPlain",
+      "file": "W.cs",
+      "body": [
+        {"op": "acquire", "var": "s", "line": 1},
+        {"op": "if", "line": 2, "then": [{"op": "release", "var": "s", "line": 3}], "else": []},
+        {"op": "use", "var": "s", "line": 5}
+      ]
+    },
+    {
+      "name": "Wordings.MaybeUsedPooled",
+      "file": "W.cs",
+      "body": [
+        {"op": "acquire", "var": "b", "kind": "pool", "line": 11},
+        {"op": "if", "line": 12, "then": [{"op": "release", "var": "b", "line": 13}], "else": []},
+        {"op": "use", "var": "b", "line": 15}
+      ]
+    },
+    {
+      "name": "Wordings.UsedAfterReturn",
+      "file": "W.cs",
+      "body": [
+        {"op": "acquire", "var": "u", "kind": "pool", "line": 21},
+        {"op": "release", "var": "u", "line": 22},
+        {"op": "use", "var": "u", "line": 23}
+      ]
+    },
+    {
+      "name": "Wordings.ReturnedTwice",
+      "file": "W.cs",
+      "body": [
+        {"op": "acquire", "var": "d", "kind": "pool", "line": 31},
+        {"op": "release", "var": "d", "line": 32},
+        {"op": "release", "var": "d", "line": 33}
+      ]
+    }
+  ]
+}

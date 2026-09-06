@@ -64,13 +64,73 @@ pub struct Effect {
 ///
 /// `origin` is the upstream binding whose fresh identity is the root cause;
 /// `file`/`line` are the verdict's primary `(path, line)` — the effect call site.
+///
+/// The remaining members carry the finding's **presentation**, which the
+/// reference's `EffectStorm` owns rather than the bridge (`ownlang/effects.py`;
+/// spec/Bridge.md BR-B1 — the analysis owns its verdict, message included):
+/// `origin_kind` picks the kind phrase, `chain` supplies the `via …` clause, and
+/// `decl_line` is where the unstable identity is minted — the second hop of the
+/// bridge's two-step evidence slice (BR-V5).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectStorm {
     pub component: String,
     pub dep: String,
     pub origin: String,
+    /// The `init` kind of the origin binding (`object`/`array`/`new`/…), or
+    /// `"object"` when the origin has no binding — the reference's fallback.
+    pub origin_kind: String,
     pub file: String,
     pub line: u32,
+    /// The origin binding's declaration line — the fix site. Falls back to the
+    /// effect's own line when the origin has no binding.
+    pub decl_line: u32,
+    /// The reference chain from the dependency to its origin. Renders as the
+    /// `via …` clause only when it has more than one element.
+    pub chain: Vec<String>,
+}
+
+impl EffectStorm {
+    /// The phrase naming what the origin is (`_kind_phrase`).
+    fn kind_phrase(&self) -> &'static str {
+        match self.origin_kind.as_str() {
+            "object" => "an object literal",
+            "array" => "an array literal",
+            "new" => "a freshly constructed object",
+            _ => "a value with an unstable identity",
+        }
+    }
+
+    /// The EFF001 human message, byte-for-byte the reference's
+    /// `EffectStorm.message`. Owned here because the finder owns the verdict;
+    /// the bridge copies it and never rewords it.
+    #[must_use]
+    pub fn message(&self) -> String {
+        let phrase = self.kind_phrase();
+        let root = if self.origin == self.dep {
+            format!(
+                "dependency '{}' is {phrase} created in render scope, so its identity \
+                 changes on every render",
+                self.dep
+            )
+        } else {
+            let via = if self.chain.len() > 1 {
+                format!(" (via {})", self.chain.join(" -> "))
+            } else {
+                String::new()
+            };
+            format!(
+                "dependency '{}' derives from '{}', {phrase} created in render \
+                 scope{via}, so its identity changes on every render",
+                self.dep, self.origin
+            )
+        };
+        format!(
+            "effect re-runs on every render: {root}; the effect performs IO, which can \
+             become a request storm — stabilise '{}' with useMemo/useCallback (or move \
+             it out of render)",
+            self.origin
+        )
+    }
 }
 
 fn kind_stability(init: &str) -> Option<Stability> {
@@ -112,6 +172,9 @@ struct Lattice<'a> {
     by_name: BTreeMap<&'a str, &'a Binding>,
     stab: BTreeMap<String, Stability>,
     origin: BTreeMap<String, String>,
+    /// The reference chain that carried the instability, captor first — the
+    /// `via a -> b -> c` clause of the EFF001 message (`_Lattice._path`).
+    path: BTreeMap<String, Vec<String>>,
 }
 
 impl<'a> Lattice<'a> {
@@ -120,6 +183,7 @@ impl<'a> Lattice<'a> {
             by_name: bindings.iter().map(|b| (b.name.as_str(), b)).collect(),
             stab: BTreeMap::new(),
             origin: BTreeMap::new(),
+            path: BTreeMap::new(),
         }
     }
 
@@ -134,9 +198,20 @@ impl<'a> Lattice<'a> {
             .unwrap_or_else(|| name.to_owned())
     }
 
-    fn resolve(&mut self, name: &str, on_stack: &BTreeSet<String>) -> (Stability, String) {
+    fn path_of(&self, name: &str) -> Vec<String> {
+        self.path
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| vec![name.to_owned()])
+    }
+
+    fn resolve(
+        &mut self,
+        name: &str,
+        on_stack: &BTreeSet<String>,
+    ) -> (Stability, String, Vec<String>) {
         if let Some(s) = self.stab.get(name) {
-            return (*s, self.origin_of(name));
+            return (*s, self.origin_of(name), self.path_of(name));
         }
         let Some(b) = self.by_name.get(name).copied() else {
             // No render-scope binding: an identifier/member chain is referentially
@@ -146,41 +221,48 @@ impl<'a> Lattice<'a> {
             } else {
                 Stability::Unknown
             };
-            return (stab, name.to_owned());
+            return (stab, name.to_owned(), vec![name.to_owned()]);
         };
         if on_stack.contains(name) {
             // an identity cycle (a = b; b = a): cannot prove unstable — stay safe.
-            return (Stability::Unknown, name.to_owned());
+            return (Stability::Unknown, name.to_owned(), vec![name.to_owned()]);
         }
         let mut next_stack = on_stack.clone();
         next_stack.insert(name.to_owned());
-        let (stab, origin) = self.classify(b, &next_stack);
+        let (stab, origin, path) = self.classify(b, &next_stack);
         self.stab.insert(name.to_owned(), stab);
         self.origin.insert(name.to_owned(), origin.clone());
-        (stab, origin)
+        self.path.insert(name.to_owned(), path.clone());
+        (stab, origin, path)
     }
 
-    fn classify(&mut self, b: &Binding, on_stack: &BTreeSet<String>) -> (Stability, String) {
+    fn classify(
+        &mut self,
+        b: &Binding,
+        on_stack: &BTreeSet<String>,
+    ) -> (Stability, String, Vec<String>) {
         if let Some(s) = kind_stability(&b.init) {
-            return (s, b.name.clone());
+            return (s, b.name.clone(), vec![b.name.clone()]);
         }
         if is_derived(&b.init) {
             if b.refs.is_empty() {
-                return (Stability::Unknown, b.name.clone());
+                return (Stability::Unknown, b.name.clone(), vec![b.name.clone()]);
             }
             let mut worst = Stability::Stable;
             let mut worst_origin = b.name.clone();
+            let mut worst_path = vec![b.name.clone()];
             for r in &b.refs {
-                let (s, o) = self.resolve(r, on_stack);
+                let (s, o, p) = self.resolve(r, on_stack);
                 if s.rank() > worst.rank() {
                     worst = s;
                     worst_origin = o;
+                    worst_path = std::iter::once(b.name.clone()).chain(p).collect();
                 }
             }
-            return (worst, worst_origin);
+            return (worst, worst_origin, worst_path);
         }
         // "call" or any unrecognised kind: opaque identity -> conservative.
-        (Stability::Unknown, b.name.clone())
+        (Stability::Unknown, b.name.clone(), vec![b.name.clone()])
     }
 }
 
@@ -199,10 +281,18 @@ pub fn find_effect_storms(effects: &[Effect]) -> Vec<EffectStorm> {
             if lat.stability(dep) != Stability::Unstable {
                 continue;
             }
+            let origin = lat.origin_of(dep);
+            let binding = e.bindings.iter().find(|b| b.name == origin);
             out.push(EffectStorm {
                 component: e.component.clone(),
                 dep: dep.clone(),
-                origin: lat.origin_of(dep),
+                // `decl.get(origin, e.line)` and `b.init if b else "object"`:
+                // an origin with no binding of its own takes the effect's own
+                // line and the object phrasing.
+                origin_kind: binding.map_or("object", |b| b.init.as_str()).to_owned(),
+                decl_line: binding.map_or(e.line, |b| b.line),
+                chain: lat.path_of(dep),
+                origin,
                 file: e.file.clone(),
                 line: e.line,
             });
@@ -252,7 +342,61 @@ pub fn effect_diagnostics(effects: &[Effect]) -> Vec<Diagnostic> {
     clippy::indexing_slicing
 )]
 mod tests {
-    use super::{find_effect_storms, Binding, Effect};
+    use super::{find_effect_storms, Binding, Effect, EffectStorm};
+
+    /// The `via …` clause is guarded on a chain longer than one hop, and the
+    /// guard cannot be exercised end to end: a storm only words "derives from"
+    /// when `origin != dep`, and reaching a different origin means walking at
+    /// least one reference, so the chain always has two entries there. The
+    /// guard is defensive on both sides of the port (`ownlang/effects.py`
+    /// writes the same `len(self.path) > 1`) — dropping it would put an empty
+    /// `(via )` into user-visible text.
+    ///
+    /// Both expected sentences are the REFERENCE's, read from the record
+    /// `tests/fixtures/unreachable_branches.json` that
+    /// `tests/test_unreachable_branch_probe.py` produces by constructing the
+    /// reference's own `EffectStorm`. Nothing here restates them, so this
+    /// control cannot drift into agreeing with the port instead of with Python.
+    #[test]
+    fn the_via_clause_is_omitted_for_a_single_hop_chain() {
+        const RECORDED: &str = include_str!("../../../../tests/fixtures/unreachable_branches.json");
+        let doc: serde_json::Value =
+            serde_json::from_str(RECORDED).expect("the probe record parses");
+        assert_eq!(
+            doc.get("probe_version").and_then(serde_json::Value::as_u64),
+            Some(1),
+            "the probe record changed shape — teach this control the new version"
+        );
+        let oracle = |key: &str| {
+            doc.get("messages")
+                .and_then(|m| m.get(key))
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_else(|| panic!("the probe record carries no '{key}'"))
+                .to_owned()
+        };
+        let storm = EffectStorm {
+            component: "W".to_owned(),
+            dep: "cfg".to_owned(),
+            origin: "opts".to_owned(),
+            origin_kind: "object".to_owned(),
+            file: "W.tsx".to_owned(),
+            line: 5,
+            decl_line: 2,
+            chain: vec!["opts".to_owned()],
+        };
+        assert_eq!(
+            storm.message(),
+            oracle("eff001_single_hop_chain_has_no_via")
+        );
+        let with_hops = EffectStorm {
+            chain: vec!["cfg".to_owned(), "opts".to_owned()],
+            ..storm
+        };
+        assert_eq!(
+            with_hops.message(),
+            oracle("eff001_multi_hop_chain_has_via")
+        );
+    }
 
     fn binding(name: &str, init: &str, refs: &[&str]) -> Binding {
         Binding {

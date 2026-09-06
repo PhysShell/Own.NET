@@ -1,0 +1,19 @@
+{
+  "ownir_version": 0,
+  "module": "DiEvidenceDegradations",
+  "_doc": [
+    "Two BR-V5 degradations on the DI families. `App` records a consuming ctor",
+    "LOCATION but no impl type, so both the message tail and the related label",
+    "degrade to the bare 'the constructor' / 'consuming constructor' rather than",
+    "guessing a name. `Head` has no registration line, so its captor hop is",
+    "skipped and the retention path emits ONE step — di_path_steps has no",
+    "'shorter than two steps' guard, unlike every other slice builder."
+  ],
+  "services": [
+    {"name": "App", "lifetime": "singleton", "file": "reg.cs", "line": 5, "deps": ["Db"],
+     "ctor_file": "App.cs", "ctor_line": 3},
+    {"name": "Db", "lifetime": "scoped", "file": "reg.cs", "line": 6, "deps": []},
+    {"name": "Head", "lifetime": "singleton", "file": "reg.cs", "line": 0, "deps": ["Tail"]},
+    {"name": "Tail", "lifetime": "scoped", "file": "reg.cs", "line": 9, "deps": []}
+  ]
+}

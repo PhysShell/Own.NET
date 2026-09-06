@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 5.3 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-3.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-3.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp5-3",
+  "description": "#259 cp5.3 rendered surfaces (BR-V9): the three line-per-finding formats and their host-severity pass-through, every workflow-command escaping rule in both directions and in the order they compose, and the bridge's SARIF log — level mapping, sorted and deduplicated rule catalogue with titles, the ownirSchemaVersion stamp, region omission and startColumn, backslash normalisation, conditional properties, both evidence projections (including the one place reusing the core's builder would be a bug), suppressions, and the result order.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "BR-V9",
+      "description": "the human line drops the [resource:] tag",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"\\{\\}:\\{\\}: \\{severity\\}: \\[\\{\\}\\] \\{\\} \\[resource: \\{\\}\\]\"",
+      "replacement": "\"{}:{}: {severity}: [{}] {}{}\"",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "BR-V9",
+      "description": "the human line hard-codes error, ignoring the host severity",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"\\{\\}:\\{\\}: \\{severity\\}: \\[\\{\\}\\] \\{\\} \\[resource: \\{\\}\\]\",\\n(\\s+)f\\.file, f\\.line, f\\.code, f\\.message, f\\.kind",
+      "replacement": "\"{}:{}: error: [{}] {} [resource: {}]\",\n\\1f.file, f.line, f.code, f.message, f.kind",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "BR-V9",
+      "description": "the github annotation swaps its file and line properties",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"::\\{severity\\} file=\\{\\},line=\\{\\},title=\\{\\}::\\{\\}\"",
+      "replacement": "\"::{severity} line={1},file={0},title={2}::{3}\"",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "BR-V9",
+      "description": "the github annotation hard-codes the error level",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"::\\{severity\\} file=\\{\\},line=\\{\\},title=\\{\\}::\\{\\}\",",
+      "replacement": "\"::error file={},line={},title={}::{}\",",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "BR-V9",
+      "description": "workflow-command data leaves '%' unescaped",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "s\\.replace\\('%', \\\"%25\\\"\\)",
+      "replacement": "s.to_owned()",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "BR-V9",
+      "description": "workflow-command data leaves CR unescaped",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\s*\\.replace\\('\\\\r', \\\"%0D\\\"\\)",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "BR-V9",
+      "description": "workflow-command data leaves LF unescaped",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\s*\\.replace\\('\\\\n', \\\"%0A\\\"\\)",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "BR-V9",
+      "description": "a workflow-command property value leaves ':' unescaped",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\.replace\\(':', \\\"%3A\\\"\\)",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "BR-V9",
+      "description": "a workflow-command property value leaves ',' unescaped",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\.replace\\(',', \\\"%2C\\\"\\)",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "BR-V9",
+      "description": "a property value escapes its separators BEFORE the data, double-escaping the %",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "esc_data\\(s\\)\\.replace\\(':', \\\"%3A\\\"\\)\\.replace\\(',', \\\"%2C\\\"\\)",
+      "replacement": "esc_data(&s.replace(':', \"%3A\").replace(',', \"%2C\"))",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "BR-V9",
+      "description": "the msbuild line uses the human separator instead of parentheses",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"\\{\\}\\(\\{\\}\\): \\{severity\\} \\{\\}: \\{\\} \\[resource: \\{\\}\\]\"",
+      "replacement": "\"{}:{}: {severity} {}: {} [resource: {}]\"",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "BR-V9",
+      "description": "the msbuild line hard-codes error, ignoring the host severity",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"\\{\\}\\(\\{\\}\\): \\{severity\\} \\{\\}: \\{\\} \\[resource: \\{\\}\\]\",",
+      "replacement": "\"{}({}): error {}: {} [resource: {}]\",",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "BR-V9",
+      "description": "an unknown format falls back to the github annotation, not the human line",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\"msbuild\" => render_msbuild\\(f, severity\\),\\n(\\s+)_ => render_human\\(f, severity\\),",
+      "replacement": "\"msbuild\" => render_msbuild(f, severity),\n\\1_ => render_github(f, severity),",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "BR-V6",
+      "description": "an advisory renders as a warning instead of SARIF's note",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "if f\\.advisory \\{\\n(\\s+)return \"note\"\\.to_owned\\(\\);",
+      "replacement": "if false {\n\\1return \"note\".to_owned();",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "BR-V6",
+      "description": "the host severity no longer downgrades a provable leak",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "if severity == \"warning\" \\|\\| f\\.severity\\.as_deref\\(\\) == Some\\(\"warning\"\\) \\{",
+      "replacement": "if f.severity.as_deref() == Some(\"warning\") {",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "BR-V6",
+      "description": "an intrinsic warning tier is ignored and renders as error",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "if severity == \"warning\" \\|\\| f\\.severity\\.as_deref\\(\\) == Some\\(\"warning\"\\) \\{",
+      "replacement": "if severity == \"warning\" {",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "BR-V9",
+      "description": "the SARIF rule catalogue is not sorted",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "codes\\.sort_unstable\\(\\);\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "BR-V9",
+      "description": "the SARIF rule catalogue keeps duplicate codes",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "codes\\.dedup\\(\\);\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "BR-V9",
+      "description": "a rule's shortDescription is the code, never its title",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "text: title\\(code\\)\\.unwrap_or\\(code\\)\\.to_owned\\(\\),",
+      "replacement": "text: code.to_owned(),",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M20",
+      "rule": "BR-V9",
+      "description": "the driver drops the ownirSchemaVersion stamp",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "#\\[serde\\(rename = \"ownirSchemaVersion\"\\)\\]\\n(\\s+)ownir_schema_version: u32,",
+      "replacement": "#[serde(rename = \"ownirSchemaVersion\", skip_serializing)]\n\\1ownir_schema_version: u32,",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "BR-V9",
+      "description": "a region is emitted for a file-level (line < 1) finding",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "region: \\(f\\.line >= 1\\)\\.then_some\\(Region \\{",
+      "replacement": "region: (f.line >= -1).then_some(Region {",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M22",
+      "rule": "BR-V9",
+      "description": "startColumn is emitted as null when the producer reported none",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "#\\[serde\\(rename = \"startColumn\", skip_serializing_if = \"Option::is_none\"\\)\\]",
+      "replacement": "#[serde(rename = \"startColumn\")]",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "BR-V9",
+      "description": "the artifact URI keeps a Windows backslash",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "uri: f\\.file\\.replace\\(\\'\\\\\\\\\\', \"/\"\\),",
+      "replacement": "uri: f.file.clone(),",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M24",
+      "rule": "BR-V9",
+      "description": "an empty component/event/handler is emitted as a property",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "fn optional\\(value: &str\\) -> Option<String> \\{\\n(\\s+)\\(!value\\.is_empty\\(\\)\\)\\.then\\(\\|\\| value\\.to_owned\\(\\)\\)",
+      "replacement": "fn optional(value: &str) -> Option<String> {\n\\1Some(value.to_owned())",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "BR-V9",
+      "description": "relatedLocations adopts the core's empty-file filter, dropping a step the bridge emits",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\.filter\\(\\|\\(_, line, _\\)\\| \\*line >= 1\\)",
+      "replacement": ".filter(|(file, line, _)| *line >= 1 && !file.is_empty())",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "BR-V9",
+      "description": "relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step)",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "\\.filter\\(\\|\\(_, line, _\\)\\| \\*line >= 1\\)\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::render::tests::a_related_step_with_no_line_is_dropped"
+      ]
+    },
+    {
+      "id": "M27",
+      "rule": "BR-V9",
+      "description": "codeFlows is never built from the ordered slice",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "    code_flow\\(&steps\\)\\n\\}",
+      "replacement": "    let _ = steps;\n    Vec::new()\n}",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M28",
+      "rule": "BR-V9",
+      "description": "a suppressed finding loses its suppressions array",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "suppressions: f\\n(\\s+)\\.ignore_reason\\n(\\s+)\\.as_ref\\(\\)",
+      "replacement": "suppressions: f\n\\1.ignore_reason\n\\2.as_ref()\n\\2.filter(|_| false)",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M29",
+      "rule": "BR-V8",
+      "description": "SARIF results are sorted by code, destroying the bridge's own order",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "results: findings\\.iter\\(\\)\\.map\\(\\|f\\| sarif_result\\(f, severity\\)\\)\\.collect\\(\\),",
+      "replacement": "results: {\n                let mut rs: Vec<_> = findings.iter().map(|f| sarif_result(f, severity)).collect();\n                rs.sort_by(|a, b| a.rule_id.cmp(&b.rule_id));\n                rs\n            },",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    }
+  ]
+}

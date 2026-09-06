@@ -68,12 +68,12 @@
     {
       "id": "M06",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops event",
+      "description": "BR-V7 dedup key drops event (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.event\\.clone\\(\\),(\\n\\s+f\\.handler\\.clone\\(\\),)",
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {
@@ -125,8 +125,8 @@
       "rule": "BR-M1",
       "description": "BR-M1 OWN052 note never minted",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "for _reason in &lowering\\.mos_notes \\{",
-      "replacement": "for _reason in lowering.mos_notes.iter().skip(usize::MAX) {",
+      "pattern": "for reason in &lowering\\.mos_notes \\{",
+      "replacement": "for reason in lowering.mos_notes.iter().skip(usize::MAX) {",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
@@ -193,8 +193,8 @@
       "rule": "BR-V6",
       "description": "BR-V6 an empty ignore_reason suppresses",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "\\.filter\\(\\|v\\| truthy\\(Some\\(v\\)\\)\\)",
-      "replacement": ".filter(|v| !v.is_null())",
+      "pattern": "\\.get\\(\"ignore_reason\"\\)\\n(\\s+)\\.filter\\(\\|v\\| truthy\\(Some\\(v\\)\\)\\)",
+      "replacement": ".get(\"ignore_reason\")\n\\1.filter(|v| !v.is_null())",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
@@ -278,7 +278,7 @@
       "rule": "BR-V7",
       "description": "BR-V7 dedup key drops handler",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "(\\n\\s+)f\\.handler\\.clone\\(\\),(\\n\\s+f\\.kind\\.clone\\(\\),)",
+      "pattern": "(\\n\\s+)f\\.handler\\.clone\\(\\),(\\n\\s+f\\.message\\.clone\\(\\),)",
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
@@ -298,23 +298,23 @@
     {
       "id": "M27",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops kind",
+      "description": "BR-V7 dedup key drops kind (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.kind\\.clone\\(\\),(\\n\\s+f\\.advisory,)",
       "replacement": "\\1String::new(),\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {
       "id": "M28",
       "rule": "BR-V7",
-      "description": "BR-V7 dedup key drops severity",
+      "description": "BR-V7 dedup key drops severity (unobservable end to end since cp5.1 put `message` in the key)",
       "target": "rust/crates/own-bridge/src/verdict.rs",
       "pattern": "(\\n\\s+)f\\.severity\\.clone\\(\\),(\\n\\s+f\\.ignore_reason\\.clone\\(\\),)",
       "replacement": "\\1None,\\2",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member"
       ]
     },
     {

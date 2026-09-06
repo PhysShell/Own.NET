@@ -411,21 +411,7 @@
           "layer": "verdicts",
           "status": "produced",
           "projection": {
-            "kind": "partial",
-            "members": [
-              "file",
-              "line",
-              "code",
-              "component",
-              "event",
-              "handler",
-              "kind",
-              "advisory",
-              "severity",
-              "ignore_reason",
-              "column"
-            ],
-            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+            "kind": "full"
           },
           "order": "significant",
           "steps": [
@@ -442,9 +428,12 @@
                 "component": "TortureView",
                 "event": "bus.Subscribe",
                 "handler": "On漢",
+                "message": "the result of 'bus.Subscribe' is ignored — the IDisposable subscription is never disposed, leaking 'TortureView' (leak)",
                 "kind": "subscription token",
                 "advisory": false,
                 "severity": null,
+                "related": [],
+                "flow": [],
                 "ignore_reason": null,
                 "column": null
               }

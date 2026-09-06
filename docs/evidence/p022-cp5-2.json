@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 5.2 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-2.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-2.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp5-2",
+  "description": "#259 cp5.2 refusal text: the core message layer own-cfg now carries for the resolver, the seam own-analysis reads it through, and the CPython `repr` the BR-V3 map-or-raise text quotes it with — including the quote switch cp4's cut hid. Plus the shadow engine's verdict capture, which stopped being a partial projection in this checkpoint.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "BR-V3",
+      "description": "the resolver's OWN030 message drops the name it interpolates",
+      "target": "rust/crates/own-cfg/src/builder.rs",
+      "pattern": "format!\\(\"undefined name \\'\\{name\\}\\'\"\\)",
+      "replacement": "String::from(\"undefined name\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "BR-V3",
+      "description": "the resolver emits a message-less diagnostic again (the title stands in)",
+      "target": "rust/crates/own-cfg/src/builder.rs",
+      "pattern": "self\\.diags\\.push\\(Diag::with_message\\(\\n\\s+\"OWN030\",\\n\\s+line,\\n\\s+format!\\(\"undefined name \\'\\{name\\}\\'\"\\),\\n\\s+\\)\\);",
+      "replacement": "self.diags.push(Diag::new(\"OWN030\", line));",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "BR-V3",
+      "description": "own-analysis ignores the message own-cfg carries and substitutes the title",
+      "target": "rust/crates/own-analysis/src/check.rs",
+      "pattern": "let msg = d\\n\\s+\\.message\\n\\s+\\.as_deref\\(\\)\\n\\s+\\.unwrap_or_else\\(\\|\\| title\\(d\\.code\\)\\.unwrap_or\\(d\\.code\\)\\);",
+      "replacement": "let msg = title(d.code).unwrap_or(d.code);",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "BR-V3",
+      "description": "py_repr always single-quotes (cp4's placeholder, the bug cp5.2 found)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let quote = if s\\.contains\\('\\\\''\\) && !s\\.contains\\('\\\"'\\) \\{\\n\\s+'\\\"'\\n\\s+\\} else \\{\\n\\s+'\\\\''\\n\\s+\\};",
+      "replacement": "let quote = '\\'';",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "BR-V3",
+      "description": "py_repr's quote switch inverted (double unless a quote is present)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let quote = if s\\.contains\\('\\\\''\\) && !s\\.contains\\('\\\"'\\) \\{",
+      "replacement": "let quote = if !s.contains('\\'') && !s.contains('\"') {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "BR-V3",
+      "description": "py_repr leaves a backslash unescaped",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "'\\\\\\\\' => out\\.push_str\\(\\\"\\\\\\\\\\\\\\\\\\\"\\),",
+      "replacement": "'\\\\\\\\' => out.push('\\\\\\\\'),",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "BR-V3",
+      "description": "py_repr leaves an ASCII control character raw",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "c if c\\.is_ascii_control\\(\\) => \\{\\n(?:.*\\n)*?\\s+for shift in \\[4_u32, 0\\] \\{\\n\\s+let nibble = \\(byte >> shift\\) & 0xf;\\n\\s+out\\.push\\(char::from_digit\\(nibble, 16\\)\\.unwrap_or\\('0'\\)\\);\\n\\s+\\}\\n\\s+\\}",
+      "replacement": "c if c.is_ascii_control() => out.push(c),",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "BR-V3",
+      "description": "py_repr renders an absent subject as an empty string, not None",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "return \"None\"\\.to_owned\\(\\);",
+      "replacement": "return \"''\".to_owned();",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "engine protocol",
+      "description": "the shadow capture emits an empty evidence slice while declaring the layer full",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\(\"related\", steps\\(&f\\.related\\)\\),",
+      "replacement": "(\"related\", steps(&[])),",
+      "expected_catchers": [
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "engine protocol",
+      "description": "the shadow capture drops a member while still declaring the layer full",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "\\(\"message\", Json::Str\\(f\\.message\\.clone\\(\\)\\)\\),\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture",
+        "own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries"
+      ]
+    }
+  ]
+}

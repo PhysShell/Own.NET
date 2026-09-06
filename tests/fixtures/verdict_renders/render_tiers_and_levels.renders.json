@@ -1,0 +1,339 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [
+      "Vm.cs:10: error: [OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs:11: error: [OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:12: error: [OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:13: error: [OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ],
+    "warning": [
+      "Vm.cs:10: warning: [OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs:11: warning: [OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:12: warning: [OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:13: warning: [OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ]
+  },
+  "github": {
+    "error": [
+      "::error file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "::error file=Vm.cs,line=11,title=OWN001::[OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::error file=Vm.cs,line=12,title=OWN001::[OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::error file=Vm.cs,line=13,title=OWN050::[OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ],
+    "warning": [
+      "::warning file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "::warning file=Vm.cs,line=11,title=OWN001::[OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::warning file=Vm.cs,line=12,title=OWN001::[OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "::warning file=Vm.cs,line=13,title=OWN050::[OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ]
+  },
+  "msbuild": {
+    "error": [
+      "Vm.cs(10): error OWN001: event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs(11): error OWN001: event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(12): error OWN001: event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(13): error OWN050: cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ],
+    "warning": [
+      "Vm.cs(10): warning OWN001: event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs(11): warning OWN001: event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(12): warning OWN001: event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs(13): warning OWN050: cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ]
+  },
+  "unknown-format": {
+    "error": [
+      "Vm.cs:10: error: [OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs:11: error: [OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:12: error: [OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:13: error: [OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ],
+    "warning": [
+      "Vm.cs:10: warning: [OWN001] event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]",
+      "Vm.cs:11: warning: [OWN001] event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:12: warning: [OWN001] event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]",
+      "Vm.cs:13: warning: [OWN050] cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+    ]
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN001",
+                  "shortDescription": {
+                    "text": "owned resource not released on all paths (possible leak)"
+                  }
+                },
+                {
+                  "id": "OWN050",
+                  "shortDescription": {
+                    "text": "declaring type unresolved -- leakage analysis skipped"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 10
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Injected",
+                "handler": "OnI"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "error",
+              "message": {
+                "text": "event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 11
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "SystemEvents.Static",
+                "handler": "OnS"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "error",
+              "message": {
+                "text": "event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 12
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Ignored",
+                "handler": "OnG"
+              },
+              "suppressions": [
+                {
+                  "kind": "inSource",
+                  "justification": "owned by the host container"
+                }
+              ]
+            },
+            {
+              "ruleId": "OWN050",
+              "level": "note",
+              "message": {
+                "text": "cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 13
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "unresolved reference",
+                "component": "Vm",
+                "event": "ext.Unknown",
+                "handler": "OnU"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OWN001",
+                  "shortDescription": {
+                    "text": "owned resource not released on all paths (possible leak)"
+                  }
+                },
+                {
+                  "id": "OWN050",
+                  "shortDescription": {
+                    "text": "declaring type unresolved -- leakage analysis skipped"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'bus.Injected' is subscribed (handler 'OnI') but never unsubscribed; its source is an injected dependency whose lifetime is unknown, so it may outlive and keep 'Vm' alive (possible leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 10
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Injected",
+                "handler": "OnI"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'SystemEvents.Static' is subscribed (handler 'OnS') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 11
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "SystemEvents.Static",
+                "handler": "OnS"
+              }
+            },
+            {
+              "ruleId": "OWN001",
+              "level": "warning",
+              "message": {
+                "text": "event 'bus.Ignored' is subscribed (handler 'OnG') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 12
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "subscription token",
+                "component": "Vm",
+                "event": "bus.Ignored",
+                "handler": "OnG"
+              },
+              "suppressions": [
+                {
+                  "kind": "inSource",
+                  "justification": "owned by the host container"
+                }
+              ]
+            },
+            {
+              "ruleId": "OWN050",
+              "level": "note",
+              "message": {
+                "text": "cannot verify 'ext.Unknown' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped [resource: unresolved reference]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "Vm.cs"
+                    },
+                    "region": {
+                      "startLine": 13
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "unresolved reference",
+                "component": "Vm",
+                "event": "ext.Unknown",
+                "handler": "OnU"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

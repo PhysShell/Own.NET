@@ -1,0 +1,13 @@
+{
+  "ownir_version": 0,
+  "module": "Empty",
+  "_doc": [
+    "A clean document: every line-per-finding surface is an empty list and the",
+    "SARIF log is a valid run with no results and an empty rule catalogue — not",
+    "a missing run, and not a crash."
+  ],
+  "components": [
+    {"name": "Vm", "file": "Vm.cs", "subscriptions": [
+      {"event": "bus.Released", "handler": "OnR", "line": 4, "released": true}]}
+  ]
+}

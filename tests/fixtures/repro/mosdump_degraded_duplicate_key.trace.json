@@ -529,21 +529,7 @@
           "layer": "verdicts",
           "status": "produced",
           "projection": {
-            "kind": "partial",
-            "members": [
-              "file",
-              "line",
-              "code",
-              "component",
-              "event",
-              "handler",
-              "kind",
-              "advisory",
-              "severity",
-              "ignore_reason",
-              "column"
-            ],
-            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+            "kind": "full"
           },
           "order": "significant",
           "steps": [
@@ -560,9 +546,12 @@
                 "component": "Degraded",
                 "event": "",
                 "handler": "",
+                "message": "interprocedural summary inference failed (ValueError: duplicate MethodSkeleton key: Take(System.IO.Stream)); method summaries skipped — cross-method ownership transfer was not checked this run",
                 "kind": "method summaries",
                 "advisory": true,
                 "severity": null,
+                "related": [],
+                "flow": [],
                 "ignore_reason": null,
                 "column": null
               }

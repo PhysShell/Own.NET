@@ -116,6 +116,19 @@ fn service_from(v: &Value) -> Service {
         root_resolve_sites: sites(v.get("root_resolve_sites")),
         scope_cached: strs(v.get("scope_cached")),
         scope_cache_sites: sites(v.get("scope_cache_sites")),
+        // Presentation metadata (#259 cp5): absent in a fact-parity case, which
+        // compares `(file, line, code)`; the reference's own defaults apply.
+        ctor_file: v
+            .get("ctor_file")
+            .and_then(Value::as_str)
+            .unwrap_or("?")
+            .to_owned(),
+        ctor_line: u32_of(v.get("ctor_line")),
+        ctor_type: v
+            .get("ctor_type")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_owned(),
     }
 }
 

@@ -394,6 +394,24 @@
       "bytes": 960
     },
     {
+      "case": "verdict_dedup_key_members",
+      "corpus": "verdicts",
+      "digest": "510950daa897efb50b527b16a15165441d8d84f76299d662402935a19e0c2a05",
+      "bytes": 973
+    },
+    {
+      "case": "verdict_dedup_needs_the_message",
+      "corpus": "verdicts",
+      "digest": "81fc98c8a762811e57040baeb5b02f19fa6e5b58ad1388056b73811da863f685",
+      "bytes": 663
+    },
+    {
+      "case": "verdict_degenerate_metadata",
+      "corpus": "verdicts",
+      "digest": "b068af472cf610e2860561fe4dc7177f61bc170fdfec5e81279413e7f05d9524",
+      "bytes": 856
+    },
+    {
       "case": "verdict_di004_call_site_anchor",
       "corpus": "verdicts",
       "digest": "09be7af7d79b67f5d79e462b3b9a9a5ac04eb313c1021344fdf16caf081b8aeb",
@@ -410,6 +428,12 @@
       "corpus": "verdicts",
       "digest": "33aff7fd9961eed97afe9bd78b0271d0333ab27734df86bccfee2e892a226fb6",
       "bytes": 1888
+    },
+    {
+      "case": "verdict_di_evidence_degradations",
+      "corpus": "verdicts",
+      "digest": "e56949c13fd63bceb00fb098bbd9ddab806cfbb00bcc9a80b2a2e49f7cf6584a",
+      "bytes": 851
     },
     {
       "case": "verdict_di_graph_families",
@@ -436,16 +460,40 @@
       "bytes": 541
     },
     {
+      "case": "verdict_eff001_slice_dropped",
+      "corpus": "verdicts",
+      "digest": "5cefb40937373c3f12d6fe5c35f1c97851fc9a071556855c4823c369689ec67b",
+      "bytes": 417
+    },
+    {
       "case": "verdict_eff001_storm_and_memo",
       "corpus": "verdicts",
       "digest": "68d132b1eb434c314635ace94f186ea4f080cb04e79fc26d0d2feb3846f80fb5",
       "bytes": 1054
     },
     {
+      "case": "verdict_flow_local_wordings",
+      "corpus": "verdicts",
+      "digest": "59d7ecea9efc0547acddc90d4868713dd50c10abede3b41250f96e66592404c3",
+      "bytes": 1273
+    },
+    {
       "case": "verdict_multi_file_ordering",
       "corpus": "verdicts",
       "digest": "ba871ddc6cc81bd4e3185e51855561ab4b9ed5bd3b400f308a87987bad80d2a0",
       "bytes": 1036
+    },
+    {
+      "case": "verdict_own014_escape_slice_dropped",
+      "corpus": "verdicts",
+      "digest": "48c6d1f5ad01e10b73d984a1140f542b9c56fb1c462a1e17002398362f66ed32",
+      "bytes": 598
+    },
+    {
+      "case": "verdict_own014_wordings",
+      "corpus": "verdicts",
+      "digest": "af69dbeed1437c27cc5fcb634231842c4ab0525ea7cc1f68e13e0148a23b12b9",
+      "bytes": 1035
     },
     {
       "case": "verdict_own051_gates",
@@ -476,6 +524,18 @@
       "corpus": "verdicts",
       "digest": "7cec84e88b7002fc0dced5d9c086cbf5763f6b26a6d4f5b8236f47bb67646299",
       "bytes": 1460
+    },
+    {
+      "case": "verdict_subscription_lambda_note",
+      "corpus": "verdicts",
+      "digest": "526566f9b3ceb3fb45fea6af1d86d0fe722df32159a05410b5cc15fcefa48001",
+      "bytes": 589
+    },
+    {
+      "case": "verdict_unknown_line_guards",
+      "corpus": "verdicts",
+      "digest": "94ee4ea27864e84ae6113ed4b17856f1c6882714a3865602a73f289bdb7ab8d2",
+      "bytes": 1216
     },
     {
       "case": "vocab_unknown_op",

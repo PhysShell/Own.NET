@@ -1,0 +1,12 @@
+{
+  "ownir_version": 0,
+  "module": "Refusal",
+  "_doc": [
+    "A document the bridge refuses has no findings to render, so the rendered",
+    "surface is the refusal text — the same `{\"error\": ...}` shape the verdict",
+    "surface uses. The vocabulary skew is the loudest refusal class."
+  ],
+  "functions": [
+    {"name": "F.M", "file": "F.cs", "body": [{"op": "try", "line": 2}]}
+  ]
+}

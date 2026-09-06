@@ -1,0 +1,21 @@
+{
+  "ownir_version": 0,
+  "module": "Escaping",
+  "_doc": [
+    "Every workflow-command escaping rule in one document. The component file",
+    "carries a ':' and a ',' (property-value separators) and a backslash (the",
+    "SARIF artifact URI normalises it); the event name carries a '%', a CR and",
+    "an LF, which are the three characters the message data escapes. The",
+    "msbuild and human lines carry the same text unescaped, which is what makes",
+    "the github line's difference legible."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "src\\gen:a,b.cs",
+      "subscriptions": [
+        {"event": "bus.50% off\r\nnext", "handler": "OnE", "line": 7, "source": "static"}
+      ]
+    }
+  ]
+}

@@ -174,39 +174,69 @@ fn this_engine_reproduces_its_committed_capture() {
     );
 }
 
+/// The complete Layer 3 record — `ownir.Finding`'s members in declaration
+/// order. The authority is the reference (`ownlang/verdicts.py`) and the place
+/// it is enforced against it is `own-bridge/tests/verdicts.rs`, whose golden
+/// parses with `deny_unknown_fields`; this list exists so a `full` claim here
+/// means the same thing that replay means by it.
+const VERDICT_SURFACE_MEMBERS: [&str; 14] = [
+    "file",
+    "line",
+    "code",
+    "component",
+    "event",
+    "handler",
+    "message",
+    "kind",
+    "advisory",
+    "severity",
+    "related",
+    "flow",
+    "ignore_reason",
+    "column",
+];
+
 #[test]
-fn a_partial_projection_names_exactly_the_members_it_carries() {
+fn a_projection_names_exactly_the_members_it_carries() {
     if stand_down_while_writing() {
         return;
     }
-    // The one way a projection can lie: claim members the documents do not
-    // have, or carry members it did not claim. Without this the field is prose
-    // and a later comparison would trust it.
+    // The two ways a projection can lie, and BOTH are live now. A `partial` can
+    // claim members its documents do not have, or carry ones it did not claim.
+    // A `full` can be declared over a SHORT document — which became the
+    // reachable lie the day the verdict layer stopped being partial (#259
+    // cp5.1/5.2), and which the partial-only version of this test could not
+    // see.
     for (name, facts_path) in artifacts() {
         let ours = capture(&read(&facts_path)).expect("capture");
         for layer in ours.get("layers").and_then(Json::as_array).expect("layers") {
             let projection = layer.get("projection").expect("projection");
-            if projection.get("kind").and_then(Json::as_str) != Some("partial") {
-                continue;
-            }
-            let claimed: BTreeSet<&str> = projection
-                .get("members")
-                .and_then(Json::as_array)
-                .expect("members")
-                .iter()
-                .filter_map(Json::as_str)
-                .collect();
-            assert!(
-                !claimed.is_empty(),
-                "{name}: a partial projection names nothing"
-            );
+            let kind = projection.get("kind").and_then(Json::as_str);
             let Some(document) = layer.get("document") else {
                 continue; // a refused layer carries no records to check
             };
-            // The only partial surface today is the verdict list; its records
-            // are the things whose members the projection describes.
+            // The verdict list is the only layer whose records this test can
+            // describe; the other two surfaces are documents of their own shape.
             let Some(records) = document.get("findings").and_then(Json::as_array) else {
                 continue;
+            };
+            let claimed: BTreeSet<&str> = match kind {
+                Some("partial") => {
+                    let claimed: BTreeSet<&str> = projection
+                        .get("members")
+                        .and_then(Json::as_array)
+                        .expect("members")
+                        .iter()
+                        .filter_map(Json::as_str)
+                        .collect();
+                    assert!(
+                        !claimed.is_empty(),
+                        "{name}: a partial projection names nothing"
+                    );
+                    claimed
+                }
+                Some("full") => VERDICT_SURFACE_MEMBERS.into_iter().collect(),
+                other => panic!("{name}: unknown projection kind {other:?}"),
             };
             for record in records {
                 let actual: BTreeSet<&str> = record.keys().into_iter().collect();

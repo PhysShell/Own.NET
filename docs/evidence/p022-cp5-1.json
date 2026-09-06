@@ -1,0 +1,475 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 5.1 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp5-1.json --run (on a clean tree). The recorded run lives beside this file as p022-cp5-1.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp5-1",
+  "description": "#259 cp5.1 messages and evidence: the BR-V4 wording matrix on the bridge (every flow-local split, the OWN025 view sentence, both OWN014 families with their lifetime phrases and the inline-lambda note, every token kind, the three advisories), the analysis-owned DI and effect messages, the BR-V5 evidence slices family by family with their line-guard and short-slice degradations, and the BR-V7 dedup key's new message member. Two mutations attack the CONTROLS rather than the port: they corrupt the recorded oracle wordings in tests/fixtures/unreachable_branches.json and require the Rust controls for the unreachable branches to fail, because a control that survives a drifting oracle record is carrying a literal and only appears to be reading the reference.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "BR-V4",
+      "description": "BR-V4 ever_released split inverted on the plain OWN001 wording",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\(false, true\\) => \\{\\n(\\s+)format!\\(\\\"IDisposable local '\\{name\\}' may not be disposed on every path \\(leak\\)\\\"\\)",
+      "replacement": "(false, true) => {\n\\1format!(\"IDisposable local '{name}' is never disposed (leak)\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "BR-V4",
+      "description": "BR-V4 pool split ignored: a pooled OWN001 words as a plain local",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if code == \\\"OWN001\\\" \\{\\n(\\s+)return match \\(pool, ever_released\\) \\{",
+      "replacement": "if code == \"OWN001\" {\n\\1return match (false, ever_released) {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "BR-V4",
+      "description": "BR-V4 pooled use-after-return wording says 'disposed'",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\\"OWN002\\\" => format!\\(\\\"pooled buffer '\\{name\\}' is used after it is returned to the pool\\\"\\)",
+      "replacement": "\"OWN002\" => format!(\"pooled buffer '{name}' is used after it is disposed\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "BR-V4",
+      "description": "BR-V4 pooled maybe-use wording collapses onto the plain one",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\\"OWN009\\\" => \\{\\n(\\s+)format!\\(\\\"pooled buffer '\\{name\\}' may be used after being returned on some path\\\"\\)",
+      "replacement": "\"OWN009\" => {\n\\1format!(\"IDisposable local '{name}' may be used after disposal on some path\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "BR-V4",
+      "description": "BR-V4 OWN025 view wording drops the logical-length clause",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\\"pooled buffer '\\{name\\}' is viewed at its full length, past the \\\\\\n(\\s+)logical length it was rented for \\(over-read / over-clear\\)\\\"",
+      "replacement": "\"pooled buffer '{name}' is viewed at its full length (over-read / over-clear)\"",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "BR-V4",
+      "description": "BR-V4 fallback drops the core message it is there to carry",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "_ => format!\\(\\\"IDisposable local '\\{name\\}': \\{core_message\\}\\\"\\),",
+      "replacement": "_ => format!(\"IDisposable local '{name}'\"),",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "BR-V4",
+      "description": "BR-V4 every DI lifetime takes the singleton nice phrase",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"scoped\" => \"a DI scoped service\"\\.to_owned\\(\\),",
+      "replacement": "\"scoped\" => \"a DI singleton (application-lifetime) service\".to_owned(),",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "BR-V4",
+      "description": "BR-V4 an unrecognised DI lifetime is hidden behind a generic phrase",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "other => format!\\(\"a DI \\{other\\} service\"\\),",
+      "replacement": "other => format!(\"a DI service ({other})\"),",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "BR-V4",
+      "description": "BR-V4 lambda note appended whether or not the handler is a lambda",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "fn lambda_note\\(rec: &Obj\\) -> &'static str \\{\\n(\\s+)if truthy\\(rec\\.get\\(\\\"lambda\\\"\\)\\) \\{",
+      "replacement": "fn lambda_note(rec: &Obj) -> &'static str {\n\\1if !truthy(rec.get(\"lambda\")) {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "BR-V4",
+      "description": "BR-V4 lambda note never appended",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(fn lambda_note\\(rec: &Obj\\) -> &'static str \\{\\n\\s+if truthy\\(rec\\.get\\(\\\"lambda\\\"\\)\\) \\{\\n\\s+)LAMBDA_NOTE",
+      "replacement": "\\1\"\"",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "BR-V4",
+      "description": "BR-V4 the capture route words every source as static",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let named = rec\\.get\\(\\\"source\\\"\\)\\.map_or_else\\(\\|\\| \\\"\\?\\\"\\.to_owned\\(\\), py_str\\);\\n(\\s+)format!\\(\\\"a longer-lived source \\('\\{named\\}'\\)\\\"\\)",
+      "replacement": "let named = rec.get(\"source\").map_or_else(|| \"?\".to_owned(), py_str);\n\\1let _ = named;\n\\1\"a static (process-lived) event source\".to_owned()",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "BR-V4",
+      "description": "BR-V4 timer wording drops the handler",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"timer \\'\\{event\\}\\' \\(handler \\'\\{handler\\}\\'\\) is started but never stopped or \\\\\\n(\\s+)detached",
+      "replacement": "\"timer '{event}' is started but never stopped or \\\\\n\\1detached",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "BR-V4",
+      "description": "BR-V4 disposable-field `type` parenthetical emitted on presence, not truthiness",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\.get\\(\\\"type\\\"\\)\\n(\\s+)\\.filter\\(\\|v\\| truthy\\(Some\\(v\\)\\)\\)",
+      "replacement": ".get(\"type\")\n\\1.filter(|v| !v.is_null())",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "BR-V4",
+      "description": "BR-V4 local-disposable wording collapses onto the field wording",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"local IDisposable \\'\\{event\\}\\'\\{of_type\\} is created but never disposed \\(leak\\)\"",
+      "replacement": "\"IDisposable field '{event}'{of_type} is created but never disposed (leak)\"",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "BR-V4",
+      "description": "BR-V4 an injected Subscribe() result takes the provable-leak wording",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"subscribe\" if injected => format!\\(",
+      "replacement": "\"subscribe\" if false => format!(",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "BR-V4",
+      "description": "BR-V4 pool token wording says 'disposed'",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "format!\\(\"pooled buffer \\'\\{event\\}\\' is rented but never returned to the pool \\(leak\\)\"\\)",
+      "replacement": "format!(\"pooled buffer '{event}' is rented but never disposed (leak)\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "BR-V4",
+      "description": "BR-V4 an injected subscription takes the provable-leak wording",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "_ if injected => format!\\(\\n(\\s+)\\\"event '\\{event\\}' is subscribed \\(handler '\\{handler\\}'\\) but never \\\\",
+      "replacement": "_ if false => format!(\n\\1\"event '{event}' is subscribed (handler '{handler}') but never \\\\",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "BR-V4",
+      "description": "BR-V4 OWN050 message drops the event it cannot verify",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "its declaring type is an unresolved reference \\\\",
+      "replacement": "its declaring type is unresolved \\\\",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "BR-V4",
+      "description": "BR-V4 OWN051 message drops the inferred contract",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"cannot verify whether \\'\\{\\}\\' takes ownership of \\'\\{\\}\\' \\(inferred contract: \\{\\}\\); \\\\",
+      "replacement": "\"cannot verify whether '{}' takes ownership of '{}' (inferred contract: {:.0}); \\\\",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M20",
+      "rule": "BR-V4",
+      "description": "BR-V4 OWN052 message drops the solve-failure reason",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"interprocedural summary inference failed \\(\\{reason\\}\\); method summaries \\\\",
+      "replacement": "\"interprocedural summary inference failed; method summaries \\\\",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "BR-V4",
+      "description": "di.py chain separator changed (the retention path in the message)",
+      "target": "rust/crates/own-analysis/src/di.rs",
+      "pattern": "let chain = path\\.join\\(\" -> \"\\);",
+      "replacement": "let chain = path.join(\" > \");",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M22",
+      "rule": "BR-V4",
+      "description": "di.py consumed tail names the service instead of dropping an unknown impl",
+      "target": "rust/crates/own-analysis/src/di.rs",
+      "pattern": "let owner = if ctor_type\\.is_empty\\(\\) \\|\\| ctor_type == \"\\?\" \\{\\n(\\s+)\"the constructor\"\\.to_owned\\(\\)",
+      "replacement": "let owner = if ctor_type.is_empty() {\n\\1\"the constructor\".to_owned()",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "BR-V4",
+      "description": "di.py registration tail emitted even when the primary IS the registration",
+      "target": "rust/crates/own-analysis/src/di.rs",
+      "pattern": "if site_line >= 1 && reg_line >= 1 \\{\\n(\\s+)format!\\(\\\" \\[singleton registered at \\{reg_file\\}:\\{reg_line\\}\\]\\\"\\)",
+      "replacement": "if reg_line >= 1 {\n\\1format!(\" [singleton registered at {reg_file}:{reg_line}]\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M24",
+      "rule": "BR-V4",
+      "description": "effects.py kind phrase collapses onto the object-literal one",
+      "target": "rust/crates/own-analysis/src/effect.rs",
+      "pattern": "\"array\" => \"an array literal\",",
+      "replacement": "\"array\" => \"an object literal\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "BR-V4",
+      "description": "effects.py `via` clause emitted for a single-element chain",
+      "target": "rust/crates/own-analysis/src/effect.rs",
+      "pattern": "let via = if self\\.chain\\.len\\(\\) > 1 \\{",
+      "replacement": "let via = if !self.chain.is_empty() {",
+      "expected_catchers": [
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "BR-V5",
+      "description": "BR-V5 flow-local violation labels swapped between OWN002 and OWN003",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\"OWN002\" => Some\\(\"used here after it was released/returned\"\\),",
+      "replacement": "\"OWN002\" => Some(\"released/returned here a second time\"),",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M27",
+      "rule": "BR-V5",
+      "description": "BR-V5 flow-local origin always words as an acquire, never a rent",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let origin = if pool \\{\\n(\\s+)format!\\(\\\"rented '\\{name\\}' here\\\"\\)",
+      "replacement": "let origin = if false {\n\\1format!(\"rented '{name}' here\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M28",
+      "rule": "BR-V5",
+      "description": "BR-V5 flow-local slice keeps a step whose line is unknown",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if acquire < 1 \\|\\| dline < 1 \\|\\| dline == acquire \\{\\n(\\s+)return Vec::new\\(\\);",
+      "replacement": "if dline == acquire {\n\\1return Vec::new();",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M29",
+      "rule": "BR-V5",
+      "description": "BR-V5 flow-local slice emitted when both sites coincide",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if acquire < 1 \\|\\| dline < 1 \\|\\| dline == acquire \\{",
+      "replacement": "if acquire < 1 || dline < 1 {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M30",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI path labels the last hop as a pass-through `via`",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\} else if i == last \\{\\n(\\s+)format!\\(\\\"\\{end_label\\} '\\{name\\}'\\\"\\)",
+      "replacement": "} else if false {\n\\1format!(\"{end_label} '{name}'\")",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M31",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI path emits a hop whose registration site is unknown",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let \\(file, line\\) = loc\\.get\\(name\\.as_str\\(\\)\\)\\?;",
+      "replacement": "let (file, line) = loc.get(name.as_str()).cloned().unwrap_or((\"?\".to_owned(), 0));\n            let (file, line) = (&file, &line);",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M32",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI end label ignores the family (every path 'captures scoped')",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "b\"DI004\" => \"leaks transient IDisposable\",",
+      "replacement": "b\"DI004\" => \"captures scoped service\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M33",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI consumer related emitted even with an unknown ctor line",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\} else if c\\.consumed_line >= 1 \\{",
+      "replacement": "} else if c.consumed_line >= 0 {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M34",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI consumer related names an unknown impl type",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "let owner = if c\\.consumed_type\\.is_empty\\(\\) \\|\\| c\\.consumed_type == \"\\?\" \\{",
+      "replacement": "let owner = if c.consumed_type.is_empty() {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M35",
+      "rule": "BR-V5",
+      "description": "BR-V5 DI004/DI005 registration related emitted regardless of the site",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if c\\.site_line >= 1 && c\\.reg_line >= 1 \\{",
+      "replacement": "if c.reg_line >= 1 {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M36",
+      "rule": "BR-V5",
+      "description": "BR-V5 OWN014 escape slice emitted with its source hop at an unknown line",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if let Some\\(\\(sf, sl\\)\\) = key\\.and_then\\(\\|k\\| svc_loc\\.get\\(&k\\)\\)\\.filter\\(\\|\\(_, l\\)\\| \\*l >= 1\\) \\{",
+      "replacement": "if let Some((sf, sl)) = key.and_then(|k| svc_loc.get(&k)) {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M37",
+      "rule": "BR-V5",
+      "description": "BR-V5 OWN014 escape slice built from a subscribe site with no line",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if anchor >= 1 \\{\\n(\\s+)// `svc_loc\\.get\\(st\\)` in the reference",
+      "replacement": "if anchor >= -1 {\n\\1// `svc_loc.get(st)` in the reference",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M38",
+      "rule": "BR-V5",
+      "description": "BR-V5 effect slice emitted when the mint line is unknown",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "if s\\.line >= 1 && s\\.decl_line >= 1 \\{",
+      "replacement": "if s.line >= 1 {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M39",
+      "rule": "BR-V5",
+      "description": "BR-V5 effect slice steps reversed (mint before re-run)",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "format!\\(\"effect re-runs here on \\'\\{\\}\\'\", s\\.dep\\),",
+      "replacement": "format!(\"'{}' gets a fresh identity here — stabilise with useMemo\", s.origin),",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M40",
+      "rule": "BR-V7",
+      "description": "BR-V7 dedup key drops the message member cp5 added",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "(\\n\\s+)f\\.message\\.clone\\(\\),(\\n\\s+f\\.kind\\.clone\\(\\),)",
+      "replacement": "\\1String::new(),\\2",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M41",
+      "rule": "BR-V4",
+      "description": "the recorded oracle wording drifts and the bridge control does not notice (i.e. it carries a literal, not the reference's answer)",
+      "target": "tests/fixtures/unreachable_branches.json",
+      "pattern": "\"own014_di_transient\": \"event \\'src\\.E\\'",
+      "replacement": "\"own014_di_transient\": \"event 'src.X'",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
+      ]
+    },
+    {
+      "id": "M42",
+      "rule": "BR-V4",
+      "description": "the recorded oracle wording drifts and the effect control does not notice (the own-analysis half of the same claim)",
+      "target": "tests/fixtures/unreachable_branches.json",
+      "pattern": "\\(via cfg -> opts\\)",
+      "replacement": "(via opts)",
+      "expected_catchers": [
+        "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
+      ]
+    }
+  ]
+}

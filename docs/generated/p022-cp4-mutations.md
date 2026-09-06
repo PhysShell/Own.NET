@@ -4,12 +4,12 @@
 
 Campaign `p022-cp4` — #259 cp4 analysis wiring: the BR-V1..V8 verdict mapping in own-bridge (skip list, map-or-raise subject, anchors, tiering, dedup key member by member, stable sort), the BR-D2/L8/M1 side paths, the two declared boundaries (protocol refusal, u32 coordinate refusal) and the own-analysis subject stamping the mapping rests on.
 
-Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `6f858c6bf6a24cc0…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `15b10f36c0d2b46b…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `a529193e3acaeab435c435aff8606707cee1dad2` |
-| packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-syntax` |
+| recorded at commit                                         | `5553dae32ddf5d22592e11e84c8ed10e8c2fbc3e` |
+| packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 30 |
 | caught                                                     | 30 |
 | survived                                                   | 0 |
@@ -26,28 +26,28 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `6f858c6bf6a24cc0…
 | M03 | BR-V5 | BR-V5 OWN025 anchored at the acquire instead of the view site | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M04 | BR-V7 | BR-V7 dedup key drops column | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M05 | BR-V8 | BR-V8 sort key drops column | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M06 | BR-V7 | BR-V7 dedup key drops event | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M06 | BR-V7 | BR-V7 dedup key drops event (unobservable end to end since cp5.1 put `message` in the key) | caught | `own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member` |
 | M07 | — | DI004/DI005 duplicate site: last-wins becomes first-wins (own-analysis) | caught | `own-analysis/tests/fact_parity.rs::di_fact_parity`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M08 | BR-V6 | BR-V6 DI001 graded warning like DI002-005 | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M08 | BR-V6 | BR-V6 DI001 graded warning like DI002-005 | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M09 | BR-D2 | BR-D2 effect deps coerced instead of skipped (raw-document path) | caught | `own-bridge/src/lib.rs::verdict::tests::malformed_effect_entries_are_skipped_not_coerced` |
 | M10 | BR-L8 | BR-L8 OWN051 owned-local gate dropped | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M11 | BR-M1 | BR-M1 OWN052 note never minted | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M12 | BR-V3 | BR-V3 OWN001 leak emitted without a subject (own-analysis) | caught | `own-analysis/tests/subject.rs::leak_carries_the_acquire_origin`<br>`own-analysis/tests/subject.rs::origin_is_inherited_across_a_move`<br>`own-analysis/tests/subject.rs::param_leak_carries_the_param_origin`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M11 | BR-M1 | BR-M1 OWN052 note never minted | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M12 | BR-V3 | BR-V3 OWN001 leak emitted without a subject (own-analysis) | caught | `own-analysis/tests/subject.rs::leak_carries_the_acquire_origin`<br>`own-analysis/tests/subject.rs::origin_is_inherited_across_a_move`<br>`own-analysis/tests/subject.rs::param_leak_carries_the_param_origin`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M13 | BR-V3 | BR-V3 OWN014 emitted without a subject (own-analysis) | caught | `own-analysis/tests/subject.rs::region_escape_carries_the_source_identity`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M14 | — | protocol boundary: a protocol-bearing document is no longer refused | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M14 | — | protocol boundary: a protocol-bearing document is no longer refused | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M15 | — | coordinate boundary: core_line clamps instead of refusing | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M16 | BR-V6 | BR-V6 source tiering inverted (static warns, injected does not) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M16 | BR-V6 | BR-V6 source tiering inverted (static warns, injected does not) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M17 | BR-V6 | BR-V6 an empty ignore_reason suppresses | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M18 | BR-V7 | BR-V7 dedup removed | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M18 | BR-V7 | BR-V7 dedup removed | caught | `own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M19 | BR-V1 | BR-V1 ERROR-only half of the mapping predicate removed | caught | `own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped` |
 | M20 | — | _as_col accepts 0 as a coordinate | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M21 | — | guarded DI site line: a negative site line becomes 1 instead of 0 | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M22 | — | OWN050 advisory never minted | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M23 | BR-V3 | BR-V3 handle recovered from the wrong subject separator | caught | `own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M23 | BR-V3 | BR-V3 handle recovered from the wrong subject separator | caught | `own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message`<br>`own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`<br>`own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped`<br>`own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M24 | — | OWN051 line taken from the callee record instead of the call | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M25 | BR-V7 | BR-V7 dedup key drops handler | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M26 | BR-V7 | BR-V7 dedup key drops component | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M27 | BR-V7 | BR-V7 dedup key drops kind | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M28 | BR-V7 | BR-V7 dedup key drops severity | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M27 | BR-V7 | BR-V7 dedup key drops kind (unobservable end to end since cp5.1 put `message` in the key) | caught | `own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member` |
+| M28 | BR-V7 | BR-V7 dedup key drops severity (unobservable end to end since cp5.1 put `message` in the key) | caught | `own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member` |
 | M29 | BR-V7 | BR-V7 dedup key drops ignore_reason | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M30 | BR-V5 | BR-V5 DI/effect finding line taken from the registration instead of the finder's anchor | caught | `own-bridge/src/lib.rs::verdict::tests::di_coercions_match_the_reference`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M30 | BR-V5 | BR-V5 DI/effect finding line taken from the registration instead of the finder's anchor | caught | `own-bridge/src/lib.rs::verdict::tests::di_coercions_match_the_reference`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |

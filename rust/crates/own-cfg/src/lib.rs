@@ -42,19 +42,42 @@ pub use own_syntax::ast::Effect;
 // as `Effect`, keeping `own-analysis` off a direct `own-syntax` production edge.
 pub use own_syntax::ast;
 
-/// A flow-insensitive resolver diagnostic — its code and 1-based source line.
+/// A flow-insensitive resolver diagnostic — its code, 1-based source line, and
+/// the reference's human message **where this core carries it**.
 ///
-/// The human message is deliberately absent (see the crate docs): this step's
-/// oracle compares the CFG-JSON seam, which does not carry diagnostic text.
+/// `message` is `None` for a diagnostic whose text has not been ported. That is
+/// deliberately an absence rather than a stand-in: `own-analysis` substitutes
+/// the code's title so a `None` still renders, while any surface that compares
+/// message text goes RED on it instead of quietly agreeing with a title. The
+/// `own-bridge` refusal replay is exactly such a surface (#259 cp5.2), so the
+/// unported remainder is a tripwire, not a blind spot — the day a facts
+/// document refuses on one of those codes, its golden demands the message.
+///
+/// The ported set is the resolver's undefined-name message, which is the one
+/// the bridge's map-or-raise text interpolates over the measured corpus.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diag {
     pub code: &'static str,
     pub line: u32,
+    pub message: Option<String>,
 }
 
 impl Diag {
     pub(crate) const fn new(code: &'static str, line: u32) -> Self {
-        Self { code, line }
+        Self {
+            code,
+            line,
+            message: None,
+        }
+    }
+
+    /// A diagnostic carrying the reference's own message text.
+    pub(crate) const fn with_message(code: &'static str, line: u32, message: String) -> Self {
+        Self {
+            code,
+            line,
+            message: Some(message),
+        }
     }
 }
 
