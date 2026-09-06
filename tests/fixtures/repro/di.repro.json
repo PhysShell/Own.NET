@@ -402,21 +402,7 @@
           "layer": "verdicts",
           "surface_version": 1,
           "projection": {
-            "kind": "partial",
-            "members": [
-              "file",
-              "line",
-              "code",
-              "component",
-              "event",
-              "handler",
-              "kind",
-              "advisory",
-              "severity",
-              "ignore_reason",
-              "column"
-            ],
-            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+            "kind": "full"
           },
           "status": "produced",
           "document": {
@@ -429,9 +415,29 @@
                 "component": "EmailSender",
                 "event": "AppDbContext",
                 "handler": "",
+                "message": "singleton 'EmailSender' captures scoped service 'AppDbContext' (captive dependency: EmailSender -> AppDbContext) [consumed by the 'EmailSender' constructor at EmailSender.cs:5]",
                 "kind": "DI lifetime",
                 "advisory": false,
                 "severity": null,
+                "related": [
+                  [
+                    "EmailSender.cs",
+                    5,
+                    "consuming constructor of 'EmailSender'"
+                  ]
+                ],
+                "flow": [
+                  [
+                    "Startup.cs",
+                    12,
+                    "singleton 'EmailSender' (captor)"
+                  ],
+                  [
+                    "Startup.cs",
+                    13,
+                    "captures scoped service 'AppDbContext'"
+                  ]
+                ],
                 "ignore_reason": null,
                 "column": null
               },
@@ -442,9 +448,34 @@
                 "component": "ReportService",
                 "event": "AppDbContext",
                 "handler": "",
+                "message": "singleton 'ReportService' captures scoped service 'AppDbContext' (captive dependency: ReportService -> UnitOfWork -> AppDbContext) [consumed by the 'ReportService' constructor at ReportService.cs:7]",
                 "kind": "DI lifetime",
                 "advisory": false,
                 "severity": null,
+                "related": [
+                  [
+                    "ReportService.cs",
+                    7,
+                    "consuming constructor of 'ReportService'"
+                  ]
+                ],
+                "flow": [
+                  [
+                    "Startup.cs",
+                    15,
+                    "singleton 'ReportService' (captor)"
+                  ],
+                  [
+                    "Startup.cs",
+                    16,
+                    "via 'UnitOfWork'"
+                  ],
+                  [
+                    "Startup.cs",
+                    13,
+                    "captures scoped service 'AppDbContext'"
+                  ]
+                ],
                 "ignore_reason": null,
                 "column": null
               }

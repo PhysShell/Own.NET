@@ -1,7 +1,7 @@
 # P-022 step 6b (#259) — checkpoint 5: messages, evidence, rendered surfaces
 
-> Status: **checkpoint 5.1 landed** (5.0 inventory + 5.1 messages and
-> evidence). This note names what checkpoint 5 has to prove, who owns each
+> Status: **checkpoints 5.0–5.2 landed** (inventory, messages and evidence,
+> refusal text). This note names what checkpoint 5 has to prove, who owns each
 > string it must reproduce, and what each sub-checkpoint closed. Every count
 > lives in the generated fragments
 > [`p022-cp5-inventory.md`](../generated/p022-cp5-inventory.md) and
@@ -276,3 +276,60 @@ genuinely cannot catch them any more.
 Recording the shape of it, since it will recur: **a comparison surface that
 gains a member can lose controls for the members it subsumes.** The campaign is
 what surfaced it; a green suite would not have.
+
+## 8. What checkpoint 5.2 landed
+
+The `message=` cut is gone: the three `hoist_neg_*` refusals compare **byte for
+byte**, with no normalization on either side. What it took:
+
+* **`own_cfg::Diag` carries a message.** The resolver's `undefined name '<name>'`
+  is the one core text the bridge's map-or-raise refusal interpolates over the
+  measured corpus — measured, not assumed: driving every facts document in the
+  four shared corpora through `to_module` + `check_module` and filtering to the
+  diagnostics that fail to map yields exactly one message, and it is that one.
+* **`own-analysis` reads it.** `push_cfg_diag` uses the carried message and
+  falls back to the code's title where `own-cfg` has none.
+* **The remainder is a tripwire, not a blind spot.** `Diag::message` is an
+  `Option`, deliberately: a code whose text is not ported still renders as its
+  title, and because the refusal comparison is now byte-exact, the first golden
+  that refuses on such a code goes **red** demanding the message instead of
+  agreeing with a title. That is why porting only what the surface consumes is
+  safe here, and it is the reason the cut had to go before the port grew.
+
+### The bug the cut was hiding
+
+Removing the normalization turned the three refusals red immediately, on a
+member cp4 could not see: **`py_repr`**. The reference formats the interpolated
+message with CPython's `repr`, which switches from `'` to `"` when the string
+contains a single quote and no double quote — and *every* core message that
+names an identifier does. cp4's placeholder quoted unconditionally with `'`, so
+it produced `message='undefined name 'loc_0''` where the reference produces
+`message="undefined name 'loc_0'"`.
+
+Classified as a **port bug**, fixed in Rust, and pinned by a unit control whose
+expected values are CPython's `repr()` output for the quote switch, both escape
+directions, the backslash, the ASCII control range and the `None` case. This is
+the whole argument for removing a comparison boundary rather than living with
+it: the boundary was not hiding "text we have not ported", it was hiding a
+formatting defect in code that *was* ported.
+
+### The consequence in `own-shadow`, and what it is not
+
+The port's shadow capture declared its verdict layer a **partial** projection
+whose stated reason was that BR-V4 and the evidence slices "are checkpoint 5
+and are not ported". After 5.1 that sentence was false, and a committed
+artifact carrying a false declaration is worse than none. So the layer now
+emits every `Finding` member and declares `full`, and the artifacts and traces
+were regenerated.
+
+**This is not the verdict layer entering shadow mode.** The reducer still
+refuses it and records the refusal in every reduction; that stays until #260's
+acceptance, after row 4b. What changed is one engine's declaration of what it
+puts in the envelope — which is precisely what the projection field exists for.
+
+Promoting it opened a gap, and the gap is closed rather than noted: the
+projection check only ever validated **partial** claims, so a `full` declared
+over a short document — the over-claim that became reachable the moment nothing
+was partial — was unchecked. It now validates both kinds, and the shadow cp2
+campaign's `M35` was re-anchored from the lie that is no longer possible
+(declare full while partial) to the one that is (declare full while short).

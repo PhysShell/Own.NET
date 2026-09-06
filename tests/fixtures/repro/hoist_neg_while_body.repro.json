@@ -390,24 +390,10 @@
           "layer": "verdicts",
           "surface_version": 1,
           "projection": {
-            "kind": "partial",
-            "members": [
-              "file",
-              "line",
-              "code",
-              "component",
-              "event",
-              "handler",
-              "kind",
-              "advisory",
-              "severity",
-              "ignore_reason",
-              "column"
-            ],
-            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+            "kind": "full"
           },
           "status": "refused",
-          "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message='undefined name'). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
+          "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
         }
       ]
     }

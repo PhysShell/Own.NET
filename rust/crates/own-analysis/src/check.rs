@@ -22,11 +22,15 @@ use own_diagnostics::{title, Diagnostic};
 
 use crate::{lifetime, ownership};
 
-/// Convert an `own-cfg` resolver/policy diagnostic (code + line) into an
-/// `own-diagnostics` value; the message is the title (text parity is a later
-/// step). `code` is a compile-time constant, so construction cannot fail.
+/// Convert an `own-cfg` resolver/policy diagnostic into an `own-diagnostics`
+/// value, carrying the reference's message where `own-cfg` has it and the
+/// code's title where it does not (#259 cp5.2 — see [`Diag::message`]).
+/// `code` is a compile-time constant, so construction cannot fail.
 fn push_cfg_diag(out: &mut Vec<Diagnostic>, d: &Diag) {
-    let msg = title(d.code).unwrap_or(d.code);
+    let msg = d
+        .message
+        .as_deref()
+        .unwrap_or_else(|| title(d.code).unwrap_or(d.code));
     match Diagnostic::new(d.code, msg, d.line) {
         Ok(x) => out.push(x),
         Err(_) => debug_assert!(false, "own-cfg emitted an unknown code {}", d.code),

@@ -14,21 +14,28 @@
 //!
 //! ## The projection, and why the format needs one
 //!
-//! Two of this engine's three layers emit the whole frozen surface — the
-//! Layer 2 lowered document and the MOS summaries dump are byte-exact against
-//! the reference's own goldens (#259 cp2 and cp3). The third does not:
-//! `own_bridge::check_facts` is at the **#259 checkpoint-4 projection**, which
-//! carries every `Finding` member except `message`, `related` and `flow` —
-//! message synthesis (BR-V4) and the evidence slices are cp5 and are not
-//! ported.
+//! All three of this engine's layers now emit the whole frozen surface. The
+//! Layer 2 lowered document and the MOS summaries dump have been byte-exact
+//! against the reference's own goldens since #259 cp2 and cp3; the verdict
+//! layer was the one **partial** projection — `own_bridge::check_facts` sat at
+//! the #259 checkpoint-4 surface and carried every `Finding` member except
+//! `message`, `related` and `flow` — and #259 cp5.1/5.2 ported those, so it is
+//! `full` too.
 //!
-//! A format without a projection field would leave a mid-migration port two
-//! bad options: emit a short document and let a later comparison score the
-//! absent members as agreement, or refuse a layer it can in fact mostly
-//! produce. So the envelope carries `{"kind": "partial", "members": [...],
-//! "reason": "..."}` and the port says exactly what it produced. This is the
-//! cp4 discipline generalized — *a replay declares what it compares, and the
-//! golden always carries everything*.
+//! The field stays, and stays load-bearing. A format without it would leave a
+//! mid-migration port two bad options: emit a short document and let a later
+//! comparison score the absent members as agreement, or refuse a layer it can
+//! in fact mostly produce. `{"kind": "partial", "members": [...], "reason":
+//! "..."}` is how a port says exactly what it produced — the cp4 discipline
+//! generalized, *a replay declares what it compares, and the golden always
+//! carries everything*. That no layer needs it today is a fact about this
+//! engine's progress, not a reason to drop the field; the census fragment is
+//! where that fact is counted.
+//!
+//! **This is not the verdict layer entering shadow mode.** The reducer still
+//! REFUSES it and records the refusal in every reduction; that stays until
+//! #260's acceptance, after row 4b. What changed is only this engine's honest
+//! declaration of what it puts in the envelope.
 //!
 //! ## The typed door is upstream of every layer
 //!
@@ -46,27 +53,6 @@ use own_ir::OwnIr;
 use crate::artifact::{ENGINE_RUST, LAYER_ORDER, STATUS_PRODUCED, STATUS_REFUSED};
 use crate::json::{parse, Json};
 
-/// The `Finding` members `own_bridge::check_facts` carries at the #259
-/// checkpoint-4 surface, in `ownir.Finding`'s declaration order. `message`,
-/// `related` and `flow` are absent and the projection says so.
-const VERDICT_MEMBERS: [&str; 11] = [
-    "file",
-    "line",
-    "code",
-    "component",
-    "event",
-    "handler",
-    "kind",
-    "advisory",
-    "severity",
-    "ignore_reason",
-    "column",
-];
-
-const VERDICT_PROJECTION_REASON: &str = "own_bridge::check_facts is at the #259 checkpoint-4 \
-     surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 \
-     and are not ported, so this engine does not emit them rather than emitting them empty";
-
 fn object(entries: Vec<(&str, Json)>) -> Json {
     Json::Object(
         entries
@@ -80,6 +66,12 @@ fn full_projection() -> Json {
     object(vec![("kind", Json::Str("full".to_owned()))])
 }
 
+/// The format's partial branch. No layer of THIS engine needs it today (the
+/// verdict layer was the last one, and #259 cp5.1/5.2 completed it), and it is
+/// kept because the field is the format's, not this engine's progress report:
+/// the reference emits partials, and the next port to land mid-surface will.
+/// Pinned by a unit test so an unused-but-contractual shape cannot rot.
+#[cfg_attr(not(test), allow(dead_code))]
 fn partial_projection(members: &[&str], reason: &str) -> Json {
     object(vec![
         ("kind", Json::Str("partial".to_owned())),
@@ -188,10 +180,26 @@ fn summaries_layer(facts: &OwnIr) -> Result<Json, String> {
 /// and `summaries` can fail on *serialization*, which is an internal defect
 /// rather than a disagreement with the reference, so only they return a
 /// `Result`.)
+/// One `[file, line, label]` evidence triple, the shape the Layer 3 surface
+/// serializes (`ownlang/verdicts.py`).
+fn steps(slice_: &[own_bridge::Step]) -> Json {
+    Json::Array(
+        slice_
+            .iter()
+            .map(|(file, line, label)| {
+                Json::Array(vec![
+                    Json::Str(file.clone()),
+                    Json::Int(*line),
+                    Json::Str(label.clone()),
+                ])
+            })
+            .collect(),
+    )
+}
+
 fn verdicts_layer(facts: &OwnIr) -> Json {
-    let projection = partial_projection(&VERDICT_MEMBERS, VERDICT_PROJECTION_REASON);
-    // `VERDICTS_VERSION` is the reference's, and this engine replays that
-    // surface — the projection, not the version, is what differs.
+    // Every `Finding` member since #259 cp5.1/5.2 — no projection to declare.
+    let projection = full_projection();
     let version = Json::Int(1);
     match own_bridge::check_facts(facts) {
         Ok(findings) => {
@@ -205,9 +213,12 @@ fn verdicts_layer(facts: &OwnIr) -> Json {
                         ("component", Json::Str(f.component.clone())),
                         ("event", Json::Str(f.event.clone())),
                         ("handler", Json::Str(f.handler.clone())),
+                        ("message", Json::Str(f.message.clone())),
                         ("kind", Json::Str(f.kind.clone())),
                         ("advisory", Json::Bool(f.advisory)),
                         ("severity", opt_str(f.severity.as_deref())),
+                        ("related", steps(&f.related)),
+                        ("flow", steps(&f.flow)),
                         ("ignore_reason", opt_str(f.ignore_reason.as_deref())),
                         ("column", f.column.map_or(Json::Null, Json::Int)),
                     ])
@@ -225,4 +236,35 @@ fn verdicts_layer(facts: &OwnIr) -> Json {
 
 fn opt_str(value: Option<&str>) -> Json {
     value.map_or(Json::Null, |s| Json::Str(s.to_owned()))
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::{full_projection, partial_projection, Json};
+
+    /// The two projection shapes the artifact format declares. `partial` has no
+    /// caller in this engine any more — every layer emits its whole surface —
+    /// so without this its shape would be unchecked the day someone needs it.
+    #[test]
+    fn the_two_projection_shapes_are_pinned() {
+        assert_eq!(
+            full_projection(),
+            Json::Object(vec![("kind".to_owned(), Json::Str("full".to_owned()))])
+        );
+        assert_eq!(
+            partial_projection(&["line", "code"], "why"),
+            Json::Object(vec![
+                ("kind".to_owned(), Json::Str("partial".to_owned())),
+                (
+                    "members".to_owned(),
+                    Json::Array(vec![
+                        Json::Str("line".to_owned()),
+                        Json::Str("code".to_owned())
+                    ])
+                ),
+                ("reason".to_owned(), Json::Str("why".to_owned())),
+            ])
+        );
+    }
 }

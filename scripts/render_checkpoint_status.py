@@ -97,6 +97,7 @@ SHADOW_CAMPAIGNS = (
 # sub-checkpoint cannot quietly restate an earlier one's numbers.
 CP5_CAMPAIGNS = (
     ("checkpoint 5.1 — the message matrix and the evidence slices", "p022-cp5-1"),
+    ("checkpoint 5.2 — the refusal text and the core message it quotes", "p022-cp5-2"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -431,11 +432,20 @@ it could **produce**. Over the committed artifacts:
 |---|---|---|---|---|
 {engine_rows}
 
-The port's `partial` layers are its verdict surface: `own_bridge::check_facts`
-is at the #259 checkpoint-4 projection, which carries every `Finding` member
-except `message`, `related` and `flow`. It says so in the artifact rather than
-emitting a short document a later comparison would score as agreement, and a
-test asserts the claim matches the records byte for byte.
+The port's `partial` column read non-zero until #259 cp5.1/5.2: its verdict
+surface sat at the checkpoint-4 projection, carrying every `Finding` member
+except `message`, `related` and `flow`, and said so in the artifact rather than
+emitting a short document a later comparison would score as agreement. Those
+members are ported, so the layer is `full` and no partial projection remains —
+a fact about this port's progress, not a reason to drop the field. The check
+moved with it: it now asserts a `full` claim against the complete Layer 3
+record too, because a `full` declared over a short document is the over-claim
+that became reachable the moment nothing was partial.
+
+**Still not shadow mode, and still not the verdict layer entering it.** The
+reducer REFUSES the verdict layer and records the refusal in every reduction;
+what changed above is one engine's declaration of what it puts in the
+envelope.
 
 **Layer envelopes where the two engines' status differs** — structural
 accounting, not a content comparison, and every one of them a boundary the port

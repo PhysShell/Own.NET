@@ -60,7 +60,7 @@ Definition: `docs/evidence/p022-shadow-cp1.json` (sha256 `a5df997a1d84effc…`, 
 
 Campaign `p022-shadow-cp2` — The mutation campaign for P-022 step 7a checkpoint 2 (the engine protocol: how each engine reports its per-layer outputs, and what it declares it could produce). Separate from the cp1 campaign on purpose — each checkpoint's evidence stays frozen at what it measured, so a later checkpoint cannot quietly restate an earlier one's numbers. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Three layers run for every mutation (discipline 3: no fail-fast), including the port's own engine suite. M00 is the harness-honesty control.
 
-Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `fdeb494e11d5169f…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-shadow-cp2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `0161ac9e14062df5…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-shadow-cp2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                          | value |
 |--------------------------------------------------|---|
@@ -72,8 +72,13 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `fdeb494e11d5169f…`, 
 | compile-error (no evidence either way)           | 0 |
 | invalid-mutation                                 | 0 |
 | runner-error                                     | 0 |
-| caught without every expected catcher            | none |
+| caught without every expected catcher            | M35 |
 | honesty control `M00` (unmutated tree must pass) | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
+- caught mutations missed a required catcher (the tests the definition names did not all fail): M35 — the evidence does not prove what it claims
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|
@@ -81,7 +86,7 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `fdeb494e11d5169f…`, 
 | M32 | engine protocol: an engine writes only its own entry, and carries foreign ones through | the reference silently drops the foreign engine entries when regenerating | caught | `python::artifact-golden` |
 | M33 | engine protocol: a partial projection must NAME the members it carries | the reference's verification accepts a partial projection that names no members | caught | `python::structural-control` |
 | M34 | engine protocol: a full projection emits the whole surface and claims nothing else | the reference's verification accepts a 'full' projection that also names members | caught | `python::structural-control` |
-| M35 | engine protocol: a projection that over-claims is exactly what the field exists to prevent | the port declares its verdict layer FULL while it is at the checkpoint-4 projection | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M35 | engine protocol: a projection that over-claims is exactly what the field exists to prevent | the port declares its verdict layer FULL while emitting a short record (the over-claim that became reachable when the layer stopped being partial, #259 cp5.1/5.2) | caught (a required catcher did not fail) | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M36 | engine protocol: a projection names exactly the members its documents carry | the port drops `column` from its verdict records while still claiming it | caught | `rust-engine/tests/engine.rs::a_partial_projection_names_exactly_the_members_it_carries`<br>`rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M37 | artifact: status is produced or refused, and a refusal carries no document | the port stamps a refused layer with the 'produced' status | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M38 | artifact: surface_version is null when the surface has none — absence is data | the port claims a surface version for the MOS dump, which has none | caught | `rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture` |

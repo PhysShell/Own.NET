@@ -307,10 +307,58 @@ fn truthy(v: Option<&Value>) -> bool {
     }
 }
 
-/// Python `{x!r}` for the values the map-or-raise message interpolates: a
-/// subject is `None` or a simple string, repr'd with single quotes.
+/// Python `{x!r}` for the two values the map-or-raise message interpolates:
+/// `None`, or a string through `CPython`'s `repr`.
+///
+/// The quote choice is the load-bearing half, and cp4's placeholder got it
+/// wrong because the comparison was cut before it: `CPython` uses `'` unless the
+/// string contains a `'` and no `"`, in which case it switches to `"` rather
+/// than escaping. Every core message that quotes a name — `undefined name
+/// 'loc_0'` — takes that branch, so a single-quote-always port differs on
+/// every one of them.
+///
+/// Escaping covers the backslash, the active quote and the ASCII control
+/// range, which is `CPython`'s rule for every character a diagnostic message can
+/// hold; printable non-ASCII (the em dash the wordings use) passes through
+/// unescaped, as it does there. A NON-printable non-ASCII character would
+/// diverge, and cannot occur: these messages are built from source identifiers
+/// and fixed English text.
 fn py_repr(v: Option<&str>) -> String {
-    v.map_or_else(|| "None".to_owned(), |s| format!("'{s}'"))
+    let Some(s) = v else {
+        return "None".to_owned();
+    };
+    let quote = if s.contains('\'') && !s.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    let mut out = String::with_capacity(s.len().saturating_add(2));
+    out.push(quote);
+    for ch in s.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            '\t' => out.push_str("\\t"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            c if c.is_ascii_control() => {
+                // `\xNN`, lowercase hex, exactly as `CPython` writes it. An
+                // ASCII control fits in one byte, so both nibbles are digits.
+                let byte = u32::from(c);
+                out.push_str("\\x");
+                for shift in [4_u32, 0] {
+                    let nibble = (byte >> shift) & 0xf;
+                    out.push(char::from_digit(nibble, 16).unwrap_or('0'));
+                }
+            }
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
 }
 
 /// `_route_resource(rkind)[1]`: the `[resource: …]` label of an owned kind —
@@ -1041,6 +1089,33 @@ mod tests {
                 .is_empty(),
             "a BR-V2 artifact is dropped before map-or-raise, subject or not"
         );
+    }
+
+    /// BR-V3's refusal text quotes the core message through `CPython`'s `repr`,
+    /// and the quote choice is not decoration: every core message that names an
+    /// identifier contains a `'`, so `repr` switches to `"` rather than
+    /// escaping. cp4 shipped a single-quote-always placeholder because the
+    /// comparison was cut before this member; cp5.2 removed the cut and the
+    /// three `hoist_neg_*` goldens went red on it immediately.
+    ///
+    /// Expected values below are `repr()` output, taken from `CPython`.
+    #[test]
+    fn py_repr_matches_cpython_including_the_quote_switch() {
+        for (input, want) in [
+            (None, "None"),
+            (Some("undefined name 'loc_0'"), "\"undefined name 'loc_0'\""),
+            (Some("has \"double\" only"), "'has \"double\" only'"),
+            (Some("both ' and \""), "'both \\' and \"'"),
+            (Some("plain"), "'plain'"),
+            (Some("tab\there"), "'tab\\there'"),
+            (Some("nl\nhere"), "'nl\\nhere'"),
+            (Some("back\\slash"), "'back\\\\slash'"),
+            (Some("em — dash"), "'em — dash'"),
+            (Some("ctrl\u{1}byte"), "'ctrl\\x01byte'"),
+            (Some("both ' and \" and \\"), "'both \\' and \" and \\\\'"),
+        ] {
+            assert_eq!(super::py_repr(input), want, "repr({input:?})");
+        }
     }
 
     /// BR-V7's three unobservable key members. `event`, `kind` and `severity`

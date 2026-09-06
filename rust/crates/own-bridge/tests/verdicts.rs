@@ -14,12 +14,17 @@
 //! carried these three members since cp4, which is the whole reason the family
 //! was built that way.
 //!
-//! Refusals compare on the reference's error text — byte-exact for a
-//! lowering-time refusal (vocabulary skew, an unknown resource kind), and up
-//! to the `message=` member for the map-or-raise class (BR-V3), whose text
-//! interpolates the core diagnostic's message that this core still carries as
-//! its title. That normalization is the one declared comparison boundary left
-//! on a refusal, it is applied to BOTH sides, and closing it is checkpoint 5.2.
+//! Refusals compare on the reference's error text **in full** — including the
+//! `message=` member of the map-or-raise class (BR-V3), which interpolates the
+//! core diagnostic's own message. cp4 had to cut the comparison there because
+//! this core carried each code's title; cp5.2 gave `own_cfg::Diag` the
+//! reference's message and removed the cut. No comparison boundary is left on
+//! a refusal.
+//!
+//! That also makes the unported remainder of the core message layer a
+//! tripwire rather than a blind spot: a code whose message `own-cfg` does not
+//! carry still renders as its title, so the first golden that refuses on one
+//! goes red here demanding the message, instead of agreeing with a title.
 //!
 //! Independently enforced here (not outsourced to Python):
 //! * ledger/tree equality — the swept corpora + the synthetic manifest cases
@@ -196,17 +201,6 @@ fn key_of_rust(f: &Finding) -> Key {
     }
 }
 
-/// The refusal comparison class (see the module docs): the map-or-raise text
-/// up to its `message=` member; every other refusal in full.
-fn refusal_class(text: &str) -> String {
-    const MAP_OR_RAISE: &str = "internal: the core reported [";
-    if text.starts_with(MAP_OR_RAISE) {
-        text.split(", message=").next().unwrap_or(text).to_owned()
-    } else {
-        text.to_owned()
-    }
-}
-
 fn read(path: &str) -> String {
     std::fs::read_to_string(path).unwrap_or_else(|e| {
         panic!(
@@ -378,12 +372,13 @@ fn replay_case(name: &str, facts_path: &str) -> Result<(bool, usize), String> {
     );
     match (first, golden.error, golden.findings) {
         (Err(err), Some(text), _) => {
-            let (got, want) = (refusal_class(&err.to_string()), refusal_class(&text));
+            // Byte-exact on both sides, with no normalization (cp5.2).
+            let (got, want) = (err.to_string(), text);
             if got == want {
                 Ok((true, 0))
             } else {
                 Err(format!(
-                    "{name}: refusal class differs\n    python = {want}\n    rust   = {got}"
+                    "{name}: refusal text differs\n    python = {want}\n    rust   = {got}"
                 ))
             }
         }

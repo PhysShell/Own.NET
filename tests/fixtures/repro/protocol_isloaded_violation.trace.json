@@ -363,21 +363,7 @@
           "layer": "verdicts",
           "status": "refused",
           "projection": {
-            "kind": "partial",
-            "members": [
-              "file",
-              "line",
-              "code",
-              "component",
-              "event",
-              "handler",
-              "kind",
-              "advisory",
-              "severity",
-              "ignore_reason",
-              "column"
-            ],
-            "reason": "own_bridge::check_facts is at the #259 checkpoint-4 surface: message synthesis (BR-V4) and the related/flow evidence slices are checkpoint 5 and are not ported, so this engine does not emit them rather than emitting them empty"
+            "kind": "full"
           },
           "order": "significant",
           "error": "this document declares 1 obligation protocol(s), and the protocol analysis (OBL001–005, ownlang/obligations.py) is not wired into this core yet — refusing rather than returning a verdict list with a family missing (#259 boundary; the verdict fixture ledger records the excluded reference documents)",
