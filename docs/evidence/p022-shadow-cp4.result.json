@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-shadow-cp4",
+  "definition": "docs/evidence/p022-shadow-cp4.json",
+  "definition_sha256": "ad87275b58dc706535d6ed25a31b8b735725a1f0ce217975563100379d5fb5d6",
+  "source_commit": "001f6fd3be4e73f4d3878dc430dd4507a90ca273",
+  "dirty": false,
+  "recorded_at": "2026-09-06T13:25:01Z",
+  "layers": [
+    "python",
+    "rust-repro",
+    "rust-trace",
+    "rust-reduce",
+    "rust-unit"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 1.9
+  },
+  "mutations": [
+    {
+      "id": "M53",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-control",
+        "python::reduction-golden"
+      ],
+      "elapsed_seconds": 0.6
+    },
+    {
+      "id": "M54",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-control"
+      ],
+      "elapsed_seconds": 1.7
+    },
+    {
+      "id": "M55",
+      "outcome": "caught",
+      "catchers": [
+        "python::<non-zero exit with no reported failure>"
+      ],
+      "elapsed_seconds": 1.8
+    },
+    {
+      "id": "M56",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-control"
+      ],
+      "elapsed_seconds": 1.8
+    },
+    {
+      "id": "M57",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-control"
+      ],
+      "elapsed_seconds": 1.8
+    },
+    {
+      "id": "M58",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-golden"
+      ],
+      "elapsed_seconds": 1.8
+    },
+    {
+      "id": "M59",
+      "outcome": "caught",
+      "catchers": [
+        "python::reduction-control"
+      ],
+      "elapsed_seconds": 1.8
+    },
+    {
+      "id": "M60",
+      "outcome": "caught",
+      "catchers": [
+        "python::artifact-golden"
+      ],
+      "elapsed_seconds": 1.7
+    },
+    {
+      "id": "M61",
+      "outcome": "caught",
+      "catchers": [
+        "rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte",
+        "rust-reduce/tests/reduce.rs::the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence",
+        "rust-reduce/tests/reduce.rs::the_verdict_layer_is_refused_not_silently_skipped",
+        "rust-reduce/tests/reduce.rs::two_engines_that_both_refused_a_layer_agree"
+      ],
+      "elapsed_seconds": 1.9
+    },
+    {
+      "id": "M62",
+      "outcome": "caught",
+      "catchers": [
+        "rust-reduce/tests/reduce.rs::two_engines_that_both_refused_a_layer_agree"
+      ],
+      "elapsed_seconds": 1.9
+    },
+    {
+      "id": "M63",
+      "outcome": "caught",
+      "catchers": [
+        "rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte"
+      ],
+      "elapsed_seconds": 2.1
+    }
+  ]
+}

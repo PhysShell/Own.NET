@@ -111,15 +111,63 @@ document identity*, and the phrase must not be read as the stronger invariant.
 Now named in: the generated census's unmeasured set, `spec/Bridge.md` §6, and
 P-022 row 7a.
 
-## What this commit deliberately does not do
+## M-1 — merging #337: one mutation harness, not two
+
+Recorded after the fact, because it changes shared infrastructure rather than
+this slice alone. #337 landed on `main` while this branch was open, and the two
+had independently added `scripts/mutate_campaign.py` and
+`scripts/render_checkpoint_status.py`. Resolving that with "ours" or "theirs"
+would have left the tree with two mutation harnesses drifting apart, so:
+
+**#337's is the shared one, whole.** Its contract is strictly the better one —
+schema-validated definitions, exactly-once regex anchors, per-mutation
+`expected_catchers`, the `compile-error` / `invalid-mutation` / `runner-error`
+vocabulary, the clean-tree contract, and provenance (definition sha256 plus the
+commit the run was taken on, gated as an ancestor of HEAD). What this slice
+needed went in as **generalizations of it**, not a second code path:
+
+- `layers` — a campaign may declare explicit commands instead of a cargo
+  workspace, because the shadow campaigns' catchers are a Python harness plus
+  four cargo test targets. `workspace` is unchanged.
+- Python-source hygiene — the `__pycache__` invalidation, now that the shared
+  runner mutates `.py` files. #337's cargo-only campaigns never needed it.
+
+The four shadow campaigns were **re-run**, not carried over: their old results
+predate the provenance and required-catcher fields, so under the shared gate
+they would not have been evidence. All 63 mutations still anchor; all 63 are
+caught; no survivors.
+
+Two defects surfaced during the merge, both by a gate rather than by review:
+
+1. A `mypy --strict` rename (the shared file list holds these scripts to it)
+   was left half-finished, and `plan.pop(name, None)` stopped removing the six
+   domain-refusal controls from the capturable set. **The campaigns' honesty
+   control refused to run over the resulting red baseline**, so nothing was
+   recorded. Every positive check still passed; without the control this would
+   have been recorded as evidence.
+2. Two mutations declared a catcher by the old runner's name for "the Python
+   layer failed without naming a check". They were still caught, and by that
+   layer — but #337's expected-catchers rule reports a mutation caught only by
+   something other than the test its definition names, which is exactly the
+   difference between evidence and a green tick.
+
+One fix was ported outward rather than left: `owen-cli-release.yml`'s
+`build + test + pack` job runs the whole Python suite on a depth-1 checkout, so
+the provenance gate cannot resolve the commit a recorded campaign names. #337
+gave `ci.yml`'s tests job `fetch-depth: 0` for the same reason; that workflow
+triggers on paths #337 never touched, so the gap stayed green there.
+
+## What the closure commit deliberately did not do
 
 - **No code changes.** `ownlang/repro.py` and `rust/crates/own-shadow/` are
   untouched; so is every fixture, golden and recorded campaign result.
 - **No campaign re-runs.** Every mutation anchors into `ownlang/repro.py` or
-  `own-shadow/src/`, neither of which this commit edits, so the recorded
-  results still describe the tree they measured — and CI re-anchors each
+  `own-shadow/src/`, neither of which that commit edited, so the recorded
+  results still described the tree they measured — and CI re-anchors each
   definition on every build (`tests/test_checkpoint_status.py`). A campaign is
-  evidence about a tree, not a rite to be repeated whenever prose moves.
+  evidence about a tree, not a rite to be repeated whenever prose moves. (The
+  *merge* is a different matter, and M-1 above says why the campaigns were
+  re-run there: the harness itself changed.)
 - **No history rewrite.** Four checkpoints, five commits, and D-1 above.
 
 ## One thing CI does not attest
