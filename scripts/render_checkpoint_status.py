@@ -24,6 +24,8 @@ these generated fragments, computed from the evidence — never typed:
 * `docs/generated/p022-cp5-mutations.md` — checkpoint 5's recorded mutation
   campaigns, one section per sub-checkpoint, through the same
   `summarize()` as every other campaign in the tree.
+* `docs/generated/p022-cp4b-mutations.md` — checkpoint 4b's two campaigns (the
+  obligation ANALYSIS and its BRIDGE half), rendered the same way.
 * `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
@@ -88,6 +90,7 @@ EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
 INVENTORY_MD = "p022-cp5-inventory.md"
 CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
+CP4B_MUTATIONS_MD = "p022-cp4b-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -108,6 +111,14 @@ CP5_CAMPAIGNS = (
     ("checkpoint 5.1 — the message matrix and the evidence slices", "p022-cp5-1"),
     ("checkpoint 5.2 — the refusal text and the core message it quotes", "p022-cp5-2"),
     ("checkpoint 5.3 — the rendered surfaces", "p022-cp5-3"),
+)
+# Checkpoint 4b, on the same one-campaign-per-sub-checkpoint rule: the analysis
+# and the bridge are measured separately because they fail separately — a walk
+# that decides wrongly and a wording that phrases wrongly are different defects
+# with different catchers.
+CP4B_CAMPAIGNS = (
+    ("checkpoint 4b.1 — the obligation analysis", "p022-cp4b-1"),
+    ("checkpoint 4b.2 — the bridge mapping (BR-P3)", "p022-cp4b-2"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -254,8 +265,8 @@ def render_inventory(inv: SurfaceInventory) -> str:
         "`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` "
         "— the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own "
         "finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated "
-        "verbatim; `bridge-protocol` — the OBL family, which is #259 row 4b and outside "
-        "cp5.",
+        "verbatim; `bridge-protocol` — the OBL family (BR-P3), synthesized by the "
+        "bridge from a violation the obligation analysis owns.",
         "",
     ]
     lines += _coverage_table(inv.messages)
@@ -637,6 +648,19 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         CP5_CAMPAIGNS)
     out[CP5_MUTATIONS_MD] = cp5
     problems.extend(f"mutation campaign {p}" for p in cp5_problems)
+    cp4b, cp4b_problems = render_campaign_set(
+        "# P-022 checkpoint 4b — mutation campaigns",
+        "The obligation-protocol family, measured in two halves: the ANALYSIS "
+        "(`own-analysis/src/obligation.rs` plus the half of the shared grammar it "
+        "reads) and the BRIDGE mapping (BR-P3 — codes, wordings, identity "
+        "derivations, the evidence slice and the tolerant-door rules). Every "
+        "mutation edits a **production** surface (P-022 discipline 2) and every "
+        "workspace member runs for every mutation (discipline 3: no fail-fast); the "
+        "counts are derived from the recorded runs by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        CP4B_CAMPAIGNS)
+    out[CP4B_MUTATIONS_MD] = cp4b
+    problems.extend(f"mutation campaign {p}" for p in cp4b_problems)
     return out, problems
 
 

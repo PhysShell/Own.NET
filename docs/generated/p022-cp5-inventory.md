@@ -8,7 +8,7 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 
 ## BR-V4 — message synthesis, by who owns the string
 
-`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` — the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated verbatim; `bridge-protocol` — the OBL family, which is #259 row 4b and outside cp5.
+`bridge` — synthesized by `check_facts` from the handle record; `core-analysis` — the `message` property of `ownlang/di.py` / `ownlang/effects.py`'s own finding; `core-diagnostic` — the core `Diagnostic.message`, interpolated verbatim; `bridge-protocol` — the OBL family (BR-P3), synthesized by the bridge from a violation the obligation analysis owns.
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
@@ -44,16 +44,20 @@ Checkpoint 4 proved identity, anchor, kind and tiering over the replayed set ([c
 | `token_subscription_injected_lambda` | bridge | plain `+=` subscription, injected source, inline lambda | 1 | 1 |
 | `token_subscription_other` | bridge | plain `+=` subscription, any other source | 17 | 17 |
 | `token_subscription_other_lambda` | bridge | plain `+=` subscription, any other source, inline lambda | 1 | 1 |
-| `advisory_own050` | bridge | OWN050 unresolved-reference note | 3 | 3 |
+| `advisory_own050` | bridge | OWN050 unresolved-reference note | 5 | 5 |
 | `advisory_own051` | bridge | OWN051 unverified-transfer note | 6 | 6 |
 | `advisory_own052` | bridge | OWN052 degraded-inference note | 1 | 1 |
-| `di001_message` | core-analysis | DI001 captive message (di.py) | 11 | 9 |
+| `di001_message` | core-analysis | DI001 captive message (di.py) | 12 | 10 |
 | `di002_message` | core-analysis | DI002 weak-captive message (di.py) | 2 | 2 |
 | `di003_message` | core-analysis | DI003 captured-transient message (di.py) | 1 | 1 |
 | `di004_message` | core-analysis | DI004 root-resolution message (di.py) | 7 | 7 |
 | `di005_message` | core-analysis | DI005 scope-cache message (di.py) | 5 | 5 |
-| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 7 | 5 |
-| `obl_message` | bridge-protocol | OBL001-005 message (4b, not cp5) — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 1 | 0 |
+| `eff001_message` | core-analysis | EFF001 storm message (effects.py) | 8 | 6 |
+| `obl001_barrier_definite` | bridge-protocol | OBL001: a barrier fires while the obligation is open on every path | 4 | 4 |
+| `obl002_barrier_maybe` | bridge-protocol | OBL002: a barrier fires while it is open on some path | 1 | 1 |
+| `obl003_exit_definite` | bridge-protocol | OBL003: the method leaves while the obligation is open on every path | 8 | 8 |
+| `obl004_exit_maybe` | bridge-protocol | OBL004: the method leaves while it is open on some path | 2 | 2 |
+| `obl005_dead_rule` | bridge-protocol | OBL005: a scoped protocol matched no reported method (advisory) | 3 | 3 |
 
 ### Wording tails
 
@@ -63,9 +67,11 @@ Each is its own degradation rule inside an analysis message — the tail is drop
 |---|---|---|---:|---:|
 | `tail_consumed_typed` | wording tail | ` [consumed by the '<impl>' constructor at f:l]` | 4 | 4 |
 | `tail_consumed_bare` | wording tail | ` [consumed by the constructor at f:l]` (impl type unknown) | 2 | 2 |
-| `tail_consumed_absent` | wording tail | no consuming-constructor tail (location unknown) | 8 | 6 |
+| `tail_consumed_absent` | wording tail | no consuming-constructor tail (location unknown) | 9 | 7 |
 | `tail_registered` | wording tail | ` [singleton registered at f:l]` on DI004/DI005 | 7 | 7 |
 | `tail_registered_absent` | wording tail | no registration tail (the primary IS the registration) | 5 | 5 |
+| `tail_obl_exit_falls_off` | wording tail | `the method falls off the end` — a leak off the end has no exit site to name | 3 | 3 |
+| `tail_obl_exit_via` | wording tail | `'<method>' exits via return|throw` — the exit site is named | 7 | 7 |
 
 ## BR-V5 — evidence slices
 
@@ -74,14 +80,14 @@ One row per `related`/`flow` family; a slice matching no family (or two) fails t
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
 | `di_path_1` | flow | DI retention path, one resolvable hop (the rest dropped) | 2 | 1 |
-| `di_path_2` | flow | DI retention path, captor → captured | 19 | 18 |
+| `di_path_2` | flow | DI retention path, captor → captured | 20 | 19 |
 | `di_path_3plus` | flow | DI retention path with `via` hops | 4 | 4 |
 | `di_consumer_related_typed` | related | DI consuming constructor, impl type known | 4 | 4 |
 | `di_consumer_related_bare` | related | DI consuming constructor, impl type unknown | 2 | 2 |
 | `di004_registration_related` | related | DI004 registration beside the call site | 3 | 3 |
 | `di005_registration_related` | related | DI005 registration beside the store site | 4 | 4 |
 | `capture_escape_flow` | flow | OWN014 subscribe site → source registration site | 4 | 4 |
-| `effect_flow` | flow | EFF001 re-run site → identity-mint site | 4 | 3 |
+| `effect_flow` | flow | EFF001 re-run site → identity-mint site | 5 | 4 |
 | `flowlocal_flow_own002` | flow | flow-local OWN002 origin → violation | 4 | 4 |
 | `flowlocal_flow_own003` | flow | flow-local OWN003 origin → violation | 1 | 1 |
 | `flowlocal_flow_own009` | flow | flow-local OWN009 origin → violation | 1 | 1 |
@@ -89,8 +95,11 @@ One row per `related`/`flow` family; a slice matching no family (or two) fails t
 | `flowlocal_flow_own003_pool` | flow | flow-local OWN003 origin → violation (pooled) | 1 | 1 |
 | `flowlocal_flow_own009_pool` | flow | flow-local OWN009 origin → violation (pooled) | 1 | 1 |
 | `flowlocal_flow_own025_pool` | flow | flow-local OWN025 origin → violation (pooled) | 2 | 2 |
-| `protocol_flow` | flow | OBL opened → barrier (→ late close) — 4b, not cp5 — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 0 | 0 |
-| `protocol_flow_3` | flow | OBL opened → barrier → late close — 4b, not cp5 — **not replayed**: #259 row 4b (the OBL analysis is not ported); outside cp5 by declaration | 1 | 0 |
+| `protocol_flow_3` | flow | OBL opened → barrier → late close | 4 | 4 |
+| `protocol_flow_open_barrier` | flow | OBL opened → barrier, no close after it | 1 | 1 |
+| `protocol_flow_open_exit` | flow | OBL opened → the exit it leaked through | 6 | 6 |
+| `protocol_flow_open_only` | flow | OBL opened, and nothing else: a leak off the END anchors AT the open, so its second step would repeat the first | 2 | 2 |
+| `protocol_flow_exit_only` | flow | OBL exit alone: the open carries no line (< 1) and its step is dropped | 1 | 1 |
 
 ### Degradations
 
@@ -98,13 +107,14 @@ The rules that produce an EMPTY slice: a step whose line is unknown is omitted, 
 
 | ledger row | surface | what it is | all goldens | replayed |
 |---|---|---|---:|---:|
-| `di_consumer_related_dropped` | related | DI001/2/3 with no consuming-constructor related (line < 1) | 8 | 6 |
+| `di_consumer_related_dropped` | related | DI001/2/3 with no consuming-constructor related (line < 1) | 9 | 7 |
 | `di004_related_dropped` | related | DI004 with no registration related (the primary IS the registration) | 4 | 4 |
 | `di005_related_dropped` | related | DI005 with no registration related (the primary IS the registration) | 1 | 1 |
 | `capture_escape_flow_dropped` | flow | DI-sourced OWN014 with no escape slice (source registration unknown → < 2 steps) | 2 | 2 |
 | `capture_flow_absent` | flow | OWN014 from the capture route: no escape slice by design (only the DI-sourced branch builds one) | 6 | 6 |
 | `effect_flow_dropped` | flow | EFF001 with no slice (a re-run or mint line < 1) | 3 | 2 |
 | `flowlocal_flow_absent` | flow | OWN001 on a local/pooled record: a single-point finding, no slice by design | 45 | 43 |
+| `protocol_flow_absent` | flow | an OBL finding with no slice at all: the anchorless OBL005 by design, and a leak whose only step has an unknown line | 4 | 4 |
 
 ## BR-V9 — rendered surfaces
 
@@ -129,17 +139,17 @@ Coverage is matched out of the `tests/fixtures/verdict_renders/` family's `pins`
 | `sarif_rules` | sarif | rule catalogue: sorted, deduplicated + `TITLES` | 2 | 2 |
 | `sarif_result_order` | sarif | results keep the bridge's own order (BR-V8), never the catalogue's | 1 | 1 |
 | `sarif_schema_version` | sarif | the `ownirSchemaVersion` driver property | 1 | 1 |
-| `sarif_level_note` | sarif | an advisory renders as `note` | 1 | 1 |
+| `sarif_level_note` | sarif | an advisory renders as `note` | 2 | 2 |
 | `sarif_level_warning` | sarif | an intrinsic warning renders as `warning` | 1 | 1 |
 | `sarif_level_error` | sarif | a provable leak renders as `error` | 1 | 1 |
 | `sarif_level_host_warning` | sarif | `severity=warning` downgrades an error, never an advisory | 1 | 1 |
 | `sarif_region` | sarif | `region.startLine` for a line ≥ 1 | 1 | 1 |
-| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 | 1 | 1 |
+| `sarif_region_omitted` | sarif | `region` omitted entirely for line < 1 | 2 | 2 |
 | `sarif_start_column` | sarif | `region.startColumn` only beside a line | 1 | 1 |
 | `sarif_uri_backslash` | sarif | backslashes normalised in the artifact URI | 1 | 1 |
 | `sarif_properties` | sarif | `resourceKind` always; component/event/handler only when non-empty | 1 | 1 |
 | `sarif_related` | sarif | `relatedLocations` from `related` | 1 | 1 |
-| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` | 1 | 1 |
+| `sarif_code_flows` | sarif | `codeFlows` from the ordered `flow` | 2 | 2 |
 | `sarif_suppressions` | sarif | `suppressions` (`inSource` + justification) for a suppressed finding | 1 | 1 |
 | `sarif_empty` | sarif | an empty finding list is a valid, empty run | 1 | 1 |
 | `refusal_error` | surface | a bridge refusal projects as `{"error": …}` | 1 | 1 |

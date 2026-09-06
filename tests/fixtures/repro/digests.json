@@ -508,6 +508,48 @@
       "bytes": 493
     },
     {
+      "case": "verdict_protocol_absent_rules_are_silent",
+      "corpus": "verdicts",
+      "digest": "6a2c86794db9155f50e8d2f49b5a0750e89bbb2308ddb3e745cbad04cba1debb",
+      "bytes": 1158
+    },
+    {
+      "case": "verdict_protocol_barrier_maybe_two_step_slice",
+      "corpus": "verdicts",
+      "digest": "10070bdf723cddb776b8bcddbe0ec201d4d58f9018ff8271572436b8c96c5955",
+      "bytes": 1309
+    },
+    {
+      "case": "verdict_protocol_beside_other_families",
+      "corpus": "verdicts",
+      "digest": "ad5e4f3f36a1d359ccb8532365801cc4043babd9176556f2a072a85bc334e0f5",
+      "bytes": 1709
+    },
+    {
+      "case": "verdict_protocol_exit_codes_and_wordings",
+      "corpus": "verdicts",
+      "digest": "443ca8012688649cd1f1af51d7fe31b421af9af9518c775f07ff33ff1cecfd31",
+      "bytes": 1679
+    },
+    {
+      "case": "verdict_protocol_identity_and_line_guards",
+      "corpus": "verdicts",
+      "digest": "addb7b7e66c3716aa048eb46a7dd49e45f17bca06c82d54bcfd3e314485c2e28",
+      "bytes": 1771
+    },
+    {
+      "case": "verdict_protocol_obl005_dead_rule",
+      "corpus": "verdicts",
+      "digest": "cb3e6c15db1365ee93db746d073de313083cbe592a22aaa366d83bc5019c0254",
+      "bytes": 2220
+    },
+    {
+      "case": "verdict_protocol_tolerant_door_rules",
+      "corpus": "verdicts",
+      "digest": "d98ab7fa30b2680cf0dbb605fec21bf62a44cd824b6bee6d98a27d23c3994edc",
+      "bytes": 2018
+    },
+    {
       "case": "verdict_same_site_distinct_events",
       "corpus": "verdicts",
       "digest": "657cb50c6df9feecf3c9791f02a6555aed08810d622b182313ca507623e37c41",

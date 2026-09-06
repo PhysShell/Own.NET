@@ -16,6 +16,12 @@ version = "0.1.0"
 [dependencies]
 own-cfg = { path = "../own-cfg" }
 own-diagnostics = { path = "../own-diagnostics" }
+# The obligation analysis (#259 cp4b) reads the typed protocol grammar, which
+# lives in own-ir because the strict door delegates to it (spec/Bridge.md BR-D1)
+# — one implementation of the grammar, two consumers. An already-allowed DAG
+# edge (own-diagnostics/tests/dag.rs), made explicit rather than borrowed
+# through own-cfg's re-export.
+own-ir = { path = "../own-ir" }
 
 [dev-dependencies]
 # own-syntax is a TEST-only edge (parity/metamorphic tests call `parse`); the

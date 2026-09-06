@@ -1,0 +1,571 @@
+{
+  "renders_version": 1,
+  "human": {
+    "error": [
+      "?:0: error: [OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs:18: error: [OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs:40: error: [OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs:42: error: [OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ],
+    "warning": [
+      "?:0: warning: [OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs:18: warning: [OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs:40: warning: [OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs:42: warning: [OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ]
+  },
+  "github": {
+    "error": [
+      "::error file=?,line=0,title=OBL005::[OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "::error file=DocViewModel.cs,line=18,title=OBL001::[OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "::error file=DocViewModel.cs,line=40,title=OBL003::[OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "::error file=DocViewModel.cs,line=42,title=OBL003::[OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ],
+    "warning": [
+      "::warning file=?,line=0,title=OBL005::[OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "::warning file=DocViewModel.cs,line=18,title=OBL001::[OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "::warning file=DocViewModel.cs,line=40,title=OBL003::[OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "::warning file=DocViewModel.cs,line=42,title=OBL003::[OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ]
+  },
+  "msbuild": {
+    "error": [
+      "?(0): error OBL005: protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs(18): error OBL001: obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs(40): error OBL003: obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs(42): error OBL003: obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ],
+    "warning": [
+      "?(0): warning OBL005: protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs(18): warning OBL001: obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs(40): warning OBL003: obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs(42): warning OBL003: obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ]
+  },
+  "unknown-format": {
+    "error": [
+      "?:0: error: [OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs:18: error: [OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs:40: error: [OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs:42: error: [OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ],
+    "warning": [
+      "?:0: warning: [OBL005] protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]",
+      "DocViewModel.cs:18: warning: [OBL001] obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]",
+      "DocViewModel.cs:40: warning: [OBL003] obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]",
+      "DocViewModel.cs:42: warning: [OBL003] obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+    ]
+  },
+  "sarif": {
+    "error": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OBL001",
+                  "shortDescription": {
+                    "text": "obligation still open when a barrier fires (open on every path)"
+                  }
+                },
+                {
+                  "id": "OBL003",
+                  "shortDescription": {
+                    "text": "obligation not closed before the method exits (on every path)"
+                  }
+                },
+                {
+                  "id": "OBL005",
+                  "shortDescription": {
+                    "text": "protocol scope matched no reported method -- rule is dead (advisory)"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OBL005",
+              "level": "note",
+              "message": {
+                "text": "protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "?"
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "?",
+                "event": "Ghost"
+              }
+            },
+            {
+              "ruleId": "OBL001",
+              "level": "error",
+              "message": {
+                "text": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 18
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Load"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 12
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 18
+                              }
+                            },
+                            "message": {
+                              "text": "barrier 'OnPropertyChanged(Document)' fires while it is open"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 24
+                              }
+                            },
+                            "message": {
+                              "text": "closed here — after the barrier has already fired"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "OBL003",
+              "level": "error",
+              "message": {
+                "text": "obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 40
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Abandon"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 40
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "OBL003",
+              "level": "error",
+              "message": {
+                "text": "obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 42
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Abandon"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 40
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 42
+                              }
+                            },
+                            "message": {
+                              "text": "the method exits here via return while it is open"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "warning": {
+      "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+      "version": "2.1.0",
+      "runs": [
+        {
+          "tool": {
+            "driver": {
+              "name": "Owen",
+              "informationUri": "https://github.com/PhysShell/Own.NET",
+              "rules": [
+                {
+                  "id": "OBL001",
+                  "shortDescription": {
+                    "text": "obligation still open when a barrier fires (open on every path)"
+                  }
+                },
+                {
+                  "id": "OBL003",
+                  "shortDescription": {
+                    "text": "obligation not closed before the method exits (on every path)"
+                  }
+                },
+                {
+                  "id": "OBL005",
+                  "shortDescription": {
+                    "text": "protocol scope matched no reported method -- rule is dead (advisory)"
+                  }
+                }
+              ],
+              "properties": {
+                "ownirSchemaVersion": 0
+              }
+            }
+          },
+          "results": [
+            {
+              "ruleId": "OBL005",
+              "level": "note",
+              "message": {
+                "text": "protocol 'Ghost' is scoped to ['AViewModel.Absent', 'GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "?"
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "?",
+                "event": "Ghost"
+              }
+            },
+            {
+              "ruleId": "OBL001",
+              "level": "warning",
+              "message": {
+                "text": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.DocViewModel.Load' — 'IsLoaded = true' must happen first [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 18
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Load"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 12
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 18
+                              }
+                            },
+                            "message": {
+                              "text": "barrier 'OnPropertyChanged(Document)' fires while it is open"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 24
+                              }
+                            },
+                            "message": {
+                              "text": "closed here — after the barrier has already fired"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "OBL003",
+              "level": "warning",
+              "message": {
+                "text": "obligation 'DocumentLoading' is not closed when the method falls off the end — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 40
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Abandon"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 40
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ruleId": "OBL003",
+              "level": "warning",
+              "message": {
+                "text": "obligation 'DocumentLoading' is not closed when 'Broker.DocViewModel.Abandon' exits via return — the object is published in its in-between state; close with 'IsLoaded = true' on every path (a finally block covers the throw paths) [resource: protocol obligation]"
+              },
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "DocViewModel.cs"
+                    },
+                    "region": {
+                      "startLine": 42
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "resourceKind": "protocol obligation",
+                "component": "DocViewModel",
+                "event": "DocumentLoading",
+                "handler": "Abandon"
+              },
+              "codeFlows": [
+                {
+                  "threadFlows": [
+                    {
+                      "locations": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 40
+                              }
+                            },
+                            "message": {
+                              "text": "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                            }
+                          }
+                        },
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": {
+                                "uri": "DocViewModel.cs"
+                              },
+                              "region": {
+                                "startLine": 42
+                              }
+                            },
+                            "message": {
+                              "text": "the method exits here via return while it is open"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -125,7 +125,7 @@
       "name": "protocol_isloaded_violation",
       "corpus": "ownir",
       "pins": [
-        "a document the Rust bridge refuses by a declared #259 boundary (the obligation-protocol analysis is not ported) but the reference captures in full — the artifact records one engine's capture and takes no side on the other's"
+        "a document declaring an obligation protocol: the Rust bridge REFUSED it by a declared #259 boundary until checkpoint 4b ported the OBL analysis, and now produces the verdict layer like the reference. The artifact records each engine's own capture and takes no side on the other's, so what the promotion changed here is one engine's status, not a comparison"
       ]
     },
     {

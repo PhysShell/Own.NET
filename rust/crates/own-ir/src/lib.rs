@@ -43,7 +43,7 @@
 //! Error *message* parity with Python is not claimed yet — that lands with the
 //! shared error-text fixtures (P-022 oracle section), not by copy-paste.
 
-mod protocol;
+pub mod protocol;
 pub mod span;
 mod strict;
 

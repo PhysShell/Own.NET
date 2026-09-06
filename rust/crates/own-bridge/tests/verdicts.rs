@@ -299,8 +299,6 @@ fn assert_exclusions_hold<'m>(
         );
     }
     let expected_exclusions: BTreeSet<&str> = [
-        "protocol_isloaded_clean",
-        "protocol_isloaded_violation",
         "verdict_boundary_line_negative",
         "verdict_boundary_line_above_u32",
         "verdict_boundary_service_line_negative",

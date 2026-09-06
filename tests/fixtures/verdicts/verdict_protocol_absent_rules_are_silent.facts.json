@@ -1,0 +1,42 @@
+{
+  "ownir_version": 0,
+  "module": "Silent",
+  "components": [
+    {
+      "name": "GridViewModel",
+      "file": "GridViewModel.cs",
+      "subscriptions": [
+        {
+          "event": "grid.View.CellValueChanged",
+          "handler": "OnCellChanged",
+          "line": 20,
+          "resource": "unresolved-subscription"
+        }
+      ]
+    }
+  ],
+  "_doc": [
+    "BR-P3: no PARSEABLE protocol means no protocol findings, even when the",
+    "method events would have fired one. The only protocols[] record here is",
+    "malformed (no opens/closes), so the tolerant door skips it and the family",
+    "produces nothing — while the event tree below is a textbook open ->",
+    "barrier -> close crossing that a surviving rule would have reported.",
+    "The document is not silent overall: the unresolved subscription still",
+    "yields its OWN050 advisory, so the ABSENCE of an OBL row is a positive",
+    "observation about this golden rather than an empty file."
+  ],
+  "protocols": [
+    {"name": "NeverParsed", "barriers": [{"kind": "call", "callee": "Publish"}]}
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.GridViewModel.Reload",
+      "file": "GridViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 30},
+        {"ev": "call", "callee": "Publish", "line": 31},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 32}
+      ]
+    }
+  ]
+}

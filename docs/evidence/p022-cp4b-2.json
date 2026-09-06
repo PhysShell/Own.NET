@@ -1,0 +1,329 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #259 checkpoint 4b.2 (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the Bridge.md rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4b-2.json --run (on a clean tree). The recorded run lives beside this file as p022-cp4b-2.result.json; counts are derived from it by scripts/render_checkpoint_status.py, never typed.",
+  "campaign": "p022-cp4b-2",
+  "description": "#259 cp4b.2, the BRIDGE half of the obligation family: the (kind, definite) -> OBL001-004 table, all four line-free wordings and both exit_desc branches, the component/handler derivations, every step of the opened -> barrier (or exit) -> late-close slice with its line guard, the anchorless advisory OBL005 with its sorted CPython-repr scope list, and the three tolerant-door rules (skip a malformed entry whole, first-wins on a duplicate name, a non-list block silences the family). Three mutations attack the CONTROLS rather than the port: two corrupt the frozen Layer 3 and rendered oracles and require their replays to fail, and one re-declares the exclusion this checkpoint promoted — a promotion that were only announced in prose would survive it.",
+  "workspace": "rust",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "BR-P3",
+      "description": "the barrier row of the code table loses its definite/maybe split",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\(ViolationKind::Barrier, true\\) => \"OBL001\",",
+      "replacement": "(ViolationKind::Barrier, true) => \"OBL002\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "BR-P3",
+      "description": "the exit row of the code table loses its definite/maybe split",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\(ViolationKind::Exit, true\\) => \"OBL003\",",
+      "replacement": "(ViolationKind::Exit, true) => \"OBL004\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "BR-P3",
+      "description": "a barrier crossing is coded as an exit leak",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\(ViolationKind::Barrier, false\\) => \"OBL002\",",
+      "replacement": "(ViolationKind::Barrier, false) => \"OBL004\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "BR-V4",
+      "description": "the barrier wording states 'may still be open' for a definite crossing",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "                \"is still open\"\\n",
+      "replacement": "                \"may still be open (open on some path)\"\n",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "BR-V4",
+      "description": "the exit wording states 'is not closed' for a maybe leak",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "                \"may not be closed \\(open on some path\\)\"",
+      "replacement": "                \"is not closed\"",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "BR-V4",
+      "description": "every exit words itself as the fall-off, never naming the exit site",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "            let exit_desc = if v\\.barrier_desc == \"end of method\" \\{",
+      "replacement": "            let exit_desc = if true {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "BR-V4",
+      "description": "the fall-off branch is never taken: a leak off the end words itself as 'exits via end of method'",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "            let exit_desc = if v\\.barrier_desc == \"end of method\" \\{\\n(\\s+)\"the method falls off the end\"\\.to_owned\\(\\)",
+      "replacement": "            let exit_desc = if false {\n\\1\"the method falls off the end\".to_owned()",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "BR-V4",
+      "description": "the barrier wording names the barrier where it should name the close",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "'\\{close\\}' must happen first\\\",\\n(\\s+)v\\.protocol, v\\.barrier_desc, v\\.method",
+      "replacement": "'{close}' must happen first\",\n\\1v.protocol, v.method, v.barrier_desc",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "BR-P3",
+      "description": "component takes the LAST dotted segment instead of the second-to-last",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "String::from\\(method\\.rsplit\\('\\.'\\)\\.nth\\(1\\)\\.unwrap_or\\(method\\)\\)",
+      "replacement": "String::from(method.rsplit('.').next().unwrap_or(method))",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "BR-P3",
+      "description": "handler takes the FIRST dotted segment instead of the last",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "String::from\\(v\\.method\\.rsplit\\('\\.'\\)\\.next\\(\\)\\.unwrap_or\\(&v\\.method\\)\\)",
+      "replacement": "String::from(v.method.split('.').next().unwrap_or(&v.method))",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "BR-V5",
+      "description": "the opened step of every protocol slice is anchored at 0, so the BR-V5 line guard drops it",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "\\n            v\\.open_line,\\n",
+      "replacement": "\n            0,\n",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "BR-V5",
+      "description": "an end-of-method leak gains a second step that repeats its first",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "            ViolationKind::Exit if v\\.line != v\\.open_line => flow\\.push\\(\\(",
+      "replacement": "            ViolationKind::Exit => flow.push((",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "BR-V5",
+      "description": "the late-close hop is never attached",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        if let Some\\(close\\) = v\\.close_line \\{",
+      "replacement": "        if let Some(close) = None::<i64> {",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "BR-V5",
+      "description": "the line guard admits step lines below 1",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "            \\.filter\\(\\|\\(line, _\\)\\| \\*line >= 1\\)",
+      "replacement": "            .filter(|(line, _)| *line >= 0)",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "BR-V5",
+      "description": "the barrier step and the exit step swap their labels",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "                format!\\(\"barrier \\'\\{\\}\\' fires while it is open\", v\\.barrier_desc\\),",
+      "replacement": "                format!(\"the method exits here via {} while it is open\", v.barrier_desc),",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "BR-V5 / OD-6",
+      "description": "OBL005 stops being anchorless: it takes a line instead of 0",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        let mut f = Finding::new\\(\"\\?\", 0, \"OBL005\", \"protocol obligation\"\\);",
+      "replacement": "        let mut f = Finding::new(\"?\", 1, \"OBL005\", \"protocol obligation\");",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "BR-V6",
+      "description": "OBL005 stops being advisory, so it would fail a build",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        f\\.advisory = true;\\n        let mut scope",
+      "replacement": "        f.advisory = false;\n        let mut scope",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "BR-P3",
+      "description": "the OBL005 scope list is not sorted",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        scope\\.sort_unstable\\(\\);\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "BR-P3",
+      "description": "the OBL005 scope list is rendered with CPython's list separator dropped",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "    format!\\(\"\\[\\{\\}\\]\", rendered\\.join\\(\", \"\\)\\)",
+      "replacement": "    format!(\"[{}]\", rendered.join(\",\"))",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M20",
+      "rule": "BR-P3 (py_repr, the cp5.2 lesson)",
+      "description": "the scope list quotes unconditionally with ', so an entry holding a quote diverges from CPython's repr",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "    let rendered: Vec<String> = items\\.iter\\(\\)\\.map\\(\\|s\\| py_repr\\(Some\\(s\\)\\)\\)\\.collect\\(\\);",
+      "replacement": "    let rendered: Vec<String> = items.iter().map(|s| format!(\"'{s}'\")).collect();",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "BR-D2",
+      "description": "a duplicate protocol name is LAST-wins (both records survive) instead of first-wins",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        if protocols\\.iter\\(\\)\\.any\\(\\|p\\| p\\.name == parsed\\.name\\) \\{\\n            continue;\\n        \\}\\n",
+      "replacement": "",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M22",
+      "rule": "BR-D2",
+      "description": "a malformed protocols[] entry silences the whole family instead of being skipped as a whole",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        let Ok\\(parsed\\) = protocol::parse_protocol\\(raw\\) else \\{\\n            continue;\\n        \\};",
+      "replacement": "        let Ok(parsed) = protocol::parse_protocol(raw) else {\n            return Vec::new();\n        };",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "BR-D2",
+      "description": "a malformed protocol_functions[] entry is dropped from the method list AND takes the rest of the list with it",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        \\.filter_map\\(\\|raw\\| protocol::parse_method\\(raw\\)\\.ok\\(\\)\\)\\n        \\.collect\\(\\);",
+      "replacement": "        .map_while(|raw| protocol::parse_method(raw).ok())\n        .collect();",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M24",
+      "rule": "BR-D2 (#294 OD-1)",
+      "description": "a block that is not a list reads as empty instead of silencing the family",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        Some\\(_\\) => None,\\n    \\}\\n\\}\\n\\n/// `v\\.method\\.rsplit",
+      "replacement": "        Some(_) => Some(&[]),\n    }\n}\n\n/// `v.method.rsplit",
+      "expected_catchers": [
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "BR-V4",
+      "description": "the resource-kind tag of an OBL finding drifts",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "        let mut f = Finding::new\\(v\\.file\\.clone\\(\\), v\\.line, code, \"protocol obligation\"\\);",
+      "replacement": "        let mut f = Finding::new(v.file.clone(), v.line, code, \"protocol\");",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "P-022 discipline 2",
+      "description": "corrupt the frozen Layer 3 oracle: an OBL003 is recorded as an OBL004. The replay must fail, or it is not reading the reference's answer",
+      "target": "tests/fixtures/verdicts/verdict_protocol_exit_codes_and_wordings.verdicts.json",
+      "pattern": "\"code\": \"OBL003\",\\n      \"component\": \"BatchViewModel\",\\n      \"event\": \"Suppress\",\\n      \"handler\": \"Ret\"",
+      "replacement": "\"code\": \"OBL004\",\n      \"component\": \"BatchViewModel\",\n      \"event\": \"Suppress\",\n      \"handler\": \"Ret\"",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M27",
+      "rule": "P-022 discipline 2",
+      "description": "corrupt the frozen rendered oracle: the anchorless OBL005 gains a line in the msbuild rendering. The BYTE replay must fail, or the rendered surfaces are carried rather than compared",
+      "target": "tests/fixtures/verdict_renders/render_protocol_family.renders.json",
+      "pattern": "\\?\\(0\\): error OBL005",
+      "replacement": "?(1): error OBL005",
+      "expected_catchers": [
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M28",
+      "rule": "#259 cp4b promotion",
+      "description": "re-declare the promoted protocol exclusion. The replay must fail BOTH because the pinned exclusion set moved and because the exclusion no longer holds — a promotion that is only announced in prose would survive this",
+      "target": "tests/fixtures/verdicts/manifest.json",
+      "pattern": "  \"rust_replay_excluded\": \\[\\n    \\{\\n      \"name\": \"verdict_boundary_line_negative\",",
+      "replacement": "  \"rust_replay_excluded\": [\n    {\n      \"name\": \"protocol_isloaded_violation\",\n      \"reason\": \"re-declared by a mutation campaign\",\n      \"rust_refusal\": \"bridge\",\n      \"rust_error_contains\": \"obligation protocol\"\n    },\n    {\n      \"name\": \"verdict_boundary_line_negative\",",
+      "expected_catchers": [
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    }
+  ]
+}

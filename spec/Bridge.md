@@ -367,8 +367,8 @@ committed regeneration path and a zero-Python steady state:
   shared cases — its `Rejected` golden pins the identical error text on both
   sides — so there are **no `rust_replay: false` snapshots left**. Layer 1
   landed in `own-ir` (#259 cp1: 216 controls, 0/0/0); Layer 3 is built and fully
-  compared (below); #259 as a whole remains open on **row 4b** (the
-  obligation-protocol analysis) and the coordinate-domain decision.
+  compared (below); #259 as a whole remains open on the coordinate-domain
+  decision alone, row 4b (the obligation-protocol analysis) having landed.
 - **Layer 3 — final normalized diagnostics.** The findings list per facts
   fixture, and its SARIF/github/msbuild renderings — the outer contract, in
   **two families**. Built at #259 cp4, fully compared at cp5:
@@ -399,11 +399,14 @@ committed regeneration path and a zero-Python steady state:
     SARIF key order is part of this surface.
 
   The manifest's `rust_replay_excluded` ledger names the documents the Rust
-  core **refuses by a declared boundary** — a protocol-bearing document (OBL
-  analysis not ported), a coordinate outside the core's `u32` line domain, a
-  shape the typed Rust door rejects before the bridge runs (OD-1) — each with
-  its reason and an expectation the replay executes, so an exclusion cannot
-  rot. The `summaries` dump (INF-R1) covers the MOS sub-surface. Which BR-V4
+  core **refuses by a declared boundary** — a coordinate outside the core's
+  `u32` line domain, a shape the typed Rust door rejects before the bridge runs
+  (OD-1) — each with its reason and an expectation the replay executes, so an
+  exclusion cannot rot. It listed a third boundary until #259 checkpoint 4b:
+  a protocol-bearing document, which the bridge refused rather than answer for
+  with the OBL analysis unported. Both such documents are now **promoted** —
+  the family is ported (BR-P3), and a re-declared exclusion is a red build
+  rather than a note, because the replay runs every entry it names. The `summaries` dump (INF-R1) covers the MOS sub-surface. Which BR-V4
   wording, BR-V5 slice family and BR-V9 rule the corpus reaches — and the
   recorded disposition of every one it does not — is the generated ledger
   [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md).
@@ -452,7 +455,8 @@ Five points belong to this spec rather than to those notes.
    separately; this composition does not.
 
 Nothing there is shadow mode: comparing end diagnostics as an acceptance
-surface is #260's acceptance and is blocked on #259 (cp5 and 4b).
+surface is #260's acceptance and is blocked on #259 — on its final acceptance,
+now that cp5 and 4b have both landed.
 
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the

@@ -1,0 +1,113 @@
+{
+  "ownir_version": 0,
+  "module": "Names",
+  "components": [],
+  "_doc": [
+    "BR-P3 identity derivation and the BR-V5 line guard.",
+    "  Bare       -> a method name with NO dot: component and handler are both",
+    "                the whole name (rsplit('.', 2)[-2] is not reached).",
+    "  Vm.Two     -> exactly one dot: component 'Vm', handler 'Two'.",
+    "  Bare/Zero  -> an open event with no 'line' reads as 0, so the 'opens",
+    "                here' step is dropped (< 1) and the leak anchors at 0:",
+    "                Bare keeps only its exit step (one), and Zero — which",
+    "                falls off the end, so its anchor IS the open — is left",
+    "                with an EMPTY slice.",
+    "  .Leading / a..b -> the awkward splits: the reference takes the",
+    "                second-to-last segment of a BOUNDED rsplit, so both name an",
+    "                EMPTY component, and both implementations must agree on that",
+    "                rather than on a tidier guess.",
+    "Nothing here is clamped or invented: line 0 travels to the finding's",
+    "anchor exactly as the document wrote it."
+  ],
+  "protocols": [
+    {
+      "name": "Guard",
+      "opens": {
+        "kind": "assign",
+        "target": "x",
+        "value": true
+      },
+      "closes": {
+        "kind": "assign",
+        "target": "x",
+        "value": false
+      }
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Bare",
+      "file": "Bare.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "x",
+          "value": true
+        },
+        {
+          "ev": "throw",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "Vm.Two",
+      "file": "Two.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "x",
+          "value": true,
+          "line": 6
+        },
+        {
+          "ev": "return",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "name": "Zero",
+      "file": "Zero.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "x",
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": ".Leading",
+      "file": "Odd.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "x",
+          "value": true,
+          "line": 12
+        },
+        {
+          "ev": "return",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "a..b",
+      "file": "Odd.cs",
+      "events": [
+        {
+          "ev": "assign",
+          "target": "x",
+          "value": true,
+          "line": 20
+        },
+        {
+          "ev": "return",
+          "line": 21
+        }
+      ]
+    }
+  ]
+}

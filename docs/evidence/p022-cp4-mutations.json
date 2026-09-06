@@ -159,10 +159,10 @@
     },
     {
       "id": "M14",
-      "description": "protocol boundary: a protocol-bearing document is no longer refused",
+      "description": "protocol family silently missing: the OBL findings are computed and then dropped. Re-anchored at #259 cp4b — the rule cp4 stated as a REFUSAL (a protocol-bearing document must never get a verdict list with a family missing) is now stated as a WIRING, and this is the same rule attacked on today's tree",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "Some\\(Value::Array\\(items\\)\\) if !items\\.is_empty\\(\\) => Err\\(",
-      "replacement": "Some(Value::Array(items)) if items.is_empty() => Err(",
+      "pattern": "    findings\\.extend\\(protocol_findings\\(root\\)\\);",
+      "replacement": "    let _ = protocol_findings(root);",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
