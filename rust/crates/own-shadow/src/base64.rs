@@ -190,13 +190,20 @@ mod tests {
         assert_eq!(decode(&encode(&raw)), Ok(raw));
     }
 
-    /// The refusals, one per way a second spelling could exist. Without these
-    /// the decoder could quietly become lenient and every positive check above
-    /// would still pass.
+    /// The refusals, one per way a second spelling could exist, each pinned by
+    /// the message of the check that is supposed to fire.
+    ///
+    /// The specific message is the load-bearing half, and the campaign proved
+    /// it: with a needle that only asked "was it refused", disabling the
+    /// discarded-bits check left `YR==` refused by the re-encode backstop and
+    /// the control stayed green. Two enforcement points for one rule, and a
+    /// control that cannot tell them apart — the exact shape this crate's
+    /// reference already records for the `-0` domain (round-1 survivors
+    /// M05/M06/M07).
     #[test]
     fn a_non_canonical_encoding_is_refused() {
         for (label, encoded, needle) in [
-            ("non-zero discarded bits", "YR==", "not canonical base64"),
+            ("non-zero discarded bits", "YR==", "carries non-zero bits"),
             (
                 "a character outside the alphabet",
                 "Zm9-",

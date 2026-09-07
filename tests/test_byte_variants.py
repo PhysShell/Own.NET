@@ -51,7 +51,7 @@ from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ownlang.repro import ReproError, canonical_hash, load_document
+from ownlang.repro import ReproError, canonical_hash, load_bytes
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXDIR = os.path.join(HERE, "fixtures", "repro")
@@ -147,29 +147,24 @@ def _digest(raw: bytes) -> dict[str, Any]:
             "bytes": len(raw)}
 
 
-def load_bytes_for_measurement(raw: bytes) -> Any:
-    """Decode-then-parse, with the stage that refused named in the exception.
-
-    Deliberately local to this harness at F.0: the measurement is what DECIDES
-    whether the production reader gains a bytes entry point at all, so measuring
-    through one would be assuming the answer."""
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as e:
-        raise ReproError(f"{STAGE_DECODE}: the input is not valid UTF-8: {e}") from e
-    return load_document(text)
+# What `load_bytes` says when the bytes are not UTF-8 at all. The stage is
+# derived from the message rather than from a second decode here, because
+# measuring through anything but the production reader would measure the
+# harness: the campaign proved that too — with its own `raw.decode()`, this
+# ledger did not move when `load_bytes` was mutated to strip a BOM.
+_NOT_UTF8 = "not valid UTF-8"
 
 
 def _measure(raw: bytes) -> dict[str, Any]:
-    """This reference's answer for one byte sequence, with the stage named."""
+    """This reference's answer for one byte sequence, with the stage named.
+
+    Through `ownlang.repro.load_bytes` — the reader the artifact, the driver
+    and the CI gate all use — so that a change to it moves this ledger."""
     try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as e:
-        return {"accepted": False, "stage": STAGE_DECODE, "error": str(e)}
-    try:
-        document = load_document(text)
+        document = load_bytes(raw)
     except ReproError as e:
-        return {"accepted": False, "stage": STAGE_DOMAIN, "error": str(e)}
+        stage = STAGE_DECODE if _NOT_UTF8 in str(e) else STAGE_DOMAIN
+        return {"accepted": False, "stage": stage, "error": str(e)}
     except json.JSONDecodeError as e:
         return {"accepted": False, "stage": STAGE_PARSE, "error": str(e)}
     return {"accepted": True, "stage": None, "error": None,
@@ -397,8 +392,14 @@ def write() -> int:
                          if n.endswith(".bin") and n[: -len(".bin")] not in declared):
         os.remove(os.path.join(VARIANTS, orphan))
         print(f"removed orphaned {orphan}")
+    # Rendered BEFORE the file is opened for writing, and that is not style:
+    # `open(..., "w")` truncates immediately, and `_records()` reads the ledger
+    # back to carry the port's column through. Building the text inside the
+    # `with` block silently regenerated a ledger with the port's measurements
+    # erased — found by a real regeneration, not by review.
+    rendered = _render_ledger(_records())
     with open(LEDGER, "w", encoding="utf-8") as f:
-        f.write(_render_ledger(_records()))
+        f.write(rendered)
     print(f"wrote {LEDGER}")
     print("NOTE: the 'rust' column is the port's own and is NOT written here — "
           "run: cd rust && OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test "

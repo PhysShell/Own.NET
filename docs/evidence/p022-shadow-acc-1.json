@@ -57,8 +57,7 @@
       "replacement": "    facts = load_bytes(raw)\n    consumed = hash_bytes(canonical_bytes(facts))",
       "expected_catchers": [
         "python::capture-verify",
-        "python::artifact-golden",
-        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+        "python::artifact-golden"
       ]
     },
     {
@@ -118,11 +117,11 @@
     },
     {
       "id": "A07",
-      "description": "the port's decoder stops requiring the re-encode to reproduce its input",
-      "rule": "B-2: an encoding is canonical iff re-encoding its bytes reproduces it",
+      "description": "the port's base64 ENCODER drops a pad character",
+      "rule": "B-2: an encoding is canonical iff re-encoding its bytes reproduces it — which couples the decoder to the encoder, and is the only way the re-encode backstop is reachable",
       "target": "rust/crates/own-shadow/src/base64.rs",
-      "pattern": "    if encode\\(&out\\) != encoded \\{",
-      "replacement": "    if false && encode(&out) != encoded {",
+      "pattern": "            out\\.push\\('='\\);\\n            out\\.push\\('='\\);",
+      "replacement": "            out.push('=');",
       "expected_catchers": [
         "rust/src/lib.rs::base64::tests::a_non_canonical_encoding_is_refused"
       ]

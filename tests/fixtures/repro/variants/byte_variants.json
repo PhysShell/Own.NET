@@ -107,7 +107,7 @@
       "python": {
         "accepted": false,
         "stage": "decode",
-        "error": "'utf-8' codec can't decode byte 0x80 in position 42: invalid start byte"
+        "error": "the input is not valid UTF-8, so it is not a JSON document at all: 'utf-8' codec can't decode byte 0x80 in position 42: invalid start byte"
       },
       "rust": {
         "accepted": false,
