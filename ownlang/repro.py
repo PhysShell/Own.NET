@@ -693,6 +693,42 @@ def _verdict_document(layer: dict[str, Any] | None) -> dict[str, Any]:
     return document if isinstance(document, dict) else {"error": "no document"}
 
 
+def carry_foreign(entries: Any) -> tuple[list[dict[str, Any]], list[str]]:
+    """The foreign engine captures an artifact may carry forward, and the
+    reasons the rest were dropped (owner decisions B-3, D-6).
+
+    **An engine writes only its own entry**, so `--write` reads back what a
+    committed artifact holds and carries the other engine's through verbatim.
+    That is what lets the two halves of the protocol be produced independently,
+    each with zero of the other's runtime.
+
+    What it may NOT do is promote. An entry that carries no `consumed`, or no
+    `derived`, predates artifact v3, and filling either in would put a claim in
+    a v3 artifact that no execution ever made: this side cannot know which
+    bytes the other engine read, and it cannot render the other engine's SARIF.
+    So such an entry is dropped with its reason, and the port re-runs and writes
+    its own.
+
+    Lives here rather than in the harness that calls it because it is a rule of
+    the FORMAT, not of one writer — and because a rule no mutation can reach is
+    a rule nothing tests."""
+    carried: list[dict[str, Any]] = []
+    dropped: list[str] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or entry.get("id") == ENGINE_PYTHON:
+            continue
+        missing = [name for name in ("consumed", "derived")
+                   if not isinstance(entry.get(name), dict)]
+        if missing:
+            dropped.append(
+                f"the {entry.get('id')!r} entry carries no {missing}, so it "
+                f"predates artifact v3 — an engine's entry comes from a run of "
+                f"that engine, never from a promotion")
+            continue
+        carried.append(entry)
+    return carried, dropped
+
+
 def project_repro(raw: bytes,
                   foreign: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Project one **byte sequence** into the canonical reproduction artifact,

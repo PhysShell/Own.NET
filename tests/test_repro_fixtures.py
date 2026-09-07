@@ -83,6 +83,7 @@ from ownlang.repro import (
     SARIF_CONFIGURATION,
     ReproError,
     canonical_hash,
+    carry_foreign,
     derived_outcome,
     derived_sarif_document,
     encode_raw,
@@ -243,30 +244,10 @@ def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
             committed = json.load(f)
     except (OSError, json.JSONDecodeError):
         return []
-    engines = committed.get("engines")
-    if not isinstance(engines, list):
-        return []
-    carried: list[dict[str, Any]] = []
-    for entry in engines:
-        if not isinstance(entry, dict) or entry.get("id") == ENGINE_PYTHON:
-            continue
-        # B-3: an entry that does not attest what it consumed — or that carries
-        # no `derived` block — is a capture from an older format. Filling either
-        # in would put a claim in a v3 artifact that no execution ever made:
-        # this side cannot know what bytes the port read, and it cannot render
-        # the port's SARIF. Refused rather than promoted — the port re-runs and
-        # writes its own.
-        missing = [name for name in ("consumed", "derived")
-                   if not isinstance(entry.get(name), dict)]
-        if missing:
-            print(f"NOTE: dropping the {entry.get('id')!r} entry of "
-                  f"{os.path.basename(golden_path)}: it carries no {missing}, "
-                  f"so it predates artifact v3. Regenerate it with "
-                  f"OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine — "
-                  f"an engine's entry comes from a run of that engine, never "
-                  f"from a promotion.")
-            continue
-        carried.append(entry)
+    carried, dropped = carry_foreign(committed.get("engines"))
+    for reason in dropped:
+        print(f"NOTE: {os.path.basename(golden_path)}: {reason}. Regenerate it "
+              f"with OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine.")
     return carried
 
 
@@ -1066,6 +1047,43 @@ def _verdict_pairing_controls(base: dict[str, Any],
     return fails
 
 
+def _carry_controls() -> list[tuple[str, str]]:
+    """Owner decision B-3, driven directly.
+
+    The corpus cannot reach it: every committed entry is a v3 capture, so a
+    writer that promoted a pre-v3 one would change nothing and no golden would
+    move. The rule is therefore driven at the only level that reaches it —
+    which is the same reason the trace's totality rule and the reducer's
+    both-refused rule are driven synthetically."""
+    fails: list[tuple[str, str]] = []
+    complete = {"id": "rust-own-bridge", "consumed": {"algorithm": "sha256"},
+                "derived": {"sarif": {}}, "layers": []}
+    carried, dropped = carry_foreign([complete])
+    if carried != [complete] or dropped:
+        fails.append(("carry-foreign",
+                      f"a complete v3 entry was not carried through: "
+                      f"{carried!r} / {dropped!r}"))
+    for missing in ("consumed", "derived"):
+        pre_v3 = {k: v for k, v in complete.items() if k != missing}
+        carried, dropped = carry_foreign([pre_v3])
+        if carried:
+            fails.append(("carry-foreign",
+                          f"an entry with no {missing!r} was carried into a v3 "
+                          f"artifact — filling it in would attest an execution "
+                          f"that never happened (B-3)"))
+        if not any(missing in reason for reason in dropped):
+            fails.append(("carry-foreign",
+                          f"an entry with no {missing!r} was dropped without "
+                          f"naming what it was missing: {dropped!r}"))
+    carried, _dropped = carry_foreign([{"id": ENGINE_PYTHON, "layers": []}])
+    if carried:
+        fails.append(("carry-foreign",
+                      "this engine's OWN entry was carried forward instead of "
+                      "re-authored — an engine writes only its own entry, and "
+                      "carrying its own would replay a stale capture"))
+    return fails
+
+
 def _derived_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
     """The derived SARIF surface (owner decision D-6), over the committed corpus
     and on the two classifications the corpus cannot reach by itself.
@@ -1466,6 +1484,7 @@ def run() -> int:
             f"{orphan}: orphaned reduction golden; remove it or list the case"))
     fails += _reduction_controls(artifact_names)
     fails += _derived_controls(artifact_names)
+    fails += _carry_controls()
 
     # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0

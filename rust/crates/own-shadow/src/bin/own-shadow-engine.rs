@@ -90,7 +90,11 @@ fn main() -> std::process::ExitCode {
         return std::process::ExitCode::from(2);
     }
     let mut raw = Vec::new();
-    if let Err(e) = std::io::stdin().lock().read_to_end(&mut raw) {
+    // The lock is bound rather than used inline: a temporary with a
+    // significant `Drop` in an `if let` scrutinee outlives the branch, and a
+    // program whose whole job is one read should not hold stdin open past it.
+    let read = std::io::stdin().lock().read_to_end(&mut raw);
+    if let Err(e) = read {
         eprintln!("own-shadow-engine: cannot read stdin: {e}");
         return std::process::ExitCode::from(2);
     }

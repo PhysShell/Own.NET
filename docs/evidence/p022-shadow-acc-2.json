@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-acc-2",
+  "description": "The mutation campaign for #260's acceptance work, part 2: the reduction SCOPE, the boundary POLICY, the DERIVED surface and the compare DRIVER (owner decisions D-4, D-5, D-6, D-7, R-1, R-2). Every mutation edits a production surface — ownlang/repro.py, rust/crates/own-shadow/src/ or scripts/shadow_compare.py — never a test, and every rule that exists on both sides is attacked on both. Three layers run for every mutation (discipline 3: no fail-fast). The policy mutations are the ones this campaign exists for: a class is not a token that excuses whatever it is pinned to, so OD-1 attached to a `changed` or a `projection` observation must stay RED. M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_repro_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "python-compare",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_shadow_compare.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "B01",
+      "description": "the reference's reduction scope is narrowed back to two layers",
+      "rule": "D-4: the reduction scope IS the layer order",
+      "target": "ownlang/repro.py",
+      "pattern": "REDUCTION_SCOPE: tuple\\[str, \\.\\.\\.\\] = LAYER_ORDER",
+      "replacement": "REDUCTION_SCOPE: tuple[str, ...] = (\"lowered\", \"summaries\")",
+      "expected_catchers": [
+        "python::reduction-scope",
+        "python::reduction-golden"
+      ]
+    },
+    {
+      "id": "B02",
+      "description": "the reference's reduction version is left at 1",
+      "rule": "D-4/D-5: a changed reduction surface is a version change",
+      "target": "ownlang/repro.py",
+      "pattern": "REDUCTION_VERSION = 2",
+      "replacement": "REDUCTION_VERSION = 1",
+      "expected_catchers": [
+        "python::reduction-golden",
+        "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte"
+      ]
+    },
+    {
+      "id": "B03",
+      "description": "the port's reduction version is left at 1",
+      "rule": "D-4/D-5: a changed reduction surface is a version change",
+      "target": "rust/crates/own-shadow/src/reduce.rs",
+      "pattern": "pub const REDUCTION_VERSION: i64 = 2;",
+      "replacement": "pub const REDUCTION_VERSION: i64 = 1;",
+      "expected_catchers": [
+        "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte"
+      ]
+    },
+    {
+      "id": "B04",
+      "description": "the reference's policy gains an entry for a CHANGED observation",
+      "rule": "D-5: a class explains a (layer, kind) pair, never a kind it was not written for",
+      "target": "ownlang/repro.py",
+      "pattern": "    \\(\"verdicts\", KIND_STATUS, BOUNDARY_OD1\\),\\n\\}\\)",
+      "replacement": "    (\"verdicts\", KIND_STATUS, BOUNDARY_OD1),\n    (\"verdicts\", KIND_CHANGED, BOUNDARY_OD1),\n})",
+      "expected_catchers": [
+        "python::boundary-policy"
+      ]
+    },
+    {
+      "id": "B05",
+      "description": "the reference's policy gains an entry for a PROJECTION observation",
+      "rule": "D-5: `projection` has no policy entry — a surface that is not comparable member-for-member is a reason to stop comparing, not an explanation",
+      "target": "ownlang/repro.py",
+      "pattern": "    \\(\"lowered\", KIND_STATUS, BOUNDARY_OD1\\),",
+      "replacement": "    (\"lowered\", KIND_STATUS, BOUNDARY_OD1),\n    (\"verdicts\", KIND_PROJECTION, BOUNDARY_OD1),",
+      "expected_catchers": [
+        "python::boundary-policy"
+      ]
+    },
+    {
+      "id": "B06",
+      "description": "the port's policy gains an entry for a CHANGED observation",
+      "rule": "D-5: a class explains a (layer, kind) pair, never a kind it was not written for",
+      "target": "rust/crates/own-shadow/src/reduce.rs",
+      "pattern": "    \\(\"verdicts\", KIND_STATUS, BOUNDARY_OD1\\),\\n\\];",
+      "replacement": "    (\"verdicts\", KIND_STATUS, BOUNDARY_OD1),\n];\n#[allow(dead_code)]\nconst WIDENED: [(&str, &str, &str); 1] = [(\"verdicts\", KIND_CHANGED, BOUNDARY_OD1)];",
+      "expected_catchers": [
+        "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
+      ]
+    },
+    {
+      "id": "B07",
+      "description": "the reference judges a boundary by its DETAIL prose",
+      "rule": "D-5: `detail` never participates in the policy",
+      "target": "ownlang/repro.py",
+      "pattern": "    declared = \\(kept or \\{\\}\\)\\.get\\(\"class\"\\)",
+      "replacement": "    declared = (kept or {}).get(\"detail\")",
+      "expected_catchers": [
+        "python::boundary-policy"
+      ]
+    },
+    {
+      "id": "B08",
+      "description": "the port judges a boundary by its DETAIL prose",
+      "rule": "D-5: `detail` never participates in the policy",
+      "target": "rust/crates/own-shadow/src/reduce.rs",
+      "pattern": "    if let Some\\(class\\) = kept\\.get\\(\"class\"\\)\\.and_then\\(Json::as_str\\) \\{",
+      "replacement": "    if let Some(class) = kept.get(\"detail\").and_then(Json::as_str) {",
+      "expected_catchers": [
+        "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
+      ]
+    },
+    {
+      "id": "B09",
+      "description": "the reference judges every content observation — missing-layer included — a declared boundary",
+      "rule": "D-5: a content observation and a missing layer are ALWAYS unexplained",
+      "target": "ownlang/repro.py",
+      "pattern": "    if kind not in \\(KIND_STATUS, KIND_PROJECTION\\):\\n        return ACCEPTANCE_UNEXPLAINED, None",
+      "replacement": "    if kind not in (KIND_STATUS, KIND_PROJECTION):\n        return ACCEPTANCE_DECLARED, None",
+      "expected_catchers": [
+        "python::boundary-policy"
+      ]
+    },
+    {
+      "id": "B10",
+      "description": "the port judges every content observation — missing-layer included — a declared boundary",
+      "rule": "D-5: a content observation and a missing layer are ALWAYS unexplained",
+      "target": "rust/crates/own-shadow/src/reduce.rs",
+      "pattern": "    if kind != KIND_STATUS && kind != KIND_PROJECTION \\{\\n        return \\(ACCEPTANCE_UNEXPLAINED, Json::Null\\);",
+      "replacement": "    if kind != KIND_STATUS && kind != KIND_PROJECTION {\n        return (ACCEPTANCE_DECLARED, Json::Null);",
+      "expected_catchers": [
+        "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
+      ]
+    },
+    {
+      "id": "B11",
+      "description": "the reference drops the duplicate-address ordinal",
+      "rule": "D-7: the `~n` suffix is part of the pairing address",
+      "target": "ownlang/repro.py",
+      "pattern": "    return address if n == 0 else f\"\\{address\\}~\\{n\\}\"",
+      "replacement": "    return address",
+      "expected_catchers": [
+        "python::verdict-pairing",
+        "python::trace-golden",
+        "python::trace-shape"
+      ]
+    },
+    {
+      "id": "B12",
+      "description": "the port drops the duplicate-address ordinal",
+      "rule": "D-7: the `~n` suffix is part of the pairing address",
+      "target": "rust/crates/own-shadow/src/trace.rs",
+      "pattern": "        format!\\(\"\\{address\\}~\\{n\\}\"\\)",
+      "replacement": "        address.to_owned()",
+      "expected_catchers": [
+        "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
+        "rust/tests/reduce.rs::a_duplicate_address_permutation_is_changed_on_both_ordinals"
+      ]
+    },
+    {
+      "id": "B13",
+      "description": "the reference's derived digest names the verdict layer, not the SARIF it rendered",
+      "rule": "D-6: the derived identity is of the document THIS engine rendered",
+      "target": "ownlang/repro.py",
+      "pattern": "            \"canonical\": None if document is None else canonical_hash\\(document\\),",
+      "replacement": "            \"canonical\": None if document is None else canonical_hash(verdicts),",
+      "expected_catchers": [
+        "python::derived-surface"
+      ]
+    },
+    {
+      "id": "B14",
+      "description": "the port's derived digest names the verdict layer, not the SARIF it rendered",
+      "rule": "D-6: the derived identity is of the document THIS engine rendered",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "        \\(STATUS_PRODUCED, canonical_hash\\(value\\)\\.to_json\\(\\)\\)",
+      "replacement": "        (STATUS_PRODUCED, canonical_hash(&Json::Null).to_json())",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "B15",
+      "description": "the derived comparison compares each engine's digest against itself",
+      "rule": "D-6: a renderer-only divergence is two engines' digests differing",
+      "target": "ownlang/repro.py",
+      "pattern": "    digests = \\{eid: \\(sarif\\.get\\(\\\"canonical\\\"\\) or \\{\\}\\)\\.get\\(\\\"digest\\\"\\)\\n               for eid, sarif in identities\\.items\\(\\)\\}",
+      "replacement": "    digests = {eid: \"same\" for eid, _sarif in identities.items()}",
+      "expected_catchers": [
+        "python::derived-control",
+        "python-compare::compare-control"
+      ]
+    },
+    {
+      "id": "B16",
+      "description": "the driver stops failing the run when an engine crashes",
+      "rule": "R-2: a crash is a run-level hard failure, never a fallback",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "            worst = max\\(worst, EXIT\\[OUTCOME_EXECUTION_FAILURE\\]\\)",
+      "replacement": "            worst = max(worst, EXIT[OUTCOME_AGREED])",
+      "expected_catchers": [
+        "python-compare::compare-control"
+      ]
+    },
+    {
+      "id": "B17",
+      "description": "the driver hands the port bytes it did not hand the reference",
+      "rule": "R-1/B-1: one read, and BOTH engines get that same buffer — the observable form of a second read",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "    port = run_port\\(raw, binary, timeout\\)",
+      "replacement": "    port = run_port(raw + b\"\\n\", binary, timeout)",
+      "expected_catchers": [
+        "python-compare::compare-corpus",
+        "python-compare::compare-variant",
+        "python-compare::compare-one-read"
+      ]
+    },
+    {
+      "id": "B18",
+      "description": "the driver stops treating an input disagreement as a domain decision",
+      "rule": "R-2/D-2: two engines disagreeing about whether the input is a document is the owner's decision, not a comparison result",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "    if port_names_it != reference_names_it:",
+      "replacement": "    if False and port_names_it != reference_names_it:",
+      "expected_catchers": [
+        "python-compare::compare-negative"
+      ]
+    }
+  ]
+}

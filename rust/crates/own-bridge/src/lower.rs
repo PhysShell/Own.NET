@@ -140,7 +140,16 @@ fn py_repr(v: Option<&Value>) -> String {
 /// value would have kept the slice and anchored it at a line nothing can point
 /// at. Exactly the cp5 lesson — a comparison surface that gains a member can
 /// lose controls.
-fn as_line(v: Option<&Value>) -> i64 {
+///
+/// **One reader, `pub(crate)`, for the whole crate** (#259's final-acceptance
+/// review, carried into #260). `verdict.rs` carried a byte-identical copy of
+/// this function and its doc comment. Both were mutated by the `p022-coord-2`
+/// campaign and both were caught, so this was form rather than correctness —
+/// but it is exactly the "two readings of one rule" shape cp4b collapsed into
+/// one for the obligation grammar, and the reason is the same: two copies of a
+/// domain rule are two places it can be relaxed, and the campaign that catches
+/// one has to be told to attack the other.
+pub(crate) fn as_line(v: Option<&Value>) -> i64 {
     match v.and_then(Value::as_i64) {
         Some(n) if (0..=2_147_483_647).contains(&n) => n,
         _ => 0,

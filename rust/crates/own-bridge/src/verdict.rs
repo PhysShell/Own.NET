@@ -51,7 +51,7 @@
     clippy::redundant_pub_crate
 )]
 
-use crate::lower::{self, as_col, Obj, Own051};
+use crate::lower::{self, as_col, as_line, Obj, Own051};
 use crate::{ast, BridgeError};
 use own_analysis::di::{self, Service, SiteTriple};
 use own_analysis::effect::{self, Binding, Effect};
@@ -294,29 +294,6 @@ fn get_or(rec: &Obj, key: &str, default: &str) -> String {
 
 fn get_str<'a>(rec: &'a Obj, key: &str) -> Option<&'a str> {
     rec.get(key).and_then(Value::as_str)
-}
-
-/// `_as_line`: a fact coordinate, or `0` when it is not one.
-///
-/// The reference's tolerant line reader (`ownlang/ownir.py::_as_line`), and
-/// the reason it is named for the field rather than the type: EVERY call site
-/// reads a `line`, and what it applies is the §4.2 coordinate domain, not an
-/// integer coercion. A value that is not an integer, is a `bool`, or lies
-/// outside `[0, 2147483647]` reads as `0` — "unknown / file-level".
-///
-/// Degrade, never clamp. This used to be a plain `as_i64().unwrap_or(0)`, and
-/// the difference was unobservable only because the AST build refused any
-/// document carrying an out-of-domain coordinate before a finding could be
-/// built from one. Removing that refusal made the gap reachable: the reference
-/// drops a slice whose acquire line degraded to `0`, and a port reading the raw
-/// value would have kept the slice and anchored it at a line nothing can point
-/// at. Exactly the cp5 lesson — a comparison surface that gains a member can
-/// lose controls.
-fn as_line(v: Option<&Value>) -> i64 {
-    match v.and_then(Value::as_i64) {
-        Some(n) if (0..=2_147_483_647).contains(&n) => n,
-        _ => 0,
-    }
 }
 
 /// Python truthiness of a present value (absent = falsy).

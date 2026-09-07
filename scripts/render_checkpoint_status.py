@@ -42,7 +42,7 @@ these generated fragments, computed from the evidence — never typed:
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
   reproduction artifacts, traces and reductions.
-* `docs/generated/p022-shadow-mutations.md` — that slice's four recorded
+* `docs/generated/p022-shadow-mutations.md` — that slice's recorded
   campaigns, through the same `summarize()` as cp4's. One interpreter for
   every campaign in the tree: two readings of one run is how two documents
   come to disagree about it.
@@ -128,6 +128,10 @@ SHADOW_CAMPAIGNS = (
     ("checkpoint 2 — the engine protocol", "p022-shadow-cp2"),
     ("checkpoint 3 — the AnalysisTrace and stable-ID normalization", "p022-shadow-cp3"),
     ("checkpoint 4 — first-divergence reduction", "p022-shadow-cp4"),
+    ("acceptance 1 — the artifact format and the byte-level attestation (B-2, B-3)",
+     "p022-shadow-acc-1"),
+    ("acceptance 2 — the scope, the boundary policy, the derived surface and the "
+     "driver (D-4..D-7, R-1, R-2)", "p022-shadow-acc-2"),
 )
 # One campaign per cp5 sub-checkpoint, for the same reason the shadow slice has
 # one per checkpoint: a campaign stays frozen at what it measured, so a later

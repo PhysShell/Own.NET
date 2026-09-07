@@ -158,8 +158,8 @@
     {
       "id": "M10",
       "rule": "§4.2 two doors",
-      "description": "the bridge's tolerant line reader passes an out-of-domain fact coordinate through, so a slice the reference drops is kept and anchored where nothing is",
-      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "description": "the ONE tolerant line reader loses its domain check (re-anchored: verdict.rs's byte-identical copy is gone)",
+      "target": "rust/crates/own-bridge/src/lower.rs",
       "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
       "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n,\n        _ => 0,\n    }",
       "expected_catchers": [
@@ -169,8 +169,8 @@
     {
       "id": "M11",
       "rule": "§4.2 degrade, never clamp",
-      "description": "…or clamps it, moving a DI site anchor onto a real line the registration never named",
-      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "description": "the ONE tolerant line reader clamps instead of degrading (re-anchored)",
+      "target": "rust/crates/own-bridge/src/lower.rs",
       "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
       "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n.clamp(0, 2_147_483_647),\n        _ => 0,\n    }",
       "expected_catchers": [
@@ -180,10 +180,10 @@
     {
       "id": "M12",
       "rule": "§4.2 at Layer 2",
-      "description": "the LOWERING's line reader passes an out-of-domain coordinate through, so the Layer 2 document disagrees with the reference at the seam the cp2 evidence is taken from — invisible at Layer 3, because the AST build degrades it again on the way in",
+      "description": "the tolerant line reader's upper bound is off by one — a third DISTINCT attack on the one reader, where the two copies used to give two campaigns one mutation each",
       "target": "rust/crates/own-bridge/src/lower.rs",
       "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
-      "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n,\n        _ => 0,\n    }",
+      "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) if (0..=2_147_483_646).contains(&n) => n,\n        _ => 0,\n    }",
       "expected_catchers": [
         "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]

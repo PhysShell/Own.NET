@@ -287,10 +287,18 @@ those two, plus the columns' new upper bound. The full set is generated into
 
 ### 3.2 The churn, confirmed
 
-`git diff --stat` against the branch base, for the whole change:
+`git diff --stat` against the branch base, **taken at `3af8ead`** — the last
+commit that moves a fixture. The head at the time of writing was `8fc44ff`,
+which adds this note and the generated fragments and touches no fixture, so the
+list below is the whole fixture churn and not the whole diff. The label used to
+say "for the whole change" and did not: carried over from #259's
+final-acceptance review as a tail, and corrected here rather than refreshed,
+because the number the section is *about* is the fixture churn against §2.2's
+budget and re-taking it at a docs commit would only add documentation lines to
+a fixture measurement.
 
 ```text
-$ git diff --stat 834f295   # the branch base
+$ git diff --stat 834f295 3af8ead   # the branch base .. the last fixture commit
  tests/fixtures/ownir_validation.json               | 1831 +++++++++++++++++++-
  tests/fixtures/repro/digests.json                  |   22 +-
  tests/fixtures/verdicts/manifest.json              |   32 +-

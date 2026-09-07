@@ -1,0 +1,187 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-acc-1",
+  "description": "The mutation campaign for #260's acceptance work, part 1: the artifact FORMAT and the byte-level ATTESTATION (owner decisions B-2 and B-3). Every mutation edits a production surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test, and every rule that exists on both sides is attacked on both. Four layers run for every mutation (discipline 3: no fail-fast), including the byte-variant ledger and the compare driver's own controls, because a format rule that only the artifact family can see is a format rule the gate cannot. M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_repro_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "python-variants",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_byte_variants.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "python-compare",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_shadow_compare.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-shadow",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "A01",
+      "description": "the reference hashes the canonical form instead of the bytes it read",
+      "rule": "B-2: the raw identity is taken BEFORE a decode or a parse",
+      "target": "ownlang/repro.py",
+      "pattern": "    consumed = hash_bytes\\(raw\\)\\n    facts = load_bytes\\(raw\\)",
+      "replacement": "    facts = load_bytes(raw)\n    consumed = hash_bytes(canonical_bytes(facts))",
+      "expected_catchers": [
+        "python::capture-verify",
+        "python::artifact-golden",
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "A02",
+      "description": "the port hashes the canonical form instead of the bytes it read",
+      "rule": "B-2: the raw identity is taken BEFORE a decode or a parse",
+      "target": "rust/crates/own-shadow/src/engine.rs",
+      "pattern": "    let consumed = hash_bytes\\(raw\\)\\.to_json\\(\\);",
+      "replacement": "    let consumed = hash_bytes(&crate::canonical::canonical_bytes(\n        &crate::json::parse(&String::from_utf8_lossy(raw)).unwrap_or(Json::Null),\n    ))\n    .to_json();",
+      "expected_catchers": [
+        "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
+      ]
+    },
+    {
+      "id": "A03",
+      "description": "the writer PROMOTES a pre-v3 foreign entry by inventing a consumed",
+      "rule": "B-3: every consumed comes from a run of the engine that claims it",
+      "target": "ownlang/repro.py",
+      "pattern": "        if missing:\\n            dropped\\.append\\(",
+      "replacement": "        if missing:\n            entry = {**entry, \"consumed\": hash_bytes(b\"\"),\n                     \"derived\": {\"sarif\": {}}}\n            carried.append(entry)\n            _unused = (",
+      "expected_catchers": [
+        "python::carry-foreign"
+      ]
+    },
+    {
+      "id": "A04",
+      "description": "the writer carries a pre-v3 foreign entry through unchanged",
+      "rule": "B-3: an entry that attests nothing is dropped, never carried",
+      "target": "ownlang/repro.py",
+      "pattern": "        missing = \\[name for name in \\(\\\"consumed\\\", \\\"derived\\\"\\)\\n                   if not isinstance\\(entry\\.get\\(name\\), dict\\)\\]",
+      "replacement": "        missing: list[str] = []",
+      "expected_catchers": [
+        "python::carry-foreign"
+      ]
+    },
+    {
+      "id": "A05",
+      "description": "the reference accepts a non-canonical base64 spelling",
+      "rule": "B-2: an encoding is canonical iff re-encoding its bytes reproduces it",
+      "target": "ownlang/repro.py",
+      "pattern": "    if base64\\.b64encode\\(raw\\)\\.decode\\(\\\"ascii\\\"\\) != encoded:",
+      "replacement": "    if False and base64.b64encode(raw).decode(\"ascii\") != encoded:",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "A06",
+      "description": "the port's decoder discards the final group's stray bits",
+      "rule": "B-2: an encoding is canonical iff re-encoding its bytes reproduces it",
+      "target": "rust/crates/own-shadow/src/base64.rs",
+      "pattern": "    if acc & mask != 0 \\{",
+      "replacement": "    if false && acc & mask != 0 {",
+      "expected_catchers": [
+        "rust/src/lib.rs::base64::tests::a_non_canonical_encoding_is_refused"
+      ]
+    },
+    {
+      "id": "A07",
+      "description": "the port's decoder stops requiring the re-encode to reproduce its input",
+      "rule": "B-2: an encoding is canonical iff re-encoding its bytes reproduces it",
+      "target": "rust/crates/own-shadow/src/base64.rs",
+      "pattern": "    if encode\\(&out\\) != encoded \\{",
+      "replacement": "    if false && encode(&out) != encoded {",
+      "expected_catchers": [
+        "rust/src/lib.rs::base64::tests::a_non_canonical_encoding_is_refused"
+      ]
+    },
+    {
+      "id": "A08",
+      "description": "the reference stops checking that the raw bytes reproduce the canonical identity",
+      "rule": "B-2: parsing input.raw must land on input.canonical",
+      "target": "ownlang/repro.py",
+      "pattern": "    if claimed_canonical != reparsed_canonical:",
+      "replacement": "    if False and claimed_canonical != reparsed_canonical:",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "A09",
+      "description": "the port stops checking that the raw bytes reproduce the canonical identity",
+      "rule": "B-2: parsing input.raw must land on input.canonical",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "        Some\\(claimed\\) if identity_matches\\(claimed, &reparsed_identity\\) => \\{\\}",
+      "replacement": "        Some(_claimed) => {}",
+      "expected_catchers": [
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "A10",
+      "description": "the reference accepts an engine that consumed other bytes",
+      "rule": "B-2: every engine's consumed is input.raw's identity",
+      "target": "ownlang/repro.py",
+      "pattern": "    if consumed != raw_identity:",
+      "replacement": "    if False and consumed != raw_identity:",
+      "expected_catchers": [
+        "python::structural-control"
+      ]
+    },
+    {
+      "id": "A11",
+      "description": "the port accepts an engine that consumed other bytes",
+      "rule": "B-2: every engine's consumed is input.raw's identity",
+      "target": "rust/crates/own-shadow/src/artifact.rs",
+      "pattern": "    if !identity_matches\\(consumed, identity\\) \\{",
+      "replacement": "    if false && !identity_matches(consumed, identity) {",
+      "expected_catchers": [
+        "rust/tests/repro.rs::verify_refuses_each_structural_violation"
+      ]
+    },
+    {
+      "id": "A12",
+      "description": "the reference's bytes reader silently strips a UTF-8 BOM",
+      "rule": "F.0's measured split: a BOM is in the INVALID class, refused by both readers",
+      "target": "ownlang/repro.py",
+      "pattern": "        text = raw\\.decode\\(\\\"utf-8\\\"\\)",
+      "replacement": "        text = raw.decode(\"utf-8-sig\")",
+      "expected_catchers": [
+        "python-variants::variant-ledger",
+        "python-compare::compare-negative"
+      ]
+    }
+  ]
+}
