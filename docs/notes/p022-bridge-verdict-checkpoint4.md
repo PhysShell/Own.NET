@@ -78,6 +78,13 @@ without regenerating a golden.
 
 ### The unmeasured set is named, not hidden
 
+> **Read the protocol paragraphs below as history.** #259 checkpoint 4b
+> ([note](p022-bridge-verdict-checkpoint4b.md)) ported the obligation
+> analysis, wired it through the bridge and **promoted both protocol
+> documents out of `rust_replay_excluded`**. Where this note says the OBL
+> analysis is not ported, or that a protocol-bearing document is refused,
+> it describes the state at the time it was written.
+
 Each exclusion is an entry in `rust_replay_excluded` with a reason and an
 expectation the replay executes (`rust_refusal: bridge` + an error substring,
 or `door`); the set is also pinned by name, and an exclusion that stops

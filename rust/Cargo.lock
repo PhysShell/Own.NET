@@ -80,6 +80,7 @@ version = "0.1.0"
 dependencies = [
  "own-cfg",
  "own-diagnostics",
+ "own-ir",
  "own-syntax",
  "serde_json",
 ]

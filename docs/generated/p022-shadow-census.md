@@ -24,8 +24,8 @@ which also states the byte-level boundary repeated in the unmeasured set below.
 | `tests/fixtures/ownir` | 22 |
 | `tests/fixtures/repro` | 3 |
 | `tests/fixtures/summaries` | 9 |
-| `tests/fixtures/verdicts` | 29 |
-| **total** | **90** |
+| `tests/fixtures/verdicts` | 36 |
+| **total** | **97** |
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
@@ -36,8 +36,8 @@ the difference is named in the unmeasured set below.
 
 | surface | count |
 |---|---|
-| documents captured and digest-pinned | 90 |
-| tamper controls (one changed character per document, refusal required) | 90 |
+| documents captured and digest-pinned | 97 |
+| tamper controls (one changed character per document, refusal required) | 97 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 9 |
 | structural negative controls on `verify` (each side) | 18 |
@@ -51,7 +51,7 @@ it could **produce**. Over the committed artifacts:
 | engine | layers produced | layers refused | projection `full` | projection `partial` |
 |---|---|---|---|---|
 | `python-ownlang` | 24 | 3 | 27 | 0 |
-| `rust-own-bridge` | 20 | 7 | 27 | 0 |
+| `rust-own-bridge` | 21 | 6 | 27 | 0 |
 
 The port's `partial` column read non-zero until #259 cp5.1/5.2: its verdict
 surface sat at the checkpoint-4 projection, carrying every `Finding` member
@@ -74,7 +74,6 @@ declares rather than a disagreement it stumbled into:
 
 | case | layer | statuses |
 |---|---|---|
-| `protocol_isloaded_violation` | `verdicts` | python-ownlang: produced, rust-own-bridge: refused |
 | `verdict_door_effect_deps_not_strings` | `lowered` | python-ownlang: produced, rust-own-bridge: refused |
 | `verdict_door_effect_deps_not_strings` | `summaries` | python-ownlang: produced, rust-own-bridge: refused |
 | `verdict_door_effect_deps_not_strings` | `verdicts` | python-ownlang: produced, rust-own-bridge: refused |
@@ -88,7 +87,7 @@ ordering semantics are **declared** rather than normalized away.
 | surface | count |
 |---|---|
 | trace layers projected (both engines, every artifact) | 54 |
-| addressed steps | 254 |
+| addressed steps | 256 |
 | of those, handle addresses standing in for a mint counter | 12 |
 
 The normalization is proven on the property it exists for, over the whole

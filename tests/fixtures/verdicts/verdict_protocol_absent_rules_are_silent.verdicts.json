@@ -1,0 +1,21 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "GridViewModel.cs",
+      "line": 20,
+      "code": "OWN050",
+      "component": "GridViewModel",
+      "event": "grid.View.CellValueChanged",
+      "handler": "OnCellChanged",
+      "message": "cannot verify 'grid.View.CellValueChanged' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped",
+      "kind": "unresolved reference",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

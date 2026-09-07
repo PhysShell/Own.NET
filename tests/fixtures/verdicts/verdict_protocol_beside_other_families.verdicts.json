@@ -1,0 +1,107 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "Mixed.cs",
+      "line": 5,
+      "code": "DI001",
+      "component": "App",
+      "event": "Db",
+      "handler": "",
+      "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+      "kind": "DI lifetime",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Mixed.cs",
+          5,
+          "singleton 'App' (captor)"
+        ],
+        [
+          "Mixed.cs",
+          6,
+          "captures scoped service 'Db'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Mixed.cs",
+      "line": 12,
+      "code": "EFF001",
+      "component": "Dashboard",
+      "event": "filters",
+      "handler": "",
+      "message": "effect re-runs on every render: dependency 'filters' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'filters' with useMemo/useCallback (or move it out of render)",
+      "kind": "react effect",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Mixed.cs",
+          12,
+          "effect re-runs here on 'filters'"
+        ],
+        [
+          "Mixed.cs",
+          11,
+          "'filters' gets a fresh identity here — stabilise with useMemo"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Mixed.cs",
+      "line": 25,
+      "code": "OBL001",
+      "component": "MixedViewModel",
+      "event": "DocumentLoading",
+      "handler": "Load",
+      "message": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.MixedViewModel.Load' — 'IsLoaded = true' must happen first",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "Mixed.cs",
+          20,
+          "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+        ],
+        [
+          "Mixed.cs",
+          25,
+          "barrier 'OnPropertyChanged(Document)' fires while it is open"
+        ],
+        [
+          "Mixed.cs",
+          28,
+          "closed here — after the barrier has already fired"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "Mixed.cs",
+      "line": 40,
+      "code": "OWN050",
+      "component": "GridViewModel",
+      "event": "grid.View.CellValueChanged",
+      "handler": "OnCellChanged",
+      "message": "cannot verify 'grid.View.CellValueChanged' — its declaring type is an unresolved reference (build the project or pass references); leakage analysis skipped",
+      "kind": "unresolved reference",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "?",
+      "line": 0,
+      "code": "OBL005",
+      "component": "?",
+      "event": "Ghost",
+      "handler": "",
+      "message": "protocol 'Ghost' is scoped to ['GhostViewModel.Misspelled'] but no reported method matches — the rule is dead (typo in scope.methods?)",
+      "kind": "protocol obligation",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "?",
+      "line": 0,
+      "code": "OBL005",
+      "component": "?",
+      "event": "Phantom",
+      "handler": "",
+      "message": "protocol 'Phantom' is scoped to ['AViewModel.Load', 'ZViewModel.Load'] but no reported method matches — the rule is dead (typo in scope.methods?)",
+      "kind": "protocol obligation",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "?",
+      "line": 0,
+      "code": "OBL005",
+      "component": "?",
+      "event": "Apostrophe",
+      "handler": "",
+      "message": "protocol 'Apostrophe' is scoped to [\"It's.Gone\"] but no reported method matches — the rule is dead (typo in scope.methods?)",
+      "kind": "protocol obligation",
+      "advisory": true,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "LiveViewModel.cs",
+      "line": 8,
+      "code": "OBL001",
+      "component": "LiveViewModel",
+      "event": "Watched",
+      "handler": "Load",
+      "message": "obligation 'Watched' is still open when barrier 'Publish()' fires in 'Broker.LiveViewModel.Load' — 'IsLoaded = true' must happen first",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "LiveViewModel.cs",
+          5,
+          "obligation 'Watched' opens here (IsLoaded = false)"
+        ],
+        [
+          "LiveViewModel.cs",
+          8,
+          "barrier 'Publish()' fires while it is open"
+        ],
+        [
+          "LiveViewModel.cs",
+          11,
+          "closed here — after the barrier has already fired"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

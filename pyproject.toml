@@ -27,6 +27,7 @@ files = [
   "tests/verdict_census.py",
   "tests/verdict_render_census.py",
   "tests/verdict_surface_inventory.py",
+  "tests/test_obligation_fact_parity.py",
   "scripts/mutate_campaign.py",
   "scripts/render_checkpoint_status.py",
 ]

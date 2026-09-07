@@ -1,0 +1,61 @@
+{
+  "ownir_version": 0,
+  "module": "Batch",
+  "components": [],
+  "_doc": [
+    "BR-P3: every exit cell of the code table and every exit wording, none of",
+    "which the corpus reached before checkpoint 4b.",
+    "  Ret   -> OBL003 at the return, 'exits via return'",
+    "  Thr   -> OBL003 at the throw, 'exits via throw'",
+    "  Maybe -> OBL004 (open on one arm only), 'may not be closed'",
+    "  Fall  -> OBL003 anchored at the OPEN (the OWN001 anchor-at-acquire",
+    "           precedent), worded 'the method falls off the end', and carrying",
+    "           a ONE-step evidence slice: its second step would repeat the",
+    "           first, so the bridge does not build one.",
+    "The protocol declares no barriers at all, which is legal while",
+    "exit_barriers is on — so nothing here can be mistaken for a barrier row."
+  ],
+  "protocols": [
+    {
+      "name": "Suppress",
+      "description": "notifications are suppressed while _suppress is up",
+      "opens":  {"kind": "assign", "target": "_suppress", "value": true},
+      "closes": {"kind": "assign", "target": "_suppress", "value": false}
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.BatchViewModel.Ret",
+      "file": "BatchViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "_suppress", "value": true, "line": 10},
+        {"ev": "return", "line": 20}
+      ]
+    },
+    {
+      "name": "Broker.BatchViewModel.Thr",
+      "file": "BatchViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "_suppress", "value": true, "line": 30},
+        {"ev": "throw", "line": 40}
+      ]
+    },
+    {
+      "name": "Broker.BatchViewModel.Maybe",
+      "file": "BatchViewModel.cs",
+      "events": [
+        {"ev": "if", "line": 50,
+         "then": [{"ev": "assign", "target": "_suppress", "value": true, "line": 51}],
+         "else": []},
+        {"ev": "return", "line": 60}
+      ]
+    },
+    {
+      "name": "Broker.BatchViewModel.Fall",
+      "file": "BatchViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "_suppress", "value": true, "line": 70}
+      ]
+    }
+  ]
+}

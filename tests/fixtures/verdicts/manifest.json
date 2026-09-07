@@ -3,18 +3,6 @@
   "verdicts_version": 1,
   "rust_replay_excluded": [
     {
-      "name": "protocol_isloaded_clean",
-      "reason": "declares an obligation protocol: the OBL001-005 analysis (ownlang/obligations.py) has no own-analysis port, and the bridge refuses a protocol-bearing document rather than return a verdict list with a family missing (#259 boundary; the reference reports no finding here, which a vacuous replay would have 'matched').",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "obligation protocol"
-    },
-    {
-      "name": "protocol_isloaded_violation",
-      "reason": "declares an obligation protocol and the reference reports OBL001 at BigDocumentViewModel.cs:241; the OBL analysis is not wired, so the bridge refuses the document (#259 boundary).",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "obligation protocol"
-    },
-    {
       "name": "verdict_boundary_line_negative",
       "reason": "coordinate outside the core's u32 line domain (a negative param line the strict door admits per spec/OwnIR.md §4.2); the reference anchors OWN001 at B.cs:-1, the Rust core refuses instead of clamping — declared cp4 divergence family.",
       "rust_refusal": "bridge",
@@ -260,6 +248,61 @@
       "rules": [
         "BR-V4",
         "BR-V7"
+      ]
+    },
+    {
+      "name": "verdict_protocol_barrier_maybe_two_step_slice",
+      "rules": [
+        "BR-P3",
+        "BR-V4",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_protocol_exit_codes_and_wordings",
+      "rules": [
+        "BR-P3",
+        "BR-V4",
+        "BR-V5",
+        "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_protocol_obl005_dead_rule",
+      "rules": [
+        "BR-P3",
+        "BR-V5",
+        "BR-V6"
+      ]
+    },
+    {
+      "name": "verdict_protocol_tolerant_door_rules",
+      "rules": [
+        "BR-D2",
+        "BR-P3"
+      ]
+    },
+    {
+      "name": "verdict_protocol_identity_and_line_guards",
+      "rules": [
+        "BR-P3",
+        "BR-V5"
+      ]
+    },
+    {
+      "name": "verdict_protocol_absent_rules_are_silent",
+      "rules": [
+        "BR-D2",
+        "BR-P3",
+        "BR-V1"
+      ]
+    },
+    {
+      "name": "verdict_protocol_beside_other_families",
+      "rules": [
+        "BR-P3",
+        "BR-V1",
+        "BR-V8"
       ]
     }
   ]

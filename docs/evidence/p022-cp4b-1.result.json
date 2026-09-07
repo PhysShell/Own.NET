@@ -1,0 +1,322 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-cp4b-1",
+  "definition": "docs/evidence/p022-cp4b-1.json",
+  "definition_sha256": "ca44ead1682214048b738ec0c42ccb0cf844c302eb351b050a4c503ae55270f9",
+  "source_commit": "c7836138bd2fe3b9cfea458a040ac5dda05e890e",
+  "dirty": false,
+  "recorded_at": "2026-09-06T20:30:43Z",
+  "packages": [
+    "own-analysis",
+    "own-bridge",
+    "own-cfg",
+    "own-diagnostics",
+    "own-ir",
+    "own-lowered",
+    "own-shadow",
+    "own-syntax"
+  ],
+  "command": "cargo test -p <package> --no-fail-fast, for every workspace member",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 3.5
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 3.8
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.3
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M06",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.8
+    },
+    {
+      "id": "M07",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.5
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.5
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M11",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.5
+    },
+    {
+      "id": "M12",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M13",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M14",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M15",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M16",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M17",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M18",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M19",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
+        "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.8
+    },
+    {
+      "id": "M20",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M21",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.5
+    },
+    {
+      "id": "M22",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M23",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M24",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ],
+      "elapsed_seconds": 5.8
+    },
+    {
+      "id": "M25",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
+        "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
+        "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
+        "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ],
+      "elapsed_seconds": 6.2
+    },
+    {
+      "id": "M26",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M27",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_narrowed_call_matcher_never_matches_an_unknown_argument"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M28",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
+        "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
+        "own-analysis/src/lib.rs::obligation::tests::close_before_the_barrier_is_clean",
+        "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.3
+    },
+    {
+      "id": "M29",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
+        "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value",
+        "own-ir/tests/validation_replay.rs::the_two_loaders_accept_the_same_language"
+      ],
+      "elapsed_seconds": 4.4
+    },
+    {
+      "id": "M30",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M31",
+      "outcome": "caught",
+      "catchers": [
+        "own-ir/src/lib.rs::protocol::tests::a_method_record_becomes_its_event_tree"
+      ],
+      "elapsed_seconds": 4.6
+    },
+    {
+      "id": "M32",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.7
+    },
+    {
+      "id": "M33",
+      "outcome": "caught",
+      "catchers": [
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+      ],
+      "elapsed_seconds": 4.1
+    }
+  ]
+}

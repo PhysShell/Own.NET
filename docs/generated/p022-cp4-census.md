@@ -8,20 +8,19 @@ Computed by `tests/verdict_census.py` and `tests/verdict_render_census.py` (the 
 
 | measure                                                                              | value |
 |--------------------------------------------------------------------------------------|------:|
-| goldens — Python's complete truth, one per planned case                              | 87 |
+| goldens — Python's complete truth, one per planned case                              | 94 |
 | … swept from `tests/fixtures/ownir`                                                  | 22 |
 | … swept from `tests/fixtures/lowered`                                                | 27 |
 | … swept from `tests/fixtures/summaries`                                              | 9 |
-| … synthetic controls (`manifest.json` cases)                                         | 29 |
+| … synthetic controls (`manifest.json` cases)                                         | 36 |
 | reference refusals over all goldens                                                  | 5 |
-| reference findings over all goldens                                                  | 159 |
-| declared Rust exclusions — the executable ledger `rust_replay_excluded`              | 8 |
-| … refused by `check_facts` with an error containing `obligation protocol`            | 2 |
+| reference findings over all goldens                                                  | 180 |
+| declared Rust exclusions — the executable ledger `rust_replay_excluded`              | 6 |
 | … refused by `check_facts` with an error containing `outside the core's line domain` | 4 |
 | … refused at the typed `OwnIr` door (#294 OD-1)                                      | 2 |
-| replayed by Rust (goldens minus exclusions)                                          | 79 |
+| replayed by Rust (goldens minus exclusions)                                          | 88 |
 | … reference refusals among them (compared in full)                                   | 5 |
-| … findings among them (compared on every `Finding` member)                           | 152 |
+| … findings among them (compared on every `Finding` member)                           | 174 |
 
 The differential counts over the replayed set — Python-only, Rust-only, changed, ordering-only, unexplained — are asserted, not measured here: the Rust replay compares every replayed case's full ordered verdict list (or its refusal text) against the golden on every member, collects every divergence without fail-fast, and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.
 
@@ -31,8 +30,8 @@ A second family, and a different kind of comparison: its replay compares the **b
 
 | measure                                                               | value |
 |-----------------------------------------------------------------------|------:|
-| cases — one per BR-V9 rule group, listed exhaustively in the manifest | 8 |
+| cases — one per BR-V9 rule group, listed exhaustively in the manifest | 9 |
 | … whose golden is a bridge refusal (nothing to render)                | 1 |
-| rendered lines compared byte-for-byte (4 formats, 2 host severities)  | 104 |
-| SARIF results compared byte-for-byte (both host severities)           | 26 |
+| rendered lines compared byte-for-byte (4 formats, 2 host severities)  | 136 |
+| SARIF results compared byte-for-byte (both host severities)           | 34 |
 | BR-V9 ledger rows pinned by at least one case                         | 31 |

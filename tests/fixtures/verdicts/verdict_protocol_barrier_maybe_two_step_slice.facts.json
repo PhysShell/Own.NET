@@ -1,0 +1,42 @@
+{
+  "ownir_version": 0,
+  "module": "Docs",
+  "components": [],
+  "_doc": [
+    "BR-P3: the (barrier, maybe) cell of the code table — OBL002 — and the",
+    "TWO-step evidence slice, which no document in the corpus reached before",
+    "checkpoint 4b: the reference's only protocol golden closes after the",
+    "barrier and therefore carries the three-step form.",
+    "The obligation is closed on ONE arm of the branch, so at the notification",
+    "it is open on some path but not every path; the only close in the tree is",
+    "BEFORE the barrier, so there is no late-close hop to attach."
+  ],
+  "protocols": [
+    {
+      "name": "DocumentLoading",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [
+        {"kind": "call", "callee": "OnPropertyChanged", "args": ["Document"]}
+      ],
+      "allow": [
+        {"kind": "call", "callee": "OnPropertyChanged", "args": ["IsBusy"]}
+      ],
+      "scope": {"methods": ["ReloadViewModel.Reload"]}
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.ReloadViewModel.Reload",
+      "file": "ReloadViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 10},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "IsBusy", "line": 12},
+        {"ev": "if", "line": 20,
+         "then": [{"ev": "assign", "target": "IsLoaded", "value": true, "line": 21}],
+         "else": []},
+        {"ev": "call", "callee": "OnPropertyChanged", "arg": "Document", "line": 30}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "ownir_version": 0,
+  "module": "Ghosts",
+  "components": [],
+  "_doc": [
+    "BR-P3 / BR-V5 / OD-6: OBL005, the dead-rule advisory. A scoped protocol",
+    "that matches no reported method is surfaced honestly and never as a",
+    "verdict: advisory, and ANCHORLESS — file '?', line 0, component '?',",
+    "handler ''. Its SARIF projection is OD-6 (a literal '?' artifact URI with",
+    "the region omitted), pinned by the rendered-surface family.",
+    "Three protocols, three shapes of the message's scope list:",
+    "  Ghost      -> one entry",
+    "  Phantom    -> two entries, printed SORTED and separated by ', ', which",
+    "                is CPython's repr of a list of strings, not this bridge's",
+    "                choice of separator",
+    "  Apostrophe -> one entry containing a single quote, so the element goes",
+    "                through repr's quote switch (CPython emits \" rather than",
+    "                escaping the ' it holds). A scope entry is project",
+    "                configuration and can hold any string; the rule that",
+    "                renders it is the same one cp5.2 had to fix on the",
+    "                map-or-raise path.",
+    "Live beside them: Watched, whose scope DOES match, so the advisory is",
+    "not the only thing the family can produce here."
+  ],
+  "protocols": [
+    {
+      "name": "Ghost",
+      "opens":  {"kind": "assign", "target": "x", "value": false},
+      "closes": {"kind": "assign", "target": "x", "value": true},
+      "scope": {"methods": ["GhostViewModel.Misspelled"]}
+    },
+    {
+      "name": "Phantom",
+      "opens":  {"kind": "call", "callee": "BeginUpdate"},
+      "closes": {"kind": "call", "callee": "EndUpdate"},
+      "scope": {"methods": ["ZViewModel.Load", "AViewModel.Load"]}
+    },
+    {
+      "name": "Apostrophe",
+      "opens":  {"kind": "assign", "target": "y", "value": false},
+      "closes": {"kind": "assign", "target": "y", "value": true},
+      "scope": {"methods": ["It's.Gone"]}
+    },
+    {
+      "name": "Watched",
+      "opens":  {"kind": "assign", "target": "IsLoaded", "value": false},
+      "closes": {"kind": "assign", "target": "IsLoaded", "value": true},
+      "barriers": [{"kind": "call", "callee": "Publish"}],
+      "scope": {"methods": ["LiveViewModel.Load"]}
+    }
+  ],
+  "protocol_functions": [
+    {
+      "name": "Broker.LiveViewModel.Load",
+      "file": "LiveViewModel.cs",
+      "events": [
+        {"ev": "assign", "target": "IsLoaded", "value": false, "line": 5},
+        {"ev": "call", "callee": "Publish", "line": 8},
+        {"ev": "assign", "target": "IsLoaded", "value": true, "line": 11}
+      ]
+    }
+  ]
+}

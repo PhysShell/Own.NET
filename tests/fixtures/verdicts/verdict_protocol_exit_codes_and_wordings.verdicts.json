@@ -1,0 +1,108 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "BatchViewModel.cs",
+      "line": 20,
+      "code": "OBL003",
+      "component": "BatchViewModel",
+      "event": "Suppress",
+      "handler": "Ret",
+      "message": "obligation 'Suppress' is not closed when 'Broker.BatchViewModel.Ret' exits via return — the object is published in its in-between state; close with '_suppress = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "BatchViewModel.cs",
+          10,
+          "obligation 'Suppress' opens here (_suppress = true)"
+        ],
+        [
+          "BatchViewModel.cs",
+          20,
+          "the method exits here via return while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "BatchViewModel.cs",
+      "line": 40,
+      "code": "OBL003",
+      "component": "BatchViewModel",
+      "event": "Suppress",
+      "handler": "Thr",
+      "message": "obligation 'Suppress' is not closed when 'Broker.BatchViewModel.Thr' exits via throw — the object is published in its in-between state; close with '_suppress = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "BatchViewModel.cs",
+          30,
+          "obligation 'Suppress' opens here (_suppress = true)"
+        ],
+        [
+          "BatchViewModel.cs",
+          40,
+          "the method exits here via throw while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "BatchViewModel.cs",
+      "line": 60,
+      "code": "OBL004",
+      "component": "BatchViewModel",
+      "event": "Suppress",
+      "handler": "Maybe",
+      "message": "obligation 'Suppress' may not be closed (open on some path) when 'Broker.BatchViewModel.Maybe' exits via return — the object is published in its in-between state; close with '_suppress = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "BatchViewModel.cs",
+          51,
+          "obligation 'Suppress' opens here (_suppress = true)"
+        ],
+        [
+          "BatchViewModel.cs",
+          60,
+          "the method exits here via return while it is open"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "BatchViewModel.cs",
+      "line": 70,
+      "code": "OBL003",
+      "component": "BatchViewModel",
+      "event": "Suppress",
+      "handler": "Fall",
+      "message": "obligation 'Suppress' is not closed when the method falls off the end — the object is published in its in-between state; close with '_suppress = false' on every path (a finally block covers the throw paths)",
+      "kind": "protocol obligation",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "BatchViewModel.cs",
+          70,
+          "obligation 'Suppress' opens here (_suppress = true)"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": null
+    }
+  ]
+}

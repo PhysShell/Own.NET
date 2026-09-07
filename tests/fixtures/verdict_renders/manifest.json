@@ -98,6 +98,18 @@
         "sarif_properties",
         "sarif_suppressions"
       ]
+    },
+    {
+      "name": "render_protocol_family",
+      "rules": [
+        "BR-P3",
+        "BR-V9"
+      ],
+      "pins": [
+        "sarif_region_omitted",
+        "sarif_code_flows",
+        "sarif_level_note"
+      ]
     }
   ]
 }

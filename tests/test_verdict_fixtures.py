@@ -30,9 +30,11 @@ Three case sources, one golden tree:
   view anchor, and the declared-boundary controls below.
 * **The Rust exclusion ledger** — `rust_replay_excluded` names the cases whose
   golden is Python's truth but which the Rust core REFUSES by a declared
-  boundary (a protocol-bearing document: the OBL analysis is not wired; a
-  coordinate outside the core's `u32` line domain; a shape the typed Rust door
-  rejects before the bridge runs — #294 OD-1). Each entry carries its reason
+  boundary (a coordinate outside the core's `u32` line domain; a shape the
+  typed Rust door rejects before the bridge runs — #294 OD-1). It named a
+  third until #259 checkpoint 4b — a protocol-bearing document, refused while
+  the OBL analysis had no port — and both such documents are now promoted.
+  Each entry carries its reason
   and an executable expectation (`rust_refusal`: `bridge` or `door`, plus an
   error substring) that the Rust replay asserts, so an exclusion cannot rot
   into a coverage hole: the day Rust accepts one, its suite goes red demanding

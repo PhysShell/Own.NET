@@ -192,9 +192,23 @@ fn defaulted_string(obj: &Map<String, Value>, key: &str, what: &str) -> Checked 
 /// within the representable range — see [`is_representable_int`], which carries
 /// both halves so no call site can get one without the other.
 pub(crate) fn defaulted_int(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
+    defaulted_int_value(obj, key, what).map(|_| ())
+}
+
+/// [`defaulted_int`], keeping the value it validated.
+///
+/// The protocol grammar needs the number it just checked (an event's `line`
+/// travels to a finding's anchor), and everything else needs only the verdict.
+/// One implementation with two returns, rather than a second reader of the same
+/// slot that could disagree about the default or the domain.
+pub(crate) fn defaulted_int_value(
+    obj: &Map<String, Value>,
+    key: &str,
+    what: &str,
+) -> Result<i64, OwnIrError> {
     match obj.get(key) {
-        None => Ok(()),
-        Some(v) if is_representable_int(v) => Ok(()),
+        None => Ok(0),
+        Some(v) if is_representable_int(v) => Ok(v.as_i64().unwrap_or(0)),
         Some(other) => Err(shape(format!(
             "{what} '{key}' must be an integer, got {other}"
         ))),
@@ -524,13 +538,13 @@ fn protocols(obj: &Map<String, Value>) -> Checked {
         "protocols",
         "OwnIR 'protocols' must be a JSON array of objects",
     )?;
-    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for raw in protos {
-        let name = crate::protocol::validate_protocol(raw)?;
+        let name = crate::protocol::parse_protocol(raw)?.name;
         // The name is the identity the bridge maps verdicts back by (IR5); two
         // protocols sharing one would make that mapping ambiguous and can
         // collapse distinct findings in the dedup.
-        if !seen.insert(name) {
+        if !seen.insert(name.clone()) {
             return Err(identity(format!(
                 "duplicate protocol name '{name}' — protocol names are the \
                  identity findings map back by and must be unique"
@@ -547,7 +561,7 @@ fn protocol_functions(obj: &Map<String, Value>) -> Checked {
         "OwnIR 'protocol_functions' must be a JSON array of objects",
     )?;
     for raw in pfns {
-        crate::protocol::validate_method(raw)?;
+        crate::protocol::parse_method(raw)?;
     }
     Ok(())
 }
