@@ -29,6 +29,7 @@ files = [
   "tests/verdict_render_census.py",
   "tests/validation_census.py",
   "tests/verdict_surface_inventory.py",
+  "tests/shadow_sweep.py",
   "tests/test_obligation_fact_parity.py",
   "scripts/mutate_campaign.py",
   "scripts/shadow_compare.py",

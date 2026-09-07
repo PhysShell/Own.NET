@@ -453,6 +453,13 @@ def compare(raw: bytes, source: str, adapter: dict[str, Any],
         result["artifact"] = artifact
         return OUTCOME_DIVERGED, result
 
+    # Both engines derived this identity from the same bytes, independently,
+    # and the check above is what proved they agree about it. Recording it here
+    # rather than only inside the artifact matters because the artifact is
+    # written on MISMATCH only: without this line a green run would name the
+    # bytes it compared and not the document they are.
+    result["input"]["canonical"] = artifact["input"]["canonical"]
+
     traces = project_traces(artifact, source)
     reduction = reduce_traces(traces)
     derived = derived_outcome(artifact, reduction)
@@ -575,8 +582,11 @@ class Document:
     `source` is both the file to read and the label the result records. One
     field rather than two on purpose — a record whose label can drift from the
     file it names is a record that can attribute a result to the wrong
-    document."""
+    document. `id` is the document's name in the sweep's definition and in the
+    aggregation; it defaults to the file's basename, which is enough for a
+    hand run and not enough for CI, where every leg writes `facts.json`."""
 
+    id: str
     source: str
     path: str
     target: str
@@ -640,7 +650,12 @@ def load_manifest(path: str, default_timeout: float
                 f"shadow_compare: {where}: 'timeout_seconds' must be a positive "
                 f"number (it is recorded per document, never inherited silently)")
         source = str(entry["source"])
+        doc_id = entry.get("id") or os.path.basename(source)
+        if not isinstance(doc_id, str) or not doc_id:
+            raise SystemExit(
+                f"shadow_compare: {where}: 'id' must be a non-empty string")
         out.append(Document(
+            id=doc_id,
             source=source,
             path=source if os.path.isabs(source) else os.path.join(base, source),
             target=str(entry["target"]),
@@ -649,6 +664,14 @@ def load_manifest(path: str, default_timeout: float
             extraction_command=str(entry["extraction_command"]),
             facts_sha256=str(entry["facts_sha256"]),
             timeout_seconds=float(timeout)))
+    seen: set[str] = set()
+    for doc in out:
+        if doc.id in seen:
+            raise SystemExit(
+                f"shadow_compare: {path}: two documents share the id {doc.id!r}. "
+                f"The id is how a document is joined to the sweep definition and "
+                f"to its own result, so two of them is one document lost.")
+        seen.add(doc.id)
     if declared:
         stray = sorted({d.target for d in out} - set(declared))
         if stray:
@@ -927,9 +950,10 @@ def _run_manifest(args: argparse.Namespace, adapter: dict[str, Any]) -> int:
         row["acceptance_unexplained_observations"] += int(
             acceptance.get(ACCEPTANCE_UNEXPLAINED, 0))
         worst = max(worst, EXIT[outcome])
-        _write(args.out, f"{_safe_name(doc.source)}.result.json", result)
+        result["document_id"] = doc.id
+        _write(args.out, f"{_safe_name(doc.id)}.result.json", result)
         records.append({
-            "id": os.path.basename(doc.source),
+            "id": doc.id,
             "source": doc.source,
             "target": doc.target,
             "target_commit": doc.target_commit,
@@ -969,10 +993,19 @@ def _run_manifest(args: argparse.Namespace, adapter: dict[str, Any]) -> int:
             print(f"FAIL[manifest] target {t!r} had ZERO documents compared — a "
                   f"target is not covered because its extraction ran",
                   file=sys.stderr)
+    # The backstop for the same rule, and it is UNREACHABLE while the check
+    # above stands: an empty manifest returns before this, and a manifest with
+    # documents cannot reach zero attempts. It is kept because it states the
+    # rule at the place the number actually exists, and it is reachable exactly
+    # when the first check is removed — which is what a mutation does. That is
+    # why the control pins the FIRST check's own wording rather than the exit
+    # code: two enforcement points of one rule and a control that cannot tell
+    # them apart is a control that proves nothing (the shape §5.1 of the
+    # acceptance note records).
     if totals["compare_attempted"] == 0:
         worst = max(worst, EXIT_USAGE)
-        print("shadow_compare: this run compared ZERO documents, which is a "
-              "failure and not agreement", file=sys.stderr)
+        print("shadow_compare: the totals say ZERO documents were compared, "
+              "which is a failure and not agreement", file=sys.stderr)
     summary["outcome"] = (OUTCOME_AGREED if worst == 0 else "not-agreed")
     _write(args.out, "summary.json", summary)
     print(f"shadow compare over {totals['compare_attempted']} document(s) in "

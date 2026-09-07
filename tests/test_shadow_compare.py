@@ -395,10 +395,14 @@ def _manifest_controls() -> list[tuple[str, str]]:
                           f"an empty manifest exited {done.returncode}, expected "
                           f"{EXIT_USAGE}: a run that compared zero documents "
                           f"reported something other than failure"))
-        if "ZERO" not in done.stdout + done.stderr:
+        # The wording of the check that is SUPPOSED to fire, not merely "some
+        # check fired": the totals backstop says ZERO too, so a needle both
+        # messages match would let a mutation of either one survive.
+        if "the manifest lists no documents" not in done.stdout + done.stderr:
             fails.append(("compare-empty-set",
-                          "an empty run did not say that it compared zero "
-                          "documents"))
+                          f"an empty run did not refuse it at the manifest, "
+                          f"where the rule is stated. Output: "
+                          f"{(done.stdout + done.stderr)[:400]}"))
 
         # 4. A DIGEST MISMATCH stops the run before any engine is started. The
         #    double is in `crash` mode: had one been started, the exit would be

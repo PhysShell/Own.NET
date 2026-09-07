@@ -46,6 +46,12 @@ these generated fragments, computed from the evidence — never typed:
   campaigns, through the same `summarize()` as cp4's. One interpreter for
   every campaign in the tree: two readings of one run is how two documents
   come to disagree about it.
+* `docs/generated/p022-shadow-sweep.md` — #260's FINAL-ACCEPTANCE sweep: the
+  five pinned OSS repositories of #243, the large-solution controls and the
+  examples tree, from `tests/shadow_sweep.compute_sweep_summary()` over the
+  committed definition and one recorded run. The per-target denominators are
+  the point of the document: a repository is not covered because its
+  extraction succeeded.
 
 Determinism: nothing in a fragment depends on HEAD, the clock or the
 environment, so an unrelated commit never changes one. The campaign fragment
@@ -89,6 +95,14 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
     summarize,
 )
 from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
+from shadow_sweep import DEFINITION as DEFINITION_PATH  # noqa: E402
+from shadow_sweep import (  # noqa: E402
+    TARGET_FIELDS,
+    SweepError,
+    SweepSummary,
+    compute_sweep_summary,
+    load_pair,
+)
 from validation_census import (  # noqa: E402
     ValidationCensus,
     ValidationCensusError,
@@ -119,6 +133,7 @@ COORD_MUTATIONS_MD = "p022-coord-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
+SHADOW_SWEEP_MD = "p022-shadow-sweep.md"
 CAMPAIGN = os.path.join(EVIDENCE, "p022-cp4-mutations.json")
 RESULT = os.path.join(EVIDENCE, "p022-cp4-mutations.result.json")
 # One campaign per shadow checkpoint: each stays frozen at what it measured, so
@@ -132,6 +147,8 @@ SHADOW_CAMPAIGNS = (
      "p022-shadow-acc-1"),
     ("acceptance 2 — the scope, the boundary policy, the derived surface and the "
      "driver (D-4..D-7, R-1, R-2)", "p022-shadow-acc-2"),
+    ("final acceptance — the driver's v2 surfaces and the sweep interpreter",
+     "p022-shadow-sweep-1"),
 )
 # One campaign per cp5 sub-checkpoint, for the same reason the shadow slice has
 # one per checkpoint: a campaign stays frozen at what it measured, so a later
@@ -625,6 +642,101 @@ def render_campaign_set(heading: str, blurb: str, campaigns: tuple[tuple[str, st
     return "\n".join(parts), problems
 
 
+
+
+# --- step 7a: #260's final-acceptance sweep --------------------------------
+
+
+def render_sweep(summary: SweepSummary) -> str:
+    """The sweep, as the one document every count in the packet links to.
+
+    The per-target block is not decoration: #250's fifth failure mode is a
+    green gate over an empty set, so the DENOMINATOR is rendered beside the
+    outcome for every target, and a target with nothing compared is visible
+    rather than absent."""
+    document_rows = "\n".join(
+        f"| `{d.id}` | `{d.target}` | {d.extraction_mode} | `{d.target_commit[:12]}` | "
+        f"{d.raw_bytes} | `{d.raw_digest[:12]}` | `{d.canonical_digest[:12]}` | "
+        f"{d.reduction_outcome} | {d.derived_outcome} | {d.declared_boundary} | "
+        f"{d.unexplained} | {d.wall_clock_seconds:.2f} | {d.timeout_seconds:.0f} |"
+        for d in summary.documents)
+    target_rows = "\n".join("| `" + row[0] + "` | " + " | ".join(row[1:]) + " |"
+                             for row in summary.targets)
+    totals_row = ("| **total** | "
+                  + " | ".join(str(summary.totals[name]) for name in TARGET_FIELDS)
+                  + " |")
+    adapter_rows = "\n".join(f"| `{digest}` | {size} |"
+                             for digest, size in summary.adapters)
+    doc_head = " | ".join((
+        "document", "target", "mode", "pin", "raw bytes", "raw sha256",
+        "canonical sha256", "reduction", "derived SARIF", "declared-boundary",
+        "unexplained", "wall clock (s)", "timeout (s)"))
+    doc_align = "|---|---|---|---|---:|---|---|---|---|---:|---:|---:|---:|"
+    target_head = " | ".join((
+        "target", "extracted", "compared", "agreed", "diverged",
+        "execution failures", "input refusals", "input disagreements",
+        "declared-boundary", "unexplained"))
+    target_align = "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
+    where = (f"[the workflow run]({summary.workflow_run_url})"
+             if summary.workflow_run_url
+             else "a local run (no workflow run URL)")
+    unexplained = summary.totals.get("acceptance_unexplained_observations", 0)
+    verdict = (
+        "Every document agreed and no observation is acceptance-unexplained."
+        if unexplained == 0 and all(d.outcome == "agreed" for d in summary.documents)
+        else "**This run is NOT clean.** A document did not agree, or an "
+             "observation is acceptance-unexplained: that is a finding, it "
+             "stays on the record until it is resolved, and #260 stays open.")
+    return f"""{_header(_rel(DEFINITION_PATH) + " and its .result.json")}
+# P-022 step 7a (#260) — the final-acceptance sweep
+
+The measurement the acceptance surfaces over the committed corpus deliberately
+did not take: the five pinned OSS repositories of #243 at their pinned commits,
+the large/multi-project solution controls, and the `examples/` tree. Every
+document is one OwnIR byte sequence fed to BOTH engines and judged by compare
+mode; the record is [`{_rel(DEFINITION_PATH)}`](../evidence/p022-shadow-sweep.json)
+(what should be measured) and its `.result.json` (one actual run), read by
+`tests/shadow_sweep.py`. {verdict}
+
+**What "covered" means here.** A repository is not covered because extraction
+succeeded, and a solution is not covered because some project inside it emitted
+OwnIR. Coverage is a recorded, non-empty set of documents fed byte-identically
+to both engines and judged — per target, with the denominator on the record.
+A run that compared zero documents is a failure, and so is a declared target
+nothing reached.
+
+## The run
+
+| what | value |
+|---|---|
+| Own.NET commit | `{summary.source_commit}` |
+| recorded at | {summary.recorded_at} |
+| host | {summary.host} |
+| where | {where} |
+| driver | `shadow_compare_version` {summary.driver_version} |
+
+The adapter each leg executed, by digest — a path is not an identity, so a
+stale build cannot stand in for the engine that was meant:
+
+| `own-shadow-engine` sha256 | bytes |
+|---|---:|
+{adapter_rows}
+
+## The documents
+
+| {doc_head} |
+{doc_align}
+{document_rows}
+
+## The denominators, per target
+
+| {target_head} |
+{target_align}
+{target_rows}
+{totals_row}
+"""
+
+
 def render_shadow_census(c: ShadowCensus) -> str:
     corpus_rows = "\n".join(f"| `tests/fixtures/{corpus}` | {n} |" for corpus, n in c.by_corpus)
     engine_rows = "\n".join(f"| `{eid}` | {produced} | {refused} | {full} | {partial} |"
@@ -902,6 +1014,12 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     shadow, shadow_problems = render_shadow_mutations()
     out[SHADOW_MUTATIONS_MD] = shadow
     problems.extend(f"mutation campaign {p}" for p in shadow_problems)
+    try:
+        sweep_summary = compute_sweep_summary(*load_pair())
+        out[SHADOW_SWEEP_MD] = render_sweep(sweep_summary)
+        problems.extend(f"shadow sweep: {p}" for p in sweep_summary.problems)
+    except SweepError as e:
+        problems.extend(f"shadow sweep: {p}" for p in e.problems)
     cp5, cp5_problems = render_campaign_set(
         "# P-022 checkpoint 5 — mutation campaigns",
         "One campaign per sub-checkpoint, each frozen at what it measured. Every "
@@ -983,7 +1101,8 @@ def main(argv: list[str]) -> int:
     if argv:
         print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
               f"{COORD_CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, {CP5_MUTATIONS_MD}, "
-              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
+              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD}, {SHADOW_SWEEP_MD} in "
+              f"sync with the evidence")
     return 0
 
 

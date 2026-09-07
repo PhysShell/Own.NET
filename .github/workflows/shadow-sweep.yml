@@ -183,6 +183,7 @@ jobs:
               "schema": 1,
               "targets": [target],
               "documents": [{
+                  "id": "${{ matrix.id }}",
                   "source": facts,
                   "target": target,
                   "target_commit": "${{ matrix.commit }}",
@@ -253,6 +254,7 @@ jobs:
               "schema": 1,
               "targets": ["examples"],
               "documents": [{
+                  "id": "examples",
                   "source": facts,
                   "target": "examples",
                   "target_commit": os.environ["GITHUB_SHA"],

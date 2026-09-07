@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "comment": "The definition of #260's final-acceptance sweep: what SHOULD be measured. It is the DENOMINATOR — a run that reports only what it happened to measure cannot be short. The recorded run beside it is one actual execution; a re-run replaces that file whole. Read by tests/shadow_sweep.py, rendered by scripts/render_checkpoint_status.py.",
+  "sweep": "p022-shadow-sweep",
+  "driver_version": 2,
+  "default_timeout_seconds": 600.0,
+  "adapter_build_command": "cd rust && cargo build --release -p own-shadow --bin own-shadow-engine",
+  "driver_command": "OWN_SHADOW_ENGINE=<the adapter just built> python scripts/shadow_compare.py --engine compare --manifest <manifest.json> --out <run dir>",
+  "reference_pack": "microsoft.windowsdesktop.app.ref ref/net8.0, materialized by a scratch net8.0-windows UseWPF/UseWindowsForms/EnableWindowsTargeting project + dotnet restore and exported as OWN_EXTRA_REF_DIRS — the mechanism ci.yml's corpus-benchmark job uses",
+  "pin_rule": "A checkout materializes the COMMIT (a depth-1 fetch of the sha, detached) and `git rev-parse HEAD` is compared with the pin before anything runs. Drift is a hard failure of that target, never a newer measurement.",
+  "targets": [
+    {
+      "target": "ShareX",
+      "upstream": "ShareX/ShareX",
+      "pinned_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "solutions": [
+        {
+          "path": "ShareX.sln",
+          "csproj_members": 13,
+          "cs_files_under_members": 1126,
+          "taken": true
+        },
+        {
+          "path": "ShareX.ImageEditor.sln",
+          "csproj_members": 2,
+          "cs_files_under_members": 433,
+          "taken": false
+        }
+      ],
+      "slnx": []
+    },
+    {
+      "target": "MahApps.Metro",
+      "upstream": "MahApps/MahApps.Metro",
+      "pinned_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "solutions": [
+        {
+          "path": "src/MahApps.Metro.sln",
+          "csproj_members": 4,
+          "cs_files_under_members": 328,
+          "taken": true
+        }
+      ],
+      "slnx": []
+    },
+    {
+      "target": "MaterialDesignInXamlToolkit",
+      "upstream": "MaterialDesignInXAML/MaterialDesignInXamlToolkit",
+      "pinned_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
+      "solutions": [],
+      "slnx": [
+        "MaterialDesignToolkit.Full.slnx"
+      ],
+      "note": "No classic solution at this pin: the repository carries MaterialDesignToolkit.Full.slnx, the XML solution format, and the extractor's solution resolver reads the classic Project(\"{...}\") = \"name\", \"path\" form only. Teaching it .slnx would be a production change, so this target is covered by its directory walk alone and the record says so."
+    },
+    {
+      "target": "AvalonEdit",
+      "upstream": "icsharpcode/AvalonEdit",
+      "pinned_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "solutions": [
+        {
+          "path": "ICSharpCode.AvalonEdit.sln",
+          "csproj_members": 3,
+          "cs_files_under_members": 248,
+          "taken": true
+        },
+        {
+          "path": "ICSharpCode.AvalonEdit.Documentation.sln",
+          "csproj_members": 1,
+          "cs_files_under_members": 214,
+          "taken": false
+        }
+      ],
+      "slnx": []
+    },
+    {
+      "target": "ClosedXML",
+      "upstream": "ClosedXML/ClosedXML",
+      "pinned_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "solutions": [
+        {
+          "path": "ClosedXML.sln",
+          "csproj_members": 6,
+          "cs_files_under_members": 921,
+          "taken": true
+        }
+      ],
+      "slnx": []
+    },
+    {
+      "target": "examples",
+      "upstream": "PhysShell/Own.NET",
+      "pinned_commit": null,
+      "solutions": [],
+      "slnx": [],
+      "note": "The examples tree of this repository. Its pin is the run's own Own.NET commit, which is why the definition carries null here and the interpreter checks the recorded pin against the run's source_commit rather than against a fixed sha."
+    }
+  ],
+  "documents": [
+    {
+      "id": "ShareX.repo",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "ShareX.sln",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX/ShareX.sln",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "MahApps.Metro.repo",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "MahApps.Metro.sln",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro/src/MahApps.Metro.sln",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "MaterialDesignInXamlToolkit.repo",
+      "target": "MaterialDesignInXamlToolkit",
+      "target_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MaterialDesignInXamlToolkit",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "AvalonEdit.repo",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "AvalonEdit.sln",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit/ICSharpCode.AvalonEdit.sln",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "ClosedXML.repo",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "ClosedXML.sln",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML/ClosedXML.sln",
+      "timeout_seconds": 600.0
+    },
+    {
+      "id": "examples",
+      "target": "examples",
+      "target_commit": null,
+      "extraction_mode": "directory-walk",
+      "extraction_command": "scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- examples",
+      "timeout_seconds": 600.0
+    }
+  ]
+}
