@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The mutation harness's own control: a campaign restores BYTES, not text.
+"""The mutation harness's own controls: bytes, and a catcher's identity.
 
 One rule, and it earned a test the hard way. `scripts/mutate_campaign.py` reads
 each mutation target, rewrites it, and puts it back; it then refuses to record a
@@ -28,7 +28,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "scripts"))
 
-from mutate_campaign import CRLF, LF, read_source, write_source
+from mutate_campaign import CRLF, LF, parse_test_output, read_source, write_source
 
 
 def run() -> int:
@@ -78,13 +78,35 @@ def run() -> int:
             if f.read() != b"A = 1\n":
                 fails.append("write_source's default ending is not LF")
 
+    # A CATCHER NAME IS AN IDENTITY, and it may not depend on the platform
+    # that produced it. cargo prints its target with the host separator, so on
+    # Windows the same failing test was recorded as `own-shadow/tests\\repro.rs
+    # ::…` while every definition and every committed result says
+    # `own-shadow/tests/repro.rs::…`. Five acc-1 mutations reported "expected
+    # catchers MISSED" while naming exactly the test that had been expected.
+    windows = (
+        "     Running tests\\repro.rs (target\\debug\\deps\\repro-1.exe)\n"
+        "test verify_refuses_each_structural_violation ... FAILED\n")
+    posix = (
+        "     Running tests/repro.rs (target/debug/deps/repro-1)\n"
+        "test verify_refuses_each_structural_violation ... FAILED\n")
+    want = ["own-shadow/tests/repro.rs::verify_refuses_each_structural_violation"]
+    for label, out in (("windows", windows), ("posix", posix)):
+        found, _ = parse_test_output("own-shadow", out)
+        if found != want:
+            fails.append(f"{label}: cargo output names catcher(s) {found}, "
+                         f"expected {want} — a catcher whose spelling "
+                         f"depends on the host makes expected_catchers "
+                         f"unmatchable there")
+
     if fails:
         for f in fails:
             print(f"FAIL[campaign-harness]: {f}")
         return 1
-    print("campaign harness OK: 9 controls held (a source is read with its own "
+    print("campaign harness OK: 11 controls held (a source is read with its own "
           "ending and matched as LF; restoring and mutating both reproduce that "
-          "ending byte-for-byte; the default is LF)")
+          "ending byte-for-byte; the default is LF; a cargo catcher has one "
+          "identity on both hosts)")
     return 0
 
 

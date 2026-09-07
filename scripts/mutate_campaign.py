@@ -495,7 +495,15 @@ def parse_test_output(package: str, out: str) -> tuple[list[str], bool]:
     for line in out.splitlines():
         m = _RUNNING.match(line)
         if m:
-            target = m.group(1)
+            # cargo prints the target with the host's separator, so on
+            # Windows it says `tests\repro.rs` where every campaign
+            # definition and every recorded result says `tests/repro.rs`.
+            # A catcher name is an IDENTITY, and one that depends on the
+            # platform that produced it makes `expected_catchers` silently
+            # unmatchable there — measured: five acc-1 mutations reported
+            # "expected catchers MISSED" while naming exactly the test
+            # that had been expected.
+            target = m.group(1).replace('\\', "/")
             continue
         m = _DOCTESTS.match(line)
         if m:
