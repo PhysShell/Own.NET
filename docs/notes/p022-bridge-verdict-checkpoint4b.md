@@ -239,16 +239,26 @@ The strict door's error texts do not move by a byte. The cp1 ledger
 accept/reject verdict and their category; red there is a stop, not a thing to
 re-baseline.
 
-### 3.2 The door difference, and where it is pinned (OD-1)
+### 3.2 The door difference, and where each rule is pinned (OD-1)
 
-Three of the tolerant door's protocol rules — the malformed-entry skip (H24,
-H25) and first-wins on a duplicate name (H26) — are **unreachable through the
-typed Rust constructor**, exactly as the effect-entry skip already is. They are
-pinned at the raw-document level with unit controls in the bridge (the shape
-`malformed_effect_entries_are_skipped_not_coerced` established at cp4), not by
-quietly coercing a document into shape. If a synthetic case needs such a
-document to travel through the door, it becomes a **declared** `verdict_door_*`
-exclusion with a reason — never a silent coercion.
+The typed Rust constructor (`OwnIr::from_json`) keeps `protocols[]` and
+`protocol_functions[]` as raw values and checks only their nesting depth; the
+protocol grammar runs in the **strict** door alone. So, unlike the effect-entry
+skip — which the typed `Effect` shape makes unreachable, the OD-1 case cp4
+recorded — the tolerant door's protocol rules are reachable **end to end**: a
+malformed `protocols[]` entry is skipped (H24), a malformed
+`protocol_functions[]` entry is skipped without taking the rest of the list
+with it (H25), and a duplicate name resolves first-wins (H26). All three are
+replayed against Python's golden by the synthetic case
+`verdict_protocol_tolerant_door_rules`, and the cp4b.2 campaign's M21–M23 are
+caught by that replay, not by a unit test. Only the non-list block rule (H23)
+is pinned at the unit level (`protocol_blocks_that_are_not_lists_yield_nothing`,
+M24), in the shape cp4 established for the effect skip. Nothing here coerces a
+document into shape: a record the grammar refuses is dropped whole on the
+tolerant path, and the strict door still refuses the same document at load —
+its 216 controls are unchanged by 4b. (An earlier draft of this section, written
+at 4b.0 before the case existed, said the three rules were unreachable; the
+tree proved otherwise and this paragraph follows the tree.)
 
 ## 4. The surfaces 4b moved
 

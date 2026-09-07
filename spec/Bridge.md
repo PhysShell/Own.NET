@@ -304,7 +304,12 @@ anchorless. Related locations and ordered `flow` slices are attached exactly
 where §4/§5 say (DI consumer ctor; DI paths via `di_path_steps`; the capture
 escape slice subscribe-site → registration-site; flow-local origin→violation
 2-step; effect re-run→mint; protocol opened→barrier). Steps with unknown lines
-(`< 1`) are omitted; a slice shorter than 2 steps is dropped.
+(`< 1`) are omitted; a slice shorter than 2 steps is dropped — **except on the
+protocol path**: `_protocol_findings` filters unknown lines and stops there, so
+an obligation leaking off the end of its method carries a **one-step** slice
+(its second step would repeat the first). The port reproduces the reference;
+whether this sentence or that code should move is a Python-first decision still
+owed (#259 cp4b note §6.7).
 
 **BR-V6 (severity and suppression).** `advisory` findings (OWN050/051/052,
 OBL005) render as warnings, SARIF `note`, and are excluded from the exit code.
