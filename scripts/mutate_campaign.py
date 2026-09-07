@@ -478,7 +478,8 @@ def workspace_packages(workspace: str) -> list[str]:
     """Every workspace member, from cargo itself — never a typed list."""
     out = subprocess.run(
         ["cargo", "metadata", "--no-deps", "--format-version", "1"],
-        cwd=os.path.join(ROOT, workspace), check=True, capture_output=True, text=True,
+        cwd=os.path.join(ROOT, workspace), check=True, capture_output=True,
+        text=True, encoding="utf-8", errors="replace",
     ).stdout
     meta = json.loads(out)
     members = {str(m) for m in meta.get("workspace_members", [])}
@@ -533,8 +534,16 @@ def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
     if layer.parser == "python-fail":
         # Never leave a .pyc behind: see the cache note in the module docstring.
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+    # UTF-8 explicitly, and never the console codepage: `text=True` decodes with
+    # the locale encoding, so on a machine whose console is cp1251 a single
+    # non-ASCII byte anywhere in cargo's output raised UnicodeDecodeError and
+    # killed the campaign mid-run — measured, at mutation B03 of
+    # p022-shadow-acc-2. cargo and this repository's harnesses both emit UTF-8,
+    # and `errors="replace"` means a stray byte costs one character rather than
+    # the whole run.
     r = subprocess.run(list(layer.command), cwd=os.path.join(ROOT, layer.cwd), env=env,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       text=True, encoding="utf-8", errors="replace")
     if layer.parser == "cargo":
         found, ce = parse_test_output(layer.id, r.stdout)
     else:

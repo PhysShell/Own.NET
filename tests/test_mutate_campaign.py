@@ -28,7 +28,15 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 "..", "scripts"))
 
-from mutate_campaign import CRLF, LF, parse_test_output, read_source, write_source
+from mutate_campaign import (
+    CRLF,
+    LF,
+    Layer,
+    _run_layer,
+    parse_test_output,
+    read_source,
+    write_source,
+)
 
 
 def run() -> int:
@@ -99,14 +107,39 @@ def run() -> int:
                          f"depends on the host makes expected_catchers "
                          f"unmatchable there")
 
+
+    # A LAYER'S OUTPUT IS UTF-8, whatever the console codepage says. `text=True`
+    # alone decodes with the locale encoding, so on a cp1251 console one
+    # non-ASCII byte in cargo's output raised UnicodeDecodeError and took the
+    # whole campaign with it — measured, mid-run, at a mutation of
+    # p022-shadow-acc-2. The child here prints an em dash for exactly that
+    # reason: it is the character the repository's own test names contain.
+    layer = Layer(id="own-shadow", cwd=".", parser="cargo", command=(
+        sys.executable, "-c",
+        "import sys; sys.stdout.reconfigure(encoding='utf-8'); "
+        "print('     Running tests/repro.rs (target/debug/deps/repro-1)'); "
+        "print('a name with an em dash \u2014 here'); "
+        "print('test verify_refuses_each_structural_violation ... FAILED'); "
+        "sys.exit(101)"))
+    try:
+        found, _compile_error, _unparsed = _run_layer(layer)
+    except UnicodeDecodeError as e:
+        fails.append(f"a layer whose output is not ASCII killed the harness: {e}")
+    else:
+        want = ["own-shadow/tests/repro.rs::verify_refuses_each_structural_violation"]
+        if found != want:
+            fails.append(f"a non-ASCII layer named catcher(s) {found}, expected "
+                         f"{want}")
+
     if fails:
         for f in fails:
             print(f"FAIL[campaign-harness]: {f}")
         return 1
-    print("campaign harness OK: 11 controls held (a source is read with its own "
+    print("campaign harness OK: 12 controls held (a source is read with its own "
           "ending and matched as LF; restoring and mutating both reproduce that "
           "ending byte-for-byte; the default is LF; a cargo catcher has one "
-          "identity on both hosts)")
+          "identity on both hosts; a layer whose output is not ASCII is read "
+          "rather than fatal)")
     return 0
 
 
