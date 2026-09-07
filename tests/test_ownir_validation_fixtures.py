@@ -1525,13 +1525,13 @@ def run() -> int:
     fresh = build()
     expected = _render_json(fresh)
     if not os.path.exists(FIXTURE):
-        print(f"FAIL: {FIXTURE} missing; regenerate with "
+        print(f"FAIL[ledger-missing]: {FIXTURE} missing; regenerate with "
               f"'python tests/test_ownir_validation_fixtures.py --write'")
         return 1
     with open(FIXTURE, encoding="utf-8") as f:
         actual = f.read()
     if actual != expected:
-        print(f"FAIL: {FIXTURE} is stale (the strict door's acceptance changed); "
+        print(f"FAIL[ledger-stale]: {FIXTURE} is stale (the strict door's acceptance changed); "
               f"regenerate with 'python tests/test_ownir_validation_fixtures.py "
               f"--write' and re-run the Rust side "
               f"(cd rust && cargo test -p own-ir)")
@@ -1539,11 +1539,11 @@ def run() -> int:
 
     data = json.loads(actual)
     if set(data) != ROOT_KEYS:
-        print(f"FAIL: fixture root keys {sorted(data)} != {sorted(ROOT_KEYS)}")
+        print(f"FAIL[ledger-shape]: fixture root keys {sorted(data)} != {sorted(ROOT_KEYS)}")
         return 1
     for case in data["cases"]:
         if set(case) != CASE_KEYS:
-            print(f"FAIL: case {case.get('name')!r} keys {sorted(case)} "
+            print(f"FAIL[ledger-shape]: case {case.get('name')!r} keys {sorted(case)} "
                   f"!= {sorted(CASE_KEYS)}")
             return 1
 
@@ -1551,10 +1551,10 @@ def run() -> int:
     # one, would make the Rust comparison vacuous for that case.
     for case in data["cases"]:
         if case["verdict"] == "reject" and not case["category"]:
-            print(f"FAIL: {case['name']}: rejected with no category")
+            print(f"FAIL[ledger-category]: {case['name']}: rejected with no category")
             return 1
         if case["verdict"] == "accept" and case["category"]:
-            print(f"FAIL: {case['name']}: accepted but carries a category")
+            print(f"FAIL[ledger-category]: {case['name']}: accepted but carries a category")
             return 1
 
     # Every declared category must be exercised. An unused category is a claim
@@ -1562,7 +1562,7 @@ def run() -> int:
     used = {c["category"] for c in data["cases"] if c["category"]}
     unused = sorted(set(data["categories"]) - used)
     if unused:
-        print(f"FAIL: declared categories with no control: {unused}. A category "
+        print(f"FAIL[ledger-coverage]: declared categories with no control: {unused}. A category "
               f"is only worth having if a case exercises it")
         return 1
 
@@ -1570,8 +1570,9 @@ def run() -> int:
     # them the ledger would pass against a loader that rejects everything.
     accepted = data["totals"]["accepted"]
     if accepted < 5:
-        print(f"FAIL: only {accepted} acceptance control(s); the rejections are "
-              f"not discriminating without valid twins")
+        print(f"FAIL[ledger-discriminating]: only {accepted} acceptance "
+              f"control(s); the rejections are not discriminating without "
+              f"valid twins")
         return 1
 
     # The oracle must be a pure function of the control. It was not, on the

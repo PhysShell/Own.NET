@@ -420,3 +420,87 @@ fn the_depth_guard_never_fires_on_a_document_from_json_accepts() {
         }
     }
 }
+
+/// The port's OWN domain diagnostic, pinned against drift.
+///
+/// This is deliberately not the cross-language comparison the rest of this
+/// file makes — that one compares accept/reject and the KIND, never the text,
+/// and the reason is stated at the top. What it does is stop this port's own
+/// error text from rotting silently: the door now has two coordinate rules on
+/// two axes, and a message that stopped naming the domain (or a domain rule
+/// that started answering `Shape`) would leave a reader of a rejected document
+/// unable to tell which of them fired.
+///
+/// One document per rule, at the edge that discriminates: `i64::MAX` HAS a
+/// representable form and violates the domain (`Location`), `i64::MAX + 1` has
+/// no form at all (`Shape`), and the in-domain edges are accepted.
+#[test]
+fn the_coordinate_rules_report_the_axis_they_are_on() {
+    let cases: [(&str, Option<(OwnIrErrorKind, &str)>); 8] = [
+        (
+            r#"{"services":[{"name":"S","lifetime":"singleton","line":9223372036854775807}]}"#,
+            Some((
+                OwnIrErrorKind::Location,
+                "must be a source line in [0, 2147483647]",
+            )),
+        ),
+        (
+            r#"{"services":[{"name":"S","lifetime":"singleton","line":-1}]}"#,
+            Some((
+                OwnIrErrorKind::Location,
+                "must be a source line in [0, 2147483647]",
+            )),
+        ),
+        (
+            r#"{"services":[{"name":"S","lifetime":"singleton","line":9223372036854775808}]}"#,
+            Some((OwnIrErrorKind::Shape, "must be an integer")),
+        ),
+        (
+            r#"{"components":[{"subscriptions":[{"column":2147483648}]}]}"#,
+            Some((
+                OwnIrErrorKind::Location,
+                "must be a source column in [1, 2147483647]",
+            )),
+        ),
+        (
+            r#"{"components":[{"subscriptions":[{"column":0}]}]}"#,
+            Some((
+                OwnIrErrorKind::Location,
+                "must be a 1-based integer or absent",
+            )),
+        ),
+        (
+            r#"{"functions":[{"body":[{"op":"acquire","line":-1}]}]}"#,
+            Some((
+                OwnIrErrorKind::Location,
+                "must be a source line in [0, 2147483647]",
+            )),
+        ),
+        // …and the domain's own edges, so the rules above cannot be a door
+        // that simply refuses coordinates.
+        (
+            r#"{"services":[{"name":"S","lifetime":"singleton","line":0}]}"#,
+            None,
+        ),
+        (
+            r#"{"components":[{"subscriptions":[{"line":2147483647,"column":2147483647}]}]}"#,
+            None,
+        ),
+    ];
+    for (text, expected) in cases {
+        let got = OwnIr::from_json(text).err();
+        match (expected, got) {
+            (None, None) => {}
+            (None, Some(e)) => panic!("{text}: accepted document rejected: {}", e.message),
+            (Some((kind, _)), None) => panic!("{text}: expected a {kind:?} rejection, accepted"),
+            (Some((kind, needle)), Some(e)) => {
+                assert_eq!(e.kind, kind, "{text}: wrong axis — {}", e.message);
+                assert!(
+                    e.message.contains(needle),
+                    "{text}: the message stopped naming its rule ({needle:?}): {}",
+                    e.message
+                );
+            }
+        }
+    }
+}

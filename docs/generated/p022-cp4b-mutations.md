@@ -63,7 +63,7 @@ Definition: `docs/evidence/p022-cp4b-1.json` (sha256 `ca44ead168221404…`, 33 m
 
 Campaign `p022-cp4b-2` — #259 cp4b.2, the BRIDGE half of the obligation family: the (kind, definite) -> OBL001-004 table, all four line-free wordings and both exit_desc branches, the component/handler derivations, every step of the opened -> barrier (or exit) -> late-close slice with its line guard, the anchorless advisory OBL005 with its sorted CPython-repr scope list, and the three tolerant-door rules (skip a malformed entry whole, first-wins on a duplicate name, a non-list block silences the family). Three mutations attack the CONTROLS rather than the port: two corrupt the frozen Layer 3 and rendered oracles and require their replays to fail, and one re-declares the exclusion this checkpoint promoted — a promotion that were only announced in prose would survive it.
 
-Definition: `docs/evidence/p022-cp4b-2.json` (sha256 `602633faf9b1ddaa…`, 28 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4b-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp4b-2.json` (sha256 `41f919af130e1471…`, 28 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4b-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
@@ -77,6 +77,10 @@ Definition: `docs/evidence/p022-cp4b-2.json` (sha256 `602633faf9b1ddaa…`, 28 m
 | runner-error                                               | 0 |
 | caught without every expected catcher                      | none |
 | honesty control `M00` (unmutated tree must pass)           | survived — as required |
+
+**This run is not evidence:**
+
+- the recorded result was taken over a different campaign definition (sha256 or campaign name differs) — re-run the campaign
 
 | id | rule | mutation | outcome | caught by |
 |---|---|---|---|---|

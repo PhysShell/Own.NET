@@ -2,10 +2,11 @@
   "ownir_version": 0,
   "module": "Bound",
   "_doc": [
-    "Declared #259 cp4 divergence family: a coordinate outside the core's u32",
-    "line domain. The strict door admits every signed 64-bit line, so the",
-    "reference leaks the consume parameter at B.cs:-1; the Rust core refuses the",
-    "document rather than clamp the coordinate."
+    "A promoted #259 coordinate-domain control: a negative param line. Before",
+    "the domain existed the strict door admitted it and the reference leaked the",
+    "consume parameter at B.cs:-1 while the Rust core refused the document; now",
+    "spec/OwnIR.md §4.2 refuses -1 at the strict door and BOTH tolerant doors",
+    "degrade it to 0 — absent, never clamped to 1. The golden anchors at B.cs:0."
   ],
   "functions": [
     {

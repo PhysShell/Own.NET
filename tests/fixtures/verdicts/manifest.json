@@ -3,30 +3,6 @@
   "verdicts_version": 1,
   "rust_replay_excluded": [
     {
-      "name": "verdict_boundary_line_negative",
-      "reason": "coordinate outside the core's u32 line domain (a negative param line the strict door admits per spec/OwnIR.md §4.2); the reference anchors OWN001 at B.cs:-1, the Rust core refuses instead of clamping — declared cp4 divergence family.",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "outside the core's line domain"
-    },
-    {
-      "name": "verdict_boundary_line_above_u32",
-      "reason": "coordinate outside the core's u32 line domain (an acquire at 2^32); the reference anchors OWN001 there, the Rust core refuses — declared cp4 divergence family.",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "outside the core's line domain"
-    },
-    {
-      "name": "verdict_boundary_service_line_negative",
-      "reason": "coordinate outside the core's u32 line domain on the DI path (registration line -5); the reference anchors DI001 there, the Rust core refuses — declared cp4 divergence family.",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "outside the core's line domain"
-    },
-    {
-      "name": "verdict_boundary_effect_line_negative",
-      "reason": "coordinate outside the core's u32 line domain on the effect path (effect line -3); the reference anchors EFF001 there, the Rust core refuses — declared cp4 divergence family.",
-      "rust_refusal": "bridge",
-      "rust_error_contains": "outside the core's line domain"
-    },
-    {
       "name": "verdict_door_effect_deps_not_strings",
       "reason": "#294 OD-1: the reference's tolerant door skips a malformed effect entry (deps is a bare string) and reports the sibling; the Rust tolerant entry is the typed OwnIr constructor, which refuses the document before the bridge's skip rule can run.",
       "rust_refusal": "door"
@@ -303,6 +279,14 @@
         "BR-P3",
         "BR-V1",
         "BR-V8"
+      ]
+    },
+    {
+      "name": "verdict_domain_tolerant_readers",
+      "rules": [
+        "BR-D2",
+        "BR-V4",
+        "BR-V5"
       ]
     }
   ]

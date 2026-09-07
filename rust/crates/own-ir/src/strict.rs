@@ -48,9 +48,9 @@
 //! | [`name_slot`] | `isinstance(v, str) and v` — a value other facts join on |
 //! | [`optional_string`] | `v is not None and not isinstance(v, str)` — null tolerated |
 //! | [`defaulted_string`] | `isinstance(d.get(k, "?"), str)` — null rejected |
-//! | [`defaulted_int`] | `isinstance(x, int) and not isinstance(x, bool)`, plus the §4.2 range |
+//! | [`defaulted_line`] | `isinstance(x, int) and not isinstance(x, bool)`, plus the §4.2 form and domain |
 //! | [`string_array`] | `isinstance(x, list) and all(isinstance(i, str))` |
-//! | [`column`] | `_check_column` — representability, then the 1-based rule (#317) |
+//! | [`column`] | `_check_column` — representability, the 1-based rule (#317), the domain |
 //! | [`sites`] | the `{type, file, line}` call-site record |
 //!
 //! The distinction between the two string primitives is the one place a single
@@ -85,6 +85,48 @@ fn identity(message: impl Into<String>) -> OwnIrError {
 
 fn vocabulary(message: impl Into<String>) -> OwnIrError {
     OwnIrError::new(OwnIrErrorKind::Vocabulary, message)
+}
+
+fn location(message: impl Into<String>) -> OwnIrError {
+    OwnIrError::new(OwnIrErrorKind::Location, message)
+}
+
+/// The source-coordinate DOMAIN (`spec/OwnIR.md` §4.2) — the inner of the two
+/// axes, and a different rule from [`is_representable_int`] above.
+///
+/// `int32` is the line type of every consumer this project feeds (Roslyn's
+/// `LinePosition.Line`, LSP's `uinteger`, .NET diagnostics), so a line wider
+/// than this cannot reach the place it points at whatever it can be stored in.
+/// `0` is legal and means "unknown / file-level" — the reference's own default
+/// for an absent line. A column starts one higher because it is 1-based (§4.1).
+pub(crate) const LINE_MIN: i64 = 0;
+pub(crate) const LINE_MAX: i64 = 2_147_483_647;
+pub(crate) const COLUMN_MIN: i64 = 1;
+pub(crate) const COLUMN_MAX: i64 = 2_147_483_647;
+
+/// Is this line inside the domain? Shared with the protocol grammar, which
+/// answers the same question under whichever door it was called from.
+pub(crate) const fn in_line_domain(value: i64) -> bool {
+    LINE_MIN <= value && value <= LINE_MAX
+}
+
+/// The domain rule for a line that already HAS a representable form.
+///
+/// It answers [`OwnIrErrorKind::Location`], never `Shape`, and that is the
+/// whole point of the two axes being two functions: `i64::MAX` is a
+/// representable coordinate violating the rule about what a coordinate may
+/// mean, while `i64::MAX + 1` is not a coordinate at all. The cp1 ledger
+/// classifies by mechanism, so a single predicate over both would report one
+/// of them under the other's category — the defect #326's census found in
+/// `column` and this change would otherwise have re-introduced in `line`.
+pub(crate) fn line_domain(value: i64, what: &str, key: &str) -> Checked {
+    if in_line_domain(value) {
+        return Ok(());
+    }
+    Err(location(format!(
+        "{what} '{key}' must be a source line in [{LINE_MIN}, {LINE_MAX}], \
+         got {value} (spec/OwnIR.md §4.2)"
+    )))
 }
 
 /// Is this a **representable** `OwnIR` integer — `int`, not `bool`, and inside
@@ -188,11 +230,17 @@ fn defaulted_string(obj: &Map<String, Value>, key: &str, what: &str) -> Checked 
     }
 }
 
-/// `x = d.get(key, 0); isinstance(x, int) and not isinstance(x, bool)`, and
+/// A validated source LINE: `x = d.get(key, 0)`, an integer and not a `bool`,
 /// within the representable range — see [`is_representable_int`], which carries
-/// both halves so no call site can get one without the other.
-pub(crate) fn defaulted_int(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
-    defaulted_int_value(obj, key, what).map(|_| ())
+/// both halves so no call site can get one without the other — and then within
+/// the coordinate domain ([`line_domain`]).
+///
+/// Named for the field rather than for the type since #259's final acceptance:
+/// every call site reads a `line` or a `ctor_line`, and the domain rule it now
+/// applies is a rule about coordinates, not about integers.
+pub(crate) fn defaulted_line(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
+    let value = defaulted_int_value(obj, key, what)?;
+    line_domain(value, what, key)
 }
 
 /// [`defaulted_int`], keeping the value it validated.
@@ -262,16 +310,33 @@ fn column(value: Option<&Value>, what: &str) -> Checked {
              range, got {v}"
         )));
     }
-    if v.as_i64().is_some_and(|i| i >= 1) {
-        return Ok(());
+    let n = v.as_i64().unwrap_or(0);
+    if n < COLUMN_MIN {
+        return Err(location(format!(
+            "{what} 'column' must be a 1-based integer or absent, got {v}"
+        )));
     }
-    Err(OwnIrError::new(
-        OwnIrErrorKind::Location,
-        format!("{what} 'column' must be a 1-based integer or absent, got {v}"),
-    ))
+    // …and the same domain a line carries (§4.2). Both bounds answer
+    // `Location`, because both are rules about what a representable
+    // coordinate may MEAN — the 1-based rule at the bottom and the int32
+    // consumer domain at the top are one axis, not two.
+    if n > COLUMN_MAX {
+        return Err(location(format!(
+            "{what} 'column' must be a source column in \
+             [{COLUMN_MIN}, {COLUMN_MAX}], got {v} (spec/OwnIR.md §4.2)"
+        )));
+    }
+    Ok(())
 }
 
-/// `column` on every flow op, recursing through `then` / `else` / `body`.
+/// `line` and `column` on every flow op, recursing through `then`/`else`/`body`.
+///
+/// The line joined the column here in #259's final acceptance: §4.2 used to
+/// record a flow op's `line` as validated NOWHERE — not for range, not even
+/// for type — on both sides, and answered the contract question it left open
+/// with "yes, a coordinate no rule reads must still be well-formed", because
+/// the TOLERANT door reads it and anchors findings on it. Line before column,
+/// the record's own order and §4.1's: they are the same node's coordinate.
 ///
 /// A non-list body is **skipped**, not rejected, and so is a non-object op: the
 /// reference returns early in both cases. Tightening that would be a
@@ -282,7 +347,7 @@ fn column(value: Option<&Value>, what: &str) -> Checked {
 /// becomes a [`Value`]. A value built **in memory** has no such bound, which is
 /// why [`crate::OwnIr::to_value`] depth-checks before serializing — and why
 /// that check is iterative.
-fn flow_columns(nodes: Option<&Value>, what: &str, depth: usize) -> Checked {
+fn flow_coordinates(nodes: Option<&Value>, what: &str, depth: usize) -> Checked {
     // The early return comes FIRST, and that order is measured rather than
     // reasoned. Every op is probed for `then`/`else`/`body` whether or not it
     // has them, so a depth check placed before this one counts the absent
@@ -302,9 +367,10 @@ fn flow_columns(nodes: Option<&Value>, what: &str, depth: usize) -> Checked {
         let label = op
             .get("op")
             .map_or_else(|| format!("{what} op"), |name| format!("{what} op {name}"));
+        defaulted_line(op, "line", &label)?;
         column(op.get("column"), &label)?;
         for key in ["then", "else", "body"] {
-            flow_columns(op.get(key), what, depth.saturating_add(1))?;
+            flow_coordinates(op.get(key), what, depth.saturating_add(1))?;
         }
     }
     Ok(())
@@ -326,13 +392,23 @@ fn sites(obj: &Map<String, Value>, key: &str, what: &str) -> Checked {
             })
         })
     });
-    if ok {
-        Ok(())
-    } else {
-        Err(shape(format!(
+    if !ok {
+        return Err(shape(format!(
             "{what} '{key}' must be an array of {{type:str, file:str, line:int}} objects"
-        )))
+        )));
     }
+    // …then the DOMAIN, in a second pass over the same array, because that is
+    // where the reference puts it: the shape check is one folded `all(...)`
+    // whose violation is a single shape failure, and the coordinate rule is a
+    // separate loop right after it. One pass answering both would report a
+    // domain violation as the record's shape.
+    let singular = format!("{what} {}", key.trim_end_matches('s'));
+    for site in v.as_array().map_or(&[][..], Vec::as_slice) {
+        if let Some(obj) = site.as_object() {
+            defaulted_line(obj, "line", &singular)?;
+        }
+    }
+    Ok(())
 }
 
 /// Run the whole strict door, in the reference's order.
@@ -419,6 +495,12 @@ fn components(obj: &Map<String, Value>) -> Checked {
                     )));
                 }
             }
+            // The record's own coordinate — line, then the column of the same
+            // node (§4.1). The line was validated NOWHERE on either side until
+            // #259's final acceptance, which is why it sits between the
+            // vocabulary check and the column rather than at the top: this is
+            // the reference's order, and BR-D1 makes order observable.
+            defaulted_line(sub, "line", "subscription")?;
             column(sub.get("column"), "subscription")?;
             optional_string(sub, "type", "subscription")?;
             optional_string(sub, "source_type", "subscription")?;
@@ -455,9 +537,9 @@ fn services(obj: &Map<String, Value>) -> Checked {
         string_array(svc, "weak_deps", "service")?;
         string_array(svc, "root_resolves", "service")?;
         defaulted_string(svc, "file", "service")?;
-        defaulted_int(svc, "line", "service")?;
+        defaulted_line(svc, "line", "service")?;
         defaulted_string(svc, "ctor_file", "service")?;
-        defaulted_int(svc, "ctor_line", "service")?;
+        defaulted_line(svc, "ctor_line", "service")?;
         defaulted_string(svc, "ctor_type", "service")?;
         sites(svc, "root_resolve_sites", "service")?;
         string_array(svc, "scope_cached", "service")?;
@@ -480,7 +562,7 @@ fn effects(obj: &Map<String, Value>) -> Checked {
                 return Err(shape(format!("effect 'io' must be a boolean, got {other}")))
             }
         }
-        defaulted_int(eff, "line", "effect")?;
+        defaulted_line(eff, "line", "effect")?;
         let binds = objects(
             eff,
             "bindings",
@@ -490,7 +572,7 @@ fn effects(obj: &Map<String, Value>) -> Checked {
             defaulted_string(binding, "name", "binding")?;
             defaulted_string(binding, "init", "binding")?;
             string_array(binding, "refs", "binding")?;
-            defaulted_int(binding, "line", "binding")?;
+            defaulted_line(binding, "line", "binding")?;
         }
     }
     Ok(())
@@ -506,7 +588,7 @@ fn functions(obj: &Map<String, Value>) -> Checked {
         optional_string(function, "sig", "function")?;
         // The BODY's columns precede `params` — the least obvious edge in the
         // door, because params read like the more primitive thing.
-        flow_columns(function.get("body"), "function body", 0)?;
+        flow_coordinates(function.get("body"), "function body", 0)?;
         let params = objects(
             function,
             "params",
@@ -514,7 +596,7 @@ fn functions(obj: &Map<String, Value>) -> Checked {
         )?;
         for param in params {
             name_slot(param, "name", "parameter")?;
-            defaulted_int(param, "line", "parameter")?;
+            defaulted_line(param, "line", "parameter")?;
             column(param.get("column"), "parameter")?;
             match param.get("effect") {
                 None | Some(Value::Null) => {}
@@ -561,7 +643,7 @@ fn protocol_functions(obj: &Map<String, Value>) -> Checked {
         "OwnIR 'protocol_functions' must be a JSON array of objects",
     )?;
     for raw in pfns {
-        crate::protocol::parse_method(raw)?;
+        crate::protocol::parse_method(raw, crate::protocol::Door::Strict)?;
     }
     Ok(())
 }

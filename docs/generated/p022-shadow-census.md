@@ -24,8 +24,8 @@ which also states the byte-level boundary repeated in the unmeasured set below.
 | `tests/fixtures/ownir` | 22 |
 | `tests/fixtures/repro` | 3 |
 | `tests/fixtures/summaries` | 9 |
-| `tests/fixtures/verdicts` | 36 |
-| **total** | **97** |
+| `tests/fixtures/verdicts` | 37 |
+| **total** | **98** |
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
@@ -36,8 +36,8 @@ the difference is named in the unmeasured set below.
 
 | surface | count |
 |---|---|
-| documents captured and digest-pinned | 97 |
-| tamper controls (one changed character per document, refusal required) | 97 |
+| documents captured and digest-pinned | 98 |
+| tamper controls (one changed character per document, refusal required) | 98 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 9 |
 | structural negative controls on `verify` (each side) | 18 |

@@ -77,9 +77,13 @@ pub(crate) struct Own051 {
 }
 
 /// `_as_col`: the optional 1-based column, or `None` for anything that is not
-/// a real coordinate (absent, `null`, a bool, a float, a string, `0`, negative).
+/// a real coordinate (absent, `null`, a bool, a float, a string, `0`, negative,
+/// or past the §4.2 domain). The upper bound arrived with the coordinate
+/// domain, for the reason the reference states: the tolerant door must not
+/// emit a column the strict door would refuse.
 pub(crate) fn as_col(v: Option<&Value>) -> Option<i64> {
-    v.and_then(Value::as_i64).filter(|c| *c >= 1)
+    v.and_then(Value::as_i64)
+        .filter(|c| (1..=2_147_483_647).contains(c))
 }
 
 // --- Python-semantics helpers ------------------------------------------------
@@ -122,8 +126,27 @@ fn py_repr(v: Option<&Value>) -> String {
 
 /// `_as_int`: a non-throwing int coercion (a bool is NOT an int here — serde
 /// keeps them distinct, matching Python's explicit bool check).
-fn as_int(v: Option<&Value>) -> i64 {
-    v.and_then(Value::as_i64).unwrap_or(0)
+/// `_as_line`: a fact coordinate, or `0` when it is not one.
+///
+/// The reference's tolerant line reader (`ownlang/ownir.py::_as_line`), and
+/// the reason it is named for the field rather than the type: EVERY call site
+/// reads a `line`, and what it applies is the §4.2 coordinate domain, not an
+/// integer coercion. A value that is not an integer, is a `bool`, or lies
+/// outside `[0, 2147483647]` reads as `0` — "unknown / file-level".
+///
+/// Degrade, never clamp. This used to be a plain `as_i64().unwrap_or(0)`, and
+/// the difference was unobservable only because the AST build refused any
+/// document carrying an out-of-domain coordinate before a finding could be
+/// built from one. Removing that refusal made the gap reachable: the reference
+/// drops a slice whose acquire line degraded to `0`, and a port reading the raw
+/// value would have kept the slice and anchored it at a line nothing can point
+/// at. Exactly the cp5 lesson — a comparison surface that gains a member can
+/// lose controls.
+fn as_line(v: Option<&Value>) -> i64 {
+    match v.and_then(Value::as_i64) {
+        Some(n) if (0..=2_147_483_647).contains(&n) => n,
+        _ => 0,
+    }
 }
 
 /// `n.get(key)` where a present non-list / absent key reads as empty.
@@ -920,7 +943,7 @@ fn unverified_transfer_calls(
                                             py_str(a),
                                             callee.clone(),
                                             q.transfer.as_str(),
-                                            as_int(n.get("line")),
+                                            as_line(n.get("line")),
                                         ));
                                     }
                                 }
@@ -1102,7 +1125,7 @@ fn hoisted_branch_locals(
         for n in nodes {
             let Some(n) = n.as_object() else { continue };
             let op = get_str(n, "op");
-            let line = as_int(n.get("line"));
+            let line = as_line(n.get("line"));
             let acq: Option<String> = match op {
                 Some("acquire") => Some(str_or(n, "var", "?")),
                 Some("call") => {
@@ -1408,7 +1431,7 @@ fn lower_fn_params(
         };
         let sym = format!("parg_{loc}");
         *loc = loc.saturating_add(1);
-        let line = as_int(p.get("line"));
+        let line = as_line(p.get("line"));
         localmap.insert(cname.clone(), sym.clone());
         handles.push(
             &sym,
@@ -1454,7 +1477,7 @@ fn lower_flow<'v>(ctx: &mut FnCtx<'v, '_>, nodes: &'v [Value]) -> Result<Vec<Stm
     for n_v in nodes {
         let Some(n) = n_v.as_object() else { continue };
         let op = get_str(n, "op");
-        let line = as_int(n.get("line"));
+        let line = as_line(n.get("line"));
         match op {
             Some("acquire") => {
                 let name = str_or(n, "var", "?");
@@ -1778,7 +1801,7 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
                     &handle,
                     subscription_record(sub, &cname, comp.get("file"), None),
                 )?;
-                let line = as_int(sub.get("line"));
+                let line = as_line(sub.get("line"));
                 params.push(Param {
                     handle: handle.clone(),
                     type_shape: TypeShape {
@@ -1819,7 +1842,7 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
                         &handle,
                         subscription_record(sub, &cname, comp.get("file"), Some(&src_life)),
                     )?;
-                    let line = as_int(sub.get("line"));
+                    let line = as_line(sub.get("line"));
                     params.push(Param {
                         handle: handle.clone(),
                         type_shape: TypeShape {
@@ -1856,7 +1879,7 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
                      spec/OwnIR.md §2)"
                 )));
             };
-            let line = as_int(sub.get("line"));
+            let line = as_line(sub.get("line"));
             body.push(Stmt::Acquire {
                 handle: handle.clone(),
                 resource: rtype.to_owned(),

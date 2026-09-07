@@ -10,20 +10,20 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 325 |
-| coordinate slots found             | 2176 |
+| JSON files scanned                 | 327 |
+| coordinate slots found             | 2186 |
 
 ## By value class
 
 | value class | all slots | door slots |
 |---|---:|---:|
-| `above-int32` | 19 | 19 |
+| `above-int32` | 21 | 21 |
 | `below-1` | 19 | 19 |
 | `bool` | 14 | 14 |
 | `float` | 2 | 2 |
-| `in-domain` | 1736 | 946 |
+| `in-domain` | 1743 | 950 |
 | `negative` | 23 | 23 |
-| `null` | 224 | 7 |
+| `null` | 225 | 7 |
 | `outside-int64` | 14 | 14 |
 | `string` | 17 | 17 |
 | `zero` | 108 | 25 |
@@ -188,17 +188,18 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `verdict_renders` | `protocol_functions[].events[].line` | `in-domain` | yes | 6 | 1 | — |
 | `verdict_renders` | `services[].ctor_line` | `in-domain` | yes | 2 | 1 | — |
 | `verdict_renders` | `services[].line` | `in-domain` | yes | 3 | 1 | — |
-| `verdicts` | `components[].subscriptions[].column` | `in-domain` | yes | 1 | 1 | — |
-| `verdicts` | `components[].subscriptions[].line` | `in-domain` | yes | 36 | 11 | — |
+| `verdicts` | `components[].subscriptions[].column` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `verdicts` | `components[].subscriptions[].column` | `in-domain` | yes | 2 | 2 | — |
+| `verdicts` | `components[].subscriptions[].line` | `in-domain` | yes | 38 | 12 | — |
 | `verdicts` | `components[].subscriptions[].line` | `zero` | yes | 1 | 1 | — |
 | `verdicts` | `effects[].bindings[].line` | `in-domain` | yes | 12 | 6 | — |
 | `verdicts` | `effects[].bindings[].line` | `zero` | yes | 1 | 1 | — |
 | `verdicts` | `effects[].line` | `in-domain` | yes | 9 | 5 | — |
 | `verdicts` | `effects[].line` | `negative` | yes | 1 | 1 | `-3` |
 | `verdicts` | `effects[].line` | `zero` | yes | 1 | 1 | — |
-| `verdicts` | `findings[].column` | `in-domain` | — | 13 | 4 | — |
-| `verdicts` | `findings[].column` | `null` | — | 167 | 73 | — |
-| `verdicts` | `findings[].line` | `in-domain` | — | 166 | 68 | — |
+| `verdicts` | `findings[].column` | `in-domain` | — | 14 | 5 | — |
+| `verdicts` | `findings[].column` | `null` | — | 168 | 74 | — |
+| `verdicts` | `findings[].line` | `in-domain` | — | 168 | 69 | — |
 | `verdicts` | `findings[].line` | `zero` | — | 14 | 11 | — |
 | `verdicts` | `functions[].<nested>[].column` | `below-1` | yes | 1 | 1 | `0` |
 | `verdicts` | `functions[].<nested>[].column` | `in-domain` | yes | 7 | 2 | — |
@@ -210,7 +211,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `verdicts` | `protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 2 | 2 | — |
 | `verdicts` | `protocol_functions[].events[].line` | `in-domain` | yes | 34 | 7 | — |
 | `verdicts` | `services[].ctor_line` | `in-domain` | yes | 3 | 3 | — |
-| `verdicts` | `services[].line` | `in-domain` | yes | 51 | 14 | — |
+| `verdicts` | `services[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `verdicts` | `services[].line` | `in-domain` | yes | 52 | 15 | — |
 | `verdicts` | `services[].line` | `negative` | yes | 1 | 1 | `-5` |
 | `verdicts` | `services[].line` | `zero` | yes | 2 | 2 | — |
 | `verdicts` | `services[].root_resolve_sites[].line` | `in-domain` | yes | 7 | 3 | — |

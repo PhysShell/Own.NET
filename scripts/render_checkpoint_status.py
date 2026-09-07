@@ -32,6 +32,8 @@ these generated fragments, computed from the evidence — never typed:
   `summarize()` as every other campaign in the tree.
 * `docs/generated/p022-cp4b-mutations.md` — checkpoint 4b's two campaigns (the
   obligation ANALYSIS and its BRIDGE half), rendered the same way.
+* `docs/generated/p022-coord-mutations.md` — final acceptance's two campaigns,
+  split by door (strict / tolerant) rather than by sub-checkpoint.
 * `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
@@ -103,6 +105,7 @@ COORD_CENSUS_MD = "p022-coord-census.md"
 INVENTORY_MD = "p022-cp5-inventory.md"
 CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 CP4B_MUTATIONS_MD = "p022-cp4b-mutations.md"
+COORD_MUTATIONS_MD = "p022-coord-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -131,6 +134,14 @@ CP5_CAMPAIGNS = (
 CP4B_CAMPAIGNS = (
     ("checkpoint 4b.1 — the obligation analysis", "p022-cp4b-1"),
     ("checkpoint 4b.2 — the bridge mapping (BR-P3)", "p022-cp4b-2"),
+)
+# Final acceptance, split by DOOR rather than by sub-checkpoint: the strict
+# door refuses and the tolerant one degrades, they fail differently, and a
+# campaign that measured them together could not say which half a survivor
+# belonged to.
+COORD_CAMPAIGNS = (
+    ("the strict door — the coordinate domain, both implementations", "p022-coord-1"),
+    ("the tolerant door — the degrade, both implementations", "p022-coord-2"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -751,6 +762,19 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         CP4B_CAMPAIGNS)
     out[CP4B_MUTATIONS_MD] = cp4b
     problems.extend(f"mutation campaign {p}" for p in cp4b_problems)
+    coord, coord_problems = render_campaign_set(
+        "# P-022 #259 final acceptance — mutation campaigns",
+        "The coordinate-domain contract, measured in two halves because the two doors "
+        "fail differently: the STRICT door refuses an out-of-domain coordinate and the "
+        "TOLERANT one degrades it to absent. Every rule is mutated on BOTH sides — the "
+        "reference and its Rust mirror — since a domain only one implementation enforces "
+        "is a divergence, not a rule. Every mutation edits a **production** surface "
+        "(P-022 discipline 2) and every declared layer runs for every mutation "
+        "(discipline 3: no fail-fast); the counts are derived from the recorded runs by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        COORD_CAMPAIGNS)
+    out[COORD_MUTATIONS_MD] = coord
+    problems.extend(f"mutation campaign {p}" for p in coord_problems)
     return out, problems
 
 

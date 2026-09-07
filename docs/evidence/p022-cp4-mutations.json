@@ -169,12 +169,12 @@
     },
     {
       "id": "M15",
-      "description": "coordinate boundary: core_line clamps instead of refusing",
+      "description": "coordinate domain: core_line CLAMPS an out-of-domain line to the domain's top instead of degrading it to absent — re-anchored at #259 final acceptance, and its catcher moved with it: the Layer 3 replay caught this while core_line REFUSED, and the coordinate domain makes it unreachable from outside (`lower` degrades one layer earlier), so the control is now the direct one in ast.rs",
       "target": "rust/crates/own-bridge/src/ast.rs",
-      "pattern": "u32::try_from\\(line\\)\\.map_err\\(",
-      "replacement": "u32::try_from(line.clamp(0, i64::from(u32::MAX))).map_err(",
+      "pattern": "Ok\\(n\\) if n <= LINE_MAX => n,\\n        _ => 0,",
+      "replacement": "Ok(n) if n <= LINE_MAX => n,\n        _ => LINE_MAX,",
       "expected_catchers": [
-        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "own-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
       ]
     },
     {
@@ -225,18 +225,18 @@
       "id": "M20",
       "description": "_as_col accepts 0 as a coordinate",
       "target": "rust/crates/own-bridge/src/lower.rs",
-      "pattern": "v\\.and_then\\(Value::as_i64\\)\\.filter\\(\\|c\\| \\*c >= 1\\)",
-      "replacement": "v.and_then(Value::as_i64).filter(|c| *c >= 0)",
+      "pattern": "        \\.filter\\(\\|c\\| \\(1\\.\\.=2_147_483_647\\)\\.contains\\(c\\)\\)",
+      "replacement": "        .filter(|c| (0..=2_147_483_647).contains(c))",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
     },
     {
       "id": "M21",
-      "description": "guarded DI site line: a negative site line becomes 1 instead of 0",
+      "description": "the tolerant line reader degrades an out-of-domain coordinate to 1 instead of 0, so a DI site line below the domain passes the >= 1 guard and anchors where nothing is",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "if line < 0 \\{\\n(\\s+)Ok\\(0\\)",
-      "replacement": "if line < 0 {\\n\\1Ok(1)",
+      "pattern": "Some\\(n\\) if \\(0..=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,",
+      "replacement": "Some(n) if (0..=2_147_483_647).contains(&n) => n,\n        _ => 1,",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]

@@ -209,7 +209,7 @@ fn flow_local_steps(rec: &Obj, code: &str, dline: i64, pool: bool) -> Vec<Step> 
     let Some(violation) = flow_local_violation(code) else {
         return Vec::new();
     };
-    let acquire = as_int(rec.get("line"));
+    let acquire = as_line(rec.get("line"));
     if acquire < 1 || dline < 1 || dline == acquire {
         return Vec::new();
     }
@@ -297,8 +297,27 @@ fn get_str<'a>(rec: &'a Obj, key: &str) -> Option<&'a str> {
 }
 
 /// `_as_int`: a non-bool integer or `0`.
-fn as_int(v: Option<&Value>) -> i64 {
-    v.and_then(Value::as_i64).unwrap_or(0)
+/// `_as_line`: a fact coordinate, or `0` when it is not one.
+///
+/// The reference's tolerant line reader (`ownlang/ownir.py::_as_line`), and
+/// the reason it is named for the field rather than the type: EVERY call site
+/// reads a `line`, and what it applies is the §4.2 coordinate domain, not an
+/// integer coercion. A value that is not an integer, is a `bool`, or lies
+/// outside `[0, 2147483647]` reads as `0` — "unknown / file-level".
+///
+/// Degrade, never clamp. This used to be a plain `as_i64().unwrap_or(0)`, and
+/// the difference was unobservable only because the AST build refused any
+/// document carrying an out-of-domain coordinate before a finding could be
+/// built from one. Removing that refusal made the gap reachable: the reference
+/// drops a slice whose acquire line degraded to `0`, and a port reading the raw
+/// value would have kept the slice and anchored it at a line nothing can point
+/// at. Exactly the cp5 lesson — a comparison surface that gains a member can
+/// lose controls.
+fn as_line(v: Option<&Value>) -> i64 {
+    match v.and_then(Value::as_i64) {
+        Some(n) if (0..=2_147_483_647).contains(&n) => n,
+        _ => 0,
+    }
 }
 
 /// Python truthiness of a present value (absent = falsy).
@@ -449,7 +468,7 @@ fn map_core(
             .get("ignore_reason")
             .filter(|v| truthy(Some(v)))
             .map(py_str);
-        let anchor = as_int(rec.get("line"));
+        let anchor = as_line(rec.get("line"));
         let column = as_col(rec.get("column"));
         if rkind == "flow-local" {
             let pool = truthy(rec.get("pool"));
@@ -635,22 +654,18 @@ fn map_core(
     Ok(out)
 }
 
-/// A coordinate handed to `own-analysis` as an anchor: `u32` or refuse (the
-/// same declared boundary as the AST lines, `ast::core_line`).
-fn anchor_line(line: i64, what: &str) -> Result<u32, BridgeError> {
-    ast::core_line(line, what)
-}
-
-/// A coordinate whose only reader guards on `>= 1` (a DI call/store site, an
-/// effect binding's declaration line): a negative value behaves exactly like
-/// `0` on every path, so it is folded to `0`; above the domain it would BE
-/// read, so that side stays fail-loud.
-fn guarded_line(line: i64, what: &str) -> Result<u32, BridgeError> {
-    if line < 0 {
-        Ok(0)
-    } else {
-        ast::core_line(line, what)
-    }
+/// A fact coordinate as a core line, through the one reader the whole bridge
+/// shares (`ast::core_line`, the reference's `_as_line`).
+///
+/// Two helpers used to live here. `anchor_line` refused a coordinate the core
+/// could not hold, and `guarded_line` folded a NEGATIVE one to `0` for the
+/// fields whose only reader guards on `>= 1` — a DI call/store site, an effect
+/// binding's declaration line — while leaving the upper end fail-loud. §4.2's
+/// coordinate domain makes both of them one rule: every out-of-domain line
+/// degrades to `0`, at either end, on every field. Two names for one behaviour
+/// is how a port grows a second reading of one contract, so there is now one.
+fn core_line(line: i64) -> u32 {
+    ast::core_line(line)
 }
 
 /// `tuple(s.get(key, []))` for the string arrays the strict door types: a
@@ -669,19 +684,22 @@ fn str_array(s: &Obj, key: &str, what: &str) -> Result<Vec<String>, BridgeError>
 
 /// `_resolve_sites`: `(type, file, line)` per dict entry; a non-list reads as
 /// empty, a non-dict entry is skipped.
-fn sites(raw: Option<&Value>, what: &str) -> Result<Vec<SiteTriple>, BridgeError> {
+///
+/// Infallible since the coordinate domain landed: the only way this could fail
+/// was a site line the core could not hold, and `core_line` degrades that now.
+fn sites(raw: Option<&Value>) -> Vec<SiteTriple> {
     let Some(Value::Array(items)) = raw else {
-        return Ok(Vec::new());
+        return Vec::new();
     };
     let mut out = Vec::new();
     for x in items.iter().filter_map(Value::as_object) {
         out.push((
             get_or(x, "type", ""),
             get_or(x, "file", "?"),
-            guarded_line(as_int(x.get("line")), what)?,
+            core_line(as_line(x.get("line"))),
         ));
     }
-    Ok(out)
+    out
 }
 
 /// BR-P1: `services[]` → `di.Service` values with the reference's coercions,
@@ -703,18 +721,12 @@ fn di_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
             // only the JSON boolean `true` counts.
             disposable: s.get("disposable") == Some(&Value::Bool(true)),
             file: get_or(s, "file", "?"),
-            line: anchor_line(as_int(s.get("line")), &what)?,
-            root_resolve_sites: sites(
-                s.get("root_resolve_sites"),
-                &format!("{what} root_resolve_sites"),
-            )?,
+            line: core_line(as_line(s.get("line"))),
+            root_resolve_sites: sites(s.get("root_resolve_sites")),
             scope_cached: str_array(s, "scope_cached", &what)?,
-            scope_cache_sites: sites(
-                s.get("scope_cache_sites"),
-                &format!("{what} scope_cache_sites"),
-            )?,
+            scope_cache_sites: sites(s.get("scope_cache_sites")),
             ctor_file: get_or(s, "ctor_file", "?"),
-            ctor_line: guarded_line(as_int(s.get("ctor_line")), &what)?,
+            ctor_line: core_line(as_line(s.get("ctor_line"))),
             ctor_type: get_or(s, "ctor_type", ""),
             name,
         });
@@ -770,9 +782,9 @@ fn di_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
 
 /// BR-P2/BR-D2: `effects[]` re-validated skip-not-coerce, then
 /// `find_effect_storms` (owned by `own-analysis`) at the effect's own site.
-fn effect_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
+fn effect_findings(root: &Obj) -> Vec<Finding> {
     let Some(Value::Array(raw)) = root.get("effects") else {
-        return Ok(Vec::new());
+        return Vec::new();
     };
     let mut effects = Vec::new();
     'entries: for e in raw.iter().filter_map(Value::as_object) {
@@ -818,7 +830,7 @@ fn effect_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
                 name: get_or(b, "name", "?"),
                 init: get_or(b, "init", "unknown"),
                 refs,
-                line: guarded_line(as_int(b.get("line")), "effect binding")?,
+                line: core_line(as_line(b.get("line"))),
             });
         }
         let component = get_or(e, "component", "?");
@@ -827,11 +839,11 @@ fn effect_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
             io,
             bindings,
             file: get_or(e, "file", "?"),
-            line: anchor_line(as_int(e.get("line")), &format!("effect in '{component}'"))?,
+            line: core_line(as_line(e.get("line"))),
             component,
         });
     }
-    Ok(effect::find_effect_storms(&effects)
+    effect::find_effect_storms(&effects)
         .into_iter()
         .map(|s| {
             let mut f = Finding::new(s.file.clone(), i64::from(s.line), "EFF001", "react effect");
@@ -859,7 +871,7 @@ fn effect_findings(root: &Obj) -> Result<Vec<Finding>, BridgeError> {
             f.event = s.dep;
             f
         })
-        .collect())
+        .collect()
 }
 
 /// `_unresolved_findings`: every `unresolved-subscription` marker as an
@@ -881,7 +893,7 @@ fn unresolved_findings(root: &Obj) -> Vec<Finding> {
             }
             let mut f = Finding::new(
                 cfile.clone(),
-                as_int(sub.get("line")),
+                as_line(sub.get("line")),
                 "OWN050",
                 "unresolved reference",
             );
@@ -1003,7 +1015,7 @@ fn protocol_findings(root: &Obj) -> Vec<Finding> {
     }
     let methods: Vec<MethodEvents> = raw_fns
         .iter()
-        .filter_map(|raw| protocol::parse_method(raw).ok())
+        .filter_map(|raw| protocol::parse_method(raw, protocol::Door::Tolerant).ok())
         .collect();
     if protocols.is_empty() {
         return Vec::new();
@@ -1174,14 +1186,14 @@ pub(crate) fn check_facts(facts: &OwnIr) -> Result<Vec<Finding>, BridgeError> {
         for entry in raw.iter().filter_map(Value::as_object) {
             svc_loc.insert(
                 get_or(entry, "name", ""),
-                (get_or(entry, "file", "?"), as_int(entry.get("line"))),
+                (get_or(entry, "file", "?"), as_line(entry.get("line"))),
             );
         }
     }
 
     let mut findings = map_core(&diags, &lowering.handles, &svc_loc)?;
     findings.extend(di_findings(root)?);
-    findings.extend(effect_findings(root)?);
+    findings.extend(effect_findings(root));
     findings.extend(protocol_findings(root));
     findings.extend(unresolved_findings(root));
     findings.extend(lowering.advisories.iter().map(transfer_note));
@@ -1504,7 +1516,6 @@ mod tests {
             ]
         }));
         let got: Vec<(String, i64)> = effect_findings(&root)
-            .unwrap()
             .into_iter()
             .map(|f| (f.file, f.line))
             .collect();
@@ -1515,7 +1526,7 @@ mod tests {
     #[test]
     fn effects_block_that_is_not_a_list_yields_nothing() {
         let root = obj(&json!({"effects": "nope"}));
-        assert!(effect_findings(&root).unwrap().is_empty());
+        assert!(effect_findings(&root).is_empty());
     }
 
     /// BR-D2 on the raw document: a `protocols` or `protocol_functions` block

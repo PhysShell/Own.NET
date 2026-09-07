@@ -366,26 +366,26 @@
     {
       "case": "verdict_boundary_effect_line_negative",
       "corpus": "verdicts",
-      "digest": "0f55de6ce780977587f3684db6aafd955dc9b3e655adef6aaea451e048d75301",
-      "bytes": 361
+      "digest": "741485197684324305e4424ef715c7bdb0eefc5fff958b9dffa879041603475c",
+      "bytes": 336
     },
     {
       "case": "verdict_boundary_line_above_u32",
       "corpus": "verdicts",
-      "digest": "788dbce914bfc6cdb3afd68ecc712c8f30e4f388282aa2fbf8ae773cf21bd605",
-      "bytes": 294
+      "digest": "65bf5f41f6af899cfd01e5b8b371d1d765e477d60ed18a537eacad72de0263a1",
+      "bytes": 434
     },
     {
       "case": "verdict_boundary_line_negative",
       "corpus": "verdicts",
-      "digest": "94ccd117455ca0cc0c4ae33b15669dc8107d7b34444b461788ae5644a6117ca3",
-      "bytes": 424
+      "digest": "083698faa3f6aba6d3da9ccc86b9dcdb7326f6a3c967ed6e71e250f1f6993cb5",
+      "bytes": 541
     },
     {
       "case": "verdict_boundary_service_line_negative",
       "corpus": "verdicts",
-      "digest": "f168053ba21a64d7d4b72a1ce8644d63308ec58f9c265fcdd266c63f23eb0b5d",
-      "bytes": 418
+      "digest": "50b78714f0ef7f3b080cb537dd8820f80a5a17765e15db39e0d5183558142cf1",
+      "bytes": 480
     },
     {
       "case": "verdict_column_sort_order",
@@ -446,6 +446,12 @@
       "corpus": "verdicts",
       "digest": "db35f35c937b9014c3c3ca14c983ad9f0504925b233cbfbb457885fd60e9ddf0",
       "bytes": 901
+    },
+    {
+      "case": "verdict_domain_tolerant_readers",
+      "corpus": "verdicts",
+      "digest": "361da587ce14c818d776f824bb563adaa6ff3e315c337bf21f339abf0a503c55",
+      "bytes": 1307
     },
     {
       "case": "verdict_door_effect_deps_not_strings",

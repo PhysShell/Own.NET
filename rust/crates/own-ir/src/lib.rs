@@ -95,12 +95,15 @@ pub enum OwnIrErrorKind {
     /// An identity field that is empty, non-string, or duplicated.
     Identity,
     /// A **representable** source coordinate that violates its
-    /// coordinate-domain rule, currently the 1-based `column` contract (#317).
+    /// coordinate-domain rule: the 1-based `column` contract (#317), and the
+    /// int32 line/column domain of `spec/OwnIR.md` §4.2.
     ///
     /// The order matters and is the whole distinction: representability is
     /// judged first, so this variant only ever describes a value that already
     /// has the form the contract asks for. A bool column is `Shape`, because
-    /// there is no coordinate there for the 1-based rule to be about.
+    /// there is no coordinate there for the 1-based rule to be about — and
+    /// `i64::MAX` as a line is `Location` while `i64::MAX + 1` is `Shape`,
+    /// which is the same rule read at the other end.
     Location,
     /// Every value has the right type and the right vocabulary, and the record
     /// still cannot mean anything — a rule that structurally never fires, a
@@ -429,6 +432,17 @@ pub struct Binding {
         deserialize_with = "reject_null",
         skip_serializing_if = "Option::is_none"
     )]
+    /// The binding's declaration line.
+    ///
+    /// `i64`, not the `u32` the §4.2 domain would fit in, and that is
+    /// deliberate for every `line` on this model. The strict door guarantees
+    /// the domain; the typed model is the CONSTRUCTOR the door hands an
+    /// already-accepted document to, and narrowing it here would put a second
+    /// door rule in serde — one that answers `Shape` for a domain violation,
+    /// reports it in serde's field order rather than BR-D1's, and fires on the
+    /// tolerant path where the reference degrades instead of refusing. A typed
+    /// field wider than the domain is not a hole: it is the shape that leaves
+    /// exactly one implementation of the rule.
     pub line: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,

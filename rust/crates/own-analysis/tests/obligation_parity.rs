@@ -31,7 +31,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use own_analysis::{check_protocols, unmatched_scopes};
-use own_ir::protocol::{parse_method, parse_protocol, MethodEvents, Protocol};
+use own_ir::protocol::{parse_method, parse_protocol, Door, MethodEvents, Protocol};
 use serde_json::Value;
 
 const FIXTURE: &str = concat!(
@@ -167,7 +167,7 @@ fn obligation_fact_parity() {
         let methods: Vec<MethodEvents> = documents(case, "methods")
             .iter()
             .map(|m| {
-                parse_method(m).unwrap_or_else(|e| {
+                parse_method(m, Door::Strict).unwrap_or_else(|e| {
                     panic!("{name}: the port refuses a method Python accepted: {e}")
                 })
             })
@@ -247,7 +247,7 @@ fn the_walk_is_deterministic() {
             .collect();
         let methods: Vec<MethodEvents> = documents(case, "methods")
             .iter()
-            .map(|m| parse_method(m).expect("a method the reference accepted"))
+            .map(|m| parse_method(m, Door::Strict).expect("a method the reference accepted"))
             .collect();
         assert_eq!(
             check_protocols(&protocols, &methods),

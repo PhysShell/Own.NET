@@ -263,8 +263,8 @@
       "rule": "BR-D2",
       "description": "a malformed protocol_functions[] entry is dropped from the method list AND takes the rest of the list with it",
       "target": "rust/crates/own-bridge/src/verdict.rs",
-      "pattern": "        \\.filter_map\\(\\|raw\\| protocol::parse_method\\(raw\\)\\.ok\\(\\)\\)\\n        \\.collect\\(\\);",
-      "replacement": "        .map_while(|raw| protocol::parse_method(raw).ok())\n        .collect();",
+      "pattern": "        \\.filter_map\\(\\|raw\\| protocol::parse_method\\(raw, protocol::Door::Tolerant\\)\\.ok\\(\\)\\)\\n        \\.collect\\(\\);",
+      "replacement": "        .map_while(|raw| protocol::parse_method(raw, protocol::Door::Tolerant).ok())\n        .collect();",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]
@@ -319,8 +319,8 @@
       "rule": "#259 cp4b promotion",
       "description": "re-declare the promoted protocol exclusion. The replay must fail BOTH because the pinned exclusion set moved and because the exclusion no longer holds — a promotion that is only announced in prose would survive this",
       "target": "tests/fixtures/verdicts/manifest.json",
-      "pattern": "  \"rust_replay_excluded\": \\[\\n    \\{\\n      \"name\": \"verdict_boundary_line_negative\",",
-      "replacement": "  \"rust_replay_excluded\": [\n    {\n      \"name\": \"protocol_isloaded_violation\",\n      \"reason\": \"re-declared by a mutation campaign\",\n      \"rust_refusal\": \"bridge\",\n      \"rust_error_contains\": \"obligation protocol\"\n    },\n    {\n      \"name\": \"verdict_boundary_line_negative\",",
+      "pattern": "  \"rust_replay_excluded\": \\[\\n    \\{\\n      \"name\": \"verdict_door_effect_deps_not_strings\",",
+      "replacement": "  \"rust_replay_excluded\": [\n    {\n      \"name\": \"protocol_isloaded_violation\",\n      \"reason\": \"re-declared by a mutation campaign\",\n      \"rust_refusal\": \"bridge\",\n      \"rust_error_contains\": \"obligation protocol\"\n    },\n    {\n      \"name\": \"verdict_door_effect_deps_not_strings\",",
       "expected_catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ]

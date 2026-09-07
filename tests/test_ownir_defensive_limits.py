@@ -176,8 +176,14 @@ SPEC_COLUMN_MAX = 2147483647
 SPEC_MAX_NESTING_DEPTH = 32
 
 
-def _fail(message: str) -> int:
-    print(f"FAIL: {message}")
+def _fail(message: str, check: str = "defensive-limits") -> int:
+    """One failure, named by the CHECK it violated.
+
+    The bracketed name is what a mutation campaign reads (`python-fail` in
+    `scripts/mutate_campaign.py`), so a mutation's expected catcher can be the
+    rule it attacks rather than "this file exited non-zero" — which would make
+    every mutation in this file look identically caught."""
+    print(f"FAIL[{check}]: {message}")
     return 1
 
 
@@ -200,7 +206,7 @@ def run() -> int:
             failures += _fail(
                 f"{name} is {actual}, spec/OwnIR.md §4.2 says {expected}. "
                 f"Changing a defensive limit is a contract change: update the "
-                f"spec, this literal, and the Rust side together")
+                f"spec, this literal, and the Rust side together", check="spec-literals")
 
     # ---- the JSON schema carries the same numbers -------------------------
     # `spec/ownir.schema.json` is the contract a NON-Python consumer validates
@@ -226,7 +232,8 @@ def run() -> int:
             failures += _fail(
                 f"spec/ownir.schema.json $defs.{name}.{key} is {actual!r}, "
                 f"expected {expected!r} — the schema and `load()` must state the "
-                f"same bound or a producer can satisfy one and fail the other")
+                f"same bound or a producer can satisfy one and fail the other",
+                check="schema-numbers")
 
     # …and the schema binds `sourceLine` on EXACTLY the paths `load()` checks.
     #
@@ -289,12 +296,12 @@ def run() -> int:
                 f"$defs {unclassified} carry a source coordinate and appear in "
                 f"neither BOUND nor UNBOUND — every coordinate-bearing def must "
                 f"be classified, because an unclassified one is checked by "
-                f"nothing at all")
+                f"nothing at all", check="schema-binding")
         if phantom:
             failures += _fail(
                 f"the binding map names {phantom}, which no longer carry a "
                 f"coordinate — a map entry pointing at nothing has stopped "
-                f"being evidence")
+                f"being evidence", check="schema-binding")
 
     # Whole subschemas, not just their `$ref`. Asserting only "the ref is not
     # sourceLine" left an unbound path free to be tightened another way —
@@ -323,7 +330,7 @@ def run() -> int:
                 if not found:
                     failures += _fail(
                         f"$defs.{def_name} has no {key!r} — the binding map is "
-                        f"stale, which means it is no longer evidence")
+                        f"stale, which means it is no longer evidence", check="schema-binding")
                 for sub in found:
                     if expect_bound:
                         if sub.get("$ref") != "#/$defs/sourceLine":
@@ -331,7 +338,7 @@ def run() -> int:
                                 f"$defs.{def_name}.{key} is {sub!r}, expected "
                                 f"$ref sourceLine — `load()` checks this path, "
                                 f"so a schema-valid document must not be able "
-                                f"to fail at the door")
+                                f"to fail at the door", check="schema-binding")
                         continue
                     narrowed = [k for k in NARROWING if k in sub]
                     if narrowed or sub.get("type") != "integer":
@@ -340,7 +347,7 @@ def run() -> int:
                             f"plain integer with no {'/'.join(NARROWING[:3])}… "
                             f"— `load()` does NOT check this path (§4.2), so "
                             f"any narrowing makes a document schema-invalid "
-                            f"that the door accepts")
+                            f"that the door accepts", check="schema-binding")
 
     # ---- line: the DOMAIN, pinned at both ends and one step outside each --
     #
@@ -360,13 +367,14 @@ def run() -> int:
                                 (INT64_MAX + 1, "signed 64-bit")):
             err = _load(build(value))
             if expected is None and err is not None:
-                failures += _fail(f"{label}: {value} rejected — {err}")
+                failures += _fail(f"{label}: {value} rejected — {err}", check="line-domain")
             elif expected is not None and err is None:
-                failures += _fail(f"{label}: {value} accepted, expected reject")
+                failures += _fail(f"{label}: {value} accepted, expected reject",
+                                  check="line-domain")
             elif expected is not None and expected not in (err or ""):
                 failures += _fail(
                     f"{label}: {value} rejected for the wrong reason — "
-                    f"expected the {expected!r} rule, got {err}")
+                    f"expected the {expected!r} rule, got {err}", check="line-domain")
 
     # ---- line: the TYPE rule, on every path -------------------------------
     #
@@ -378,7 +386,7 @@ def run() -> int:
         for value in TYPE_REJECTED:
             if _load(build(value)) is None:
                 failures += _fail(
-                    f"{label}: {value!r} accepted — a line must be an integer")
+                    f"{label}: {value!r} accepted — a line must be an integer", check="line-type")
 
     # ---- column: 1-based below, the domain above --------------------------
     for label, build in COLUMN_PATHS:
@@ -388,13 +396,14 @@ def run() -> int:
                                 (INT64_MAX + 1, "signed 64-bit")):
             err = _load(build(value))
             if expected is None and err is not None:
-                failures += _fail(f"{label}: {value} rejected — {err}")
+                failures += _fail(f"{label}: {value} rejected — {err}", check="column-domain")
             elif expected is not None and err is None:
-                failures += _fail(f"{label}: {value} accepted, expected reject")
+                failures += _fail(f"{label}: {value} accepted, expected reject",
+                                  check="column-domain")
             elif expected is not None and expected not in (err or ""):
                 failures += _fail(
                     f"{label}: {value} rejected for the wrong reason — "
-                    f"expected the {expected!r} rule, got {err}")
+                    f"expected the {expected!r} rule, got {err}", check="column-domain")
         # The 1-based rule still fires FIRST for every low column, so neither
         # new bound can have replaced it — including for a value that is also
         # outside the representable form, where the order is what decides which
@@ -402,7 +411,7 @@ def run() -> int:
         for low in (0, -1, INT64_MIN, INT64_MIN - 1):
             if "1-based" not in (_load(build(low)) or ""):
                 failures += _fail(
-                    f"{label}: {low} no longer reports the 1-based rule")
+                    f"{label}: {low} no longer reports the 1-based rule", check="column-domain")
 
     # ---- nesting: below, exactly at, one past — for both trees and both
     # recursive keys, because `then`/`else`/`body` are three separate call
@@ -417,14 +426,14 @@ def run() -> int:
                 if expect_reject and err is None:
                     failures += _fail(
                         f"{label} via {key!r}: depth {depth} accepted, "
-                        f"expected reject (the limit is {MAX_NESTING_DEPTH})")
+                        f"expected reject (the limit is {MAX_NESTING_DEPTH})", check="nesting")
                 elif not expect_reject and err is not None:
                     failures += _fail(
-                        f"{label} via {key!r}: depth {depth} rejected — {err}")
+                        f"{label} via {key!r}: depth {depth} rejected — {err}", check="nesting")
                 elif expect_reject and "nested deeper" not in (err or ""):
                     failures += _fail(
                         f"{label} via {key!r}: depth {depth} rejected for the "
-                        f"wrong reason — {err}")
+                        f"wrong reason — {err}", check="nesting")
 
     # ---- the tolerances the limits must NOT have tightened ----------------
     # A non-list body is skipped, not rejected; the reference returns early.
@@ -441,7 +450,7 @@ def run() -> int:
     ):
         err = _load(document)
         if err is not None:
-            failures += _fail(f"{label} must still be accepted — {err}")
+            failures += _fail(f"{label} must still be accepted — {err}", check="tolerances")
 
     # ---- the TOLERANT door degrades; it never raises and never clamps -----
     #
@@ -493,13 +502,13 @@ def run() -> int:
                 failures += _fail(
                     f"tolerant {label} line {value!r}: expected "
                     f"[({code}, 0)] — degrade to absent, never clamp — got "
-                    f"{anchors}")
+                    f"{anchors}", check="tolerant-degrade")
     for value in ("x", True, None, INT64_MAX + 1):
         if [f for f in check_facts(_event(value)) if f.code == "OBL003"]:
             failures += _fail(
                 f"tolerant protocol event line {value!r}: the grammar rejects "
                 f"it, so the ENTRY is skipped whole (cp4b) — a finding here "
-                f"means the domain degrade swallowed a grammar rule")
+                f"means the domain degrade swallowed a grammar rule", check="tolerant-degrade")
         # …and a line INSIDE the domain is preserved exactly, so the degrade
         # cannot have swallowed the ordinary path.
         for value in (1, LINE_MAX):
@@ -508,7 +517,27 @@ def run() -> int:
             if anchors != [(code, value)]:
                 failures += _fail(
                     f"tolerant {label} line {value}: in-domain lines must be "
-                    f"preserved, got {anchors}")
+                    f"preserved, got {anchors}", check="tolerant-degrade")
+
+    # …and the COLUMN degrades the same way, on its own domain. Its reader is
+    # `_as_col`, which the four verdict_boundary_* controls never reach — the
+    # only thing that pins the tolerant column bound is right here and the one
+    # synthetic Layer 3 case written for it.
+    def _sub_col(column: Any) -> dict[str, Any]:
+        return {"ownir_version": 0, "module": "X",
+                "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                    {"event": "e", "handler": "h", "line": 7, "column": column,
+                     "source": "static"}]}]}
+
+    for value, want in ((COLUMN_MIN, COLUMN_MIN), (COLUMN_MAX, COLUMN_MAX),
+                        (COLUMN_MAX + 1, None), (INT64_MAX, None), (0, None),
+                        (-1, None), (True, None), ("x", None), (None, None)):
+        cols = [f.column for f in check_facts(_sub_col(value)) if f.code == "OWN001"]
+        if cols != [want]:
+            failures += _fail(
+                f"tolerant column {value!r}: expected [{want!r}] — a column "
+                f"outside the domain is ABSENT, never clamped — got {cols}",
+                check="tolerant-degrade")
 
     # ---- and the strict door never REACHES the degrade --------------------
     #
@@ -534,11 +563,11 @@ def run() -> int:
                     f"cp1 control {case['name']!r} is ACCEPTED by the strict "
                     f"door and carries {slot} = {value!r}, which the tolerant "
                     f"door would degrade — the strict door must never reach "
-                    f"the degrade (spec/OwnIR.md §4.2)")
+                    f"the degrade (spec/OwnIR.md §4.2)", check="strict-subset")
     if not accepted:
         failures += _fail(
             "no accepted cp1 control was read — the subset assertion above "
-            "passed over an empty set, which is not evidence")
+            "passed over an empty set, which is not evidence", check="strict-subset")
 
     if failures:
         return 1
