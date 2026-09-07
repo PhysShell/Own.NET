@@ -44,9 +44,20 @@ pub fn canonical_bytes(value: &Json) -> Vec<u8> {
 /// The canonical identity of a parsed document.
 #[must_use]
 pub fn canonical_hash(value: &Json) -> CanonicalHash {
-    let raw = canonical_bytes(value);
+    hash_bytes(&canonical_bytes(value))
+}
+
+/// The identity of a byte sequence, whatever it is.
+///
+/// ONE hasher for both identities the artifact carries — the canonical form's
+/// and the raw input's (owner decision B-2) — so "the same algorithm" is a fact
+/// about the code rather than a claim about two functions. The reference's twin
+/// is `ownlang.repro.hash_bytes`, split out of `canonical_hash` for the same
+/// reason on the same day.
+#[must_use]
+pub fn hash_bytes(raw: &[u8]) -> CanonicalHash {
     let mut hasher = Sha256::new();
-    hasher.update(&raw);
+    hasher.update(raw);
     let mut digest = String::with_capacity(64);
     for byte in hasher.finalize() {
         // `write!` into a String is infallible; the Result is discarded rather
@@ -57,5 +68,23 @@ pub fn canonical_hash(value: &Json) -> CanonicalHash {
         algorithm: CANONICAL_ALGORITHM,
         digest,
         bytes: raw.len(),
+    }
+}
+
+impl CanonicalHash {
+    /// The identity as the artifact writes it: `{algorithm, digest, bytes}`,
+    /// in that order. One place, because `input.canonical`, `input.raw` and
+    /// every engine's `consumed` are the same three fields and a second copy
+    /// would be a second field order.
+    #[must_use]
+    pub fn to_json(&self) -> Json {
+        Json::Object(vec![
+            ("algorithm".to_owned(), Json::Str(self.algorithm.to_owned())),
+            ("digest".to_owned(), Json::Str(self.digest.clone())),
+            (
+                "bytes".to_owned(),
+                Json::Int(i64::try_from(self.bytes).unwrap_or(i64::MAX)),
+            ),
+        ])
     }
 }

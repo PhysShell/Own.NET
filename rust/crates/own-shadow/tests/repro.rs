@@ -745,9 +745,133 @@ fn verify_refuses_each_structural_violation() {
         }),
     ));
 
+    // --- the v3 raw-input chain (owner decision B-2) ------------------------
+    // One forgery per LINK. The links fail for different reasons — a mis-copied
+    // digest, a truncated blob, a document swapped under a kept digest — and a
+    // single "does not verify" message would let a mutation move the failure
+    // between them with the suite red for the same string.
+    let with_raw = |f: &dyn Fn(&Json) -> Json| -> Json {
+        let input = artifact.get("input").expect("input");
+        let raw = input.get("raw").expect("input.raw");
+        with_member(
+            &artifact,
+            "input",
+            Some(with_member(input, "raw", Some(f(raw)))),
+        )
+    };
+    cases.push((
+        "an artifact with no raw input",
+        "input.raw is missing",
+        with_member(
+            &artifact,
+            "input",
+            Some(with_member(
+                artifact.get("input").expect("input"),
+                "raw",
+                None,
+            )),
+        ),
+    ));
+    cases.push((
+        "an unknown input.raw member",
+        "input.raw: unknown member",
+        with_raw(&|raw| with_member(raw, "extra", Some(Json::Int(1)))),
+    ));
+    cases.push((
+        "a raw input claiming another algorithm",
+        "input.raw.algorithm",
+        with_raw(&|raw| with_member(raw, "algorithm", Some(Json::Str("sha1".to_owned())))),
+    ));
+    cases.push((
+        "a raw input that is not base64",
+        "not valid base64",
+        with_raw(&|raw| {
+            with_member(
+                raw,
+                "base64",
+                Some(Json::Str("not base64 at all!!".to_owned())),
+            )
+        }),
+    ));
+    cases.push((
+        // "YQ==" and "YR==" both decode to b"a"; only the first is what an
+        // encoder emits. Two spellings attesting one input is what the rule
+        // `encode(decode(s)) == s` exists to forbid.
+        "a raw input in non-canonical base64",
+        "not canonical base64",
+        with_raw(&|_raw| {
+            Json::Object(vec![
+                ("algorithm".to_owned(), Json::Str("sha256".to_owned())),
+                (
+                    "digest".to_owned(),
+                    Json::Str(own_shadow::hash_bytes(b"a").digest),
+                ),
+                ("bytes".to_owned(), Json::Int(1)),
+                ("base64".to_owned(), Json::Str("YR==".to_owned())),
+            ])
+        }),
+    ));
+    cases.push((
+        "a raw input whose length is wrong",
+        "input.raw.bytes",
+        with_raw(&|raw| {
+            let claimed = raw.get("bytes").and_then(Json::as_i64).unwrap_or(0);
+            with_member(raw, "bytes", Some(Json::Int(claimed.wrapping_add(1))))
+        }),
+    ));
+    cases.push((
+        "a raw input whose digest is wrong",
+        "input.raw.digest",
+        with_raw(&|raw| with_member(raw, "digest", Some(Json::Str("0".repeat(64))))),
+    ));
+    cases.push((
+        // The link that makes `input.document` an OBSERVATION rather than the
+        // subject: bytes that are perfectly self-consistent — their own digest
+        // and length hold — and parse to a DIFFERENT document than the
+        // artifact claims.
+        "raw bytes that parse to another document",
+        "does not reproduce input.canonical",
+        with_raw(&|_raw| {
+            let other = br#"{"ownir_version": 0, "module": "SomethingElse"}"#;
+            let identity = own_shadow::hash_bytes(other);
+            Json::Object(vec![
+                ("algorithm".to_owned(), Json::Str("sha256".to_owned())),
+                ("digest".to_owned(), Json::Str(identity.digest)),
+                (
+                    "bytes".to_owned(),
+                    Json::Int(i64::try_from(identity.bytes).unwrap_or(0)),
+                ),
+                (
+                    "base64".to_owned(),
+                    Json::Str(own_shadow::base64_encode(other)),
+                ),
+            ])
+        }),
+    ));
+    cases.push((
+        "an engine entry with no consumption attestation",
+        "consumed is missing",
+        with_engines(
+            &artifact,
+            vec![with_member(&engine0(&artifact), "consumed", None)],
+        ),
+    ));
+    cases.push((
+        "an engine that consumed other bytes",
+        "is not input.raw's identity",
+        with_engines(
+            &artifact,
+            vec![with_member(
+                &engine0(&artifact),
+                "consumed",
+                Some(own_shadow::hash_bytes(b"bytes this engine never read").to_json()),
+            )],
+        ),
+    ));
+
     assert_eq!(
         cases.len(),
-        18,
+        28,
         "the structural control set changed — keep it in step with the Python side"
     );
     for (label, needle, forged) in cases {

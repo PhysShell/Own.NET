@@ -10,12 +10,16 @@
 
 use std::collections::BTreeSet;
 
-use crate::canonical::{canonical_hash, CANONICAL_ALGORITHM};
+use crate::base64;
+use crate::canonical::{canonical_hash, hash_bytes, CanonicalHash, CANONICAL_ALGORITHM};
 use crate::json::Json;
 
-/// The artifact format version. Both engines are keyed to it. 2 added the
-/// layer envelope's `projection` (checkpoint 2, the engine protocol).
-pub const REPRO_VERSION: i64 = 2;
+/// The artifact format version. Both engines are keyed to it.
+///
+/// 2 added the layer envelope's `projection` (checkpoint 2, the engine
+/// protocol); **3 added the raw input and the per-engine consumption
+/// attestation** (owner decision B-2) and the derived SARIF surface (D-6).
+pub const REPRO_VERSION: i64 = 3;
 
 /// The reference engine: `ownlang`, which stays authoritative until #262.
 ///
@@ -75,10 +79,12 @@ pub fn verify(artifact: &Json) -> Vec<String> {
         &mut problems,
     );
 
-    match artifact.get("input") {
-        Some(input @ Json::Object(_)) => verify_input(input, &mut problems),
-        _ => problems.push("input is missing or not an object".to_owned()),
-    }
+    let raw_identity = if let Some(input @ Json::Object(_)) = artifact.get("input") {
+        verify_input(input, &mut problems)
+    } else {
+        problems.push("input is missing or not an object".to_owned());
+        None
+    };
 
     let Some(engines) = artifact.get("engines").and_then(Json::as_array) else {
         problems.push("engines is missing or not an array".to_owned());
@@ -95,8 +101,14 @@ pub fn verify(artifact: &Json) -> Vec<String> {
         }
         unknown_members(
             engine,
-            &["id", "layers"],
+            &["id", "consumed", "layers"],
             &format!("engines[{i}]"),
+            &mut problems,
+        );
+        verify_consumed(
+            engine,
+            &format!("engines[{i}]"),
+            raw_identity.as_ref(),
             &mut problems,
         );
         match engine.get("id").and_then(Json::as_str) {
@@ -144,38 +156,171 @@ fn unknown_members(value: &Json, allowed: &[&str], where_: &str, problems: &mut 
     }
 }
 
-fn verify_input(input: &Json, problems: &mut Vec<String>) {
+/// Verify the input envelope; returns `input.raw`'s recomputed identity, or
+/// `None` when the raw chain broke before one could be established — no engine
+/// is then judged against a claim that is itself unverified.
+fn verify_input(input: &Json, problems: &mut Vec<String>) -> Option<CanonicalHash> {
     unknown_members(
         input,
-        &["ownir_version", "canonical", "document"],
+        &["ownir_version", "raw", "canonical", "document"],
         "input",
         problems,
     );
-    let Some(document) = input.get("document") else {
-        problems.push("input.document is missing".to_owned());
-        return;
-    };
-    let Some(claimed) = input.get("canonical") else {
-        problems.push("input.canonical is missing or not an object".to_owned());
-        return;
-    };
-    if !matches!(claimed, Json::Object(_)) {
-        problems.push("input.canonical is missing or not an object".to_owned());
-        return;
+    match input.get("document") {
+        None => problems.push("input.document is missing".to_owned()),
+        Some(document) => match input.get("canonical") {
+            Some(claimed @ Json::Object(_)) => {
+                let actual = canonical_hash(document);
+                if !identity_matches(claimed, &actual) {
+                    problems.push(format!(
+                        "input.canonical does not describe input.document: claimed \
+                         {{algorithm: {:?}, digest: {:?}, bytes: {:?}}}, recomputed \
+                         {{algorithm: {:?}, digest: {:?}, bytes: {}}}",
+                        claimed.get("algorithm").and_then(Json::as_str),
+                        claimed.get("digest").and_then(Json::as_str),
+                        claimed.get("bytes").and_then(Json::as_i64),
+                        actual.algorithm,
+                        actual.digest,
+                        actual.bytes
+                    ));
+                }
+            }
+            _ => problems.push("input.canonical is missing or not an object".to_owned()),
+        },
     }
-    let actual = canonical_hash(document);
-    let algorithm = claimed.get("algorithm").and_then(Json::as_str);
-    let digest = claimed.get("digest").and_then(Json::as_str);
-    let bytes = claimed.get("bytes").and_then(Json::as_i64);
-    let matches = algorithm == Some(CANONICAL_ALGORITHM)
-        && digest == Some(actual.digest.as_str())
-        && bytes == i64::try_from(actual.bytes).ok();
-    if !matches {
+    verify_raw(input, problems)
+}
+
+/// One identity block (`{algorithm, digest, bytes}`) against a recomputed one.
+fn identity_matches(claimed: &Json, actual: &CanonicalHash) -> bool {
+    claimed.get("algorithm").and_then(Json::as_str) == Some(actual.algorithm)
+        && claimed.get("digest").and_then(Json::as_str) == Some(actual.digest.as_str())
+        && claimed.get("bytes").and_then(Json::as_i64) == i64::try_from(actual.bytes).ok()
+}
+
+/// The raw-input chain (owner decision B-2), link by link.
+///
+/// Each link is a **separate named problem**, and that is the design rather
+/// than verbosity: "the artifact does not verify" is not actionable, and the
+/// links fail for different reasons — a mis-copied digest, a truncated blob, a
+/// re-serialized document, a document swapped under a kept digest. One message
+/// covering all of them would let a mutation move the failure between links
+/// with the suite still red for the same string, and a control could not say
+/// which rule it protects.
+///
+/// Deliberately an independent reading of the reference's
+/// `ownlang.repro._verify_raw`, like the rest of this module: a divergence
+/// between the two verifiers is itself a finding.
+fn verify_raw(input: &Json, problems: &mut Vec<String>) -> Option<CanonicalHash> {
+    let Some(raw @ Json::Object(_)) = input.get("raw") else {
+        problems.push(
+            "input.raw is missing or not an object — a v3 artifact carries the byte-exact \
+             input it was taken over"
+                .to_owned(),
+        );
+        return None;
+    };
+    unknown_members(
+        raw,
+        &["algorithm", "digest", "bytes", "base64"],
+        "input.raw",
+        problems,
+    );
+    let algorithm = raw.get("algorithm").and_then(Json::as_str);
+    if algorithm != Some(CANONICAL_ALGORITHM) {
         problems.push(format!(
-            "input.canonical does not describe input.document: claimed \
-             {{algorithm: {algorithm:?}, digest: {digest:?}, bytes: {bytes:?}}}, recomputed \
-             {{algorithm: {:?}, digest: {:?}, bytes: {}}}",
-            actual.algorithm, actual.digest, actual.bytes
+            "input.raw.algorithm {algorithm:?} is not {CANONICAL_ALGORITHM:?}"
+        ));
+    }
+    let Some(encoded) = raw.get("base64").and_then(Json::as_str) else {
+        problems.push("input.raw.base64 is missing or not a string".to_owned());
+        return None;
+    };
+    let decoded = match base64::decode(encoded) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            problems.push(e);
+            return None;
+        }
+    };
+    let actual = hash_bytes(&decoded);
+    if raw.get("bytes").and_then(Json::as_i64) != i64::try_from(decoded.len()).ok() {
+        problems.push(format!(
+            "input.raw.bytes {:?} does not describe input.raw.base64, which decodes to {} byte(s)",
+            raw.get("bytes").and_then(Json::as_i64),
+            decoded.len()
+        ));
+    }
+    if raw.get("digest").and_then(Json::as_str) != Some(actual.digest.as_str()) {
+        problems.push(format!(
+            "input.raw.digest does not describe input.raw.base64: claimed {:?}, recomputed {:?}",
+            raw.get("digest").and_then(Json::as_str),
+            actual.digest
+        ));
+    }
+    // `from_slice`, never `from_str`: the bytes are the subject, and routing
+    // them through a `str` on the way to the parser would be a decode this
+    // chain is supposed to be measuring.
+    let reparsed = match serde_json::from_slice::<Json>(&decoded) {
+        Ok(value) => value,
+        Err(e) => {
+            problems.push(format!("input.raw does not parse: {e}"));
+            return Some(actual);
+        }
+    };
+    let reparsed_identity = canonical_hash(&reparsed);
+    match input.get("canonical") {
+        Some(claimed) if identity_matches(claimed, &reparsed_identity) => {}
+        claimed => problems.push(format!(
+            "input.raw does not reproduce input.canonical: parsing the raw bytes yields \
+             {{digest: {:?}, bytes: {}}}, the artifact claims {:?}",
+            reparsed_identity.digest,
+            reparsed_identity.bytes,
+            claimed.map(|c| (
+                c.get("digest").and_then(Json::as_str),
+                c.get("bytes").and_then(Json::as_i64)
+            ))
+        )),
+    }
+    Some(actual)
+}
+
+/// Every engine attests the bytes it consumed, and they are the artifact's.
+///
+/// An entry without `consumed` is refused rather than defaulted (owner decision
+/// B-3): defaulting is exactly how a version-2 capture would be promoted into a
+/// version-3 artifact carrying a claim no execution ever made.
+fn verify_consumed(
+    engine: &Json,
+    at: &str,
+    raw_identity: Option<&CanonicalHash>,
+    problems: &mut Vec<String>,
+) {
+    let Some(consumed @ Json::Object(_)) = engine.get("consumed") else {
+        problems.push(format!(
+            "{at}: consumed is missing or not an object — every v3 engine entry attests the \
+             bytes it read, and an entry that does not is a capture from an older format \
+             rather than a run"
+        ));
+        return;
+    };
+    unknown_members(
+        consumed,
+        &["algorithm", "digest", "bytes"],
+        &format!("{at}.consumed"),
+        problems,
+    );
+    // The raw chain already failed; judging against it would say nothing.
+    let Some(identity) = raw_identity else { return };
+    if !identity_matches(consumed, identity) {
+        problems.push(format!(
+            "{at}: consumed {{digest: {:?}, bytes: {:?}}} is not input.raw's identity \
+             {{digest: {:?}, bytes: {}}} — this engine did not read the bytes the artifact \
+             carries, so the two captures are not of one input",
+            consumed.get("digest").and_then(Json::as_str),
+            consumed.get("bytes").and_then(Json::as_i64),
+            identity.digest,
+            identity.bytes
         ));
     }
 }

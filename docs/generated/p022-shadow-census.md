@@ -40,7 +40,7 @@ the difference is named in the unmeasured set below.
 | tamper controls (one changed character per document, refusal required) | 98 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 9 |
-| structural negative controls on `verify` (each side) | 18 |
+| structural negative controls on `verify` (each side) | 28 |
 | value-level domain backstop controls | 5 |
 
 ## The engine protocol (checkpoint 2)

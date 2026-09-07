@@ -226,6 +226,43 @@
           }
         }
       ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "1709103f7676c80ef52d6d0ad42ce4040842a61f6b63f55a5b133620e778b069",
+        "bytes": 948
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        }
+      ]
     }
   ]
 }

@@ -84,6 +84,60 @@
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }
       ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+        "bytes": 208
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Vocab",
+            "ownir_version": 0,
+            "summaries": [
+              {
+                "file": "F.cs",
+                "line": 0,
+                "method": "M",
+                "params": [],
+                "returns": {
+                  "owned": "none"
+                },
+                "source": "inferred"
+              }
+            ],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
+        }
+      ]
     }
   ]
 }

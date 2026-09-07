@@ -42,7 +42,7 @@
 
 #![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
-use own_shadow::{canonical_hash, parse, Json};
+use own_shadow::{canonical_hash, hash_bytes, parse, Json};
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/fixtures");
 
@@ -184,7 +184,9 @@ fn this_reader_reproduces_its_committed_column() {
 
         // The committed variant IS the bytes the ledger claims. Without this
         // the digest beside it describes nothing.
-        let claimed = record.get("raw").expect("a variant record carries its raw identity");
+        let claimed = record
+            .get("raw")
+            .expect("a variant record carries its raw identity");
         let actual = sha256_hex(&raw);
         assert_eq!(
             claimed.get("digest").and_then(Json::as_str),
@@ -279,16 +281,13 @@ fn every_accepted_variant_is_one_document_in_distinct_bytes() {
     );
 }
 
-/// SHA-256, hex. `own_shadow::canonical_hash` hashes the *canonical* form of a
-/// parsed value; this hashes the bytes on disk, which is a different question
-/// and the one the attestation asks.
+/// SHA-256 over the bytes on disk, hex.
+///
+/// `canonical_hash` hashes the *canonical form of a parsed value*; this hashes
+/// the bytes themselves, which is a different question and the one the
+/// attestation asks. One hasher for both, shared from the crate rather than
+/// re-implemented here — a second SHA-256 in a test would be a second answer
+/// to compare against.
 fn sha256_hex(raw: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(raw);
-    hasher
-        .finalize()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    hash_bytes(raw).digest
 }

@@ -51,6 +51,7 @@
 use own_ir::OwnIr;
 
 use crate::artifact::{ENGINE_RUST, LAYER_ORDER, STATUS_PRODUCED, STATUS_REFUSED};
+use crate::canonical::hash_bytes;
 use crate::json::{parse, Json};
 
 fn object(entries: Vec<(&str, Json)>) -> Json {
@@ -110,18 +111,29 @@ fn surface_version_of(document: &Json, key: &str) -> Json {
     document.get(key).cloned().unwrap_or(Json::Null)
 }
 
-/// This engine's capture of one facts document: the `engines[]` entry.
+/// This engine's capture of one **byte sequence**: the `engines[]` entry.
 ///
-/// `facts_text` is the document's **source text**, not a re-serialization of a
-/// parsed value: the typed `OwnIr` constructor is the port's real entry point
-/// and must see what a producer actually wrote.
+/// `raw` is the document's byte-exact source, not a re-serialization of a
+/// parsed value and not a `&str`: the typed `OwnIr` constructor is the port's
+/// real entry point and must see what a producer actually wrote, and owner
+/// decision B-2 makes that a *byte-level* requirement rather than a textual
+/// one. The identity is taken on the first line — before `serde_json` looks at
+/// a single byte — so `consumed` names what this engine actually read and
+/// cannot name anything else. There is no code path here that derives a
+/// `consumed` from an artifact's `input.raw`, which is exactly what promoting
+/// a version-2 entry would have needed (B-3).
+///
+/// `from_slice`, never `read_to_string` then `from_str`: a decode on the way in
+/// is a place a difference gets normalized away before anyone can see it, and
+/// the whole point of v3 is that nothing on this path may do that.
 ///
 /// # Errors
 /// A layer's own serialization failing is not modelled as a layer refusal —
 /// that would report an internal defect as though the reference had been
 /// disagreed with. It is an error out of the whole capture.
-pub fn capture(facts_text: &str) -> Result<Json, String> {
-    let layers = match serde_json::from_str::<OwnIr>(facts_text) {
+pub fn capture(raw: &[u8]) -> Result<Json, String> {
+    let consumed = hash_bytes(raw).to_json();
+    let layers = match serde_json::from_slice::<OwnIr>(raw) {
         // The typed door is upstream of every layer: when it refuses, no layer
         // ran, so all three report the door's refusal.
         Err(door) => {
@@ -139,6 +151,7 @@ pub fn capture(facts_text: &str) -> Result<Json, String> {
     };
     Ok(object(vec![
         ("id", Json::Str(ENGINE_RUST.to_owned())),
+        ("consumed", consumed),
         ("layers", Json::Array(layers)),
     ]))
 }

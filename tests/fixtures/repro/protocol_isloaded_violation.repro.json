@@ -287,6 +287,178 @@
           }
         }
       ]
+    },
+    {
+      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "02b88bac6b1c9a22f1c410fda97c9d428fc54a1253ab16ca74a5397a4319e8fc",
+        "bytes": 1559
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Extracted",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Extracted",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "BigDocumentViewModel.cs",
+                "line": 241,
+                "code": "OBL001",
+                "component": "BigDocumentViewModel",
+                "event": "DocumentLoading",
+                "handler": "LoadBigDocument",
+                "message": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.BigDocumentViewModel.LoadBigDocument' — 'IsLoaded = true' must happen first",
+                "kind": "protocol obligation",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "BigDocumentViewModel.cs",
+                    184,
+                    "obligation 'DocumentLoading' opens here (IsLoaded = false)"
+                  ],
+                  [
+                    "BigDocumentViewModel.cs",
+                    241,
+                    "barrier 'OnPropertyChanged(Document)' fires while it is open"
+                  ],
+                  [
+                    "BigDocumentViewModel.cs",
+                    260,
+                    "closed here — after the barrier has already fired"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
