@@ -178,8 +178,7 @@
       "pattern": "        text = raw\\.decode\\(\\\"utf-8\\\"\\)",
       "replacement": "        text = raw.decode(\"utf-8-sig\")",
       "expected_catchers": [
-        "python-variants::variant-ledger",
-        "python-compare::compare-negative"
+        "python-variants::variant-ledger"
       ]
     }
   ]

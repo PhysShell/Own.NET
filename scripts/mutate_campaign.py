@@ -601,6 +601,30 @@ def apply(m: Mutation, pristine: str) -> tuple[str, str | None]:
     return new, None
 
 
+def python_syntax_error(target: str, text: str) -> str | None:
+    """A mutated Python source that does not PARSE, or `None`.
+
+    cargo reports a mutation that does not compile and the runner files it as
+    `compile-error` — no evidence, never "caught". Python mutations had no such
+    check, and the gap produced the worst outcome a campaign can: a mutation
+    written as `b"\\n"` was expanded by `re.sub` into a real newline, the
+    target stopped parsing, a spawned child died with a SyntaxError, and the
+    layer's non-zero exit was recorded as a CATCH. Evidence that a rule is
+    protected, produced by a mutation that never expressed the rule.
+
+    Checked on the mutated TEXT rather than by watching for a traceback,
+    because the traceback belongs to whatever process happened to import or run
+    the file — which for this family is often a grandchild whose stderr the
+    layer only quotes in part."""
+    if not target.endswith(".py"):
+        return None
+    try:
+        compile(text, target, "exec")
+    except SyntaxError as e:
+        return f"the mutated source does not parse: {e}"
+    return None
+
+
 def validate(definition: Definition) -> list[str]:
     problems: list[str] = []
     for m in definition.mutations:
@@ -796,6 +820,15 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
             if problem:
                 outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem))
                 print(f"  -> invalid-mutation: {problem}", flush=True)
+                continue
+            broken = python_syntax_error(m.target, mutated)
+            if broken:
+                # `compile-error`, the same class cargo's own failure lands in:
+                # no evidence, and explicitly NOT "caught". Checked before the
+                # layers run, so a mutation that cannot express its rule never
+                # gets a chance to look like one that does.
+                outcomes.append(Outcome(m.id, "compile-error", (), 0.0, broken))
+                print(f"  -> compile-error: {broken}", flush=True)
                 continue
             write_source(m.target, mutated)
             t0 = time.monotonic()
