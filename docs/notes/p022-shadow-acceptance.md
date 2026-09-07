@@ -270,3 +270,210 @@ clean* is not measured here: this environment has no .NET SDK, so the extractor
 cannot be run. The gate is wired to take that measurement in the one place that
 can, and its result is reported rather than predicted. A divergence there would
 be a finding to record, not a gate to relax.
+
+---
+
+## §3 — What landed, commit by commit
+
+| commit | what moves |
+|---|---|
+| `docs(p022): inventory the shadow acceptance surfaces before moving them (#260 acc.0)` | §1–§2 of this note, the committed byte-variant corpus and its two-column ledger, the two measurement harnesses. No production code. |
+| `feat(repro): attest the raw input and each engine's consumption, artifact v3 (Python-first) (#260 acc.1)` | `REPRO_VERSION` 3, `input.raw`, per-engine `consumed`, the six-link verification chain, the harness reading bytes, B-3's refusal. Ten structural controls. |
+| `feat(shadow): mirror v3 and regenerate the corpus through both engines (#260 acc.1)` | `capture(&[u8])`, canonical base64 written here rather than depended on, the port's half of the chain and its ten controls, the two-pass regeneration. |
+| `feat(shadow): the verdict layer enters reduction scope; acceptance is a field (#260 acc.2)` | D-4, D-5, D-7 on both sides; `TRACE_VERSION` 2 for the carried boundary; the second OD-1 control inserted; the census's two axes. |
+| `feat(shadow): the derived SARIF surface (#260 acc.3)` | D-6 on both sides, the three outcomes, `derived_documents`, six more structural controls per side and three classification controls. |
+| `feat(shadow): own-shadow-engine and the compare driver (#260 acc.4)` | R-1's adapter, the driver, its six outcomes, the test double and ten double-driven controls; the raw-variant, negative and corpus controls. |
+| `fix(shadow): commit the adapter's source, which .gitignore was swallowing (#260 acc.4)` | the `bin/` rule that hid a `[[bin]]`'s source. |
+| `ci: compare mode over the committed corpus (#260 acc.5)` | the two CI jobs, and the extractor's OwnIR published so the samples gate consumes it without re-extracting. |
+| `chore(p022) / fix(shadow) / test(bridge) … (#260 acc.6a)` | the three #259 tails, the catcher-existence check, the two new campaigns, and the five defects the campaigns found. |
+| `docs(p022): record the campaigns and level the surfaces (#260 acc.6)` | the recorded runs, the generated fragments, this note's §3–§7, P-022 row 7a, the index, `spec/Bridge.md`, the owner-decision ledger. |
+
+## §4 — The differential over the corpus, asserted rather than described
+
+Every number below is a link, and every link is generated from the committed
+evidence by `scripts/render_checkpoint_status.py`.
+
+* **The reduction**, at all three layers: every committed reduction is
+  `identical` or `declared-boundary`, and the acceptance-`unexplained` count is
+  zero — [`p022-shadow-census.md`](../generated/p022-shadow-census.md), *the
+  two-axis classification*. Each declared boundary is listed with the class the
+  refusing engine declared, which is what makes "declared" checkable rather
+  than asserted.
+* **The derived SARIF surface**: `equal` wherever both engines produce a verdict
+  layer, `not-comparable` wherever one refused — same fragment, *the derived
+  SARIF surface*.
+* **The byte attestation**: every artifact carries `input.raw` and every engine
+  entry a `consumed` that verification recomputes; the raw-variant class is
+  measured in §2.1 above and driven end to end by the compare driver's
+  controls.
+* **The campaigns**: fourteen, all at one commit, no survivors and no missed
+  catchers — [`p022-shadow-mutations.md`](../generated/p022-shadow-mutations.md)
+  for this slice's six, and the cp4 / cp4b / cp5 / coordinate fragments beside
+  it for the other eight.
+* **Compare mode over the committed corpus** exits zero:
+  `python scripts/shadow_compare.py --engine compare --corpus --quiet`.
+
+### The churn, against §2.2's budget
+
+`git diff --stat` against the branch base, restricted to `tests/fixtures/`:
+**43 files, all of them under `tests/fixtures/repro/`, and none anywhere else**
+— the verdict, lowered, summaries and rendered families did not move, exactly
+as the budget said.
+
+`digests.json` is the one line the budget flagged as a judgement call, and the
+judgement is on the record: every one of its **98 digest records is
+byte-identical** to the branch base. The single changed line is the file's own
+`repro_version` stamp, which both sides *assert* equals the emitter's version
+— leaving it at 2 would have been a red build, not a preserved file. B-3's
+"canonical corpus digests remain unchanged" is satisfied in the sense that
+matters: no document's identity moved.
+
+The budget's "adds" line is met exactly: ten byte variants plus their ledger,
+and the second OD-1 control's three goldens.
+
+## §5 — What the campaigns found
+
+Six defects, none of them found by review, and each is a shape worth naming.
+
+1. **Two enforcement points, one control that could not tell them apart.** The
+   canonical-base64 decoder refuses a non-canonical spelling twice — on the
+   final group's discarded bits, and on the re-encode backstop — and the control
+   asserted only that *something* refused, with a needle both messages match.
+   Disabling either check left the other refusing the same input, and **both
+   mutations survived**. This is the round-1 M05/M06/M07 shape this slice
+   already records for the `-0` domain, arriving again in a new surface. The
+   control now pins the message of the check that is supposed to fire.
+
+   The backstop itself is unreachable by construction: given the length,
+   padding, alphabet and zero-discarded-bits checks, the encoding is already
+   unique. It is kept because it states the rule in one sentence that both sides
+   implement, and it is reachable only through the **encoder** it couples the
+   decoder to — which is what its mutation now attacks.
+
+2. **A measurement that measured the harness.** The byte-variant ledger did its
+   own `raw.decode("utf-8")` rather than going through the production reader, so
+   mutating that reader to strip a BOM — which would move the BOM out of the
+   measured invalid class — did not move the ledger at all. It now measures
+   through `load_bytes`.
+
+3. **A regeneration that erased the other engine's column.** `--write` rendered
+   the ledger *inside* its own `with open(..., "w")`, and `open` truncates before
+   the render reads the file back to carry the port's column through. The first
+   regeneration after the content changed wrote a ledger with every Rust
+   measurement erased — and the harness caught it immediately, because it refuses
+   a ledger the port has not measured. The artifact family's `--write` has the
+   same shape, which is why the fix carries the reason in the code.
+
+4. **A control group that depended on build state nobody declared.** The
+   adapter-driven compare controls *discovered* `rust/target/*/own-shadow-engine`.
+   A campaign restores the source it mutated and not the binary a previous
+   mutation's `cargo test` left behind, so the group silently ran against an
+   adapter built from another mutation's tree. It names its adapter explicitly
+   now; a run that names none runs the double-driven group only, which is the
+   group whose subject is the driver.
+
+5. **A mutation recorded as CAUGHT by a rule it never expressed.** `re.sub`
+   expands backslash escapes in a replacement, so a mutation written as
+   `b"\n"` broke a string literal; a spawned child died with a `SyntaxError`;
+   and the layer's non-zero exit was filed under the runner's synthetic
+   "failed without naming a check". cargo already reports a mutation that does
+   not compile as `compile-error` — no evidence, never "caught" — and Python
+   mutations now get the same treatment, checked on the mutated text before any
+   layer runs.
+
+   A stricter rule was tried first and **rejected by measurement**: refusing
+   every expandable escape flagged two existing mutations that use `\n`
+   deliberately to rebuild lines a multi-line pattern consumed.
+
+6. **An identity check CPython can hide, and a bound the corpus cannot reach.**
+   Rewriting `REDUCTION_SCOPE = LAYER_ORDER` as the same literal SURVIVED:
+   CPython folds two equal constant tuples in one code object to one object, so
+   the `is` check still held. The mutation now builds the copy at runtime; the
+   limit is a fact about the rule and is stated here rather than hidden — an
+   identity check cannot see a literal copy written beside the original in the
+   same module. It stays worth having, because the copy that matters is the one
+   that *diverges*, and a diverged copy fails both the check and the goldens.
+
+   Separately, narrowing the tolerant line reader's upper bound by one changed
+   no golden: no committed document carries a line at `i32::MAX`. Resolved by a
+   control on both edges of the domain, not by a note — a survivor is closed by
+   a test or by a proof of equivalence, and this one was neither until the test
+   existed.
+
+## §6 — Measured, not claimed
+
+* **The C# samples' OwnIR compares clean** — not measured here. This environment
+  has no .NET SDK; the gate is wired to take the measurement where one exists
+  (§2.5), and its result is reported rather than predicted.
+* **The five-repository sweep and the large-solution controls** — not run.
+  #260's test matrix names them and they are separate work.
+* **Windows and Linux path forms** — not exercised. The driver never sees a path
+  it did not read from, and the corpus is POSIX; the invariant it does prove is
+  byte-level and platform-independent, which is not the same claim.
+* **Rendered-byte parity of the three layer surfaces** — still each layer's own
+  fixture family. The artifact carries layer outputs as JSON *values*, so a
+  rendering difference there is invisible to this comparison. The **derived**
+  SARIF surface is compared byte-exactly, and it is the only rendered surface
+  that is.
+* **The identity check on `REDUCTION_SCOPE`** — see §5.6. It is an alias check,
+  and it cannot see a same-module constant-folded copy.
+* **`derived_documents` in a committed artifact** — never present, by design.
+  It is written by the driver on mismatch, so the corpus has no example of one
+  and the structural controls are what exercise its rules.
+
+## §7 — The wording this earns
+
+> Compare mode over the committed corpus: zero acceptance-unexplained at all
+> three layers and on the derived SARIF, on byte-attested same input, with the
+> two OD-1 typed-door boundaries declared by policy. **Not #260's acceptance**:
+> the five-repository sweep and the large-solution controls are still owed.
+
+Not "shadow mode achieved". Not "P-022 done". Not "Rust is the default", which
+is #261/#262's cutover and is untouched — Python remains the public engine, no
+production behaviour changed, and `own-shadow-engine` is a dev-only adapter
+with no command surface to grow out of.
+
+### The commands this note's claims come from
+
+```text
+python tests/run_tests.py
+ruff check . && mypy
+cd rust && cargo fmt --check && cargo clippy --workspace --all-targets \
+        && cargo test --workspace --no-fail-fast
+
+# the compare gate, over every committed facts document
+cd rust && cargo build --release -p own-shadow --bin own-shadow-engine
+OWN_SHADOW_ENGINE=rust/target/release/own-shadow-engine \
+  python scripts/shadow_compare.py --engine compare --corpus --quiet
+OWN_SHADOW_ENGINE=rust/target/release/own-shadow-engine \
+  OWN_SHADOW_COMPARE_REQUIRED=1 python tests/test_shadow_compare.py
+
+# regeneration — TWO passes, and the order is the contract: the reference
+# authors its own entry and carries the port's through, the port authors its
+# own, and the second reference pass rebuilds the traces and reductions from
+# the now-complete artifacts.
+python tests/test_repro_fixtures.py --write
+cd rust && OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine
+python tests/test_repro_fixtures.py --write
+
+# the byte-variant ledger, the same rule: one column per engine
+python tests/test_byte_variants.py --write
+cd rust && OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test byte_variants
+
+# a campaign
+python scripts/mutate_campaign.py --campaign docs/evidence/<name>.json --validate
+python scripts/mutate_campaign.py --campaign docs/evidence/<name>.json --run
+python scripts/render_checkpoint_status.py
+```
+
+### The re-run rule for a recorded campaign
+
+Written down here because it was the third #259 tail and it now has a gate
+behind it: **any campaign whose mutation targets or catcher files changed in a
+pull request is re-run in that pull request.** `--validate` re-anchors every
+mutation *and* resolves every named catcher, so a renamed or deleted test fails
+the gate rather than waiting for the next full run; the provenance gate refuses
+a result whose commit is not an ancestor of HEAD; and the generated-evidence
+pipeline makes the re-run cheap. What neither can decide for you is whether the
+rule a mutation attacks still exists — that is what re-anchoring is, and §5
+above is what it found this time.

@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-coord-2",
   "definition": "docs/evidence/p022-coord-2.json",
-  "definition_sha256": "f033608e513b098baed9490305baa4f77c6a47728ddcb530097af8745416182b",
-  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
+  "definition_sha256": "90b0da4a6b77661100014dabafec7acba5778e8ba7ecc76d9e0460e5ecdfc1f4",
+  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
   "dirty": false,
-  "recorded_at": "2026-09-07T10:32:30Z",
+  "recorded_at": "2026-09-07T14:25:10Z",
   "layers": [
     "py-limits",
     "py-verdicts",
@@ -18,7 +18,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 2.5
+    "elapsed_seconds": 2.7
   },
   "mutations": [
     {
@@ -28,7 +28,7 @@
         "py-limits::tolerant-degrade",
         "py-verdicts::verdict-fixture"
       ],
-      "elapsed_seconds": 0.9
+      "elapsed_seconds": 1.0
     },
     {
       "id": "M02",
@@ -37,7 +37,7 @@
         "py-limits::tolerant-degrade",
         "py-verdicts::verdict-fixture"
       ],
-      "elapsed_seconds": 2.2
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M03",
@@ -46,7 +46,7 @@
         "py-limits::tolerant-degrade",
         "py-verdicts::verdict-fixture"
       ],
-      "elapsed_seconds": 2.3
+      "elapsed_seconds": 2.5
     },
     {
       "id": "M04",
@@ -55,7 +55,7 @@
         "py-limits::tolerant-degrade",
         "py-verdicts::verdict-fixture"
       ],
-      "elapsed_seconds": 2.2
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M05",
@@ -64,7 +64,7 @@
         "py-limits::tolerant-degrade",
         "py-verdicts::verdict-fixture"
       ],
-      "elapsed_seconds": 2.1
+      "elapsed_seconds": 2.5
     },
     {
       "id": "M06",
@@ -72,7 +72,7 @@
       "catchers": [
         "py-limits::tolerant-degrade"
       ],
-      "elapsed_seconds": 2.2
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M07",
@@ -80,7 +80,7 @@
       "catchers": [
         "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
       ],
-      "elapsed_seconds": 2.5
+      "elapsed_seconds": 2.9
     },
     {
       "id": "M08",
@@ -88,7 +88,7 @@
       "catchers": [
         "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
       ],
-      "elapsed_seconds": 2.4
+      "elapsed_seconds": 2.9
     },
     {
       "id": "M09",
@@ -96,31 +96,33 @@
       "catchers": [
         "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
       ],
-      "elapsed_seconds": 2.5
+      "elapsed_seconds": 2.8
     },
     {
       "id": "M10",
       "outcome": "caught",
       "catchers": [
+        "rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain",
         "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 2.3
+      "elapsed_seconds": 3.1
     },
     {
       "id": "M11",
       "outcome": "caught",
       "catchers": [
+        "rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain",
         "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 2.3
+      "elapsed_seconds": 3.0
     },
     {
       "id": "M12",
       "outcome": "caught",
       "catchers": [
-        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain"
       ],
-      "elapsed_seconds": 2.3
+      "elapsed_seconds": 3.0
     },
     {
       "id": "M13",
@@ -128,7 +130,7 @@
       "catchers": [
         "rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door"
       ],
-      "elapsed_seconds": 2.5
+      "elapsed_seconds": 3.2
     },
     {
       "id": "M14",
@@ -136,7 +138,7 @@
       "catchers": [
         "rust-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 2.4
+      "elapsed_seconds": 3.3
     },
     {
       "id": "M15",
@@ -144,7 +146,7 @@
       "catchers": [
         "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 2.4
+      "elapsed_seconds": 3.2
     }
   ]
 }

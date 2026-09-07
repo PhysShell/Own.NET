@@ -157,6 +157,108 @@ the provenance gate cannot resolve the commit a recorded campaign names. #337
 gave `ci.yml`'s tests job `fetch-depth: 0` for the same reason; that workflow
 triggers on paths #337 never touched, so the gap stayed green there.
 
+---
+
+# The acceptance decisions (#260), ratified 2026-09-07
+
+> These are the decisions #260's final acceptance was blocked on. They are
+> recorded here **verbatim as ratified**, in the same ledger as the
+> infrastructure slice's, because a decision an agent may not reopen has to be
+> readable in one place. The work that lands them over the committed corpus is
+> [`p022-shadow-acceptance.md`](p022-shadow-acceptance.md); the sweep #260 also
+> asks for is not part of it.
+
+## D-4 — verdict reduction scope
+
+`REDUCTION_SCOPE` is identical to `LAYER_ORDER` on both sides — an alias in
+Python, the same constant in Rust — never a third copy of the list.
+`REDUCTION_VERSION` 1 → 2. `out_of_scope` stays in the schema and is empty.
+
+## D-5 — acceptance classification
+
+Observation *kind* and *acceptance judgement* are orthogonal fields on every
+observation. `missing-layer` replaces `unexplained` as an observation **kind**.
+Every content observation — `left-only`, `right-only`, `changed`,
+`ordering-only`, on every layer including `summaries` — is
+acceptance-`unexplained`. A `status` or `projection` observation is
+`declared-boundary` **only** when its structured boundary class **and** its
+(layer, kind) match an exact entry of a frozen boundary policy; the initial
+policy contains only the OD-1 typed-door entries — `(lowered, status, OD-1)`,
+`(summaries, status, OD-1)`, `(verdicts, status, OD-1)` — and nothing for
+`projection`. A known class attached to the wrong kind or layer does not explain
+it. The class is declared **by the refusing engine, structurally, in its
+capture** (`boundary: {"class": ..., "detail": ...}` on the refused layer
+record); the reducer copies it into the observation; `detail` never participates
+in policy. No case-name matching, no error-text matching, anywhere.
+
+## D-6 — SARIF
+
+Canonical SARIF is a derived #260 zero-diff acceptance surface, **not** an
+`AnalysisTrace` layer and not part of `LAYER_ORDER`. Each engine renders SARIF
+from its **own** verdicts with one frozen, named render configuration:
+`severity = "error"` (`ownlang.ownir.build_sarif(findings, "error")`,
+`own_bridge::render::build_sarif(&findings, "error")`). Results: `equal`,
+`renderer-only divergence` (verdict layers equal, SARIF differs),
+`not-comparable` (a verdict layer differs or is refused). Digest and length are
+always recorded; the full SARIF documents are retained only on mismatch.
+
+## D-7 — verdict pairing
+
+The BR-V8 address `file:line:column:code` is the verdict **pairing address**,
+not object identity. Differences in other members are `changed` with a minimal
+path. Duplicate-address ordinal semantics are frozen by an adversarial
+cross-engine control: left `A~0 → message X, A~1 → message Y`, right
+`A~0 → Y, A~1 → X` yields `changed` at `.message` on both addresses — never
+`ordering-only`, because the ordinal is part of the address.
+
+## B-2 — raw-input artifact
+
+`REPRO_VERSION` 2 → **3** (2 already exists: it added `projection`). For
+capturable valid OwnIR: `input.raw` carries the byte-exact input as base64 plus
+`algorithm`, `digest`, `bytes`; each engine independently records
+`consumed: {algorithm, digest, bytes}` of the bytes it actually consumed; both
+`consumed` identities must equal `input.raw`; parsing `input.raw` must reproduce
+the existing canonical identity (`input.canonical`); `input.document` remains.
+Raw bytes are hashed **before** decoding or parsing. Malformed byte/JSON inputs
+that cannot produce `input.document` are **negative compare-driver controls**,
+not fabricated "normal" v3 artifacts.
+
+## B-3 — migration
+
+Every v3 `consumed` claim comes from an actual execution of that engine. No v2
+foreign entry is promoted into v3 by assumption — the Python writer refuses to
+carry an entry that lacks `consumed`. Canonical corpus digests
+(`tests/fixtures/repro/digests.json`) remain unchanged.
+
+## R-1 — compare runner
+
+Add a dev-only binary `own-shadow-engine` in `own-shadow`: stdin = the captured
+raw bytes; stdout = one machine-readable Rust engine capture; stderr =
+diagnostics only; exit ≠ 0 = execution failure. No paths, no extraction, no
+fallback, no config discovery, no user-facing CLI semantics. It is not
+`own-cli` and creates no #261 cutover surface.
+
+## R-2 — execution failure
+
+Crash, timeout or non-zero exit is a **run-level hard failure**. It is never a
+layer refusal and never causes a synthetic engine capture. Raw input, exit
+information and stderr are retained in a **failure report**, not in a
+reproduction artifact. `produced` / `refused` stay semantic layer statuses.
+
+## What the acceptance work did with them, and where it stopped
+
+Every one of the above is implemented over the **committed corpus** and no
+further. The one place the decisions' own text met a measurement that did not
+match it is recorded rather than smoothed: D-6 expects `not-comparable`
+"exactly on the OD-1 documents", and the corpus has **two** shapes of it — the
+OD-1 door's asymmetric refusal, and two documents where *both* engines refuse
+the verdict layer for the same reason. The census says so.
+
+The B-3 line "canonical corpus digests remain unchanged" holds for every digest
+record. The file's own `repro_version` stamp follows the format to 3, because
+both sides already ASSERT that stamp equals the emitter's version — leaving it
+behind would be a red build rather than a preserved file.
+
 ## What the closure commit deliberately did not do
 
 - **No code changes.** `ownlang/repro.py` and `rust/crates/own-shadow/` are

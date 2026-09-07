@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-shadow-cp3",
   "definition": "docs/evidence/p022-shadow-cp3.json",
-  "definition_sha256": "99e99aacfe3f4ac4e5dff92bc7a5cf07bd3826c843657c28b6f0d490e2534ffa",
-  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
+  "definition_sha256": "5a9393b337387aeb99c5ddbb9a94c52e8d03bd1d047446de15410e415a0e6d96",
+  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
   "dirty": false,
-  "recorded_at": "2026-09-07T10:46:26Z",
+  "recorded_at": "2026-09-07T14:45:28Z",
   "layers": [
     "python",
     "rust-repro",
@@ -19,7 +19,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 2.1
+    "elapsed_seconds": 2.7
   },
   "mutations": [
     {
@@ -28,7 +28,7 @@
       "catchers": [
         "python::<non-zero exit with no reported failure>"
       ],
-      "elapsed_seconds": 0.6
+      "elapsed_seconds": 0.9
     },
     {
       "id": "M43",
@@ -36,7 +36,7 @@
       "catchers": [
         "python::trace-golden"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.7
     },
     {
       "id": "M44",
@@ -45,7 +45,7 @@
         "python::trace-golden",
         "python::trace-shape"
       ],
-      "elapsed_seconds": 2.0
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M45",
@@ -53,7 +53,7 @@
       "catchers": [
         "python::trace-golden"
       ],
-      "elapsed_seconds": 2.0
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M46",
@@ -61,7 +61,7 @@
       "catchers": [
         "python::trace-golden"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.4
     },
     {
       "id": "M47",
@@ -70,7 +70,7 @@
         "python::trace-golden",
         "python::trace-normalization"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.7
     },
     {
       "id": "M48",
@@ -78,7 +78,7 @@
       "catchers": [
         "python::trace-golden"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.5
     },
     {
       "id": "M49",
@@ -88,7 +88,7 @@
         "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
         "rust-unit/src/lib.rs::trace::tests::a_fully_listed_document_normalizes"
       ],
-      "elapsed_seconds": 2.2
+      "elapsed_seconds": 2.9
     },
     {
       "id": "M50",
@@ -96,7 +96,7 @@
       "catchers": [
         "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
       ],
-      "elapsed_seconds": 2.1
+      "elapsed_seconds": 2.8
     },
     {
       "id": "M51",
@@ -104,7 +104,7 @@
       "catchers": [
         "rust-unit/src/lib.rs::trace::tests::a_handle_reference_the_rename_cannot_reach_is_refused"
       ],
-      "elapsed_seconds": 2.8
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M52",
@@ -113,7 +113,7 @@
         "rust-trace/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
         "rust-unit/src/lib.rs::trace::tests::a_fully_listed_document_normalizes"
       ],
-      "elapsed_seconds": 2.8
+      "elapsed_seconds": 3.7
     }
   ]
 }
