@@ -185,7 +185,7 @@
       "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
       "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) if (0..=2_147_483_646).contains(&n) => n,\n        _ => 0,\n    }",
       "expected_catchers": [
-        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+        "rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain"
       ]
     },
     {

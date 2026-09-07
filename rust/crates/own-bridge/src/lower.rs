@@ -2080,3 +2080,45 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
         advisories,
     })
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use serde_json::json;
+
+    use super::as_line;
+
+    /// The tolerant line reader at **both** ends of its domain.
+    ///
+    /// Written because a mutation survived: narrowing the upper bound by one
+    /// changed no golden, since no committed document carries a line at
+    /// `i32::MAX`. The reference's own bound is `[0, 2147483647]`
+    /// (spec/OwnIR.md §4.2) and both edges are part of it, so an edge the
+    /// corpus cannot reach still needs a control — otherwise the bound is a
+    /// number in a comment.
+    ///
+    /// Degrade, never clamp, is the other half: a value one past the top reads
+    /// as `0` ("unknown / file-level"), not as `2147483647`, which is exactly
+    /// the difference a port reading the raw value would erase.
+    #[test]
+    fn the_tolerant_line_reader_holds_both_edges_of_the_domain() {
+        assert_eq!(
+            as_line(Some(&json!(0))),
+            0,
+            "the bottom of the domain is legal"
+        );
+        assert_eq!(
+            as_line(Some(&json!(2_147_483_647))),
+            2_147_483_647,
+            "the top of the domain is IN it"
+        );
+        assert_eq!(
+            as_line(Some(&json!(2_147_483_648_i64))),
+            0,
+            "one past the top DEGRADES to unknown — never clamps to the top"
+        );
+        assert_eq!(as_line(Some(&json!(-1))), 0, "a negative line degrades");
+        assert_eq!(as_line(Some(&json!("7"))), 0, "a non-integer degrades");
+        assert_eq!(as_line(None), 0, "an absent line is unknown");
+    }
+}
