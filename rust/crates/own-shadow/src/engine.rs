@@ -164,6 +164,31 @@ fn surface_version_of(document: &Json, key: &str) -> Json {
 /// that would report an internal defect as though the reference had been
 /// disagreed with. It is an error out of the whole capture.
 pub fn capture(raw: &[u8]) -> Result<Json, String> {
+    capture_detailed(raw).map(|c| c.engine)
+}
+
+/// One engine capture, plus the derived documents behind its `derived` block.
+///
+/// The artifact carries identities, never documents (owner decision D-6), so
+/// [`capture`] returns only the entry. A **compare driver** needs the documents
+/// too — it retains them on mismatch — and asking for them by re-invoking this
+/// engine would be a second execution of the thing whose single execution is
+/// the point. So they come back beside the entry and the caller decides what to
+/// keep.
+#[derive(Debug, Clone)]
+pub struct Capture {
+    /// The `engines[]` entry, exactly as it appears in an artifact.
+    pub engine: Json,
+    /// The rendered SARIF this engine's `derived.sarif.canonical` names, or
+    /// `None` when the verdict layer was refused.
+    pub sarif: Option<Json>,
+}
+
+/// See [`capture`]; this is the same work, with the derived documents kept.
+///
+/// # Errors
+/// As [`capture`].
+pub fn capture_detailed(raw: &[u8]) -> Result<Capture, String> {
     let consumed = hash_bytes(raw).to_json();
     let layers = match serde_json::from_slice::<OwnIr>(raw) {
         // The typed door is upstream of every layer: when it refuses, no layer
@@ -198,16 +223,23 @@ pub fn capture(raw: &[u8]) -> Result<Json, String> {
             .iter()
             .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts")),
     );
+    let sarif = layers
+        .iter()
+        .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts"))
+        .and_then(sarif_of);
     let layers: Vec<Json> = layers.into_iter().map(strip_sarif).collect();
-    Ok(object(vec![
-        ("id", Json::Str(ENGINE_RUST.to_owned())),
-        ("consumed", consumed),
-        ("layers", Json::Array(layers)),
-        // Beside `layers`, never inside them: a derived surface is not a layer
-        // (owner decision D-6). Nothing in LAYER_ORDER, the trace or the
-        // reduction knows it exists.
-        ("derived", derived),
-    ]))
+    Ok(Capture {
+        engine: object(vec![
+            ("id", Json::Str(ENGINE_RUST.to_owned())),
+            ("consumed", consumed),
+            ("layers", Json::Array(layers)),
+            // Beside `layers`, never inside them: a derived surface is not a
+            // layer (owner decision D-6). Nothing in LAYER_ORDER, the trace or
+            // the reduction knows it exists.
+            ("derived", derived),
+        ]),
+        sarif,
+    })
 }
 
 /// This engine's `derived` block: the IDENTITY of each surface derived from

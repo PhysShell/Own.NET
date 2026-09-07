@@ -62,7 +62,7 @@ pub use base64::{decode as base64_decode, encode as base64_encode};
 pub use canonical::{
     canonical_bytes, canonical_hash, hash_bytes, CanonicalHash, CANONICAL_ALGORITHM,
 };
-pub use engine::capture;
+pub use engine::{capture, capture_detailed, Capture};
 pub use json::{parse, Json};
 pub use reduce::{
     judge, reduce_traces, ACCEPTANCE_DECLARED, ACCEPTANCE_UNEXPLAINED, BOUNDARY_OD1,
