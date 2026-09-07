@@ -443,7 +443,15 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     if args.collect is not None:
-        record = collect(args.collect, args.workflow_run_url, args.definition)
+        try:
+            record = collect(args.collect, args.workflow_run_url, args.definition)
+        except SweepError as e:
+            # A failure, and a legible one: the aggregation job reaches this
+            # when every leg was skipped, which is exactly the shape #250's
+            # fifth failure mode takes in CI.
+            for p in e.problems:
+                print(f"FAIL[shadow-sweep]: {p}")
+            return 1
         text = json.dumps(record, indent=2, ensure_ascii=False) + "\n"
         if args.write:
             with open(args.write, "w", encoding="utf-8", newline="\n") as f:
