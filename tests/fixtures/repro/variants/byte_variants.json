@@ -1,0 +1,312 @@
+{
+  "comment": "Byte-level input variants (P-022 step 7a, #260 acceptance F.0): what each engine's JSON reader does with the SAME document written differently. Generated: python tests/test_byte_variants.py --write (the python column and the corpus) and OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test byte_variants (the rust column). Each engine writes only its own column. 'class' is DERIVED from the two 'accepted' flags and is not a member of this file: both harnesses refuse a record where the two readers disagree, because that is a domain decision for the owner and not a measurement's to file.",
+  "base": "tests/fixtures/repro/canonical_minimal.facts.json",
+  "variants": [
+    {
+      "name": "bom",
+      "transform": "a UTF-8 BOM prepended",
+      "probes": [
+        "the variant B-1's note singles out: measured, never assumed. A BOM is valid UTF-8 and not valid JSON, so where it lands is a fact about the two readers rather than about the byte"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "bc2eb8d0b2dd4644ef71114ff85902cfe2c3cbaa1b0ed8d7d679d9d4f87eae19",
+        "bytes": 51
+      },
+      "python": {
+        "accepted": false,
+        "stage": "parse",
+        "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+      },
+      "rust": {
+        "accepted": false,
+        "stage": "parse",
+        "error": "expected value at line 1 column 1",
+        "typed_door_accepted": false,
+        "canonical": null
+      },
+      "canonical": null
+    },
+    {
+      "name": "crlf",
+      "transform": "every LF rewritten as CRLF",
+      "probes": [
+        "the Windows line ending: a checkout on another platform is a different byte sequence for the same document, which is the difference B-1 says the canonical form cannot see"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "8a55a9878421cf6b34613a885a794bd45b027394d9fd098f3337fbcf691cd08e",
+        "bytes": 52
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "extra_trailing_newline",
+      "transform": "one more trailing newline",
+      "probes": [
+        "trailing whitespace after the closing brace"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "cf1235ec70bd51243afc010f749e824c8708e0e847ef979cbfc203b5a9b08de3",
+        "bytes": 49
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "invalid_utf8",
+      "transform": "a lone continuation byte (0x80) inside a string",
+      "probes": [
+        "not valid UTF-8 at all: the reference refuses at DECODE, before JSON is reached, and the port inside its reader"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "85dbfe4aaf6b983a4e953cc4715e98d85b803103f787ea993c664dbbf0908219",
+        "bytes": 48
+      },
+      "python": {
+        "accepted": false,
+        "stage": "decode",
+        "error": "'utf-8' codec can't decode byte 0x80 in position 42: invalid start byte"
+      },
+      "rust": {
+        "accepted": false,
+        "stage": "parse",
+        "error": "invalid unicode code point at line 3 column 21",
+        "typed_door_accepted": false,
+        "canonical": null
+      },
+      "canonical": null
+    },
+    {
+      "name": "key_order_reversed",
+      "transform": "the top-level members written in reverse order",
+      "probes": [
+        "object key ORDER: insignificant to the canonical form by construction, and a different byte sequence"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "daf4baa39138c6c5c4b08de8483ecf395de2c7c1d4767edb65fac626c0a2bbf2",
+        "bytes": 48
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "malformed_json",
+      "transform": "the final byte removed",
+      "probes": [
+        "a truncated document: valid UTF-8, not valid JSON"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "9ac14b4869fb80a85e6e24299145189a393613b278f746007f3fec2a3e4552e3",
+        "bytes": 46
+      },
+      "python": {
+        "accepted": false,
+        "stage": "parse",
+        "error": "Expecting ',' delimiter: line 4 column 1 (char 46)"
+      },
+      "rust": {
+        "accepted": false,
+        "stage": "parse",
+        "error": "EOF while parsing an object at line 4 column 0",
+        "typed_door_accepted": false,
+        "canonical": null
+      },
+      "canonical": null
+    },
+    {
+      "name": "no_trailing_newline",
+      "transform": "the trailing newline removed",
+      "probes": [
+        "a producer that does not terminate its output"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "932481c5c66c42b5be67ece2fc1ebd326ff3d88f24c1313b48581b1c55251c09",
+        "bytes": 47
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "plain",
+      "transform": "the base document's committed bytes, unchanged",
+      "probes": [
+        "the identity case: raw digest == the committed file's, and the canonical digest every other accepted variant must match"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "bytes": 48
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "whitespace_compact",
+      "transform": "re-serialized with no insignificant whitespace at all",
+      "probes": [
+        "the compact form a generator emits: the same document, the shortest byte sequence"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "125efc27f3f0d62857b16bd305557332692df8396892a77485b559004d64ca0e",
+        "bytes": 38
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    },
+    {
+      "name": "whitespace_expanded",
+      "transform": "re-serialized with a four-space indent",
+      "probes": [
+        "insignificant whitespace INSIDE the document, not only around it"
+      ],
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "3482b974719a7f7e9465b9db87016cc59688ac86dce80a7bb94c0db6d6c9e3b1",
+        "bytes": 52
+      },
+      "python": {
+        "accepted": true,
+        "stage": null,
+        "error": null
+      },
+      "rust": {
+        "accepted": true,
+        "stage": null,
+        "error": null,
+        "typed_door_accepted": true,
+        "canonical": {
+          "algorithm": "sha256",
+          "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+          "bytes": 38
+        }
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
+        "bytes": 38
+      }
+    }
+  ]
+}

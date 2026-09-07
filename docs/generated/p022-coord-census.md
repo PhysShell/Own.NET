@@ -10,7 +10,7 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 327 |
+| JSON files scanned                 | 328 |
 | coordinate slots found             | 2186 |
 
 ## By value class
