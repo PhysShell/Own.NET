@@ -535,9 +535,12 @@ def main(argv: list[str]) -> int:
         elif not args.quiet and not args.corpus:
             sys.stdout.write(_render(result))
         elif args.corpus and not args.quiet:
-            print(f"ok {source}: {result['reduction']['outcome']} / "
-                  f"{result['derived']['outcome']}"
-                  if "reduction" in result else f"ok {source}: {result['detail']}")
+            reduction = result.get("reduction")
+            if reduction is None:
+                print(f"ok {source}: {result['detail']}")
+            else:
+                print(f"ok {source}: {reduction['outcome']} / "
+                      f"{result['derived']['outcome']}")
     if args.corpus or args.quiet:
         print(f"shadow compare over {len(paths)} document(s): "
               + ", ".join(f"{n} {name}" for name, n in sorted(tally.items())))
