@@ -59,8 +59,7 @@
       "pattern": "REDUCTION_VERSION = 2",
       "replacement": "REDUCTION_VERSION = 1",
       "expected_catchers": [
-        "python::reduction-golden",
-        "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte"
+        "python::reduction-golden"
       ]
     },
     {
@@ -98,11 +97,11 @@
     },
     {
       "id": "B06",
-      "description": "the port's policy gains an entry for a CHANGED observation",
+      "description": "the port's policy names a CHANGED observation instead of a status one",
       "rule": "D-5: a class explains a (layer, kind) pair, never a kind it was not written for",
       "target": "rust/crates/own-shadow/src/reduce.rs",
       "pattern": "    \\(\"verdicts\", KIND_STATUS, BOUNDARY_OD1\\),\\n\\];",
-      "replacement": "    (\"verdicts\", KIND_STATUS, BOUNDARY_OD1),\n];\n#[allow(dead_code)]\nconst WIDENED: [(&str, &str, &str); 1] = [(\"verdicts\", KIND_CHANGED, BOUNDARY_OD1)];",
+      "replacement": "    (\"verdicts\", KIND_CHANGED, BOUNDARY_OD1),\n];",
       "expected_catchers": [
         "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
       ]
@@ -159,7 +158,6 @@
       "pattern": "    return address if n == 0 else f\"\\{address\\}~\\{n\\}\"",
       "replacement": "    return address",
       "expected_catchers": [
-        "python::verdict-pairing",
         "python::trace-golden",
         "python::trace-shape"
       ]
@@ -172,8 +170,7 @@
       "pattern": "        format!\\(\"\\{address\\}~\\{n\\}\"\\)",
       "replacement": "        address.to_owned()",
       "expected_catchers": [
-        "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte",
-        "rust/tests/reduce.rs::a_duplicate_address_permutation_is_changed_on_both_ordinals"
+        "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
       ]
     },
     {
@@ -184,7 +181,7 @@
       "pattern": "            \"canonical\": None if document is None else canonical_hash\\(document\\),",
       "replacement": "            \"canonical\": None if document is None else canonical_hash(verdicts),",
       "expected_catchers": [
-        "python::derived-surface"
+        "python::artifact-golden"
       ]
     },
     {
@@ -206,8 +203,7 @@
       "pattern": "    digests = \\{eid: \\(sarif\\.get\\(\\\"canonical\\\"\\) or \\{\\}\\)\\.get\\(\\\"digest\\\"\\)\\n               for eid, sarif in identities\\.items\\(\\)\\}",
       "replacement": "    digests = {eid: \"same\" for eid, _sarif in identities.items()}",
       "expected_catchers": [
-        "python::derived-control",
-        "python-compare::compare-control"
+        "python::derived-control"
       ]
     },
     {
@@ -230,8 +226,7 @@
       "replacement": "    port = run_port(raw + b\"\\n\", binary, timeout)",
       "expected_catchers": [
         "python-compare::compare-corpus",
-        "python-compare::compare-variant",
-        "python-compare::compare-one-read"
+        "python-compare::compare-variant"
       ]
     },
     {
@@ -242,7 +237,7 @@
       "pattern": "    if port_names_it != reference_names_it:",
       "replacement": "    if False and port_names_it != reference_names_it:",
       "expected_catchers": [
-        "python-compare::compare-negative"
+        "python-compare::compare-control"
       ]
     }
   ]

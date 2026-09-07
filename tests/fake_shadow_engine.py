@@ -35,6 +35,9 @@ Modes:
   hang               never terminate
   garbage            write something that is not JSON
   bad_protocol       a capture in a protocol version the driver does not speak
+  cannot_name_it     report that these bytes are not a document at all, while
+                     the reference names them — the disagreement that is the
+                     OWNER's decision and not a comparison result
   rewrite_input      overwrite the file named by `OWN_FAKE_ENGINE_REWRITE`,
                      then behave faithfully — so a driver that re-read its
                      input would pick up different bytes after this point
@@ -94,7 +97,10 @@ def main() -> int:
     except Exception as e:  # a double reports what happened; it does not classify it
         canonical, canonical_error = None, str(e)
 
-    if mode == "canonical_consumed":
+    if mode == "cannot_name_it":
+        canonical, canonical_error = None, (
+            "fake_shadow_engine: this engine does not name these bytes")
+    elif mode == "canonical_consumed":
         # The exact trap owner decision B-2 exists to catch: an engine that
         # hashes what it PARSED rather than what it READ. Every raw variant of
         # one document would then attest the same identity, and "both engines

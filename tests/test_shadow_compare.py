@@ -204,8 +204,10 @@ def _double_controls() -> list[tuple[str, str]]:
                           f"{done.returncode}: the driver read the file more than "
                           f"once. {done.stderr[:400]}"))
         else:
-            result = json.loads(done.stdout)
-            if result["input"]["raw"]["digest"] != hashlib.sha256(base_raw).hexdigest():
+            result = _result_of(done, "the one-read invariant", fails)
+            if (result is not None
+                    and result["input"]["raw"]["digest"]
+                    != hashlib.sha256(base_raw).hexdigest()):
                 fails.append(("compare-one-read",
                               "the artifact names the REWRITTEN bytes: the driver "
                               "re-read its input"))
@@ -215,7 +217,15 @@ def _double_controls() -> list[tuple[str, str]]:
                               "the control's stand-in did not actually rewrite the "
                               "input, so the one-read property was never tested"))
 
-        # 8. Equal verdict layers, different rendered SARIF: the one thing the
+        # 8. THE branch that is nobody's to decide: one engine names the input
+        #    and the other does not. No corpus document reaches it (F.0 measured
+        #    zero disagreements), so the driver's stop-and-report path had no
+        #    control at all until a surviving mutation said so.
+        expect("an engine that cannot name an input the reference can",
+               "cannot_name_it", EXIT_INPUT_DISAGREEMENT,
+               "domain decision for the repository owner")
+
+        # 9. Equal verdict layers, different rendered SARIF: the one thing the
         #    derived surface is compared separately in order to catch.
         done = expect("a renderer that drops a relatedLocations entry",
                       "renderer_drop", EXIT_DIVERGED, "renderer-only divergence",
@@ -233,6 +243,26 @@ def _double_controls() -> list[tuple[str, str]]:
                                   f"the full documents are kept on mismatch, and "
                                   f"one side's alone is not a diff"))
     return fails
+
+
+def _result_of(done: subprocess.CompletedProcess[str], label: str,
+               fails: list[tuple[str, str]]) -> dict[str, object] | None:
+    """The driver's JSON result, or a reported failure.
+
+    Never a raised `JSONDecodeError`: the driver writes its result to stdout on
+    agreement and its reason to stderr otherwise, so a control that called
+    `json.loads` on stdout unconditionally turned every unexpected divergence
+    into a traceback with no FAIL line — which the campaign then recorded as an
+    unattributed catch. A control that cannot say what it saw is worth less than
+    one that can."""
+    try:
+        parsed = json.loads(done.stdout)
+    except json.JSONDecodeError:
+        fails.append(("compare-control",
+                      f"{label}: the driver wrote no result on stdout (exit "
+                      f"{done.returncode}). stderr: {done.stderr[:400]}"))
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _read(directory: str, name: str) -> str:
@@ -273,7 +303,9 @@ def _adapter_controls(adapter: str) -> list[tuple[str, str]]:
                               f"raw variant of a document both engines accept. "
                               f"{done.stderr[:300]}"))
                 continue
-            result = json.loads(done.stdout)
+            result = _result_of(done, variant, fails)
+            if result is None:
+                continue
             digest = result["input"]["raw"]["digest"]
             expected = hashlib.sha256(raw).hexdigest()
             if digest != expected:
@@ -351,9 +383,10 @@ def run() -> int:
     through_adapter = ("" if adapter is None else
                        ", 5 raw-variant + 3 negative controls and the whole "
                        "committed corpus through the real adapter")
-    print(f"shadow compare controls OK: 9 double-driven controls held (crash, "
+    print(f"shadow compare controls OK: 10 double-driven controls held (crash, "
           f"timeout, garbage, protocol skew, three attestation traps, the "
-          f"one-read invariant and a renderer-only divergence)"
+          f"one-read invariant, an input disagreement and a renderer-only "
+          f"divergence)"
           f"{through_adapter}")
     return 0
 
