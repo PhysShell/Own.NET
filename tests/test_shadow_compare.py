@@ -61,6 +61,7 @@ EXIT_DIVERGED = 1
 EXIT_EXECUTION_FAILURE = 2
 EXIT_INPUT_REFUSED = 3
 EXIT_INPUT_DISAGREEMENT = 4
+EXIT_USAGE = 5
 
 REQUIRED_ENV = "OWN_SHADOW_COMPARE_REQUIRED"
 
@@ -87,6 +88,33 @@ def _adapter() -> str | None:
     return None
 
 
+def _double_engine(directory: str) -> str:
+    """The stand-in, in a form this platform can actually start.
+
+    The driver runs its adapter as ONE argv entry, because the real adapter is
+    a binary that takes no arguments (owner decision R-1). POSIX starts
+    `fake_shadow_engine.py` from its shebang. Windows cannot start a `.py` at
+    all — `CreateProcess` does not consult file associations — so every
+    double-driven control failed there with `WinError 193`, and the group whose
+    whole point is that it "runs everywhere, including the Python-only test
+    matrix" did not run on Windows at all. A one-line launcher beside it is the
+    smallest thing that keeps the driver's contract intact and the controls
+    running on both platforms; it is also the file whose digest the driver then
+    records, which is correct — it is the file that ran."""
+    if os.name != "nt":
+        return FAKE
+    launcher = os.path.join(directory, "fake_shadow_engine.cmd")
+    with open(launcher, "w", encoding="ascii", newline="\r\n") as f:
+        f.write("@echo off\n")
+        f.write(f'"{sys.executable}" "{FAKE}" %*\n')
+    return launcher
+
+
+def _digest(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
 def _run(args: list[str], *, engine: str, mode: str | None = None,
          extra_env: dict[str, str] | None = None,
          timeout: float = 300.0) -> subprocess.CompletedProcess[str]:
@@ -106,6 +134,8 @@ def _double_controls() -> list[tuple[str, str]]:
     """The driver's reaction to a child that misbehaves (owner decision R-2)."""
     fails: list[tuple[str, str]] = []
     with tempfile.TemporaryDirectory() as out:
+        fake_engine = _double_engine(out)
+
         def expect(label: str, mode: str, code: int, needle: str,
                    artifact_forbidden: bool = True,
                    extra_env: dict[str, str] | None = None,
@@ -114,7 +144,7 @@ def _double_controls() -> list[tuple[str, str]]:
             case_out = os.path.join(out, mode)
             try:
                 done = _run([*(args or [BASE]), "--out", case_out],
-                            engine=FAKE, mode=mode, extra_env=extra_env,
+                            engine=fake_engine, mode=mode, extra_env=extra_env,
                             timeout=timeout)
             except subprocess.TimeoutExpired:
                 fails.append(("compare-control",
@@ -206,7 +236,7 @@ def _double_controls() -> list[tuple[str, str]]:
         target = os.path.join(out, "rewritten.facts.json")
         os.makedirs(out, exist_ok=True)
         shutil.copyfile(BASE, target)
-        done = _run([target], engine=FAKE, mode="rewrite_input",
+        done = _run([target], engine=fake_engine, mode="rewrite_input",
                     extra_env={"OWN_FAKE_ENGINE_REWRITE": target})
         if done.returncode != EXIT_AGREED:
             fails.append(("compare-one-read",
@@ -252,6 +282,224 @@ def _double_controls() -> list[tuple[str, str]]:
                                   f"{sorted(documents)} — owner decision D-6 says "
                                   f"the full documents are kept on mismatch, and "
                                   f"one side's alone is not a diff"))
+    return fails
+
+
+def _manifest_controls() -> list[tuple[str, str]]:
+    """The v2 surfaces: the adapter's identity, a manifest run's provenance and
+    denominators, and the rule that an empty set is not agreement.
+
+    Double-driven throughout — the subject is the driver's bookkeeping, not
+    what the two engines say about a document, so every entry names the same
+    committed document under a different source label. Three copies of one file
+    is exactly the point: the counts must come from the OUTCOMES, and nothing
+    else about these three differs."""
+    fails: list[tuple[str, str]] = []
+    with open(BASE, "rb") as f:
+        base_raw = f.read()
+    base_digest = hashlib.sha256(base_raw).hexdigest()
+
+    with tempfile.TemporaryDirectory() as work:
+        engine = _double_engine(work)
+        engine_digest = _digest(engine)
+        # A SECOND adapter on disk, one line different, so "the digest of the
+        # file that ran" and "the digest of some adapter" cannot be the same
+        # answer. Without it, a driver that hashed the wrong file would still
+        # produce a digest and every assertion below would pass.
+        decoy = os.path.join(work, "decoy_engine" + os.path.splitext(engine)[1])
+        with open(engine, "rb") as f:
+            decoy_bytes = f.read() + b"\n@rem a different adapter\n"
+        with open(decoy, "wb") as f:
+            f.write(decoy_bytes)
+        decoy_digest = hashlib.sha256(decoy_bytes).hexdigest()
+        if decoy_digest == engine_digest:
+            fails.append(("compare-adapter-identity",
+                          "the decoy adapter hashes to the same value as the one "
+                          "that runs, so this control proves nothing"))
+
+        def manifest(name: str, documents: list[dict[str, object]],
+                     targets: list[str] | None = None) -> str:
+            path = os.path.join(work, f"{name}.manifest.json")
+            body: dict[str, object] = {"schema": 1, "documents": documents}
+            if targets is not None:
+                body["targets"] = targets
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(body, f, indent=2)
+            return path
+
+        def entry(source: str, target: str,
+                  digest: str = base_digest) -> dict[str, object]:
+            path = os.path.join(work, source)
+            with open(path, "wb") as f:
+                f.write(base_raw)
+            return {"source": path, "target": target,
+                    "target_commit": "0" * 40,
+                    "extraction_mode": "directory-walk",
+                    "extraction_command": "scripts/own-check.sh --emit-facts …",
+                    "facts_sha256": digest, "timeout_seconds": 120.0}
+
+        # 1. THE adapter identity, in a green result: the digest is of the file
+        #    that ran, and provably not of the other adapter beside it.
+        done = _run([BASE], engine=engine, mode="faithful")
+        result = _result_of(done, "the adapter identity", fails)
+        if result is not None:
+            if result.get("engine_binary_sha256") != engine_digest:
+                fails.append(("compare-adapter-identity",
+                              f"the result names adapter digest "
+                              f"{result.get('engine_binary_sha256')}, the file the "
+                              f"driver was told to run hashes to {engine_digest} — "
+                              f"a recorded comparison that names the wrong engine "
+                              f"is a recorded comparison of nothing"))
+            if result.get("engine_binary_sha256") == decoy_digest:
+                fails.append(("compare-adapter-identity",
+                              "the result names the DECOY adapter's digest: the "
+                              "identity was taken from a file other than the one "
+                              "that ran"))
+            if result.get("engine_binary_bytes") != os.path.getsize(engine):
+                fails.append(("compare-adapter-identity",
+                              f"the result names "
+                              f"{result.get('engine_binary_bytes')} adapter bytes, "
+                              f"the file that ran is {os.path.getsize(engine)}"))
+            if result.get("shadow_compare_version") != 2:
+                fails.append(("compare-adapter-identity",
+                              f"the result declares shadow_compare_version "
+                              f"{result.get('shadow_compare_version')!r}; the "
+                              f"adapter identity is what version 2 IS"))
+
+        # 2. ...and in a FAILURE REPORT, where it matters at least as much: a
+        #    crash you cannot attribute to a build is a crash you cannot chase.
+        crash_out = os.path.join(work, "crash")
+        done = _run([BASE, "--out", crash_out], engine=engine, mode="crash")
+        reports = ([n for n in sorted(os.listdir(crash_out))
+                    if n.endswith(".failure.json")]
+                   if os.path.isdir(crash_out) else [])
+        if done.returncode != EXIT_EXECUTION_FAILURE or not reports:
+            fails.append(("compare-adapter-identity",
+                          f"a crashing adapter produced no failure report (exit "
+                          f"{done.returncode})"))
+        else:
+            report = json.loads(_read(crash_out, reports[0]))
+            if report.get("engine_binary_sha256") != engine_digest:
+                fails.append(("compare-adapter-identity",
+                              f"the failure report names adapter digest "
+                              f"{report.get('engine_binary_sha256')}, expected "
+                              f"{engine_digest}"))
+
+        # 3. An EMPTY manifest is a failure, not agreement — #250's fifth
+        #    failure mode, as an executable rule.
+        empty_out = os.path.join(work, "empty")
+        done = _run(["--manifest", manifest("empty", []), "--out", empty_out],
+                    engine=engine, mode="faithful")
+        if done.returncode != EXIT_USAGE:
+            fails.append(("compare-empty-set",
+                          f"an empty manifest exited {done.returncode}, expected "
+                          f"{EXIT_USAGE}: a run that compared zero documents "
+                          f"reported something other than failure"))
+        if "ZERO" not in done.stdout + done.stderr:
+            fails.append(("compare-empty-set",
+                          "an empty run did not say that it compared zero "
+                          "documents"))
+
+        # 4. A DIGEST MISMATCH stops the run before any engine is started. The
+        #    double is in `crash` mode: had one been started, the exit would be
+        #    the execution-failure code rather than the usage one, and a failure
+        #    report would exist.
+        stale_out = os.path.join(work, "stale")
+        stale = manifest("stale", [entry("stale.facts.json", "T", "0" * 64)])
+        done = _run(["--manifest", stale, "--out", stale_out],
+                    engine=engine, mode="crash")
+        blob = done.stdout + done.stderr
+        if done.returncode != EXIT_USAGE:
+            fails.append(("compare-manifest-digest",
+                          f"a manifest whose facts_sha256 does not match the file "
+                          f"exited {done.returncode}, expected {EXIT_USAGE}"))
+        if "no engine was run" not in blob:
+            fails.append(("compare-manifest-digest",
+                          f"the driver did not say that it refused before running "
+                          f"an engine. Output: {blob[:400]}"))
+        written = sorted(os.listdir(stale_out)) if os.path.isdir(stale_out) else []
+        if written:
+            fails.append(("compare-manifest-digest",
+                          f"the driver wrote {written} for a manifest it refused: "
+                          f"the digest check happens BEFORE any engine runs, so "
+                          f"there is nothing to report about"))
+
+        # 5. The counts come from the OUTCOMES. The same three documents twice:
+        #    once with a faithful double (all agree) and once with one that
+        #    attests nothing (all diverge). A summary that counted entries
+        #    rather than outcomes would be identical in both runs.
+        documents = [entry("a.facts.json", "alpha"),
+                     entry("b.facts.json", "alpha"),
+                     entry("c.facts.json", "beta")]
+        good = manifest("good", documents, targets=["alpha", "beta"])
+        for mode, code, agreed, diverged in (("faithful", EXIT_AGREED, 3, 0),
+                                             ("no_consumed", EXIT_DIVERGED, 0, 3)):
+            run_out = os.path.join(work, f"summary_{mode}")
+            done = _run(["--manifest", good, "--out", run_out, "--quiet"],
+                        engine=engine, mode=mode)
+            if done.returncode != code:
+                fails.append(("compare-summary",
+                              f"a manifest run with a {mode} double exited "
+                              f"{done.returncode}, expected {code}. "
+                              f"{done.stderr[:300]}"))
+            path = os.path.join(run_out, "summary.json")
+            if not os.path.exists(path):
+                fails.append(("compare-summary",
+                              f"a {mode} manifest run wrote no summary.json — the "
+                              f"run summary is the record, and it is written "
+                              f"whether or not the run agreed"))
+                continue
+            summary = json.loads(_read(run_out, "summary.json"))
+            totals = summary.get("totals", {})
+            want = {"documents_extracted": 3, "compare_attempted": 3,
+                    "agreed": agreed, "diverged": diverged}
+            for field, value in want.items():
+                if totals.get(field) != value:
+                    fails.append(("compare-summary",
+                                  f"{mode}: totals[{field!r}] is "
+                                  f"{totals.get(field)!r}, expected {value}"))
+            rows = {row["target"]: row for row in summary.get("targets", [])}
+            if sorted(rows) != ["alpha", "beta"]:
+                fails.append(("compare-summary",
+                              f"{mode}: the summary names targets {sorted(rows)}, "
+                              f"expected the two the manifest declares"))
+            elif (rows["alpha"]["compare_attempted"] != 2
+                  or rows["beta"]["compare_attempted"] != 1):
+                fails.append(("compare-summary",
+                              f"{mode}: the per-target denominators are not the "
+                              f"manifest's ({rows['alpha']}, {rows['beta']})"))
+            if summary.get("engine_binary_sha256") != engine_digest:
+                fails.append(("compare-summary",
+                              f"{mode}: the summary names adapter digest "
+                              f"{summary.get('engine_binary_sha256')}, expected "
+                              f"{engine_digest}"))
+            results = [n for n in sorted(os.listdir(run_out))
+                       if n.endswith(".result.json")]
+            if len(results) != 3:
+                fails.append(("compare-summary",
+                              f"{mode}: {len(results)} per-document result(s) "
+                              f"written, expected 3 — a manifest run IS the "
+                              f"record, so every document's result is written"))
+
+        # 6. A DECLARED target the run never reached fails it. Without the
+        #    declaration such a target is simply absent from the summary, which
+        #    is the shape a skipped repository would have.
+        skipped_out = os.path.join(work, "skipped")
+        skipped = manifest("skipped", documents,
+                           targets=["alpha", "beta", "gamma"])
+        done = _run(["--manifest", skipped, "--out", skipped_out, "--quiet"],
+                    engine=engine, mode="faithful")
+        blob = done.stdout + done.stderr
+        if done.returncode != EXIT_USAGE:
+            fails.append(("compare-skipped-target",
+                          f"a declared target with no documents exited "
+                          f"{done.returncode}, expected {EXIT_USAGE}: every "
+                          f"document that DID run agreed, and the run still is "
+                          f"not evidence about 'gamma'"))
+        if "gamma" not in blob:
+            fails.append(("compare-skipped-target",
+                          f"the driver did not name the target it never reached. "
+                          f"Output: {blob[:400]}"))
     return fails
 
 
@@ -370,6 +618,7 @@ def _adapter_controls(adapter: str) -> list[tuple[str, str]]:
 def run() -> int:
     fails: list[tuple[str, str]] = []
     fails += _double_controls()
+    fails += _manifest_controls()
     adapter = _adapter()
     required = os.environ.get(REQUIRED_ENV) == "1"
     if adapter is None:
@@ -397,7 +646,11 @@ def run() -> int:
     print(f"shadow compare controls OK: 10 double-driven controls held (crash, "
           f"timeout, garbage, protocol skew, three attestation traps, the "
           f"one-read invariant, an input disagreement and a renderer-only "
-          f"divergence)"
+          f"divergence), 6 manifest/identity controls (the adapter named by the "
+          f"digest of the file that ran, in a result and in a failure report; an "
+          f"empty run; a stale facts_sha256 refused before any engine; the "
+          f"summary counts derived from the outcomes; a declared target nothing "
+          f"reached)"
           f"{through_adapter}")
     return 0
 
