@@ -75,11 +75,11 @@
   "mutations": [
     {
       "id": "M53",
-      "description": "the reduction scope becomes a literal COPY of the layer order instead of the alias (owner decision D-4 re-anchored: the checkpoint's rule was 'the scope is a contract, not a parameter'; the owner changed WHAT that contract says, not that there is one)",
+      "description": "the reduction scope becomes a runtime COPY of the layer order instead of the alias (owner decision D-4 re-anchored). Built at runtime rather than written as a literal, because CPython folds two equal constant tuples in one code object to one object and an identity check cannot see the difference — recorded in the note as a limit of the rule, not of the mutation",
       "rule": "the reduction scope IS the layer order — aliased, never a third copy",
       "target": "ownlang/repro.py",
       "pattern": "REDUCTION_SCOPE: tuple\\[str, \\.\\.\\.\\] = LAYER_ORDER",
-      "replacement": "REDUCTION_SCOPE: tuple[str, ...] = (\"lowered\", \"summaries\", \"verdicts\")",
+      "replacement": "REDUCTION_SCOPE: tuple[str, ...] = tuple(x for x in LAYER_ORDER)",
       "expected_catchers": [
         "python::reduction-scope"
       ]
@@ -163,11 +163,11 @@
     },
     {
       "id": "M61",
-      "description": "the port's reduction scope is narrowed back to two layers",
+      "description": "the port's reduction scope drops the verdict layer",
       "rule": "the reduction scope is a contract decision, not a parameter",
       "target": "rust/crates/own-shadow/src/reduce.rs",
       "pattern": "pub const REDUCTION_SCOPE: \\[&str; 3\\] = LAYER_ORDER;",
-      "replacement": "pub const REDUCTION_SCOPE: [&str; 2] = [\"lowered\", \"summaries\"];",
+      "replacement": "pub const REDUCTION_SCOPE: [&str; 3] = [\"lowered\", \"summaries\", \"summaries\"];",
       "expected_catchers": [
         "rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte",
         "rust-reduce/tests/reduce.rs::the_reduction_scope_is_the_layer_order_and_nothing_is_excluded"

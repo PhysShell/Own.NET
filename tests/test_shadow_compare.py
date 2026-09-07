@@ -66,14 +66,24 @@ REQUIRED_ENV = "OWN_SHADOW_COMPARE_REQUIRED"
 
 
 def _adapter() -> str | None:
-    """The real adapter, if it has been built."""
+    """The real adapter, named EXPLICITLY or not used.
+
+    This used to discover `rust/target/{release,debug}/own-shadow-engine`, and
+    the mutation campaign measured why that was wrong: a campaign restores the
+    SOURCE it mutated but not the binary a previous mutation's `cargo test`
+    left behind, so this group silently ran against an adapter built from
+    another mutation's tree. A control whose subject depends on build state
+    nobody declared is a control that measures the wrong thing on some runs and
+    the right thing on others.
+
+    Explicit is therefore the contract: CI names the binary it just built, and
+    a run that does not name one runs the double-driven group only — the group
+    whose subject is the DRIVER, which is what a campaign over the driver
+    mutates. `OWN_SHADOW_COMPARE_REQUIRED=1` makes the absence a failure rather
+    than a stand-down."""
     from_env = os.environ.get("OWN_SHADOW_ENGINE")
     if from_env and os.path.exists(from_env):
         return from_env
-    for profile in ("release", "debug"):
-        candidate = os.path.join(ROOT, "rust", "target", profile, "own-shadow-engine")
-        if os.path.exists(candidate):
-            return candidate
     return None
 
 
@@ -370,9 +380,10 @@ def run() -> int:
                           f"--bin own-shadow-engine"))
         else:
             print("shadow compare: SKIPPED the adapter-driven controls — no "
-                  "own-shadow-engine binary. Build it (cd rust && cargo build -p "
-                  "own-shadow --bin own-shadow-engine) or run the shadow compare "
-                  "CI job, which sets " + REQUIRED_ENV + "=1 and cannot skip.")
+                  "OWN_SHADOW_ENGINE names a built adapter. Build it (cd rust && "
+                  "cargo build -p own-shadow --bin own-shadow-engine) and export "
+                  "OWN_SHADOW_ENGINE, or run the shadow compare CI job, which "
+                  "sets it beside " + REQUIRED_ENV + "=1 and cannot skip.")
     else:
         fails += _adapter_controls(adapter)
 

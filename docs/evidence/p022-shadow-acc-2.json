@@ -225,8 +225,7 @@
       "pattern": "    port = run_port\\(raw, binary, timeout\\)",
       "replacement": "    port = run_port(raw + b\"\\n\", binary, timeout)",
       "expected_catchers": [
-        "python-compare::compare-corpus",
-        "python-compare::compare-variant"
+        "python-compare::compare-one-read"
       ]
     },
     {
