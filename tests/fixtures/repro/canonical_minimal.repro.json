@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+      "bytes": 48,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
@@ -15,140 +21,11 @@
   "engines": [
     {
       "id": "python-ownlang",
-      "layers": [
-        {
-          "layer": "lowered",
-          "surface_version": 1,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "lowered_version": 1,
-            "module": "Minimal",
-            "resources": [
-              {
-                "name": "Subscription",
-                "kind": "subscription token",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Subscribe"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Dispose"
-                  }
-                ]
-              },
-              {
-                "name": "Timer",
-                "kind": "timer",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Start"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Stop"
-                  }
-                ]
-              },
-              {
-                "name": "Disposable",
-                "kind": "disposable field",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "New"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Dispose"
-                  }
-                ]
-              },
-              {
-                "name": "PooledBuffer",
-                "kind": "pooled buffer",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Rent"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Return"
-                  }
-                ]
-              }
-            ],
-            "externs": [
-              {
-                "name": "$consume",
-                "params": [
-                  {
-                    "effect": "consume",
-                    "type": "Disposable"
-                  }
-                ]
-              },
-              {
-                "name": "$borrow",
-                "params": [
-                  {
-                    "effect": "borrow",
-                    "type": "Disposable"
-                  }
-                ]
-              },
-              {
-                "name": "$borrow_mut",
-                "params": [
-                  {
-                    "effect": "borrow_mut",
-                    "type": "Disposable"
-                  }
-                ]
-              }
-            ],
-            "lifetimes": [],
-            "functions": [],
-            "handles": []
-          }
-        },
-        {
-          "layer": "summaries",
-          "surface_version": null,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "degraded": null,
-            "module": "Minimal",
-            "ownir_version": 0,
-            "summaries": [],
-            "unresolved": []
-          }
-        },
-        {
-          "layer": "verdicts",
-          "surface_version": 1,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "verdicts_version": 1,
-            "findings": []
-          }
-        }
-      ]
-    },
-    {
-      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "bytes": 48
+      },
       "layers": [
         {
           "layer": "lowered",

@@ -90,13 +90,41 @@ The canonical form exists for **one** job: to name an input. It is deliberately
 
 ```text
 {
-  "repro_version": 1,
+  "repro_version": 3,
   "input": {"ownir_version": <verbatim or null>,
+            "raw": {"algorithm": "sha256", "digest": ..., "bytes": ...,
+                    "base64": <the byte-exact input>},
             "canonical": {"algorithm": "sha256", "digest": ..., "bytes": ...},
             "document": <the parsed facts document>},
-  "engines": [{"id": "python-ownlang", "layers": [...]}]
+  "engines": [{"id": "python-ownlang",
+               "consumed": {"algorithm": "sha256", "digest": ..., "bytes": ...},
+               "layers": [...]}]
 }
 ```
+
+* **Version history**: 1 was the format above without `projection`, `raw`,
+  `consumed` or `derived`; 2 added the layer envelope's `projection` (the
+  engine protocol); **3 added the raw input and the per-engine consumption
+  attestation** (owner decision B-2), and the derived SARIF surface (D-6).
+* **`input.raw` is the input; `input.document` is what it parses to.** The two
+  are not redundant and the order is the reading order. Checkpoint 1 could
+  only establish *canonical document identity* — two files differing in
+  whitespace, in key order, or in how a duplicate key resolves share one
+  canonical identity, because the canonical form is designed not to see those
+  differences (owner decision B-1). #260's invariant is one level stronger:
+  both engines consumed the identical byte sequence. So the artifact carries
+  the bytes, and every engine entry carries `consumed` — the identity of what
+  IT read, taken before any decode or parse. Verification walks the whole
+  chain: decode the base64, check its length and digest, parse it, check that
+  the parse reproduces `input.canonical`, check `input.document` against the
+  same identity, and check every engine's `consumed` against `input.raw`'s.
+  A `consumed` that disagrees means the two captures are not of one input,
+  whatever else the artifact says.
+* **Every `consumed` comes from a run** (owner decision B-3). Nothing computes
+  one from `input.raw`, on either side: [`capture`] takes bytes and hashes them
+  on its first line, and `--write` refuses to carry a foreign entry that has
+  none rather than filling one in — a promoted version-2 entry would be an
+  attestation of an execution that never happened.
 
 * **Self-contained.** The input document is *embedded*, not referenced by
   path, so an artifact reproduces without the corpus it came from — and the
@@ -215,6 +243,7 @@ same trace — all with zero Python.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import re
@@ -227,7 +256,12 @@ from .verdicts import project_verdicts
 # The artifact format version. Bump on ANY change to the frozen decisions
 # above — the committed artifacts and the Rust replay are both keyed to it.
 # 2 added the layer envelope's `projection` (checkpoint 2, the engine protocol).
-REPRO_VERSION = 2
+# 3 added the raw input and the per-engine consumption attestation (owner
+#   decision B-2), and the derived SARIF surface beside `layers` (D-6). Both
+#   land together and no version-3 artifact is written without either, so they
+#   share one number rather than inventing an intermediate version no artifact
+#   was ever emitted at.
+REPRO_VERSION = 3
 
 # The digest over the canonical form. One algorithm, named in the artifact so
 # a future change is a visible contract change rather than a silent reinterpretation
@@ -364,12 +398,73 @@ def canonical_bytes(value: Any) -> bytes:
 
 def canonical_hash(value: Any) -> dict[str, Any]:
     """`{"algorithm", "digest", "bytes"}` over the canonical form."""
-    raw = canonical_bytes(value)
+    return hash_bytes(canonical_bytes(value))
+
+
+def hash_bytes(raw: bytes) -> dict[str, Any]:
+    """`{"algorithm", "digest", "bytes"}` over a byte sequence, whatever it is.
+
+    ONE hasher for both identities the artifact carries — the canonical form's
+    and the raw input's — so "the same algorithm" is a fact about the code
+    rather than a claim about two functions."""
     return {
         "algorithm": CANONICAL_ALGORITHM,
         "digest": hashlib.sha256(raw).hexdigest(),
         "bytes": len(raw),
     }
+
+
+def encode_raw(raw: bytes) -> dict[str, Any]:
+    """The artifact's `input.raw`: the byte-exact input, plus its identity.
+
+    The identity is taken **before** anything decodes or parses (owner decision
+    B-2): a digest computed after a decode would name whatever the decode
+    produced, which is precisely the level B-1 says is not enough.
+
+    `base64` is standard alphabet with padding and no line breaks —
+    **canonical**, which here means `b64encode(b64decode(s)) == s`. That
+    equality is the whole rule, and it is the one both verifiers check, so a
+    non-canonical encoding (stray whitespace, a wrong pad, non-zero discarded
+    bits) is refused by both rather than accepted by one."""
+    return {**hash_bytes(raw), "base64": base64.b64encode(raw).decode("ascii")}
+
+
+def decode_raw(encoded: str) -> bytes:
+    """`input.raw.base64` back to bytes, refusing a non-canonical encoding.
+
+    Raises `ReproError` — never a partially-decoded value, because a decoder
+    that repaired its input would let the artifact's own attestation pass over
+    bytes nobody wrote."""
+    try:
+        raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+    except (ValueError, UnicodeEncodeError) as e:
+        raise ReproError(f"input.raw.base64 is not valid base64: {e}") from e
+    if base64.b64encode(raw).decode("ascii") != encoded:
+        raise ReproError(
+            "input.raw.base64 is not canonical base64: re-encoding the bytes it "
+            "decodes to does not reproduce it, so more than one spelling would "
+            "attest the same input")
+    return raw
+
+
+def load_bytes(raw: bytes) -> Any:
+    """Parse one JSON document from **bytes**, over the closed canonical domain.
+
+    The bytes entry point, because #260's same-input invariant is byte-level
+    (B-1) and every text-mode read on the way in is a place a difference gets
+    normalized away before anyone can see it: `open(..., encoding="utf-8")`
+    translates CRLF to LF, and a `str` no longer remembers which it was.
+
+    Two refusal stages, and which one fired is data rather than noise: a
+    sequence that is not UTF-8 at all never reaches JSON, and saying so is what
+    distinguishes it from a document that decodes and does not parse."""
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise ReproError(
+            f"the input is not valid UTF-8, so it is not a JSON document at "
+            f"all: {e}") from e
+    return load_document(text)
 
 
 def _layer(name: str, surface_version: Any, doc: dict[str, Any],
@@ -419,20 +514,42 @@ def project_layers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def project_repro(facts: dict[str, Any],
+def capture(raw: bytes) -> dict[str, Any]:
+    """This engine's capture of one **byte sequence**: the `engines[]` entry.
+
+    The port's twin is `own_shadow::capture`, and both take bytes for the same
+    reason: `consumed` has to name what this engine actually read, and the only
+    way to make that structurally true rather than asserted is to give the
+    engine nothing else to read. The identity is taken on the FIRST line,
+    before a decode or a parse can turn the bytes into something else (B-2).
+
+    Every `consumed` claim in a v3 artifact therefore comes from an execution
+    of the engine that claims it (B-3) — there is no code path that computes
+    one from an artifact's `input.raw`, which is what a promoted v2 entry would
+    have needed."""
+    consumed = hash_bytes(raw)
+    facts = load_bytes(raw)
+    return {"id": ENGINE_PYTHON, "consumed": consumed, "layers": project_layers(facts)}
+
+
+def project_repro(raw: bytes,
                   foreign: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """Project one facts document into the canonical reproduction artifact,
+    """Project one **byte sequence** into the canonical reproduction artifact,
     carrying the reference engine's capture — and any `foreign` engine captures
     handed in, carried through **verbatim**.
+
+    Takes bytes rather than a parsed document because v3's central claim is
+    about bytes: `input.raw` is the sequence, `input.document` is what it
+    parses to, and a signature that accepted the document could only ever
+    attest a re-serialization of it.
 
     An engine writes only its own entry: this function authors
     `python-ownlang` and never invents another engine's numbers. The foreign
     entries come from a previously committed artifact (`--write` reads them
     back before overwriting), which is what lets the two halves of the protocol
-    be produced independently, each with zero of the other's runtime. Never
-    mutates `facts`."""
-    engines: list[dict[str, Any]] = [
-        {"id": ENGINE_PYTHON, "layers": project_layers(facts)}]
+    be produced independently, each with zero of the other's runtime."""
+    facts = load_bytes(raw)
+    engines: list[dict[str, Any]] = [capture(raw)]
     for entry in foreign or []:
         if isinstance(entry, dict) and entry.get("id") != ENGINE_PYTHON:
             engines.append(entry)
@@ -445,6 +562,7 @@ def project_repro(facts: dict[str, Any],
             # explicitly-null both read as `null` here; the distinction stays
             # recoverable from the embedded document itself.
             "ownir_version": facts.get("ownir_version"),
+            "raw": encode_raw(raw),
             "canonical": canonical_hash(facts),
             "document": facts,
         },
@@ -452,11 +570,11 @@ def project_repro(facts: dict[str, Any],
     }
 
 
-def render_repro(facts: dict[str, Any],
+def render_repro(raw: bytes,
                  foreign: list[dict[str, Any]] | None = None) -> str:
     """The canonical serialized artifact: construction order, 2-space indent,
     non-ASCII preserved, trailing newline. Byte-identical on re-run."""
-    return json.dumps(project_repro(facts, foreign), indent=2,
+    return json.dumps(project_repro(raw, foreign), indent=2,
                       ensure_ascii=False) + "\n"
 
 
@@ -468,9 +586,12 @@ def verify_repro(artifact: Any) -> list[str]:
     reproduction.
 
     Structural rules checked, in order: the format version; the input envelope;
-    the recomputed canonical hash; the engine array against the frozen
-    vocabulary and order; each engine's layer array against the frozen layer
-    order; and each layer envelope's status/payload agreement."""
+    the recomputed canonical hash; **the raw-input chain** (base64 decodes, its
+    length and digest hold, it parses, and the parse reproduces the claimed
+    canonical identity); the engine array against the frozen vocabulary and
+    order; **each engine's `consumed` against `input.raw`'s identity**; each
+    engine's layer array against the frozen layer order; and each layer
+    envelope's status/payload agreement."""
     problems: list[str] = []
     if not isinstance(artifact, dict):
         return [f"artifact is {type(artifact).__name__}, not an object"]
@@ -483,10 +604,11 @@ def verify_repro(artifact: Any) -> list[str]:
         problems.append(f"unknown artifact member(s): {extra}")
 
     inp = artifact.get("input")
+    raw_identity: dict[str, Any] | None = None
     if not isinstance(inp, dict):
         problems.append("input is missing or not an object")
     else:
-        extra = sorted(set(inp) - {"ownir_version", "canonical", "document"})
+        extra = sorted(set(inp) - {"ownir_version", "raw", "canonical", "document"})
         if extra:
             problems.append(f"unknown input member(s): {extra}")
         if "document" not in inp:
@@ -505,6 +627,8 @@ def verify_repro(artifact: Any) -> list[str]:
                         problems.append(
                             f"input.canonical does not describe input.document: "
                             f"claimed {claimed}, recomputed {actual}")
+        raw_problems, raw_identity = _verify_raw(inp)
+        problems += raw_problems
 
     engines = artifact.get("engines")
     if not isinstance(engines, list):
@@ -517,7 +641,7 @@ def verify_repro(artifact: Any) -> list[str]:
         if not isinstance(engine, dict):
             problems.append(f"engines[{i}] is not an object")
             continue
-        extra = sorted(set(engine) - {"id", "layers"})
+        extra = sorted(set(engine) - {"id", "consumed", "layers"})
         if extra:
             problems.append(f"engines[{i}]: unknown member(s): {extra}")
         eid = engine.get("id")
@@ -533,8 +657,101 @@ def verify_repro(artifact: Any) -> list[str]:
                     f"engines[{i}]: engine {eid!r} is out of the frozen order "
                     f"{list(ENGINE_ORDER)}")
             seen.append(eid)
+        problems += _verify_consumed(engine, f"engines[{i}]", raw_identity)
         problems += _verify_layers(engine.get("layers"), f"engines[{i}]")
     return problems
+
+
+def _verify_raw(inp: dict[str, Any]) -> tuple[list[str], dict[str, Any] | None]:
+    """The raw-input chain (owner decision B-2), link by link.
+
+    Each link is a **separate named problem**, and that is the design rather
+    than verbosity: "the artifact does not verify" is not actionable, and the
+    six links fail for six different reasons — a mis-copied digest, a truncated
+    blob, a re-serialized document, a document swapped under a kept digest. A
+    single message covering all of them would let a mutation move the failure
+    from one link to another with the suite still red for the same string, and
+    a control could not tell which rule it was protecting (the M05/M06/M07
+    shape recorded in this module's docstring).
+
+    Returns `(problems, raw_identity)`; the identity is `None` when the chain
+    broke before one could be established, so no engine is then judged against
+    a claim that is itself unverified."""
+    problems: list[str] = []
+    raw = inp.get("raw")
+    if not isinstance(raw, dict):
+        return (["input.raw is missing or not an object — a v3 artifact carries "
+                 "the byte-exact input it was taken over"], None)
+    extra = sorted(set(raw) - {"algorithm", "digest", "bytes", "base64"})
+    if extra:
+        problems.append(f"unknown input.raw member(s): {extra}")
+    if raw.get("algorithm") != CANONICAL_ALGORITHM:
+        problems.append(
+            f"input.raw.algorithm {raw.get('algorithm')!r} is not "
+            f"{CANONICAL_ALGORITHM!r}")
+    encoded = raw.get("base64")
+    if not isinstance(encoded, str):
+        problems.append("input.raw.base64 is missing or not a string")
+        return problems, None
+    try:
+        decoded = decode_raw(encoded)
+    except ReproError as e:
+        problems.append(str(e))
+        return problems, None
+    if raw.get("bytes") != len(decoded):
+        problems.append(
+            f"input.raw.bytes {raw.get('bytes')!r} does not describe "
+            f"input.raw.base64, which decodes to {len(decoded)} byte(s)")
+    actual = hash_bytes(decoded)
+    if raw.get("digest") != actual["digest"]:
+        problems.append(
+            f"input.raw.digest does not describe input.raw.base64: claimed "
+            f"{raw.get('digest')!r}, recomputed {actual['digest']!r}")
+    try:
+        reparsed = load_bytes(decoded)
+    except ReproError as e:
+        problems.append(f"input.raw does not parse: {e}")
+        return problems, actual
+    except json.JSONDecodeError as e:
+        problems.append(f"input.raw does not parse: {e}")
+        return problems, actual
+    claimed_canonical = inp.get("canonical")
+    reparsed_canonical = canonical_hash(reparsed)
+    if claimed_canonical != reparsed_canonical:
+        # The link that makes `input.document` an OBSERVATION rather than the
+        # subject: the bytes are what the engines saw, and parsing them has to
+        # land on the identity the artifact claims. A document edited under a
+        # kept `raw` fails here even when it re-hashes to its own digest.
+        problems.append(
+            f"input.raw does not reproduce input.canonical: parsing the raw "
+            f"bytes yields {reparsed_canonical}, the artifact claims "
+            f"{claimed_canonical}")
+    return problems, actual
+
+
+def _verify_consumed(engine: dict[str, Any], at: str,
+                     raw_identity: dict[str, Any] | None) -> list[str]:
+    """Every engine attests the bytes it consumed, and they are the artifact's
+    (owner decision B-2's last link, and B-3's gate).
+
+    An entry without `consumed` is refused rather than defaulted: defaulting is
+    exactly how a version-2 capture would be promoted into a version-3 artifact
+    carrying a claim no execution ever made."""
+    consumed = engine.get("consumed")
+    if not isinstance(consumed, dict):
+        return [f"{at}: consumed is missing or not an object — every v3 engine "
+                f"entry attests the bytes it read, and an entry that does not "
+                f"is a capture from an older format rather than a run"]
+    extra = sorted(set(consumed) - {"algorithm", "digest", "bytes"})
+    if extra:
+        return [f"{at}.consumed: unknown member(s): {extra}"]
+    if raw_identity is None:
+        return []  # the raw chain already failed; judging against it says nothing
+    if consumed != raw_identity:
+        return [f"{at}: consumed {consumed} is not input.raw's identity "
+                f"{raw_identity} — this engine did not read the bytes the "
+                f"artifact carries, so the two captures are not of one input"]
+    return []
 
 
 # --------------------------------------------------------------------------

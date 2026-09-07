@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "02b88bac6b1c9a22f1c410fda97c9d428fc54a1253ab16ca74a5397a4319e8fc",
+      "bytes": 1559,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkV4dHJhY3RlZCIsCiAgImNvbXBvbmVudHMiOiBbXSwKICAicHJvdG9jb2xzIjogWwogICAgewogICAgICAibmFtZSI6ICJEb2N1bWVudExvYWRpbmciLAogICAgICAiZGVzY3JpcHRpb24iOiAiVGhlIGRvY3VtZW50IHRyZWUgaXMgaW5jb25zaXN0ZW50IHdoaWxlIElzTG9hZGVkID09IGZhbHNlOyBwdWJsaXNoaW5nIERvY3VtZW50L1Jvd3MvVG90YWxzIGluIHRoYXQgd2luZG93IGhhbmRzIGJpbmRpbmdzIGEgYnJva2VuIG9iamVjdC4iLAogICAgICAib3BlbnMiOiAgeyJraW5kIjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiBmYWxzZX0sCiAgICAgICJjbG9zZXMiOiB7ImtpbmQiOiAiYXNzaWduIiwgInRhcmdldCI6ICJJc0xvYWRlZCIsICJ2YWx1ZSI6IHRydWV9LAogICAgICAiYmFycmllcnMiOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIkRvY3VtZW50IiwgIlJvd3MiLCAiVG90YWxzIiwgIlNlbGVjdGVkSXRlbSJdfQogICAgICBdLAogICAgICAiYWxsb3ciOiBbCiAgICAgICAgeyJraW5kIjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwKICAgICAgICAgImFyZ3MiOiBbIklzTG9hZGVkIiwgIklzQnVzeSIsICJQcm9ncmVzcyIsICJTdGF0dXNUZXh0Il19CiAgICAgIF0sCiAgICAgICJleGl0X2JhcnJpZXJzIjogdHJ1ZSwKICAgICAgInNjb3BlIjogeyJtZXRob2RzIjogWyJCaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiXX0KICAgIH0KICBdLAogICJwcm90b2NvbF9mdW5jdGlvbnMiOiBbCiAgICB7CiAgICAgICJuYW1lIjogIkJyb2tlci5CaWdEb2N1bWVudFZpZXdNb2RlbC5Mb2FkQmlnRG9jdW1lbnQiLAogICAgICAiZmlsZSI6ICJCaWdEb2N1bWVudFZpZXdNb2RlbC5jcyIsCiAgICAgICJldmVudHMiOiBbCiAgICAgICAgeyJldiI6ICJhc3NpZ24iLCAidGFyZ2V0IjogIklzTG9hZGVkIiwgInZhbHVlIjogZmFsc2UsICJsaW5lIjogMTg0fSwKICAgICAgICB7ImV2IjogImNhbGwiLCAiY2FsbGVlIjogIk9uUHJvcGVydHlDaGFuZ2VkIiwgImFyZyI6ICJJc0J1c3kiLCAibGluZSI6IDE4NX0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJSZWJ1aWxkSW5kZXhlcyIsICJsaW5lIjogMTkwfSwKICAgICAgICB7ImV2IjogImlmIiwgImxpbmUiOiAyMjAsICJ0aGVuIjogWwogICAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI0MX0KICAgICAgICBdLCAiZWxzZSI6IFtdfSwKICAgICAgICB7ImV2IjogImFzc2lnbiIsICJ0YXJnZXQiOiAiSXNMb2FkZWQiLCAidmFsdWUiOiB0cnVlLCAibGluZSI6IDI2MH0sCiAgICAgICAgeyJldiI6ICJjYWxsIiwgImNhbGxlZSI6ICJPblByb3BlcnR5Q2hhbmdlZCIsICJhcmciOiAiRG9jdW1lbnQiLCAibGluZSI6IDI2MX0KICAgICAgXQogICAgfQogIF0KfQo="
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "f821b58b0da7e5ecb94798d1868db377876d945242a4e4d013d6499d7af7ee13",
@@ -112,173 +118,11 @@
   "engines": [
     {
       "id": "python-ownlang",
-      "layers": [
-        {
-          "layer": "lowered",
-          "surface_version": 1,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "lowered_version": 1,
-            "module": "Extracted",
-            "resources": [
-              {
-                "name": "Subscription",
-                "kind": "subscription token",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Subscribe"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Dispose"
-                  }
-                ]
-              },
-              {
-                "name": "Timer",
-                "kind": "timer",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Start"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Stop"
-                  }
-                ]
-              },
-              {
-                "name": "Disposable",
-                "kind": "disposable field",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "New"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Dispose"
-                  }
-                ]
-              },
-              {
-                "name": "PooledBuffer",
-                "kind": "pooled buffer",
-                "members": [
-                  {
-                    "role": "acquire",
-                    "name": "Rent"
-                  },
-                  {
-                    "role": "release",
-                    "name": "Return"
-                  }
-                ]
-              }
-            ],
-            "externs": [
-              {
-                "name": "$consume",
-                "params": [
-                  {
-                    "effect": "consume",
-                    "type": "Disposable"
-                  }
-                ]
-              },
-              {
-                "name": "$borrow",
-                "params": [
-                  {
-                    "effect": "borrow",
-                    "type": "Disposable"
-                  }
-                ]
-              },
-              {
-                "name": "$borrow_mut",
-                "params": [
-                  {
-                    "effect": "borrow_mut",
-                    "type": "Disposable"
-                  }
-                ]
-              }
-            ],
-            "lifetimes": [],
-            "functions": [],
-            "handles": []
-          }
-        },
-        {
-          "layer": "summaries",
-          "surface_version": null,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "degraded": null,
-            "module": "Extracted",
-            "ownir_version": 0,
-            "summaries": [],
-            "unresolved": []
-          }
-        },
-        {
-          "layer": "verdicts",
-          "surface_version": 1,
-          "projection": {
-            "kind": "full"
-          },
-          "status": "produced",
-          "document": {
-            "verdicts_version": 1,
-            "findings": [
-              {
-                "file": "BigDocumentViewModel.cs",
-                "line": 241,
-                "code": "OBL001",
-                "component": "BigDocumentViewModel",
-                "event": "DocumentLoading",
-                "handler": "LoadBigDocument",
-                "message": "obligation 'DocumentLoading' is still open when barrier 'OnPropertyChanged(Document)' fires in 'Broker.BigDocumentViewModel.LoadBigDocument' — 'IsLoaded = true' must happen first",
-                "kind": "protocol obligation",
-                "advisory": false,
-                "severity": null,
-                "related": [],
-                "flow": [
-                  [
-                    "BigDocumentViewModel.cs",
-                    184,
-                    "obligation 'DocumentLoading' opens here (IsLoaded = false)"
-                  ],
-                  [
-                    "BigDocumentViewModel.cs",
-                    241,
-                    "barrier 'OnPropertyChanged(Document)' fires while it is open"
-                  ],
-                  [
-                    "BigDocumentViewModel.cs",
-                    260,
-                    "closed here — after the barrier has already fired"
-                  ]
-                ],
-                "ignore_reason": null,
-                "column": null
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "02b88bac6b1c9a22f1c410fda97c9d428fc54a1253ab16ca74a5397a4319e8fc",
+        "bytes": 1559
+      },
       "layers": [
         {
           "layer": "lowered",

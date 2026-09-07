@@ -69,7 +69,9 @@ from ownlang.repro import (
     REPRO_VERSION,
     ReproError,
     canonical_hash,
-    load_document,
+    encode_raw,
+    hash_bytes,
+    load_bytes,
     normalize_handles,
     project_repro,
     project_traces,
@@ -227,16 +229,45 @@ def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
     engines = committed.get("engines")
     if not isinstance(engines, list):
         return []
-    return [e for e in engines
-            if isinstance(e, dict) and e.get("id") != ENGINE_PYTHON]
+    carried: list[dict[str, Any]] = []
+    for entry in engines:
+        if not isinstance(entry, dict) or entry.get("id") == ENGINE_PYTHON:
+            continue
+        # B-3: an entry that does not attest what it consumed is a capture from
+        # an older format, and carrying it forward would put a `consumed` claim
+        # in a v3 artifact that no execution ever made. Refused rather than
+        # filled in — the port re-runs and writes its own.
+        if not isinstance(entry.get("consumed"), dict):
+            print(f"NOTE: dropping the {entry.get('id')!r} entry of "
+                  f"{os.path.basename(golden_path)}: it carries no 'consumed' "
+                  f"attestation, so it predates artifact v3. Regenerate it with "
+                  f"OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine — "
+                  f"an engine's entry comes from a run of that engine, never "
+                  f"from a promotion.")
+            continue
+        carried.append(entry)
+    return carried
+
+
+def _read(path: str) -> bytes:
+    """Read one facts document as **bytes**.
+
+    Binary, always, and it is the whole point of v3: `open(..., encoding=...)`
+    translates CRLF to LF on the way in, so a text-mode read normalizes away
+    the exact difference `input.raw` exists to attest. Everything downstream
+    takes these bytes — the identity is hashed from them, and the engine is
+    handed them — so there is no path on which the harness could hash one
+    sequence and capture another.
+    """
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def _load(path: str) -> Any:
-    """Read one facts document through the canonical loader — the domain is
-    enforced on the LITERALS, which is the only place the reference can still
-    tell `-0` from `0`."""
-    with open(path, encoding="utf-8") as f:
-        return load_document(f.read())
+    """One facts document, parsed from its bytes through the canonical loader —
+    the domain is enforced on the LITERALS, which is the only place the
+    reference can still tell `-0` from `0`."""
+    return load_bytes(_read(path))
 
 
 def _tamper(document: Any) -> Any:
@@ -306,7 +337,7 @@ def _render_digests(plan: dict[str, tuple[str, str]]) -> str:
 # rather than what the reader assumes did. Public because
 # `scripts/render_checkpoint_status.py` derives the census from them rather
 # than from a number somebody typed into a document.
-STRUCTURAL_CONTROL_COUNT = 18
+STRUCTURAL_CONTROL_COUNT = 28
 DOMAIN_BACKSTOP_COUNT = 5
 
 
@@ -393,6 +424,50 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
         a["engines"][0]["layers"][0]["projection"] = {
             "kind": "full", "members": ["module"]}
 
+    # --- the v3 raw-input chain (owner decision B-2) ------------------------
+    # One forgery per LINK, because the links fail for different reasons and a
+    # single "does not verify" message would let a mutation move the failure
+    # from one to another with the suite red for the same string.
+
+    def drop_raw(a: dict[str, Any]) -> None:
+        del a["input"]["raw"]
+
+    def raw_unknown_member(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["extra"] = 1
+
+    def raw_wrong_algorithm(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["algorithm"] = "sha1"
+
+    def raw_not_base64(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["base64"] = "not base64 at all!!"
+
+    def raw_non_canonical_base64(a: dict[str, Any]) -> None:
+        # Canonical base64 of a byte sequence is unique, and the discarded bits
+        # in the last character are where a second spelling hides: "YQ==" and
+        # "YR==" both decode to b"a", and only the first is what an encoder
+        # emits. Two spellings attesting one input is exactly what the
+        # attestation may not allow, so the rule is `encode(decode(s)) == s`.
+        a["input"]["raw"] = {**hash_bytes(b"a"), "base64": "YR=="}
+
+    def raw_wrong_length(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["bytes"] = a["input"]["raw"]["bytes"] + 1
+
+    def raw_wrong_digest(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["digest"] = "0" * 64
+
+    def raw_of_another_document(a: dict[str, Any]) -> None:
+        # The link that makes `input.document` an observation: bytes that are
+        # perfectly self-consistent (their own digest and length hold) and parse
+        # to a DIFFERENT document than the artifact claims.
+        other = b'{"ownir_version": 0, "module": "SomethingElse"}'
+        a["input"]["raw"] = encode_raw(other)
+
+    def drop_consumed(a: dict[str, Any]) -> None:
+        del a["engines"][0]["consumed"]
+
+    def consumed_of_other_bytes(a: dict[str, Any]) -> None:
+        a["engines"][0]["consumed"] = hash_bytes(b"bytes this engine never read")
+
     expect("a wrong format version", "repro_version", set_version)
     expect("an unknown artifact member", "unknown artifact member", add_member)
     expect("a missing layer", "frozen layers", drop_layer)
@@ -419,6 +494,24 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
     expect("a partial projection whose reason is empty", "must say WHY",
            empty_reason_partial)
     expect("a full projection carrying members", "carries no", full_with_members)
+    expect("an artifact with no raw input", "input.raw is missing", drop_raw)
+    expect("an unknown input.raw member", "unknown input.raw member",
+           raw_unknown_member)
+    expect("a raw input claiming another algorithm", "input.raw.algorithm",
+           raw_wrong_algorithm)
+    expect("a raw input that is not base64", "not valid base64", raw_not_base64)
+    expect("a raw input in non-canonical base64", "not canonical base64",
+           raw_non_canonical_base64)
+    expect("a raw input whose length is wrong", "input.raw.bytes",
+           raw_wrong_length)
+    expect("a raw input whose digest is wrong", "input.raw.digest",
+           raw_wrong_digest)
+    expect("raw bytes that parse to another document",
+           "does not reproduce input.canonical", raw_of_another_document)
+    expect("an engine entry with no consumption attestation",
+           "consumed is missing", drop_consumed)
+    expect("an engine that consumed other bytes", "is not input.raw's identity",
+           consumed_of_other_bytes)
     return fails
 
 
@@ -589,6 +682,18 @@ def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
     with open(os.path.join(FIXDIR, f"{case}.repro.json"), encoding="utf-8") as f:
         artifact = json.load(f)
     base = project_traces(artifact, case)
+    # A control that cannot run is a control that failed, and it says which.
+    # Reached for real during the v3 migration: the port's entries were dropped
+    # for carrying no `consumed` attestation (B-3), so every artifact briefly
+    # held one engine — and a reducer control needs a pair. Reported rather than
+    # raised, because an IndexError here says nothing about what to do next.
+    if len(base["traces"]) < 2:
+        return [("reduction-control",
+                 f"{case}: the artifact carries "
+                 f"{[t['engine'] for t in base['traces']]} — the reduction "
+                 f"controls need two engines. If the port's entry was just "
+                 f"dropped as pre-v3, regenerate it: cd rust && "
+                 f"OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine")]
 
     # 0. Silence on unchanged data.
     quiet = reduce_traces(base)
@@ -797,13 +902,14 @@ def run() -> int:
     n_refused_layers = 0
     for case in sorted(plan):
         _corpus, path = plan[case]
+        raw = _read(path)
         facts = _load(path)
         try:
-            first = render_repro(facts)
+            first = render_repro(raw)
         except ReproError as e:
             fails.append(("capture", f"{case}: not capturable: {e}"))
             continue
-        if render_repro(_load(path)) != first:
+        if render_repro(_read(path)) != first:
             fails.append((
                 "capture-determinism",
                 f"{case}: the reproduction artifact is non-deterministic"
@@ -856,10 +962,8 @@ def run() -> int:
         path = os.path.join(FIXDIR, f"{case}.facts.json")
         if not os.path.exists(path):
             continue  # already reported by the ledger check
-        with open(path, encoding="utf-8") as f:
-            text = f.read()
         try:
-            load_document(text)
+            load_bytes(_read(path))
         except ReproError as e:
             needle = entry.get("python_error_contains")
             if isinstance(needle, str) and needle not in str(e):
@@ -905,7 +1009,7 @@ def run() -> int:
         golden_path = os.path.join(FIXDIR, f"{case}.repro.json")
         if case not in plan:
             continue  # already reported by the ledger check
-        expected = render_repro(_load(plan[case][1]),
+        expected = render_repro(_read(plan[case][1]),
                                 _foreign_engines(golden_path))
         if not os.path.exists(golden_path):
             fails.append((
@@ -1006,7 +1110,7 @@ def run() -> int:
     # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0
     if artifact_names and artifact_names[0] in plan:
-        reference = project_repro(_load(plan[artifact_names[0]][1]))
+        reference = project_repro(_read(plan[artifact_names[0]][1]))
         controls = _structural_controls(reference)
         n_structural = STRUCTURAL_CONTROL_COUNT
         fails += [("structural-control", f"{artifact_names[0]}: {f_}") for f_ in controls]
@@ -1047,7 +1151,7 @@ def write() -> int:
     print(f"wrote {DIGESTS} ({len(plan)} documents)")
     for case in artifact_names:
         out = os.path.join(FIXDIR, f"{case}.repro.json")
-        artifact = project_repro(_load(plan[case][1]), _foreign_engines(out))
+        artifact = project_repro(_read(plan[case][1]), _foreign_engines(out))
         remaining = verify_repro(artifact)
         if remaining:
             print(f"ERROR: {case}: refusing to write an artifact that does not "
