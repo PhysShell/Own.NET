@@ -1,0 +1,369 @@
+# The scheduled/manual half of #260's CI strategy: compare mode over the five
+# pinned OSS repositories of #243, the large/multi-project solution controls,
+# the examples tree, and the Windows path forms. The fast PR gate (the
+# committed corpus and the C# samples) lives in ci.yml and is unchanged.
+#
+# THE RULES THIS WORKFLOW EXISTS TO ENFORCE, none of which a green tick alone
+# would show:
+#
+#   * a target is checked out AT ITS PIN and `git rev-parse HEAD` is compared
+#     with it before anything runs — a target that moved is a failed job, not a
+#     newer measurement;
+#   * the extractor runs EXACTLY ONCE per document (`own-check.sh
+#     --emit-facts` persists the file stage 1 already wrote), and the driver
+#     reads that file once, as bytes;
+#   * `OWN_SHADOW_ENGINE` is always set explicitly and the result names the
+#     adapter by sha256, so a stale build cannot stand in;
+#   * zero documents compared is a FAILURE, and so is a declared target the run
+#     never reached — the aggregation re-checks both against the committed
+#     sweep definition rather than trusting the legs' own exit codes.
+#
+# Reproduction artifacts upload on failure only (#260's CI strategy). The run
+# summary and the per-document results upload always: they are the record.
+name: shadow sweep (#260)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Mondays 04:17 UTC. Off the hour on purpose — the top of the hour
+    # is the busiest slot on shared runners.
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  DOCUMENT_OUT: shadow-sweep
+
+jobs:
+  # One job per DOCUMENT rather than per repository: the directory walk and the
+  # `.sln` fan-out are different extractor paths over the same checkout, they
+  # fail differently, and a matrix leg that covered both could not say which
+  # half a failure belonged to.
+  document:
+    name: ${{ matrix.id }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: ShareX.repo
+            target: ShareX
+            repository: ShareX/ShareX
+            commit: 0df9ca4d83eed9d2489048c539d7d1fc2860fdec
+            mode: directory-walk
+            input: ""
+          - id: ShareX.sln
+            target: ShareX
+            repository: ShareX/ShareX
+            commit: 0df9ca4d83eed9d2489048c539d7d1fc2860fdec
+            mode: solution
+            input: ShareX.sln
+          - id: MahApps.Metro.repo
+            target: MahApps.Metro
+            repository: MahApps/MahApps.Metro
+            commit: 72099e310bac2d12ac98fd7560b69679252519f5
+            mode: directory-walk
+            input: ""
+          - id: MahApps.Metro.sln
+            target: MahApps.Metro
+            repository: MahApps/MahApps.Metro
+            commit: 72099e310bac2d12ac98fd7560b69679252519f5
+            mode: solution
+            input: src/MahApps.Metro.sln
+          - id: MaterialDesignInXamlToolkit.repo
+            target: MaterialDesignInXamlToolkit
+            repository: MaterialDesignInXAML/MaterialDesignInXamlToolkit
+            commit: ef3a5ea434e39182b1848f5e11aaea6b3890581f
+            mode: directory-walk
+            input: ""
+          - id: AvalonEdit.repo
+            target: AvalonEdit
+            repository: icsharpcode/AvalonEdit
+            commit: ed0bd149059469ac9bd39b13cf8a341b12a6c1da
+            mode: directory-walk
+            input: ""
+          - id: AvalonEdit.sln
+            target: AvalonEdit
+            repository: icsharpcode/AvalonEdit
+            commit: ed0bd149059469ac9bd39b13cf8a341b12a6c1da
+            mode: solution
+            input: ICSharpCode.AvalonEdit.sln
+          - id: ClosedXML.repo
+            target: ClosedXML
+            repository: ClosedXML/ClosedXML
+            commit: 4e89dcedd83cad553e84d2d97f77fc3d7deb630f
+            mode: directory-walk
+            input: ""
+          - id: ClosedXML.sln
+            target: ClosedXML
+            repository: ClosedXML/ClosedXML
+            commit: 4e89dcedd83cad553e84d2d97f77fc3d7deb630f
+            mode: solution
+            input: ClosedXML.sln
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      # The target, AT ITS PIN. `persist-credentials: false` because nothing in
+      # this job pushes anywhere and a third-party checkout has no business
+      # carrying a token.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.commit }}
+          path: targets/${{ matrix.target }}
+          persist-credentials: false
+      - name: Verify the pin
+        # Drift is a hard failure of this leg, never a warning: a target that
+        # moved has not been measured, it has been replaced.
+        run: |
+          head=$(git -C "targets/${{ matrix.target }}" rev-parse HEAD)
+          echo "${{ matrix.target }} HEAD=$head pin=${{ matrix.commit }}"
+          test "$head" = "${{ matrix.commit }}" || {
+            echo "PIN DRIFT: ${{ matrix.target }} is at $head, the sweep pins ${{ matrix.commit }}"
+            exit 1
+          }
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      # The WindowsDesktop reference pack, materialized exactly the way the
+      # corpus-benchmark job does it. NOT continue-on-error here: the pinned
+      # targets are WPF/WinForms, so a run without the refs measures a
+      # different document than the sweep says it measured.
+      - name: Materialize framework reference assemblies
+        run: |
+          tmp=$(mktemp -d)
+          printf '%s\n' \
+            '<Project Sdk="Microsoft.NET.Sdk">' \
+            '  <PropertyGroup>' \
+            '    <TargetFramework>net8.0-windows</TargetFramework>' \
+            '    <UseWPF>true</UseWPF>' \
+            '    <UseWindowsForms>true</UseWindowsForms>' \
+            '    <EnableWindowsTargeting>true</EnableWindowsTargeting>' \
+            '  </PropertyGroup>' \
+            '</Project>' > "$tmp/ref.csproj"
+          dotnet restore "$tmp/ref.csproj" >/dev/null
+          d=$(find "$HOME/.nuget/packages/microsoft.windowsdesktop.app.ref" -type d -name 'net8.0' | sort | tail -1)
+          test -n "$d" || { echo "the WindowsDesktop reference pack did not resolve"; exit 1; }
+          echo "OWN_EXTRA_REF_DIRS=$d" >> "$GITHUB_ENV"
+          echo "framework refs: $d ($(find "$d" -name '*.dll' | wc -l) dlls)"
+      - name: Build the dev-only engine adapter
+        working-directory: rust
+        run: cargo build --release -p own-shadow --bin own-shadow-engine
+      # ONE extraction. `--emit-facts` persists the file stage 1 already wrote;
+      # stage 2 is the reference's verdict path and is neither a second
+      # extraction nor the comparison.
+      - name: Extract the OwnIR facts, exactly once
+        run: |
+          input="targets/${{ matrix.target }}"
+          if [ -n "${{ matrix.input }}" ]; then
+            input="targets/${{ matrix.target }}/${{ matrix.input }}"
+          fi
+          echo "extracting: $input"
+          scripts/own-check.sh --format sarif --severity warning \
+            --emit-facts "$RUNNER_TEMP/facts.json" -- "$input" \
+            > "$RUNNER_TEMP/findings.sarif.json"
+          ls -l "$RUNNER_TEMP/facts.json"
+      - name: Describe the document
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          facts = os.path.join(os.environ["RUNNER_TEMP"], "facts.json")
+          with open(facts, "rb") as f:
+              digest = hashlib.sha256(f.read()).hexdigest()
+          target = "${{ matrix.target }}"
+          rel = "${{ matrix.input }}"
+          where = f"targets/{target}" + (f"/{rel}" if rel else "")
+          manifest = {
+              "schema": 1,
+              "targets": [target],
+              "documents": [{
+                  "source": facts,
+                  "target": target,
+                  "target_commit": "${{ matrix.commit }}",
+                  "extraction_mode": "${{ matrix.mode }}",
+                  "extraction_command": (
+                      "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> "
+                      "scripts/own-check.sh --format sarif --severity warning "
+                      f"--emit-facts <FACTS> -- {where}"),
+                  "facts_sha256": digest,
+                  "timeout_seconds": 600.0,
+              }],
+          }
+          with open(os.path.join(os.environ["RUNNER_TEMP"], "manifest.json"), "w") as f:
+              json.dump(manifest, f, indent=2)
+          print(json.dumps(manifest, indent=2))
+          PY
+      - name: Compare mode over the document
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine
+        run: |
+          python scripts/shadow_compare.py --engine compare \
+            --manifest "$RUNNER_TEMP/manifest.json" \
+            --out "$RUNNER_TEMP/$DOCUMENT_OUT"
+      # The record uploads whether or not the run agreed; a leg that only
+      # uploaded on failure would leave the aggregation unable to tell a green
+      # target from a skipped one.
+      - name: Upload the run record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-sweep-${{ matrix.id }}
+          path: ${{ runner.temp }}/${{ env.DOCUMENT_OUT }}
+          retention-days: 30
+          if-no-files-found: warn
+
+  # The examples tree: cheap, named in #260's test matrix, and the one document
+  # of this sweep that needs no third-party checkout.
+  examples:
+    name: examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the dev-only engine adapter
+        working-directory: rust
+        run: cargo build --release -p own-shadow --bin own-shadow-engine
+      - name: Extract the OwnIR facts, exactly once
+        run: |
+          scripts/own-check.sh --format sarif --severity warning \
+            --emit-facts "$RUNNER_TEMP/facts.json" -- examples \
+            > "$RUNNER_TEMP/findings.sarif.json"
+      - name: Describe the document
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          facts = os.path.join(os.environ["RUNNER_TEMP"], "facts.json")
+          with open(facts, "rb") as f:
+              digest = hashlib.sha256(f.read()).hexdigest()
+          manifest = {
+              "schema": 1,
+              "targets": ["examples"],
+              "documents": [{
+                  "source": facts,
+                  "target": "examples",
+                  "target_commit": os.environ["GITHUB_SHA"],
+                  "extraction_mode": "directory-walk",
+                  "extraction_command": (
+                      "scripts/own-check.sh --format sarif --severity warning "
+                      "--emit-facts <FACTS> -- examples"),
+                  "facts_sha256": digest,
+                  "timeout_seconds": 600.0,
+              }],
+          }
+          with open(os.path.join(os.environ["RUNNER_TEMP"], "manifest.json"), "w") as f:
+              json.dump(manifest, f, indent=2)
+          PY
+      - name: Compare mode over the examples document
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine
+        run: |
+          python scripts/shadow_compare.py --engine compare \
+            --manifest "$RUNNER_TEMP/manifest.json" \
+            --out "$RUNNER_TEMP/$DOCUMENT_OUT"
+      - name: Upload the run record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-sweep-examples
+          path: ${{ runner.temp }}/${{ env.DOCUMENT_OUT }}
+          retention-days: 30
+          if-no-files-found: warn
+
+  # Windows path forms, MEASURED and nothing promised beyond what runs: the
+  # committed-corpus gate, on a Windows runner, with an adapter built there.
+  # The driver's own controls run too and cannot skip — that group is the one
+  # that had never executed on Windows at all.
+  windows-path-forms:
+    name: windows path forms (committed corpus)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the dev-only engine adapter
+        working-directory: rust
+        run: cargo build --release -p own-shadow --bin own-shadow-engine
+      - name: Compare mode over the committed corpus
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine.exe
+        run: python scripts/shadow_compare.py --engine compare --corpus --quiet --out "$RUNNER_TEMP/shadow"
+      - name: The compare driver's controls (adapter required)
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine.exe
+          OWN_SHADOW_COMPARE_REQUIRED: "1"
+        run: python tests/test_shadow_compare.py
+      - name: Upload the divergence reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-sweep-windows-reports
+          path: ${{ runner.temp }}/shadow
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The aggregation, and the reason it exists: every leg above can be green and
+  # the SWEEP still be a lie, because a leg that never ran uploads nothing and a
+  # matrix that lost an entry says nothing at all. This job assembles one run
+  # record from every leg and checks it against the committed sweep DEFINITION —
+  # the denominator lives there, not in whatever happened to be measured.
+  aggregate:
+    name: aggregate the sweep
+    runs-on: ubuntu-latest
+    needs: [document, examples, windows-path-forms]
+    if: always()
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: shadow-sweep-*
+          path: ${{ runner.temp }}/legs
+      - name: Every leg must have run
+        run: |
+          echo "document:          ${{ needs.document.result }}"
+          echo "examples:          ${{ needs.examples.result }}"
+          echo "windows path forms: ${{ needs['windows-path-forms'].result }}"
+          fail=0
+          for r in "${{ needs.document.result }}" "${{ needs.examples.result }}" \
+                   "${{ needs['windows-path-forms'].result }}"; do
+            [ "$r" = "success" ] || fail=1
+          done
+          test "$fail" -eq 0 || { echo "a leg of the sweep did not succeed"; exit 1; }
+      - name: Assemble one run record
+        run: |
+          python tests/shadow_sweep.py --collect "$RUNNER_TEMP/legs" \
+            --write "$RUNNER_TEMP/p022-shadow-sweep.result.json" \
+            --workflow-run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Check it against the committed sweep definition
+        run: python tests/shadow_sweep.py --result "$RUNNER_TEMP/p022-shadow-sweep.result.json"
+      - name: Upload the run summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-sweep-run-summary
+          path: ${{ runner.temp }}/p022-shadow-sweep.result.json
+          retention-days: 90
+          if-no-files-found: warn
