@@ -4,9 +4,9 @@
   "campaign": "p022-cp5-2",
   "definition": "docs/evidence/p022-cp5-2.json",
   "definition_sha256": "8641e3ff34598123a194ab64111f033c345f6bb1846544c76c62a59230d39c08",
-  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
+  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
   "dirty": false,
-  "recorded_at": "2026-09-07T10:43:08Z",
+  "recorded_at": "2026-09-07T14:39:50Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,7 +22,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 3.7
+    "elapsed_seconds": 5.7
   },
   "mutations": [
     {
@@ -32,7 +32,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 6.5
     },
     {
       "id": "M02",
@@ -41,7 +41,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 6.2
     },
     {
       "id": "M03",
@@ -50,7 +50,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 6.3
     },
     {
       "id": "M04",
@@ -60,7 +60,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 6.5
     },
     {
       "id": "M05",
@@ -71,7 +71,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 5.1
+      "elapsed_seconds": 6.9
     },
     {
       "id": "M06",
@@ -79,7 +79,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 6.0
     },
     {
       "id": "M07",
@@ -87,7 +87,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch"
       ],
-      "elapsed_seconds": 5.0
+      "elapsed_seconds": 6.9
     },
     {
       "id": "M08",
@@ -97,7 +97,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 5.0
+      "elapsed_seconds": 7.0
     },
     {
       "id": "M09",
@@ -105,7 +105,7 @@
       "catchers": [
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 6.5
     },
     {
       "id": "M10",
@@ -114,7 +114,7 @@
         "own-shadow/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 5.9
     }
   ]
 }

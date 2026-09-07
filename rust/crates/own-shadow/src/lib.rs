@@ -46,6 +46,7 @@
 //! so a divergence between them is itself a finding.
 
 mod artifact;
+mod base64;
 mod canonical;
 mod engine;
 mod json;
@@ -54,14 +55,20 @@ mod trace;
 
 pub use artifact::{
     render, verify, ENGINE_ORDER, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER, PROJECTION_FULL,
-    PROJECTION_PARTIAL, REPRO_VERSION, STATUS_PRODUCED, STATUS_REFUSED,
+    PROJECTION_PARTIAL, REPRO_VERSION, SARIF_CONFIGURATION, SARIF_SEVERITY, STATUS_PRODUCED,
+    STATUS_REFUSED,
 };
-pub use canonical::{canonical_bytes, canonical_hash, CanonicalHash, CANONICAL_ALGORITHM};
-pub use engine::capture;
+pub use base64::{decode as base64_decode, encode as base64_encode};
+pub use canonical::{
+    canonical_bytes, canonical_hash, hash_bytes, CanonicalHash, CANONICAL_ALGORITHM,
+};
+pub use engine::{capture, capture_detailed, Capture};
 pub use json::{parse, Json};
 pub use reduce::{
-    reduce_traces, KIND_CHANGED, KIND_LEFT_ONLY, KIND_ORDERING_ONLY, KIND_PROJECTION,
-    KIND_RIGHT_ONLY, KIND_STATUS, KIND_UNEXPLAINED, REDUCTION_SCOPE, REDUCTION_VERSION,
+    judge, reduce_traces, ACCEPTANCE_DECLARED, ACCEPTANCE_UNEXPLAINED, BOUNDARY_OD1,
+    BOUNDARY_POLICY, KIND_CHANGED, KIND_LEFT_ONLY, KIND_MISSING_LAYER, KIND_ORDERING_ONLY,
+    KIND_PROJECTION, KIND_RIGHT_ONLY, KIND_STATUS, OUTCOME_DECLARED, OUTCOME_DIVERGED,
+    OUTCOME_IDENTICAL, OUTCOME_SINGLE_ENGINE, REDUCTION_SCOPE, REDUCTION_VERSION,
 };
 pub use trace::{
     order_semantics, project_trace, project_traces, ORDER_CANONICAL, ORDER_SIGNIFICANT,

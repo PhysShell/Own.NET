@@ -140,7 +140,16 @@ fn py_repr(v: Option<&Value>) -> String {
 /// value would have kept the slice and anchored it at a line nothing can point
 /// at. Exactly the cp5 lesson — a comparison surface that gains a member can
 /// lose controls.
-fn as_line(v: Option<&Value>) -> i64 {
+///
+/// **One reader, `pub(crate)`, for the whole crate** (#259's final-acceptance
+/// review, carried into #260). `verdict.rs` carried a byte-identical copy of
+/// this function and its doc comment. Both were mutated by the `p022-coord-2`
+/// campaign and both were caught, so this was form rather than correctness —
+/// but it is exactly the "two readings of one rule" shape cp4b collapsed into
+/// one for the obligation grammar, and the reason is the same: two copies of a
+/// domain rule are two places it can be relaxed, and the campaign that catches
+/// one has to be told to attack the other.
+pub(crate) fn as_line(v: Option<&Value>) -> i64 {
     match v.and_then(Value::as_i64) {
         Some(n) if (0..=2_147_483_647).contains(&n) => n,
         _ => 0,
@@ -2070,4 +2079,46 @@ pub(crate) fn lower_full(facts: &OwnIr) -> Result<Lowering, BridgeError> {
         mos_notes,
         advisories,
     })
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use serde_json::json;
+
+    use super::as_line;
+
+    /// The tolerant line reader at **both** ends of its domain.
+    ///
+    /// Written because a mutation survived: narrowing the upper bound by one
+    /// changed no golden, since no committed document carries a line at
+    /// `i32::MAX`. The reference's own bound is `[0, 2147483647]`
+    /// (spec/OwnIR.md §4.2) and both edges are part of it, so an edge the
+    /// corpus cannot reach still needs a control — otherwise the bound is a
+    /// number in a comment.
+    ///
+    /// Degrade, never clamp, is the other half: a value one past the top reads
+    /// as `0` ("unknown / file-level"), not as `2147483647`, which is exactly
+    /// the difference a port reading the raw value would erase.
+    #[test]
+    fn the_tolerant_line_reader_holds_both_edges_of_the_domain() {
+        assert_eq!(
+            as_line(Some(&json!(0))),
+            0,
+            "the bottom of the domain is legal"
+        );
+        assert_eq!(
+            as_line(Some(&json!(2_147_483_647))),
+            2_147_483_647,
+            "the top of the domain is IN it"
+        );
+        assert_eq!(
+            as_line(Some(&json!(2_147_483_648_i64))),
+            0,
+            "one past the top DEGRADES to unknown — never clamps to the top"
+        );
+        assert_eq!(as_line(Some(&json!(-1))), 0, "a negative line degrades");
+        assert_eq!(as_line(Some(&json!("7"))), 0, "a non-integer degrades");
+        assert_eq!(as_line(None), 0, "an absent line is unknown");
+    }
 }

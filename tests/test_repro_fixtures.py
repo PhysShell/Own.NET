@@ -62,14 +62,33 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.lowered import project_lowered
 from ownlang.repro import (
+    ACCEPTANCE_DECLARED,
+    ACCEPTANCE_UNEXPLAINED,
+    BOUNDARY_OD1,
+    BOUNDARY_POLICY,
     CANONICAL_ALGORITHM,
+    DERIVED_EQUAL,
+    DERIVED_NOT_COMPARABLE,
+    DERIVED_RENDERER_ONLY,
     ENGINE_PYTHON,
+    KIND_CHANGED,
+    KIND_MISSING_LAYER,
+    KIND_ORDERING_ONLY,
+    KIND_PROJECTION,
+    KIND_STATUS,
+    LAYER_ORDER,
     LAYER_ORDER_SEMANTICS,
     REDUCTION_SCOPE,
     REPRO_VERSION,
+    SARIF_CONFIGURATION,
     ReproError,
     canonical_hash,
-    load_document,
+    carry_foreign,
+    derived_outcome,
+    derived_sarif_document,
+    encode_raw,
+    hash_bytes,
+    load_bytes,
     normalize_handles,
     project_repro,
     project_traces,
@@ -80,6 +99,7 @@ from ownlang.repro import (
     stable_handle_ids,
     verify_repro,
 )
+from ownlang.repro import judge as judge_acceptance
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXDIR = os.path.join(HERE, "fixtures", "repro")
@@ -224,19 +244,32 @@ def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
             committed = json.load(f)
     except (OSError, json.JSONDecodeError):
         return []
-    engines = committed.get("engines")
-    if not isinstance(engines, list):
-        return []
-    return [e for e in engines
-            if isinstance(e, dict) and e.get("id") != ENGINE_PYTHON]
+    carried, dropped = carry_foreign(committed.get("engines"))
+    for reason in dropped:
+        print(f"NOTE: {os.path.basename(golden_path)}: {reason}. Regenerate it "
+              f"with OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine.")
+    return carried
+
+
+def _read(path: str) -> bytes:
+    """Read one facts document as **bytes**.
+
+    Binary, always, and it is the whole point of v3: `open(..., encoding=...)`
+    translates CRLF to LF on the way in, so a text-mode read normalizes away
+    the exact difference `input.raw` exists to attest. Everything downstream
+    takes these bytes — the identity is hashed from them, and the engine is
+    handed them — so there is no path on which the harness could hash one
+    sequence and capture another.
+    """
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def _load(path: str) -> Any:
-    """Read one facts document through the canonical loader — the domain is
-    enforced on the LITERALS, which is the only place the reference can still
-    tell `-0` from `0`."""
-    with open(path, encoding="utf-8") as f:
-        return load_document(f.read())
+    """One facts document, parsed from its bytes through the canonical loader —
+    the domain is enforced on the LITERALS, which is the only place the
+    reference can still tell `-0` from `0`."""
+    return load_bytes(_read(path))
 
 
 def _tamper(document: Any) -> Any:
@@ -306,7 +339,7 @@ def _render_digests(plan: dict[str, tuple[str, str]]) -> str:
 # rather than what the reader assumes did. Public because
 # `scripts/render_checkpoint_status.py` derives the census from them rather
 # than from a number somebody typed into a document.
-STRUCTURAL_CONTROL_COUNT = 18
+STRUCTURAL_CONTROL_COUNT = 34
 DOMAIN_BACKSTOP_COUNT = 5
 
 
@@ -393,6 +426,75 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
         a["engines"][0]["layers"][0]["projection"] = {
             "kind": "full", "members": ["module"]}
 
+    # --- the v3 raw-input chain (owner decision B-2) ------------------------
+    # One forgery per LINK, because the links fail for different reasons and a
+    # single "does not verify" message would let a mutation move the failure
+    # from one to another with the suite red for the same string.
+
+    def drop_raw(a: dict[str, Any]) -> None:
+        del a["input"]["raw"]
+
+    def raw_unknown_member(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["extra"] = 1
+
+    def raw_wrong_algorithm(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["algorithm"] = "sha1"
+
+    def raw_not_base64(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["base64"] = "not base64 at all!!"
+
+    def raw_non_canonical_base64(a: dict[str, Any]) -> None:
+        # Canonical base64 of a byte sequence is unique, and the discarded bits
+        # in the last character are where a second spelling hides: "YQ==" and
+        # "YR==" both decode to b"a", and only the first is what an encoder
+        # emits. Two spellings attesting one input is exactly what the
+        # attestation may not allow, so the rule is `encode(decode(s)) == s`.
+        a["input"]["raw"] = {**hash_bytes(b"a"), "base64": "YR=="}
+
+    def raw_wrong_length(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["bytes"] = a["input"]["raw"]["bytes"] + 1
+
+    def raw_wrong_digest(a: dict[str, Any]) -> None:
+        a["input"]["raw"]["digest"] = "0" * 64
+
+    def raw_of_another_document(a: dict[str, Any]) -> None:
+        # The link that makes `input.document` an observation: bytes that are
+        # perfectly self-consistent (their own digest and length hold) and parse
+        # to a DIFFERENT document than the artifact claims.
+        other = b'{"ownir_version": 0, "module": "SomethingElse"}'
+        a["input"]["raw"] = encode_raw(other)
+
+    def drop_consumed(a: dict[str, Any]) -> None:
+        del a["engines"][0]["consumed"]
+
+    def consumed_of_other_bytes(a: dict[str, Any]) -> None:
+        a["engines"][0]["consumed"] = hash_bytes(b"bytes this engine never read")
+
+    # --- the v3 derived surfaces (owner decision D-6) -----------------------
+
+    def drop_derived(a: dict[str, Any]) -> None:
+        del a["engines"][0]["derived"]
+
+    def derived_unknown_member(a: dict[str, Any]) -> None:
+        a["engines"][0]["derived"]["ownreport"] = {}
+
+    def derived_wrong_configuration(a: dict[str, Any]) -> None:
+        a["engines"][0]["derived"]["sarif"]["configuration"] = "severity=warning"
+
+    def derived_status_disagrees(a: dict[str, Any]) -> None:
+        # A `refused` derived surface beside a PRODUCED verdict layer: a
+        # surface quietly dropped, which a digest comparison would score as
+        # "nothing to compare" rather than as the gap it is.
+        a["engines"][0]["derived"]["sarif"]["status"] = "refused"
+        a["engines"][0]["derived"]["sarif"]["canonical"] = None
+
+    def derived_document_of_no_engine(a: dict[str, Any]) -> None:
+        a["derived_documents"] = {"some-other-engine": {"sarif": {}}}
+
+    def derived_document_that_is_not_the_one(a: dict[str, Any]) -> None:
+        a["derived_documents"] = {
+            ENGINE_PYTHON: {"sarif": {"version": "2.1.0", "runs": []}}}
+
     expect("a wrong format version", "repro_version", set_version)
     expect("an unknown artifact member", "unknown artifact member", add_member)
     expect("a missing layer", "frozen layers", drop_layer)
@@ -419,6 +521,36 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
     expect("a partial projection whose reason is empty", "must say WHY",
            empty_reason_partial)
     expect("a full projection carrying members", "carries no", full_with_members)
+    expect("an artifact with no raw input", "input.raw is missing", drop_raw)
+    expect("an unknown input.raw member", "unknown input.raw member",
+           raw_unknown_member)
+    expect("a raw input claiming another algorithm", "input.raw.algorithm",
+           raw_wrong_algorithm)
+    expect("a raw input that is not base64", "not valid base64", raw_not_base64)
+    expect("a raw input in non-canonical base64", "not canonical base64",
+           raw_non_canonical_base64)
+    expect("a raw input whose length is wrong", "input.raw.bytes",
+           raw_wrong_length)
+    expect("a raw input whose digest is wrong", "input.raw.digest",
+           raw_wrong_digest)
+    expect("raw bytes that parse to another document",
+           "does not reproduce input.canonical", raw_of_another_document)
+    expect("an engine entry with no consumption attestation",
+           "consumed is missing", drop_consumed)
+    expect("an engine that consumed other bytes", "is not input.raw's identity",
+           consumed_of_other_bytes)
+    expect("an engine entry with no derived surfaces", "derived is missing",
+           drop_derived)
+    expect("an unknown derived surface", "derived: unknown member",
+           derived_unknown_member)
+    expect("a derived surface under an undeclared render configuration",
+           "not the frozen", derived_wrong_configuration)
+    expect("a derived surface whose status contradicts its verdict layer",
+           "verdict layer is", derived_status_disagrees)
+    expect("a retained document for an engine not in the artifact",
+           "no such engine", derived_document_of_no_engine)
+    expect("a retained document that is not the one the digest names",
+           "does not match the identity", derived_document_that_is_not_the_one)
     return fails
 
 
@@ -589,6 +721,18 @@ def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
     with open(os.path.join(FIXDIR, f"{case}.repro.json"), encoding="utf-8") as f:
         artifact = json.load(f)
     base = project_traces(artifact, case)
+    # A control that cannot run is a control that failed, and it says which.
+    # Reached for real during the v3 migration: the port's entries were dropped
+    # for carrying no `consumed` attestation (B-3), so every artifact briefly
+    # held one engine — and a reducer control needs a pair. Reported rather than
+    # raised, because an IndexError here says nothing about what to do next.
+    if len(base["traces"]) < 2:
+        return [("reduction-control",
+                 f"{case}: the artifact carries "
+                 f"{[t['engine'] for t in base['traces']]} — the reduction "
+                 f"controls need two engines. If the port's entry was just "
+                 f"dropped as pre-v3, regenerate it: cd rust && "
+                 f"OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine")]
 
     # 0. Silence on unchanged data.
     quiet = reduce_traces(base)
@@ -723,18 +867,356 @@ def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
                           f"{first.get('path')!r}, expected '[keys]' — the reader "
                           f"should not have to diff two identical-looking objects"))
 
-    # The verdict layer is REFUSED, not skipped — "not compared" must never be
-    # readable as "compared and agreed".
-    if "verdicts" in REDUCTION_SCOPE:
-        fails.append(("reduction-control",
-                      "the reduction scope now includes 'verdicts' — comparing "
-                      "final diagnostics is #260's acceptance and is blocked by "
-                      "#259; widening the scope is a contract decision"))
-    refused = [o["layer"] for o in quiet["out_of_scope"]]
-    if "verdicts" not in refused:
-        fails.append(("reduction-control",
-                      "the reduction does not RECORD that it refused the "
-                      "verdict layer; a reader could take silence for agreement"))
+    # The pin, in its POSITIVE form (owner decision D-4). It used to assert the
+    # verdict layer was OUT of scope; the owner took the decision, so the same
+    # test now asserts it is in — and that the scope is the layer order itself,
+    # not a third copy of the list that could drift from it. `is` rather than
+    # `==`: a copy that happens to be equal today is exactly what D-4 rules out.
+    if REDUCTION_SCOPE is not LAYER_ORDER:
+        fails.append(("reduction-scope",
+                      f"REDUCTION_SCOPE is a separate object from LAYER_ORDER "
+                      f"({REDUCTION_SCOPE!r} vs {LAYER_ORDER!r}) — D-4 says the "
+                      f"scope IS the layer order, aliased and never copied, "
+                      f"because a third copy of one list is the one that drifts"))
+    if "verdicts" not in REDUCTION_SCOPE:
+        fails.append(("reduction-scope",
+                      "the reduction scope does not include 'verdicts' — the "
+                      "owner's decision D-4 put the verdict layer in scope"))
+    if quiet["out_of_scope"]:
+        fails.append(("reduction-scope",
+                      f"the reduction records layers as out of scope "
+                      f"({quiet['out_of_scope']}) — every layer is walked now; "
+                      f"the member stays and is EMPTY, so 'nothing is excluded' "
+                      f"stays distinguishable from 'the field went away'"))
+    fails += _boundary_policy_controls(case)
+    fails += _verdict_pairing_controls(base, case)
+    return fails
+
+
+def _boundary_policy_controls(case: str) -> list[tuple[str, str]]:
+    """Owner decision D-5, driven through the production judgement.
+
+    Every rule the policy states needs a document that breaks exactly it,
+    because the whole design is a set of *refusals to explain* — and a rule
+    that only ever says "yes" is a rule no mutation can disturb."""
+    fails: list[tuple[str, str]] = []
+
+    def expect(label: str, layer: str, kind: str, boundary: Any,
+               acceptance: str) -> None:
+        got, kept = judge_acceptance(layer, kind, boundary)
+        if got != acceptance:
+            fails.append(("boundary-policy",
+                          f"{label}: judged {got!r}, expected {acceptance!r}"))
+        if acceptance == ACCEPTANCE_UNEXPLAINED and kind not in (
+                KIND_STATUS, KIND_PROJECTION) and kept is not None:
+            fails.append(("boundary-policy",
+                          f"{label}: a content observation kept a boundary "
+                          f"({kept!r}) — the policy is not consulted for one, "
+                          f"and carrying the class would invite a later reader "
+                          f"to treat it as an explanation"))
+
+    od1 = {"class": BOUNDARY_OD1, "detail": "typed door: whatever it said"}
+    other_detail = {"class": BOUNDARY_OD1, "detail": "an entirely different wording"}
+    wrong_class = {"class": "OD-9", "detail": "typed door: whatever it said"}
+
+    # 1. The policy IS the three OD-1 typed-door entries, exactly. Not a
+    #    superset, not a subset — a widened policy is a contract change.
+    expected_policy = {
+        ("lowered", KIND_STATUS, BOUNDARY_OD1),
+        ("summaries", KIND_STATUS, BOUNDARY_OD1),
+        ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+    }
+    if set(BOUNDARY_POLICY) != expected_policy:
+        fails.append(("boundary-policy",
+                      f"the frozen boundary policy is {sorted(BOUNDARY_POLICY)}, "
+                      f"expected exactly {sorted(expected_policy)} — widening it "
+                      f"is an owner decision, not a patch"))
+
+    # 2. The door refuses every layer, so each layer's status observation is
+    #    explained by it.
+    for layer in LAYER_ORDER:
+        expect(f"OD-1 on a {layer} status observation", layer, KIND_STATUS,
+               od1, ACCEPTANCE_DECLARED)
+
+    # 3. A known class on the WRONG KIND explains nothing. This is the mutation
+    #    the whole (layer, kind, class) shape exists for: a class is not a token
+    #    that excuses whatever it is pinned to.
+    for kind in (KIND_CHANGED, KIND_MISSING_LAYER):
+        expect(f"OD-1 attached to a {kind} observation", "verdicts", kind, od1,
+               ACCEPTANCE_UNEXPLAINED)
+    expect("OD-1 attached to a projection observation", "verdicts",
+           KIND_PROJECTION, od1, ACCEPTANCE_UNEXPLAINED)
+
+    # 4. A known class on a layer the policy does not name explains nothing.
+    expect("OD-1 on a layer outside the policy", "renders", KIND_STATUS, od1,
+           ACCEPTANCE_UNEXPLAINED)
+
+    # 5. `detail` never participates: the same class with different prose is
+    #    still explained, and a different class with the SAME prose is not.
+    expect("OD-1 with different detail prose", "verdicts", KIND_STATUS,
+           other_detail, ACCEPTANCE_DECLARED)
+    expect("an unknown class wearing OD-1's detail", "verdicts", KIND_STATUS,
+           wrong_class, ACCEPTANCE_UNEXPLAINED)
+
+    # 6. A refusal with no declaration is unexplained, not unknown. Absence is
+    #    data: an engine that refused without saying why has not declared a
+    #    boundary, and silence is the one thing a policy may not accept.
+    for undeclared in (None, {}, {"detail": "no class at all"}):
+        expect(f"a status observation with boundary {undeclared!r}", "verdicts",
+               KIND_STATUS, undeclared, ACCEPTANCE_UNEXPLAINED)
+    if fails:
+        return [(tag, f"{case}: {detail}") for tag, detail in fails]
+    return fails
+
+
+def _verdict_pairing_controls(base: dict[str, Any],
+                              case: str) -> list[tuple[str, str]]:
+    """Owner decision D-7, driven adversarially and cross-engine.
+
+    The BR-V8 address `file:line:column:code` is a PAIRING address, not object
+    identity, and a duplicate address takes a `~<n>` suffix that is **part of
+    the address**. So two findings that share an address and swap their
+    messages between the engines are two `changed` observations at `.message`,
+    one per ordinal — never `ordering-only`, which would say the engines put
+    the same things in a different sequence and licence a reader to shrug.
+
+    Built synthetically because no corpus document reaches it: the reference
+    and the port agree on every finding, so a duplicate-address permutation has
+    to be introduced on purpose. That is the point — a rule the corpus cannot
+    exercise is a rule a mutation walks straight through."""
+    fails: list[tuple[str, str]] = []
+    address = "A.cs:1:1:OWN001"
+
+    def side(first: str, second: str) -> dict[str, Any]:
+        return {
+            "layer": "verdicts", "status": "produced",
+            "projection": {"kind": "full"}, "order": "significant",
+            "steps": [
+                {"id": f"findings[{address}]",
+                 "value": {"file": "A.cs", "line": 1, "column": 1,
+                           "code": "OWN001", "message": first}},
+                {"id": f"findings[{address}~1]",
+                 "value": {"file": "A.cs", "line": 1, "column": 1,
+                           "code": "OWN001", "message": second}},
+            ],
+        }
+
+    forged = copy.deepcopy(base)
+    for i, (a, b) in enumerate((("X", "Y"), ("Y", "X"))):
+        layers = forged["traces"][i]["layers"]
+        for j, entry in enumerate(layers):
+            if entry["layer"] == "verdicts":
+                layers[j] = side(a, b)
+    result = reduce_traces(forged)
+    by_kind = result["classification"]["by_kind"]
+    if by_kind[KIND_ORDERING_ONLY] != 0:
+        fails.append(("verdict-pairing",
+                      f"{case}: a duplicate-address permutation was reported as "
+                      f"ORDERING-ONLY — the `~<n>` ordinal is part of the "
+                      f"address, so this is two findings whose values differ, "
+                      f"not the same findings in another sequence"))
+    changed = [o for o in result["observations"]
+               if o["layer"] == "verdicts" and o["kind"] == KIND_CHANGED]
+    if len(changed) != 2:
+        fails.append(("verdict-pairing",
+                      f"{case}: expected 2 `changed` observations on the verdict "
+                      f"layer (one per ordinal), got {len(changed)}: "
+                      f"{[o['step'] for o in changed]}"))
+    for observation, expected_step in zip(
+            changed, [f"findings[{address}]", f"findings[{address}~1]"],
+            strict=False):
+        if observation["step"] != expected_step:
+            fails.append(("verdict-pairing",
+                          f"{case}: expected a change at {expected_step!r}, got "
+                          f"{observation['step']!r}"))
+        if observation["path"] != ".message":
+            fails.append(("verdict-pairing",
+                          f"{case}: the difference at {observation['step']!r} is "
+                          f"reported at {observation['path']!r}, expected "
+                          f"'.message' — the pairing address holds, so the "
+                          f"difference is a VALUE at that address"))
+        if observation["acceptance"] != ACCEPTANCE_UNEXPLAINED:
+            fails.append(("verdict-pairing",
+                          f"{case}: a content difference on the verdict layer is "
+                          f"judged {observation['acceptance']!r} — every content "
+                          f"observation is unexplained (D-5)"))
+    if result["outcome"] != "diverged":
+        fails.append(("verdict-pairing",
+                      f"{case}: outcome {result['outcome']!r}, expected "
+                      f"'diverged'"))
+    return fails
+
+
+def _carry_controls() -> list[tuple[str, str]]:
+    """Owner decision B-3, driven directly.
+
+    The corpus cannot reach it: every committed entry is a v3 capture, so a
+    writer that promoted a pre-v3 one would change nothing and no golden would
+    move. The rule is therefore driven at the only level that reaches it —
+    which is the same reason the trace's totality rule and the reducer's
+    both-refused rule are driven synthetically."""
+    fails: list[tuple[str, str]] = []
+    complete = {"id": "rust-own-bridge", "consumed": {"algorithm": "sha256"},
+                "derived": {"sarif": {}}, "layers": []}
+    carried, dropped = carry_foreign([complete])
+    if carried != [complete] or dropped:
+        fails.append(("carry-foreign",
+                      f"a complete v3 entry was not carried through: "
+                      f"{carried!r} / {dropped!r}"))
+    for missing in ("consumed", "derived"):
+        pre_v3 = {k: v for k, v in complete.items() if k != missing}
+        carried, dropped = carry_foreign([pre_v3])
+        if carried:
+            fails.append(("carry-foreign",
+                          f"an entry with no {missing!r} was carried into a v3 "
+                          f"artifact — filling it in would attest an execution "
+                          f"that never happened (B-3)"))
+        if not any(missing in reason for reason in dropped):
+            fails.append(("carry-foreign",
+                          f"an entry with no {missing!r} was dropped without "
+                          f"naming what it was missing: {dropped!r}"))
+    carried, _dropped = carry_foreign([{"id": ENGINE_PYTHON, "layers": []}])
+    if carried:
+        fails.append(("carry-foreign",
+                      "this engine's OWN entry was carried forward instead of "
+                      "re-authored — an engine writes only its own entry, and "
+                      "carrying its own would replay a stale capture"))
+    return fails
+
+
+def _derived_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
+    """The derived SARIF surface (owner decision D-6), over the committed corpus
+    and on the two classifications the corpus cannot reach by itself.
+
+    D-6's acceptance is `equal` wherever both verdict layers are produced, and
+    `not-comparable` wherever one was refused. Both halves are asserted: an
+    assertion that only checked for `equal` would pass on a corpus where every
+    case was `not-comparable`.
+
+    The `not-comparable` set is measured, not predicted. It contains the two
+    OD-1 door documents — an asymmetric refusal — AND the two where BOTH
+    engines refuse the verdict layer for the same reason (`vocab_unknown_op`'s
+    vocabulary skew, `hoist_neg_while_body`'s BR-V3 map-or-raise). The second
+    shape is `identical` at the layer and still not-comparable on the derived
+    surface, because "the two engines agree that they refused" is not "the two
+    engines rendered the same document"."""
+    fails: list[tuple[str, str]] = []
+    seen_equal = seen_not_comparable = 0
+    for case in artifact_names:
+        artifact_path = os.path.join(FIXDIR, f"{case}.repro.json")
+        reduction_path = os.path.join(FIXDIR, f"{case}.reduction.json")
+        if not (os.path.exists(artifact_path) and os.path.exists(reduction_path)):
+            continue
+        with open(artifact_path, encoding="utf-8") as f:
+            artifact = json.load(f)
+        with open(reduction_path, encoding="utf-8") as f:
+            reduction = json.load(f)
+        result = derived_outcome(artifact, reduction)
+        produced = [e["id"] for e in artifact["engines"]
+                    if e["derived"]["sarif"]["status"] == "produced"]
+        expected = (DERIVED_EQUAL if len(produced) == len(artifact["engines"])
+                    else DERIVED_NOT_COMPARABLE)
+        if result["outcome"] != expected:
+            fails.append(("derived-surface",
+                          f"{case}: derived outcome {result['outcome']!r}, "
+                          f"expected {expected!r} — {result['detail']}"))
+        seen_equal += result["outcome"] == DERIVED_EQUAL
+        seen_not_comparable += result["outcome"] == DERIVED_NOT_COMPARABLE
+        if result["configuration"] != SARIF_CONFIGURATION:
+            fails.append(("derived-surface",
+                          f"{case}: the comparison names configuration "
+                          f"{result['configuration']!r}"))
+        # The identity in the artifact IS the document this engine renders. A
+        # digest nothing recomputes is a digest that can drift from what it
+        # names.
+        verdicts = next(lyr for lyr in artifact["engines"][0]["layers"]
+                        if lyr["layer"] == "verdicts")
+        document = derived_sarif_document(
+            {"error": verdicts["error"]} if verdicts["status"] == "refused"
+            else verdicts["document"])
+        claimed = artifact["engines"][0]["derived"]["sarif"]["canonical"]
+        recomputed = None if document is None else canonical_hash(document)
+        if claimed != recomputed:
+            fails.append(("derived-surface",
+                          f"{case}: the reference's recorded SARIF identity "
+                          f"{claimed} is not what re-rendering its own verdict "
+                          f"layer produces ({recomputed})"))
+    if not seen_equal:
+        fails.append(("derived-surface",
+                      "no committed case compares `equal` on the derived "
+                      "surface, so the acceptance claim is vacuous"))
+    if not seen_not_comparable:
+        fails.append(("derived-surface",
+                      "no committed case compares `not-comparable`, so the OD-1 "
+                      "door's effect on the derived surface is unexercised"))
+    fails += _derived_classification_controls(artifact_names)
+    return fails
+
+
+def _derived_classification_controls(
+        artifact_names: list[str]) -> list[tuple[str, str]]:
+    """`renderer-only divergence` and the boundary between it and
+    `not-comparable`, driven synthetically.
+
+    Neither is reachable from the corpus: the two renderers agree everywhere,
+    which is the result this surface exists to protect. A classification whose
+    interesting branch nothing exercises is a classification a mutation walks
+    straight through — the same reason the trace's totality rule is driven
+    synthetically."""
+    fails: list[tuple[str, str]] = []
+    case = "di"
+    path = os.path.join(FIXDIR, f"{case}.repro.json")
+    reduction_path = os.path.join(FIXDIR, f"{case}.reduction.json")
+    if not (os.path.exists(path) and os.path.exists(reduction_path)):
+        return [("derived-control", f"the control case {case!r} has no artifact")]
+    with open(path, encoding="utf-8") as f:
+        artifact = json.load(f)
+    with open(reduction_path, encoding="utf-8") as f:
+        reduction = json.load(f)
+
+    # 1. The verdict layers agree; one engine's SARIF identity does not. That
+    #    is the renderer and nothing else.
+    forged = copy.deepcopy(artifact)
+    forged["engines"][1]["derived"]["sarif"]["canonical"]["digest"] = "f" * 64
+    result = derived_outcome(forged, reduction)
+    if result["outcome"] != DERIVED_RENDERER_ONLY:
+        fails.append(("derived-control",
+                      f"{case}: a SARIF difference over EQUAL verdict layers is "
+                      f"classified {result['outcome']!r}, expected "
+                      f"{DERIVED_RENDERER_ONLY!r} — this is the whole reason the "
+                      f"derived surface is compared separately from the layer"))
+
+    # 2. The same SARIF difference, with the verdict layers now differing, is
+    #    NOT a renderer finding: a document rendered from different inputs is
+    #    allowed to differ.
+    with_divergence = copy.deepcopy(reduction)
+    with_divergence["observations"] = [{
+        "layer": "verdicts", "kind": "changed", "acceptance": "unexplained",
+        "boundary": None, "step": "findings[A.cs:1:1:OWN001]", "path": ".message",
+        "left": "x", "right": "y", "detail": "synthetic",
+    }]
+    result = derived_outcome(forged, with_divergence)
+    if result["outcome"] != DERIVED_NOT_COMPARABLE:
+        fails.append(("derived-control",
+                      f"{case}: a SARIF difference over DIFFERING verdict layers "
+                      f"is classified {result['outcome']!r}, expected "
+                      f"{DERIVED_NOT_COMPARABLE!r} — attributing it to the "
+                      f"renderer would blame the wrong surface"))
+
+    # 3. A refused verdict layer is not-comparable even when the digests would
+    #    have agreed (they are both absent).
+    refused = copy.deepcopy(artifact)
+    for engine in refused["engines"]:
+        engine["derived"]["sarif"] = {
+            "configuration": SARIF_CONFIGURATION, "status": "refused",
+            "canonical": None}
+    result = derived_outcome(refused, reduction)
+    if result["outcome"] != DERIVED_NOT_COMPARABLE:
+        fails.append(("derived-control",
+                      f"{case}: two refused derived surfaces are classified "
+                      f"{result['outcome']!r}, expected "
+                      f"{DERIVED_NOT_COMPARABLE!r} — nothing was rendered, so "
+                      f"nothing agreed"))
     return fails
 
 
@@ -797,13 +1279,14 @@ def run() -> int:
     n_refused_layers = 0
     for case in sorted(plan):
         _corpus, path = plan[case]
+        raw = _read(path)
         facts = _load(path)
         try:
-            first = render_repro(facts)
+            first = render_repro(raw)
         except ReproError as e:
             fails.append(("capture", f"{case}: not capturable: {e}"))
             continue
-        if render_repro(_load(path)) != first:
+        if render_repro(_read(path)) != first:
             fails.append((
                 "capture-determinism",
                 f"{case}: the reproduction artifact is non-deterministic"
@@ -856,10 +1339,8 @@ def run() -> int:
         path = os.path.join(FIXDIR, f"{case}.facts.json")
         if not os.path.exists(path):
             continue  # already reported by the ledger check
-        with open(path, encoding="utf-8") as f:
-            text = f.read()
         try:
-            load_document(text)
+            load_bytes(_read(path))
         except ReproError as e:
             needle = entry.get("python_error_contains")
             if isinstance(needle, str) and needle not in str(e):
@@ -905,7 +1386,7 @@ def run() -> int:
         golden_path = os.path.join(FIXDIR, f"{case}.repro.json")
         if case not in plan:
             continue  # already reported by the ledger check
-        expected = render_repro(_load(plan[case][1]),
+        expected = render_repro(_read(plan[case][1]),
                                 _foreign_engines(golden_path))
         if not os.path.exists(golden_path):
             fails.append((
@@ -1002,11 +1483,13 @@ def run() -> int:
             "reduction-orphan",
             f"{orphan}: orphaned reduction golden; remove it or list the case"))
     fails += _reduction_controls(artifact_names)
+    fails += _derived_controls(artifact_names)
+    fails += _carry_controls()
 
     # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0
     if artifact_names and artifact_names[0] in plan:
-        reference = project_repro(_load(plan[artifact_names[0]][1]))
+        reference = project_repro(_read(plan[artifact_names[0]][1]))
         controls = _structural_controls(reference)
         n_structural = STRUCTURAL_CONTROL_COUNT
         fails += [("structural-control", f"{artifact_names[0]}: {f_}") for f_ in controls]
@@ -1032,7 +1515,9 @@ def run() -> int:
           f"{len(artifact_names)} traces projected and normalization held over "
           f"all {len(plan)} documents, "
           f"{len(artifact_names)} reductions over {list(REDUCTION_SCOPE)} with "
-          f"6 synthetic-divergence controls named and 2 silence controls held")
+          f"6 synthetic-divergence controls named and 2 silence controls held, "
+          f"the derived SARIF surface compared under {SARIF_CONFIGURATION!r} on "
+          f"every artifact with 3 classification controls")
     return 0
 
 
@@ -1047,7 +1532,7 @@ def write() -> int:
     print(f"wrote {DIGESTS} ({len(plan)} documents)")
     for case in artifact_names:
         out = os.path.join(FIXDIR, f"{case}.repro.json")
-        artifact = project_repro(_load(plan[case][1]), _foreign_engines(out))
+        artifact = project_repro(_read(plan[case][1]), _foreign_engines(out))
         remaining = verify_repro(artifact)
         if remaining:
             print(f"ERROR: {case}: refusing to write an artifact that does not "

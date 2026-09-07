@@ -146,8 +146,8 @@
       "description": "the reference gives a refused layer an empty step list AND drops its error",
       "rule": "trace: a refused layer carries its error and no steps",
       "target": "ownlang/repro.py",
-      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ out\\[\"error\"\\]\\ =\\ layer\\.get\\(\"error\"\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ out\\[\"steps\"\\]\\ =\\ \\[\\]",
-      "replacement": "        out[\"error\"] = None\n        out[\"steps\"] = []",
+      "pattern": "        out\\[\\\"error\\\"\\] = layer\\.get\\(\\\"error\\\"\\)\\n",
+      "replacement": "        out[\"error\"] = None\n",
       "expected_catchers": [
         "python::trace-golden"
       ]

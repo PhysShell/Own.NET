@@ -1,9 +1,9 @@
 {
-  "trace_version": 1,
+  "trace_version": 2,
   "case": "canonical_minimal",
   "traces": [
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
@@ -172,7 +172,7 @@
       ]
     },
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",

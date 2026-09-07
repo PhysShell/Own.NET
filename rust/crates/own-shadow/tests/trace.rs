@@ -200,7 +200,7 @@ fn a_mint_order_shift_moves_the_order_but_not_the_stable_ids() {
 
     let steps = |document: &Json| -> (Vec<String>, Vec<String>) {
         let text = document.to_canonical();
-        let capture = own_shadow::capture(&text).expect("capture");
+        let capture = own_shadow::capture(text.as_bytes()).expect("capture");
         let artifact = Json::Object(vec![
             ("engines".to_owned(), Json::Array(vec![capture])),
             (

@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "c1440b469739846502d5f4530184c535580de0f1cbb3f11a88db408c32cf0b4a",
+      "bytes": 446,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkhvaXN0TmVnMiIsCiAgImZ1bmN0aW9ucyI6IFsKICAgIHsKICAgICAgIm5hbWUiOiAiTSIsCiAgICAgICJmaWxlIjogIkYuY3MiLAogICAgICAiYm9keSI6IFsKICAgICAgICB7CiAgICAgICAgICAib3AiOiAid2hpbGUiLAogICAgICAgICAgImxpbmUiOiAyLAogICAgICAgICAgImJvZHkiOiBbCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAib3AiOiAiYWNxdWlyZSIsCiAgICAgICAgICAgICAgInZhciI6ICJyIiwKICAgICAgICAgICAgICAibGluZSI6IDMKICAgICAgICAgICAgfQogICAgICAgICAgXQogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgIm9wIjogInJlbGVhc2UiLAogICAgICAgICAgInZhciI6ICJyIiwKICAgICAgICAgICJsaW5lIjogNQogICAgICAgIH0KICAgICAgXQogICAgfQogIF0KfQo="
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "d2ae2309b105c985d6eeda13a2eb53b72bcd56fe895ac6919023ecdca72ea1e4",
@@ -39,6 +45,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "c1440b469739846502d5f4530184c535580de0f1cbb3f11a88db408c32cf0b4a",
+        "bytes": 446
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -215,10 +226,22 @@
           "status": "refused",
           "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "c1440b469739846502d5f4530184c535580de0f1cbb3f11a88db408c32cf0b4a",
+        "bytes": 446
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -395,7 +418,14 @@
           "status": "refused",
           "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding."
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

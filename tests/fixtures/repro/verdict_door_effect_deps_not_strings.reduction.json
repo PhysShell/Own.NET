@@ -1,5 +1,5 @@
 {
-  "reduction_version": 1,
+  "reduction_version": 2,
   "case": "verdict_door_effect_deps_not_strings",
   "engines": [
     "python-ownlang",
@@ -7,32 +7,83 @@
   ],
   "scope": [
     "lowered",
-    "summaries"
+    "summaries",
+    "verdicts"
   ],
-  "outcome": "diverged",
+  "outcome": "declared-boundary",
   "detail": null,
   "classification": {
-    "left-only": 0,
-    "right-only": 0,
-    "changed": 0,
-    "ordering-only": 0,
-    "status": 2,
-    "projection": 0,
-    "unexplained": 0
+    "by_kind": {
+      "left-only": 0,
+      "right-only": 0,
+      "changed": 0,
+      "ordering-only": 0,
+      "status": 3,
+      "projection": 0,
+      "missing-layer": 0
+    },
+    "by_acceptance": {
+      "unexplained": 0,
+      "declared-boundary": 3
+    }
   },
   "first": {
     "layer": "lowered",
     "kind": "status",
+    "acceptance": "declared-boundary",
+    "boundary": {
+      "class": "OD-1",
+      "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+    },
     "step": null,
     "path": null,
     "left": "produced",
     "right": "refused",
-    "detail": "the two engines disagree about whether this layer produced at all; the artifacts record every such case as a DECLARED boundary, and this reducer reports it rather than judging it"
+    "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
   },
-  "out_of_scope": [
+  "observations": [
+    {
+      "layer": "lowered",
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+    },
+    {
+      "layer": "summaries",
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+    },
     {
       "layer": "verdicts",
-      "reason": "comparing final diagnostics is #260's ACCEPTANCE and is blocked by #259 (cp5 and 4b); this reducer refuses the layer rather than skipping it, so 'not compared' can never be read as 'compared and agreed'"
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
     }
-  ]
+  ],
+  "out_of_scope": []
 }

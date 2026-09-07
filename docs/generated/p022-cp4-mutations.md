@@ -4,11 +4,11 @@
 
 Campaign `p022-cp4` — #259 cp4 analysis wiring: the BR-V1..V8 verdict mapping in own-bridge (skip list, map-or-raise subject, anchors, tiering, dedup key member by member, stable sort), the BR-D2/L8/M1 side paths, the two declared boundaries (protocol refusal, u32 coordinate refusal) and the own-analysis subject stamping the mapping rests on.
 
-Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `1556a638a826e5e1…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `82c0847716b7f39e…`, 30 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cp4-mutations.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 30 |
 | caught                                                     | 30 |
@@ -41,7 +41,7 @@ Definition: `docs/evidence/p022-cp4-mutations.json` (sha256 `1556a638a826e5e1…
 | M18 | BR-V7 | BR-V7 dedup removed | caught | `own-bridge/src/lib.rs::verdict::tests::dedup_keeps_findings_that_differ_only_in_an_unobservable_key_member`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M19 | BR-V1 | BR-V1 ERROR-only half of the mapping predicate removed | caught | `own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped` |
 | M20 | — | _as_col accepts 0 as a coordinate | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M21 | — | the tolerant line reader degrades an out-of-domain coordinate to 1 instead of 0, so a DI site line below the domain passes the >= 1 guard and anchors where nothing is | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M21 | — | the tolerant line reader degrades an out-of-domain coordinate to 1 instead of 0, so a DI site line below the domain passes the >= 1 guard and anchors where nothing is | caught | `own-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M22 | — | OWN050 advisory never minted | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
 | M23 | BR-V3 | BR-V3 handle recovered from the wrong subject separator | caught | `own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message`<br>`own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two`<br>`own-bridge/src/lib.rs::verdict::tests::only_error_severity_core_verdicts_are_mapped`<br>`own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed`<br>`own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M24 | — | OWN051 line taken from the callee record instead of the call | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |

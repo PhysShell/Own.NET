@@ -72,6 +72,92 @@ jobs:
       - name: cargo test
         run: cargo test
 
+  # P-022 step 7a (#260) — COMPARE MODE over the committed corpus. Not #260's
+  # acceptance: the five-repository sweep and the large-solution controls are
+  # separate work, and nothing here may be read as shadow mode having been
+  # achieved.
+  #
+  # What it gates: every committed facts document through BOTH engines on
+  # byte-attested same input, failing on any acceptance-`unexplained`
+  # observation at any of the three layers, any `renderer-only divergence` on
+  # the derived SARIF, or any execution failure. The generated compact and
+  # malformed controls run in the same pass, as the driver's own negative
+  # controls, so a gate that reported agreement over an empty set would be red.
+  shadow-compare:
+    name: shadow compare (committed corpus)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the dev-only engine adapter
+        working-directory: rust
+        run: cargo build --release -p own-shadow --bin own-shadow-engine
+      - name: Compare mode over the committed corpus
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine
+        run: python scripts/shadow_compare.py --engine compare --corpus --quiet --out "$RUNNER_TEMP/shadow"
+      # The driver's own controls, REQUIRED here rather than skipped: this is
+      # the job that has the adapter, so it is the job that cannot be allowed
+      # to pass without exercising it. The raw-variant, negative and
+      # execution-failure controls all run in this pass.
+      - name: The compare driver's controls (adapter required)
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine
+          OWN_SHADOW_COMPARE_REQUIRED: "1"
+        run: python tests/test_shadow_compare.py
+      - name: Upload the divergence reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-compare-reports
+          path: ${{ runner.temp }}/shadow
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The same gate over the OwnIR the Roslyn extractor already produced. It
+  # consumes the artifact `wpf-extractor` published rather than running the
+  # extractor again — #260 forbids a second extraction, and this is the
+  # packaging that makes the first one reachable. The driver reads the
+  # downloaded file ONCE, as bytes.
+  shadow-compare-samples:
+    name: shadow compare (C# samples)
+    runs-on: ubuntu-latest
+    needs: wpf-extractor
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: Build the dev-only engine adapter
+        working-directory: rust
+        run: cargo build --release -p own-shadow --bin own-shadow-engine
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: csharp-samples-ownir
+          path: ${{ runner.temp }}/samples
+      - name: Compare mode over the extracted C# sample facts
+        env:
+          OWN_SHADOW_ENGINE: ${{ github.workspace }}/rust/target/release/own-shadow-engine
+        run: |
+          python scripts/shadow_compare.py --engine compare \
+            "$RUNNER_TEMP/samples/facts.json" --quiet --out "$RUNNER_TEMP/shadow"
+      - name: Upload the divergence report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: shadow-compare-samples-report
+          path: ${{ runner.temp }}/shadow
+          retention-days: 14
+          if-no-files-found: ignore
+
   # Own.NET Audit (audit/) — the aggregation layer's selftests, the only thing the
   # Linux CI gates for the audit (the target itself is analyzed on a local Windows
   # machine, never in CI; see audit/README.md and Plan.md §3.2). PyYAML is scoped
@@ -266,6 +352,19 @@ jobs:
             frontend/roslyn/samples/OwnedCollectionElementSample.cs \
             -o "$RUNNER_TEMP/facts.json"
           cat "$RUNNER_TEMP/facts.json"
+      # The extractor runs ONCE in this workflow, and #260 forbids running it
+      # twice: frontend nondeterminism would contaminate any comparison taken
+      # over its output. Publishing the bytes it already wrote is how the
+      # shadow compare gate reaches them without a second extraction — the
+      # file crosses the job boundary unchanged, and the driver's own
+      # attestation (`input.raw` against each engine's `consumed`) is what
+      # proves it did.
+      - name: publish the extracted OwnIR for the shadow compare gate (#260)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: csharp-samples-ownir
+          path: ${{ runner.temp }}/facts.json
+          retention-days: 7
       - name: Extractor source columns (Own.NET#317)
         # The producer half of #317. Runs the real extractor over a fixture that puts two
         # anchor sites on ONE line and asserts each record's exact (line, column) - the

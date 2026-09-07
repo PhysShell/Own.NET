@@ -10,12 +10,16 @@
 
 use std::collections::BTreeSet;
 
-use crate::canonical::{canonical_hash, CANONICAL_ALGORITHM};
+use crate::base64;
+use crate::canonical::{canonical_hash, hash_bytes, CanonicalHash, CANONICAL_ALGORITHM};
 use crate::json::Json;
 
-/// The artifact format version. Both engines are keyed to it. 2 added the
-/// layer envelope's `projection` (checkpoint 2, the engine protocol).
-pub const REPRO_VERSION: i64 = 2;
+/// The artifact format version. Both engines are keyed to it.
+///
+/// 2 added the layer envelope's `projection` (checkpoint 2, the engine
+/// protocol); **3 added the raw input and the per-engine consumption
+/// attestation** (owner decision B-2) and the derived SARIF surface (D-6).
+pub const REPRO_VERSION: i64 = 3;
 
 /// The reference engine: `ownlang`, which stays authoritative until #262.
 ///
@@ -39,6 +43,17 @@ pub const STATUS_REFUSED: &str = "refused";
 /// members it did emit and why the rest are absent.
 pub const PROJECTION_FULL: &str = "full";
 pub const PROJECTION_PARTIAL: &str = "partial";
+
+/// The one frozen render configuration for the DERIVED SARIF surface (owner
+/// decision D-6).
+///
+/// Named in the artifact rather than assumed, because `severity` is the one
+/// presentation parameter either builder takes and two engines rendering the
+/// same findings under different severities would differ for a reason that is
+/// not a divergence. A named configuration turns "we both used the default"
+/// from an assumption into a recorded fact.
+pub const SARIF_SEVERITY: &str = "error";
+pub const SARIF_CONFIGURATION: &str = "severity=error";
 
 /// Verify an artifact against itself; an empty result means verified.
 ///
@@ -70,15 +85,17 @@ pub fn verify(artifact: &Json) -> Vec<String> {
     }
     unknown_members(
         artifact,
-        &["repro_version", "input", "engines"],
+        &["repro_version", "input", "engines", "derived_documents"],
         "artifact",
         &mut problems,
     );
 
-    match artifact.get("input") {
-        Some(input @ Json::Object(_)) => verify_input(input, &mut problems),
-        _ => problems.push("input is missing or not an object".to_owned()),
-    }
+    let raw_identity = if let Some(input @ Json::Object(_)) = artifact.get("input") {
+        verify_input(input, &mut problems)
+    } else {
+        problems.push("input is missing or not an object".to_owned());
+        None
+    };
 
     let Some(engines) = artifact.get("engines").and_then(Json::as_array) else {
         problems.push("engines is missing or not an array".to_owned());
@@ -95,8 +112,15 @@ pub fn verify(artifact: &Json) -> Vec<String> {
         }
         unknown_members(
             engine,
-            &["id", "layers"],
+            &["id", "consumed", "layers", "derived"],
             &format!("engines[{i}]"),
+            &mut problems,
+        );
+        verify_derived(engine, &format!("engines[{i}]"), &mut problems);
+        verify_consumed(
+            engine,
+            &format!("engines[{i}]"),
+            raw_identity.as_ref(),
             &mut problems,
         );
         match engine.get("id").and_then(Json::as_str) {
@@ -122,7 +146,131 @@ pub fn verify(artifact: &Json) -> Vec<String> {
             &mut problems,
         );
     }
+    verify_derived_documents(artifact.get("derived_documents"), engines, &mut problems);
     problems
+}
+
+/// The derived-surface block (owner decision D-6).
+///
+/// Two rules with teeth. The configuration must be the ONE frozen name, so an
+/// artifact cannot record a comparison taken under a render configuration
+/// nobody declared. And the SARIF status must agree with the verdict layer's: a
+/// `produced` SARIF beside a refused verdict layer is a document rendered from
+/// nothing, and a `refused` SARIF beside a produced layer is a surface quietly
+/// dropped.
+fn verify_derived(engine: &Json, at: &str, problems: &mut Vec<String>) {
+    let Some(derived @ Json::Object(_)) = engine.get("derived") else {
+        problems.push(format!(
+            "{at}: derived is missing or not an object — every v3 engine entry records the \
+             identity of the surfaces DERIVED from its own layers"
+        ));
+        return;
+    };
+    unknown_members(derived, &["sarif"], &format!("{at}.derived"), problems);
+    let Some(sarif @ Json::Object(_)) = derived.get("sarif") else {
+        problems.push(format!("{at}.derived.sarif is missing or not an object"));
+        return;
+    };
+    unknown_members(
+        sarif,
+        &["configuration", "status", "canonical"],
+        &format!("{at}.derived.sarif"),
+        problems,
+    );
+    if sarif.get("configuration").and_then(Json::as_str) != Some(SARIF_CONFIGURATION) {
+        problems.push(format!(
+            "{at}.derived.sarif.configuration is {:?}, not the frozen {SARIF_CONFIGURATION:?} — \
+             a comparison under an undeclared render configuration is not a comparison of one \
+             surface",
+            sarif.get("configuration").and_then(Json::as_str)
+        ));
+    }
+    let verdicts = engine
+        .get("layers")
+        .and_then(Json::as_array)
+        .and_then(|ls| {
+            ls.iter()
+                .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts"))
+        })
+        .and_then(|l| l.get("status"))
+        .and_then(Json::as_str);
+    let expected = if verdicts == Some(STATUS_PRODUCED) {
+        STATUS_PRODUCED
+    } else {
+        STATUS_REFUSED
+    };
+    if sarif.get("status").and_then(Json::as_str) != Some(expected) {
+        problems.push(format!(
+            "{at}.derived.sarif.status is {:?}, but this engine's verdict layer is \
+             {expected:?} — the derived surface is rendered from that layer, so it is refused \
+             exactly when the layer is",
+            sarif.get("status").and_then(Json::as_str)
+        ));
+    }
+    match (expected, sarif.get("canonical")) {
+        (STATUS_REFUSED, Some(Json::Null) | None) | (STATUS_PRODUCED, Some(Json::Object(_))) => {}
+        (STATUS_REFUSED, _) => problems.push(format!(
+            "{at}.derived.sarif: a refused surface carries a canonical identity"
+        )),
+        _ => problems.push(format!(
+            "{at}.derived.sarif.canonical is missing or not an object"
+        )),
+    }
+}
+
+/// `derived_documents` — the full derived surfaces, retained by the compare
+/// driver on MISMATCH only (owner decision D-6).
+///
+/// Absent from every committed artifact, and that is the design: an identity is
+/// what a comparison needs, and a SARIF document per engine per case would
+/// triple the corpus to say nothing the digest does not. When it IS present,
+/// each document is checked against the digest its engine recorded — a retained
+/// document that does not match the identity it is filed under is worse than no
+/// document at all.
+fn verify_derived_documents(section: Option<&Json>, engines: &[Json], problems: &mut Vec<String>) {
+    let Some(section) = section else { return };
+    let Json::Object(entries) = section else {
+        problems.push("derived_documents is not an object".to_owned());
+        return;
+    };
+    for (eid, surfaces) in entries {
+        let Some(engine) = engines
+            .iter()
+            .find(|e| e.get("id").and_then(Json::as_str) == Some(eid.as_str()))
+        else {
+            problems.push(format!(
+                "derived_documents[{eid:?}]: no such engine in this artifact"
+            ));
+            continue;
+        };
+        if !matches!(surfaces, Json::Object(_)) {
+            problems.push(format!("derived_documents[{eid:?}] is not an object"));
+            continue;
+        }
+        unknown_members(
+            surfaces,
+            &["sarif"],
+            &format!("derived_documents[{eid:?}]"),
+            problems,
+        );
+        let Some(document) = surfaces.get("sarif") else {
+            continue;
+        };
+        let actual = canonical_hash(document);
+        let claimed = engine
+            .get("derived")
+            .and_then(|d| d.get("sarif"))
+            .and_then(|sr| sr.get("canonical"));
+        if !claimed.is_some_and(|c| identity_matches(c, &actual)) {
+            problems.push(format!(
+                "derived_documents[{eid:?}].sarif does not match the identity this engine \
+                 recorded: claimed {:?}, recomputed {{digest: {:?}, bytes: {}}}",
+                claimed.map(|c| c.get("digest").and_then(Json::as_str)),
+                actual.digest,
+                actual.bytes
+            ));
+        }
+    }
 }
 
 fn rank(id: &str) -> usize {
@@ -144,38 +292,171 @@ fn unknown_members(value: &Json, allowed: &[&str], where_: &str, problems: &mut 
     }
 }
 
-fn verify_input(input: &Json, problems: &mut Vec<String>) {
+/// Verify the input envelope; returns `input.raw`'s recomputed identity, or
+/// `None` when the raw chain broke before one could be established — no engine
+/// is then judged against a claim that is itself unverified.
+fn verify_input(input: &Json, problems: &mut Vec<String>) -> Option<CanonicalHash> {
     unknown_members(
         input,
-        &["ownir_version", "canonical", "document"],
+        &["ownir_version", "raw", "canonical", "document"],
         "input",
         problems,
     );
-    let Some(document) = input.get("document") else {
-        problems.push("input.document is missing".to_owned());
-        return;
-    };
-    let Some(claimed) = input.get("canonical") else {
-        problems.push("input.canonical is missing or not an object".to_owned());
-        return;
-    };
-    if !matches!(claimed, Json::Object(_)) {
-        problems.push("input.canonical is missing or not an object".to_owned());
-        return;
+    match input.get("document") {
+        None => problems.push("input.document is missing".to_owned()),
+        Some(document) => match input.get("canonical") {
+            Some(claimed @ Json::Object(_)) => {
+                let actual = canonical_hash(document);
+                if !identity_matches(claimed, &actual) {
+                    problems.push(format!(
+                        "input.canonical does not describe input.document: claimed \
+                         {{algorithm: {:?}, digest: {:?}, bytes: {:?}}}, recomputed \
+                         {{algorithm: {:?}, digest: {:?}, bytes: {}}}",
+                        claimed.get("algorithm").and_then(Json::as_str),
+                        claimed.get("digest").and_then(Json::as_str),
+                        claimed.get("bytes").and_then(Json::as_i64),
+                        actual.algorithm,
+                        actual.digest,
+                        actual.bytes
+                    ));
+                }
+            }
+            _ => problems.push("input.canonical is missing or not an object".to_owned()),
+        },
     }
-    let actual = canonical_hash(document);
-    let algorithm = claimed.get("algorithm").and_then(Json::as_str);
-    let digest = claimed.get("digest").and_then(Json::as_str);
-    let bytes = claimed.get("bytes").and_then(Json::as_i64);
-    let matches = algorithm == Some(CANONICAL_ALGORITHM)
-        && digest == Some(actual.digest.as_str())
-        && bytes == i64::try_from(actual.bytes).ok();
-    if !matches {
+    verify_raw(input, problems)
+}
+
+/// One identity block (`{algorithm, digest, bytes}`) against a recomputed one.
+fn identity_matches(claimed: &Json, actual: &CanonicalHash) -> bool {
+    claimed.get("algorithm").and_then(Json::as_str) == Some(actual.algorithm)
+        && claimed.get("digest").and_then(Json::as_str) == Some(actual.digest.as_str())
+        && claimed.get("bytes").and_then(Json::as_i64) == i64::try_from(actual.bytes).ok()
+}
+
+/// The raw-input chain (owner decision B-2), link by link.
+///
+/// Each link is a **separate named problem**, and that is the design rather
+/// than verbosity: "the artifact does not verify" is not actionable, and the
+/// links fail for different reasons — a mis-copied digest, a truncated blob, a
+/// re-serialized document, a document swapped under a kept digest. One message
+/// covering all of them would let a mutation move the failure between links
+/// with the suite still red for the same string, and a control could not say
+/// which rule it protects.
+///
+/// Deliberately an independent reading of the reference's
+/// `ownlang.repro._verify_raw`, like the rest of this module: a divergence
+/// between the two verifiers is itself a finding.
+fn verify_raw(input: &Json, problems: &mut Vec<String>) -> Option<CanonicalHash> {
+    let Some(raw @ Json::Object(_)) = input.get("raw") else {
+        problems.push(
+            "input.raw is missing or not an object — a v3 artifact carries the byte-exact \
+             input it was taken over"
+                .to_owned(),
+        );
+        return None;
+    };
+    unknown_members(
+        raw,
+        &["algorithm", "digest", "bytes", "base64"],
+        "input.raw",
+        problems,
+    );
+    let algorithm = raw.get("algorithm").and_then(Json::as_str);
+    if algorithm != Some(CANONICAL_ALGORITHM) {
         problems.push(format!(
-            "input.canonical does not describe input.document: claimed \
-             {{algorithm: {algorithm:?}, digest: {digest:?}, bytes: {bytes:?}}}, recomputed \
-             {{algorithm: {:?}, digest: {:?}, bytes: {}}}",
-            actual.algorithm, actual.digest, actual.bytes
+            "input.raw.algorithm {algorithm:?} is not {CANONICAL_ALGORITHM:?}"
+        ));
+    }
+    let Some(encoded) = raw.get("base64").and_then(Json::as_str) else {
+        problems.push("input.raw.base64 is missing or not a string".to_owned());
+        return None;
+    };
+    let decoded = match base64::decode(encoded) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            problems.push(e);
+            return None;
+        }
+    };
+    let actual = hash_bytes(&decoded);
+    if raw.get("bytes").and_then(Json::as_i64) != i64::try_from(decoded.len()).ok() {
+        problems.push(format!(
+            "input.raw.bytes {:?} does not describe input.raw.base64, which decodes to {} byte(s)",
+            raw.get("bytes").and_then(Json::as_i64),
+            decoded.len()
+        ));
+    }
+    if raw.get("digest").and_then(Json::as_str) != Some(actual.digest.as_str()) {
+        problems.push(format!(
+            "input.raw.digest does not describe input.raw.base64: claimed {:?}, recomputed {:?}",
+            raw.get("digest").and_then(Json::as_str),
+            actual.digest
+        ));
+    }
+    // `from_slice`, never `from_str`: the bytes are the subject, and routing
+    // them through a `str` on the way to the parser would be a decode this
+    // chain is supposed to be measuring.
+    let reparsed = match serde_json::from_slice::<Json>(&decoded) {
+        Ok(value) => value,
+        Err(e) => {
+            problems.push(format!("input.raw does not parse: {e}"));
+            return Some(actual);
+        }
+    };
+    let reparsed_identity = canonical_hash(&reparsed);
+    match input.get("canonical") {
+        Some(claimed) if identity_matches(claimed, &reparsed_identity) => {}
+        claimed => problems.push(format!(
+            "input.raw does not reproduce input.canonical: parsing the raw bytes yields \
+             {{digest: {:?}, bytes: {}}}, the artifact claims {:?}",
+            reparsed_identity.digest,
+            reparsed_identity.bytes,
+            claimed.map(|c| (
+                c.get("digest").and_then(Json::as_str),
+                c.get("bytes").and_then(Json::as_i64)
+            ))
+        )),
+    }
+    Some(actual)
+}
+
+/// Every engine attests the bytes it consumed, and they are the artifact's.
+///
+/// An entry without `consumed` is refused rather than defaulted (owner decision
+/// B-3): defaulting is exactly how a version-2 capture would be promoted into a
+/// version-3 artifact carrying a claim no execution ever made.
+fn verify_consumed(
+    engine: &Json,
+    at: &str,
+    raw_identity: Option<&CanonicalHash>,
+    problems: &mut Vec<String>,
+) {
+    let Some(consumed @ Json::Object(_)) = engine.get("consumed") else {
+        problems.push(format!(
+            "{at}: consumed is missing or not an object — every v3 engine entry attests the \
+             bytes it read, and an entry that does not is a capture from an older format \
+             rather than a run"
+        ));
+        return;
+    };
+    unknown_members(
+        consumed,
+        &["algorithm", "digest", "bytes"],
+        &format!("{at}.consumed"),
+        problems,
+    );
+    // The raw chain already failed; judging against it would say nothing.
+    let Some(identity) = raw_identity else { return };
+    if !identity_matches(consumed, identity) {
+        problems.push(format!(
+            "{at}: consumed {{digest: {:?}, bytes: {:?}}} is not input.raw's identity \
+             {{digest: {:?}, bytes: {}}} — this engine did not read the bytes the artifact \
+             carries, so the two captures are not of one input",
+            consumed.get("digest").and_then(Json::as_str),
+            consumed.get("bytes").and_then(Json::as_i64),
+            identity.digest,
+            identity.bytes
         ));
     }
 }
@@ -283,6 +564,7 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
                 "status",
                 "document",
                 "error",
+                "boundary",
             ],
             &at,
             problems,
@@ -320,6 +602,65 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
                 "{at}: status {other:?} is neither {STATUS_PRODUCED:?} nor {STATUS_REFUSED:?}"
             )),
         }
+        if layer.has("boundary") {
+            verify_boundary(
+                layer.get("boundary"),
+                layer.get("status").and_then(Json::as_str),
+                &at,
+                problems,
+            );
+        }
+    }
+}
+
+/// A declared refusal boundary (owner decision D-5): `{"class", "detail"}`, on
+/// a REFUSED layer only.
+///
+/// `class` is what the frozen policy matches on and must be a non-empty string;
+/// `detail` is prose for a human and is never matched. Both are required — a
+/// class with no detail is a token, and a detail with no class is an error
+/// message wearing a structured field's name.
+fn verify_boundary(
+    boundary: Option<&Json>,
+    status: Option<&str>,
+    at: &str,
+    problems: &mut Vec<String>,
+) {
+    if status != Some(STATUS_REFUSED) {
+        problems.push(format!(
+            "{at}: a boundary is declared on a layer whose status is {status:?} — only a \
+             REFUSAL has a boundary class"
+        ));
+    }
+    let Some(boundary @ Json::Object(_)) = boundary else {
+        problems.push(format!("{at}.boundary is not an object"));
+        return;
+    };
+    unknown_members(
+        boundary,
+        &["class", "detail"],
+        &format!("{at}.boundary"),
+        problems,
+    );
+    if !boundary
+        .get("class")
+        .and_then(Json::as_str)
+        .is_some_and(|c| !c.is_empty())
+    {
+        problems.push(format!(
+            "{at}.boundary: 'class' must be a non-empty string — it is what the frozen policy \
+             matches on"
+        ));
+    }
+    if !boundary
+        .get("detail")
+        .and_then(Json::as_str)
+        .is_some_and(|d| !d.is_empty())
+    {
+        problems.push(format!(
+            "{at}.boundary: 'detail' must be a non-empty string saying WHAT was refused, for a \
+             human; it never participates in the policy"
+        ));
     }
 }
 

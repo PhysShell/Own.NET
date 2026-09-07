@@ -10,8 +10,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 
 | measure                            | value |
 |------------------------------------|------:|
-| JSON files scanned                 | 327 |
-| coordinate slots found             | 2186 |
+| JSON files scanned                 | 331 |
+| coordinate slots found             | 2193 |
 
 ## By value class
 
@@ -21,9 +21,9 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `below-1` | 19 | 19 |
 | `bool` | 14 | 14 |
 | `float` | 2 | 2 |
-| `in-domain` | 1743 | 950 |
+| `in-domain` | 1748 | 953 |
 | `negative` | 23 | 23 |
-| `null` | 225 | 7 |
+| `null` | 227 | 7 |
 | `outside-int64` | 14 | 14 |
 | `string` | 17 | 17 |
 | `zero` | 108 | 25 |
@@ -156,8 +156,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `ownir` | `services[].ctor_line` | `in-domain` | yes | 2 | 1 | — |
 | `ownir` | `services[].line` | `in-domain` | yes | 8 | 2 | — |
 | `repro` | `components[].subscriptions[].line` | `in-domain` | yes | 3 | 2 | — |
-| `repro` | `engines[].layers[].document.findings[].column` | `null` | — | 13 | 6 | — |
-| `repro` | `engines[].layers[].document.findings[].line` | `in-domain` | — | 11 | 5 | — |
+| `repro` | `engines[].layers[].document.findings[].column` | `null` | — | 14 | 7 | — |
+| `repro` | `engines[].layers[].document.findings[].line` | `in-domain` | — | 12 | 6 | — |
 | `repro` | `engines[].layers[].document.findings[].line` | `zero` | — | 2 | 1 | — |
 | `repro` | `engines[].layers[].document.functions[].<nested>[].line` | `in-domain` | yes | 18 | 4 | — |
 | `repro` | `engines[].layers[].document.functions[].params[].line` | `in-domain` | yes | 4 | 1 | — |
@@ -171,10 +171,10 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `repro` | `input.document.protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 1 | 1 | — |
 | `repro` | `input.document.protocol_functions[].events[].line` | `in-domain` | yes | 6 | 1 | — |
 | `repro` | `input.document.services[].ctor_line` | `in-domain` | yes | 2 | 1 | — |
-| `repro` | `input.document.services[].line` | `in-domain` | yes | 6 | 1 | — |
+| `repro` | `input.document.services[].line` | `in-domain` | yes | 9 | 2 | — |
 | `repro` | `traces[].layers[].steps[].value.<nested>[].line` | `in-domain` | — | 2 | 1 | — |
-| `repro` | `traces[].layers[].steps[].value.column` | `null` | — | 13 | 6 | — |
-| `repro` | `traces[].layers[].steps[].value.line` | `in-domain` | — | 39 | 7 | — |
+| `repro` | `traces[].layers[].steps[].value.column` | `null` | — | 14 | 7 | — |
+| `repro` | `traces[].layers[].steps[].value.line` | `in-domain` | — | 40 | 8 | — |
 | `repro` | `traces[].layers[].steps[].value.line` | `zero` | — | 6 | 3 | — |
 | `repro` | `traces[].layers[].steps[].value.params[].line` | `in-domain` | — | 4 | 1 | — |
 | `summaries` | `functions[].<nested>[].line` | `in-domain` | yes | 37 | 9 | — |

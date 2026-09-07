@@ -155,8 +155,8 @@
       "description": "the port reports a typed-door refusal on one layer instead of all three",
       "rule": "artifact: every engine reports exactly the frozen layers, in that order",
       "target": "rust/crates/own-shadow/src/engine.rs",
-      "pattern": "\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ LAYER_ORDER\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.iter\\(\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.map\\(\\|layer\\|\\ refused\\(layer,\\ Json::Null,\\ full_projection\\(\\),\\ \\&text\\)\\)\\\n\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\.collect\\(\\)",
-      "replacement": "            LAYER_ORDER\n                .iter()\n                .take(1)\n                .map(|layer| refused(layer, Json::Null, full_projection(), &text))\n                .collect()",
+      "pattern": "            LAYER_ORDER\\n                \\.iter\\(\\)\\n                \\.map\\(\\|layer\\| \\{",
+      "replacement": "            LAYER_ORDER\n                .iter()\n                .take(1)\n                .map(|layer| {",
       "expected_catchers": [
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ]

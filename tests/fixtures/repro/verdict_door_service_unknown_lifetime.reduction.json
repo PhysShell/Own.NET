@@ -1,0 +1,89 @@
+{
+  "reduction_version": 2,
+  "case": "verdict_door_service_unknown_lifetime",
+  "engines": [
+    "python-ownlang",
+    "rust-own-bridge"
+  ],
+  "scope": [
+    "lowered",
+    "summaries",
+    "verdicts"
+  ],
+  "outcome": "declared-boundary",
+  "detail": null,
+  "classification": {
+    "by_kind": {
+      "left-only": 0,
+      "right-only": 0,
+      "changed": 0,
+      "ordering-only": 0,
+      "status": 3,
+      "projection": 0,
+      "missing-layer": 0
+    },
+    "by_acceptance": {
+      "unexplained": 0,
+      "declared-boundary": 3
+    }
+  },
+  "first": {
+    "layer": "lowered",
+    "kind": "status",
+    "acceptance": "declared-boundary",
+    "boundary": {
+      "class": "OD-1",
+      "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+    },
+    "step": null,
+    "path": null,
+    "left": "produced",
+    "right": "refused",
+    "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+  },
+  "observations": [
+    {
+      "layer": "lowered",
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+    },
+    {
+      "layer": "summaries",
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+    },
+    {
+      "layer": "verdicts",
+      "kind": "status",
+      "acceptance": "declared-boundary",
+      "boundary": {
+        "class": "OD-1",
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+      },
+      "step": null,
+      "path": null,
+      "left": "produced",
+      "right": "refused",
+      "detail": "the two engines disagree about whether this layer produced at all; the refusing engine declares its boundary class in its own capture and this reducer copies it, judging the result against the frozen policy by (layer, kind, class) — never by its text"
+    }
+  ],
+  "out_of_scope": []
+}

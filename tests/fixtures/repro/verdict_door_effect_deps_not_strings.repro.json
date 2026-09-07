@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "1709103f7676c80ef52d6d0ad42ce4040842a61f6b63f55a5b133620e778b069",
+      "bytes": 948,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkRvb3IiLAogICJjb21wb25lbnRzIjogW10sCiAgIl9kb2MiOiBbCiAgICAiIzI5NCBPRC0xOiBCUi1EMidzIHNraXAtbm90LWNvZXJjZSBvbiB0aGUgdG9sZXJhbnQgZG9vci4gVGhlIHJlZmVyZW5jZSBTS0lQUyIsCiAgICAidGhlIGVmZmVjdCB3aG9zZSBkZXBzIGlzIGEgYmFyZSBzdHJpbmcgKG5vIHNwdXJpb3VzIEVGRjAwMSkgYW5kIHJlcG9ydHMgdGhlIiwKICAgICJ3ZWxsLWZvcm1lZCBzaWJsaW5nOyB0aGUgUnVzdCB0b2xlcmFudCBlbnRyeSBpcyB0aGUgdHlwZWQgY29uc3RydWN0b3IsIHdoaWNoIiwKICAgICJyZWZ1c2VzIHRoZSBkb2N1bWVudCBiZWZvcmUgdGhlIGJyaWRnZSdzIHNraXAgcnVsZSBjYW4gcnVuLiIKICBdLAogICJlZmZlY3RzIjogWwogICAgewogICAgICAiY29tcG9uZW50IjogIlgiLAogICAgICAiZmlsZSI6ICJYLnRzeCIsCiAgICAgICJsaW5lIjogMSwKICAgICAgImlvIjogdHJ1ZSwKICAgICAgImRlcHMiOiAiYSIsCiAgICAgICJiaW5kaW5ncyI6IFsKICAgICAgICB7CiAgICAgICAgICAibmFtZSI6ICJhIiwKICAgICAgICAgICJpbml0IjogIm9iamVjdCIsCiAgICAgICAgICAicmVmcyI6IFtdLAogICAgICAgICAgImxpbmUiOiAxCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgewogICAgICAiY29tcG9uZW50IjogIk9rIiwKICAgICAgImZpbGUiOiAiT2sudHN4IiwKICAgICAgImxpbmUiOiA5LAogICAgICAiaW8iOiB0cnVlLAogICAgICAiZGVwcyI6IFsKICAgICAgICAibyIKICAgICAgXSwKICAgICAgImJpbmRpbmdzIjogWwogICAgICAgIHsKICAgICAgICAgICJuYW1lIjogIm8iLAogICAgICAgICAgImluaXQiOiAib2JqZWN0IiwKICAgICAgICAgICJyZWZzIjogW10sCiAgICAgICAgICAibGluZSI6IDgKICAgICAgICB9CiAgICAgIF0KICAgIH0KICBdCn0K"
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
@@ -56,6 +62,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "1709103f7676c80ef52d6d0ad42ce4040842a61f6b63f55a5b133620e778b069",
+        "bytes": 948
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -214,10 +225,26 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "2d8c03c893da95c8f84ac51786a70f37c10cefb5fa060ca9acf513638f0b1a27",
+            "bytes": 1299
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "1709103f7676c80ef52d6d0ad42ce4040842a61f6b63f55a5b133620e778b069",
+        "bytes": 948
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -226,7 +253,11 @@
             "kind": "full"
           },
           "status": "refused",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          }
         },
         {
           "layer": "summaries",
@@ -235,7 +266,11 @@
             "kind": "full"
           },
           "status": "refused",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          }
         },
         {
           "layer": "verdicts",
@@ -244,9 +279,20 @@
             "kind": "full"
           },
           "status": "refused",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

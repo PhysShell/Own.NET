@@ -90,13 +90,68 @@ The canonical form exists for **one** job: to name an input. It is deliberately
 
 ```text
 {
-  "repro_version": 1,
+  "repro_version": 3,
   "input": {"ownir_version": <verbatim or null>,
+            "raw": {"algorithm": "sha256", "digest": ..., "bytes": ...,
+                    "base64": <the byte-exact input>},
             "canonical": {"algorithm": "sha256", "digest": ..., "bytes": ...},
             "document": <the parsed facts document>},
-  "engines": [{"id": "python-ownlang", "layers": [...]}]
+  "engines": [{"id": "python-ownlang",
+               "consumed": {"algorithm": "sha256", "digest": ..., "bytes": ...},
+               "layers": [...],
+               "derived": {"sarif": {"configuration": "severity=error",
+                                     "status": "produced" | "refused",
+                                     "canonical": {...} | null}}}],
+  "derived_documents": {"<engine id>": {"sarif": {...}}}   // on MISMATCH only
 }
 ```
+
+* **Version history**: 1 was the format above without `projection`, `raw`,
+  `consumed` or `derived`; 2 added the layer envelope's `projection` (the
+  engine protocol); **3 added the raw input and the per-engine consumption
+  attestation** (owner decision B-2), and the derived SARIF surface (D-6).
+* **`input.raw` is the input; `input.document` is what it parses to.** The two
+  are not redundant and the order is the reading order. Checkpoint 1 could
+  only establish *canonical document identity* — two files differing in
+  whitespace, in key order, or in how a duplicate key resolves share one
+  canonical identity, because the canonical form is designed not to see those
+  differences (owner decision B-1). #260's invariant is one level stronger:
+  both engines consumed the identical byte sequence. So the artifact carries
+  the bytes, and every engine entry carries `consumed` — the identity of what
+  IT read, taken before any decode or parse. Verification walks the whole
+  chain: decode the base64, check its length and digest, parse it, check that
+  the parse reproduces `input.canonical`, check `input.document` against the
+  same identity, and check every engine's `consumed` against `input.raw`'s.
+  A `consumed` that disagrees means the two captures are not of one input,
+  whatever else the artifact says.
+* **`derived` is a surface computed FROM this engine's layers, and it is not a
+  layer** (owner decision D-6). Canonical SARIF is a #260 zero-diff acceptance
+  surface: each engine renders it from its **own** verdict layer under one
+  frozen, named configuration (`severity = "error"` —
+  `ownlang.ownir.build_sarif(findings, "error")` here,
+  `own_bridge::render::build_sarif(&findings, "error")` on the port). It is not
+  in `LAYER_ORDER`, it has no step addressing, no `AnalysisTrace` carries it,
+  and no reduction walks it — which is deliberate, because a derived rendering
+  is not a stage of the pipeline and modelling it as one would put a renderer
+  difference in the same vocabulary as an analysis difference.
+
+  The three outcomes a comparison of it has are therefore distinct: **equal**;
+  **renderer-only divergence** (the verdict layers are equal and the SARIF is
+  not, so the renderer is the only thing left); and **not-comparable** (a
+  verdict layer differs or is refused, so there is nothing to attribute a SARIF
+  difference to). That classification is only sound because the SARIF is
+  rendered from the verdict document *the artifact carries* rather than from a
+  second analysis run — see [`derived_sarif_document`].
+
+  The entry carries the **identity** and not the document, for the same reason
+  the artifact carries an input digest rather than a second copy of the input.
+  `derived_documents` is where full documents go, written by the compare driver
+  on **mismatch only**, and verified against the identity each engine recorded.
+* **Every `consumed` comes from a run** (owner decision B-3). Nothing computes
+  one from `input.raw`, on either side: [`capture`] takes bytes and hashes them
+  on its first line, and `--write` refuses to carry a foreign entry that has
+  none rather than filling one in — a promoted version-2 entry would be an
+  attestation of an execution that never happened.
 
 * **Self-contained.** The input document is *embedded*, not referenced by
   path, so an artifact reproduces without the corpus it came from — and the
@@ -109,8 +164,8 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   decision, for the same reason). The layer order is the *pipeline* order,
   which is what a first-divergence reduction walks.
 * **One layer envelope for all three layers**: `{"layer", "surface_version",
-  "projection", "status", "document" | "error"}`. `status` is `produced` or
-  `refused`;
+  "projection", "status", "document" | "error", "boundary"?}`. `status` is
+  `produced` or `refused`;
   `document` is present exactly when produced, `error` exactly when refused.
   A produced layer's document is carried **verbatim** — including the
   `lowered_version`/`verdicts_version` its own surface stamps, which
@@ -118,6 +173,17 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   a *refused* layer still name the surface it refused on. `summaries` has no
   surface version of its own (its document carries `ownir_version`), so its
   `surface_version` is `null` — absence is data.
+* **`boundary` is how a refusing engine DECLARES its refusal class** (owner
+  decision D-5): `{"class": ..., "detail": ...}`, present only on a refused
+  layer. `class` is a structured token the frozen boundary policy matches on;
+  `detail` is prose for a human and never participates in the match. The
+  declaration belongs to the engine that refused, because the alternative is a
+  comparison tool that reads an error TEXT and calls the result a contract —
+  and because a comparison tool carrying its own table of known cases would be
+  a second place the boundary is defined. This reference declares none today:
+  every refusal it reaches through the tolerant door is a surface's own
+  fail-loud answer rather than a door it closed. The field is part of the
+  FORMAT regardless, so the other engine's verifier checks it.
 * **`projection` says what the engine could produce** (the engine protocol,
   checkpoint 2). Either `{"kind": "full"}` — the engine emits the whole frozen
   surface — or `{"kind": "partial", "members": [...], "reason": "..."}`, naming
@@ -156,13 +222,22 @@ Two things stand in the way, and the trace is the normalization that removes
 exactly one of them and *declares* the other.
 
 ```text
-{"trace_version": 1,
+{"trace_version": 2,
  "engine": "python-ownlang",
  "input": {"algorithm": ..., "digest": ..., "bytes": ...},
  "layers": [{"layer": "lowered", "status": "produced", "projection": {...},
              "order": "significant",
-             "steps": [{"id": "<stable address>", "value": <json>}, ...]}]}
+             "steps": [{"id": "<stable address>", "value": <json>}, ...]},
+            {"layer": "verdicts", "status": "refused", "projection": {...},
+             "order": "significant", "error": "...",
+             "boundary": {"class": "OD-1", "detail": "..."} | null,
+             "steps": []}]}
 ```
+
+Version 2 carries a refused layer's `boundary` through. A reduction reads
+traces, not captures, so a declaration that stopped at the capture would leave
+the reducer with nothing but the error text to judge on — which is the matching
+D-5 forbids.
 
 * **Internal identifiers are normalized away.** The lowered surface's handles
   (`sub_0`, `cap_1`, `parg_0`, `loc_3`) are minted from **global counters in
@@ -199,9 +274,10 @@ exactly one of them and *declares* the other.
   own. Flattening deeper would need a path grammar, and the enclosing statement
   is already the smallest unit that names a lowering site; a difference inside
   a branch shows as a difference on that statement.
-* A **refused** layer carries its error and **no steps** — there is nothing to
-  address, and inventing an empty step list that compared equal to another
-  engine's empty one would score a refusal as agreement.
+* A **refused** layer carries its error, its declared `boundary` (or `null`)
+  and **no steps** — there is nothing to address, and inventing an empty step
+  list that compared equal to another engine's empty one would score a refusal
+  as agreement.
 * The trace carries the **input hash**, so a trace cannot be read against a
   document it did not come from.
 
@@ -215,19 +291,26 @@ same trace — all with zero Python.
 
 from __future__ import annotations
 
+import base64
+import dataclasses
 import hashlib
 import json
 import re
 from typing import Any
 
 from .lowered import project_lowered
-from .ownir import dump_summaries
+from .ownir import Finding, build_sarif, dump_summaries
 from .verdicts import project_verdicts
 
 # The artifact format version. Bump on ANY change to the frozen decisions
 # above — the committed artifacts and the Rust replay are both keyed to it.
 # 2 added the layer envelope's `projection` (checkpoint 2, the engine protocol).
-REPRO_VERSION = 2
+# 3 added the raw input and the per-engine consumption attestation (owner
+#   decision B-2), and the derived SARIF surface beside `layers` (D-6). Both
+#   land together and no version-3 artifact is written without either, so they
+#   share one number rather than inventing an intermediate version no artifact
+#   was ever emitted at.
+REPRO_VERSION = 3
 
 # The digest over the canonical form. One algorithm, named in the artifact so
 # a future change is a visible contract change rather than a silent reinterpretation
@@ -259,6 +342,25 @@ PROJECTION_KINDS = (PROJECTION_FULL, PROJECTION_PARTIAL)
 # surfaces are its own output. Written once and shared, so "full" is a single
 # fact rather than three copies of a claim.
 FULL: dict[str, Any] = {"kind": PROJECTION_FULL}
+
+# The DERIVED surfaces (owner decision D-6). Canonical SARIF is a #260 zero-diff
+# acceptance surface and it is NOT an `AnalysisTrace` layer: it is not in
+# `LAYER_ORDER`, it has no step addressing, and no reduction walks it. It is a
+# projection each engine takes of its OWN verdict layer, under ONE frozen,
+# named render configuration.
+#
+# The configuration is named IN the artifact rather than assumed, because
+# `severity` is the one presentation parameter either builder takes and two
+# engines rendering the same findings under different severities would differ
+# for a reason that is not a divergence. A named configuration turns "we both
+# used the default" from an assumption into a recorded fact.
+SARIF_SEVERITY = "error"
+SARIF_CONFIGURATION = f"severity={SARIF_SEVERITY}"
+
+# `Finding`'s members, derived from the dataclass rather than listed, so the
+# reconstruction below cannot silently lag it — the same rule
+# `ownlang/verdicts.py` uses to build the record in the first place.
+_FINDING_FIELDS: tuple[str, ...] = tuple(f.name for f in dataclasses.fields(Finding))
 
 _I64_MIN = -(2**63)
 _I64_MAX = 2**63 - 1
@@ -364,7 +466,15 @@ def canonical_bytes(value: Any) -> bytes:
 
 def canonical_hash(value: Any) -> dict[str, Any]:
     """`{"algorithm", "digest", "bytes"}` over the canonical form."""
-    raw = canonical_bytes(value)
+    return hash_bytes(canonical_bytes(value))
+
+
+def hash_bytes(raw: bytes) -> dict[str, Any]:
+    """`{"algorithm", "digest", "bytes"}` over a byte sequence, whatever it is.
+
+    ONE hasher for both identities the artifact carries — the canonical form's
+    and the raw input's — so "the same algorithm" is a fact about the code
+    rather than a claim about two functions."""
     return {
         "algorithm": CANONICAL_ALGORITHM,
         "digest": hashlib.sha256(raw).hexdigest(),
@@ -372,12 +482,74 @@ def canonical_hash(value: Any) -> dict[str, Any]:
     }
 
 
+def encode_raw(raw: bytes) -> dict[str, Any]:
+    """The artifact's `input.raw`: the byte-exact input, plus its identity.
+
+    The identity is taken **before** anything decodes or parses (owner decision
+    B-2): a digest computed after a decode would name whatever the decode
+    produced, which is precisely the level B-1 says is not enough.
+
+    `base64` is standard alphabet with padding and no line breaks —
+    **canonical**, which here means `b64encode(b64decode(s)) == s`. That
+    equality is the whole rule, and it is the one both verifiers check, so a
+    non-canonical encoding (stray whitespace, a wrong pad, non-zero discarded
+    bits) is refused by both rather than accepted by one."""
+    return {**hash_bytes(raw), "base64": base64.b64encode(raw).decode("ascii")}
+
+
+def decode_raw(encoded: str) -> bytes:
+    """`input.raw.base64` back to bytes, refusing a non-canonical encoding.
+
+    Raises `ReproError` — never a partially-decoded value, because a decoder
+    that repaired its input would let the artifact's own attestation pass over
+    bytes nobody wrote."""
+    try:
+        raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+    except (ValueError, UnicodeEncodeError) as e:
+        raise ReproError(f"input.raw.base64 is not valid base64: {e}") from e
+    if base64.b64encode(raw).decode("ascii") != encoded:
+        raise ReproError(
+            "input.raw.base64 is not canonical base64: re-encoding the bytes it "
+            "decodes to does not reproduce it, so more than one spelling would "
+            "attest the same input")
+    return raw
+
+
+def load_bytes(raw: bytes) -> Any:
+    """Parse one JSON document from **bytes**, over the closed canonical domain.
+
+    The bytes entry point, because #260's same-input invariant is byte-level
+    (B-1) and every text-mode read on the way in is a place a difference gets
+    normalized away before anyone can see it: `open(..., encoding="utf-8")`
+    translates CRLF to LF, and a `str` no longer remembers which it was.
+
+    Two refusal stages, and which one fired is data rather than noise: a
+    sequence that is not UTF-8 at all never reaches JSON, and saying so is what
+    distinguishes it from a document that decodes and does not parse."""
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise ReproError(
+            f"the input is not valid UTF-8, so it is not a JSON document at "
+            f"all: {e}") from e
+    return load_document(text)
+
+
 def _layer(name: str, surface_version: Any, doc: dict[str, Any],
-           projection: dict[str, Any] | None = None) -> dict[str, Any]:
+           projection: dict[str, Any] | None = None,
+           boundary: dict[str, Any] | None = None) -> dict[str, Any]:
     """One layer envelope. A surface that encodes its own refusal as
     `{"error": ...}` is LIFTED into the envelope's `refused` status; a produced
     document is carried verbatim. `projection` defaults to the reference's
-    `full` — it emits the whole of every frozen surface by definition."""
+    `full` — it emits the whole of every frozen surface by definition.
+
+    `boundary` is the STRUCTURED refusal class the refusing engine declares
+    (owner decision D-5): `{"class": ..., "detail": ...}`, present only on a
+    refused layer. This reference declares none today — every refusal it
+    reaches through the tolerant door is a surface's own fail-loud answer, not
+    a door this port closed — so the parameter exists to make the field part of
+    the FORMAT rather than part of one engine. A format member only one engine
+    can write is a member the other engine's verifier never checks."""
     entry: dict[str, Any] = {
         "layer": name,
         "surface_version": surface_version,
@@ -387,6 +559,8 @@ def _layer(name: str, surface_version: Any, doc: dict[str, Any],
     if error is not None:
         entry["status"] = STATUS_REFUSED
         entry["error"] = error
+        if boundary is not None:
+            entry["boundary"] = dict(boundary)
     else:
         entry["status"] = STATUS_PRODUCED
         entry["document"] = doc
@@ -419,20 +593,160 @@ def project_layers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def project_repro(facts: dict[str, Any],
+def derived_sarif_document(verdicts: dict[str, Any]) -> dict[str, Any] | None:
+    """The canonical SARIF this engine renders from its OWN verdict layer, or
+    `None` when that layer was refused (owner decision D-6).
+
+    Rendered from the **projected verdict document the artifact carries**, not
+    from a second `check_facts` run, and that is the decision rather than a
+    convenience. It is what makes a *renderer-only divergence* an unambiguous
+    finding: when the two engines' verdict layers are byte-equal in the
+    artifact and their SARIF is not, the renderer is the only thing left. A
+    SARIF rendered from an independent second analysis run could differ for
+    either reason, and the classification would have nothing to stand on.
+
+    The reconstruction is total by construction: `verdicts.py` writes every
+    `Finding` member, derived from the dataclass rather than listed, so a field
+    added to `Finding` appears in the record and reaches the renderer without
+    anyone remembering to add it here."""
+    if verdicts.get("error") is not None:
+        return None
+    findings: list[Finding] = []
+    for record in verdicts.get("findings", []):
+        members: dict[str, Any] = {}
+        for name, value in record.items():
+            members[str(name)] = (tuple(tuple(step) for step in value)
+                                  if name in ("related", "flow") else value)
+        if set(members) != set(_FINDING_FIELDS):
+            raise ReproError(
+                f"a verdict record carries {sorted(members)}, not the Finding "
+                f"surface {sorted(_FINDING_FIELDS)} — the derived SARIF is "
+                f"rendered from the verdict layer this artifact carries, so a "
+                f"record it cannot rebuild is a surface change, not a "
+                f"rendering question")
+        findings.append(Finding(**members))
+    document: dict[str, Any] = build_sarif(findings, SARIF_SEVERITY)
+    return document
+
+
+def _derived(verdicts: dict[str, Any]) -> dict[str, Any]:
+    """The engine entry's `derived` block: the identity of each derived
+    surface, never the surface itself.
+
+    Only the digest and the length are carried, for the same reason the
+    artifact carries an input digest rather than a second copy of the input:
+    an identity is what a comparison needs, and a full SARIF document per
+    engine per case would triple the corpus to say nothing the digest does not.
+    The documents are retained by the compare driver, on mismatch only, under
+    the artifact's `derived_documents`."""
+    document = derived_sarif_document(verdicts)
+    return {
+        "sarif": {
+            "configuration": SARIF_CONFIGURATION,
+            "status": STATUS_REFUSED if document is None else STATUS_PRODUCED,
+            # The SAME canonical form the artifact already uses to name an
+            # input — sorted keys, compact separators, the closed value domain.
+            # A second serialization rule for a second surface is a second
+            # thing to keep two engines agreeing about.
+            "canonical": None if document is None else canonical_hash(document),
+        },
+    }
+
+
+def capture(raw: bytes) -> dict[str, Any]:
+    """This engine's capture of one **byte sequence**: the `engines[]` entry.
+
+    The port's twin is `own_shadow::capture`, and both take bytes for the same
+    reason: `consumed` has to name what this engine actually read, and the only
+    way to make that structurally true rather than asserted is to give the
+    engine nothing else to read. The identity is taken on the FIRST line,
+    before a decode or a parse can turn the bytes into something else (B-2).
+
+    Every `consumed` claim in a v3 artifact therefore comes from an execution
+    of the engine that claims it (B-3) — there is no code path that computes
+    one from an artifact's `input.raw`, which is what a promoted v2 entry would
+    have needed."""
+    consumed = hash_bytes(raw)
+    facts = load_bytes(raw)
+    layers = project_layers(facts)
+    verdicts = next((lyr for lyr in layers if lyr["layer"] == "verdicts"), None)
+    return {
+        "id": ENGINE_PYTHON,
+        "consumed": consumed,
+        "layers": layers,
+        # Beside `layers`, never inside them: a derived surface is not a layer
+        # (owner decision D-6). Nothing in `LAYER_ORDER`, the trace or the
+        # reduction knows it exists.
+        "derived": _derived(_verdict_document(verdicts)),
+    }
+
+
+def _verdict_document(layer: dict[str, Any] | None) -> dict[str, Any]:
+    """The verdict layer's document, or its refusal, as `project_verdicts`
+    shaped it — the envelope lifts a surface refusal into `status`/`error`, and
+    the derived projection needs the surface's own shape back."""
+    if layer is None:
+        return {"error": "this engine reported no verdict layer"}
+    if layer.get("status") == STATUS_REFUSED:
+        return {"error": layer.get("error")}
+    document = layer.get("document")
+    return document if isinstance(document, dict) else {"error": "no document"}
+
+
+def carry_foreign(entries: Any) -> tuple[list[dict[str, Any]], list[str]]:
+    """The foreign engine captures an artifact may carry forward, and the
+    reasons the rest were dropped (owner decisions B-3, D-6).
+
+    **An engine writes only its own entry**, so `--write` reads back what a
+    committed artifact holds and carries the other engine's through verbatim.
+    That is what lets the two halves of the protocol be produced independently,
+    each with zero of the other's runtime.
+
+    What it may NOT do is promote. An entry that carries no `consumed`, or no
+    `derived`, predates artifact v3, and filling either in would put a claim in
+    a v3 artifact that no execution ever made: this side cannot know which
+    bytes the other engine read, and it cannot render the other engine's SARIF.
+    So such an entry is dropped with its reason, and the port re-runs and writes
+    its own.
+
+    Lives here rather than in the harness that calls it because it is a rule of
+    the FORMAT, not of one writer — and because a rule no mutation can reach is
+    a rule nothing tests."""
+    carried: list[dict[str, Any]] = []
+    dropped: list[str] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict) or entry.get("id") == ENGINE_PYTHON:
+            continue
+        missing = [name for name in ("consumed", "derived")
+                   if not isinstance(entry.get(name), dict)]
+        if missing:
+            dropped.append(
+                f"the {entry.get('id')!r} entry carries no {missing}, so it "
+                f"predates artifact v3 — an engine's entry comes from a run of "
+                f"that engine, never from a promotion")
+            continue
+        carried.append(entry)
+    return carried, dropped
+
+
+def project_repro(raw: bytes,
                   foreign: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    """Project one facts document into the canonical reproduction artifact,
+    """Project one **byte sequence** into the canonical reproduction artifact,
     carrying the reference engine's capture — and any `foreign` engine captures
     handed in, carried through **verbatim**.
+
+    Takes bytes rather than a parsed document because v3's central claim is
+    about bytes: `input.raw` is the sequence, `input.document` is what it
+    parses to, and a signature that accepted the document could only ever
+    attest a re-serialization of it.
 
     An engine writes only its own entry: this function authors
     `python-ownlang` and never invents another engine's numbers. The foreign
     entries come from a previously committed artifact (`--write` reads them
     back before overwriting), which is what lets the two halves of the protocol
-    be produced independently, each with zero of the other's runtime. Never
-    mutates `facts`."""
-    engines: list[dict[str, Any]] = [
-        {"id": ENGINE_PYTHON, "layers": project_layers(facts)}]
+    be produced independently, each with zero of the other's runtime."""
+    facts = load_bytes(raw)
+    engines: list[dict[str, Any]] = [capture(raw)]
     for entry in foreign or []:
         if isinstance(entry, dict) and entry.get("id") != ENGINE_PYTHON:
             engines.append(entry)
@@ -445,6 +759,7 @@ def project_repro(facts: dict[str, Any],
             # explicitly-null both read as `null` here; the distinction stays
             # recoverable from the embedded document itself.
             "ownir_version": facts.get("ownir_version"),
+            "raw": encode_raw(raw),
             "canonical": canonical_hash(facts),
             "document": facts,
         },
@@ -452,11 +767,11 @@ def project_repro(facts: dict[str, Any],
     }
 
 
-def render_repro(facts: dict[str, Any],
+def render_repro(raw: bytes,
                  foreign: list[dict[str, Any]] | None = None) -> str:
     """The canonical serialized artifact: construction order, 2-space indent,
     non-ASCII preserved, trailing newline. Byte-identical on re-run."""
-    return json.dumps(project_repro(facts, foreign), indent=2,
+    return json.dumps(project_repro(raw, foreign), indent=2,
                       ensure_ascii=False) + "\n"
 
 
@@ -468,9 +783,12 @@ def verify_repro(artifact: Any) -> list[str]:
     reproduction.
 
     Structural rules checked, in order: the format version; the input envelope;
-    the recomputed canonical hash; the engine array against the frozen
-    vocabulary and order; each engine's layer array against the frozen layer
-    order; and each layer envelope's status/payload agreement."""
+    the recomputed canonical hash; **the raw-input chain** (base64 decodes, its
+    length and digest hold, it parses, and the parse reproduces the claimed
+    canonical identity); the engine array against the frozen vocabulary and
+    order; **each engine's `consumed` against `input.raw`'s identity**; each
+    engine's layer array against the frozen layer order; and each layer
+    envelope's status/payload agreement."""
     problems: list[str] = []
     if not isinstance(artifact, dict):
         return [f"artifact is {type(artifact).__name__}, not an object"]
@@ -478,15 +796,17 @@ def verify_repro(artifact: Any) -> list[str]:
         problems.append(
             f"repro_version {artifact.get('repro_version')!r} != "
             f"REPRO_VERSION {REPRO_VERSION}")
-    extra = sorted(set(artifact) - {"repro_version", "input", "engines"})
+    extra = sorted(set(artifact)
+                   - {"repro_version", "input", "engines", "derived_documents"})
     if extra:
         problems.append(f"unknown artifact member(s): {extra}")
 
     inp = artifact.get("input")
+    raw_identity: dict[str, Any] | None = None
     if not isinstance(inp, dict):
         problems.append("input is missing or not an object")
     else:
-        extra = sorted(set(inp) - {"ownir_version", "canonical", "document"})
+        extra = sorted(set(inp) - {"ownir_version", "raw", "canonical", "document"})
         if extra:
             problems.append(f"unknown input member(s): {extra}")
         if "document" not in inp:
@@ -505,6 +825,8 @@ def verify_repro(artifact: Any) -> list[str]:
                         problems.append(
                             f"input.canonical does not describe input.document: "
                             f"claimed {claimed}, recomputed {actual}")
+        raw_problems, raw_identity = _verify_raw(inp)
+        problems += raw_problems
 
     engines = artifact.get("engines")
     if not isinstance(engines, list):
@@ -517,7 +839,7 @@ def verify_repro(artifact: Any) -> list[str]:
         if not isinstance(engine, dict):
             problems.append(f"engines[{i}] is not an object")
             continue
-        extra = sorted(set(engine) - {"id", "layers"})
+        extra = sorted(set(engine) - {"id", "consumed", "layers", "derived"})
         if extra:
             problems.append(f"engines[{i}]: unknown member(s): {extra}")
         eid = engine.get("id")
@@ -533,8 +855,200 @@ def verify_repro(artifact: Any) -> list[str]:
                     f"engines[{i}]: engine {eid!r} is out of the frozen order "
                     f"{list(ENGINE_ORDER)}")
             seen.append(eid)
+        problems += _verify_consumed(engine, f"engines[{i}]", raw_identity)
+        problems += _verify_derived(engine, f"engines[{i}]")
         problems += _verify_layers(engine.get("layers"), f"engines[{i}]")
+    problems += _verify_derived_documents(artifact.get("derived_documents"), engines)
     return problems
+
+
+def _verify_derived(engine: dict[str, Any], at: str) -> list[str]:
+    """The derived-surface block (owner decision D-6).
+
+    Two rules with teeth. The configuration must be the ONE frozen name, so an
+    artifact cannot record a comparison taken under a render configuration
+    nobody declared. And the SARIF status must agree with the verdict layer's:
+    a `produced` SARIF beside a refused verdict layer is a document rendered
+    from nothing, and a `refused` SARIF beside a produced layer is a surface
+    quietly dropped."""
+    derived = engine.get("derived")
+    if not isinstance(derived, dict):
+        return [f"{at}: derived is missing or not an object — every v3 engine "
+                f"entry records the identity of the surfaces DERIVED from its "
+                f"own layers"]
+    extra = sorted(set(derived) - {"sarif"})
+    if extra:
+        return [f"{at}.derived: unknown member(s): {extra}"]
+    sarif = derived.get("sarif")
+    if not isinstance(sarif, dict):
+        return [f"{at}.derived.sarif is missing or not an object"]
+    problems: list[str] = []
+    extra = sorted(set(sarif) - {"configuration", "status", "canonical"})
+    if extra:
+        problems.append(f"{at}.derived.sarif: unknown member(s): {extra}")
+    if sarif.get("configuration") != SARIF_CONFIGURATION:
+        problems.append(
+            f"{at}.derived.sarif.configuration is "
+            f"{sarif.get('configuration')!r}, not the frozen "
+            f"{SARIF_CONFIGURATION!r} — a comparison under an undeclared render "
+            f"configuration is not a comparison of one surface")
+    layers = engine.get("layers")
+    verdicts = next((lyr for lyr in layers
+                     if isinstance(lyr, dict) and lyr.get("layer") == "verdicts"),
+                    None) if isinstance(layers, list) else None
+    expected = (STATUS_REFUSED if verdicts is None
+                or verdicts.get("status") == STATUS_REFUSED else STATUS_PRODUCED)
+    if sarif.get("status") != expected:
+        problems.append(
+            f"{at}.derived.sarif.status is {sarif.get('status')!r}, but this "
+            f"engine's verdict layer is {expected!r} — the derived surface is "
+            f"rendered from that layer, so it is refused exactly when the layer "
+            f"is")
+    canonical = sarif.get("canonical")
+    if expected == STATUS_REFUSED:
+        if canonical is not None:
+            problems.append(f"{at}.derived.sarif: a refused surface carries a "
+                            f"canonical identity")
+    elif not isinstance(canonical, dict):
+        problems.append(f"{at}.derived.sarif.canonical is missing or not an "
+                        f"object")
+    return problems
+
+
+def _verify_derived_documents(section: Any, engines: list[Any]) -> list[str]:
+    """`derived_documents` — the full derived surfaces, retained by the compare
+    driver on MISMATCH only (owner decision D-6).
+
+    Absent from every committed artifact, and that is the design: an identity is
+    what a comparison needs, and a SARIF document per engine per case would
+    triple the corpus to say nothing the digest does not. When it IS present,
+    each document is checked against the digest its engine recorded — a
+    retained document that does not match the identity it is filed under is
+    worse than no document at all."""
+    if section is None:
+        return []
+    if not isinstance(section, dict):
+        return ["derived_documents is not an object"]
+    known = {e.get("id"): e for e in engines if isinstance(e, dict)}
+    problems: list[str] = []
+    for eid, surfaces in section.items():
+        engine = known.get(eid)
+        if engine is None:
+            problems.append(f"derived_documents[{eid!r}]: no such engine in this "
+                            f"artifact")
+            continue
+        if not isinstance(surfaces, dict):
+            problems.append(f"derived_documents[{eid!r}] is not an object")
+            continue
+        extra = sorted(set(surfaces) - {"sarif"})
+        if extra:
+            problems.append(f"derived_documents[{eid!r}]: unknown member(s): {extra}")
+        if "sarif" not in surfaces:
+            continue
+        claimed = ((engine.get("derived") or {}).get("sarif") or {}).get("canonical")
+        try:
+            actual = canonical_hash(surfaces["sarif"])
+        except ReproError as e:
+            problems.append(f"derived_documents[{eid!r}].sarif is not "
+                            f"canonicalizable: {e}")
+            continue
+        if claimed != actual:
+            problems.append(
+                f"derived_documents[{eid!r}].sarif does not match the identity "
+                f"this engine recorded: claimed {claimed}, recomputed {actual}")
+    return problems
+
+
+def _verify_raw(inp: dict[str, Any]) -> tuple[list[str], dict[str, Any] | None]:
+    """The raw-input chain (owner decision B-2), link by link.
+
+    Each link is a **separate named problem**, and that is the design rather
+    than verbosity: "the artifact does not verify" is not actionable, and the
+    six links fail for six different reasons — a mis-copied digest, a truncated
+    blob, a re-serialized document, a document swapped under a kept digest. A
+    single message covering all of them would let a mutation move the failure
+    from one link to another with the suite still red for the same string, and
+    a control could not tell which rule it was protecting (the M05/M06/M07
+    shape recorded in this module's docstring).
+
+    Returns `(problems, raw_identity)`; the identity is `None` when the chain
+    broke before one could be established, so no engine is then judged against
+    a claim that is itself unverified."""
+    problems: list[str] = []
+    raw = inp.get("raw")
+    if not isinstance(raw, dict):
+        return (["input.raw is missing or not an object — a v3 artifact carries "
+                 "the byte-exact input it was taken over"], None)
+    extra = sorted(set(raw) - {"algorithm", "digest", "bytes", "base64"})
+    if extra:
+        problems.append(f"unknown input.raw member(s): {extra}")
+    if raw.get("algorithm") != CANONICAL_ALGORITHM:
+        problems.append(
+            f"input.raw.algorithm {raw.get('algorithm')!r} is not "
+            f"{CANONICAL_ALGORITHM!r}")
+    encoded = raw.get("base64")
+    if not isinstance(encoded, str):
+        problems.append("input.raw.base64 is missing or not a string")
+        return problems, None
+    try:
+        decoded = decode_raw(encoded)
+    except ReproError as e:
+        problems.append(str(e))
+        return problems, None
+    if raw.get("bytes") != len(decoded):
+        problems.append(
+            f"input.raw.bytes {raw.get('bytes')!r} does not describe "
+            f"input.raw.base64, which decodes to {len(decoded)} byte(s)")
+    actual = hash_bytes(decoded)
+    if raw.get("digest") != actual["digest"]:
+        problems.append(
+            f"input.raw.digest does not describe input.raw.base64: claimed "
+            f"{raw.get('digest')!r}, recomputed {actual['digest']!r}")
+    try:
+        reparsed = load_bytes(decoded)
+    except ReproError as e:
+        problems.append(f"input.raw does not parse: {e}")
+        return problems, actual
+    except json.JSONDecodeError as e:
+        problems.append(f"input.raw does not parse: {e}")
+        return problems, actual
+    claimed_canonical = inp.get("canonical")
+    reparsed_canonical = canonical_hash(reparsed)
+    if claimed_canonical != reparsed_canonical:
+        # The link that makes `input.document` an OBSERVATION rather than the
+        # subject: the bytes are what the engines saw, and parsing them has to
+        # land on the identity the artifact claims. A document edited under a
+        # kept `raw` fails here even when it re-hashes to its own digest.
+        problems.append(
+            f"input.raw does not reproduce input.canonical: parsing the raw "
+            f"bytes yields {reparsed_canonical}, the artifact claims "
+            f"{claimed_canonical}")
+    return problems, actual
+
+
+def _verify_consumed(engine: dict[str, Any], at: str,
+                     raw_identity: dict[str, Any] | None) -> list[str]:
+    """Every engine attests the bytes it consumed, and they are the artifact's
+    (owner decision B-2's last link, and B-3's gate).
+
+    An entry without `consumed` is refused rather than defaulted: defaulting is
+    exactly how a version-2 capture would be promoted into a version-3 artifact
+    carrying a claim no execution ever made."""
+    consumed = engine.get("consumed")
+    if not isinstance(consumed, dict):
+        return [f"{at}: consumed is missing or not an object — every v3 engine "
+                f"entry attests the bytes it read, and an entry that does not "
+                f"is a capture from an older format rather than a run"]
+    extra = sorted(set(consumed) - {"algorithm", "digest", "bytes"})
+    if extra:
+        return [f"{at}.consumed: unknown member(s): {extra}"]
+    if raw_identity is None:
+        return []  # the raw chain already failed; judging against it says nothing
+    if consumed != raw_identity:
+        return [f"{at}: consumed {consumed} is not input.raw's identity "
+                f"{raw_identity} — this engine did not read the bytes the "
+                f"artifact carries, so the two captures are not of one input"]
+    return []
 
 
 # --------------------------------------------------------------------------
@@ -542,8 +1056,10 @@ def verify_repro(artifact: Any) -> list[str]:
 # --------------------------------------------------------------------------
 
 # The trace surface version. Bump on ANY change to the frozen decisions in the
-# module docstring's AnalysisTrace section.
-TRACE_VERSION = 1
+# module docstring's AnalysisTrace section. 2 carries a refused layer's
+# structured `boundary` through, because the reducer judges acceptance from the
+# trace and the declaration lives on the capture (owner decision D-5).
+TRACE_VERSION = 2
 
 ORDER_SIGNIFICANT = "significant"
 ORDER_CANONICAL = "canonical"
@@ -739,6 +1255,13 @@ def trace_layer(layer: dict[str, Any]) -> dict[str, Any]:
     }
     if layer.get("status") == STATUS_REFUSED:
         out["error"] = layer.get("error")
+        # The structured boundary class, carried through unchanged. The trace is
+        # what a reduction reads, so a declaration that stopped at the capture
+        # would leave the reducer with nothing but the error TEXT to judge on —
+        # which is exactly the matching D-5 forbids. `null` when the refusing
+        # engine declared none: absence is data, and an undeclared refusal is
+        # unexplained rather than unknown.
+        out["boundary"] = layer.get("boundary")
         out["steps"] = []
         return out
     builder = _LAYER_STEPS.get(str(name))
@@ -796,24 +1319,131 @@ def render_traces(artifact: dict[str, Any], case: str) -> str:
 # First-divergence reduction (#260 step 7a cp4)
 # --------------------------------------------------------------------------
 
-REDUCTION_VERSION = 1
+# The reduction surface version. Bump on ANY change to the frozen decisions
+# below. 2 widened the scope to every layer (owner decision D-4) and made the
+# ACCEPTANCE judgement a field of its own beside the observation kind (D-5).
+REDUCTION_VERSION = 2
 
-# The layers this reducer will walk, in pipeline order. `verdicts` is
-# DELIBERATELY absent and refused rather than merely skipped: comparing final
-# diagnostics is #260's *acceptance*, which is blocked by #259 (cp5 and 4b),
-# and infrastructure that would quietly do it on request is infrastructure that
-# turns into an unearned shadow-mode claim the first time somebody widens a
-# tuple. Widening this set is a contract decision, not a parameter.
-REDUCTION_SCOPE: tuple[str, ...] = ("lowered", "summaries")
+# The layers this reducer walks, in pipeline order — **the layer order itself**
+# (owner decision D-4), aliased rather than copied.
+#
+# It used to be a narrower tuple, and the narrowing was right at the time: the
+# verdict layer was refused rather than skipped, because comparing final
+# diagnostics is #260's acceptance and infrastructure that would quietly do it
+# on request becomes an unearned shadow-mode claim the first time somebody
+# widens a constant. #259's final acceptance removed that reason, and the owner
+# took the decision.
+#
+# It is an ALIAS, not a third copy of the same list. The tree already held the
+# layer vocabulary three times — the order, the ordering semantics, and this
+# scope — and only the third could drift silently, because nothing compared it
+# to the first. `REDUCTION_SCOPE is LAYER_ORDER` is now a fact a test can state.
+REDUCTION_SCOPE: tuple[str, ...] = LAYER_ORDER
 
-# The four content classes, plus the two that are not content differences.
+# The observation KINDS: what was seen. Four content classes, plus the three
+# that are not content differences.
 KIND_LEFT_ONLY = "left-only"
 KIND_RIGHT_ONLY = "right-only"
 KIND_CHANGED = "changed"
 KIND_ORDERING_ONLY = "ordering-only"
 KIND_STATUS = "status"
 KIND_PROJECTION = "projection"
-KIND_UNEXPLAINED = "unexplained"
+# Replaces the old `unexplained` KIND (owner decision D-5). An engine that did
+# not report a layer at all is a *kind* of observation — a shape — and calling
+# it "unexplained" conflated the shape with the judgement, so the two could
+# never disagree. They can now, and they must be able to: `missing-layer` is
+# always judged unexplained, which is a rule with a control rather than a name.
+KIND_MISSING_LAYER = "missing-layer"
+
+KINDS: tuple[str, ...] = (
+    KIND_LEFT_ONLY, KIND_RIGHT_ONLY, KIND_CHANGED, KIND_ORDERING_ONLY,
+    KIND_STATUS, KIND_PROJECTION, KIND_MISSING_LAYER,
+)
+
+# The ACCEPTANCE judgement: what it means. Orthogonal to the kind (D-5) —
+# one field says what was observed, the other says whether it is explained,
+# and neither is recoverable from the other.
+ACCEPTANCE_UNEXPLAINED = "unexplained"
+ACCEPTANCE_DECLARED = "declared-boundary"
+ACCEPTANCES: tuple[str, ...] = (ACCEPTANCE_UNEXPLAINED, ACCEPTANCE_DECLARED)
+
+# The one boundary class any engine declares today: the #294 OD-1 typed door.
+BOUNDARY_OD1 = "OD-1"
+
+# The FROZEN boundary policy (owner decision D-5): the exact `(layer, kind,
+# class)` triples an observation may be judged a declared boundary on. Widening
+# it is a contract decision, and a test asserts EXACT equality to these three.
+#
+# Three entries for one door, and that is the point rather than repetition: the
+# typed `OwnIr` constructor sits upstream of every layer, so one refusal
+# produces three refused layer records, and a policy keyed by class alone could
+# not tell "the door refused this document" from "somebody attached a known
+# class to an unrelated layer". A class is not a token that excuses whatever it
+# is pinned to — it explains a *specific layer's specific kind of* observation,
+# and nothing else.
+#
+# `projection` has NO entry, deliberately. A projection difference means the two
+# engines declared different views of one surface, so their values are not
+# comparable member-for-member; that is a reason to stop comparing, never a
+# reason to call the difference explained.
+BOUNDARY_POLICY: frozenset[tuple[str, str, str]] = frozenset({
+    ("lowered", KIND_STATUS, BOUNDARY_OD1),
+    ("summaries", KIND_STATUS, BOUNDARY_OD1),
+    ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+})
+
+# The reduction outcomes. `declared-boundary` is not a softer `diverged`: it
+# says every observation was matched by the frozen policy, which is a stronger
+# statement than "nothing was found" is about a surface with known boundaries.
+OUTCOME_IDENTICAL = "identical"
+OUTCOME_DECLARED = "declared-boundary"
+OUTCOME_DIVERGED = "diverged"
+OUTCOME_SINGLE_ENGINE = "single-engine"
+
+
+def judge(layer: str, kind: str, boundary: Any) -> tuple[str, Any]:
+    """The ACCEPTANCE judgement for one observation, and the boundary it kept.
+
+    The rule, in the order it is written, because the order is the contract:
+
+    1. Anything that is not a `status` or a `projection` observation is
+       **unexplained**, full stop, and carries NO boundary — a content
+       difference on any layer, `summaries` included, and a `missing-layer`
+       alike. The policy is not consulted at all, so a known class attached to
+       a `changed` observation cannot explain it even in principle. That is
+       stronger than checking and rejecting, and it is deliberate: the failure
+       mode this guards against is a class becoming a token that excuses
+       whatever it is pinned to.
+    2. A `status` or `projection` observation is a **declared boundary** only
+       when its structured class and its `(layer, kind)` match an exact entry
+       of [`BOUNDARY_POLICY`]. A known class on the wrong layer, or on the
+       wrong kind, does not explain it.
+    3. `detail` never participates. It is prose for a human; matching on it
+       would make the judgement depend on wording, which is the error-text
+       matching this whole surface refuses (the reducer already declines to
+       compare two engines' refusal texts for the same reason).
+
+    There is no case-name matching and no error-text matching anywhere in this
+    function, and that is what the D-5 mutations exist to keep true."""
+    if kind not in (KIND_STATUS, KIND_PROJECTION):
+        return ACCEPTANCE_UNEXPLAINED, None
+    kept = boundary if isinstance(boundary, dict) else None
+    declared = (kept or {}).get("class")
+    if isinstance(declared, str) and (layer, kind, declared) in BOUNDARY_POLICY:
+        return ACCEPTANCE_DECLARED, kept
+    return ACCEPTANCE_UNEXPLAINED, kept
+
+
+def _observation(layer: str, kind: str, step: Any, path: Any, left: Any,
+                 right: Any, detail: str,
+                 boundary: Any = None) -> dict[str, Any]:
+    """One observation, with its kind and its acceptance as separate fields."""
+    acceptance, kept = judge(layer, kind, boundary)
+    return {
+        "layer": layer, "kind": kind, "acceptance": acceptance,
+        "boundary": kept, "step": step, "path": path,
+        "left": left, "right": right, "detail": detail,
+    }
 
 
 def _same(left: Any, right: Any) -> bool:
@@ -875,6 +1505,21 @@ def _layer_of(trace: dict[str, Any], name: str) -> dict[str, Any] | None:
     return None
 
 
+def _boundary_of(layer: dict[str, Any] | None) -> Any:
+    """The structured boundary class a REFUSING engine declared on its own
+    layer record, or `None`.
+
+    The refusing side declares it; this reducer only copies it. That direction
+    is the decision (D-5): a comparison tool that inferred a boundary from an
+    error text would be reading one engine's prose and calling the result a
+    contract, and a comparison tool that carried its own table of known cases
+    would be a second place the boundary is defined."""
+    if not isinstance(layer, dict) or layer.get("status") != STATUS_REFUSED:
+        return None
+    boundary = layer.get("boundary")
+    return boundary if isinstance(boundary, dict) else None
+
+
 def _reduce_layer(name: str, left: dict[str, Any],
                   right: dict[str, Any]) -> list[dict[str, Any]]:
     """Every observation for one layer, in step order — the caller takes the
@@ -882,14 +1527,16 @@ def _reduce_layer(name: str, left: dict[str, Any],
     it walks rather than collects a set."""
     out: list[dict[str, Any]] = []
     if left.get("status") != right.get("status"):
-        return [{
-            "layer": name, "kind": KIND_STATUS, "step": None, "path": None,
-            "left": left.get("status"), "right": right.get("status"),
-            "detail": ("the two engines disagree about whether this layer "
-                       "produced at all; the artifacts record every such case "
-                       "as a DECLARED boundary, and this reducer reports it "
-                       "rather than judging it"),
-        }]
+        # Exactly one side refused, so exactly one side can have declared a
+        # class. Whichever it is, the class travels with the observation.
+        return [_observation(
+            name, KIND_STATUS, None, None,
+            left.get("status"), right.get("status"),
+            ("the two engines disagree about whether this layer produced at "
+             "all; the refusing engine declares its boundary class in its own "
+             "capture and this reducer copies it, judging the result against "
+             "the frozen policy by (layer, kind, class) — never by its text"),
+            _boundary_of(left) or _boundary_of(right))]
     if left.get("status") == STATUS_REFUSED:
         # Both refused. A refusal's TEXT is each engine's own — the port's
         # map-or-raise wording is not the reference's — so the reducer compares
@@ -898,61 +1545,73 @@ def _reduce_layer(name: str, left: dict[str, Any],
         # difference in message vocabulary.
         return []
     if left.get("projection") != right.get("projection"):
-        return [{
-            "layer": name, "kind": KIND_PROJECTION, "step": None, "path": None,
-            "left": left.get("projection"), "right": right.get("projection"),
-            "detail": ("the engines declare different projections of this "
-                       "surface, so their step values are not comparable "
-                       "member-for-member; a value comparison here would score "
-                       "an unported member as a difference"),
-        }]
+        return [_observation(
+            name, KIND_PROJECTION, None, None,
+            left.get("projection"), right.get("projection"),
+            ("the engines declare different projections of this surface, so "
+             "their step values are not comparable member-for-member; a value "
+             "comparison here would score an unported member as a difference"))]
 
     left_steps = {s["id"]: s["value"] for s in left.get("steps", [])}
     right_steps = {s["id"]: s["value"] for s in right.get("steps", [])}
     for step in left.get("steps", []):
         sid = step["id"]
         if sid not in right_steps:
-            out.append({"layer": name, "kind": KIND_LEFT_ONLY, "step": sid,
-                        "path": None, "left": step["value"], "right": None,
-                        "detail": "addressed by the left engine only"})
+            out.append(_observation(
+                name, KIND_LEFT_ONLY, sid, None, step["value"], None,
+                "addressed by the left engine only"))
             continue
         if not _same(step["value"], right_steps[sid]):
             path, a, b = _minimal_difference(step["value"], right_steps[sid])
-            out.append({"layer": name, "kind": KIND_CHANGED, "step": sid,
-                        "path": path or ".", "left": a, "right": b,
-                        "detail": "the same address carries different values"})
+            out.append(_observation(
+                name, KIND_CHANGED, sid, path or ".", a, b,
+                "the same address carries different values"))
     for step in right.get("steps", []):
         if step["id"] not in left_steps:
-            out.append({"layer": name, "kind": KIND_RIGHT_ONLY, "step": step["id"],
-                        "path": None, "left": None, "right": step["value"],
-                        "detail": "addressed by the right engine only"})
+            out.append(_observation(
+                name, KIND_RIGHT_ONLY, step["id"], None, None, step["value"],
+                "addressed by the right engine only"))
     if out:
         return out
     left_order = [s["id"] for s in left.get("steps", [])]
     right_order = [s["id"] for s in right.get("steps", [])]
     if left_order != right_order:
         significant = left.get("order") == ORDER_SIGNIFICANT
-        out.append({
-            "layer": name, "kind": KIND_ORDERING_ONLY, "step": None, "path": None,
-            "left": left_order, "right": right_order,
-            "detail": ("the same steps in a different sequence; this layer "
-                       "declares its order SIGNIFICANT, so the sequence is the "
-                       "difference" if significant else
-                       "the same steps in a different sequence on a layer whose "
-                       "order is CANONICAL — one engine did not canonicalize"),
-        })
+        out.append(_observation(
+            name, KIND_ORDERING_ONLY, None, None, left_order, right_order,
+            ("the same steps in a different sequence; this layer "
+             "declares its order SIGNIFICANT, so the sequence is the "
+             "difference" if significant else
+             "the same steps in a different sequence on a layer whose "
+             "order is CANONICAL — one engine did not canonicalize")))
     return out
 
 
 def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
     """Walk two engines' traces in pipeline order and name the FIRST divergence
-    — its layer, its step address and the minimal difference inside it — plus
-    a classification over the whole scope.
+    — its layer, its step address and the minimal difference inside it — plus a
+    classification over the whole scope, by kind AND by acceptance.
 
     Silent by construction on identical data: `outcome` is `identical` and
-    `first` is `null`. Scope is [`REDUCTION_SCOPE`]; the verdict layer is
-    refused, not skipped, and the refusal is part of the output so a reader
-    cannot mistake "not compared" for "compared and agreed"."""
+    `first` is `null`.
+
+    Scope is [`REDUCTION_SCOPE`], which IS [`LAYER_ORDER`] (owner decision
+    D-4): every layer is walked, the verdict layer included. `out_of_scope`
+    stays in the schema and is empty — the member is what would carry a future
+    exclusion, and deleting it would make "no exclusions" and "the field was
+    dropped" the same document.
+
+    ## Why the verdict layer is walked by the same code as the others
+
+    The BR-V8 address `file:line:column:code` is a **pairing address**, not
+    object identity (owner decision D-7). Two findings that share it are the
+    same *place*, and every other member — `message`, `severity`, `related`,
+    `flow` — is compared as a value at that address, so a difference there is
+    `changed` with a minimal path rather than a pair of one-sided
+    observations. The duplicate-address `~<n>` suffix is part of the address,
+    which is why permuting two findings that share one address reports
+    `changed` on both and never `ordering-only`: the ordinal is not a position
+    the two engines are free to disagree about."""
     entries = traces.get("traces", [])
     if len(entries) < 2:
         return {
@@ -960,10 +1619,11 @@ def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
             "case": traces.get("case"),
             "engines": [e.get("engine") for e in entries],
             "scope": list(REDUCTION_SCOPE),
-            "outcome": "single-engine",
+            "outcome": OUTCOME_SINGLE_ENGINE,
             "detail": ("only one engine captured this input, so there is "
                        "nothing to reduce"),
-            "classification": {}, "first": None, "out_of_scope": [],
+            "classification": {"by_kind": {}, "by_acceptance": {}},
+            "first": None, "observations": [], "out_of_scope": [],
         }
     left, right = entries[0], entries[1]
     observations: list[dict[str, Any]] = []
@@ -972,34 +1632,124 @@ def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
             continue
         a, b = _layer_of(left, name), _layer_of(right, name)
         if a is None or b is None:
-            observations.append({
-                "layer": name, "kind": KIND_UNEXPLAINED, "step": None,
-                "path": None, "left": a is not None, "right": b is not None,
-                "detail": "an engine did not report this layer at all",
-            })
+            observations.append(_observation(
+                name, KIND_MISSING_LAYER, None, None,
+                a is not None, b is not None,
+                "an engine did not report this layer at all"))
             continue
         observations += _reduce_layer(name, a, b)
-    counts = {kind: sum(1 for o in observations if o["kind"] == kind)
-              for kind in (KIND_LEFT_ONLY, KIND_RIGHT_ONLY, KIND_CHANGED,
-                           KIND_ORDERING_ONLY, KIND_STATUS, KIND_PROJECTION,
-                           KIND_UNEXPLAINED)}
+    by_kind = {kind: sum(1 for o in observations if o["kind"] == kind)
+               for kind in KINDS}
+    by_acceptance = {value: sum(1 for o in observations
+                                if o["acceptance"] == value)
+                     for value in ACCEPTANCES}
+    if not observations:
+        outcome = OUTCOME_IDENTICAL
+    elif by_acceptance[ACCEPTANCE_UNEXPLAINED]:
+        outcome = OUTCOME_DIVERGED
+    else:
+        outcome = OUTCOME_DECLARED
     return {
         "reduction_version": REDUCTION_VERSION,
         "case": traces.get("case"),
         "engines": [left.get("engine"), right.get("engine")],
         "scope": list(REDUCTION_SCOPE),
-        "outcome": "identical" if not observations else "diverged",
+        "outcome": outcome,
         "detail": None,
-        "classification": counts,
+        "classification": {"by_kind": by_kind, "by_acceptance": by_acceptance},
         "first": observations[0] if observations else None,
+        # The whole walk, in step order, beside the headline. The verdict layer
+        # entering scope is exactly when one document can differ at several
+        # findings at once, and a reduction that showed one at a time would
+        # make a reviewer re-run the reducer to see the second. `first` is
+        # still what a first-divergence reduction is FOR; this is what a
+        # divergence report needs.
+        "observations": observations,
+        # Empty, and kept (D-4). Every layer is in scope; the member is the
+        # slot a future exclusion would occupy, and dropping it would make
+        # "nothing is excluded" indistinguishable from "the field went away".
         "out_of_scope": [
             {"layer": name,
-             "reason": ("comparing final diagnostics is #260's ACCEPTANCE and "
-                        "is blocked by #259 (cp5 and 4b); this reducer refuses "
-                        "the layer rather than skipping it, so 'not compared' "
-                        "can never be read as 'compared and agreed'")}
+             "reason": "not in scope"}
             for name in LAYER_ORDER if name not in REDUCTION_SCOPE],
     }
+
+
+# The three outcomes a comparison of the DERIVED surfaces has (owner decision
+# D-6). They are three and not two because "the renderers disagree" and "there
+# was nothing to compare" are different findings, and folding them would let a
+# refused verdict layer read as a renderer bug — or hide one.
+DERIVED_EQUAL = "equal"
+DERIVED_RENDERER_ONLY = "renderer-only divergence"
+DERIVED_NOT_COMPARABLE = "not-comparable"
+
+
+def derived_outcome(artifact: dict[str, Any],
+                    reduction: dict[str, Any]) -> dict[str, Any]:
+    """Compare two engines' DERIVED surfaces, given the artifact and the
+    reduction taken over it (owner decision D-6).
+
+    The reduction is an argument rather than something recomputed here because
+    the classification depends on it: a SARIF difference means *the renderer*
+    only when the verdict layers it was rendered from are equal. So the rule is:
+
+    * **not-comparable** — a verdict layer differs, or either engine refused it.
+      There is nothing to attribute a SARIF difference to, and a difference in a
+      document rendered from different inputs is not a renderer finding.
+    * **renderer-only divergence** — the verdict layers agree and the SARIF
+      identities do not. The renderers are the only thing left, which is a real
+      defect and exactly the kind BR-V9's replay also catches, from the other
+      side.
+    * **equal** — both agree.
+
+    Returns `{"surface", "outcome", "configuration", "identities", "detail"}`.
+    Never raises: a malformed artifact is `not-comparable` with the reason, not
+    an exception, because the driver's job at that point is to report."""
+    entries = [e for e in artifact.get("engines", []) if isinstance(e, dict)]
+    identities = {
+        str(e.get("id")): ((e.get("derived") or {}).get("sarif") or {})
+        for e in entries
+    }
+    out: dict[str, Any] = {
+        "surface": "sarif",
+        "configuration": SARIF_CONFIGURATION,
+        "identities": {eid: {"status": sarif.get("status"),
+                             "canonical": sarif.get("canonical")}
+                       for eid, sarif in identities.items()},
+    }
+    if len(entries) < 2:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = ("only one engine captured this input, so there is no "
+                         "derived surface to compare")
+        return out
+    refused = sorted(eid for eid, sarif in identities.items()
+                     if sarif.get("status") != STATUS_PRODUCED)
+    if refused:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = (f"{refused} refused the verdict layer, so the derived "
+                         f"surface was never rendered — a difference here would "
+                         f"have nothing to attribute itself to")
+        return out
+    verdict_observations = [o for o in reduction.get("observations", [])
+                            if o.get("layer") == "verdicts"]
+    if verdict_observations:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = (f"the verdict layers differ "
+                         f"({len(verdict_observations)} observation(s), first "
+                         f"{verdict_observations[0].get('kind')!r} at "
+                         f"{verdict_observations[0].get('step')!r}), so a SARIF "
+                         f"difference would not be the renderer's")
+        return out
+    digests = {eid: (sarif.get("canonical") or {}).get("digest")
+               for eid, sarif in identities.items()}
+    if len(set(digests.values())) == 1:
+        out["outcome"] = DERIVED_EQUAL
+        out["detail"] = None
+        return out
+    out["outcome"] = DERIVED_RENDERER_ONLY
+    out["detail"] = (f"the verdict layers agree and the rendered SARIF does not "
+                     f"({digests}); the renderers are the only thing left")
+    return out
 
 
 def render_reduction(traces: dict[str, Any]) -> str:
@@ -1042,6 +1792,33 @@ def _verify_projection(projection: Any, at: str) -> list[str]:
     return problems
 
 
+def _verify_boundary(boundary: Any, status: Any, at: str) -> list[str]:
+    """A declared refusal boundary (owner decision D-5): `{"class", "detail"}`,
+    on a REFUSED layer only.
+
+    `class` is what the frozen policy matches on and must be a non-empty
+    string; `detail` is prose for a human and is never matched. Both are
+    required — a class with no detail is a token, and a detail with no class is
+    an error message wearing a structured field's name."""
+    problems: list[str] = []
+    if status != STATUS_REFUSED:
+        problems.append(f"{at}: a boundary is declared on a layer whose status "
+                        f"is {status!r} — only a REFUSAL has a boundary class")
+    if not isinstance(boundary, dict):
+        return [*problems, f"{at}.boundary is not an object"]
+    extra = sorted(set(boundary) - {"class", "detail"})
+    if extra:
+        problems.append(f"{at}.boundary: unknown member(s): {extra}")
+    if not isinstance(boundary.get("class"), str) or not boundary.get("class"):
+        problems.append(f"{at}.boundary: 'class' must be a non-empty string — it "
+                        f"is what the frozen policy matches on")
+    if not isinstance(boundary.get("detail"), str) or not boundary.get("detail"):
+        problems.append(f"{at}.boundary: 'detail' must be a non-empty string "
+                        f"saying WHAT was refused, for a human; it never "
+                        f"participates in the policy")
+    return problems
+
+
 def _verify_layers(layers: Any, where: str) -> list[str]:
     problems: list[str] = []
     if not isinstance(layers, list):
@@ -1057,7 +1834,7 @@ def _verify_layers(layers: Any, where: str) -> list[str]:
             problems.append(f"{at} is not an object")
             continue
         allowed = {"layer", "surface_version", "projection", "status",
-                   "document", "error"}
+                   "document", "error", "boundary"}
         extra = sorted(set(layer) - allowed)
         if extra:
             problems.append(f"{at}: unknown member(s): {extra}")
@@ -1080,4 +1857,6 @@ def _verify_layers(layers: Any, where: str) -> list[str]:
             problems.append(
                 f"{at}: status {status!r} is neither {STATUS_PRODUCED!r} nor "
                 f"{STATUS_REFUSED!r}")
+        if "boundary" in layer:
+            problems += _verify_boundary(layer.get("boundary"), status, at)
     return problems

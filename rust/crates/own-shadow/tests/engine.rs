@@ -33,12 +33,40 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use own_shadow::{capture, parse, render, verify, Json, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER};
+use own_shadow::{
+    base64_decode, capture, parse, render, verify, Json, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER,
+};
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/fixtures");
 
 fn read(path: &str) -> String {
     std::fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {path}: {e}"))
+}
+
+/// The bytes the artifact ATTESTS, decoded from `input.raw` — never the file on
+/// disk.
+///
+/// This is owner decision B-2 made structural on this side. The engine's
+/// `consumed` has to name the bytes the artifact carries, and the only way to
+/// guarantee that is to feed it those bytes: reading the fixture again would
+/// re-derive them from a second source, and a `consumed` computed from a file
+/// that had drifted from `input.raw` would attest an input nobody compared.
+/// The freshness of the fixture is a separate question, asked separately
+/// below.
+fn attested_bytes(artifact: &Json, name: &str) -> Vec<u8> {
+    let encoded = artifact
+        .get("input")
+        .and_then(|i| i.get("raw"))
+        .and_then(|r| r.get("base64"))
+        .and_then(Json::as_str)
+        .unwrap_or_else(|| {
+            panic!(
+                "{name}: the committed artifact carries no input.raw.base64 — it predates \
+                 artifact v3. Regenerate the reference's half first: python \
+                 tests/test_repro_fixtures.py --write"
+            )
+        });
+    base64_decode(encoded).unwrap_or_else(|e| panic!("{name}: input.raw.base64: {e}"))
 }
 
 /// The artifact ledger, and where each named case's facts document lives.
@@ -131,14 +159,28 @@ fn this_engine_reproduces_its_committed_capture() {
     for (name, facts_path) in artifacts() {
         let artifact_path = format!("{FIXTURES}/repro/{name}.repro.json");
         let artifact = parse(&read(&artifact_path)).expect("artifact parses");
-        let facts_text = read(&facts_path);
+        let raw = attested_bytes(&artifact, &name);
 
-        let ours = capture(&facts_text)
+        // Fixture freshness, asked as its own question. It is NOT the
+        // attestation — the attestation is that this engine consumed the bytes
+        // the artifact carries, which the capture below makes true by
+        // construction. This says something weaker and still worth knowing:
+        // the file the reference captured has not moved underneath the
+        // artifact since.
+        let on_disk = std::fs::read(&facts_path)
+            .unwrap_or_else(|e| panic!("{name}: cannot read {facts_path}: {e}"));
+        assert_eq!(
+            on_disk, raw,
+            "{name}: the facts file on disk differs from the bytes the artifact attests — \
+             regenerate the reference's half: python tests/test_repro_fixtures.py --write"
+        );
+
+        let ours = capture(&raw)
             .unwrap_or_else(|e| panic!("{name}: this engine cannot capture the document: {e}"));
         // Determinism: the same input, twice.
         assert_eq!(
             ours,
-            capture(&facts_text).expect("second capture"),
+            capture(&raw).expect("second capture"),
             "{name}: the capture is not deterministic"
         );
 
@@ -207,8 +249,10 @@ fn a_projection_names_exactly_the_members_it_carries() {
     // reachable lie the day the verdict layer stopped being partial (#259
     // cp5.1/5.2), and which the partial-only version of this test could not
     // see.
-    for (name, facts_path) in artifacts() {
-        let ours = capture(&read(&facts_path)).expect("capture");
+    for (name, _facts_path) in artifacts() {
+        let artifact =
+            parse(&read(&format!("{FIXTURES}/repro/{name}.repro.json"))).expect("artifact parses");
+        let ours = capture(&attested_bytes(&artifact, &name)).expect("capture");
         for layer in ours.get("layers").and_then(Json::as_array).expect("layers") {
             let projection = layer.get("projection").expect("projection");
             let kind = projection.get("kind").and_then(Json::as_str);

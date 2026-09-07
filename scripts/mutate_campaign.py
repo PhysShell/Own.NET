@@ -531,7 +531,7 @@ def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
         # A layer that failed without naming a check still caught something; it
         # is recorded under a name that says the runner could not attribute it,
         # never dropped into "survived".
-        found = [f"{layer.id}::<non-zero exit with no reported failure>"]
+        found = [f"{layer.id}::{SYNTHETIC_CATCHER}"]
         unparsed.append(f"{layer.id}: exited {r.returncode} without a parseable failure:\n"
                         + "\n".join(r.stdout.splitlines()[-15:]))
     return found, ce, unparsed
@@ -601,6 +601,30 @@ def apply(m: Mutation, pristine: str) -> tuple[str, str | None]:
     return new, None
 
 
+def python_syntax_error(target: str, text: str) -> str | None:
+    """A mutated Python source that does not PARSE, or `None`.
+
+    cargo reports a mutation that does not compile and the runner files it as
+    `compile-error` — no evidence, never "caught". Python mutations had no such
+    check, and the gap produced the worst outcome a campaign can: a mutation
+    written as `b"\\n"` was expanded by `re.sub` into a real newline, the
+    target stopped parsing, a spawned child died with a SyntaxError, and the
+    layer's non-zero exit was recorded as a CATCH. Evidence that a rule is
+    protected, produced by a mutation that never expressed the rule.
+
+    Checked on the mutated TEXT rather than by watching for a traceback,
+    because the traceback belongs to whatever process happened to import or run
+    the file — which for this family is often a grandchild whose stderr the
+    layer only quotes in part."""
+    if not target.endswith(".py"):
+        return None
+    try:
+        compile(text, target, "exec")
+    except SyntaxError as e:
+        return f"the mutated source does not parse: {e}"
+    return None
+
+
 def validate(definition: Definition) -> list[str]:
     problems: list[str] = []
     for m in definition.mutations:
@@ -613,7 +637,136 @@ def validate(definition: Definition) -> list[str]:
         _, problem = apply(m, pristine)
         if problem:
             problems.append(f"{m.id}: {problem}")
+    problems += validate_catchers(definition)
     return problems
+
+
+# A Rust `#[test]`, possibly under further attributes — the same shape
+# `tests/shadow_census.py` reads test names with, so "a test exists" means the
+# same thing in both places.
+_RUST_TEST = r"#\[test\][^\n]*\n(?:\s*#\[[^\n]*\n)*\s*fn {name}\("
+
+# The runner's own name for a layer that failed without naming a check. Not a
+# test, so nothing looks for it in a source file; #337's expected-catchers rule
+# already treats it as the weaker evidence it is.
+SYNTHETIC_CATCHER = "<non-zero exit with no reported failure>"
+
+
+def validate_catchers(definition: Definition) -> list[str]:
+    """Every named catcher still EXISTS as a test — by package, target and name.
+
+    Re-anchoring proves a mutation still applies to this tree. It says nothing
+    about whether the tests the mutation names are still there, and the two
+    rot independently: `p022-shadow-cp4`'s M61 carried two catchers that had
+    stopped failing on `main` after row 4b's promotion, and nothing noticed
+    until the next full re-run. A recorded campaign whose catchers have been
+    renamed or deleted is a green tick describing tests that no longer exist.
+
+    Deliberately an EXISTENCE check and not a behaviour one. Whether a test
+    still *fails* under its mutation is what a run measures, and a validator
+    that tried to answer it would be a slow, partial re-run. What this closes
+    is the cheap half: a catcher naming nothing at all.
+    """
+    problems: list[str] = []
+    layers = {x.id: x for x in _layers_of(definition)}
+    seen: set[str] = set()
+    for m in definition.mutations:
+        for catcher in m.expected_catchers:
+            if catcher in seen:
+                continue
+            seen.add(catcher)
+            problem = _catcher_exists(catcher, layers)
+            if problem:
+                problems.append(f"{m.id}: expected catcher {catcher!r} {problem}")
+    return problems
+
+
+def _catcher_exists(catcher: str, layers: dict[str, Layer]) -> str | None:
+    """`None` when the catcher names something that exists, else why not."""
+    if "::" not in catcher:
+        return ("is not addressable: a catcher is '<layer>::<check-tag>' for a "
+                "Python layer or '<crate>/<target>.rs::<test path>' for a cargo "
+                "one")
+    left, _, right = catcher.partition("::")
+    if left.endswith(".rs"):
+        return _rust_catcher_exists(left, right)
+    return _python_catcher_exists(left, right, layers)
+
+
+def _rust_catcher_exists(target: str, test_path: str) -> str | None:
+    """`<crate-or-layer>/<target>.rs::<module path>::<fn>`.
+
+    The first segment may be a crate directory or a layer id (`rust-bridge`
+    names the `own-bridge` crate), so the file is resolved by its suffix and
+    the ambiguity is reported rather than guessed at. A `src/lib.rs` target is
+    the crate's LIB target and its unit tests live wherever the module does, so
+    that case searches the crate's whole `src/` tree."""
+    _prefix, _, rest = target.partition("/")
+    name = test_path.rsplit("::", 1)[-1]
+    crates = os.path.join(ROOT, "rust", "crates")
+    if not os.path.isdir(crates):
+        return "cannot be checked: rust/crates does not exist"
+    matches = [os.path.join(crates, crate, rest)
+               for crate in sorted(os.listdir(crates))
+               if os.path.isfile(os.path.join(crates, crate, rest))]
+    if not matches:
+        return f"names no file: no rust/crates/*/{rest}"
+    hay: list[str] = []
+    for match in matches:
+        if rest == "src/lib.rs":
+            root = os.path.dirname(match)
+            for dirpath, _dirs, files in os.walk(root):
+                hay += [os.path.join(dirpath, f) for f in sorted(files)
+                        if f.endswith(".rs")]
+        else:
+            hay.append(match)
+    pattern = re.compile(_RUST_TEST.format(name=re.escape(name)))
+    for path in hay:
+        with open(path, encoding="utf-8") as f:
+            if pattern.search(f.read()):
+                return None
+    return (f"names a test that does not exist: no `#[test] fn {name}(` under "
+            f"{[os.path.relpath(m, ROOT) for m in matches]}")
+
+
+def _python_catcher_exists(layer_id: str, tag: str,
+                           layers: dict[str, Layer]) -> str | None:
+    """`<layer>::<check-tag>`, where the tag is what the harness prints inside
+    `FAIL[...]`.
+
+    A Python harness reports through `(tag, detail)` pairs rather than through
+    test functions, so "the test exists" means "some file this layer runs still
+    writes that tag". Checked by looking for the tag as a literal in the `.py`
+    files the layer's own command names — which is where the harness that emits
+    it has to live."""
+    layer = layers.get(layer_id)
+    if layer is None:
+        return (f"names layer {layer_id!r}, which this campaign does not declare "
+                f"(declared: {sorted(layers)})")
+    if tag == SYNTHETIC_CATCHER:
+        # The runner's OWN name for "this layer failed and named no check". It
+        # is not a test and there is nothing to look for; a definition that
+        # relies on it is already the weaker evidence M-1 records, and that is a
+        # separate concern from whether it names something that exists.
+        return None
+    sources = [arg for arg in layer.command if arg.endswith(".py")]
+    if not sources:
+        return None  # a cargo layer addressed by tag: nothing to check here
+    # Three spellings, because a Python harness emits its tag either as the
+    # first half of a `(tag, detail)` pair or straight into the `FAIL[...]`
+    # line, and a check that only knew one would report a live tag as missing.
+    forms = (f'"{tag}"', f"'{tag}'", f"[{tag}]")
+    for source in sources:
+        path = os.path.join(ROOT, layer.cwd, source)
+        if not os.path.isfile(path):
+            return f"names a layer whose command file {source} does not exist"
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+        if any(form in body for form in forms):
+            return None
+    return (f"names a check tag no file this layer runs still emits "
+            f"({sources}) — a renamed or deleted check leaves a catcher naming "
+            f"nothing")
 
 
 def _classify(catchers: list[str], compile_error: bool, unparsed: list[str]) -> tuple[str, str]:
@@ -667,6 +820,15 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
             if problem:
                 outcomes.append(Outcome(m.id, "invalid-mutation", (), 0.0, problem))
                 print(f"  -> invalid-mutation: {problem}", flush=True)
+                continue
+            broken = python_syntax_error(m.target, mutated)
+            if broken:
+                # `compile-error`, the same class cargo's own failure lands in:
+                # no evidence, and explicitly NOT "caught". Checked before the
+                # layers run, so a mutation that cannot express its rule never
+                # gets a chance to look like one that does.
+                outcomes.append(Outcome(m.id, "compile-error", (), 0.0, broken))
+                print(f"  -> compile-error: {broken}", flush=True)
                 continue
             write_source(m.target, mutated)
             t0 = time.monotonic()

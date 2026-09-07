@@ -28,7 +28,11 @@ use crate::artifact::{LAYER_ORDER, STATUS_REFUSED};
 use crate::json::Json;
 
 /// The trace surface version, keyed to the reference's `TRACE_VERSION`.
-pub const TRACE_VERSION: i64 = 1;
+///
+/// 2 carries a refused layer's structured `boundary` through, because the
+/// reducer judges acceptance from the trace and the declaration lives on the
+/// capture (owner decision D-5).
+pub const TRACE_VERSION: i64 = 2;
 
 pub const ORDER_SIGNIFICANT: &str = "significant";
 pub const ORDER_CANONICAL: &str = "canonical";
@@ -392,6 +396,16 @@ fn trace_layer(layer: &Json) -> Result<Json, String> {
         // compared equal to another engine's would score a refusal as
         // agreement.
         fields.push(("error", layer.get("error").cloned().unwrap_or(Json::Null)));
+        // The structured boundary class, carried through unchanged. A
+        // reduction reads traces, not captures, so a declaration that stopped
+        // at the capture would leave the reducer with nothing but the error
+        // TEXT to judge on — the matching D-5 forbids. `null` when the refusing
+        // engine declared none: an undeclared refusal is unexplained, not
+        // unknown.
+        fields.push((
+            "boundary",
+            layer.get("boundary").cloned().unwrap_or(Json::Null),
+        ));
         fields.push(("steps", Json::Array(Vec::new())));
         return Ok(object(fields));
     }

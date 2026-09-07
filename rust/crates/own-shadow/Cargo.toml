@@ -21,6 +21,16 @@ license.workspace = true
 publish.workspace = true
 description = "Shadow-mode infrastructure layer 0: canonical OwnIR document identity (hash) and the reproduction-artifact format, replaying the Python-authored artifacts with zero Python (P-022 step 7a)"
 
+# The dev-only ADAPTER around this crate's capture (owner decision R-1): stdin
+# is the captured raw bytes, stdout is one capture, and there is nothing else.
+# It is not `own-cli` and creates no #261 cutover surface — it takes no
+# arguments, opens no file and discovers no configuration, because an adapter
+# that accepted a path would allow a second read of the input where nobody
+# could see it.
+[[bin]]
+name = "own-shadow-engine"
+path = "src/bin/own-shadow-engine.rs"
+
 [dependencies]
 serde = { workspace = true }
 # The artifact is JSON on the wire; this crate parses it into its OWN

@@ -234,7 +234,7 @@
     {
       "id": "M21",
       "description": "the tolerant line reader degrades an out-of-domain coordinate to 1 instead of 0, so a DI site line below the domain passes the >= 1 guard and anchors where nothing is",
-      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "target": "rust/crates/own-bridge/src/lower.rs",
       "pattern": "Some\\(n\\) if \\(0..=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,",
       "replacement": "Some(n) if (0..=2_147_483_647).contains(&n) => n,\n        _ => 1,",
       "expected_catchers": [

@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+      "bytes": 1049,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIlRvcnR1cmXDqea8ouWtl/CfmIAiLAogICJjYW5vbmljYWxfcHJvYmUiOiB7CiAgICAiaTY0X21heCI6IDkyMjMzNzIwMzY4NTQ3NzU4MDcsCiAgICAiaTY0X21pbiI6IC05MjIzMzcyMDM2ODU0Nzc1ODA4LAogICAgInplcm8iOiAwLAogICAgImJvb2xlYW5zIjogW3RydWUsIGZhbHNlXSwKICAgICJudWxsIjogbnVsbCwKICAgICJlbXB0eV9vYmplY3QiOiB7fSwKICAgICJlbXB0eV9hcnJheSI6IFtdLAogICAgImVtcHR5X3N0cmluZyI6ICIiLAogICAgInR3b19jaGFyX2VzY2FwZXMiOiAiXGJcdFxuXGZcciIsCiAgICAib3RoZXJfYzBfY29udHJvbHMiOiAiXHUwMDAwXHUwMDAxXHUwMDFmIiwKICAgICJkZWxldGVfaXNfbm90X2VzY2FwZWQiOiAiXHUwMDdmIiwKICAgICJxdW90ZV9hbmRfYmFja3NsYXNoIjogImhlIHNhaWQgXCJoaVwiIFxcIGJhY2siLAogICAgIm5ic3AiOiAiwqAiLAogICAgImxpbmVfYW5kX3BhcmFncmFwaF9zZXBhcmF0b3JzIjogIuKAqOKAqSIsCiAgICAiYnl0ZV9vcmRlcl9tYXJrIjogIu+7vyIsCiAgICAiYXN0cmFsIjogIvCfmIAiLAogICAgIvCfmIAiOiAiYW4gYXN0cmFsIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIsOpIjogImFuIGFjY2VudGVkIGtleSBzb3J0cyBhZnRlciBldmVyeSBBU0NJSSBrZXkiLAogICAgIiI6ICJ0aGUgZW1wdHkga2V5IHNvcnRzIGZpcnN0IiwKICAgICJaIjogInVwcGVyY2FzZSBaIHNvcnRzIGJlZm9yZSBsb3dlcmNhc2UgYSIsCiAgICAiYSI6ICJsb3dlcmNhc2UgYSIKICB9LAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAibmFtZSI6ICJUb3J0dXJlVmlldyIsCiAgICAgICJmaWxlIjogIlTDtnJ0dXJlLmNzIiwKICAgICAgInN1YnNjcmlwdGlvbnMiOiBbCiAgICAgICAgeyJldmVudCI6ICJidXMuU3Vic2NyaWJlIiwgImhhbmRsZXIiOiAiT27mvKIiLCAibGluZSI6IDcsICJyZWxlYXNlZCI6IGZhbHNlLCAicmVzb3VyY2UiOiAic3Vic2NyaWJlIn0KICAgICAgXQogICAgfQogIF0KfQo="
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "239383fae8175fd42dc773922af7e3dcf26c2148f99a365f8e4404db58224edd",
@@ -56,6 +62,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+        "bytes": 1049
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -229,10 +240,26 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "f9cd8d129d9b8cb698602b840fe50bd8313891ed814b96a20f97fce78b50632a",
+            "bytes": 822
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "93ef10f5f3541d1abc5fb75a4ffe74c26a764484b7505ab9039ab151e3883e99",
+        "bytes": 1049
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -406,7 +433,18 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "f9cd8d129d9b8cb698602b840fe50bd8313891ed814b96a20f97fce78b50632a",
+            "bytes": 822
+          }
+        }
+      }
     }
   ]
 }

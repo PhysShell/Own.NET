@@ -29,8 +29,16 @@ from typing import Any
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXDIR = os.path.join(ROOT, "tests", "fixtures", "repro")
 RUST_TESTS = ("repro.rs", "engine.rs", "trace.rs", "reduce.rs")
+# The observation KINDS (owner decision D-5's first axis). `missing-layer`
+# replaced `unexplained` here: the old name conflated the SHAPE of an
+# observation with the JUDGEMENT of it, which is the conflation D-5 undid.
 CLASSES = ("left-only", "right-only", "changed", "ordering-only",
-           "status", "projection", "unexplained")
+           "status", "projection", "missing-layer")
+# The ACCEPTANCE values (the second axis). Counted separately, because "what
+# was seen" and "is it explained" are different questions and a census that
+# reported only the first could show three status observations and say nothing
+# about whether any of them is a boundary somebody declared.
+ACCEPTANCES = ("unexplained", "declared-boundary")
 
 
 class ShadowCensusError(Exception):
@@ -56,8 +64,14 @@ class ShadowCensus:
     stable_id_steps: int = 0
     reductions: int = 0
     identical: int = 0
+    declared: int = 0
     scope: tuple[str, ...] = ()
     by_class: dict[str, int] = field(default_factory=lambda: dict.fromkeys(CLASSES, 0))
+    by_acceptance: dict[str, int] = field(
+        default_factory=lambda: dict.fromkeys(ACCEPTANCES, 0))
+    boundaries: tuple[tuple[str, str, str, str], ...] = ()
+    derived_configuration: str = ""
+    derived_outcomes: tuple[tuple[str, str], ...] = ()
     gates: tuple[tuple[str, str], ...] = ()
 
 
@@ -135,7 +149,9 @@ def compute_shadow_census() -> ShadowCensus:
                                   if s["id"].startswith("handles["))
 
     by_class = dict.fromkeys(CLASSES, 0)
-    reductions = identical = 0
+    by_acceptance = dict.fromkeys(ACCEPTANCES, 0)
+    boundaries: list[tuple[str, str, str, str]] = []
+    reductions = identical = declared = 0
     scope: tuple[str, ...] = ()
     for entry in manifest["artifacts"]:
         path = os.path.join(FIXDIR, f"{entry['name']}.reduction.json")
@@ -146,13 +162,43 @@ def compute_shadow_census() -> ShadowCensus:
         scope = tuple(reduction["scope"])
         if reduction["outcome"] == "identical":
             identical += 1
-        for name, count in reduction.get("classification", {}).items():
-            if name not in by_class:
-                problems.append(f"{entry['name']}.reduction.json: unknown class {name!r}")
-                continue
-            by_class[name] += count
+        elif reduction["outcome"] == "declared-boundary":
+            declared += 1
+        classification = reduction.get("classification", {})
+        for axis, target in (("by_kind", by_class), ("by_acceptance", by_acceptance)):
+            for name, count in classification.get(axis, {}).items():
+                if name not in target:
+                    problems.append(f"{entry['name']}.reduction.json: unknown "
+                                    f"{axis} value {name!r}")
+                    continue
+                target[name] += count
+        # Every observation the reducer kept, with its judgement and the class
+        # the refusing engine declared. This is what lets a status row say
+        # whether it is EXPLAINED rather than only that it happened — the
+        # difference the acceptance field exists to make visible.
+        for observation in reduction.get("observations", []):
+            boundary = observation.get("boundary") or {}
+            boundaries.append((
+                entry["name"], observation["layer"], observation["acceptance"],
+                boundary.get("class") or "—"))
     if problems:
         raise ShadowCensusError(problems)
+
+    # The DERIVED surface (owner decision D-6): not a layer, not in the trace,
+    # not walked by any reduction — a projection each engine takes of its own
+    # verdict layer, compared by identity. Read off the committed artifacts and
+    # the reductions beside them, because the classification depends on both.
+    from ownlang.repro import SARIF_CONFIGURATION, derived_outcome
+
+    derived: list[tuple[str, str]] = []
+    for entry in manifest["artifacts"]:
+        artifact_path = os.path.join(FIXDIR, f"{entry['name']}.repro.json")
+        reduction_path = os.path.join(FIXDIR, f"{entry['name']}.reduction.json")
+        if not (os.path.exists(artifact_path) and os.path.exists(reduction_path)):
+            continue
+        derived.append((entry["name"],
+                        derived_outcome(_load(artifact_path),
+                                        _load(reduction_path))["outcome"]))
 
     return ShadowCensus(
         documents=len(documents),
@@ -170,8 +216,13 @@ def compute_shadow_census() -> ShadowCensus:
         stable_id_steps=stable_ids,
         reductions=reductions,
         identical=identical,
+        declared=declared,
         scope=scope,
         by_class=by_class,
+        by_acceptance=by_acceptance,
+        boundaries=tuple(boundaries),
+        derived_configuration=SARIF_CONFIGURATION,
+        derived_outcomes=tuple(derived),
         gates=_rust_test_names(),
     )
 

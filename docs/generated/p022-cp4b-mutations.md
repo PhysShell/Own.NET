@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-cp4b-1.json` (sha256 `ca44ead168221404…`, 33 m
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 33 |
 | caught                                                     | 33 |
@@ -67,7 +67,7 @@ Definition: `docs/evidence/p022-cp4b-2.json` (sha256 `41f919af130e1471…`, 28 m
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 28 |
 | caught                                                     | 28 |

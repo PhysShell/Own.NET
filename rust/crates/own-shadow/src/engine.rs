@@ -50,7 +50,10 @@
 
 use own_ir::OwnIr;
 
-use crate::artifact::{ENGINE_RUST, LAYER_ORDER, STATUS_PRODUCED, STATUS_REFUSED};
+use crate::artifact::{
+    ENGINE_RUST, LAYER_ORDER, SARIF_CONFIGURATION, SARIF_SEVERITY, STATUS_PRODUCED, STATUS_REFUSED,
+};
+use crate::canonical::{canonical_hash, hash_bytes};
 use crate::json::{parse, Json};
 
 fn object(entries: Vec<(&str, Json)>) -> Json {
@@ -103,6 +106,36 @@ fn refused(layer: &str, surface_version: Json, projection: Json, error: &str) ->
     ])
 }
 
+/// A refusal that DECLARES its boundary class (owner decision D-5).
+///
+/// Structured, not inferred: `class` is the token the frozen policy matches on
+/// and `detail` is the prose beside it. The declaration belongs here — to the
+/// engine that refused — because the alternative is a comparison tool reading
+/// this engine's error text and calling the result a contract. `detail`
+/// repeats the door's own words on purpose: `error` is this engine's free-form
+/// wording and may be rephrased, while `detail` is the human half of a
+/// structured record, and a reader of the reduction alone should not have to
+/// go back to the capture to learn what was refused.
+fn refused_at_boundary(
+    layer: &str,
+    surface_version: Json,
+    projection: Json,
+    error: &str,
+    class: &str,
+) -> Json {
+    let Json::Object(mut fields) = refused(layer, surface_version, projection, error) else {
+        return Json::Null;
+    };
+    fields.push((
+        "boundary".to_owned(),
+        object(vec![
+            ("class", Json::Str(class.to_owned())),
+            ("detail", Json::Str(error.to_owned())),
+        ]),
+    ));
+    Json::Object(fields)
+}
+
 /// A layer whose own surface stamps a version; the version is read back out of
 /// the produced document so the envelope cannot claim one the document does
 /// not carry.
@@ -110,37 +143,174 @@ fn surface_version_of(document: &Json, key: &str) -> Json {
     document.get(key).cloned().unwrap_or(Json::Null)
 }
 
-/// This engine's capture of one facts document: the `engines[]` entry.
+/// This engine's capture of one **byte sequence**: the `engines[]` entry.
 ///
-/// `facts_text` is the document's **source text**, not a re-serialization of a
-/// parsed value: the typed `OwnIr` constructor is the port's real entry point
-/// and must see what a producer actually wrote.
+/// `raw` is the document's byte-exact source, not a re-serialization of a
+/// parsed value and not a `&str`: the typed `OwnIr` constructor is the port's
+/// real entry point and must see what a producer actually wrote, and owner
+/// decision B-2 makes that a *byte-level* requirement rather than a textual
+/// one. The identity is taken on the first line — before `serde_json` looks at
+/// a single byte — so `consumed` names what this engine actually read and
+/// cannot name anything else. There is no code path here that derives a
+/// `consumed` from an artifact's `input.raw`, which is exactly what promoting
+/// a version-2 entry would have needed (B-3).
+///
+/// `from_slice`, never `read_to_string` then `from_str`: a decode on the way in
+/// is a place a difference gets normalized away before anyone can see it, and
+/// the whole point of v3 is that nothing on this path may do that.
 ///
 /// # Errors
 /// A layer's own serialization failing is not modelled as a layer refusal —
 /// that would report an internal defect as though the reference had been
 /// disagreed with. It is an error out of the whole capture.
-pub fn capture(facts_text: &str) -> Result<Json, String> {
-    let layers = match serde_json::from_str::<OwnIr>(facts_text) {
+pub fn capture(raw: &[u8]) -> Result<Json, String> {
+    capture_detailed(raw).map(|c| c.engine)
+}
+
+/// One engine capture, plus the derived documents behind its `derived` block.
+///
+/// The artifact carries identities, never documents (owner decision D-6), so
+/// [`capture`] returns only the entry. A **compare driver** needs the documents
+/// too — it retains them on mismatch — and asking for them by re-invoking this
+/// engine would be a second execution of the thing whose single execution is
+/// the point. So they come back beside the entry and the caller decides what to
+/// keep.
+#[derive(Debug, Clone)]
+pub struct Capture {
+    /// The `engines[]` entry, exactly as it appears in an artifact.
+    pub engine: Json,
+    /// The rendered SARIF this engine's `derived.sarif.canonical` names, or
+    /// `None` when the verdict layer was refused.
+    pub sarif: Option<Json>,
+}
+
+/// See [`capture`]; this is the same work, with the derived documents kept.
+///
+/// # Errors
+/// As [`capture`].
+pub fn capture_detailed(raw: &[u8]) -> Result<Capture, String> {
+    let consumed = hash_bytes(raw).to_json();
+    let layers = match serde_json::from_slice::<OwnIr>(raw) {
         // The typed door is upstream of every layer: when it refuses, no layer
         // ran, so all three report the door's refusal.
         Err(door) => {
             let text = format!("typed door: {door}");
+            // #294 OD-1, declared structurally rather than left to be inferred
+            // from the text. One refusal, three refused layer records — which
+            // is why the frozen policy carries one entry per layer rather than
+            // one per class.
             LAYER_ORDER
                 .iter()
-                .map(|layer| refused(layer, Json::Null, full_projection(), &text))
+                .map(|layer| {
+                    refused_at_boundary(
+                        layer,
+                        Json::Null,
+                        full_projection(),
+                        &text,
+                        crate::reduce::BOUNDARY_OD1,
+                    )
+                })
                 .collect()
         }
         Ok(facts) => vec![
             lowered_layer(&facts)?,
             summaries_layer(&facts)?,
-            verdicts_layer(&facts),
+            verdicts_layer(&facts)?,
         ],
     };
-    Ok(object(vec![
-        ("id", Json::Str(ENGINE_RUST.to_owned())),
-        ("layers", Json::Array(layers)),
-    ]))
+    let derived = derived_block(
+        layers
+            .iter()
+            .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts")),
+    );
+    let sarif = layers
+        .iter()
+        .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts"))
+        .and_then(sarif_of);
+    let layers: Vec<Json> = layers.into_iter().map(strip_sarif).collect();
+    Ok(Capture {
+        engine: object(vec![
+            ("id", Json::Str(ENGINE_RUST.to_owned())),
+            ("consumed", consumed),
+            ("layers", Json::Array(layers)),
+            // Beside `layers`, never inside them: a derived surface is not a
+            // layer (owner decision D-6). Nothing in LAYER_ORDER, the trace or
+            // the reduction knows it exists.
+            ("derived", derived),
+        ]),
+        sarif,
+    })
+}
+
+/// This engine's `derived` block: the IDENTITY of each surface derived from
+/// its own layers, never the surface itself (owner decision D-6).
+///
+/// Only the digest and the length are carried, for the same reason the artifact
+/// carries an input digest rather than a second copy of the input. The
+/// documents are retained by the compare driver, on mismatch only.
+///
+/// The closed-domain check on the rendered log happens in [`verdicts_layer`],
+/// where the findings are: `Json` enforces the domain at parse, so a float or
+/// a non-finite in the SARIF surfaces there as an error out of the whole
+/// capture — because a surface the two engines cannot name identically is not
+/// a surface either of them may claim to have compared. By the time a document
+/// reaches here it is already in the domain, so this cannot fail.
+fn derived_block(verdicts: Option<&Json>) -> Json {
+    let document = verdicts.and_then(sarif_of);
+    let (status, canonical) = document
+        .as_ref()
+        .map_or((STATUS_REFUSED, Json::Null), |value| {
+            (STATUS_PRODUCED, canonical_hash(value).to_json())
+        });
+    object(vec![(
+        "sarif",
+        object(vec![
+            ("configuration", Json::Str(SARIF_CONFIGURATION.to_owned())),
+            ("status", Json::Str(status.to_owned())),
+            // The SAME canonical form the artifact already uses to name an
+            // input. A second serialization rule for a second surface is a
+            // second thing to keep two engines agreeing about.
+            ("canonical", canonical),
+        ]),
+    )])
+}
+
+/// The canonical SARIF this engine renders from its OWN verdict layer, or
+/// `None` when that layer was refused.
+///
+/// The rendered log is carried on the layer record (`sarif`, a private member
+/// this module puts there and strips before the envelope is built), because it
+/// is produced from the very `Vec<Finding>` the verdict layer document was
+/// built from — one `check_facts` run, two projections of it. That is what
+/// makes a *renderer-only divergence* an unambiguous finding: when the two
+/// engines' verdict layers are equal in the artifact and their SARIF is not,
+/// the renderer is the only thing left.
+///
+/// The rendering itself, and the domain check on it, happen in
+/// [`verdicts_layer`] where the findings are; this only reads the slot back.
+fn sarif_of(layer: &Json) -> Option<Json> {
+    match layer.get(SARIF_SLOT) {
+        None | Some(Json::Null) => None,
+        Some(value) => Some(value.clone()),
+    }
+}
+
+/// The private slot a verdict layer carries its rendered SARIF in, between
+/// `verdicts_layer` and `derived_block`. Stripped before the layer reaches the
+/// envelope — the artifact's layer records are the frozen envelope and nothing
+/// else — so it never appears in a committed artifact.
+const SARIF_SLOT: &str = "$sarif";
+
+fn strip_sarif(layer: Json) -> Json {
+    let Json::Object(fields) = layer else {
+        return layer;
+    };
+    Json::Object(
+        fields
+            .into_iter()
+            .filter(|(k, _)| k != SARIF_SLOT)
+            .collect(),
+    )
 }
 
 fn lowered_layer(facts: &OwnIr) -> Result<Json, String> {
@@ -197,7 +367,7 @@ fn steps(slice_: &[own_bridge::Step]) -> Json {
     )
 }
 
-fn verdicts_layer(facts: &OwnIr) -> Json {
+fn verdicts_layer(facts: &OwnIr) -> Result<Json, String> {
     // Every `Finding` member since #259 cp5.1/5.2 — no projection to declare.
     let projection = full_projection();
     let version = Json::Int(1);
@@ -228,9 +398,28 @@ fn verdicts_layer(facts: &OwnIr) -> Json {
                 ("verdicts_version", Json::Int(1)),
                 ("findings", Json::Array(records)),
             ]);
-            produced("verdicts", version, projection, document)
+            // The derived SARIF, rendered from the SAME `Vec<Finding>` this
+            // layer document was built from: one `check_facts` run, two
+            // projections of it (owner decision D-6). It rides on a private
+            // slot to `derived_block` and is stripped before the envelope — a
+            // layer record is the frozen envelope and nothing else.
+            let log = own_bridge::build_sarif(&findings, SARIF_SEVERITY);
+            let text = serde_json::to_string(&log)
+                .map_err(|e| format!("the derived SARIF does not serialize: {e}"))?;
+            let value = parse(&text).map_err(|e| {
+                format!(
+                    "the derived SARIF is outside the closed canonical value domain, so the two \
+                     engines cannot name it identically: {e}"
+                )
+            })?;
+            let Json::Object(mut fields) = produced("verdicts", version, projection, document)
+            else {
+                return Err("a produced layer is not an object".to_owned());
+            };
+            fields.push((SARIF_SLOT.to_owned(), value));
+            Ok(Json::Object(fields))
         }
-        Err(e) => refused("verdicts", version, projection, &e.to_string()),
+        Err(e) => Ok(refused("verdicts", version, projection, &e.to_string())),
     }
 }
 

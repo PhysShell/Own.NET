@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+      "bytes": 208,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIlZvY2FiIiwKICAiZnVuY3Rpb25zIjogWwogICAgewogICAgICAibmFtZSI6ICJNIiwKICAgICAgImZpbGUiOiAiRi5jcyIsCiAgICAgICJib2R5IjogWwogICAgICAgIHsKICAgICAgICAgICJvcCI6ICJ0cnkiLAogICAgICAgICAgImxpbmUiOiAyCiAgICAgICAgfQogICAgICBdCiAgICB9CiAgXQp9Cg=="
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "c07494fb952154bcb0f026969754a20bf856c5c12b54a1c9b2aca0468315838d",
@@ -27,6 +33,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+        "bytes": 208
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -72,10 +83,22 @@
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "cdf50bec31cb870daa324b5ee37db4ad504aa499eaa7bafbe8c3c35a5a48eede",
+        "bytes": 208
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -121,7 +144,14 @@
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

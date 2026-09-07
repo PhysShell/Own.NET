@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+      "bytes": 377,
+      "base64": "ewogICJtb2R1bGUiOiAiS2V5T3JkZXIiLAogICJjb21wb25lbnRzIjogWwogICAgewogICAgICAic3Vic2NyaXB0aW9ucyI6IFsKICAgICAgICB7InJlbGVhc2VkIjogZmFsc2UsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAibGluZSI6IDMsICJldmVudCI6ICJiLlpldGEiLCAiaGFuZGxlciI6ICJPblpldGEifSwKICAgICAgICB7ImV2ZW50IjogImEuQWxwaGEiLCAibGluZSI6IDQsICJyZXNvdXJjZSI6ICJzdWJzY3JpYmUiLCAicmVsZWFzZWQiOiB0cnVlLCAiaGFuZGxlciI6ICJPbkFscGhhIn0KICAgICAgXSwKICAgICAgImZpbGUiOiAiS2V5T3JkZXIuY3MiLAogICAgICAibmFtZSI6ICJaZWQiCiAgICB9CiAgXSwKICAib3duaXJfdmVyc2lvbiI6IDAKfQo="
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "e48d4893337f2a3180388946f64524119451eecf4b55c84b9d1cdd6ede17e0cb",
@@ -37,6 +43,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+        "bytes": 377
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -231,10 +242,26 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "635f4f6808ead896f8e16de2a44bbbfb04410e66bd8fc3326eb9c5d98062424f",
+            "bytes": 793
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "ab2653de96439e538502e2689ddd93fdf8fd6a8956190320245653af75ea0790",
+        "bytes": 377
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -429,7 +456,18 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "635f4f6808ead896f8e16de2a44bbbfb04410e66bd8fc3326eb9c5d98062424f",
+            "bytes": 793
+          }
+        }
+      }
     }
   ]
 }

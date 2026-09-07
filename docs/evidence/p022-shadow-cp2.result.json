@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-shadow-cp2",
   "definition": "docs/evidence/p022-shadow-cp2.json",
-  "definition_sha256": "bd3fd24d65f539972cd035b45ea55462c617b34e3b82c826a5c10d9dc801a842",
-  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
+  "definition_sha256": "737fdce2b07f47d4570937b7949332be621c958f5adfd422f00a1cc7824a29e7",
+  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
   "dirty": false,
-  "recorded_at": "2026-09-07T10:46:02Z",
+  "recorded_at": "2026-09-07T14:44:56Z",
   "layers": [
     "python",
     "rust-repro",
@@ -18,7 +18,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 1.8
+    "elapsed_seconds": 2.7
   },
   "mutations": [
     {
@@ -28,7 +28,7 @@
         "python::artifact-golden",
         "python::capture-verify"
       ],
-      "elapsed_seconds": 0.6
+      "elapsed_seconds": 1.0
     },
     {
       "id": "M32",
@@ -36,7 +36,7 @@
       "catchers": [
         "python::artifact-golden"
       ],
-      "elapsed_seconds": 1.5
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M33",
@@ -44,7 +44,7 @@
       "catchers": [
         "python::structural-control"
       ],
-      "elapsed_seconds": 1.6
+      "elapsed_seconds": 2.4
     },
     {
       "id": "M34",
@@ -52,7 +52,7 @@
       "catchers": [
         "python::structural-control"
       ],
-      "elapsed_seconds": 1.7
+      "elapsed_seconds": 2.4
     },
     {
       "id": "M35",
@@ -61,7 +61,7 @@
         "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 2.0
+      "elapsed_seconds": 2.9
     },
     {
       "id": "M36",
@@ -70,7 +70,7 @@
         "rust-engine/tests/engine.rs::a_projection_names_exactly_the_members_it_carries",
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.7
     },
     {
       "id": "M37",
@@ -78,7 +78,7 @@
       "catchers": [
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.6
     },
     {
       "id": "M38",
@@ -86,7 +86,7 @@
       "catchers": [
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 1.9
+      "elapsed_seconds": 2.4
     },
     {
       "id": "M39",
@@ -94,7 +94,7 @@
       "catchers": [
         "rust-engine/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 2.0
+      "elapsed_seconds": 2.7
     },
     {
       "id": "M40",
@@ -102,7 +102,7 @@
       "catchers": [
         "rust-repro/tests/repro.rs::verify_refuses_each_structural_violation"
       ],
-      "elapsed_seconds": 2.1
+      "elapsed_seconds": 2.8
     },
     {
       "id": "M41",
@@ -110,7 +110,7 @@
       "catchers": [
         "rust-repro/tests/repro.rs::verify_refuses_each_structural_violation"
       ],
-      "elapsed_seconds": 2.0
+      "elapsed_seconds": 2.5
     }
   ]
 }

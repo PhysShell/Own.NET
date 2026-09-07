@@ -1,0 +1,258 @@
+{
+  "trace_version": 2,
+  "case": "verdict_door_service_unknown_lifetime",
+  "traces": [
+    {
+      "trace_version": 2,
+      "engine": "python-ownlang",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+        "bytes": 541
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "lowered_version",
+              "value": 1
+            },
+            {
+              "id": "module",
+              "value": "Door"
+            },
+            {
+              "id": "resources[Subscription]",
+              "value": {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Timer]",
+              "value": {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[Disposable]",
+              "value": {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "resources[PooledBuffer]",
+              "value": {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$consume]",
+              "value": {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow]",
+              "value": {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "externs[$borrow_mut]",
+              "value": {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "layer": "summaries",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "steps": [
+            {
+              "id": "module",
+              "value": "Door"
+            },
+            {
+              "id": "ownir_version",
+              "value": 0
+            },
+            {
+              "id": "degraded",
+              "value": null
+            }
+          ]
+        },
+        {
+          "layer": "verdicts",
+          "status": "produced",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "steps": [
+            {
+              "id": "verdicts_version",
+              "value": 1
+            },
+            {
+              "id": "findings[reg.cs:5:None:DI001]",
+              "value": {
+                "file": "reg.cs",
+                "line": 5,
+                "code": "DI001",
+                "component": "App",
+                "event": "Db",
+                "handler": "",
+                "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "reg.cs",
+                    5,
+                    "singleton 'App' (captor)"
+                  ],
+                  [
+                    "reg.cs",
+                    7,
+                    "captures scoped service 'Db'"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trace_version": 2,
+      "engine": "rust-own-bridge",
+      "input": {
+        "algorithm": "sha256",
+        "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+        "bytes": 541
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          },
+          "steps": []
+        },
+        {
+          "layer": "summaries",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "canonical",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          },
+          "steps": []
+        },
+        {
+          "layer": "verdicts",
+          "status": "refused",
+          "projection": {
+            "kind": "full"
+          },
+          "order": "significant",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          },
+          "steps": []
+        }
+      ]
+    }
+  ]
+}

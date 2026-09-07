@@ -206,8 +206,8 @@
       "description": "the reference renders the artifact with a different indent",
       "rule": "artifact rendering: 2-space indent, byte-identical on re-run",
       "target": "ownlang/repro.py",
-      "pattern": "\\ \\ \\ \\ return\\ json\\.dumps\\(project_repro\\(facts,\\ foreign\\),\\ indent=2,",
-      "replacement": "    return json.dumps(project_repro(facts, foreign), indent=4,",
+      "pattern": "    return json\\.dumps\\(project_repro\\(raw, foreign\\), indent=2,",
+      "replacement": "    return json.dumps(project_repro(raw, foreign), indent=4,",
       "expected_catchers": [
         "python::artifact-golden"
       ]
@@ -315,11 +315,11 @@
     },
     {
       "id": "M24",
-      "description": "the port's verification stops comparing the recomputed digest",
+      "description": "the port's verification stops comparing the recomputed digest (re-anchored onto the shared identity_matches)",
       "rule": "artifact: the digest is a gate, recomputed from the embedded document",
       "target": "rust/crates/own-shadow/src/artifact.rs",
-      "pattern": "\\ \\ \\ \\ let\\ matches\\ =\\ algorithm\\ ==\\ Some\\(CANONICAL_ALGORITHM\\)",
-      "replacement": "    let matches = true || algorithm == Some(CANONICAL_ALGORITHM)",
+      "pattern": "    claimed\\.get\\(\\\"algorithm\\\"\\)\\.and_then\\(Json::as_str\\) == Some\\(actual\\.algorithm\\)",
+      "replacement": "    true || claimed.get(\"algorithm\").and_then(Json::as_str) == Some(actual.algorithm)",
       "expected_catchers": [
         "rust/tests/repro.rs::a_changed_byte_in_the_embedded_document_is_refused"
       ]

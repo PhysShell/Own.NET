@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 42 |
 | caught                                                     | 42 |
@@ -76,7 +76,7 @@ Definition: `docs/evidence/p022-cp5-2.json` (sha256 `8641e3ff34598123…`, 10 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 10 |
 | caught                                                     | 10 |
@@ -108,7 +108,7 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                                         | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 29 |
 | caught                                                     | 29 |
@@ -134,19 +134,19 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 | M11 | BR-V9 | the msbuild line uses the human separator instead of parentheses | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M12 | BR-V9 | the msbuild line hard-codes error, ignoring the host severity | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M13 | BR-V9 | an unknown format falls back to the github annotation, not the human line | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M14 | BR-V6 | an advisory renders as a warning instead of SARIF's note | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M14 | BR-V6 | an advisory renders as a warning instead of SARIF's note | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M15 | BR-V6 | the host severity no longer downgrades a provable leak | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M16 | BR-V6 | an intrinsic warning tier is ignored and renders as error | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M17 | BR-V9 | the SARIF rule catalogue is not sorted | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M18 | BR-V9 | the SARIF rule catalogue keeps duplicate codes | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M19 | BR-V9 | a rule's shortDescription is the code, never its title | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M20 | BR-V9 | the driver drops the ownirSchemaVersion stamp | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M21 | BR-V9 | a region is emitted for a file-level (line < 1) finding | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M22 | BR-V9 | startColumn is emitted as null when the producer reported none | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M18 | BR-V9 | the SARIF rule catalogue keeps duplicate codes | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M19 | BR-V9 | a rule's shortDescription is the code, never its title | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M20 | BR-V9 | the driver drops the ownirSchemaVersion stamp | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M21 | BR-V9 | a region is emitted for a file-level (line < 1) finding | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M22 | BR-V9 | startColumn is emitted as null when the producer reported none | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M23 | BR-V9 | the artifact URI keeps a Windows backslash | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
-| M24 | BR-V9 | an empty component/event/handler is emitted as a property | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M24 | BR-V9 | an empty component/event/handler is emitted as a property | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M25 | BR-V9 | relatedLocations adopts the core's empty-file filter, dropping a step the bridge emits | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M26 | BR-V9 | relatedLocations keeps a step whose line is unknown (defensive: no facts document can build such a step) | caught | `own-bridge/src/lib.rs::render::tests::a_related_step_with_no_line_is_dropped` |
-| M27 | BR-V9 | codeFlows is never built from the ordered slice | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M27 | BR-V9 | codeFlows is never built from the ordered slice | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M28 | BR-V9 | a suppressed finding loses its suppressions array | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M29 | BR-V8 | SARIF results are sorted by code, destroying the bridge's own order | caught | `own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |

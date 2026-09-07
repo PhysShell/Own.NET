@@ -431,13 +431,15 @@ committed regeneration path and a zero-Python steady state:
 above are each frozen on their own, and step 7a (#260/#269) needs them
 *together* — one input, one document carrying what every layer concluded about
 it. That composition is `ownlang/repro.py` + `rust/crates/own-shadow`
-(checkpoints 1–4, landed): a canonical form and hash naming the input; an
+(checkpoints 1–4, plus the acceptance work over the committed corpus): a
+canonical form and hash naming the input, and since artifact v3 the input's
+**bytes** beside it; an
 artifact carrying the input, its schema version, its hash, the engine
 identifiers and each engine's per-layer output; the `AnalysisTrace` (#269)
 that normalizes those outputs into a walkable shape; and a reducer that names
 the first place two engines part company.
 
-Five points belong to this spec rather than to those notes.
+Seven points belong to this spec rather than to those notes.
 
 1. Every layer in an artifact is projected through the **tolerant** door on one
    in-memory document — mixing doors across layers would mean the three entries
@@ -457,22 +459,44 @@ Five points belong to this spec rather than to those notes.
    agreement, nor refuses a layer it can mostly produce. The artifact compares
    layer outputs as JSON *values*; **rendered-byte** parity stays with each
    layer's own family above.
-4. The reducer's scope is the **Layer 2 lowered document and the MOS
-   `summaries` sub-surface only**. **Layer 3** — the final diagnostics — is
-   *refused*, and the refusal is recorded in every reduction, so "not compared"
-   can never be read as "compared and agreed".
-5. "Same input" in an artifact means **canonical document identity**: both
-   engines parsed the file and agree on the digest of its canonical form. It
-   does **not** mean the two engines consumed identical bytes, and the
-   canonical form cannot be made to mean that — ignoring insignificant
-   whitespace, object key order and duplicate-key resolution is precisely what
-   it is for. #260's acceptance invariant is the byte-level one (hash the raw
-   bytes, feed *those* bytes to both engines), so acceptance must prove it
-   separately; this composition does not.
+4. The reducer's scope is **every layer, Layer 3 included** — it *is* the layer
+   order, aliased rather than copied (owner decision D-4). It was the Layer 2
+   lowered document and the MOS `summaries` sub-surface only, with Layer 3
+   *refused* and the refusal recorded in every reduction; the owner took the
+   decision to cross that line once #259's final acceptance was reached.
+   `out_of_scope` stays in the reduction's schema and is empty, so "nothing is
+   excluded" stays distinguishable from "the field went away".
+5. An observation carries its **kind** and its **acceptance** as separate
+   fields (D-5). Every content difference, on every layer, is
+   acceptance-`unexplained`; a `status` or `projection` observation is a
+   `declared-boundary` only when its structured class and its `(layer, kind)`
+   match an exact entry of a frozen policy, whose three entries are the #294
+   OD-1 typed door on each of the three layers. The class is declared by the
+   **refusing engine**, in its own capture; the reducer copies it and matches
+   by triple. No error-text matching, and `detail` never participates.
+6. "Same input" in an artifact means the **byte sequence**, since v3 (owner
+   decision B-2). `input.raw` carries the bytes; every engine entry carries
+   `consumed`, the identity of what THAT engine read, taken before any decode
+   or parse; verification walks the chain from the base64 to the canonical
+   identity to each `consumed`. Canonical document identity remains, as
+   `input.canonical`, and is now one link of that chain rather than the whole
+   claim — the weaker reading this section used to carry is on the record in
+   [owner decision B-1](../docs/notes/p022-shadow-infra-owner-decisions.md).
+   Every `consumed` comes from a run of the engine that claims it (B-3).
+7. **Canonical SARIF is a derived surface, not a layer** (D-6). It is not in
+   `LAYER_ORDER`, no `AnalysisTrace` carries it and no reduction walks it: each
+   engine renders it from its own verdict layer under one frozen, named
+   configuration (`severity = "error"`), and the artifact carries the identity
+   rather than the document. Its three outcomes — `equal`, `renderer-only
+   divergence`, `not-comparable` — are distinct because "the renderers
+   disagree" and "there was nothing to compare" are different findings.
 
-Nothing there is shadow mode: comparing end diagnostics as an acceptance
-surface is #260's acceptance and is blocked on #259 — on its final acceptance,
-now that cp5 and 4b have both landed.
+Nothing there is shadow mode. What compare mode measures is the **committed
+corpus**: zero acceptance-unexplained at all three layers and on the derived
+SARIF, on byte-attested same input, with the two OD-1 typed-door boundaries
+declared by policy. #260's acceptance additionally requires the five-repository
+sweep and the large-solution controls, neither of which is taken —
+see [the acceptance note](../docs/notes/p022-shadow-acceptance.md).
 
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the

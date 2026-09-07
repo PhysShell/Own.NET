@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-coord-1.json` (sha256 `5f2587e9f495e5bf…`, 26 
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                               | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | layers run (every one, for every mutation)       | `py-limits`, `py-ledger`, `rust-door` |
 | mutations                                        | 26 |
 | caught                                           | 26 |
@@ -56,11 +56,11 @@ Definition: `docs/evidence/p022-coord-1.json` (sha256 `5f2587e9f495e5bf…`, 26 
 
 Campaign `p022-coord-2` — #259 final acceptance, the TOLERANT door: `check_facts()` degrades an out-of-domain coordinate to 0 (absent) rather than raising, clamping or inventing, and the Rust bridge does the same. Three failure modes are attacked at every reader on both sides — degrade -> clamp, degrade -> pass-through, degrade -> raise — because they are three different wrong answers and only the clamp looks harmless: it moves a finding onto a REAL line the producer never named, which no golden comparing anchors can forgive but a reader might. The four promoted verdict_boundary_* goldens are the controls that make this measurable at all; before the promotion the Rust half of every one of these mutations was unreachable behind a refusal. One mutation attacks the LOWERING rather than the verdict, because a Layer 2 coordinate that disagrees with the reference is invisible at Layer 3 — the AST build degrades it a second time — and needed a control of its own.
 
-Definition: `docs/evidence/p022-coord-2.json` (sha256 `f033608e513b098b…`, 15 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-coord-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-coord-2.json` (sha256 `90b0da4a6b776611…`, 15 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-coord-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| recorded at commit                               | `4c1c9d81972171c3d9c8c1d814debb73a4e471f5` |
 | layers run (every one, for every mutation)       | `py-limits`, `py-verdicts`, `rust-door`, `rust-bridge` |
 | mutations                                        | 15 |
 | caught                                           | 15 |
@@ -82,9 +82,9 @@ Definition: `docs/evidence/p022-coord-2.json` (sha256 `f033608e513b098b…`, 15 
 | M07 | §4.2 degrade, never clamp | core_line CLAMPS to the domain's top instead of degrading to absent | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
 | M08 | §4.2 two doors | …or accepts the whole u32 range again, which is the core's representation deciding the contract — the reading this change exists to refuse | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
 | M09 | §4.2 degrade to ABSENT | …or degrades to 1, inventing a coordinate instead of admitting it has none | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
-| M10 | §4.2 two doors | the bridge's tolerant line reader passes an out-of-domain fact coordinate through, so a slice the reference drops is kept and anchored where nothing is | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M11 | §4.2 degrade, never clamp | …or clamps it, moving a DI site anchor onto a real line the registration never named | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
-| M12 | §4.2 at Layer 2 | the LOWERING's line reader passes an out-of-domain coordinate through, so the Layer 2 document disagrees with the reference at the seam the cp2 evidence is taken from — invisible at Layer 3, because the AST build degrades it again on the way in | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M10 | §4.2 two doors | the ONE tolerant line reader loses its domain check (re-anchored: verdict.rs's byte-identical copy is gone) | caught | `rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain`<br>`rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M11 | §4.2 degrade, never clamp | the ONE tolerant line reader clamps instead of degrading (re-anchored) | caught | `rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain`<br>`rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M12 | §4.2 at Layer 2 | the tolerant line reader's upper bound is off by one — a third DISTINCT attack on the one reader, where the two copies used to give two campaigns one mutation each | caught | `rust-bridge/src/lib.rs::lower::tests::the_tolerant_line_reader_holds_both_edges_of_the_domain` |
 | M13 | §4.2 two doors | the Rust tolerant PROTOCOL door refuses instead of degrading | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door` |
 | M14 | BR-V9 / §4.2 | the rendered code-flow shifts every step line by one. The DROP this conversion replaced is an EQUIVALENT mutant now — §4.2 guarantees every flow-step line converts, so a filter_map that drops the unconvertible drops nothing — so the mutation is re-anchored onto the conversion itself, which is observable | caught | `rust-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
 | M15 | §4.1 / §4.2 column | the bridge's tolerant COLUMN reader loses the domain bound, so the port emits a column the strict door would refuse — the mirror of M05, and the one the four promoted goldens cannot reach either | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |

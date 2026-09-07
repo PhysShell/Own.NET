@@ -1,7 +1,13 @@
 {
-  "repro_version": 2,
+  "repro_version": 3,
   "input": {
     "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+      "bytes": 48,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIk1pbmltYWwiCn0K"
+    },
     "canonical": {
       "algorithm": "sha256",
       "digest": "c5387976673a8a5a1cc3078398935ae907cddf9c0fc9fdf9cb1c63ed74722313",
@@ -15,6 +21,11 @@
   "engines": [
     {
       "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "bytes": 48
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -145,10 +156,26 @@
             "findings": []
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "bytes": 289
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "bc5f3772f24bbbb76ca24828da224d4ab991efe07a87d69db69d0bbef175460a",
+        "bytes": 48
+      },
       "layers": [
         {
           "layer": "lowered",
@@ -279,7 +306,18 @@
             "findings": []
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "bytes": 289
+          }
+        }
+      }
     }
   ]
 }

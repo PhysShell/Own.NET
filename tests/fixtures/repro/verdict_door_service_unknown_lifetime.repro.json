@@ -1,0 +1,289 @@
+{
+  "repro_version": 3,
+  "input": {
+    "ownir_version": 0,
+    "raw": {
+      "algorithm": "sha256",
+      "digest": "264d8b7e5005c0fae9988871dc82e2c366dec9059c2e6532d9f15044684fd095",
+      "bytes": 759,
+      "base64": "ewogICJvd25pcl92ZXJzaW9uIjogMCwKICAibW9kdWxlIjogIkRvb3IiLAogICJjb21wb25lbnRzIjogW10sCiAgIl9kb2MiOiBbCiAgICAiIzI5NCBPRC0xOiBhbiB1bmtub3duIERJIGxpZmV0aW1lIGlzIElHTk9SRUQgYnkgdGhlIHJlZmVyZW5jZSBmaW5kZXJzIG9uIHRoZSIsCiAgICAidG9sZXJhbnQgZG9vciAoTXlzdGVyeSBpcyBuZWl0aGVyIHNjb3BlZCBub3IgdHJhbnNpZW50LCBzbyBBcHAgLT4gRGIgaXMgdGhlIiwKICAgICJvbmx5IERJMDAxKTsgdGhlIHR5cGVkIFJ1c3QgZG9vciByZWZ1c2VzIHRoZSBkb2N1bWVudCBhdCB0aGUgbGlmZXRpbWUgZW51bS4iCiAgXSwKICAic2VydmljZXMiOiBbCiAgICB7CiAgICAgICJuYW1lIjogIkFwcCIsCiAgICAgICJsaWZldGltZSI6ICJzaW5nbGV0b24iLAogICAgICAiZmlsZSI6ICJyZWcuY3MiLAogICAgICAibGluZSI6IDUsCiAgICAgICJkZXBzIjogWwogICAgICAgICJNeXN0ZXJ5IiwKICAgICAgICAiRGIiCiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJuYW1lIjogIk15c3RlcnkiLAogICAgICAibGlmZXRpbWUiOiAicHJvdG90eXBlIiwKICAgICAgImZpbGUiOiAicmVnLmNzIiwKICAgICAgImxpbmUiOiA2LAogICAgICAiZGVwcyI6IFtdCiAgICB9LAogICAgewogICAgICAibmFtZSI6ICJEYiIsCiAgICAgICJsaWZldGltZSI6ICJzY29wZWQiLAogICAgICAiZmlsZSI6ICJyZWcuY3MiLAogICAgICAibGluZSI6IDcsCiAgICAgICJkZXBzIjogW10KICAgIH0KICBdCn0K"
+    },
+    "canonical": {
+      "algorithm": "sha256",
+      "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+      "bytes": 541
+    },
+    "document": {
+      "ownir_version": 0,
+      "module": "Door",
+      "components": [],
+      "_doc": [
+        "#294 OD-1: an unknown DI lifetime is IGNORED by the reference finders on the",
+        "tolerant door (Mystery is neither scoped nor transient, so App -> Db is the",
+        "only DI001); the typed Rust door refuses the document at the lifetime enum."
+      ],
+      "services": [
+        {
+          "name": "App",
+          "lifetime": "singleton",
+          "file": "reg.cs",
+          "line": 5,
+          "deps": [
+            "Mystery",
+            "Db"
+          ]
+        },
+        {
+          "name": "Mystery",
+          "lifetime": "prototype",
+          "file": "reg.cs",
+          "line": 6,
+          "deps": []
+        },
+        {
+          "name": "Db",
+          "lifetime": "scoped",
+          "file": "reg.cs",
+          "line": 7,
+          "deps": []
+        }
+      ]
+    }
+  },
+  "engines": [
+    {
+      "id": "python-ownlang",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "264d8b7e5005c0fae9988871dc82e2c366dec9059c2e6532d9f15044684fd095",
+        "bytes": 759
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "lowered_version": 1,
+            "module": "Door",
+            "resources": [
+              {
+                "name": "Subscription",
+                "kind": "subscription token",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Subscribe"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "Timer",
+                "kind": "timer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Start"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Stop"
+                  }
+                ]
+              },
+              {
+                "name": "Disposable",
+                "kind": "disposable field",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "New"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Dispose"
+                  }
+                ]
+              },
+              {
+                "name": "PooledBuffer",
+                "kind": "pooled buffer",
+                "members": [
+                  {
+                    "role": "acquire",
+                    "name": "Rent"
+                  },
+                  {
+                    "role": "release",
+                    "name": "Return"
+                  }
+                ]
+              }
+            ],
+            "externs": [
+              {
+                "name": "$consume",
+                "params": [
+                  {
+                    "effect": "consume",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow",
+                "params": [
+                  {
+                    "effect": "borrow",
+                    "type": "Disposable"
+                  }
+                ]
+              },
+              {
+                "name": "$borrow_mut",
+                "params": [
+                  {
+                    "effect": "borrow_mut",
+                    "type": "Disposable"
+                  }
+                ]
+              }
+            ],
+            "lifetimes": [],
+            "functions": [],
+            "handles": []
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "degraded": null,
+            "module": "Door",
+            "ownir_version": 0,
+            "summaries": [],
+            "unresolved": []
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": 1,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "produced",
+          "document": {
+            "verdicts_version": 1,
+            "findings": [
+              {
+                "file": "reg.cs",
+                "line": 5,
+                "code": "DI001",
+                "component": "App",
+                "event": "Db",
+                "handler": "",
+                "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+                "kind": "DI lifetime",
+                "advisory": false,
+                "severity": null,
+                "related": [],
+                "flow": [
+                  [
+                    "reg.cs",
+                    5,
+                    "singleton 'App' (captor)"
+                  ],
+                  [
+                    "reg.cs",
+                    7,
+                    "captures scoped service 'Db'"
+                  ]
+                ],
+                "ignore_reason": null,
+                "column": null
+              }
+            ]
+          }
+        }
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "b129618f92150bfc7c3215303bb8506421fcebd05d43c309cde72b0c48ce9799",
+            "bytes": 1078
+          }
+        }
+      }
+    },
+    {
+      "id": "rust-own-bridge",
+      "consumed": {
+        "algorithm": "sha256",
+        "digest": "264d8b7e5005c0fae9988871dc82e2c366dec9059c2e6532d9f15044684fd095",
+        "bytes": 759
+      },
+      "layers": [
+        {
+          "layer": "lowered",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          }
+        },
+        {
+          "layer": "summaries",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          }
+        },
+        {
+          "layer": "verdicts",
+          "surface_version": null,
+          "projection": {
+            "kind": "full"
+          },
+          "status": "refused",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
+          }
+        }
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
+    }
+  ]
+}

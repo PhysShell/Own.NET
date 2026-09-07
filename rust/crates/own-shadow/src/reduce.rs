@@ -8,39 +8,85 @@
 //! is implemented twice: a comparison is the last thing you want to have only
 //! one implementation of.
 //!
-//! ## The scope is a contract, and `verdicts` is refused rather than skipped
+//! ## The scope is every layer, and it IS the layer order
 //!
-//! [`REDUCTION_SCOPE`] is `lowered` and `summaries`. Comparing final
-//! diagnostics is #260's **acceptance**, which is blocked by #259 (cp5 and 4b).
-//! Infrastructure that would quietly do it on request is infrastructure that
+//! [`REDUCTION_SCOPE`] is [`LAYER_ORDER`] — the same constant, not a second
+//! list that happens to agree with it (owner decision D-4). It used to be
+//! narrower, and the narrowing was right at the time: the verdict layer was
+//! *refused* rather than skipped, because comparing final diagnostics is
+//! #260's acceptance and infrastructure that would quietly do it on request
 //! becomes an unearned shadow-mode claim the first time somebody widens a
-//! constant — so the verdict layer is *refused*, and the refusal is carried in
-//! the output. "Not compared" must never be readable as "compared and agreed".
+//! constant. #259's final acceptance removed that reason and the owner took
+//! the decision. `out_of_scope` stays in the output and is **empty**: the
+//! member is the slot a future exclusion would occupy, and dropping it would
+//! make "nothing is excluded" indistinguishable from "the field went away".
 //!
-//! ## What is and is not a content difference
+//! ## Kind and acceptance are different questions
 //!
-//! * `left-only` / `right-only` / `changed` / `ordering-only` are the four
-//!   content classes.
-//! * `status` is a layer-level disagreement about whether the layer produced at
-//!   all. The reducer reports it; the artifacts are where each such case is
-//!   recorded as a *declared* boundary, and judging that is not this tool's job.
-//! * `projection` means the engines declared different projections of the
-//!   surface, so their values are not comparable member-for-member. Comparing
-//!   them anyway would score an unported member as a difference.
-//! * When both engines **refused** a layer, the reducer compares *that* they
-//!   refused and never *how they phrased it*: a refusal's text is each engine's
-//!   own, and diffing the wordings would manufacture a divergence out of a
-//!   known difference in message vocabulary.
+//! Every observation carries both (owner decision D-5), and neither is
+//! recoverable from the other:
+//!
+//! * the **kind** says what was seen — `left-only` / `right-only` / `changed` /
+//!   `ordering-only` are the four content classes; `status` is a layer-level
+//!   disagreement about whether the layer produced at all; `projection` means
+//!   the engines declared different views of one surface; `missing-layer`
+//!   means an engine did not report the layer.
+//! * the **acceptance** says whether it is explained: `unexplained`, or
+//!   `declared-boundary`.
+//!
+//! They used to be one field, with `unexplained` sitting in the kind
+//! vocabulary beside `changed`. That made the two unable to disagree, which is
+//! the wrong shape for an acceptance surface: it must be possible to observe a
+//! `status` difference and *judge* it, and to observe a `changed` and have no
+//! judgement available at all.
+//!
+//! ## What may be explained, and by whom
+//!
+//! Every **content** observation — on every layer, `summaries` and `verdicts`
+//! included — is `unexplained`. The policy is not consulted for one, so a known
+//! class attached to a `changed` cannot explain it even in principle.
+//!
+//! A `status` or `projection` observation is a `declared-boundary` only when
+//! its structured class and its `(layer, kind)` match an exact entry of
+//! [`BOUNDARY_POLICY`]. The class is declared by the **refusing engine**, in
+//! its own capture, and this reducer only copies it: a comparison tool that
+//! inferred a boundary from an error TEXT would read one engine's prose and
+//! call the result a contract, and one carrying its own table of known cases
+//! would be a second place the boundary is defined. `detail` never
+//! participates — it is prose for a human.
+//!
+//! ## The verdict layer, and why it needs no special case
+//!
+//! The BR-V8 address `file:line:column:code` is a **pairing address**, not
+//! object identity (owner decision D-7). Two findings that share it are the
+//! same *place*, and every other member is compared as a value there — so a
+//! difference is `changed` with a minimal path rather than a pair of one-sided
+//! observations. The duplicate-address `~<n>` suffix is part of the address,
+//! which is why permuting two findings that share one address reports
+//! `changed` on both and never `ordering-only`.
+//!
+//! ## When both engines refused
+//!
+//! The reducer compares *that* they refused and never *how they phrased it*: a
+//! refusal's text is each engine's own, and diffing the wordings would
+//! manufacture a divergence out of a known difference in message vocabulary.
 
 use crate::artifact::{LAYER_ORDER, STATUS_REFUSED};
 use crate::json::Json;
 use crate::trace::ORDER_SIGNIFICANT;
 
-pub const REDUCTION_VERSION: i64 = 1;
+/// The reduction surface version. 2 widened the scope to every layer (owner
+/// decision D-4) and made the ACCEPTANCE judgement a field of its own beside
+/// the observation kind (D-5).
+pub const REDUCTION_VERSION: i64 = 2;
 
-/// The layers this reducer walks, in pipeline order. Widening it is a contract
-/// decision, not a parameter — see the module docs.
-pub const REDUCTION_SCOPE: [&str; 2] = ["lowered", "summaries"];
+/// The layers this reducer walks: **the layer order itself**.
+///
+/// Owner decision D-4, aliased rather than copied. The tree already held the
+/// layer vocabulary three times — the order, the ordering semantics, and this
+/// scope — and only the third could drift silently, because nothing compared
+/// it to the first.
+pub const REDUCTION_SCOPE: [&str; 3] = LAYER_ORDER;
 
 pub const KIND_LEFT_ONLY: &str = "left-only";
 pub const KIND_RIGHT_ONLY: &str = "right-only";
@@ -48,7 +94,10 @@ pub const KIND_CHANGED: &str = "changed";
 pub const KIND_ORDERING_ONLY: &str = "ordering-only";
 pub const KIND_STATUS: &str = "status";
 pub const KIND_PROJECTION: &str = "projection";
-pub const KIND_UNEXPLAINED: &str = "unexplained";
+/// Replaces the old `unexplained` KIND (owner decision D-5). An engine that did
+/// not report a layer at all is a *shape*, and naming it after the judgement
+/// meant the two could never disagree.
+pub const KIND_MISSING_LAYER: &str = "missing-layer";
 
 const KINDS: [&str; 7] = [
     KIND_LEFT_ONLY,
@@ -57,8 +106,76 @@ const KINDS: [&str; 7] = [
     KIND_ORDERING_ONLY,
     KIND_STATUS,
     KIND_PROJECTION,
-    KIND_UNEXPLAINED,
+    KIND_MISSING_LAYER,
 ];
+
+/// The ACCEPTANCE judgement (owner decision D-5), orthogonal to the kind.
+pub const ACCEPTANCE_UNEXPLAINED: &str = "unexplained";
+pub const ACCEPTANCE_DECLARED: &str = "declared-boundary";
+
+const ACCEPTANCES: [&str; 2] = [ACCEPTANCE_UNEXPLAINED, ACCEPTANCE_DECLARED];
+
+/// The one boundary class any engine declares today: the #294 OD-1 typed door.
+pub const BOUNDARY_OD1: &str = "OD-1";
+
+/// The FROZEN boundary policy (owner decision D-5): the exact
+/// `(layer, kind, class)` triples an observation may be judged a declared
+/// boundary on. A test asserts EXACT equality to these three.
+///
+/// Three entries for one door, and that is the point rather than repetition:
+/// the typed `OwnIr` constructor sits upstream of every layer, so one refusal
+/// produces three refused layer records, and a policy keyed by class alone
+/// could not tell "the door refused this document" from "somebody attached a
+/// known class to an unrelated layer".
+///
+/// `projection` has **no** entry, deliberately. A projection difference means
+/// the two engines declared different views of one surface, so their values are
+/// not comparable member-for-member; that is a reason to stop comparing, never
+/// a reason to call the difference explained.
+pub const BOUNDARY_POLICY: [(&str, &str, &str); 3] = [
+    ("lowered", KIND_STATUS, BOUNDARY_OD1),
+    ("summaries", KIND_STATUS, BOUNDARY_OD1),
+    ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+];
+
+/// The reduction outcomes.
+///
+/// `declared-boundary` is not a softer `diverged`: it says every observation
+/// was matched by the frozen policy, a stronger statement about a surface with
+/// known boundaries than "nothing was found".
+pub const OUTCOME_IDENTICAL: &str = "identical";
+pub const OUTCOME_DECLARED: &str = "declared-boundary";
+pub const OUTCOME_DIVERGED: &str = "diverged";
+pub const OUTCOME_SINGLE_ENGINE: &str = "single-engine";
+
+/// The ACCEPTANCE judgement for one observation, and the boundary it keeps.
+///
+/// The rule, in the order it is written, because the order is the contract:
+/// anything that is not a `status` or a `projection` is **unexplained** and
+/// keeps no boundary — the policy is not consulted at all, which is stronger
+/// than consulting it and refusing; then the `(layer, kind, class)` triple must
+/// match the frozen policy exactly; and `detail` never participates.
+///
+/// No case-name matching and no error-text matching, anywhere.
+#[must_use]
+pub fn judge(layer: &str, kind: &str, boundary: Option<&Json>) -> (&'static str, Json) {
+    if kind != KIND_STATUS && kind != KIND_PROJECTION {
+        return (ACCEPTANCE_UNEXPLAINED, Json::Null);
+    }
+    let kept = match boundary {
+        Some(b @ Json::Object(_)) => b.clone(),
+        _ => Json::Null,
+    };
+    if let Some(class) = kept.get("class").and_then(Json::as_str) {
+        if BOUNDARY_POLICY
+            .iter()
+            .any(|(l, k, c)| *l == layer && *k == kind && *c == class)
+        {
+            return (ACCEPTANCE_DECLARED, kept);
+        }
+    }
+    (ACCEPTANCE_UNEXPLAINED, kept)
+}
 
 fn object(entries: Vec<(&str, Json)>) -> Json {
     Json::Object(
@@ -69,6 +186,7 @@ fn object(entries: Vec<(&str, Json)>) -> Json {
     )
 }
 
+/// One observation, with its kind and its acceptance as separate fields.
 fn observation(
     layer: &str,
     kind: &str,
@@ -78,15 +196,49 @@ fn observation(
     right: Json,
     detail: &str,
 ) -> Json {
+    observation_with_boundary(layer, kind, step, path, left, right, detail, None)
+}
+
+// Eight fields of ONE record, not eight decisions: the observation schema is
+// what it is, and bundling half of them into a struct would put the schema in
+// two places for the sake of an argument count.
+#[allow(clippy::too_many_arguments)]
+fn observation_with_boundary(
+    layer: &str,
+    kind: &str,
+    step: Option<&str>,
+    path: Option<&str>,
+    left: Json,
+    right: Json,
+    detail: &str,
+    boundary: Option<&Json>,
+) -> Json {
+    let (acceptance, kept) = judge(layer, kind, boundary);
     object(vec![
         ("layer", Json::Str(layer.to_owned())),
         ("kind", Json::Str(kind.to_owned())),
+        ("acceptance", Json::Str(acceptance.to_owned())),
+        ("boundary", kept),
         ("step", step.map_or(Json::Null, |s| Json::Str(s.to_owned()))),
         ("path", path.map_or(Json::Null, |p| Json::Str(p.to_owned()))),
         ("left", left),
         ("right", right),
         ("detail", Json::Str(detail.to_owned())),
     ])
+}
+
+/// The structured boundary class a REFUSING engine declared on its own layer
+/// record, or `None`.
+///
+/// The refusing side declares it; this reducer only copies it.
+fn boundary_of(layer: &Json) -> Option<&Json> {
+    if layer.get("status").and_then(Json::as_str) != Some(STATUS_REFUSED) {
+        return None;
+    }
+    match layer.get("boundary") {
+        Some(b @ Json::Object(_)) => Some(b),
+        _ => None,
+    }
 }
 
 /// The smallest path at which two values differ, and the values there.
@@ -185,16 +337,21 @@ fn reduce_layer(name: &str, left: &Json, right: &Json) -> Vec<Json> {
         right.get("status").and_then(Json::as_str),
     );
     if ls != rs {
-        return vec![observation(
+        // Exactly one side refused, so exactly one side can have declared a
+        // class. Whichever it is, the class travels with the observation.
+        let declared = boundary_of(left).or_else(|| boundary_of(right));
+        return vec![observation_with_boundary(
             name,
             KIND_STATUS,
             None,
             None,
             left.get("status").cloned().unwrap_or(Json::Null),
             right.get("status").cloned().unwrap_or(Json::Null),
-            "the two engines disagree about whether this layer produced at all; the artifacts \
-             record every such case as a DECLARED boundary, and this reducer reports it rather \
-             than judging it",
+            "the two engines disagree about whether this layer produced at all; the refusing \
+             engine declares its boundary class in its own capture and this reducer copies it, \
+             judging the result against the frozen policy by (layer, kind, class) — never by \
+             its text",
+            declared,
         )];
     }
     if ls == Some(STATUS_REFUSED) {
@@ -306,6 +463,9 @@ pub fn reduce_traces(traces: &Json) -> Json {
             .map(|s| Json::Str((*s).to_owned()))
             .collect(),
     );
+    // Empty, and kept (owner decision D-4). Every layer is in scope; the member
+    // is the slot a future exclusion would occupy, and dropping it would make
+    // "nothing is excluded" indistinguishable from "the field went away".
     let out_of_scope = Json::Array(
         LAYER_ORDER
             .iter()
@@ -313,16 +473,7 @@ pub fn reduce_traces(traces: &Json) -> Json {
             .map(|l| {
                 object(vec![
                     ("layer", Json::Str((*l).to_owned())),
-                    (
-                        "reason",
-                        Json::Str(
-                            "comparing final diagnostics is #260's ACCEPTANCE and is blocked by \
-                             #259 (cp5 and 4b); this reducer refuses the layer rather than \
-                             skipping it, so 'not compared' can never be read as 'compared and \
-                             agreed'"
-                                .to_owned(),
-                        ),
-                    ),
+                    ("reason", Json::Str("not in scope".to_owned())),
                 ])
             })
             .collect(),
@@ -340,15 +491,22 @@ pub fn reduce_traces(traces: &Json) -> Json {
             ("case", traces.get("case").cloned().unwrap_or(Json::Null)),
             ("engines", engines(entries)),
             ("scope", scope),
-            ("outcome", Json::Str("single-engine".to_owned())),
+            ("outcome", Json::Str(OUTCOME_SINGLE_ENGINE.to_owned())),
             (
                 "detail",
                 Json::Str(
                     "only one engine captured this input, so there is nothing to reduce".to_owned(),
                 ),
             ),
-            ("classification", Json::Object(Vec::new())),
+            (
+                "classification",
+                object(vec![
+                    ("by_kind", Json::Object(Vec::new())),
+                    ("by_acceptance", Json::Object(Vec::new())),
+                ]),
+            ),
             ("first", Json::Null),
+            ("observations", Json::Array(Vec::new())),
             ("out_of_scope", out_of_scope),
         ]);
     }
@@ -368,7 +526,7 @@ pub fn reduce_traces(traces: &Json) -> Json {
             (Some(a), Some(b)) => observations.extend(reduce_layer(name, a, b)),
             (a, b) => observations.push(observation(
                 name,
-                KIND_UNEXPLAINED,
+                KIND_MISSING_LAYER,
                 None,
                 None,
                 Json::Bool(a.is_some()),
@@ -377,26 +535,38 @@ pub fn reduce_traces(traces: &Json) -> Json {
             )),
         }
     }
-    let classification = Json::Object(
-        KINDS
-            .iter()
-            .map(|kind| {
-                let n = observations
-                    .iter()
-                    .filter(|o| o.get("kind").and_then(Json::as_str) == Some(*kind))
-                    .count();
-                (
-                    (*kind).to_owned(),
-                    Json::Int(i64::try_from(n).unwrap_or(i64::MAX)),
-                )
-            })
-            .collect(),
-    );
+    let tally = |field: &str, values: &[&str]| -> Json {
+        Json::Object(
+            values
+                .iter()
+                .map(|want| {
+                    let n = observations
+                        .iter()
+                        .filter(|o| o.get(field).and_then(Json::as_str) == Some(*want))
+                        .count();
+                    (
+                        (*want).to_owned(),
+                        Json::Int(i64::try_from(n).unwrap_or(i64::MAX)),
+                    )
+                })
+                .collect(),
+        )
+    };
+    let classification = object(vec![
+        ("by_kind", tally("kind", &KINDS)),
+        ("by_acceptance", tally("acceptance", &ACCEPTANCES)),
+    ]);
+    let unexplained = observations
+        .iter()
+        .filter(|o| o.get("acceptance").and_then(Json::as_str) == Some(ACCEPTANCE_UNEXPLAINED))
+        .count();
     let first = observations.first().cloned().unwrap_or(Json::Null);
     let outcome = if observations.is_empty() {
-        "identical"
+        OUTCOME_IDENTICAL
+    } else if unexplained > 0 {
+        OUTCOME_DIVERGED
     } else {
-        "diverged"
+        OUTCOME_DECLARED
     };
     object(vec![
         ("reduction_version", Json::Int(REDUCTION_VERSION)),
@@ -413,6 +583,13 @@ pub fn reduce_traces(traces: &Json) -> Json {
         ("detail", Json::Null),
         ("classification", classification),
         ("first", first),
+        // The whole walk, in step order, beside the headline. The verdict layer
+        // entering scope is exactly when one document can differ at several
+        // findings at once, and a reduction that showed one at a time would
+        // make a reviewer re-run the reducer to see the second. `first` is
+        // still what a first-divergence reduction is FOR; this is what a
+        // divergence report needs.
+        ("observations", Json::Array(observations)),
         ("out_of_scope", out_of_scope),
     ])
 }

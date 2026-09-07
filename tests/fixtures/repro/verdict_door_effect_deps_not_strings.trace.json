@@ -1,9 +1,9 @@
 {
-  "trace_version": 1,
+  "trace_version": 2,
   "case": "verdict_door_effect_deps_not_strings",
   "traces": [
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
@@ -202,7 +202,7 @@
       ]
     },
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",
@@ -218,6 +218,10 @@
           },
           "order": "significant",
           "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          },
           "steps": []
         },
         {
@@ -228,6 +232,10 @@
           },
           "order": "canonical",
           "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          },
           "steps": []
         },
         {
@@ -238,6 +246,10 @@
           },
           "order": "significant",
           "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "boundary": {
+            "class": "OD-1",
+            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+          },
           "steps": []
         }
       ]
