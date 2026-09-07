@@ -12,6 +12,12 @@ these generated fragments, computed from the evidence — never typed:
   checkpoint 4's, because that is where the fragment was introduced and two
   notes link it; what it DESCRIBES is the current comparison surface, which the
   document says in its own first paragraph.
+* `docs/generated/p022-coord-census.md` — every source coordinate the fixture
+  tree carries, classified against the §4.2 domain, from
+  `tests/coordinate_census.compute_coordinate_census()`. It is the measurement
+  the coordinate-domain decision was taken against and the one the churn budget
+  is checked with; it deliberately counts the GOLDENS too, because `0` staying
+  a legal line is a property of the outputs, not of the door.
 * `docs/generated/p022-cp5-inventory.md` — the checkpoint-5 SURFACE inventory,
   from `tests/verdict_surface_inventory.compute_surface_inventory()`: which
   BR-V4 wording branch, BR-V5 evidence family and BR-V9 rendered-surface rule
@@ -61,6 +67,11 @@ for _sub in ("tests", "scripts"):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from coordinate_census import (  # noqa: E402
+    CoordinateCensus,
+    CoordinateCensusError,
+    compute_coordinate_census,
+)
 from mutate_campaign import (  # noqa: E402  (sys.path set above)
     CampaignError,
     Definition,
@@ -88,6 +99,7 @@ from verdict_surface_inventory import (  # noqa: E402
 GENERATED = os.path.join(ROOT, "docs", "generated")
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
+COORD_CENSUS_MD = "p022-coord-census.md"
 INVENTORY_MD = "p022-cp5-inventory.md"
 CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 CP4B_MUTATIONS_MD = "p022-cp4b-mutations.md"
@@ -216,6 +228,80 @@ def render_census(c: Census, r: RenderCensus | None) -> str:
     lines += [f"| {'measure'.ljust(width)} | value |", f"|{'-' * (width + 2)}|------:|"]
     lines += [f"| {k.ljust(width)} | {v} |" for k, v in render_rows]
     lines.append("")
+    return "\n".join(lines)
+
+
+# --- the coordinate census ------------------------------------------------
+
+
+def render_coordinate_census(c: CoordinateCensus) -> str:
+    """Every `line` / `column` slot in the fixture tree, by family, slot and
+    value class. Computed by `tests/coordinate_census.py`; nothing here is
+    typed, including the sentence about what did not move."""
+    lines = [
+        _header("tests/fixtures/**/*.json through tests/coordinate_census.py"),
+        "# P-022 #259 final acceptance — the source-coordinate census",
+        "",
+        "The measurement the coordinate-domain decision (`spec/OwnIR.md` §4.2) was "
+        "taken against: every `line`, `ctor_line` and `column` slot in every JSON file "
+        "under `tests/fixtures/`, at any depth and under any key.",
+        "",
+        "It is wider than the door on purpose. A **door slot** sits on an OwnIR "
+        "*document* and `load()` rules on it; every other row is an **observation** — "
+        "a golden, a ledger, a captured trace — which the door never sees and which "
+        "this change must therefore leave alone. `0` stays a legal line (the "
+        "reference's own default for an absent one), so the observation rows anchored "
+        "at zero are the records the decision must go on accepting, and a census that "
+        "read only the inputs could not see them at all.",
+        "",
+        "Value classes follow the cp1 taxonomy's axis rather than blurring it: "
+        "`outside-int64` has no representable integer form (`Shape`), while `negative` "
+        "and `above-int32` are representable coordinates violating the domain rule "
+        "(`Location`). `below-1` is the column's own 1-based rule.",
+        "",
+        f"| {'measure'.ljust(34)} | value |",
+        f"|{'-' * 36}|------:|",
+        f"| {'JSON files scanned'.ljust(34)} | {c.files} |",
+        f"| {'coordinate slots found'.ljust(34)} | {c.coordinates} |",
+        "",
+        "## By value class",
+        "",
+        "| value class | all slots | door slots |",
+        "|---|---:|---:|",
+    ]
+    door = dict(c.door_by_class)
+    for value_class, n in c.by_class:
+        lines.append(f"| `{value_class}` | {n} | {door.get(value_class, 0)} |")
+    lines += [
+        "",
+        "## By family and slot",
+        "",
+        "`door` marks a slot the strict door rules on. Examples are shown for every "
+        "class outside `in-domain` / `null` / `zero`, because those are the values a "
+        "reader needs to see rather than count.",
+        "",
+        "| family | slot | class | door | count | files | values |",
+        "|---|---|---|:--:|---:|---:|---|",
+    ]
+    for row in c.rows:
+        shown = ", ".join(f"`{e}`" for e in row.examples) or "—"
+        lines.append(
+            f"| `{row.family}` | `{row.path}` | `{row.value_class}` | "
+            f"{'yes' if row.door else '—'} | {row.count} | {row.files} | {shown} |")
+    lines += [
+        "",
+        "## Slot inventory reachability",
+        "",
+        "`tests/coordinate_census.SLOTS` is the door inventory, and it is asserted as "
+        "a set rather than spot-checked: a declared slot no fixture reaches is a "
+        "phantom claiming coverage it does not have.",
+        "",
+    ]
+    if c.unreachable_slots:
+        lines += [f"- **unreachable**: `{slot}`" for slot in c.unreachable_slots]
+        lines.append("")
+    else:
+        lines += ["Every declared slot is reached by at least one fixture.", ""]
     return "\n".join(lines)
 
 
@@ -621,6 +707,10 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     except CensusError as e:
         problems.extend(f"verdict census: {p}" for p in e.problems)
     try:
+        out[COORD_CENSUS_MD] = render_coordinate_census(compute_coordinate_census())
+    except CoordinateCensusError as e:
+        problems.extend(f"coordinate census: {p}" for p in e.problems)
+    try:
         out[INVENTORY_MD] = render_inventory(compute_surface_inventory())
     except InventoryError as e:
         problems.extend(f"cp5 surface inventory: {p}" for p in e.problems)
@@ -704,8 +794,8 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     if argv:
-        print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, "
-              f"{MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {COORD_CENSUS_MD}, "
+              f"{INVENTORY_MD}, {MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
               f"{SHADOW_MUTATIONS_MD} in sync with the evidence")
     return 0
 

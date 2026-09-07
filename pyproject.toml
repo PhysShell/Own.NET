@@ -24,6 +24,7 @@ select = ["E", "W", "F", "I", "B", "UP", "C4", "RUF"]
 python_version = "3.11"
 files = [
   "ownlang",
+  "tests/coordinate_census.py",
   "tests/verdict_census.py",
   "tests/verdict_render_census.py",
   "tests/verdict_surface_inventory.py",
