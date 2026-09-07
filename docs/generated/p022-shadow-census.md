@@ -46,7 +46,7 @@ refuses to carry a foreign entry that has none rather than filling one in.
 | tamper controls (one changed character per document, refusal required) | 98 |
 | documents both engines must REFUSE to name (`domain_refusals`) | 6 |
 | reproduction artifacts committed and replayed byte-for-byte | 10 |
-| structural negative controls on `verify` (each side) | 28 |
+| structural negative controls on `verify` (each side) | 34 |
 | value-level domain backstop controls | 5 |
 
 ## The engine protocol (checkpoint 2)
@@ -156,6 +156,55 @@ declared:**
 | `verdict_door_service_unknown_lifetime` | `lowered` | declared-boundary | `OD-1` |
 | `verdict_door_service_unknown_lifetime` | `summaries` | declared-boundary | `OD-1` |
 | `verdict_door_service_unknown_lifetime` | `verdicts` | declared-boundary | `OD-1` |
+
+## The derived SARIF surface (owner decision D-6)
+
+Canonical SARIF is a #260 zero-diff acceptance surface and **not** an
+`AnalysisTrace` layer: it is not in `LAYER_ORDER`, it has no step addressing,
+and no reduction walks it. Each engine renders it from its **own** verdict
+layer, under one frozen, named configuration — `severity=error` —
+recorded in the artifact rather than assumed, because two engines rendering the
+same findings under different severities would differ for a reason that is not
+a divergence. The artifact carries the **identity**; the full documents are
+retained by the compare driver on mismatch only.
+
+Three outcomes, and they are three rather than two because "the renderers
+disagree" and "there was nothing to compare" are different findings:
+
+| case | derived outcome |
+|---|---|
+| `canonical_torture` | equal |
+| `canonical_key_order` | equal |
+| `canonical_minimal` | equal |
+| `di` | equal |
+| `vocab_unknown_op` | not-comparable |
+| `hoist_neg_while_body` | not-comparable |
+| `mosdump_degraded_duplicate_key` | equal |
+| `protocol_isloaded_violation` | equal |
+| `verdict_door_effect_deps_not_strings` | not-comparable |
+| `verdict_door_service_unknown_lifetime` | not-comparable |
+
+Every case where **both** engines produce a verdict layer is `equal`. Every
+`not-comparable` case is one where at least one engine refused that layer, so
+nothing was rendered to compare — and they come in **two** shapes, which is
+worth stating because the acceptance work was written expecting one:
+
+* the two **OD-1 door** documents, where the port's typed door refuses and the
+  reference does not (an asymmetric refusal, a `status` observation, a declared
+  boundary);
+* two documents where **both** engines refuse the verdict layer for the same
+  reason — `vocab_unknown_op` (an unknown flow op: extractor/core vocabulary
+  skew) and `hoist_neg_while_body` (the BR-V3 map-or-raise class). These are
+  `identical` at the layer and still `not-comparable` on the derived surface,
+  because "the two engines agree that they refused" is not "the two engines
+  rendered the same document".
+
+That second shape is a measurement rather than a prediction, and folding it
+into the first would have been a claim the corpus does not support.
+
+`renderer-only divergence` is therefore a real classification rather than a
+spare word: it can only be reported when the verdict layers agree and the
+rendered bytes do not, and the renderer is then the only thing left.
 
 The same-input layer carries its own counters, and those remain gate-enforced
 rather than computed: the port asserts per-document equality of the canonical

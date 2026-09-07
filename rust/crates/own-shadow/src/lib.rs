@@ -55,7 +55,8 @@ mod trace;
 
 pub use artifact::{
     render, verify, ENGINE_ORDER, ENGINE_PYTHON, ENGINE_RUST, LAYER_ORDER, PROJECTION_FULL,
-    PROJECTION_PARTIAL, REPRO_VERSION, STATUS_PRODUCED, STATUS_REFUSED,
+    PROJECTION_PARTIAL, REPRO_VERSION, SARIF_CONFIGURATION, SARIF_SEVERITY, STATUS_PRODUCED,
+    STATUS_REFUSED,
 };
 pub use base64::{decode as base64_decode, encode as base64_encode};
 pub use canonical::{

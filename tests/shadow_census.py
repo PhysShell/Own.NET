@@ -70,6 +70,8 @@ class ShadowCensus:
     by_acceptance: dict[str, int] = field(
         default_factory=lambda: dict.fromkeys(ACCEPTANCES, 0))
     boundaries: tuple[tuple[str, str, str, str], ...] = ()
+    derived_configuration: str = ""
+    derived_outcomes: tuple[tuple[str, str], ...] = ()
     gates: tuple[tuple[str, str], ...] = ()
 
 
@@ -182,6 +184,22 @@ def compute_shadow_census() -> ShadowCensus:
     if problems:
         raise ShadowCensusError(problems)
 
+    # The DERIVED surface (owner decision D-6): not a layer, not in the trace,
+    # not walked by any reduction — a projection each engine takes of its own
+    # verdict layer, compared by identity. Read off the committed artifacts and
+    # the reductions beside them, because the classification depends on both.
+    from ownlang.repro import SARIF_CONFIGURATION, derived_outcome
+
+    derived: list[tuple[str, str]] = []
+    for entry in manifest["artifacts"]:
+        artifact_path = os.path.join(FIXDIR, f"{entry['name']}.repro.json")
+        reduction_path = os.path.join(FIXDIR, f"{entry['name']}.reduction.json")
+        if not (os.path.exists(artifact_path) and os.path.exists(reduction_path)):
+            continue
+        derived.append((entry["name"],
+                        derived_outcome(_load(artifact_path),
+                                        _load(reduction_path))["outcome"]))
+
     return ShadowCensus(
         documents=len(documents),
         by_corpus=tuple(sorted(per_corpus.items())),
@@ -203,6 +221,8 @@ def compute_shadow_census() -> ShadowCensus:
         by_class=by_class,
         by_acceptance=by_acceptance,
         boundaries=tuple(boundaries),
+        derived_configuration=SARIF_CONFIGURATION,
+        derived_outcomes=tuple(derived),
         gates=_rust_test_names(),
     )
 

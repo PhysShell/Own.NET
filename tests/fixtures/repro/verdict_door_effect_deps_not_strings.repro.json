@@ -225,7 +225,18 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "2d8c03c893da95c8f84ac51786a70f37c10cefb5fa060ca9acf513638f0b1a27",
+            "bytes": 1299
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
@@ -274,7 +285,14 @@
             "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

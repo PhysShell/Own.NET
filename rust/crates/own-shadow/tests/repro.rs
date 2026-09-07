@@ -869,9 +869,91 @@ fn verify_refuses_each_structural_violation() {
         ),
     ));
 
+    // --- the v3 derived surfaces (owner decision D-6) -----------------------
+    let with_derived = |f: &dyn Fn(&Json) -> Json| -> Json {
+        let engine = engine0(&artifact);
+        let derived = engine.get("derived").expect("derived");
+        with_engines(
+            &artifact,
+            vec![with_member(&engine, "derived", Some(f(derived)))],
+        )
+    };
+    cases.push((
+        "an engine entry with no derived surfaces",
+        "derived is missing",
+        with_engines(
+            &artifact,
+            vec![with_member(&engine0(&artifact), "derived", None)],
+        ),
+    ));
+    cases.push((
+        "an unknown derived surface",
+        "derived: unknown member",
+        with_derived(&|d| with_member(d, "ownreport", Some(Json::Object(Vec::new())))),
+    ));
+    cases.push((
+        "a derived surface under an undeclared render configuration",
+        "not the frozen",
+        with_derived(&|d| {
+            let sarif = d.get("sarif").expect("sarif");
+            with_member(
+                d,
+                "sarif",
+                Some(with_member(
+                    sarif,
+                    "configuration",
+                    Some(Json::Str("severity=warning".to_owned())),
+                )),
+            )
+        }),
+    ));
+    cases.push((
+        // A `refused` derived surface beside a PRODUCED verdict layer: a
+        // surface quietly dropped, which a digest comparison would score as
+        // "nothing to compare" rather than as the gap it is.
+        "a derived surface whose status contradicts its verdict layer",
+        "verdict layer is",
+        with_derived(&|d| {
+            let sarif = d.get("sarif").expect("sarif");
+            let refused = with_member(
+                &with_member(sarif, "status", Some(Json::Str("refused".to_owned()))),
+                "canonical",
+                Some(Json::Null),
+            );
+            with_member(d, "sarif", Some(refused))
+        }),
+    ));
+    cases.push((
+        "a retained document for an engine not in the artifact",
+        "no such engine",
+        with_member(
+            &artifact,
+            "derived_documents",
+            Some(Json::Object(vec![(
+                "some-other-engine".to_owned(),
+                Json::Object(vec![("sarif".to_owned(), Json::Object(Vec::new()))]),
+            )])),
+        ),
+    ));
+    cases.push((
+        "a retained document that is not the one the digest names",
+        "does not match the identity",
+        with_member(
+            &artifact,
+            "derived_documents",
+            Some(Json::Object(vec![(
+                own_shadow::ENGINE_PYTHON.to_owned(),
+                Json::Object(vec![(
+                    "sarif".to_owned(),
+                    Json::Object(vec![("version".to_owned(), Json::Str("2.1.0".to_owned()))]),
+                )]),
+            )])),
+        ),
+    ));
+
     assert_eq!(
         cases.len(),
-        28,
+        34,
         "the structural control set changed — keep it in step with the Python side"
     );
     for (label, needle, forged) in cases {

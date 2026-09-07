@@ -98,7 +98,11 @@ The canonical form exists for **one** job: to name an input. It is deliberately
             "document": <the parsed facts document>},
   "engines": [{"id": "python-ownlang",
                "consumed": {"algorithm": "sha256", "digest": ..., "bytes": ...},
-               "layers": [...]}]
+               "layers": [...],
+               "derived": {"sarif": {"configuration": "severity=error",
+                                     "status": "produced" | "refused",
+                                     "canonical": {...} | null}}}],
+  "derived_documents": {"<engine id>": {"sarif": {...}}}   // on MISMATCH only
 }
 ```
 
@@ -120,6 +124,29 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   same identity, and check every engine's `consumed` against `input.raw`'s.
   A `consumed` that disagrees means the two captures are not of one input,
   whatever else the artifact says.
+* **`derived` is a surface computed FROM this engine's layers, and it is not a
+  layer** (owner decision D-6). Canonical SARIF is a #260 zero-diff acceptance
+  surface: each engine renders it from its **own** verdict layer under one
+  frozen, named configuration (`severity = "error"` —
+  `ownlang.ownir.build_sarif(findings, "error")` here,
+  `own_bridge::render::build_sarif(&findings, "error")` on the port). It is not
+  in `LAYER_ORDER`, it has no step addressing, no `AnalysisTrace` carries it,
+  and no reduction walks it — which is deliberate, because a derived rendering
+  is not a stage of the pipeline and modelling it as one would put a renderer
+  difference in the same vocabulary as an analysis difference.
+
+  The three outcomes a comparison of it has are therefore distinct: **equal**;
+  **renderer-only divergence** (the verdict layers are equal and the SARIF is
+  not, so the renderer is the only thing left); and **not-comparable** (a
+  verdict layer differs or is refused, so there is nothing to attribute a SARIF
+  difference to). That classification is only sound because the SARIF is
+  rendered from the verdict document *the artifact carries* rather than from a
+  second analysis run — see [`derived_sarif_document`].
+
+  The entry carries the **identity** and not the document, for the same reason
+  the artifact carries an input digest rather than a second copy of the input.
+  `derived_documents` is where full documents go, written by the compare driver
+  on **mismatch only**, and verified against the identity each engine recorded.
 * **Every `consumed` comes from a run** (owner decision B-3). Nothing computes
   one from `input.raw`, on either side: [`capture`] takes bytes and hashes them
   on its first line, and `--write` refuses to carry a foreign entry that has
@@ -265,13 +292,14 @@ same trace — all with zero Python.
 from __future__ import annotations
 
 import base64
+import dataclasses
 import hashlib
 import json
 import re
 from typing import Any
 
 from .lowered import project_lowered
-from .ownir import dump_summaries
+from .ownir import Finding, build_sarif, dump_summaries
 from .verdicts import project_verdicts
 
 # The artifact format version. Bump on ANY change to the frozen decisions
@@ -314,6 +342,25 @@ PROJECTION_KINDS = (PROJECTION_FULL, PROJECTION_PARTIAL)
 # surfaces are its own output. Written once and shared, so "full" is a single
 # fact rather than three copies of a claim.
 FULL: dict[str, Any] = {"kind": PROJECTION_FULL}
+
+# The DERIVED surfaces (owner decision D-6). Canonical SARIF is a #260 zero-diff
+# acceptance surface and it is NOT an `AnalysisTrace` layer: it is not in
+# `LAYER_ORDER`, it has no step addressing, and no reduction walks it. It is a
+# projection each engine takes of its OWN verdict layer, under ONE frozen,
+# named render configuration.
+#
+# The configuration is named IN the artifact rather than assumed, because
+# `severity` is the one presentation parameter either builder takes and two
+# engines rendering the same findings under different severities would differ
+# for a reason that is not a divergence. A named configuration turns "we both
+# used the default" from an assumption into a recorded fact.
+SARIF_SEVERITY = "error"
+SARIF_CONFIGURATION = f"severity={SARIF_SEVERITY}"
+
+# `Finding`'s members, derived from the dataclass rather than listed, so the
+# reconstruction below cannot silently lag it — the same rule
+# `ownlang/verdicts.py` uses to build the record in the first place.
+_FINDING_FIELDS: tuple[str, ...] = tuple(f.name for f in dataclasses.fields(Finding))
 
 _I64_MIN = -(2**63)
 _I64_MAX = 2**63 - 1
@@ -546,6 +593,66 @@ def project_layers(facts: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def derived_sarif_document(verdicts: dict[str, Any]) -> dict[str, Any] | None:
+    """The canonical SARIF this engine renders from its OWN verdict layer, or
+    `None` when that layer was refused (owner decision D-6).
+
+    Rendered from the **projected verdict document the artifact carries**, not
+    from a second `check_facts` run, and that is the decision rather than a
+    convenience. It is what makes a *renderer-only divergence* an unambiguous
+    finding: when the two engines' verdict layers are byte-equal in the
+    artifact and their SARIF is not, the renderer is the only thing left. A
+    SARIF rendered from an independent second analysis run could differ for
+    either reason, and the classification would have nothing to stand on.
+
+    The reconstruction is total by construction: `verdicts.py` writes every
+    `Finding` member, derived from the dataclass rather than listed, so a field
+    added to `Finding` appears in the record and reaches the renderer without
+    anyone remembering to add it here."""
+    if verdicts.get("error") is not None:
+        return None
+    findings: list[Finding] = []
+    for record in verdicts.get("findings", []):
+        members: dict[str, Any] = {}
+        for name, value in record.items():
+            members[str(name)] = (tuple(tuple(step) for step in value)
+                                  if name in ("related", "flow") else value)
+        if set(members) != set(_FINDING_FIELDS):
+            raise ReproError(
+                f"a verdict record carries {sorted(members)}, not the Finding "
+                f"surface {sorted(_FINDING_FIELDS)} — the derived SARIF is "
+                f"rendered from the verdict layer this artifact carries, so a "
+                f"record it cannot rebuild is a surface change, not a "
+                f"rendering question")
+        findings.append(Finding(**members))
+    document: dict[str, Any] = build_sarif(findings, SARIF_SEVERITY)
+    return document
+
+
+def _derived(verdicts: dict[str, Any]) -> dict[str, Any]:
+    """The engine entry's `derived` block: the identity of each derived
+    surface, never the surface itself.
+
+    Only the digest and the length are carried, for the same reason the
+    artifact carries an input digest rather than a second copy of the input:
+    an identity is what a comparison needs, and a full SARIF document per
+    engine per case would triple the corpus to say nothing the digest does not.
+    The documents are retained by the compare driver, on mismatch only, under
+    the artifact's `derived_documents`."""
+    document = derived_sarif_document(verdicts)
+    return {
+        "sarif": {
+            "configuration": SARIF_CONFIGURATION,
+            "status": STATUS_REFUSED if document is None else STATUS_PRODUCED,
+            # The SAME canonical form the artifact already uses to name an
+            # input — sorted keys, compact separators, the closed value domain.
+            # A second serialization rule for a second surface is a second
+            # thing to keep two engines agreeing about.
+            "canonical": None if document is None else canonical_hash(document),
+        },
+    }
+
+
 def capture(raw: bytes) -> dict[str, Any]:
     """This engine's capture of one **byte sequence**: the `engines[]` entry.
 
@@ -561,7 +668,29 @@ def capture(raw: bytes) -> dict[str, Any]:
     have needed."""
     consumed = hash_bytes(raw)
     facts = load_bytes(raw)
-    return {"id": ENGINE_PYTHON, "consumed": consumed, "layers": project_layers(facts)}
+    layers = project_layers(facts)
+    verdicts = next((lyr for lyr in layers if lyr["layer"] == "verdicts"), None)
+    return {
+        "id": ENGINE_PYTHON,
+        "consumed": consumed,
+        "layers": layers,
+        # Beside `layers`, never inside them: a derived surface is not a layer
+        # (owner decision D-6). Nothing in `LAYER_ORDER`, the trace or the
+        # reduction knows it exists.
+        "derived": _derived(_verdict_document(verdicts)),
+    }
+
+
+def _verdict_document(layer: dict[str, Any] | None) -> dict[str, Any]:
+    """The verdict layer's document, or its refusal, as `project_verdicts`
+    shaped it — the envelope lifts a surface refusal into `status`/`error`, and
+    the derived projection needs the surface's own shape back."""
+    if layer is None:
+        return {"error": "this engine reported no verdict layer"}
+    if layer.get("status") == STATUS_REFUSED:
+        return {"error": layer.get("error")}
+    document = layer.get("document")
+    return document if isinstance(document, dict) else {"error": "no document"}
 
 
 def project_repro(raw: bytes,
@@ -631,7 +760,8 @@ def verify_repro(artifact: Any) -> list[str]:
         problems.append(
             f"repro_version {artifact.get('repro_version')!r} != "
             f"REPRO_VERSION {REPRO_VERSION}")
-    extra = sorted(set(artifact) - {"repro_version", "input", "engines"})
+    extra = sorted(set(artifact)
+                   - {"repro_version", "input", "engines", "derived_documents"})
     if extra:
         problems.append(f"unknown artifact member(s): {extra}")
 
@@ -673,7 +803,7 @@ def verify_repro(artifact: Any) -> list[str]:
         if not isinstance(engine, dict):
             problems.append(f"engines[{i}] is not an object")
             continue
-        extra = sorted(set(engine) - {"id", "consumed", "layers"})
+        extra = sorted(set(engine) - {"id", "consumed", "layers", "derived"})
         if extra:
             problems.append(f"engines[{i}]: unknown member(s): {extra}")
         eid = engine.get("id")
@@ -690,7 +820,106 @@ def verify_repro(artifact: Any) -> list[str]:
                     f"{list(ENGINE_ORDER)}")
             seen.append(eid)
         problems += _verify_consumed(engine, f"engines[{i}]", raw_identity)
+        problems += _verify_derived(engine, f"engines[{i}]")
         problems += _verify_layers(engine.get("layers"), f"engines[{i}]")
+    problems += _verify_derived_documents(artifact.get("derived_documents"), engines)
+    return problems
+
+
+def _verify_derived(engine: dict[str, Any], at: str) -> list[str]:
+    """The derived-surface block (owner decision D-6).
+
+    Two rules with teeth. The configuration must be the ONE frozen name, so an
+    artifact cannot record a comparison taken under a render configuration
+    nobody declared. And the SARIF status must agree with the verdict layer's:
+    a `produced` SARIF beside a refused verdict layer is a document rendered
+    from nothing, and a `refused` SARIF beside a produced layer is a surface
+    quietly dropped."""
+    derived = engine.get("derived")
+    if not isinstance(derived, dict):
+        return [f"{at}: derived is missing or not an object — every v3 engine "
+                f"entry records the identity of the surfaces DERIVED from its "
+                f"own layers"]
+    extra = sorted(set(derived) - {"sarif"})
+    if extra:
+        return [f"{at}.derived: unknown member(s): {extra}"]
+    sarif = derived.get("sarif")
+    if not isinstance(sarif, dict):
+        return [f"{at}.derived.sarif is missing or not an object"]
+    problems: list[str] = []
+    extra = sorted(set(sarif) - {"configuration", "status", "canonical"})
+    if extra:
+        problems.append(f"{at}.derived.sarif: unknown member(s): {extra}")
+    if sarif.get("configuration") != SARIF_CONFIGURATION:
+        problems.append(
+            f"{at}.derived.sarif.configuration is "
+            f"{sarif.get('configuration')!r}, not the frozen "
+            f"{SARIF_CONFIGURATION!r} — a comparison under an undeclared render "
+            f"configuration is not a comparison of one surface")
+    layers = engine.get("layers")
+    verdicts = next((lyr for lyr in layers
+                     if isinstance(lyr, dict) and lyr.get("layer") == "verdicts"),
+                    None) if isinstance(layers, list) else None
+    expected = (STATUS_REFUSED if verdicts is None
+                or verdicts.get("status") == STATUS_REFUSED else STATUS_PRODUCED)
+    if sarif.get("status") != expected:
+        problems.append(
+            f"{at}.derived.sarif.status is {sarif.get('status')!r}, but this "
+            f"engine's verdict layer is {expected!r} — the derived surface is "
+            f"rendered from that layer, so it is refused exactly when the layer "
+            f"is")
+    canonical = sarif.get("canonical")
+    if expected == STATUS_REFUSED:
+        if canonical is not None:
+            problems.append(f"{at}.derived.sarif: a refused surface carries a "
+                            f"canonical identity")
+    elif not isinstance(canonical, dict):
+        problems.append(f"{at}.derived.sarif.canonical is missing or not an "
+                        f"object")
+    return problems
+
+
+def _verify_derived_documents(section: Any, engines: list[Any]) -> list[str]:
+    """`derived_documents` — the full derived surfaces, retained by the compare
+    driver on MISMATCH only (owner decision D-6).
+
+    Absent from every committed artifact, and that is the design: an identity is
+    what a comparison needs, and a SARIF document per engine per case would
+    triple the corpus to say nothing the digest does not. When it IS present,
+    each document is checked against the digest its engine recorded — a
+    retained document that does not match the identity it is filed under is
+    worse than no document at all."""
+    if section is None:
+        return []
+    if not isinstance(section, dict):
+        return ["derived_documents is not an object"]
+    known = {e.get("id"): e for e in engines if isinstance(e, dict)}
+    problems: list[str] = []
+    for eid, surfaces in section.items():
+        engine = known.get(eid)
+        if engine is None:
+            problems.append(f"derived_documents[{eid!r}]: no such engine in this "
+                            f"artifact")
+            continue
+        if not isinstance(surfaces, dict):
+            problems.append(f"derived_documents[{eid!r}] is not an object")
+            continue
+        extra = sorted(set(surfaces) - {"sarif"})
+        if extra:
+            problems.append(f"derived_documents[{eid!r}]: unknown member(s): {extra}")
+        if "sarif" not in surfaces:
+            continue
+        claimed = ((engine.get("derived") or {}).get("sarif") or {}).get("canonical")
+        try:
+            actual = canonical_hash(surfaces["sarif"])
+        except ReproError as e:
+            problems.append(f"derived_documents[{eid!r}].sarif is not "
+                            f"canonicalizable: {e}")
+            continue
+        if claimed != actual:
+            problems.append(
+                f"derived_documents[{eid!r}].sarif does not match the identity "
+                f"this engine recorded: claimed {claimed}, recomputed {actual}")
     return problems
 
 
@@ -1408,6 +1637,83 @@ def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
              "reason": "not in scope"}
             for name in LAYER_ORDER if name not in REDUCTION_SCOPE],
     }
+
+
+# The three outcomes a comparison of the DERIVED surfaces has (owner decision
+# D-6). They are three and not two because "the renderers disagree" and "there
+# was nothing to compare" are different findings, and folding them would let a
+# refused verdict layer read as a renderer bug — or hide one.
+DERIVED_EQUAL = "equal"
+DERIVED_RENDERER_ONLY = "renderer-only divergence"
+DERIVED_NOT_COMPARABLE = "not-comparable"
+
+
+def derived_outcome(artifact: dict[str, Any],
+                    reduction: dict[str, Any]) -> dict[str, Any]:
+    """Compare two engines' DERIVED surfaces, given the artifact and the
+    reduction taken over it (owner decision D-6).
+
+    The reduction is an argument rather than something recomputed here because
+    the classification depends on it: a SARIF difference means *the renderer*
+    only when the verdict layers it was rendered from are equal. So the rule is:
+
+    * **not-comparable** — a verdict layer differs, or either engine refused it.
+      There is nothing to attribute a SARIF difference to, and a difference in a
+      document rendered from different inputs is not a renderer finding.
+    * **renderer-only divergence** — the verdict layers agree and the SARIF
+      identities do not. The renderers are the only thing left, which is a real
+      defect and exactly the kind BR-V9's replay also catches, from the other
+      side.
+    * **equal** — both agree.
+
+    Returns `{"surface", "outcome", "configuration", "identities", "detail"}`.
+    Never raises: a malformed artifact is `not-comparable` with the reason, not
+    an exception, because the driver's job at that point is to report."""
+    entries = [e for e in artifact.get("engines", []) if isinstance(e, dict)]
+    identities = {
+        str(e.get("id")): ((e.get("derived") or {}).get("sarif") or {})
+        for e in entries
+    }
+    out: dict[str, Any] = {
+        "surface": "sarif",
+        "configuration": SARIF_CONFIGURATION,
+        "identities": {eid: {"status": sarif.get("status"),
+                             "canonical": sarif.get("canonical")}
+                       for eid, sarif in identities.items()},
+    }
+    if len(entries) < 2:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = ("only one engine captured this input, so there is no "
+                         "derived surface to compare")
+        return out
+    refused = sorted(eid for eid, sarif in identities.items()
+                     if sarif.get("status") != STATUS_PRODUCED)
+    if refused:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = (f"{refused} refused the verdict layer, so the derived "
+                         f"surface was never rendered — a difference here would "
+                         f"have nothing to attribute itself to")
+        return out
+    verdict_observations = [o for o in reduction.get("observations", [])
+                            if o.get("layer") == "verdicts"]
+    if verdict_observations:
+        out["outcome"] = DERIVED_NOT_COMPARABLE
+        out["detail"] = (f"the verdict layers differ "
+                         f"({len(verdict_observations)} observation(s), first "
+                         f"{verdict_observations[0].get('kind')!r} at "
+                         f"{verdict_observations[0].get('step')!r}), so a SARIF "
+                         f"difference would not be the renderer's")
+        return out
+    digests = {eid: (sarif.get("canonical") or {}).get("digest")
+               for eid, sarif in identities.items()}
+    if len(set(digests.values())) == 1:
+        out["outcome"] = DERIVED_EQUAL
+        out["detail"] = None
+        return out
+    out["outcome"] = DERIVED_RENDERER_ONLY
+    out["detail"] = (f"the verdict layers agree and the rendered SARIF does not "
+                     f"({digests}); the renderers are the only thing left")
+    return out
 
 
 def render_reduction(traces: dict[str, Any]) -> str:

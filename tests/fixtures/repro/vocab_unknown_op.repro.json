@@ -83,7 +83,14 @@
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
@@ -137,7 +144,14 @@
           "status": "refused",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)"
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

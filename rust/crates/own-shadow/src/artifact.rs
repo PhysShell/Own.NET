@@ -44,6 +44,17 @@ pub const STATUS_REFUSED: &str = "refused";
 pub const PROJECTION_FULL: &str = "full";
 pub const PROJECTION_PARTIAL: &str = "partial";
 
+/// The one frozen render configuration for the DERIVED SARIF surface (owner
+/// decision D-6).
+///
+/// Named in the artifact rather than assumed, because `severity` is the one
+/// presentation parameter either builder takes and two engines rendering the
+/// same findings under different severities would differ for a reason that is
+/// not a divergence. A named configuration turns "we both used the default"
+/// from an assumption into a recorded fact.
+pub const SARIF_SEVERITY: &str = "error";
+pub const SARIF_CONFIGURATION: &str = "severity=error";
+
 /// Verify an artifact against itself; an empty result means verified.
 ///
 /// The gate a tampered artifact fails: the digest and the byte length are
@@ -74,7 +85,7 @@ pub fn verify(artifact: &Json) -> Vec<String> {
     }
     unknown_members(
         artifact,
-        &["repro_version", "input", "engines"],
+        &["repro_version", "input", "engines", "derived_documents"],
         "artifact",
         &mut problems,
     );
@@ -101,10 +112,11 @@ pub fn verify(artifact: &Json) -> Vec<String> {
         }
         unknown_members(
             engine,
-            &["id", "consumed", "layers"],
+            &["id", "consumed", "layers", "derived"],
             &format!("engines[{i}]"),
             &mut problems,
         );
+        verify_derived(engine, &format!("engines[{i}]"), &mut problems);
         verify_consumed(
             engine,
             &format!("engines[{i}]"),
@@ -134,7 +146,131 @@ pub fn verify(artifact: &Json) -> Vec<String> {
             &mut problems,
         );
     }
+    verify_derived_documents(artifact.get("derived_documents"), engines, &mut problems);
     problems
+}
+
+/// The derived-surface block (owner decision D-6).
+///
+/// Two rules with teeth. The configuration must be the ONE frozen name, so an
+/// artifact cannot record a comparison taken under a render configuration
+/// nobody declared. And the SARIF status must agree with the verdict layer's: a
+/// `produced` SARIF beside a refused verdict layer is a document rendered from
+/// nothing, and a `refused` SARIF beside a produced layer is a surface quietly
+/// dropped.
+fn verify_derived(engine: &Json, at: &str, problems: &mut Vec<String>) {
+    let Some(derived @ Json::Object(_)) = engine.get("derived") else {
+        problems.push(format!(
+            "{at}: derived is missing or not an object — every v3 engine entry records the \
+             identity of the surfaces DERIVED from its own layers"
+        ));
+        return;
+    };
+    unknown_members(derived, &["sarif"], &format!("{at}.derived"), problems);
+    let Some(sarif @ Json::Object(_)) = derived.get("sarif") else {
+        problems.push(format!("{at}.derived.sarif is missing or not an object"));
+        return;
+    };
+    unknown_members(
+        sarif,
+        &["configuration", "status", "canonical"],
+        &format!("{at}.derived.sarif"),
+        problems,
+    );
+    if sarif.get("configuration").and_then(Json::as_str) != Some(SARIF_CONFIGURATION) {
+        problems.push(format!(
+            "{at}.derived.sarif.configuration is {:?}, not the frozen {SARIF_CONFIGURATION:?} — \
+             a comparison under an undeclared render configuration is not a comparison of one \
+             surface",
+            sarif.get("configuration").and_then(Json::as_str)
+        ));
+    }
+    let verdicts = engine
+        .get("layers")
+        .and_then(Json::as_array)
+        .and_then(|ls| {
+            ls.iter()
+                .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts"))
+        })
+        .and_then(|l| l.get("status"))
+        .and_then(Json::as_str);
+    let expected = if verdicts == Some(STATUS_PRODUCED) {
+        STATUS_PRODUCED
+    } else {
+        STATUS_REFUSED
+    };
+    if sarif.get("status").and_then(Json::as_str) != Some(expected) {
+        problems.push(format!(
+            "{at}.derived.sarif.status is {:?}, but this engine's verdict layer is \
+             {expected:?} — the derived surface is rendered from that layer, so it is refused \
+             exactly when the layer is",
+            sarif.get("status").and_then(Json::as_str)
+        ));
+    }
+    match (expected, sarif.get("canonical")) {
+        (STATUS_REFUSED, Some(Json::Null) | None) | (STATUS_PRODUCED, Some(Json::Object(_))) => {}
+        (STATUS_REFUSED, _) => problems.push(format!(
+            "{at}.derived.sarif: a refused surface carries a canonical identity"
+        )),
+        _ => problems.push(format!(
+            "{at}.derived.sarif.canonical is missing or not an object"
+        )),
+    }
+}
+
+/// `derived_documents` — the full derived surfaces, retained by the compare
+/// driver on MISMATCH only (owner decision D-6).
+///
+/// Absent from every committed artifact, and that is the design: an identity is
+/// what a comparison needs, and a SARIF document per engine per case would
+/// triple the corpus to say nothing the digest does not. When it IS present,
+/// each document is checked against the digest its engine recorded — a retained
+/// document that does not match the identity it is filed under is worse than no
+/// document at all.
+fn verify_derived_documents(section: Option<&Json>, engines: &[Json], problems: &mut Vec<String>) {
+    let Some(section) = section else { return };
+    let Json::Object(entries) = section else {
+        problems.push("derived_documents is not an object".to_owned());
+        return;
+    };
+    for (eid, surfaces) in entries {
+        let Some(engine) = engines
+            .iter()
+            .find(|e| e.get("id").and_then(Json::as_str) == Some(eid.as_str()))
+        else {
+            problems.push(format!(
+                "derived_documents[{eid:?}]: no such engine in this artifact"
+            ));
+            continue;
+        };
+        if !matches!(surfaces, Json::Object(_)) {
+            problems.push(format!("derived_documents[{eid:?}] is not an object"));
+            continue;
+        }
+        unknown_members(
+            surfaces,
+            &["sarif"],
+            &format!("derived_documents[{eid:?}]"),
+            problems,
+        );
+        let Some(document) = surfaces.get("sarif") else {
+            continue;
+        };
+        let actual = canonical_hash(document);
+        let claimed = engine
+            .get("derived")
+            .and_then(|d| d.get("sarif"))
+            .and_then(|sr| sr.get("canonical"));
+        if !claimed.is_some_and(|c| identity_matches(c, &actual)) {
+            problems.push(format!(
+                "derived_documents[{eid:?}].sarif does not match the identity this engine \
+                 recorded: claimed {:?}, recomputed {{digest: {:?}, bytes: {}}}",
+                claimed.map(|c| c.get("digest").and_then(Json::as_str)),
+                actual.digest,
+                actual.bytes
+            ));
+        }
+    }
 }
 
 fn rank(id: &str) -> usize {

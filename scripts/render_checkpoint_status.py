@@ -632,6 +632,8 @@ def render_shadow_census(c: ShadowCensus) -> str:
     boundary_rows = ("\n".join(f"| `{case}` | `{layer}` | {acceptance} | `{cls}` |"
                                 for case, layer, acceptance, cls in c.boundaries)
                      or "| — | — | — | the reducer made no observation at all |")
+    derived_rows = "\n".join(f"| `{case}` | {outcome} |"
+                              for case, outcome in c.derived_outcomes)
     scope = list(c.scope)
     return f"""{_header("tests/fixtures/repro/ (artifacts, traces, reductions)")}
 # P-022 step 7a — shadow-mode infrastructure: census
@@ -775,6 +777,46 @@ declared:**
 | case | layer | acceptance | declared class |
 |---|---|---|---|
 {boundary_rows}
+
+## The derived SARIF surface (owner decision D-6)
+
+Canonical SARIF is a #260 zero-diff acceptance surface and **not** an
+`AnalysisTrace` layer: it is not in `LAYER_ORDER`, it has no step addressing,
+and no reduction walks it. Each engine renders it from its **own** verdict
+layer, under one frozen, named configuration — `{c.derived_configuration}` —
+recorded in the artifact rather than assumed, because two engines rendering the
+same findings under different severities would differ for a reason that is not
+a divergence. The artifact carries the **identity**; the full documents are
+retained by the compare driver on mismatch only.
+
+Three outcomes, and they are three rather than two because "the renderers
+disagree" and "there was nothing to compare" are different findings:
+
+| case | derived outcome |
+|---|---|
+{derived_rows}
+
+Every case where **both** engines produce a verdict layer is `equal`. Every
+`not-comparable` case is one where at least one engine refused that layer, so
+nothing was rendered to compare — and they come in **two** shapes, which is
+worth stating because the acceptance work was written expecting one:
+
+* the two **OD-1 door** documents, where the port's typed door refuses and the
+  reference does not (an asymmetric refusal, a `status` observation, a declared
+  boundary);
+* two documents where **both** engines refuse the verdict layer for the same
+  reason — `vocab_unknown_op` (an unknown flow op: extractor/core vocabulary
+  skew) and `hoist_neg_while_body` (the BR-V3 map-or-raise class). These are
+  `identical` at the layer and still `not-comparable` on the derived surface,
+  because "the two engines agree that they refused" is not "the two engines
+  rendered the same document".
+
+That second shape is a measurement rather than a prediction, and folding it
+into the first would have been a claim the corpus does not support.
+
+`renderer-only divergence` is therefore a real classification rather than a
+spare word: it can only be reported when the verdict layers agree and the
+rendered bytes do not, and the renderer is then the only thing left.
 
 The same-input layer carries its own counters, and those remain gate-enforced
 rather than computed: the port asserts per-document equality of the canonical

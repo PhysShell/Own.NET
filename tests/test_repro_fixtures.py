@@ -67,6 +67,9 @@ from ownlang.repro import (
     BOUNDARY_OD1,
     BOUNDARY_POLICY,
     CANONICAL_ALGORITHM,
+    DERIVED_EQUAL,
+    DERIVED_NOT_COMPARABLE,
+    DERIVED_RENDERER_ONLY,
     ENGINE_PYTHON,
     KIND_CHANGED,
     KIND_MISSING_LAYER,
@@ -77,8 +80,11 @@ from ownlang.repro import (
     LAYER_ORDER_SEMANTICS,
     REDUCTION_SCOPE,
     REPRO_VERSION,
+    SARIF_CONFIGURATION,
     ReproError,
     canonical_hash,
+    derived_outcome,
+    derived_sarif_document,
     encode_raw,
     hash_bytes,
     load_bytes,
@@ -244,14 +250,18 @@ def _foreign_engines(golden_path: str) -> list[dict[str, Any]]:
     for entry in engines:
         if not isinstance(entry, dict) or entry.get("id") == ENGINE_PYTHON:
             continue
-        # B-3: an entry that does not attest what it consumed is a capture from
-        # an older format, and carrying it forward would put a `consumed` claim
-        # in a v3 artifact that no execution ever made. Refused rather than
-        # filled in — the port re-runs and writes its own.
-        if not isinstance(entry.get("consumed"), dict):
+        # B-3: an entry that does not attest what it consumed — or that carries
+        # no `derived` block — is a capture from an older format. Filling either
+        # in would put a claim in a v3 artifact that no execution ever made:
+        # this side cannot know what bytes the port read, and it cannot render
+        # the port's SARIF. Refused rather than promoted — the port re-runs and
+        # writes its own.
+        missing = [name for name in ("consumed", "derived")
+                   if not isinstance(entry.get(name), dict)]
+        if missing:
             print(f"NOTE: dropping the {entry.get('id')!r} entry of "
-                  f"{os.path.basename(golden_path)}: it carries no 'consumed' "
-                  f"attestation, so it predates artifact v3. Regenerate it with "
+                  f"{os.path.basename(golden_path)}: it carries no {missing}, "
+                  f"so it predates artifact v3. Regenerate it with "
                   f"OWN_SHADOW_WRITE=1 cargo test -p own-shadow --test engine — "
                   f"an engine's entry comes from a run of that engine, never "
                   f"from a promotion.")
@@ -348,7 +358,7 @@ def _render_digests(plan: dict[str, tuple[str, str]]) -> str:
 # rather than what the reader assumes did. Public because
 # `scripts/render_checkpoint_status.py` derives the census from them rather
 # than from a number somebody typed into a document.
-STRUCTURAL_CONTROL_COUNT = 28
+STRUCTURAL_CONTROL_COUNT = 34
 DOMAIN_BACKSTOP_COUNT = 5
 
 
@@ -479,6 +489,31 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
     def consumed_of_other_bytes(a: dict[str, Any]) -> None:
         a["engines"][0]["consumed"] = hash_bytes(b"bytes this engine never read")
 
+    # --- the v3 derived surfaces (owner decision D-6) -----------------------
+
+    def drop_derived(a: dict[str, Any]) -> None:
+        del a["engines"][0]["derived"]
+
+    def derived_unknown_member(a: dict[str, Any]) -> None:
+        a["engines"][0]["derived"]["ownreport"] = {}
+
+    def derived_wrong_configuration(a: dict[str, Any]) -> None:
+        a["engines"][0]["derived"]["sarif"]["configuration"] = "severity=warning"
+
+    def derived_status_disagrees(a: dict[str, Any]) -> None:
+        # A `refused` derived surface beside a PRODUCED verdict layer: a
+        # surface quietly dropped, which a digest comparison would score as
+        # "nothing to compare" rather than as the gap it is.
+        a["engines"][0]["derived"]["sarif"]["status"] = "refused"
+        a["engines"][0]["derived"]["sarif"]["canonical"] = None
+
+    def derived_document_of_no_engine(a: dict[str, Any]) -> None:
+        a["derived_documents"] = {"some-other-engine": {"sarif": {}}}
+
+    def derived_document_that_is_not_the_one(a: dict[str, Any]) -> None:
+        a["derived_documents"] = {
+            ENGINE_PYTHON: {"sarif": {"version": "2.1.0", "runs": []}}}
+
     expect("a wrong format version", "repro_version", set_version)
     expect("an unknown artifact member", "unknown artifact member", add_member)
     expect("a missing layer", "frozen layers", drop_layer)
@@ -523,6 +558,18 @@ def _structural_controls(artifact: dict[str, Any]) -> list[str]:
            "consumed is missing", drop_consumed)
     expect("an engine that consumed other bytes", "is not input.raw's identity",
            consumed_of_other_bytes)
+    expect("an engine entry with no derived surfaces", "derived is missing",
+           drop_derived)
+    expect("an unknown derived surface", "derived: unknown member",
+           derived_unknown_member)
+    expect("a derived surface under an undeclared render configuration",
+           "not the frozen", derived_wrong_configuration)
+    expect("a derived surface whose status contradicts its verdict layer",
+           "verdict layer is", derived_status_disagrees)
+    expect("a retained document for an engine not in the artifact",
+           "no such engine", derived_document_of_no_engine)
+    expect("a retained document that is not the one the digest names",
+           "does not match the identity", derived_document_that_is_not_the_one)
     return fails
 
 
@@ -1019,6 +1066,142 @@ def _verdict_pairing_controls(base: dict[str, Any],
     return fails
 
 
+def _derived_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
+    """The derived SARIF surface (owner decision D-6), over the committed corpus
+    and on the two classifications the corpus cannot reach by itself.
+
+    D-6's acceptance is `equal` wherever both verdict layers are produced, and
+    `not-comparable` wherever one was refused. Both halves are asserted: an
+    assertion that only checked for `equal` would pass on a corpus where every
+    case was `not-comparable`.
+
+    The `not-comparable` set is measured, not predicted. It contains the two
+    OD-1 door documents — an asymmetric refusal — AND the two where BOTH
+    engines refuse the verdict layer for the same reason (`vocab_unknown_op`'s
+    vocabulary skew, `hoist_neg_while_body`'s BR-V3 map-or-raise). The second
+    shape is `identical` at the layer and still not-comparable on the derived
+    surface, because "the two engines agree that they refused" is not "the two
+    engines rendered the same document"."""
+    fails: list[tuple[str, str]] = []
+    seen_equal = seen_not_comparable = 0
+    for case in artifact_names:
+        artifact_path = os.path.join(FIXDIR, f"{case}.repro.json")
+        reduction_path = os.path.join(FIXDIR, f"{case}.reduction.json")
+        if not (os.path.exists(artifact_path) and os.path.exists(reduction_path)):
+            continue
+        with open(artifact_path, encoding="utf-8") as f:
+            artifact = json.load(f)
+        with open(reduction_path, encoding="utf-8") as f:
+            reduction = json.load(f)
+        result = derived_outcome(artifact, reduction)
+        produced = [e["id"] for e in artifact["engines"]
+                    if e["derived"]["sarif"]["status"] == "produced"]
+        expected = (DERIVED_EQUAL if len(produced) == len(artifact["engines"])
+                    else DERIVED_NOT_COMPARABLE)
+        if result["outcome"] != expected:
+            fails.append(("derived-surface",
+                          f"{case}: derived outcome {result['outcome']!r}, "
+                          f"expected {expected!r} — {result['detail']}"))
+        seen_equal += result["outcome"] == DERIVED_EQUAL
+        seen_not_comparable += result["outcome"] == DERIVED_NOT_COMPARABLE
+        if result["configuration"] != SARIF_CONFIGURATION:
+            fails.append(("derived-surface",
+                          f"{case}: the comparison names configuration "
+                          f"{result['configuration']!r}"))
+        # The identity in the artifact IS the document this engine renders. A
+        # digest nothing recomputes is a digest that can drift from what it
+        # names.
+        verdicts = next(lyr for lyr in artifact["engines"][0]["layers"]
+                        if lyr["layer"] == "verdicts")
+        document = derived_sarif_document(
+            {"error": verdicts["error"]} if verdicts["status"] == "refused"
+            else verdicts["document"])
+        claimed = artifact["engines"][0]["derived"]["sarif"]["canonical"]
+        recomputed = None if document is None else canonical_hash(document)
+        if claimed != recomputed:
+            fails.append(("derived-surface",
+                          f"{case}: the reference's recorded SARIF identity "
+                          f"{claimed} is not what re-rendering its own verdict "
+                          f"layer produces ({recomputed})"))
+    if not seen_equal:
+        fails.append(("derived-surface",
+                      "no committed case compares `equal` on the derived "
+                      "surface, so the acceptance claim is vacuous"))
+    if not seen_not_comparable:
+        fails.append(("derived-surface",
+                      "no committed case compares `not-comparable`, so the OD-1 "
+                      "door's effect on the derived surface is unexercised"))
+    fails += _derived_classification_controls(artifact_names)
+    return fails
+
+
+def _derived_classification_controls(
+        artifact_names: list[str]) -> list[tuple[str, str]]:
+    """`renderer-only divergence` and the boundary between it and
+    `not-comparable`, driven synthetically.
+
+    Neither is reachable from the corpus: the two renderers agree everywhere,
+    which is the result this surface exists to protect. A classification whose
+    interesting branch nothing exercises is a classification a mutation walks
+    straight through — the same reason the trace's totality rule is driven
+    synthetically."""
+    fails: list[tuple[str, str]] = []
+    case = "di"
+    path = os.path.join(FIXDIR, f"{case}.repro.json")
+    reduction_path = os.path.join(FIXDIR, f"{case}.reduction.json")
+    if not (os.path.exists(path) and os.path.exists(reduction_path)):
+        return [("derived-control", f"the control case {case!r} has no artifact")]
+    with open(path, encoding="utf-8") as f:
+        artifact = json.load(f)
+    with open(reduction_path, encoding="utf-8") as f:
+        reduction = json.load(f)
+
+    # 1. The verdict layers agree; one engine's SARIF identity does not. That
+    #    is the renderer and nothing else.
+    forged = copy.deepcopy(artifact)
+    forged["engines"][1]["derived"]["sarif"]["canonical"]["digest"] = "f" * 64
+    result = derived_outcome(forged, reduction)
+    if result["outcome"] != DERIVED_RENDERER_ONLY:
+        fails.append(("derived-control",
+                      f"{case}: a SARIF difference over EQUAL verdict layers is "
+                      f"classified {result['outcome']!r}, expected "
+                      f"{DERIVED_RENDERER_ONLY!r} — this is the whole reason the "
+                      f"derived surface is compared separately from the layer"))
+
+    # 2. The same SARIF difference, with the verdict layers now differing, is
+    #    NOT a renderer finding: a document rendered from different inputs is
+    #    allowed to differ.
+    with_divergence = copy.deepcopy(reduction)
+    with_divergence["observations"] = [{
+        "layer": "verdicts", "kind": "changed", "acceptance": "unexplained",
+        "boundary": None, "step": "findings[A.cs:1:1:OWN001]", "path": ".message",
+        "left": "x", "right": "y", "detail": "synthetic",
+    }]
+    result = derived_outcome(forged, with_divergence)
+    if result["outcome"] != DERIVED_NOT_COMPARABLE:
+        fails.append(("derived-control",
+                      f"{case}: a SARIF difference over DIFFERING verdict layers "
+                      f"is classified {result['outcome']!r}, expected "
+                      f"{DERIVED_NOT_COMPARABLE!r} — attributing it to the "
+                      f"renderer would blame the wrong surface"))
+
+    # 3. A refused verdict layer is not-comparable even when the digests would
+    #    have agreed (they are both absent).
+    refused = copy.deepcopy(artifact)
+    for engine in refused["engines"]:
+        engine["derived"]["sarif"] = {
+            "configuration": SARIF_CONFIGURATION, "status": "refused",
+            "canonical": None}
+    result = derived_outcome(refused, reduction)
+    if result["outcome"] != DERIVED_NOT_COMPARABLE:
+        fails.append(("derived-control",
+                      f"{case}: two refused derived surfaces are classified "
+                      f"{result['outcome']!r}, expected "
+                      f"{DERIVED_NOT_COMPARABLE!r} — nothing was rendered, so "
+                      f"nothing agreed"))
+    return fails
+
+
 def _reduction_goldens() -> set[str]:
     if not os.path.isdir(FIXDIR):
         return set()
@@ -1282,6 +1465,7 @@ def run() -> int:
             "reduction-orphan",
             f"{orphan}: orphaned reduction golden; remove it or list the case"))
     fails += _reduction_controls(artifact_names)
+    fails += _derived_controls(artifact_names)
 
     # 7. Negative controls for the two gates the positive checks cannot reach.
     n_structural = 0
@@ -1312,7 +1496,9 @@ def run() -> int:
           f"{len(artifact_names)} traces projected and normalization held over "
           f"all {len(plan)} documents, "
           f"{len(artifact_names)} reductions over {list(REDUCTION_SCOPE)} with "
-          f"6 synthetic-divergence controls named and 2 silence controls held")
+          f"6 synthetic-divergence controls named and 2 silence controls held, "
+          f"the derived SARIF surface compared under {SARIF_CONFIGURATION!r} on "
+          f"every artifact with 3 classification controls")
     return 0
 
 

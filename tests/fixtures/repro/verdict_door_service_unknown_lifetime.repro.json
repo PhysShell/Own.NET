@@ -216,7 +216,18 @@
             ]
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "b129618f92150bfc7c3215303bb8506421fcebd05d43c309cde72b0c48ce9799",
+            "bytes": 1078
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
@@ -265,7 +276,14 @@
             "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "refused",
+          "canonical": null
+        }
+      }
     }
   ]
 }

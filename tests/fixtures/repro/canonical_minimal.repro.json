@@ -156,7 +156,18 @@
             "findings": []
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "bytes": 289
+          }
+        }
+      }
     },
     {
       "id": "rust-own-bridge",
@@ -295,7 +306,18 @@
             "findings": []
           }
         }
-      ]
+      ],
+      "derived": {
+        "sarif": {
+          "configuration": "severity=error",
+          "status": "produced",
+          "canonical": {
+            "algorithm": "sha256",
+            "digest": "4757bdfa72fd168dda7a1ad95f5eec18c6d72bf792166227faf83ac1b2e4a393",
+            "bytes": 289
+          }
+        }
+      }
     }
   ]
 }

@@ -50,8 +50,10 @@
 
 use own_ir::OwnIr;
 
-use crate::artifact::{ENGINE_RUST, LAYER_ORDER, STATUS_PRODUCED, STATUS_REFUSED};
-use crate::canonical::hash_bytes;
+use crate::artifact::{
+    ENGINE_RUST, LAYER_ORDER, SARIF_CONFIGURATION, SARIF_SEVERITY, STATUS_PRODUCED, STATUS_REFUSED,
+};
+use crate::canonical::{canonical_hash, hash_bytes};
 use crate::json::{parse, Json};
 
 fn object(entries: Vec<(&str, Json)>) -> Json {
@@ -188,14 +190,95 @@ pub fn capture(raw: &[u8]) -> Result<Json, String> {
         Ok(facts) => vec![
             lowered_layer(&facts)?,
             summaries_layer(&facts)?,
-            verdicts_layer(&facts),
+            verdicts_layer(&facts)?,
         ],
     };
+    let derived = derived_block(
+        layers
+            .iter()
+            .find(|l| l.get("layer").and_then(Json::as_str) == Some("verdicts")),
+    );
+    let layers: Vec<Json> = layers.into_iter().map(strip_sarif).collect();
     Ok(object(vec![
         ("id", Json::Str(ENGINE_RUST.to_owned())),
         ("consumed", consumed),
         ("layers", Json::Array(layers)),
+        // Beside `layers`, never inside them: a derived surface is not a layer
+        // (owner decision D-6). Nothing in LAYER_ORDER, the trace or the
+        // reduction knows it exists.
+        ("derived", derived),
     ]))
+}
+
+/// This engine's `derived` block: the IDENTITY of each surface derived from
+/// its own layers, never the surface itself (owner decision D-6).
+///
+/// Only the digest and the length are carried, for the same reason the artifact
+/// carries an input digest rather than a second copy of the input. The
+/// documents are retained by the compare driver, on mismatch only.
+///
+/// The closed-domain check on the rendered log happens in [`verdicts_layer`],
+/// where the findings are: `Json` enforces the domain at parse, so a float or
+/// a non-finite in the SARIF surfaces there as an error out of the whole
+/// capture — because a surface the two engines cannot name identically is not
+/// a surface either of them may claim to have compared. By the time a document
+/// reaches here it is already in the domain, so this cannot fail.
+fn derived_block(verdicts: Option<&Json>) -> Json {
+    let document = verdicts.and_then(sarif_of);
+    let (status, canonical) = document
+        .as_ref()
+        .map_or((STATUS_REFUSED, Json::Null), |value| {
+            (STATUS_PRODUCED, canonical_hash(value).to_json())
+        });
+    object(vec![(
+        "sarif",
+        object(vec![
+            ("configuration", Json::Str(SARIF_CONFIGURATION.to_owned())),
+            ("status", Json::Str(status.to_owned())),
+            // The SAME canonical form the artifact already uses to name an
+            // input. A second serialization rule for a second surface is a
+            // second thing to keep two engines agreeing about.
+            ("canonical", canonical),
+        ]),
+    )])
+}
+
+/// The canonical SARIF this engine renders from its OWN verdict layer, or
+/// `None` when that layer was refused.
+///
+/// The rendered log is carried on the layer record (`sarif`, a private member
+/// this module puts there and strips before the envelope is built), because it
+/// is produced from the very `Vec<Finding>` the verdict layer document was
+/// built from — one `check_facts` run, two projections of it. That is what
+/// makes a *renderer-only divergence* an unambiguous finding: when the two
+/// engines' verdict layers are equal in the artifact and their SARIF is not,
+/// the renderer is the only thing left.
+///
+/// The rendering itself, and the domain check on it, happen in
+/// [`verdicts_layer`] where the findings are; this only reads the slot back.
+fn sarif_of(layer: &Json) -> Option<Json> {
+    match layer.get(SARIF_SLOT) {
+        None | Some(Json::Null) => None,
+        Some(value) => Some(value.clone()),
+    }
+}
+
+/// The private slot a verdict layer carries its rendered SARIF in, between
+/// `verdicts_layer` and `derived_block`. Stripped before the layer reaches the
+/// envelope — the artifact's layer records are the frozen envelope and nothing
+/// else — so it never appears in a committed artifact.
+const SARIF_SLOT: &str = "$sarif";
+
+fn strip_sarif(layer: Json) -> Json {
+    let Json::Object(fields) = layer else {
+        return layer;
+    };
+    Json::Object(
+        fields
+            .into_iter()
+            .filter(|(k, _)| k != SARIF_SLOT)
+            .collect(),
+    )
 }
 
 fn lowered_layer(facts: &OwnIr) -> Result<Json, String> {
@@ -252,7 +335,7 @@ fn steps(slice_: &[own_bridge::Step]) -> Json {
     )
 }
 
-fn verdicts_layer(facts: &OwnIr) -> Json {
+fn verdicts_layer(facts: &OwnIr) -> Result<Json, String> {
     // Every `Finding` member since #259 cp5.1/5.2 — no projection to declare.
     let projection = full_projection();
     let version = Json::Int(1);
@@ -283,9 +366,28 @@ fn verdicts_layer(facts: &OwnIr) -> Json {
                 ("verdicts_version", Json::Int(1)),
                 ("findings", Json::Array(records)),
             ]);
-            produced("verdicts", version, projection, document)
+            // The derived SARIF, rendered from the SAME `Vec<Finding>` this
+            // layer document was built from: one `check_facts` run, two
+            // projections of it (owner decision D-6). It rides on a private
+            // slot to `derived_block` and is stripped before the envelope — a
+            // layer record is the frozen envelope and nothing else.
+            let log = own_bridge::build_sarif(&findings, SARIF_SEVERITY);
+            let text = serde_json::to_string(&log)
+                .map_err(|e| format!("the derived SARIF does not serialize: {e}"))?;
+            let value = parse(&text).map_err(|e| {
+                format!(
+                    "the derived SARIF is outside the closed canonical value domain, so the two \
+                     engines cannot name it identically: {e}"
+                )
+            })?;
+            let Json::Object(mut fields) = produced("verdicts", version, projection, document)
+            else {
+                return Err("a produced layer is not an object".to_owned());
+            };
+            fields.push((SARIF_SLOT.to_owned(), value));
+            Ok(Json::Object(fields))
         }
-        Err(e) => refused("verdicts", version, projection, &e.to_string()),
+        Err(e) => Ok(refused("verdicts", version, projection, &e.to_string())),
     }
 }
 
