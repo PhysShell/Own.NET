@@ -296,7 +296,6 @@ fn get_str<'a>(rec: &'a Obj, key: &str) -> Option<&'a str> {
     rec.get(key).and_then(Value::as_str)
 }
 
-/// `_as_int`: a non-bool integer or `0`.
 /// `_as_line`: a fact coordinate, or `0` when it is not one.
 ///
 /// The reference's tolerant line reader (`ownlang/ownir.py::_as_line`), and

@@ -10,7 +10,47 @@ Campaign `p022-coord-1` — #259 final acceptance, the STRICT door: the coordina
 
 Definition: `docs/evidence/p022-coord-1.json` (sha256 `5f2587e9f495e5bf…`, 26 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-coord-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-**No recorded run** is committed (expected at `docs/evidence/p022-coord-1.result.json`): the campaign has a definition but no evidence. Nothing below is a number.
+| measure                                          | value |
+|--------------------------------------------------|---|
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| layers run (every one, for every mutation)       | `py-limits`, `py-ledger`, `rust-door` |
+| mutations                                        | 26 |
+| caught                                           | 26 |
+| survived                                         | 0 |
+| compile-error (no evidence either way)           | 0 |
+| invalid-mutation                                 | 0 |
+| runner-error                                     | 0 |
+| caught without every expected catcher            | none |
+| honesty control `M00` (unmutated tree must pass) | survived — as required |
+
+| id | rule | mutation | outcome | caught by |
+|---|---|---|---|---|
+| M01 | §4.2 line domain | the strict door loses the domain's LOWER bound, so a negative line is accepted again | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M02 | §4.2 line domain | …and the UPPER bound, so an int64 line is accepted again | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M03 | §4.2 line domain | off-by-one at the bottom: 0 stops being legal, which would break the reference's own absent-line default | caught | `py-ledger::ledger-stale`<br>`py-limits::column-domain`<br>`py-limits::line-domain`<br>`py-limits::nesting`<br>`py-limits::tolerances` |
+| M04 | §4.2 line domain | …and at the top: 2147483647 stops being legal | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M05 | §4.2 message | the domain diagnostic stops naming the domain | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M06 | §4.2 / D2 | the subscriptions walk stops checking its line — the field §4.2 used to record as validated nowhere | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M07 | §4.2 / D2 | …and the flow-op walk stops checking its line | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M08 | §4.2 / D2 | the flow walk stops recursing into one nesting shape, so a `while` body's line escapes | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain`<br>`py-limits::line-type`<br>`py-limits::nesting` |
+| M09 | §4.2 / D2 | the subscriptions line loses its bool guard, so `true` reads as line 1 — the bool-is-int trap the contract calls out by name | caught | `py-ledger::ledger-stale`<br>`py-limits::line-type` |
+| M10 | §4.2 line domain | the root-resolve site array stops checking its coordinate | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M11 | §4.1 / §4.2 column | the column loses its domain upper bound | caught | `py-ledger::ledger-stale`<br>`py-limits::column-domain` |
+| M12 | §4.1 column | …and its 1-based lower bound, so `0` becomes a legal column | caught | `py-ledger::ledger-stale`<br>`py-limits::column-domain` |
+| M13 | §4.2 two doors | the strict door stops refusing an out-of-domain event line and degrades instead | caught | `py-ledger::ledger-stale`<br>`py-limits::line-domain` |
+| M14 | §4.2 line domain | the Rust door loses the domain's LOWER bound | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M15 | §4.2 line domain | …and its UPPER bound | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M16 | §4.2 line domain | off-by-one at the bottom in the Rust door | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/roundtrip.rs::additive_unknown_fields_are_preserved`<br>`rust-door/tests/roundtrip.rs::explicit_null_is_accepted_and_preserved_where_python_accepts_it`<br>`rust-door/tests/roundtrip.rs::param_effect_vocabulary_is_closed`<br>`rust-door/tests/roundtrip.rs::round_trips_every_python_fixture`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M17 | §4.2 line domain | …and at the top | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M18 | cp1 taxonomy | the Rust domain rejection is filed as `shape` — the category read off the wrong axis, the exact defect #326's census found in `column` | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M19 | §4.2 message | the Rust domain diagnostic stops naming the domain | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on` |
+| M20 | §4.2 / D2 | the Rust subscriptions walk stops checking its line | caught | `rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M21 | §4.2 / D2 | …and the Rust flow-op walk stops checking its line | caught | `rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M22 | §4.2 / D2 | the Rust flow walk stops recursing into one nesting shape | caught | `rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M23 | §4.2 line domain | the Rust site array stops checking its coordinate | caught | `rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M24 | §4.1 / §4.2 column | the Rust column loses its domain upper bound | caught | `rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M25 | §4.1 column | …and its 1-based lower bound | caught | `rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
+| M26 | §4.2 two doors | the Rust strict door stops refusing an out-of-domain event line and degrades instead | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door`<br>`rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language` |
 
 ## the tolerant door — the degrade, both implementations
 
@@ -18,4 +58,33 @@ Campaign `p022-coord-2` — #259 final acceptance, the TOLERANT door: `check_fac
 
 Definition: `docs/evidence/p022-coord-2.json` (sha256 `f033608e513b098b…`, 15 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-coord-2.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
-**No recorded run** is committed (expected at `docs/evidence/p022-coord-2.result.json`): the campaign has a definition but no evidence. Nothing below is a number.
+| measure                                          | value |
+|--------------------------------------------------|---|
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
+| layers run (every one, for every mutation)       | `py-limits`, `py-verdicts`, `rust-door`, `rust-bridge` |
+| mutations                                        | 15 |
+| caught                                           | 15 |
+| survived                                         | 0 |
+| compile-error (no evidence either way)           | 0 |
+| invalid-mutation                                 | 0 |
+| runner-error                                     | 0 |
+| caught without every expected catcher            | none |
+| honesty control `M00` (unmutated tree must pass) | survived — as required |
+
+| id | rule | mutation | outcome | caught by |
+|---|---|---|---|---|
+| M01 | §4.2 degrade, never clamp | the reference's tolerant line reader CLAMPS to the domain instead of degrading, so a finding moves to a real line the producer never named | caught | `py-limits::tolerant-degrade`<br>`py-verdicts::verdict-fixture` |
+| M02 | §4.2 two doors | …or passes the out-of-domain value straight through, which is the behaviour the domain replaced | caught | `py-limits::tolerant-degrade`<br>`py-verdicts::verdict-fixture` |
+| M03 | §4.2 two doors | …or REFUSES the record instead of degrading, dropping the finding entirely — which is what a raise would amount to for an embedder that catches OwnIRError around check_facts | caught | `py-limits::tolerant-degrade`<br>`py-verdicts::verdict-fixture` |
+| M04 | §4.2 degrade to ABSENT | the degrade lands on 1 instead of 0 — a fabricated coordinate rather than 'unknown' | caught | `py-limits::tolerant-degrade`<br>`py-verdicts::verdict-fixture` |
+| M05 | §4.1 / §4.2 column | the reference's tolerant column reader loses the domain bound and emits a column the strict door would refuse | caught | `py-limits::tolerant-degrade`<br>`py-verdicts::verdict-fixture` |
+| M06 | §4.2 two doors | the reference's tolerant PROTOCOL door refuses instead of degrading, which drops the whole method's violations for one impossible coordinate | caught | `py-limits::tolerant-degrade` |
+| M07 | §4.2 degrade, never clamp | core_line CLAMPS to the domain's top instead of degrading to absent | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
+| M08 | §4.2 two doors | …or accepts the whole u32 range again, which is the core's representation deciding the contract — the reading this change exists to refuse | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
+| M09 | §4.2 degrade to ABSENT | …or degrades to 1, inventing a coordinate instead of admitting it has none | caught | `rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps` |
+| M10 | §4.2 two doors | the bridge's tolerant line reader passes an out-of-domain fact coordinate through, so a slice the reference drops is kept and anchored where nothing is | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M11 | §4.2 degrade, never clamp | …or clamps it, moving a DI site anchor onto a real line the registration never named | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M12 | §4.2 at Layer 2 | the LOWERING's line reader passes an out-of-domain coordinate through, so the Layer 2 document disagrees with the reference at the seam the cp2 evidence is taken from — invisible at Layer 3, because the AST build degrades it again on the way in | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |
+| M13 | §4.2 two doors | the Rust tolerant PROTOCOL door refuses instead of degrading | caught | `rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door` |
+| M14 | BR-V9 / §4.2 | the rendered code-flow shifts every step line by one. The DROP this conversion replaced is an EQUIVALENT mutant now — §4.2 guarantees every flow-step line converts, so a filter_map that drops the unconvertible drops nothing — so the mutation is re-anchored onto the conversion itself, which is observable | caught | `rust-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte` |
+| M15 | §4.1 / §4.2 column | the bridge's tolerant COLUMN reader loses the domain bound, so the port emits a column the strict door would refuse — the mirror of M05, and the one the four promoted goldens cannot reach either | caught | `rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden` |

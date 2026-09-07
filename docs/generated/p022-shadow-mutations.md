@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-shadow-cp1.json` (sha256 `a5df997a1d84effc…`, 
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `0cdbd0f4410bb5ee4a418337f567e515f4146b3b` |
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | layers run (every one, for every mutation)       | `python`, `rust`, `rust-unit` |
 | mutations                                        | 30 |
 | caught                                           | 30 |
@@ -64,7 +64,7 @@ Definition: `docs/evidence/p022-shadow-cp2.json` (sha256 `bd3fd24d65f53997…`, 
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `d726b06192c5fd76c94b02fab1011f55a453c14c` |
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | layers run (every one, for every mutation)       | `python`, `rust-repro`, `rust-engine`, `rust-unit` |
 | mutations                                        | 11 |
 | caught                                           | 11 |
@@ -97,7 +97,7 @@ Definition: `docs/evidence/p022-shadow-cp3.json` (sha256 `99e99aacfe3f4ac4…`, 
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `001f6fd3be4e73f4d3878dc430dd4507a90ca273` |
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | layers run (every one, for every mutation)       | `python`, `rust-repro`, `rust-engine`, `rust-trace`, `rust-unit` |
 | mutations                                        | 11 |
 | caught                                           | 11 |
@@ -126,11 +126,11 @@ Definition: `docs/evidence/p022-shadow-cp3.json` (sha256 `99e99aacfe3f4ac4…`, 
 
 Campaign `p022-shadow-cp4` — The mutation campaign for P-022 step 7a checkpoint 4 (first-divergence reduction over the lowered and MOS layers). Separate from cp1/cp2/cp3 on purpose — each checkpoint's evidence stays frozen at what it measured. Every mutation edits a PRODUCTION surface — ownlang/repro.py or rust/crates/own-shadow/src/ — never a test. Five layers run for every mutation (discipline 3: no fail-fast), including the crate's unit tests. M00 is the harness-honesty control.
 
-Definition: `docs/evidence/p022-shadow-cp4.json` (sha256 `ad87275b58dc7065…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-shadow-cp4.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-shadow-cp4.json` (sha256 `73cdde6a3c5ad520…`, 11 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-shadow-cp4.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `001f6fd3be4e73f4d3878dc430dd4507a90ca273` |
+| recorded at commit                               | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | layers run (every one, for every mutation)       | `python`, `rust-repro`, `rust-trace`, `rust-reduce`, `rust-unit` |
 | mutations                                        | 11 |
 | caught                                           | 11 |
@@ -151,6 +151,6 @@ Definition: `docs/evidence/p022-shadow-cp4.json` (sha256 `ad87275b58dc7065…`, 
 | M58 | reduction: the reducer names the FIRST divergence in pipeline order | the reference reports the LAST divergence instead of the first | caught | `python::reduction-golden` |
 | M59 | reduction: object key order is significant — the surfaces fix field order byte-exactly | the reference stops distinguishing a key-ORDER difference from agreement | caught | `python::reduction-control` |
 | M60 | capture: each layer document is carried in the key order its OWN surface fixes | the reference carries the MOS document in `dump_summaries`' insertion order rather than its surface's | caught | `python::artifact-golden` |
-| M61 | reduction: the scope is a contract, not a parameter | the port widens the reduction scope to the verdict layer | caught | `rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte`<br>`rust-reduce/tests/reduce.rs::the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence`<br>`rust-reduce/tests/reduce.rs::the_verdict_layer_is_refused_not_silently_skipped`<br>`rust-reduce/tests/reduce.rs::two_engines_that_both_refused_a_layer_agree` |
+| M61 | reduction: the scope is a contract, not a parameter | the port widens the reduction scope to the verdict layer. Two further catchers were declared when this campaign was recorded and stopped being catchers on main, before #259's final acceptance: `the_reducer_is_silent_on_unchanged_data...` and `two_engines_that_both_refused_a_layer_agree` only failed while some committed artifact still had ASYMMETRIC verdict-layer statuses, and checkpoint 4b's promotion removed the last of them. Measured at 834f295 with the mutation applied, not inferred. The two that remain are the load-bearing ones — the scope is still pinned by a golden and by the refusal control | caught | `rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte`<br>`rust-reduce/tests/reduce.rs::the_verdict_layer_is_refused_not_silently_skipped` |
 | M62 | reduction: a refusal's text is each engine's own | the port compares two engines' refusal texts instead of the fact that both refused | caught | `rust-reduce/tests/reduce.rs::two_engines_that_both_refused_a_layer_agree` |
 | M63 | reduction: the reducer names the FIRST divergence in pipeline order | the port reports the last divergence instead of the first | caught | `rust-reduce/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte` |

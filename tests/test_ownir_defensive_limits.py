@@ -20,7 +20,7 @@ Python-first PR**. This is that PR.
 Each limit is pinned at three points: below, exactly at, and one past. A test
 that only checks "something far too big is rejected" cannot tell a correct limit
 from one that is off by one — and the nesting limit *was* off by one when first
-written, because `_check_flow_columns` probes every op for `then`/`else`/`body`
+written, because `_check_flow_coordinates` probes every op for `then`/`else`/`body`
 whether or not it has them, so the absent ones were counting as levels. At-limit
 rejected. Only the boundary case could catch that.
 

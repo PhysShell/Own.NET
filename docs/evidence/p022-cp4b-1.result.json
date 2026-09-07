@@ -4,9 +4,9 @@
   "campaign": "p022-cp4b-1",
   "definition": "docs/evidence/p022-cp4b-1.json",
   "definition_sha256": "ca44ead1682214048b738ec0c42ccb0cf844c302eb351b050a4c503ae55270f9",
-  "source_commit": "c7836138bd2fe3b9cfea458a040ac5dda05e890e",
+  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
   "dirty": false,
-  "recorded_at": "2026-09-06T20:30:43Z",
+  "recorded_at": "2026-09-07T10:39:09Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,16 +22,17 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 3.5
+    "elapsed_seconds": 3.1
   },
   "mutations": [
     {
       "id": "M01",
       "outcome": "caught",
       "catchers": [
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 4.3
     },
     {
       "id": "M02",
@@ -39,33 +40,36 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 5.1
     },
     {
       "id": "M03",
       "outcome": "caught",
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 5.1
     },
     {
       "id": "M04",
       "outcome": "caught",
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.3
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M05",
       "outcome": "caught",
       "catchers": [
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 5.2
     },
     {
       "id": "M06",
@@ -73,7 +77,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 5.2
     },
     {
       "id": "M07",
@@ -82,7 +86,7 @@
         "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M08",
@@ -90,7 +94,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M09",
@@ -98,16 +102,18 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M10",
       "outcome": "caught",
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M11",
@@ -115,23 +121,26 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M12",
       "outcome": "caught",
       "catchers": [
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M13",
       "outcome": "caught",
       "catchers": [
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M14",
@@ -148,7 +157,7 @@
         "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M16",
@@ -157,7 +166,7 @@
         "own-analysis/src/lib.rs::obligation::tests::a_barrier_in_a_loop_reports_exactly_once",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M17",
@@ -165,7 +174,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M18",
@@ -173,7 +182,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M19",
@@ -181,9 +190,12 @@
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
         "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 5.1
     },
     {
       "id": "M20",
@@ -199,7 +211,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M22",
@@ -207,16 +219,17 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M23",
       "outcome": "caught",
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.9
     },
     {
       "id": "M24",
@@ -225,7 +238,7 @@
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
         "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
       ],
-      "elapsed_seconds": 5.8
+      "elapsed_seconds": 6.2
     },
     {
       "id": "M25",
@@ -237,6 +250,9 @@
         "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
         "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
       ],
       "elapsed_seconds": 6.2
@@ -248,7 +264,7 @@
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
         "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M27",
@@ -257,7 +273,7 @@
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
         "own-ir/src/lib.rs::protocol::tests::a_narrowed_call_matcher_never_matches_an_unknown_argument"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M28",
@@ -268,9 +284,12 @@
         "own-analysis/src/lib.rs::obligation::tests::an_opaque_write_may_discharge_but_never_opens",
         "own-analysis/src/lib.rs::obligation::tests::close_before_the_barrier_is_clean",
         "own-analysis/src/lib.rs::obligation::tests::open_barrier_close_is_one_definite_crossing",
-        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
+        "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
+        "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.3
+      "elapsed_seconds": 5.1
     },
     {
       "id": "M29",
@@ -279,10 +298,13 @@
         "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
         "own-analysis/src/lib.rs::obligation::tests::an_end_of_method_leak_anchors_at_the_open",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value",
         "own-ir/tests/validation_replay.rs::the_two_loaders_accept_the_same_language"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 5.2
     },
     {
       "id": "M30",
@@ -290,9 +312,12 @@
       "catchers": [
         "own-analysis/src/lib.rs::obligation::tests::a_dead_scope_is_reported_and_an_unscoped_protocol_is_not",
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity",
+        "own-bridge/src/lib.rs::verdict::tests::protocol_blocks_that_are_not_lists_yield_nothing",
+        "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
+        "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-ir/src/lib.rs::protocol::tests::a_protocol_record_becomes_its_typed_value"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M31",
@@ -300,7 +325,7 @@
       "catchers": [
         "own-ir/src/lib.rs::protocol::tests::a_method_record_becomes_its_event_tree"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M32",
@@ -316,7 +341,7 @@
       "catchers": [
         "own-analysis/tests/obligation_parity.rs::obligation_fact_parity"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.3
     }
   ]
 }

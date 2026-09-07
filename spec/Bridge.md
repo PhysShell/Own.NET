@@ -58,7 +58,8 @@ input. It performs, **in this order** (the order is observable through which
 error fires first): JSON parse → root-is-object → **version gate** (IR1; absent
 `ownir_version` = current; `bool` rejected — the `bool`-is-`int` trap) →
 `components[]` shape → each record's `resource` kind (absent defaults to
-`"subscription"`; present-but-unknown rejected, IR4) → the optional per-record
+`"subscription"`; present-but-unknown rejected, IR4) → the record's `line`
+(int-not-bool, in the [§4.2](OwnIR.md) domain) and `column` → the optional per-record
 strings `type`, `source_type`, `source_provenance`, `ignore_reason` (present ⇒
 must be strings) → `services[]` (lifetime enum, non-empty `name`, `deps`/
 `weak_deps`/`root_resolves` string arrays, `file` string, `line` int-not-bool,
@@ -81,9 +82,12 @@ drop a malformed entry — a `deps: "a"` must not become `("a",)` and mint a
 spurious verdict); (2) an **accepted** entry's fields go through the existing
 **field-specific coercions** (`_di_findings` `str()`-coerces identity/location
 fields and admits `disposable` only as the JSON boolean `true`); (3) `line`
-**degrades to `0`** via `_as_int` on **every** finding-construction path
+**degrades to `0`** via `_as_line` on **every** finding-construction path
 (OD-3, resolved — the strict `int(...)` anchor paths were converged onto the
-tolerant helper). A **present-but-unknown `resource` kind fails loud** on the
+tolerant helper), and since #259's final acceptance that helper carries the
+[§4.2](OwnIR.md) coordinate domain: an out-of-domain line reads as `0` and an
+out-of-domain `column` reads as absent — **degraded, never clamped**, because a
+clamp moves a finding onto a real line the producer never named. A **present-but-unknown `resource` kind fails loud** on the
 tolerant door too, matching `load()` (OD-2, resolved). A **duplicate protocol
 name resolves first-wins** (deterministically) instead of raising. The two
 doors are deliberate: strict for external input, tolerant for already-shaped
@@ -205,8 +209,9 @@ without a lowering branch raises "internal core inconsistency"; an op outside
 ([OwnIR.md §2](OwnIR.md)). Both are `OwnIRError`, both name file:line.
 
 **BR-L11 (source locations).** Every lowered node carries the fact's `line`
-through `_as_int` (non-int → 0). The bridge never invents lines; the anchor
-policy for *findings* is BR-V5's.
+through `_as_line` — a non-integer, or one outside the [§4.2](OwnIR.md)
+coordinate domain, reads as `0`. The bridge never invents lines and never
+clamps one; the anchor policy for *findings* is BR-V5's.
 
 ## 3. Interprocedural MOS
 
@@ -239,7 +244,7 @@ INF-A2/A4 (Tier B table `_BCL_FRESH_BY_NS`), `_definite_release`/
 ## 4. Analysis input preparation
 
 **BR-P1 (DI).** `services[]` records construct `di.Service` values with:
-string coercion on identity/location fields, `_as_int` on lines, `disposable`
+string coercion on identity/location fields, `_as_line` on lines, `disposable`
 **only** for the JSON boolean `true`, tuples for the dep/site arrays. The five
 finders (`find_captive_dependencies`, `find_captured_transient_disposables`,
 `find_weak_captive_dependencies`, `find_explicit_root_resolutions`,
@@ -371,9 +376,11 @@ committed regeneration path and a zero-Python steady state:
   (IR4-everywhere fail-loud), `tolerant_unknown_kind` is now one of those
   shared cases — its `Rejected` golden pins the identical error text on both
   sides — so there are **no `rust_replay: false` snapshots left**. Layer 1
-  landed in `own-ir` (#259 cp1: 216 controls, 0/0/0); Layer 3 is built and fully
-  compared (below); #259 as a whole remains open on the coordinate-domain
-  decision alone, row 4b (the obligation-protocol analysis) having landed.
+  landed in `own-ir` (#259 cp1; the counts are the generated
+  [cp1 census](../docs/generated/p022-cp1-census.md)); Layer 3 is built and
+  fully compared (below); **#259's final acceptance is reached** — row 4b (the
+  obligation-protocol analysis) and the coordinate-domain contract have both
+  landed, and the declared boundary that remains is the two OD-1 door controls.
 - **Layer 3 — final normalized diagnostics.** The findings list per facts
   fixture, and its SARIF/github/msbuild renderings — the outer contract, in
   **two families**. Built at #259 cp4, fully compared at cp5:
@@ -404,14 +411,18 @@ committed regeneration path and a zero-Python steady state:
     SARIF key order is part of this surface.
 
   The manifest's `rust_replay_excluded` ledger names the documents the Rust
-  core **refuses by a declared boundary** — a coordinate outside the core's
-  `u32` line domain, a shape the typed Rust door rejects before the bridge runs
-  (OD-1) — each with its reason and an expectation the replay executes, so an
-  exclusion cannot rot. It listed a third boundary until #259 checkpoint 4b:
-  a protocol-bearing document, which the bridge refused rather than answer for
-  with the OBL analysis unported. Both such documents are now **promoted** —
-  the family is ported (BR-P3), and a re-declared exclusion is a red build
-  rather than a note, because the replay runs every entry it names. The `summaries` dump (INF-R1) covers the MOS sub-surface. Which BR-V4
+  core **refuses by a declared boundary** — now only a shape the typed Rust
+  door rejects before the bridge's tolerant skip rule can run (OD-1) — each
+  with its reason and an expectation the replay executes, so an exclusion
+  cannot rot. It listed two more boundaries, and **both are promoted**, neither
+  by waiving anything. #259 checkpoint 4b ported the OBL analysis the
+  protocol-bearing documents were refused for. #259's final acceptance moved
+  the coordinate boundary from the REFERENCE's side: [OwnIR.md §4.2](OwnIR.md)
+  now bounds a line to the int32 domain every consumer this project feeds, so
+  a document that passes the strict door is inside the core's `u32` by
+  construction and both tolerant doors degrade an out-of-domain coordinate to
+  `0` rather than refusing. A re-declared exclusion is a red build rather than
+  a note, because the replay runs every entry it names. The `summaries` dump (INF-R1) covers the MOS sub-surface. Which BR-V4
   wording, BR-V5 slice family and BR-V9 rule the corpus reaches — and the
   recorded disposition of every one it does not — is the generated ledger
   [`p022-cp5-inventory.md`](../docs/generated/p022-cp5-inventory.md).
@@ -519,12 +530,13 @@ issue to be settled *before* the port relies on it.
   already fails loud here, so the `tolerant_unknown_kind` fixture is now a
   shared `rust_replay` case (its `Rejected` golden pins the error text on both
   sides), not a Python-only snapshot.
-- **OD-3 (#294 — line coercion inconsistency). RESOLVED: `_as_int` everywhere.**
+- **OD-3 (#294 — line coercion inconsistency). RESOLVED: `_as_line` everywhere.**
   Finding construction used strict `int(...)` on the token/capture anchor paths
-  and `_as_int` elsewhere, so a non-int `line` on the tolerant door crashed one
-  path and degraded the other. All finding-construction paths now use `_as_int`
-  (a non-int `line` degrades to `0`); `load()` still validates `line` on the
-  strict door.
+  and the non-throwing reader elsewhere, so a non-int `line` on the tolerant
+  door crashed one path and degraded the other. All finding-construction paths
+  now use `_as_line` (named for the field since #259's final acceptance, and
+  carrying the [§4.2](OwnIR.md) domain: a non-int OR out-of-domain `line`
+  degrades to `0`); `load()` still validates `line` on the strict door.
 - **OD-4 (#295 — positional identity fallbacks).** `Component<gid>`/`Fn<loc>`
   defaults couple a nameless record's identity to the running counter
   (document position), so an unrelated earlier record shifts it.

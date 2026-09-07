@@ -124,8 +124,6 @@ fn py_repr(v: Option<&Value>) -> String {
     }
 }
 
-/// `_as_int`: a non-throwing int coercion (a bool is NOT an int here — serde
-/// keeps them distinct, matching Python's explicit bool check).
 /// `_as_line`: a fact coordinate, or `0` when it is not one.
 ///
 /// The reference's tolerant line reader (`ownlang/ownir.py::_as_line`), and
@@ -919,7 +917,7 @@ pub(crate) fn build_skeletons(raw_fns: &[Value]) -> Vec<MethodSkeleton> {
 /// call hands an argument to a summarized callee position whose resolved
 /// transfer is `may`/`unknown`, in the flow walk's pre-order. Two consumers,
 /// as in the reference: the arg names become the untrack set, and each hit
-/// on an owned local becomes an OWN051 advisory (`line` is `_as_int` of the
+/// on an owned local becomes an OWN051 advisory (`line` is `as_line` of the
 /// call's line; the transfer is the `Transfer` enum's wire value).
 fn unverified_transfer_calls(
     nodes: &[Value],

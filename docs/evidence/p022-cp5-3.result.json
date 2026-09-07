@@ -4,9 +4,9 @@
   "campaign": "p022-cp5-3",
   "definition": "docs/evidence/p022-cp5-3.json",
   "definition_sha256": "6b064c3d76eae07a0ec4a61bf5684f9a21b36213c7ecda694e3617c7e228ba5d",
-  "source_commit": "ceb8521557128bddca96ea6addb817231fde4f56",
+  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
   "dirty": false,
-  "recorded_at": "2026-09-06T16:39:22Z",
+  "recorded_at": "2026-09-07T10:44:55Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,7 +22,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 1.7
+    "elapsed_seconds": 4.3
   },
   "mutations": [
     {
@@ -31,7 +31,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M02",
@@ -39,7 +39,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M03",
@@ -47,7 +47,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M04",
@@ -55,7 +55,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M05",
@@ -63,7 +63,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M06",
@@ -71,7 +71,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.1
     },
     {
       "id": "M07",
@@ -87,7 +87,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M09",
@@ -95,7 +95,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.5
+      "elapsed_seconds": 3.4
     },
     {
       "id": "M10",
@@ -103,7 +103,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.3
+      "elapsed_seconds": 3.4
     },
     {
       "id": "M11",
@@ -119,7 +119,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M13",
@@ -127,7 +127,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.6
     },
     {
       "id": "M14",
@@ -135,7 +135,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M15",
@@ -143,7 +143,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.2
+      "elapsed_seconds": 3.3
     },
     {
       "id": "M16",
@@ -151,7 +151,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.4
+      "elapsed_seconds": 3.3
     },
     {
       "id": "M17",
@@ -159,7 +159,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.2
     },
     {
       "id": "M18",
@@ -167,7 +167,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.8
     },
     {
       "id": "M19",
@@ -175,7 +175,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.6
+      "elapsed_seconds": 3.9
     },
     {
       "id": "M20",
@@ -183,7 +183,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.2
+      "elapsed_seconds": 3.5
     },
     {
       "id": "M21",
@@ -191,7 +191,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.3
+      "elapsed_seconds": 3.5
     },
     {
       "id": "M22",
@@ -199,7 +199,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.2
+      "elapsed_seconds": 3.3
     },
     {
       "id": "M23",
@@ -215,7 +215,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.3
+      "elapsed_seconds": 3.4
     },
     {
       "id": "M25",
@@ -223,7 +223,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.4
+      "elapsed_seconds": 3.2
     },
     {
       "id": "M26",
@@ -231,7 +231,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::render::tests::a_related_step_with_no_line_is_dropped"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M27",
@@ -239,7 +239,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.8
+      "elapsed_seconds": 3.7
     },
     {
       "id": "M28",
@@ -247,7 +247,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 3.4
+      "elapsed_seconds": 3.3
     },
     {
       "id": "M29",
@@ -255,7 +255,7 @@
       "catchers": [
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 3.9
     }
   ]
 }

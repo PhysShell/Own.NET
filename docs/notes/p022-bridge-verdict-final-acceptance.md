@@ -273,3 +273,169 @@ New controls land per section and per field — `-1` and `2147483648` rejected a
 including the two D2 admits, plus type controls (`"x"`, `true` → `shape`) for
 those two, plus the columns' new upper bound. The full set is generated into
 [`p022-cp1-census.md`](../generated/p022-cp1-census.md); no count is typed here.
+
+## 3. What landed, per checkpoint
+
+### 3.1 The four commits
+
+| commit | what |
+|---|---|
+| `docs(p022): inventory the coordinate domain before changing it (#259 final.0)` | this note's §1–§2, `tests/coordinate_census.py`, the generated coordinate census. No production code — the census that judges a contract change is taken against the tree, not against the change. |
+| `feat(ownir): bound source coordinates to int32, validate every line field (Python-first) (#259 final.1)` | §4.2 and §4.1, `spec/ownir.schema.json`, `ownlang/ownir.py`, `ownlang/obligations.py`, the extended defensive-limits controls, the cp1 ledger. |
+| `feat(bridge): mirror the coordinate domain and promote the four boundary controls (#259 final.2)` | `own-ir/src/strict.rs` and `protocol.rs`, `own-bridge/src/{ast,lower,verdict,render}.rs`, the exclusion ledger 6 → 2, four controls, the campaign definitions. |
+| `docs(p022): record the campaigns and bring the status surfaces level (#259 final.3)` | the recorded runs, the generated fragments, P-022, the index, `spec/Bridge.md`, `spec/BridgeBehaviorMatrix.md`, this note's §3–§7. |
+
+### 3.2 The churn, confirmed
+
+`git diff --stat` against the branch base, for the whole change:
+
+```text
+$ git diff --stat 834f295   # the branch base
+ tests/fixtures/ownir_validation.json               | 1831 +++++++++++++++++++-
+ tests/fixtures/repro/digests.json                  |   22 +-
+ tests/fixtures/verdicts/manifest.json              |   32 +-
+ ...erdict_boundary_effect_line_negative.facts.json |    5 +-
+ ...ict_boundary_effect_line_negative.verdicts.json |    2 +-
+ .../verdict_boundary_line_above_u32.facts.json     |    6 +-
+ .../verdict_boundary_line_above_u32.verdicts.json  |    2 +-
+ .../verdict_boundary_line_negative.facts.json      |    9 +-
+ .../verdict_boundary_line_negative.verdicts.json   |    2 +-
+ ...rdict_boundary_service_line_negative.facts.json |    7 +-
+ ...ct_boundary_service_line_negative.verdicts.json |    2 +-
+ .../verdict_domain_tolerant_readers.facts.json     |   48 +
+ .../verdict_domain_tolerant_readers.verdicts.json  |   48 +
+ ...and 52 more files, none of them a fixture
+ 65 files changed, 5439 insertions(+), 792 deletions(-)
+```
+
+Against §2.2's budget, written before anything moved:
+
+* the four `verdict_boundary_*.verdicts.json` goldens changed, and only in the
+  finding's `line`. As predicted, the DI001 evidence slice did not move.
+* **the budget was wrong about one thing, in the direction of the work rather
+  than of the measurement.** It predicted zero churn under
+  `tests/fixtures/repro/`, and that was right about what the *change* forces —
+  the digest ledger pins each **facts** document and none of them changes for
+  a contract reason. Five records moved anyway, and both reasons are
+  deliberate: four because the boundary fixtures' own `_doc` blocks said "the
+  Rust core refuses the document rather than clamp the coordinate", which
+  final.2 makes false (a control whose documentation contradicts the behaviour
+  it pins is worse than four digest records), and one insertion because a
+  campaign found a blind spot and the fix was a new control (§5). Zero
+  artifacts, traces or reductions moved; the `own-shadow` reducer still
+  refuses Layer 3.
+* nothing else in `tests/fixtures/` changed: `verdict_renders/`, `summaries/`,
+  `lowered/` and both fact-parity ledgers are untouched, and the goldens
+  anchored at line `0` — the summaries family alone carries dozens — came
+  through exactly as D1 requires.
+
+## 4. The differential over the measured set
+
+Not restated here as numbers, because it is not measured here: it is
+**asserted** by two replays that run with zero Python.
+
+* `own-ir/tests/validation_replay.rs` runs every control in the cp1 ledger
+  through `OwnIr::from_json` and builds the matrix — agreed accepts, agreed
+  rejects, Rust-only accepts, Rust-only rejects, kind mismatches — collecting
+  every divergence without fail-fast. All three failure rows must be zero, and
+  no control may escape into serde. A green `cargo test -p own-ir` is that
+  statement; a non-zero row is a red build, not a number to copy.
+* `own-bridge/tests/verdicts.rs` replays every non-excluded Layer 3 case
+  against its golden on **every `Finding` member** and every refusal in full,
+  and now additionally asserts the §4.2 domain at **Layer 2** over every one of
+  them. The four `verdict_boundary_*` controls are inside that set for the
+  first time.
+
+Migration counters over the replayed set, in the #250 packet's vocabulary:
+Python-only **0**, Rust-only **0**, changed **0**, ordering-only **0**,
+unexplained **0** — asserted by those two replays, not counted by hand.
+
+The ledger's own counts live in
+[`p022-cp1-census.md`](../generated/p022-cp1-census.md) and
+[`p022-cp4-census.md`](../generated/p022-cp4-census.md); the corpus census is
+[`p022-coord-census.md`](../generated/p022-coord-census.md).
+
+## 5. What the campaigns found
+
+Two new campaigns
+([`p022-coord-mutations.md`](../generated/p022-coord-mutations.md)), split by
+door rather than by sub-checkpoint because the two doors fail differently: the
+strict one refuses, the tolerant one degrades. Every rule is mutated on **both**
+sides, since a domain only one implementation enforces is a divergence rather
+than a rule. Every existing campaign was re-run against the new tree, and five
+rotted anchors were re-anchored rather than deleted.
+
+The first pass of the tolerant campaign is the part worth recording, because
+**seven of fifteen mutations survived** and the reason was the same in every
+case: the promotion had made a rule reachable *in principle* while the corpus
+still could not observe it.
+
+1. **`ast::core_line` cannot be reached from outside any more.** `lower` reads
+   every fact coordinate through `as_line`, so the Layer 2 document the AST is
+   built from is already inside the domain and an out-of-domain value dies one
+   layer earlier. Clamping in `core_line`, or accepting the whole `u32` range
+   again, changed no golden. It is a real second line of defence over an `i64`
+   field wider than the domain, and it is not an end-to-end control — so the
+   control is a direct one, and its doc comment says so rather than letting a
+   unit test on the function under test read as end-to-end evidence.
+2. **The tolerant readers the four promoted controls do not reach.** Every one
+   of those four passes through the AST build, which degrades a second time, so
+   a port that kept the raw fact value still produced the right anchor. Two
+   readers are not covered by that: a DI registration line an escape slice's
+   source hop reads (guarded on `>= 1` and never narrowed again) and the
+   subscription column (read by the column reader alone). One synthetic Layer 3
+   case, `verdict_domain_tolerant_readers`, closes both — at `2^31` the hop must
+   be DROPPED and the column ABSENT, with an in-domain twin beside each so the
+   control cannot pass by refusing everything.
+3. **One equivalent mutant, proven and re-anchored.** `render::code_flows` used
+   to drop a step it could not convert; §4.2 makes every flow-step line
+   convertible, so re-introducing the drop drops nothing and mutating the
+   fallback value is unreachable. The mutation was moved onto the conversion
+   itself — a one-line shift of every step — which the byte-exact rendered
+   replay catches.
+
+The campaign also found a divergence the promotion introduced rather than
+exposed: `lower::as_col` had no upper bound, so final.1's Python change would
+have left the two tolerant column readers disagreeing. Bounded, with the
+control above.
+
+Two mutations were rewritten rather than kept, because each was *caught* by a
+traceback rather than by a named check: a Python mutation that removes a type
+guard makes the domain comparison raise a `TypeError`, and a catcher recorded
+as "non-zero exit with no reported failure" is evidence of a crash, not of the
+rule. Both now attack the same rule where it is legible — the bool-is-int trap
+on the strict door, and a refusing tolerant reader on the other.
+
+## 6. Measured, not claimed
+
+* **The Rust column path has no `u32` anywhere.** Measured through the crate
+  rather than read: a document carrying `"column": 2^40` is accepted by the
+  Rust strict door, carried as `Some(1099511627776)` on `Finding::column`, and
+  emitted to SARIF as `startColumn 1099511627776`. There was no second
+  undeclared boundary to find. The tolerant column readers gained D1's upper
+  bound on both sides so the tolerant door cannot emit a column the strict door
+  would refuse — not to close a divergence, but so one cannot open.
+* **The cp1 ledger compares category, never message text**, and this change
+  does not move that surface. The two doors' new messages are written to say
+  the same thing in the same shape, and a Rust-local control now pins the
+  port's own text against drift; neither makes message text a cross-language
+  contract, and claiming otherwise would be a claim the tree does not make.
+* **The protocol family's tolerant rule is untouched.** Type and
+  representability are grammar and still skip a malformed entry whole (cp4b's
+  rule); only the DOMAIN follows the door. That split is a `Door` parameter
+  rather than a second parser, because two readings of one grammar is exactly
+  what 4b collapsed into one.
+* **`ast::core_line` is unreachable end to end**, per §5.1. Recorded rather
+  than removed: the type it guards is wider than the domain.
+* **The `own-shadow` reducer still refuses Layer 3.** Unmoved, and #260's
+  boundary. Nothing here crosses it.
+
+## 7. The wording this earns
+
+> #259 final acceptance reached: Layer 3 parity over the **full** #258 family
+> inventory at the full `Finding` and the rendered surfaces; declared boundary:
+> the two OD-1 door controls (#294), measured, not open work.
+
+Not "verdict parity complete". Not "shadow mode" — that is #260's acceptance,
+still blocked on its own two decisions. Not "P-022 done", and not "Rust is the
+default": the cutover is #262's, behind #260 and #261.

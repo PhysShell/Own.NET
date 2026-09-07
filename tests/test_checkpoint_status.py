@@ -46,6 +46,7 @@ from render_checkpoint_status import (  # noqa: E402
     COORD_CAMPAIGNS,
     COORD_CENSUS_MD,
     COORD_MUTATIONS_MD,
+    CP1_CENSUS_MD,
     CP4B_CAMPAIGNS,
     CP4B_MUTATIONS_MD,
     CP5_CAMPAIGNS,
@@ -93,7 +94,8 @@ def run() -> int:
               f"tree; re-anchor it (the recorded result stays valid for the commit it names)")
     if problems or anchors:
         return 1
-    print(f"checkpoint status fragments OK: {CENSUS_MD}, {COORD_CENSUS_MD}, {INVENTORY_MD}, "
+    print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
+          f"{COORD_CENSUS_MD}, {INVENTORY_MD}, "
           f"{MUTATIONS_MD}, {CP4B_MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {COORD_MUTATIONS_MD}, "
           f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence; "
           f"{len(DEFINITIONS)} campaign definitions still anchor")

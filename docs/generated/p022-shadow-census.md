@@ -102,7 +102,8 @@ hid the second would delete the defect the layer exists to expose.
 The reducer walks the pair in pipeline order over **['lowered', 'summaries']** and names the
 first place they part company: the layer, the step address and the *minimal*
 difference inside it. The `verdicts` layer is **refused, not skipped** —
-comparing final diagnostics is #260's acceptance, blocked by #259 — and the
+comparing final diagnostics is #260's own acceptance, and crossing that line is
+its decision to take (#259's final acceptance is reached) — and the
 refusal is carried in every reduction, so "not compared" can never be read as
 "compared and agreed".
 
@@ -164,8 +165,10 @@ non-zero counter there is not representable as a passing build. The gates:
   Acceptance must therefore prove the byte-level invariant separately; until
   it does, "same input" here means canonical identity and nothing stronger
   ([owner decision B-1](../notes/p022-shadow-infra-owner-decisions.md)).
-- **End diagnostics compared as an acceptance surface** — #260's acceptance,
-  blocked by #259 (cp5 and 4b). Not attempted, not approximated.
+- **End diagnostics compared as an acceptance surface** — #260's acceptance.
+  It was blocked by #259 while cp5, 4b and the coordinate-domain contract were
+  open; all three have landed, so what remains is this step's own decision to
+  cross the line. Not attempted, not approximated.
 - **The verdict layer.** Refused by the reducer, and recorded as refused in
   every reduction. This is the same blocker as the row above, stated where a
   tool could otherwise have quietly crossed it.

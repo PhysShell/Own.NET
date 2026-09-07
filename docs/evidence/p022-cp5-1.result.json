@@ -4,9 +4,9 @@
   "campaign": "p022-cp5-1",
   "definition": "docs/evidence/p022-cp5-1.json",
   "definition_sha256": "2b4651e54f2862f5b7bdce8f2f682a2bdbd6826677f383736ed7f359ba334d50",
-  "source_commit": "cdff105ca43ec5b1ced2bd25a8216f4f7b65deb3",
+  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
   "dirty": false,
-  "recorded_at": "2026-09-06T17:30:57Z",
+  "recorded_at": "2026-09-07T10:42:17Z",
   "packages": [
     "own-analysis",
     "own-bridge",
@@ -22,7 +22,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 1.6
+    "elapsed_seconds": 4.3
   },
   "mutations": [
     {
@@ -31,7 +31,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 3.4
     },
     {
       "id": "M02",
@@ -39,7 +39,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M03",
@@ -47,7 +47,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 3.9
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M04",
@@ -71,7 +71,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::a_flow_local_code_without_a_wording_keeps_the_core_message"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M07",
@@ -87,7 +87,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.3
     },
     {
       "id": "M09",
@@ -98,7 +98,7 @@
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.4
     },
     {
       "id": "M10",
@@ -106,7 +106,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.3
     },
     {
       "id": "M11",
@@ -114,7 +114,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::the_capture_route_names_a_non_static_source_it_can_never_be_handed"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 5.1
     },
     {
       "id": "M12",
@@ -122,7 +122,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M13",
@@ -130,7 +130,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.5
+      "elapsed_seconds": 4.4
     },
     {
       "id": "M14",
@@ -138,7 +138,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M15",
@@ -146,7 +146,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M16",
@@ -163,7 +163,7 @@
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.8
     },
     {
       "id": "M18",
@@ -172,7 +172,7 @@
         "own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte",
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.6
     },
     {
       "id": "M19",
@@ -180,7 +180,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.3
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M20",
@@ -190,7 +190,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M21",
@@ -200,7 +200,7 @@
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden",
         "own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 4.8
+      "elapsed_seconds": 5.0
     },
     {
       "id": "M22",
@@ -216,7 +216,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M24",
@@ -224,7 +224,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M25",
@@ -232,7 +232,7 @@
       "catchers": [
         "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 4.9
     },
     {
       "id": "M26",
@@ -240,7 +240,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.7
+      "elapsed_seconds": 4.9
     },
     {
       "id": "M27",
@@ -248,7 +248,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.0
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M28",
@@ -256,7 +256,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M29",
@@ -282,7 +282,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.6
+      "elapsed_seconds": 4.7
     },
     {
       "id": "M32",
@@ -290,7 +290,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.4
+      "elapsed_seconds": 4.5
     },
     {
       "id": "M33",
@@ -298,7 +298,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M34",
@@ -306,7 +306,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.2
     },
     {
       "id": "M35",
@@ -330,7 +330,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M38",
@@ -338,7 +338,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.1
     },
     {
       "id": "M39",
@@ -354,7 +354,7 @@
       "catchers": [
         "own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
       ],
-      "elapsed_seconds": 4.1
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M41",
@@ -362,7 +362,7 @@
       "catchers": [
         "own-bridge/src/lib.rs::verdict::tests::every_di_lifetime_phrase_is_pinned_including_the_unreachable_two"
       ],
-      "elapsed_seconds": 4.2
+      "elapsed_seconds": 4.0
     },
     {
       "id": "M42",
@@ -370,7 +370,7 @@
       "catchers": [
         "own-analysis/src/lib.rs::effect::tests::the_via_clause_is_omitted_for_a_single_hop_chain"
       ],
-      "elapsed_seconds": 3.7
+      "elapsed_seconds": 3.9
     }
   ]
 }
