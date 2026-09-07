@@ -158,8 +158,10 @@ Three rules, and they are the whole contract:
    integer — `0`, negative, `bool`, string, float and array all raise
    `OwnIRError`, and the walk recurses into `if`/`while` bodies. `bool` is
    rejected explicitly: `True` is an `int` in Python and would otherwise read as
-   column 1. `check_facts()`, which may be called directly on un-validated facts,
-   degrades to absent instead.
+   column 1. It is bounded above as well: a column above `2147483647` is
+   rejected, the same domain a `line` carries (§4.2), because a column no
+   consumer can hold is not a usable coordinate either. `check_facts()`, which
+   may be called directly on un-validated facts, degrades to absent instead.
 
 A flow-local handle is minted on five paths — a contract param, a direct
 `acquire`, an `alias_join`, a fresh-returning call `result`, and a branch acquire
@@ -180,30 +182,49 @@ a language that happens to have the same capabilities the reference does. Both
 are now bounded, and the bound is part of the vocabulary rather than a property
 of whichever consumer reads it first.
 
-**Source-coordinate integers fit a signed 64-bit integer.**
+**Source coordinates are bounded twice: a representable form, and a domain
+inside it.**
 
-- every **validated** `line` — `services[].line`, `services[].ctor_line`,
-  `services[].root_resolve_sites[].line`, `services[].scope_cache_sites[].line`,
-  `effects[].line`, `effects[].bindings[].line`, `functions[].params[].line`,
-  `protocol_functions[].events[].line` — lies in `[-2^63, 2^63 - 1]`;
-- every `column` (§4.1) is `1..=2^63 - 1`, or absent, or `null`.
+The two are different rules about different things, and a consumer that folds
+them reports the wrong reason for half its rejections.
 
-The word *validated* is load-bearing, and the exception is recorded rather than
-papered over. Two line-bearing fields are checked **nowhere** by `load()` — not
-for range, and not even for type: `components[].subscriptions[].line` and the
-`line` on a flow op inside `functions[].body`. Measured, `{"line": "x"}` and
-`{"line": true}` are accepted on both. That predates this section, and both
-implementations agree about it — neither the reference nor the Rust port types
-those fields — so it is **not** a parity gap and closing it is not part of
-removing one. It is a separate contract question: whether a coordinate that no
-rule reads should nevertheless be well-formed. Until it is answered, the bound
-above claims exactly the fields it covers.
+*Form.* Every coordinate integer — every `line` and every `column` — fits a
+**signed 64-bit** integer. Python integers are unbounded, so the reference
+accepted values no other consumer could represent; a coordinate nothing
+downstream can hold is not a usable coordinate, and leaving it legal turns
+every port into a source of "the reference accepted this and I cannot".
 
-Python integers are unbounded, so the reference accepted coordinates no other
-consumer could represent. That is not a generosity worth keeping: a coordinate
-nothing downstream can hold is not a usable coordinate, and leaving it legal
-turns every port into a source of "the reference accepted this and I cannot".
-The bound is stated here and enforced in `load()`.
+*Domain.* Inside that form:
+
+- every `line` lies in **`[0, 2147483647]`**;
+- every `column` (§4.1) lies in **`[1, 2147483647]`**, or is absent, or `null`.
+
+**2147483647 is `int32`, and int32 is the line type of every consumer this
+project feeds**: Roslyn's `LinePosition.Line` is an `int`, LSP's `uinteger` is
+capped at `2^31 - 1`, and .NET diagnostics carry the same width. A line wider
+than that cannot reach the place it points at, whatever it can be stored in.
+
+**`0` is legal and means "unknown / file-level".** It is the reference's own
+default for an absent line (`s.get("line", 0)` throughout `load()`), and the
+corpus carries it in the goldens as well as the inputs, so the bottom of the
+domain reads the reference rather than tightening it. A **negative** line is
+rejected: no producer emits one — the Roslyn extractor writes
+`StartLinePosition.Line + 1` off a 0-based position — and nothing downstream can
+point at it. The lower bound of a `column` is one higher because a column is
+1-based (§4.1); `0` there stays a producer bug rather than a sentinel.
+
+Every line-bearing field is validated: `components[].subscriptions[].line`,
+`services[].line`, `services[].ctor_line`,
+`services[].root_resolve_sites[].line`, `services[].scope_cache_sites[].line`,
+`effects[].line`, `effects[].bindings[].line`, `functions[].params[].line`,
+`protocol_functions[].events[].line`, and the `line` on a flow op inside
+`functions[].body` — the last recursing through `then`, `else` and `body`
+exactly as the `column` walk does. Both of the fields this section previously
+recorded as validated **nowhere** — `components[].subscriptions[].line` and the
+flow-op `line` — are validated now, for type as well as for domain: the open
+contract question that recorded ("whether a coordinate no rule reads should
+nevertheless be well-formed") is answered **yes**, because the tolerant door
+does read it and anchors findings on it.
 
 **Flow bodies and protocol event trees nest at most 32 levels.**
 
@@ -226,9 +247,23 @@ in the `OwnIR` domain — nested bodies — and not in JSON levels, because nest
 bodies are the thing a frontend can reason about; the ratio between the two is
 an encoding detail.
 
-Both limits are **rejections at the strict door**, not coercions. `check_facts()`
-on un-validated facts keeps its existing degrade-to-absent behaviour: two entry
-points, two contracts, as with `column` in §4.1.
+Every limit here is a **rejection at the strict door**, not a coercion.
+`check_facts()` on un-validated facts degrades instead — two entry points, two
+contracts, as with `column` in §4.1, and now on the same terms for lines:
+
+- a `column` outside its domain (or of the wrong type) reads as **absent**;
+- a `line` outside its domain (or of the wrong type) reads as **`0`** —
+  "unknown / file-level", the value an absent line already reads as.
+
+**Degrade, never clamp.** `2147483648` does not become `2147483647` and `-1`
+does not become `1`: a clamp moves the finding to a *real* line that is not the
+one the producer meant, which is worse than saying nothing. The rule is the
+same never-invent rule §4.1 states for columns.
+
+The strict door never reaches the degrade: a document `load()` accepts has no
+out-of-domain coordinate by construction. That is asserted rather than assumed
+— `tests/test_ownir_defensive_limits.py` re-reads every document the #259 cp1
+ledger records as accepted and checks each coordinate against this section.
 
 ## 5. Flow bodies (`functions[]`)
 

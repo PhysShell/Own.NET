@@ -182,6 +182,22 @@ def _is_door_slot(path: str, kind: str) -> bool:
     return any(path.endswith(slot) and slot_kind == kind for slot, slot_kind in SLOTS)
 
 
+def door_coordinates(document: Any) -> tuple[tuple[str, str, Any], ...]:
+    """Every DOOR coordinate in one OwnIR document, as `(slot, kind, value)`.
+
+    The same walk the census uses, exposed so a test that needs to re-read a
+    document's coordinates does not grow a second reader of the same shape —
+    two readings of one shape is how two files come to disagree about it.
+    """
+    found: list[tuple[str, str, Any]] = []
+    _walk(document, "", found)
+    return tuple(
+        (_collapse(path), kind, value)
+        for path, kind, value in found
+        if _is_door_slot(_collapse(path), kind)
+    )
+
+
 def compute_coordinate_census() -> CoordinateCensus:
     """Walk the fixture tree once and classify every coordinate it holds."""
     problems: list[str] = []

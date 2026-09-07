@@ -3,7 +3,7 @@
   "findings": [
     {
       "file": "reg.cs",
-      "line": -5,
+      "line": 0,
       "code": "DI001",
       "component": "App",
       "event": "Db",

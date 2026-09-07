@@ -74,6 +74,31 @@ MATCHER_KINDS = frozenset({"assign", "call"})
 INT64_MIN = -(2 ** 63)
 INT64_MAX = 2 ** 63 - 1
 
+# The source-coordinate DOMAIN, inside the representable form above.
+#
+# Representability and domain are two axes, and keeping them apart is what the
+# #259 cp1 taxonomy is built on: a value outside the signed-64 range has no
+# integer form the contract can hold (a shape failure), while a value inside it
+# and outside the domain IS a coordinate and violates the rule about what a
+# coordinate may be (a location failure).
+#
+# int32 is the domain because it is the line type of every consumer this
+# project feeds: Roslyn's `LinePosition.Line`, LSP's `uinteger` (capped at
+# 2^31-1), .NET diagnostics. A coordinate wider than that cannot reach the
+# place it points at. `0` stays legal at the bottom because it is the
+# reference's OWN default for an absent line (`raw.get("line", 0)` here and
+# `s.get("line", 0)` throughout `load()`) — bounding at 0 rather than at 1
+# reads the reference rather than tightening it. A negative line is refused: no
+# producer emits one (the Roslyn extractor writes `StartLinePosition.Line + 1`)
+# and nothing downstream can point at it.
+LINE_MIN = 0
+LINE_MAX = 2 ** 31 - 1
+
+# A column is 1-based (spec/OwnIR.md §4.1), so its domain starts one higher —
+# same upper bound, for the same reason.
+COLUMN_MIN = 1
+COLUMN_MAX = 2 ** 31 - 1
+
 # Maximum nesting of `if`/`while` bodies in a flow body or an event tree.
 #
 # Chosen by measurement, from both ends:
@@ -235,7 +260,21 @@ def _require_str(raw: dict[str, Any], key: str, ctx: str) -> str:
     return v
 
 
-def _opt_line(raw: dict[str, Any], ctx: str) -> int:
+def _opt_line(raw: dict[str, Any], ctx: str, strict: bool = True) -> int:
+    """An event's source line, under the two-doors rule (spec/OwnIR.md §4.2).
+
+    Type and representability are the grammar's and always fail loud: a `line`
+    that is not an integer, or has no signed-64 form, is a malformed event and
+    the entry is not parseable at all.
+
+    The DOMAIN is the door's. `load()` parses with `strict=True` and a line
+    outside `[0, 2^31-1]` is refused, exactly as every other validated line is;
+    the tolerant `check_facts()` path parses with `strict=False` and DEGRADES
+    it to `0` — absent — the same contract `_as_col` has had for columns since
+    #317. Degrading rather than refusing matters here more than elsewhere: a
+    refusal on this path drops the whole method's events, so one impossible
+    coordinate would silently take a real violation with it.
+    """
     v = raw.get("line", 0)
     if not isinstance(v, int) or isinstance(v, bool):
         raise ProtocolFactsError(f"{ctx}: 'line' must be an integer, got {v!r}")
@@ -243,7 +282,13 @@ def _opt_line(raw: dict[str, Any], ctx: str) -> int:
         raise ProtocolFactsError(
             f"{ctx}: 'line' must fit a signed 64-bit integer, got {v} "
             f"(spec/OwnIR.md §4.2)")
-    return v
+    if LINE_MIN <= v <= LINE_MAX:
+        return v
+    if not strict:
+        return 0
+    raise ProtocolFactsError(
+        f"{ctx}: 'line' must be a source line in [{LINE_MIN}, {LINE_MAX}], "
+        f"got {v} (spec/OwnIR.md §4.2)")
 
 
 def parse_matcher(raw: Any, ctx: str, require_value: bool = False) -> Matcher:
@@ -327,14 +372,18 @@ def parse_protocol(raw: Any) -> Protocol:
                     methods=tuple(methods_raw), description=desc)
 
 
-def parse_events(raw: Any, ctx: str, depth: int = 0) -> tuple[Event, ...]:
+def parse_events(raw: Any, ctx: str, depth: int = 0, strict: bool = True) -> tuple[Event, ...]:
     """Parse an ordered event list (recursive over `if`/`while`), fail-loud on
     an unknown `ev` — the same rule as an unknown flow op (OwnIR IR4).
 
     `depth` counts enclosing `if`/`while` bodies; the top-level list is 0. The
     bound is a defensive limit on external input (spec/OwnIR.md §4.2), not a
     reachable property of real code — the deepest event tree in this
-    repository's fixtures is 2."""
+    repository's fixtures is 2.
+
+    `strict` selects which door's coordinate contract an event `line` is read
+    under — see `_opt_line`. It travels the recursion so a nested event is
+    read under the same contract as a top-level one."""
     if depth > MAX_NESTING_DEPTH:
         raise ProtocolFactsError(
             f"{ctx}: events nested deeper than {MAX_NESTING_DEPTH} levels "
@@ -350,7 +399,7 @@ def parse_events(raw: Any, ctx: str, depth: int = 0) -> tuple[Event, ...]:
             raise ProtocolFactsError(
                 f"{ctx}: unknown protocol event {ev!r} — the vocabulary is "
                 f"{sorted(EVENT_KINDS)} (spec/OwnIR.md §8)")
-        line = _opt_line(e, ctx)
+        line = _opt_line(e, ctx, strict)
         if ev == "assign":
             target = _require_str(e, "target", f"{ctx} assign")
             value = e.get("value")
@@ -371,24 +420,31 @@ def parse_events(raw: Any, ctx: str, depth: int = 0) -> tuple[Event, ...]:
         elif ev == "throw":
             out.append(ThrowEv(line=line))
         elif ev == "if":
-            out.append(IfEv(line=line,
-                            then=parse_events(e.get("then", []), ctx, depth + 1),
-                            orelse=parse_events(e.get("else", []), ctx, depth + 1)))
+            out.append(IfEv(
+                line=line,
+                then=parse_events(e.get("then", []), ctx, depth + 1, strict),
+                orelse=parse_events(e.get("else", []), ctx, depth + 1, strict)))
         else:  # "while" — EVENT_KINDS is closed, checked above
             out.append(WhileEv(
-                line=line, body=parse_events(e.get("body", []), ctx, depth + 1)))
+                line=line,
+                body=parse_events(e.get("body", []), ctx, depth + 1, strict)))
     return tuple(out)
 
 
-def parse_method(raw: Any) -> MethodEvents:
-    """Parse one `protocol_functions[]` entry."""
+def parse_method(raw: Any, strict: bool = True) -> MethodEvents:
+    """Parse one `protocol_functions[]` entry.
+
+    `strict` is the door (see `_opt_line`): `load()` passes the default and an
+    out-of-domain event line is refused; the tolerant `check_facts()` path
+    passes `False` and it degrades to `0`."""
     if not isinstance(raw, dict):
         raise ProtocolFactsError(f"a protocol function must be an object, got {raw!r}")
     name = _require_str(raw, "name", "protocol function")
     file = raw.get("file", "?")
     if not isinstance(file, str):
         raise ProtocolFactsError(f"protocol function '{name}': 'file' must be a string")
-    events = parse_events(raw.get("events", []), f"protocol function '{name}'")
+    events = parse_events(raw.get("events", []), f"protocol function '{name}'",
+                          strict=strict)
     return MethodEvents(name=name, file=file, events=events)
 
 

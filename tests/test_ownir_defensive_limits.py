@@ -45,9 +45,20 @@ import tempfile
 from typing import Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from ownlang.obligations import INT64_MAX, INT64_MIN, MAX_NESTING_DEPTH
-from ownlang.ownir import OwnIRError, load
+from coordinate_census import classify, door_coordinates
+
+from ownlang.obligations import (
+    COLUMN_MAX,
+    COLUMN_MIN,
+    INT64_MAX,
+    INT64_MIN,
+    LINE_MAX,
+    LINE_MIN,
+    MAX_NESTING_DEPTH,
+)
+from ownlang.ownir import OwnIRError, check_facts, load
 
 
 def _load(document: Any) -> str | None:
@@ -109,7 +120,31 @@ LINE_PATHS: list[tuple[str, Any]] = [
     ("protocol_functions[].events[].line",
      lambda v: {"protocol_functions": [
          {"name": "M", "events": [{"ev": "return", "line": v}]}]}),
+    # The two fields §4.2 used to record as validated NOWHERE. They are here
+    # rather than in a block of their own because the point of #259's final
+    # acceptance is that they are no longer special: one domain, one table.
+    ("components[].subscriptions[].line",
+     lambda v: {"components": [{"subscriptions": [{"line": v}]}]}),
+    ("functions[].body[].line",
+     lambda v: {"functions": [{"body": [{"op": "acquire", "line": v}]}]}),
+    # …and at every nesting shape, because `then`/`else`/`body` are three
+    # separate recursive call sites: a check added to one of them would pass a
+    # top-level-only test, which is the same trap the nesting limit records.
+    ("functions[].body[].then[].line",
+     lambda v: {"functions": [{"body": [
+         {"op": "if", "then": [{"op": "acquire", "line": v}]}]}]}),
+    ("functions[].body[].else[].line",
+     lambda v: {"functions": [{"body": [
+         {"op": "if", "else": [{"op": "acquire", "line": v}]}]}]}),
+    ("functions[].body[].body[].line",
+     lambda v: {"functions": [{"body": [
+         {"op": "while", "body": [{"op": "acquire", "line": v}]}]}]}),
 ]
+
+# The same paths, for the TYPE rule. Every line field rejects a non-integer;
+# the two newly validated ones had no type check at all before this change, so
+# `{"line": "x"}` and `{"line": true}` were accepted documents.
+TYPE_REJECTED = ("x", True, None, 1.5)
 
 COLUMN_PATHS: list[tuple[str, Any]] = [
     ("subscriptions[].column",
@@ -134,6 +169,10 @@ COLUMN_PATHS: list[tuple[str, Any]] = [
 # self-consistency, not correctness.
 SPEC_INT64_MIN = -9223372036854775808
 SPEC_INT64_MAX = 9223372036854775807
+SPEC_LINE_MIN = 0
+SPEC_LINE_MAX = 2147483647
+SPEC_COLUMN_MIN = 1
+SPEC_COLUMN_MAX = 2147483647
 SPEC_MAX_NESTING_DEPTH = 32
 
 
@@ -151,6 +190,10 @@ def run() -> int:
     for name, actual, expected in (
         ("INT64_MIN", INT64_MIN, SPEC_INT64_MIN),
         ("INT64_MAX", INT64_MAX, SPEC_INT64_MAX),
+        ("LINE_MIN", LINE_MIN, SPEC_LINE_MIN),
+        ("LINE_MAX", LINE_MAX, SPEC_LINE_MAX),
+        ("COLUMN_MIN", COLUMN_MIN, SPEC_COLUMN_MIN),
+        ("COLUMN_MAX", COLUMN_MAX, SPEC_COLUMN_MAX),
         ("MAX_NESTING_DEPTH", MAX_NESTING_DEPTH, SPEC_MAX_NESTING_DEPTH),
     ):
         if actual != expected:
@@ -169,10 +212,10 @@ def run() -> int:
     with open(schema_path, encoding="utf-8") as f:
         defs = json.load(f)["$defs"]
     for name, key, expected in (
-        ("sourceLine", "minimum", SPEC_INT64_MIN),
-        ("sourceLine", "maximum", SPEC_INT64_MAX),
-        ("sourceColumn", "minimum", 1),
-        ("sourceColumn", "maximum", SPEC_INT64_MAX),
+        ("sourceLine", "minimum", SPEC_LINE_MIN),
+        ("sourceLine", "maximum", SPEC_LINE_MAX),
+        ("sourceColumn", "minimum", SPEC_COLUMN_MIN),
+        ("sourceColumn", "maximum", SPEC_COLUMN_MAX),
         # `column: null` is accepted by `load()`, so the schema must permit it.
         # `minimum`/`maximum` only constrain numbers, so the bounds above still
         # apply to real values.
@@ -192,14 +235,21 @@ def run() -> int:
     # invalid while the door accepts it; leaving a checked path unbound makes it
     # schema-valid while the door refuses it. A blanket search-and-replace over
     # `"line"` did the first to `resourceRecord` and `flowOp` — the two paths
-    # §4.2 documents as unvalidated — and the second to `ctor_line`, whose key
-    # simply differs.
+    # §4.2 then documented as unvalidated — and the second to `ctor_line`, whose
+    # key simply differs.
     #
     # So the map is asserted as a map, not spot-checked.
+    #
+    # `UNBOUND` is EMPTY since #259's final acceptance: §4.2's exception is
+    # closed and every coordinate-bearing path is checked by `load()`. The
+    # machinery stays rather than being deleted with its last entry, because
+    # what it enforces is that a path is *classified* — the next unbound path
+    # somebody adds must be declared here, not discovered by nobody.
     BOUND = {"service": ["line", "ctor_line"], "site": ["line"],
              "effect": ["line"], "binding": ["line"], "param": ["line"],
-             "protocolEvent": ["line"]}
-    UNBOUND = {"resourceRecord": ["line"], "flowOp": ["line"]}
+             "protocolEvent": ["line"], "resourceRecord": ["line"],
+             "flowOp": ["line"]}
+    UNBOUND: dict[str, list[str]] = {}
 
     # …and the map is CLOSED over the schema, which the per-member checks below
     # cannot establish on their own.
@@ -292,33 +342,67 @@ def run() -> int:
                             f"any narrowing makes a document schema-invalid "
                             f"that the door accepts")
 
-    # ---- line: the full signed-64 range, and one step outside each end -----
+    # ---- line: the DOMAIN, pinned at both ends and one step outside each --
+    #
+    # Two axes, in the order the door checks them, so neither can silently
+    # absorb the other: a value with no representable signed-64 form reports
+    # the FORM rule, and a representable value outside `[0, 2^31-1]` reports
+    # the DOMAIN rule. `i64::MAX` is the control that keeps them apart — it was
+    # an accepted line until #259's final acceptance, and it is now a domain
+    # rejection rather than a form one.
     for label, build in LINE_PATHS:
-        for value, expect_reject in ((INT64_MIN, False), (0, False),
-                                     (INT64_MAX, False),
-                                     (INT64_MIN - 1, True), (INT64_MAX + 1, True)):
+        for value, expected in ((LINE_MIN, None), (1, None), (LINE_MAX, None),
+                                (LINE_MIN - 1, "source line in"),
+                                (LINE_MAX + 1, "source line in"),
+                                (INT64_MIN, "source line in"),
+                                (INT64_MAX, "source line in"),
+                                (INT64_MIN - 1, "signed 64-bit"),
+                                (INT64_MAX + 1, "signed 64-bit")):
             err = _load(build(value))
-            if expect_reject and err is None:
-                failures += _fail(f"{label}: {value} accepted, expected reject")
-            elif not expect_reject and err is not None:
+            if expected is None and err is not None:
                 failures += _fail(f"{label}: {value} rejected — {err}")
-            elif expect_reject and "signed 64-bit" not in (err or ""):
+            elif expected is not None and err is None:
+                failures += _fail(f"{label}: {value} accepted, expected reject")
+            elif expected is not None and expected not in (err or ""):
                 failures += _fail(
-                    f"{label}: {value} rejected for the wrong reason — {err}")
+                    f"{label}: {value} rejected for the wrong reason — "
+                    f"expected the {expected!r} rule, got {err}")
 
-    # ---- column: 1-based below, and the same upper bound ------------------
+    # ---- line: the TYPE rule, on every path -------------------------------
+    #
+    # Only the rejection is asserted, not the message. The reference folds a
+    # site record's whole check into one `all(...)`, so a mistyped site line
+    # reports the record's shape rather than the field's — one violation, one
+    # message, and the cp1 ledger is where the CATEGORY of each is pinned.
+    for label, build in LINE_PATHS:
+        for value in TYPE_REJECTED:
+            if _load(build(value)) is None:
+                failures += _fail(
+                    f"{label}: {value!r} accepted — a line must be an integer")
+
+    # ---- column: 1-based below, the domain above --------------------------
     for label, build in COLUMN_PATHS:
-        for value, expect_reject in ((1, False), (INT64_MAX, False),
-                                     (INT64_MAX + 1, True)):
+        for value, expected in ((COLUMN_MIN, None), (COLUMN_MAX, None),
+                                (COLUMN_MAX + 1, "source column in"),
+                                (INT64_MAX, "source column in"),
+                                (INT64_MAX + 1, "signed 64-bit")):
             err = _load(build(value))
-            if expect_reject and err is None:
-                failures += _fail(f"{label}: {value} accepted, expected reject")
-            elif not expect_reject and err is not None:
+            if expected is None and err is not None:
                 failures += _fail(f"{label}: {value} rejected — {err}")
-        # The 1-based rule still fires first for a low column, so the new upper
-        # bound cannot have replaced it.
-        if "1-based" not in (_load(build(0)) or ""):
-            failures += _fail(f"{label}: 0 no longer reports the 1-based rule")
+            elif expected is not None and err is None:
+                failures += _fail(f"{label}: {value} accepted, expected reject")
+            elif expected is not None and expected not in (err or ""):
+                failures += _fail(
+                    f"{label}: {value} rejected for the wrong reason — "
+                    f"expected the {expected!r} rule, got {err}")
+        # The 1-based rule still fires FIRST for every low column, so neither
+        # new bound can have replaced it — including for a value that is also
+        # outside the representable form, where the order is what decides which
+        # rule the reader is told about.
+        for low in (0, -1, INT64_MIN, INT64_MIN - 1):
+            if "1-based" not in (_load(build(low)) or ""):
+                failures += _fail(
+                    f"{label}: {low} no longer reports the 1-based rule")
 
     # ---- nesting: below, exactly at, one past — for both trees and both
     # recursive keys, because `then`/`else`/`body` are three separate call
@@ -359,13 +443,113 @@ def run() -> int:
         if err is not None:
             failures += _fail(f"{label} must still be accepted — {err}")
 
+    # ---- the TOLERANT door degrades; it never raises and never clamps -----
+    #
+    # `check_facts()` is the door tests and embedders take, and it may be
+    # handed facts `load()` never saw. An out-of-domain line there reads as
+    # `0` — the value an absent line already reads as — and the finding is
+    # still reported at its file. The clamp controls are the point: `2^31`
+    # must not become `2^31 - 1` and `-1` must not become `1`, because a
+    # clamped anchor points at a REAL line the producer did not mean.
+    def _sub(line: Any) -> dict[str, Any]:
+        return {"ownir_version": 0, "module": "X",
+                "components": [{"name": "C", "file": "C.cs", "subscriptions": [
+                    {"event": "e", "handler": "h", "line": line,
+                     "source": "static"}]}]}
+
+    def _acquire(line: Any) -> dict[str, Any]:
+        return {"ownir_version": 0, "module": "X", "functions": [
+            {"name": "F", "file": "F.cs",
+             "body": [{"op": "acquire", "var": "x", "line": line}]}]}
+
+    def _event(line: Any) -> dict[str, Any]:
+        return {"ownir_version": 0, "module": "X",
+                "protocols": [{"name": "P",
+                               "opens": {"kind": "assign", "target": "f",
+                                         "value": True},
+                               "closes": {"kind": "assign", "target": "f",
+                                          "value": False},
+                               "barriers": [{"kind": "call", "callee": "B"}]}],
+                "protocol_functions": [{"name": "M", "file": "M.cs", "events": [
+                    {"ev": "assign", "target": "f", "value": True, "line": line},
+                    {"ev": "call", "callee": "B", "line": 9}]}]}
+
+    # Out-of-DOMAIN values degrade on every path…
+    OUT_OF_DOMAIN = (-1, LINE_MIN - 1, LINE_MAX + 1, 2 ** 31, INT64_MAX)
+    # …while a value with no integer form at all degrades on the two paths
+    # whose reader is `_as_line`, and SKIPS the entry on the protocol path.
+    # That asymmetry is the obligation family's own tolerant rule ("a
+    # malformed entry is skipped whole", cp4b) and is deliberately untouched:
+    # type and representability are grammar, the domain is the door's.
+    for label, build_facts, code in (("subscription", _sub, "OWN001"),
+                                     ("flow acquire", _acquire, "OWN001"),
+                                     ("protocol event", _event, "OBL003")):
+        values = OUT_OF_DOMAIN if label == "protocol event" else (
+            *OUT_OF_DOMAIN, "x", True, None)
+        for value in values:
+            anchors = [(f.code, f.line) for f in check_facts(build_facts(value))
+                       if f.code == code]
+            if anchors != [(code, 0)]:
+                failures += _fail(
+                    f"tolerant {label} line {value!r}: expected "
+                    f"[({code}, 0)] — degrade to absent, never clamp — got "
+                    f"{anchors}")
+    for value in ("x", True, None, INT64_MAX + 1):
+        if [f for f in check_facts(_event(value)) if f.code == "OBL003"]:
+            failures += _fail(
+                f"tolerant protocol event line {value!r}: the grammar rejects "
+                f"it, so the ENTRY is skipped whole (cp4b) — a finding here "
+                f"means the domain degrade swallowed a grammar rule")
+        # …and a line INSIDE the domain is preserved exactly, so the degrade
+        # cannot have swallowed the ordinary path.
+        for value in (1, LINE_MAX):
+            anchors = [(f.code, f.line) for f in check_facts(build_facts(value))
+                       if f.code == code]
+            if anchors != [(code, value)]:
+                failures += _fail(
+                    f"tolerant {label} line {value}: in-domain lines must be "
+                    f"preserved, got {anchors}")
+
+    # ---- and the strict door never REACHES the degrade --------------------
+    #
+    # The two-doors contract only holds if the strict door's output is a
+    # subset of the tolerant door's input domain: a document `load()` accepts
+    # must carry no out-of-domain coordinate at all, or `_as_line` would be
+    # silently rewriting validated facts. That is asserted over every document
+    # the #259 cp1 ledger records as ACCEPTED, rather than stated in prose —
+    # the ledger is the widest set of accepted documents in the tree, and it
+    # is derived from the reference itself.
+    ledger_path = os.path.join(os.path.dirname(__file__), "fixtures",
+                               "ownir_validation.json")
+    with open(ledger_path, encoding="utf-8") as f:
+        ledger = json.load(f)
+    accepted = 0
+    for case in ledger["cases"]:
+        if case.get("verdict") != "accept" or case.get("raw"):
+            continue
+        accepted += 1
+        for slot, kind, value in door_coordinates(case["document"]):
+            if classify(kind, value) not in ("in-domain", "zero", "null"):
+                failures += _fail(
+                    f"cp1 control {case['name']!r} is ACCEPTED by the strict "
+                    f"door and carries {slot} = {value!r}, which the tolerant "
+                    f"door would degrade — the strict door must never reach "
+                    f"the degrade (spec/OwnIR.md §4.2)")
+    if not accepted:
+        failures += _fail(
+            "no accepted cp1 control was read — the subset assertion above "
+            "passed over an empty set, which is not evidence")
+
     if failures:
         return 1
     print(
-        f"ownir defensive limits OK: coordinates in "
-        f"[{INT64_MIN}, {INT64_MAX}] over {len(LINE_PATHS)} line paths and "
-        f"{len(COLUMN_PATHS)} column paths; nesting <= {MAX_NESTING_DEPTH} "
-        f"over 2 trees x 3 keys, each pinned at limit and limit+1"
+        f"ownir defensive limits OK: lines in [{LINE_MIN}, {LINE_MAX}] and "
+        f"columns in [{COLUMN_MIN}, {COLUMN_MAX}] inside the signed-64 form, "
+        f"over {len(LINE_PATHS)} line paths and {len(COLUMN_PATHS)} column "
+        f"paths; nesting <= {MAX_NESTING_DEPTH} over 2 trees x 3 keys, each "
+        f"pinned at limit and limit+1; the tolerant door degrades on 3 paths "
+        f"and the strict door reaches it on none of {accepted} accepted cp1 "
+        f"controls"
     )
     return 0
 

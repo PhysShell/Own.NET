@@ -3,7 +3,7 @@
   "findings": [
     {
       "file": "E.tsx",
-      "line": -3,
+      "line": 0,
       "code": "EFF001",
       "component": "E",
       "event": "o",

@@ -87,11 +87,31 @@ Both were closed **Python-first** in #326: signed-64 coordinates and a
 32-level nesting limit, written into `spec/OwnIR.md` §4.2 as defensive limits
 on externally supplied structure. Both families are now controls here.
 
-The one thing still not covered is stated where it lives:
-`components[].subscriptions[].line` and flow-op `line` are validated **nowhere**
-by `load()`, not even for type, and both implementations agree about that. It
-is an open contract question recorded in §4.2, not a parity gap, and inventing
-a control for it here would be inventing a rule neither loader has.
+## The third family: the coordinate DOMAIN
+
+The previous round left one thing uncovered and said so:
+`components[].subscriptions[].line` and flow-op `line` were validated
+**nowhere** by `load()`, not even for type, and both implementations agreed
+about it — an open contract question recorded in §4.2 rather than a parity gap,
+where inventing a control would have been inventing a rule neither loader had.
+
+#259's final acceptance answers the question. §4.2 now bounds every `line` to
+`[0, 2147483647]` and every `column` to `[1, 2147483647]` — the int32 domain
+every consumer this project feeds actually has — and validates both of those
+fields for type as well. So the family is controls here, generated per field
+by `_domain_controls()` below.
+
+Four of this file's ACCEPT controls flip with it, and that is a **re-measure,
+not a weakening**: the reference changed first (Python-first, #326's order), so
+the standing rule "a Rust/Python divergence is a Rust bug" never applied. They
+keep their `accept-` names on purpose, so the flip reads as one re-measured
+control rather than as a new control beside a deleted one.
+
+The two axes stay apart, and the flip is what proves they are not one rule
+wearing two names: `i64::MAX` as a line was accepted and is now `location`,
+because it still HAS a representable signed-64 form and violates only the rule
+about what that form may mean; `i64::MAX + 1` was and stays `shape`, because it
+has no such form at all.
 
 ## What is compared, and what deliberately is not
 
@@ -160,13 +180,15 @@ CATEGORIES = {
     "vocabulary": "right JSON type, value outside a closed set",
     "identity": "a name slot — empty, mistyped, or duplicated",
     "location": ("a REPRESENTABLE source coordinate violating its "
-                 "coordinate-domain rule — currently the 1-based column"),
+                 "coordinate-domain rule — the 1-based column, and the "
+                 "int32 line/column domain of spec/OwnIR.md §4.2"),
     "well_formedness": ("right types, legal vocabulary, and the record still "
                         "cannot mean anything"),
 }
 
-# The representable integer form of an OwnIR source coordinate (spec/OwnIR.md
-# §4.2). Both loaders accept the closed range and reject everything outside it.
+# The representable integer FORM of an OwnIR source coordinate (spec/OwnIR.md
+# §4.2) — the outer of the two axes. Both loaders reject everything outside it
+# as `shape`; what a value inside it may MEAN is the domain, below.
 I64_MIN = -9223372036854775808
 I64_MAX = 9223372036854775807
 
@@ -194,6 +216,17 @@ ABOVE_U64 = U64_MAX + 1
 # the early return counts bodies that are not there and rejects AT the limit,
 # which is how the reference's own off-by-one was found.
 MAX_NESTING = 32
+
+# The coordinate DOMAIN inside that form (spec/OwnIR.md §4.2, #259 final
+# acceptance). Literals, not imports: a ledger written in terms of the value
+# under test asserts self-consistency rather than correctness — the failure
+# `tests/test_ownir_defensive_limits.py` records at the top of its own
+# constant block, one layer down.
+LINE_MIN = 0
+LINE_MAX = 2147483647
+COLUMN_MIN = 1
+COLUMN_MAX = 2147483647
+ABOVE_LINE_MAX = LINE_MAX + 1
 
 
 def _c(name: str, section: str, why: str, document: Any,
@@ -1069,22 +1102,40 @@ def _controls() -> list[dict[str, Any]]:
         # represent. #326 closed that Python-first, so the family belongs in
         # the ledger now — and "0/0/0 over a set with a known divergence
         # removed from it" stops being the result on offer.
+        # FOUR OF THESE FLIPPED in #259's final acceptance, and they keep
+        # their `accept-` names on purpose: the name records the contract the
+        # coordinate-domain decision replaced, so the flip reads as one
+        # re-measured control rather than as a new control beside a deleted
+        # one. Each `why` states the position it replaced; the note quotes the
+        # old wording in full (docs/notes/p022-bridge-verdict-final-acceptance.md
+        # §2.3). This is a re-measure, not a weakening: the reference changed
+        # first, so "a divergence is a Rust bug" never applied.
         _c("accept-line-at-i64-max", "services",
-           "the largest representable line",
-           {"ownir_version": 0, "services": [_svc(line=I64_MAX)]}, None),
+           "the largest REPRESENTABLE line — accepted until the coordinate "
+           "domain existed, now outside it. Representability and domain are "
+           "two axes: this value still HAS a signed-64 form, which is exactly "
+           "why it is `location` and not `shape`",
+           {"ownir_version": 0, "services": [_svc(line=I64_MAX)]}, "location"),
         _c("accept-line-at-i64-min", "services",
-           "…and the smallest, because the range is closed at BOTH ends and a "
-           "port that bounded only the top would pass a one-sided test",
-           {"ownir_version": 0, "services": [_svc(line=I64_MIN)]}, None),
+           "…and the smallest. The range is still closed at BOTH ends and a "
+           "port that bounded only the top would pass a one-sided test — the "
+           "ends have simply moved from the form to the domain",
+           {"ownir_version": 0, "services": [_svc(line=I64_MIN)]}, "location"),
         _c("accept-column-at-i64-max", "components",
-           "…and the largest column",
+           "…and the largest column, which now carries the same upper bound a "
+           "line does",
            {"ownir_version": 0,
-            "components": [{"subscriptions": [{"column": I64_MAX}]}]}, None),
+            "components": [{"subscriptions": [{"column": I64_MAX}]}]},
+           "location"),
         _c("accept-negative-line", "services",
-           "a NEGATIVE line is accepted: only columns carry the 1-based rule, "
-           "and conflating the two would tighten the door",
-           {"ownir_version": 0, "services": [_svc(line=-5)]}, None),
-        _c("accept-zero-line", "services", "…and zero is the line default",
+           "a negative line is REJECTED: it is not the 1-based column rule "
+           "borrowed, it is the line's own domain — no producer emits one and "
+           "nothing downstream can point at it (spec/OwnIR.md §4.2)",
+           {"ownir_version": 0, "services": [_svc(line=-5)]}, "location"),
+        _c("accept-zero-line", "services",
+           "…and zero is still the line default, unchanged: it means "
+           "'unknown / file-level' and is the bottom of the domain, not an "
+           "edge case that survived",
            {"ownir_version": 0, "services": [_svc(line=0)]}, None),
 
         # One step past each end, and both ends of the u64 band. The four
@@ -1212,7 +1263,182 @@ def _controls() -> list[dict[str, Any]]:
            {"ownir_version": 0, "protocol_functions": [
                {"name": "M", "events": [_nest_ev(MAX_NESTING + 1, "body")]}]},
            "shape"),
+        # …and the coordinate-domain family, appended (insertion-stable).
+        *_domain_controls(),
     ]
+
+
+# --- the coordinate domain, one family per field (#259 final acceptance) -----
+
+
+def _line_slots() -> tuple[tuple[str, str, Any], ...]:
+    """Every line-bearing field, as `(stem, section, build)`.
+
+    `build(value)` returns a MINIMAL document carrying that value in exactly
+    one coordinate slot, so a control isolates the field rather than the
+    section. The two fields §4.2 used to record as validated nowhere are in
+    this table beside the rest, because after this change they are not
+    special — and the flow-op line appears once per nesting shape, since
+    `then`/`else`/`body` are three separate recursion sites in the reference.
+    """
+    return (
+        ("service-line", "services",
+         lambda v: {"ownir_version": 0, "services": [_svc(line=v)]}),
+        ("service-ctor-line", "services",
+         lambda v: {"ownir_version": 0, "services": [_svc(ctor_line=v)]}),
+        ("service-site-line", "services",
+         lambda v: {"ownir_version": 0,
+                    "services": [_svc(root_resolve_sites=[{"line": v}])]}),
+        ("service-scope-cache-site-line", "services",
+         lambda v: {"ownir_version": 0,
+                    "services": [_svc(scope_cache_sites=[{"line": v}])]}),
+        ("effect-line", "effects",
+         lambda v: {"ownir_version": 0, "effects": [{"line": v}]}),
+        ("binding-line", "effects",
+         lambda v: {"ownir_version": 0,
+                    "effects": [{"bindings": [{"line": v}]}]}),
+        ("param-line", "functions",
+         lambda v: {"ownir_version": 0,
+                    "functions": [{"params": [{"name": "p", "line": v}]}]}),
+        ("event-line", "protocol_functions",
+         lambda v: {"ownir_version": 0, "protocol_functions": [
+             {"name": "M", "events": [{"ev": "return", "line": v}]}]}),
+        ("subscription-line", "components",
+         lambda v: {"ownir_version": 0,
+                    "components": [{"subscriptions": [{"line": v}]}]}),
+        ("flow-op-line", "functions",
+         lambda v: {"ownir_version": 0,
+                    "functions": [{"body": [{"op": "acquire", "line": v}]}]}),
+        ("flow-op-line-then", "functions",
+         lambda v: {"ownir_version": 0, "functions": [{"body": [
+             {"op": "if", "then": [{"op": "acquire", "line": v}]}]}]}),
+        ("flow-op-line-else", "functions",
+         lambda v: {"ownir_version": 0, "functions": [{"body": [
+             {"op": "if", "else": [{"op": "acquire", "line": v}]}]}]}),
+        ("flow-op-line-body", "functions",
+         lambda v: {"ownir_version": 0, "functions": [{"body": [
+             {"op": "while", "body": [{"op": "acquire", "line": v}]}]}]}),
+    )
+
+
+def _column_slots() -> tuple[tuple[str, str, Any], ...]:
+    return (
+        ("subscription-column", "components",
+         lambda v: {"ownir_version": 0,
+                    "components": [{"subscriptions": [{"column": v}]}]}),
+        ("param-column", "functions",
+         lambda v: {"ownir_version": 0,
+                    "functions": [{"params": [{"name": "p", "column": v}]}]}),
+        ("flow-op-column", "functions",
+         lambda v: {"ownir_version": 0,
+                    "functions": [{"body": [{"op": "acquire", "column": v}]}]}),
+    )
+
+
+def _domain_controls() -> list[dict[str, Any]]:
+    """The domain pinned at both ends and one step outside each, per field.
+
+    Four values per line field is the minimum that discriminates: without the
+    at-limit pair a port could bound the domain one narrow and still pass, and
+    without `0` it could bound it at 1 and pass. The same off-by-one that made
+    the nesting limit reject a body AT the limit is the reason the shape of
+    this table is below/at/past rather than "something far outside".
+
+    Appended after the existing controls rather than interleaved: a
+    vocabulary-derived ledger must stay insertion-stable (P-022 discipline 4),
+    so adding a family churns no existing record.
+    """
+    out: list[dict[str, Any]] = []
+    newly_validated = {"subscription-line", "flow-op-line", "flow-op-line-then",
+                       "flow-op-line-else", "flow-op-line-body"}
+    for stem, section, build in _line_slots():
+        note = (" — a field `load()` checked NOWHERE before this change, not "
+                "even for type (§4.2's recorded exception, now closed)"
+                if stem in newly_validated else "")
+        out += [
+            _c(f"accept-{stem}-zero", section,
+               f"`0` is the bottom of the domain and means 'unknown / "
+               f"file-level'{note}", build(LINE_MIN), None),
+            _c(f"accept-{stem}-at-int32-max", section,
+               "…and 2147483647 is the top, accepted exactly",
+               build(LINE_MAX), None),
+            _c(f"{stem}-negative", section,
+               "one below the bottom: a representable coordinate outside its "
+               "domain, so `location` rather than `shape`",
+               build(LINE_MIN - 1), "location"),
+            _c(f"{stem}-above-int32", section,
+               "…and one above the top, the value a port that kept the old "
+               "signed-64 bound would still accept",
+               build(ABOVE_LINE_MAX), "location"),
+        ]
+    # Type controls for the two fields that had none. Every other line field
+    # already carries them above; these two were accepted with any value at
+    # all, which is what §4.2 recorded as an open contract question.
+    for stem, section, build in _line_slots():
+        if stem not in newly_validated:
+            continue
+        out += [
+            _c(f"{stem}-string", section,
+               "a string line has no integer form — `shape`, on the other "
+               "axis from the domain rejections above",
+               build("x"), "shape"),
+            _c(f"{stem}-bool", section,
+               "…and the bool-is-int trap, which would otherwise read as "
+               "line 1",
+               build(True), "shape"),
+            _c(f"{stem}-null", section,
+               "…and a PRESENT null, which is not the same as absent: the "
+               "reference reads the slot with a `0` default, so only an "
+               "absent key takes it",
+               build(None), "shape"),
+        ]
+    for stem, section, build in _column_slots():
+        out += [
+            _c(f"accept-{stem}-at-int32-max", section,
+               "the top of the column domain, accepted exactly",
+               build(COLUMN_MAX), None),
+            _c(f"{stem}-above-int32", section,
+               "…and one past it: representable, positive, and outside the "
+               "domain — `location`, the same axis the 1-based rule is on",
+               build(COLUMN_MAX + 1), "location"),
+        ]
+    out += [
+        _c("column-below-i64", "components",
+           "a column BELOW the representable form. It is `shape` by mechanism "
+           "— there is no signed-64 integer here for a 1-based rule to be "
+           "about — even though the reference's message names the 1-based "
+           "rule, because it tests `v < 1` before the form. The category is "
+           "read off the mechanism, which is this ledger's rule and the "
+           "reason the taxonomy has two axes at all",
+           {"ownir_version": 0,
+            "components": [{"subscriptions": [{"column": BELOW_I64}]}]},
+           "shape"),
+        # Order, which BR-D1 makes observable. Each pair breaks two rules whose
+        # categories differ, so the answer names which check ran first.
+        _c("order-subscription-kind-before-line", "components",
+           "an unknown resource kind and an out-of-domain line in one record: "
+           "the kind is checked first, so this is `vocabulary`",
+           {"ownir_version": 0, "components": [{"subscriptions": [
+               {"resource": "nope", "line": -1}]}]}, "vocabulary"),
+        _c("order-subscription-line-before-column", "components",
+           "…and the line precedes the column of the same node (§4.1), so a "
+           "record breaking both reports the line's domain, not the column's "
+           "type",
+           {"ownir_version": 0, "components": [{"subscriptions": [
+               {"line": -1, "column": True}]}]}, "location"),
+        _c("order-flow-op-line-before-column", "functions",
+           "…and the same order inside a flow op",
+           {"ownir_version": 0, "functions": [{"body": [
+               {"op": "acquire", "line": -1, "column": True}]}]}, "location"),
+        _c("order-flow-op-body-before-params", "functions",
+           "the BODY's coordinates still precede `params` — the least obvious "
+           "edge in the door, and now observable through a line as well as a "
+           "column",
+           {"ownir_version": 0, "functions": [{
+               "body": [{"op": "acquire", "line": -1}],
+               "params": [{"name": ""}]}]}, "location"),
+    ]
+    return out
 
 
 def _oracle(document: Any, raw: bool) -> tuple[str, str]:

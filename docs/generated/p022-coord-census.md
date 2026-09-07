@@ -11,22 +11,22 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | measure                            | value |
 |------------------------------------|------:|
 | JSON files scanned                 | 325 |
-| coordinate slots found             | 2096 |
+| coordinate slots found             | 2176 |
 
 ## By value class
 
 | value class | all slots | door slots |
 |---|---:|---:|
-| `above-int32` | 4 | 3 |
+| `above-int32` | 19 | 19 |
 | `below-1` | 19 | 19 |
-| `bool` | 7 | 7 |
+| `bool` | 14 | 14 |
 | `float` | 2 | 2 |
-| `in-domain` | 1720 | 930 |
-| `negative` | 9 | 6 |
-| `null` | 219 | 2 |
-| `outside-int64` | 13 | 13 |
-| `string` | 12 | 12 |
-| `zero` | 91 | 12 |
+| `in-domain` | 1736 | 946 |
+| `negative` | 23 | 23 |
+| `null` | 224 | 7 |
+| `outside-int64` | 14 | 14 |
+| `string` | 17 | 17 |
+| `zero` | 108 | 25 |
 
 ## By family and slot
 
@@ -40,48 +40,90 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `(root)` | `cases[].diagnostics[].evidence[].line` | `zero` | — | 1 | 1 | — |
 | `(root)` | `cases[].diagnostics[].line` | `in-domain` | — | 20 | 1 | — |
 | `(root)` | `cases[].diagnostics[].line` | `zero` | — | 1 | 1 | — |
-| `(root)` | `cases[].document.components[].subscriptions[].column` | `above-int32` | yes | 1 | 1 | `9223372036854775807` |
+| `(root)` | `cases[].document.components[].subscriptions[].column` | `above-int32` | yes | 2 | 1 | `2147483648`, `9223372036854775807` |
 | `(root)` | `cases[].document.components[].subscriptions[].column` | `below-1` | yes | 6 | 1 | `-1`, `0` |
-| `(root)` | `cases[].document.components[].subscriptions[].column` | `bool` | yes | 1 | 1 | `True` |
+| `(root)` | `cases[].document.components[].subscriptions[].column` | `bool` | yes | 2 | 1 | `True` |
 | `(root)` | `cases[].document.components[].subscriptions[].column` | `float` | yes | 1 | 1 | `1.0` |
-| `(root)` | `cases[].document.components[].subscriptions[].column` | `in-domain` | yes | 2 | 1 | — |
+| `(root)` | `cases[].document.components[].subscriptions[].column` | `in-domain` | yes | 3 | 1 | — |
 | `(root)` | `cases[].document.components[].subscriptions[].column` | `null` | yes | 1 | 1 | — |
-| `(root)` | `cases[].document.components[].subscriptions[].column` | `outside-int64` | yes | 2 | 1 | `18446744073709551616`, `9223372036854775808` |
+| `(root)` | `cases[].document.components[].subscriptions[].column` | `outside-int64` | yes | 3 | 1 | `-9223372036854775809`, `18446744073709551616`, `9223372036854775808` |
 | `(root)` | `cases[].document.components[].subscriptions[].column` | `string` | yes | 1 | 1 | `'3'` |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `bool` | yes | 1 | 1 | `True` |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `negative` | yes | 3 | 1 | `-1` |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `null` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `string` | yes | 1 | 1 | `'x'` |
+| `(root)` | `cases[].document.components[].subscriptions[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.effects[].bindings[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.effects[].bindings[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.effects[].bindings[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.effects[].bindings[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.effects[].bindings[].line` | `string` | yes | 1 | 1 | `'3'` |
+| `(root)` | `cases[].document.effects[].bindings[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.effects[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.effects[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.effects[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.effects[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.effects[].line` | `string` | yes | 1 | 1 | `'3'` |
+| `(root)` | `cases[].document.effects[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.functions[].<nested>[].column` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.functions[].<nested>[].column` | `below-1` | yes | 8 | 1 | `-2`, `0` |
-| `(root)` | `cases[].document.functions[].<nested>[].column` | `bool` | yes | 1 | 1 | `True` |
-| `(root)` | `cases[].document.functions[].<nested>[].column` | `in-domain` | yes | 8 | 1 | — |
+| `(root)` | `cases[].document.functions[].<nested>[].column` | `bool` | yes | 2 | 1 | `True` |
+| `(root)` | `cases[].document.functions[].<nested>[].column` | `in-domain` | yes | 9 | 1 | — |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `above-int32` | yes | 4 | 1 | `2147483648` |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `bool` | yes | 4 | 1 | `True` |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `in-domain` | yes | 4 | 1 | — |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `negative` | yes | 6 | 1 | `-1` |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `null` | yes | 4 | 1 | — |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `string` | yes | 4 | 1 | `'x'` |
+| `(root)` | `cases[].document.functions[].<nested>[].line` | `zero` | yes | 4 | 1 | — |
+| `(root)` | `cases[].document.functions[].params[].column` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.functions[].params[].column` | `below-1` | yes | 4 | 1 | `-1`, `0` |
 | `(root)` | `cases[].document.functions[].params[].column` | `bool` | yes | 1 | 1 | `True` |
-| `(root)` | `cases[].document.functions[].params[].column` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.functions[].params[].column` | `in-domain` | yes | 2 | 1 | — |
 | `(root)` | `cases[].document.functions[].params[].column` | `string` | yes | 1 | 1 | `'3'` |
+| `(root)` | `cases[].document.functions[].params[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.functions[].params[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.functions[].params[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.functions[].params[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.functions[].params[].line` | `string` | yes | 3 | 1 | `'3'` |
+| `(root)` | `cases[].document.functions[].params[].line` | `zero` | yes | 1 | 1 | — |
 | `(root)` | `cases[].document.protocol_functions[].events[].<nested>[].line` | `in-domain` | yes | 134 | 1 | — |
+| `(root)` | `cases[].document.protocol_functions[].events[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `bool` | yes | 1 | 1 | `True` |
-| `(root)` | `cases[].document.protocol_functions[].events[].line` | `in-domain` | yes | 13 | 1 | — |
+| `(root)` | `cases[].document.protocol_functions[].events[].line` | `in-domain` | yes | 14 | 1 | — |
+| `(root)` | `cases[].document.protocol_functions[].events[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.protocol_functions[].events[].line` | `string` | yes | 3 | 1 | `'3'`, `'x'` |
+| `(root)` | `cases[].document.protocol_functions[].events[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].ctor_line` | `above-int32` | yes | 1 | 1 | `2147483648` |
+| `(root)` | `cases[].document.services[].ctor_line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].ctor_line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.services[].ctor_line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
 | `(root)` | `cases[].document.services[].ctor_line` | `string` | yes | 1 | 1 | `'3'` |
-| `(root)` | `cases[].document.services[].line` | `above-int32` | yes | 1 | 1 | `9223372036854775807` |
+| `(root)` | `cases[].document.services[].ctor_line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].line` | `above-int32` | yes | 2 | 1 | `2147483648`, `9223372036854775807` |
 | `(root)` | `cases[].document.services[].line` | `bool` | yes | 1 | 1 | `True` |
 | `(root)` | `cases[].document.services[].line` | `float` | yes | 1 | 1 | `1.0` |
-| `(root)` | `cases[].document.services[].line` | `negative` | yes | 2 | 1 | `-5`, `-9223372036854775808` |
+| `(root)` | `cases[].document.services[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].line` | `negative` | yes | 3 | 1 | `-1`, `-5`, `-9223372036854775808` |
 | `(root)` | `cases[].document.services[].line` | `null` | yes | 1 | 1 | — |
 | `(root)` | `cases[].document.services[].line` | `outside-int64` | yes | 4 | 1 | `-9223372036854775809`, `18446744073709551615`, `18446744073709551616`, `9223372036854775808` |
 | `(root)` | `cases[].document.services[].line` | `string` | yes | 1 | 1 | `'3'` |
-| `(root)` | `cases[].document.services[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].line` | `zero` | yes | 2 | 1 | — |
+| `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `bool` | yes | 1 | 1 | `True` |
-| `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `in-domain` | yes | 2 | 1 | — |
+| `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
+| `(root)` | `cases[].document.services[].root_resolve_sites[].line` | `zero` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `above-int32` | yes | 1 | 1 | `2147483648` |
 | `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `bool` | yes | 1 | 1 | `True` |
-| `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `in-domain` | yes | 1 | 1 | — |
+| `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `in-domain` | yes | 2 | 1 | — |
+| `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `negative` | yes | 1 | 1 | `-1` |
 | `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `outside-int64` | yes | 1 | 1 | `9223372036854775808` |
+| `(root)` | `cases[].document.services[].scope_cache_sites[].line` | `zero` | yes | 1 | 1 | — |
 | `(root)` | `cases[].expected[].line` | `in-domain` | — | 60 | 1 | — |
 | `(root)` | `cases[].expected[].line` | `zero` | — | 1 | 1 | — |
 | `(root)` | `cases[].methods[].events[].<nested>[].line` | `in-domain` | — | 26 | 1 | — |
@@ -156,10 +198,8 @@ Value classes follow the cp1 taxonomy's axis rather than blurring it: `outside-i
 | `verdicts` | `effects[].line` | `zero` | yes | 1 | 1 | — |
 | `verdicts` | `findings[].column` | `in-domain` | — | 13 | 4 | — |
 | `verdicts` | `findings[].column` | `null` | — | 167 | 73 | — |
-| `verdicts` | `findings[].line` | `above-int32` | — | 1 | 1 | `4294967296` |
 | `verdicts` | `findings[].line` | `in-domain` | — | 166 | 68 | — |
-| `verdicts` | `findings[].line` | `negative` | — | 3 | 3 | `-1`, `-3`, `-5` |
-| `verdicts` | `findings[].line` | `zero` | — | 10 | 7 | — |
+| `verdicts` | `findings[].line` | `zero` | — | 14 | 11 | — |
 | `verdicts` | `functions[].<nested>[].column` | `below-1` | yes | 1 | 1 | `0` |
 | `verdicts` | `functions[].<nested>[].column` | `in-domain` | yes | 7 | 2 | — |
 | `verdicts` | `functions[].<nested>[].line` | `above-int32` | yes | 1 | 1 | `4294967296` |
