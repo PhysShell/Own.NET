@@ -1,6 +1,6 @@
 {
   "reduction_version": 2,
-  "case": "verdict_door_effect_deps_not_strings",
+  "case": "verdict_door_service_unknown_lifetime",
   "engines": [
     "python-ownlang",
     "rust-own-bridge"
@@ -33,7 +33,7 @@
     "acceptance": "declared-boundary",
     "boundary": {
       "class": "OD-1",
-      "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+      "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
     },
     "step": null,
     "path": null,
@@ -48,7 +48,7 @@
       "acceptance": "declared-boundary",
       "boundary": {
         "class": "OD-1",
-        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
       },
       "step": null,
       "path": null,
@@ -62,7 +62,7 @@
       "acceptance": "declared-boundary",
       "boundary": {
         "class": "OD-1",
-        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
       },
       "step": null,
       "path": null,
@@ -76,7 +76,7 @@
       "acceptance": "declared-boundary",
       "boundary": {
         "class": "OD-1",
-        "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+        "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
       },
       "step": null,
       "path": null,

@@ -62,8 +62,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from ownlang.lowered import project_lowered
 from ownlang.repro import (
+    ACCEPTANCE_DECLARED,
+    ACCEPTANCE_UNEXPLAINED,
+    BOUNDARY_OD1,
+    BOUNDARY_POLICY,
     CANONICAL_ALGORITHM,
     ENGINE_PYTHON,
+    KIND_CHANGED,
+    KIND_MISSING_LAYER,
+    KIND_ORDERING_ONLY,
+    KIND_PROJECTION,
+    KIND_STATUS,
+    LAYER_ORDER,
     LAYER_ORDER_SEMANTICS,
     REDUCTION_SCOPE,
     REPRO_VERSION,
@@ -82,6 +92,7 @@ from ownlang.repro import (
     stable_handle_ids,
     verify_repro,
 )
+from ownlang.repro import judge as judge_acceptance
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXDIR = os.path.join(HERE, "fixtures", "repro")
@@ -828,18 +839,183 @@ def _reduction_controls(artifact_names: list[str]) -> list[tuple[str, str]]:
                           f"{first.get('path')!r}, expected '[keys]' — the reader "
                           f"should not have to diff two identical-looking objects"))
 
-    # The verdict layer is REFUSED, not skipped — "not compared" must never be
-    # readable as "compared and agreed".
-    if "verdicts" in REDUCTION_SCOPE:
-        fails.append(("reduction-control",
-                      "the reduction scope now includes 'verdicts' — comparing "
-                      "final diagnostics is #260's acceptance and is blocked by "
-                      "#259; widening the scope is a contract decision"))
-    refused = [o["layer"] for o in quiet["out_of_scope"]]
-    if "verdicts" not in refused:
-        fails.append(("reduction-control",
-                      "the reduction does not RECORD that it refused the "
-                      "verdict layer; a reader could take silence for agreement"))
+    # The pin, in its POSITIVE form (owner decision D-4). It used to assert the
+    # verdict layer was OUT of scope; the owner took the decision, so the same
+    # test now asserts it is in — and that the scope is the layer order itself,
+    # not a third copy of the list that could drift from it. `is` rather than
+    # `==`: a copy that happens to be equal today is exactly what D-4 rules out.
+    if REDUCTION_SCOPE is not LAYER_ORDER:
+        fails.append(("reduction-scope",
+                      f"REDUCTION_SCOPE is a separate object from LAYER_ORDER "
+                      f"({REDUCTION_SCOPE!r} vs {LAYER_ORDER!r}) — D-4 says the "
+                      f"scope IS the layer order, aliased and never copied, "
+                      f"because a third copy of one list is the one that drifts"))
+    if "verdicts" not in REDUCTION_SCOPE:
+        fails.append(("reduction-scope",
+                      "the reduction scope does not include 'verdicts' — the "
+                      "owner's decision D-4 put the verdict layer in scope"))
+    if quiet["out_of_scope"]:
+        fails.append(("reduction-scope",
+                      f"the reduction records layers as out of scope "
+                      f"({quiet['out_of_scope']}) — every layer is walked now; "
+                      f"the member stays and is EMPTY, so 'nothing is excluded' "
+                      f"stays distinguishable from 'the field went away'"))
+    fails += _boundary_policy_controls(case)
+    fails += _verdict_pairing_controls(base, case)
+    return fails
+
+
+def _boundary_policy_controls(case: str) -> list[tuple[str, str]]:
+    """Owner decision D-5, driven through the production judgement.
+
+    Every rule the policy states needs a document that breaks exactly it,
+    because the whole design is a set of *refusals to explain* — and a rule
+    that only ever says "yes" is a rule no mutation can disturb."""
+    fails: list[tuple[str, str]] = []
+
+    def expect(label: str, layer: str, kind: str, boundary: Any,
+               acceptance: str) -> None:
+        got, kept = judge_acceptance(layer, kind, boundary)
+        if got != acceptance:
+            fails.append(("boundary-policy",
+                          f"{label}: judged {got!r}, expected {acceptance!r}"))
+        if acceptance == ACCEPTANCE_UNEXPLAINED and kind not in (
+                KIND_STATUS, KIND_PROJECTION) and kept is not None:
+            fails.append(("boundary-policy",
+                          f"{label}: a content observation kept a boundary "
+                          f"({kept!r}) — the policy is not consulted for one, "
+                          f"and carrying the class would invite a later reader "
+                          f"to treat it as an explanation"))
+
+    od1 = {"class": BOUNDARY_OD1, "detail": "typed door: whatever it said"}
+    other_detail = {"class": BOUNDARY_OD1, "detail": "an entirely different wording"}
+    wrong_class = {"class": "OD-9", "detail": "typed door: whatever it said"}
+
+    # 1. The policy IS the three OD-1 typed-door entries, exactly. Not a
+    #    superset, not a subset — a widened policy is a contract change.
+    expected_policy = {
+        ("lowered", KIND_STATUS, BOUNDARY_OD1),
+        ("summaries", KIND_STATUS, BOUNDARY_OD1),
+        ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+    }
+    if set(BOUNDARY_POLICY) != expected_policy:
+        fails.append(("boundary-policy",
+                      f"the frozen boundary policy is {sorted(BOUNDARY_POLICY)}, "
+                      f"expected exactly {sorted(expected_policy)} — widening it "
+                      f"is an owner decision, not a patch"))
+
+    # 2. The door refuses every layer, so each layer's status observation is
+    #    explained by it.
+    for layer in LAYER_ORDER:
+        expect(f"OD-1 on a {layer} status observation", layer, KIND_STATUS,
+               od1, ACCEPTANCE_DECLARED)
+
+    # 3. A known class on the WRONG KIND explains nothing. This is the mutation
+    #    the whole (layer, kind, class) shape exists for: a class is not a token
+    #    that excuses whatever it is pinned to.
+    for kind in (KIND_CHANGED, KIND_MISSING_LAYER):
+        expect(f"OD-1 attached to a {kind} observation", "verdicts", kind, od1,
+               ACCEPTANCE_UNEXPLAINED)
+    expect("OD-1 attached to a projection observation", "verdicts",
+           KIND_PROJECTION, od1, ACCEPTANCE_UNEXPLAINED)
+
+    # 4. A known class on a layer the policy does not name explains nothing.
+    expect("OD-1 on a layer outside the policy", "renders", KIND_STATUS, od1,
+           ACCEPTANCE_UNEXPLAINED)
+
+    # 5. `detail` never participates: the same class with different prose is
+    #    still explained, and a different class with the SAME prose is not.
+    expect("OD-1 with different detail prose", "verdicts", KIND_STATUS,
+           other_detail, ACCEPTANCE_DECLARED)
+    expect("an unknown class wearing OD-1's detail", "verdicts", KIND_STATUS,
+           wrong_class, ACCEPTANCE_UNEXPLAINED)
+
+    # 6. A refusal with no declaration is unexplained, not unknown. Absence is
+    #    data: an engine that refused without saying why has not declared a
+    #    boundary, and silence is the one thing a policy may not accept.
+    for undeclared in (None, {}, {"detail": "no class at all"}):
+        expect(f"a status observation with boundary {undeclared!r}", "verdicts",
+               KIND_STATUS, undeclared, ACCEPTANCE_UNEXPLAINED)
+    if fails:
+        return [(tag, f"{case}: {detail}") for tag, detail in fails]
+    return fails
+
+
+def _verdict_pairing_controls(base: dict[str, Any],
+                              case: str) -> list[tuple[str, str]]:
+    """Owner decision D-7, driven adversarially and cross-engine.
+
+    The BR-V8 address `file:line:column:code` is a PAIRING address, not object
+    identity, and a duplicate address takes a `~<n>` suffix that is **part of
+    the address**. So two findings that share an address and swap their
+    messages between the engines are two `changed` observations at `.message`,
+    one per ordinal — never `ordering-only`, which would say the engines put
+    the same things in a different sequence and licence a reader to shrug.
+
+    Built synthetically because no corpus document reaches it: the reference
+    and the port agree on every finding, so a duplicate-address permutation has
+    to be introduced on purpose. That is the point — a rule the corpus cannot
+    exercise is a rule a mutation walks straight through."""
+    fails: list[tuple[str, str]] = []
+    address = "A.cs:1:1:OWN001"
+
+    def side(first: str, second: str) -> dict[str, Any]:
+        return {
+            "layer": "verdicts", "status": "produced",
+            "projection": {"kind": "full"}, "order": "significant",
+            "steps": [
+                {"id": f"findings[{address}]",
+                 "value": {"file": "A.cs", "line": 1, "column": 1,
+                           "code": "OWN001", "message": first}},
+                {"id": f"findings[{address}~1]",
+                 "value": {"file": "A.cs", "line": 1, "column": 1,
+                           "code": "OWN001", "message": second}},
+            ],
+        }
+
+    forged = copy.deepcopy(base)
+    for i, (a, b) in enumerate((("X", "Y"), ("Y", "X"))):
+        layers = forged["traces"][i]["layers"]
+        for j, entry in enumerate(layers):
+            if entry["layer"] == "verdicts":
+                layers[j] = side(a, b)
+    result = reduce_traces(forged)
+    by_kind = result["classification"]["by_kind"]
+    if by_kind[KIND_ORDERING_ONLY] != 0:
+        fails.append(("verdict-pairing",
+                      f"{case}: a duplicate-address permutation was reported as "
+                      f"ORDERING-ONLY — the `~<n>` ordinal is part of the "
+                      f"address, so this is two findings whose values differ, "
+                      f"not the same findings in another sequence"))
+    changed = [o for o in result["observations"]
+               if o["layer"] == "verdicts" and o["kind"] == KIND_CHANGED]
+    if len(changed) != 2:
+        fails.append(("verdict-pairing",
+                      f"{case}: expected 2 `changed` observations on the verdict "
+                      f"layer (one per ordinal), got {len(changed)}: "
+                      f"{[o['step'] for o in changed]}"))
+    for observation, expected_step in zip(
+            changed, [f"findings[{address}]", f"findings[{address}~1]"],
+            strict=False):
+        if observation["step"] != expected_step:
+            fails.append(("verdict-pairing",
+                          f"{case}: expected a change at {expected_step!r}, got "
+                          f"{observation['step']!r}"))
+        if observation["path"] != ".message":
+            fails.append(("verdict-pairing",
+                          f"{case}: the difference at {observation['step']!r} is "
+                          f"reported at {observation['path']!r}, expected "
+                          f"'.message' — the pairing address holds, so the "
+                          f"difference is a VALUE at that address"))
+        if observation["acceptance"] != ACCEPTANCE_UNEXPLAINED:
+            fails.append(("verdict-pairing",
+                          f"{case}: a content difference on the verdict layer is "
+                          f"judged {observation['acceptance']!r} — every content "
+                          f"observation is unexplained (D-5)"))
+    if result["outcome"] != "diverged":
+        fails.append(("verdict-pairing",
+                      f"{case}: outcome {result['outcome']!r}, expected "
+                      f"'diverged'"))
     return fails
 
 

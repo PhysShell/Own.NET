@@ -1,9 +1,9 @@
 {
-  "trace_version": 1,
+  "trace_version": 2,
   "case": "hoist_neg_while_body",
   "traces": [
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
@@ -223,12 +223,13 @@
           },
           "order": "significant",
           "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding.",
+          "boundary": null,
           "steps": []
         }
       ]
     },
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",
@@ -448,6 +449,7 @@
           },
           "order": "significant",
           "error": "internal: the core reported [OWN030] on the lowered facts that the bridge cannot map back to a C# subscription (subject=None, message=\"undefined name 'loc_0'\"). The OwnIR lowering has drifted from the core; teach the bridge this diagnostic rather than dropping the finding.",
+          "boundary": null,
           "steps": []
         }
       ]

@@ -137,8 +137,8 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   decision, for the same reason). The layer order is the *pipeline* order,
   which is what a first-divergence reduction walks.
 * **One layer envelope for all three layers**: `{"layer", "surface_version",
-  "projection", "status", "document" | "error"}`. `status` is `produced` or
-  `refused`;
+  "projection", "status", "document" | "error", "boundary"?}`. `status` is
+  `produced` or `refused`;
   `document` is present exactly when produced, `error` exactly when refused.
   A produced layer's document is carried **verbatim** — including the
   `lowered_version`/`verdicts_version` its own surface stamps, which
@@ -146,6 +146,17 @@ The canonical form exists for **one** job: to name an input. It is deliberately
   a *refused* layer still name the surface it refused on. `summaries` has no
   surface version of its own (its document carries `ownir_version`), so its
   `surface_version` is `null` — absence is data.
+* **`boundary` is how a refusing engine DECLARES its refusal class** (owner
+  decision D-5): `{"class": ..., "detail": ...}`, present only on a refused
+  layer. `class` is a structured token the frozen boundary policy matches on;
+  `detail` is prose for a human and never participates in the match. The
+  declaration belongs to the engine that refused, because the alternative is a
+  comparison tool that reads an error TEXT and calls the result a contract —
+  and because a comparison tool carrying its own table of known cases would be
+  a second place the boundary is defined. This reference declares none today:
+  every refusal it reaches through the tolerant door is a surface's own
+  fail-loud answer rather than a door it closed. The field is part of the
+  FORMAT regardless, so the other engine's verifier checks it.
 * **`projection` says what the engine could produce** (the engine protocol,
   checkpoint 2). Either `{"kind": "full"}` — the engine emits the whole frozen
   surface — or `{"kind": "partial", "members": [...], "reason": "..."}`, naming
@@ -184,13 +195,22 @@ Two things stand in the way, and the trace is the normalization that removes
 exactly one of them and *declares* the other.
 
 ```text
-{"trace_version": 1,
+{"trace_version": 2,
  "engine": "python-ownlang",
  "input": {"algorithm": ..., "digest": ..., "bytes": ...},
  "layers": [{"layer": "lowered", "status": "produced", "projection": {...},
              "order": "significant",
-             "steps": [{"id": "<stable address>", "value": <json>}, ...]}]}
+             "steps": [{"id": "<stable address>", "value": <json>}, ...]},
+            {"layer": "verdicts", "status": "refused", "projection": {...},
+             "order": "significant", "error": "...",
+             "boundary": {"class": "OD-1", "detail": "..."} | null,
+             "steps": []}]}
 ```
+
+Version 2 carries a refused layer's `boundary` through. A reduction reads
+traces, not captures, so a declaration that stopped at the capture would leave
+the reducer with nothing but the error text to judge on — which is the matching
+D-5 forbids.
 
 * **Internal identifiers are normalized away.** The lowered surface's handles
   (`sub_0`, `cap_1`, `parg_0`, `loc_3`) are minted from **global counters in
@@ -227,9 +247,10 @@ exactly one of them and *declares* the other.
   own. Flattening deeper would need a path grammar, and the enclosing statement
   is already the smallest unit that names a lowering site; a difference inside
   a branch shows as a difference on that statement.
-* A **refused** layer carries its error and **no steps** — there is nothing to
-  address, and inventing an empty step list that compared equal to another
-  engine's empty one would score a refusal as agreement.
+* A **refused** layer carries its error, its declared `boundary` (or `null`)
+  and **no steps** — there is nothing to address, and inventing an empty step
+  list that compared equal to another engine's empty one would score a refusal
+  as agreement.
 * The trace carries the **input hash**, so a trace cannot be read against a
   document it did not come from.
 
@@ -468,11 +489,20 @@ def load_bytes(raw: bytes) -> Any:
 
 
 def _layer(name: str, surface_version: Any, doc: dict[str, Any],
-           projection: dict[str, Any] | None = None) -> dict[str, Any]:
+           projection: dict[str, Any] | None = None,
+           boundary: dict[str, Any] | None = None) -> dict[str, Any]:
     """One layer envelope. A surface that encodes its own refusal as
     `{"error": ...}` is LIFTED into the envelope's `refused` status; a produced
     document is carried verbatim. `projection` defaults to the reference's
-    `full` — it emits the whole of every frozen surface by definition."""
+    `full` — it emits the whole of every frozen surface by definition.
+
+    `boundary` is the STRUCTURED refusal class the refusing engine declares
+    (owner decision D-5): `{"class": ..., "detail": ...}`, present only on a
+    refused layer. This reference declares none today — every refusal it
+    reaches through the tolerant door is a surface's own fail-loud answer, not
+    a door this port closed — so the parameter exists to make the field part of
+    the FORMAT rather than part of one engine. A format member only one engine
+    can write is a member the other engine's verifier never checks."""
     entry: dict[str, Any] = {
         "layer": name,
         "surface_version": surface_version,
@@ -482,6 +512,8 @@ def _layer(name: str, surface_version: Any, doc: dict[str, Any],
     if error is not None:
         entry["status"] = STATUS_REFUSED
         entry["error"] = error
+        if boundary is not None:
+            entry["boundary"] = dict(boundary)
     else:
         entry["status"] = STATUS_PRODUCED
         entry["document"] = doc
@@ -759,8 +791,10 @@ def _verify_consumed(engine: dict[str, Any], at: str,
 # --------------------------------------------------------------------------
 
 # The trace surface version. Bump on ANY change to the frozen decisions in the
-# module docstring's AnalysisTrace section.
-TRACE_VERSION = 1
+# module docstring's AnalysisTrace section. 2 carries a refused layer's
+# structured `boundary` through, because the reducer judges acceptance from the
+# trace and the declaration lives on the capture (owner decision D-5).
+TRACE_VERSION = 2
 
 ORDER_SIGNIFICANT = "significant"
 ORDER_CANONICAL = "canonical"
@@ -956,6 +990,13 @@ def trace_layer(layer: dict[str, Any]) -> dict[str, Any]:
     }
     if layer.get("status") == STATUS_REFUSED:
         out["error"] = layer.get("error")
+        # The structured boundary class, carried through unchanged. The trace is
+        # what a reduction reads, so a declaration that stopped at the capture
+        # would leave the reducer with nothing but the error TEXT to judge on —
+        # which is exactly the matching D-5 forbids. `null` when the refusing
+        # engine declared none: absence is data, and an undeclared refusal is
+        # unexplained rather than unknown.
+        out["boundary"] = layer.get("boundary")
         out["steps"] = []
         return out
     builder = _LAYER_STEPS.get(str(name))
@@ -1013,24 +1054,131 @@ def render_traces(artifact: dict[str, Any], case: str) -> str:
 # First-divergence reduction (#260 step 7a cp4)
 # --------------------------------------------------------------------------
 
-REDUCTION_VERSION = 1
+# The reduction surface version. Bump on ANY change to the frozen decisions
+# below. 2 widened the scope to every layer (owner decision D-4) and made the
+# ACCEPTANCE judgement a field of its own beside the observation kind (D-5).
+REDUCTION_VERSION = 2
 
-# The layers this reducer will walk, in pipeline order. `verdicts` is
-# DELIBERATELY absent and refused rather than merely skipped: comparing final
-# diagnostics is #260's *acceptance*, which is blocked by #259 (cp5 and 4b),
-# and infrastructure that would quietly do it on request is infrastructure that
-# turns into an unearned shadow-mode claim the first time somebody widens a
-# tuple. Widening this set is a contract decision, not a parameter.
-REDUCTION_SCOPE: tuple[str, ...] = ("lowered", "summaries")
+# The layers this reducer walks, in pipeline order — **the layer order itself**
+# (owner decision D-4), aliased rather than copied.
+#
+# It used to be a narrower tuple, and the narrowing was right at the time: the
+# verdict layer was refused rather than skipped, because comparing final
+# diagnostics is #260's acceptance and infrastructure that would quietly do it
+# on request becomes an unearned shadow-mode claim the first time somebody
+# widens a constant. #259's final acceptance removed that reason, and the owner
+# took the decision.
+#
+# It is an ALIAS, not a third copy of the same list. The tree already held the
+# layer vocabulary three times — the order, the ordering semantics, and this
+# scope — and only the third could drift silently, because nothing compared it
+# to the first. `REDUCTION_SCOPE is LAYER_ORDER` is now a fact a test can state.
+REDUCTION_SCOPE: tuple[str, ...] = LAYER_ORDER
 
-# The four content classes, plus the two that are not content differences.
+# The observation KINDS: what was seen. Four content classes, plus the three
+# that are not content differences.
 KIND_LEFT_ONLY = "left-only"
 KIND_RIGHT_ONLY = "right-only"
 KIND_CHANGED = "changed"
 KIND_ORDERING_ONLY = "ordering-only"
 KIND_STATUS = "status"
 KIND_PROJECTION = "projection"
-KIND_UNEXPLAINED = "unexplained"
+# Replaces the old `unexplained` KIND (owner decision D-5). An engine that did
+# not report a layer at all is a *kind* of observation — a shape — and calling
+# it "unexplained" conflated the shape with the judgement, so the two could
+# never disagree. They can now, and they must be able to: `missing-layer` is
+# always judged unexplained, which is a rule with a control rather than a name.
+KIND_MISSING_LAYER = "missing-layer"
+
+KINDS: tuple[str, ...] = (
+    KIND_LEFT_ONLY, KIND_RIGHT_ONLY, KIND_CHANGED, KIND_ORDERING_ONLY,
+    KIND_STATUS, KIND_PROJECTION, KIND_MISSING_LAYER,
+)
+
+# The ACCEPTANCE judgement: what it means. Orthogonal to the kind (D-5) —
+# one field says what was observed, the other says whether it is explained,
+# and neither is recoverable from the other.
+ACCEPTANCE_UNEXPLAINED = "unexplained"
+ACCEPTANCE_DECLARED = "declared-boundary"
+ACCEPTANCES: tuple[str, ...] = (ACCEPTANCE_UNEXPLAINED, ACCEPTANCE_DECLARED)
+
+# The one boundary class any engine declares today: the #294 OD-1 typed door.
+BOUNDARY_OD1 = "OD-1"
+
+# The FROZEN boundary policy (owner decision D-5): the exact `(layer, kind,
+# class)` triples an observation may be judged a declared boundary on. Widening
+# it is a contract decision, and a test asserts EXACT equality to these three.
+#
+# Three entries for one door, and that is the point rather than repetition: the
+# typed `OwnIr` constructor sits upstream of every layer, so one refusal
+# produces three refused layer records, and a policy keyed by class alone could
+# not tell "the door refused this document" from "somebody attached a known
+# class to an unrelated layer". A class is not a token that excuses whatever it
+# is pinned to — it explains a *specific layer's specific kind of* observation,
+# and nothing else.
+#
+# `projection` has NO entry, deliberately. A projection difference means the two
+# engines declared different views of one surface, so their values are not
+# comparable member-for-member; that is a reason to stop comparing, never a
+# reason to call the difference explained.
+BOUNDARY_POLICY: frozenset[tuple[str, str, str]] = frozenset({
+    ("lowered", KIND_STATUS, BOUNDARY_OD1),
+    ("summaries", KIND_STATUS, BOUNDARY_OD1),
+    ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+})
+
+# The reduction outcomes. `declared-boundary` is not a softer `diverged`: it
+# says every observation was matched by the frozen policy, which is a stronger
+# statement than "nothing was found" is about a surface with known boundaries.
+OUTCOME_IDENTICAL = "identical"
+OUTCOME_DECLARED = "declared-boundary"
+OUTCOME_DIVERGED = "diverged"
+OUTCOME_SINGLE_ENGINE = "single-engine"
+
+
+def judge(layer: str, kind: str, boundary: Any) -> tuple[str, Any]:
+    """The ACCEPTANCE judgement for one observation, and the boundary it kept.
+
+    The rule, in the order it is written, because the order is the contract:
+
+    1. Anything that is not a `status` or a `projection` observation is
+       **unexplained**, full stop, and carries NO boundary — a content
+       difference on any layer, `summaries` included, and a `missing-layer`
+       alike. The policy is not consulted at all, so a known class attached to
+       a `changed` observation cannot explain it even in principle. That is
+       stronger than checking and rejecting, and it is deliberate: the failure
+       mode this guards against is a class becoming a token that excuses
+       whatever it is pinned to.
+    2. A `status` or `projection` observation is a **declared boundary** only
+       when its structured class and its `(layer, kind)` match an exact entry
+       of [`BOUNDARY_POLICY`]. A known class on the wrong layer, or on the
+       wrong kind, does not explain it.
+    3. `detail` never participates. It is prose for a human; matching on it
+       would make the judgement depend on wording, which is the error-text
+       matching this whole surface refuses (the reducer already declines to
+       compare two engines' refusal texts for the same reason).
+
+    There is no case-name matching and no error-text matching anywhere in this
+    function, and that is what the D-5 mutations exist to keep true."""
+    if kind not in (KIND_STATUS, KIND_PROJECTION):
+        return ACCEPTANCE_UNEXPLAINED, None
+    kept = boundary if isinstance(boundary, dict) else None
+    declared = (kept or {}).get("class")
+    if isinstance(declared, str) and (layer, kind, declared) in BOUNDARY_POLICY:
+        return ACCEPTANCE_DECLARED, kept
+    return ACCEPTANCE_UNEXPLAINED, kept
+
+
+def _observation(layer: str, kind: str, step: Any, path: Any, left: Any,
+                 right: Any, detail: str,
+                 boundary: Any = None) -> dict[str, Any]:
+    """One observation, with its kind and its acceptance as separate fields."""
+    acceptance, kept = judge(layer, kind, boundary)
+    return {
+        "layer": layer, "kind": kind, "acceptance": acceptance,
+        "boundary": kept, "step": step, "path": path,
+        "left": left, "right": right, "detail": detail,
+    }
 
 
 def _same(left: Any, right: Any) -> bool:
@@ -1092,6 +1240,21 @@ def _layer_of(trace: dict[str, Any], name: str) -> dict[str, Any] | None:
     return None
 
 
+def _boundary_of(layer: dict[str, Any] | None) -> Any:
+    """The structured boundary class a REFUSING engine declared on its own
+    layer record, or `None`.
+
+    The refusing side declares it; this reducer only copies it. That direction
+    is the decision (D-5): a comparison tool that inferred a boundary from an
+    error text would be reading one engine's prose and calling the result a
+    contract, and a comparison tool that carried its own table of known cases
+    would be a second place the boundary is defined."""
+    if not isinstance(layer, dict) or layer.get("status") != STATUS_REFUSED:
+        return None
+    boundary = layer.get("boundary")
+    return boundary if isinstance(boundary, dict) else None
+
+
 def _reduce_layer(name: str, left: dict[str, Any],
                   right: dict[str, Any]) -> list[dict[str, Any]]:
     """Every observation for one layer, in step order — the caller takes the
@@ -1099,14 +1262,16 @@ def _reduce_layer(name: str, left: dict[str, Any],
     it walks rather than collects a set."""
     out: list[dict[str, Any]] = []
     if left.get("status") != right.get("status"):
-        return [{
-            "layer": name, "kind": KIND_STATUS, "step": None, "path": None,
-            "left": left.get("status"), "right": right.get("status"),
-            "detail": ("the two engines disagree about whether this layer "
-                       "produced at all; the artifacts record every such case "
-                       "as a DECLARED boundary, and this reducer reports it "
-                       "rather than judging it"),
-        }]
+        # Exactly one side refused, so exactly one side can have declared a
+        # class. Whichever it is, the class travels with the observation.
+        return [_observation(
+            name, KIND_STATUS, None, None,
+            left.get("status"), right.get("status"),
+            ("the two engines disagree about whether this layer produced at "
+             "all; the refusing engine declares its boundary class in its own "
+             "capture and this reducer copies it, judging the result against "
+             "the frozen policy by (layer, kind, class) — never by its text"),
+            _boundary_of(left) or _boundary_of(right))]
     if left.get("status") == STATUS_REFUSED:
         # Both refused. A refusal's TEXT is each engine's own — the port's
         # map-or-raise wording is not the reference's — so the reducer compares
@@ -1115,61 +1280,73 @@ def _reduce_layer(name: str, left: dict[str, Any],
         # difference in message vocabulary.
         return []
     if left.get("projection") != right.get("projection"):
-        return [{
-            "layer": name, "kind": KIND_PROJECTION, "step": None, "path": None,
-            "left": left.get("projection"), "right": right.get("projection"),
-            "detail": ("the engines declare different projections of this "
-                       "surface, so their step values are not comparable "
-                       "member-for-member; a value comparison here would score "
-                       "an unported member as a difference"),
-        }]
+        return [_observation(
+            name, KIND_PROJECTION, None, None,
+            left.get("projection"), right.get("projection"),
+            ("the engines declare different projections of this surface, so "
+             "their step values are not comparable member-for-member; a value "
+             "comparison here would score an unported member as a difference"))]
 
     left_steps = {s["id"]: s["value"] for s in left.get("steps", [])}
     right_steps = {s["id"]: s["value"] for s in right.get("steps", [])}
     for step in left.get("steps", []):
         sid = step["id"]
         if sid not in right_steps:
-            out.append({"layer": name, "kind": KIND_LEFT_ONLY, "step": sid,
-                        "path": None, "left": step["value"], "right": None,
-                        "detail": "addressed by the left engine only"})
+            out.append(_observation(
+                name, KIND_LEFT_ONLY, sid, None, step["value"], None,
+                "addressed by the left engine only"))
             continue
         if not _same(step["value"], right_steps[sid]):
             path, a, b = _minimal_difference(step["value"], right_steps[sid])
-            out.append({"layer": name, "kind": KIND_CHANGED, "step": sid,
-                        "path": path or ".", "left": a, "right": b,
-                        "detail": "the same address carries different values"})
+            out.append(_observation(
+                name, KIND_CHANGED, sid, path or ".", a, b,
+                "the same address carries different values"))
     for step in right.get("steps", []):
         if step["id"] not in left_steps:
-            out.append({"layer": name, "kind": KIND_RIGHT_ONLY, "step": step["id"],
-                        "path": None, "left": None, "right": step["value"],
-                        "detail": "addressed by the right engine only"})
+            out.append(_observation(
+                name, KIND_RIGHT_ONLY, step["id"], None, None, step["value"],
+                "addressed by the right engine only"))
     if out:
         return out
     left_order = [s["id"] for s in left.get("steps", [])]
     right_order = [s["id"] for s in right.get("steps", [])]
     if left_order != right_order:
         significant = left.get("order") == ORDER_SIGNIFICANT
-        out.append({
-            "layer": name, "kind": KIND_ORDERING_ONLY, "step": None, "path": None,
-            "left": left_order, "right": right_order,
-            "detail": ("the same steps in a different sequence; this layer "
-                       "declares its order SIGNIFICANT, so the sequence is the "
-                       "difference" if significant else
-                       "the same steps in a different sequence on a layer whose "
-                       "order is CANONICAL — one engine did not canonicalize"),
-        })
+        out.append(_observation(
+            name, KIND_ORDERING_ONLY, None, None, left_order, right_order,
+            ("the same steps in a different sequence; this layer "
+             "declares its order SIGNIFICANT, so the sequence is the "
+             "difference" if significant else
+             "the same steps in a different sequence on a layer whose "
+             "order is CANONICAL — one engine did not canonicalize")))
     return out
 
 
 def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
     """Walk two engines' traces in pipeline order and name the FIRST divergence
-    — its layer, its step address and the minimal difference inside it — plus
-    a classification over the whole scope.
+    — its layer, its step address and the minimal difference inside it — plus a
+    classification over the whole scope, by kind AND by acceptance.
 
     Silent by construction on identical data: `outcome` is `identical` and
-    `first` is `null`. Scope is [`REDUCTION_SCOPE`]; the verdict layer is
-    refused, not skipped, and the refusal is part of the output so a reader
-    cannot mistake "not compared" for "compared and agreed"."""
+    `first` is `null`.
+
+    Scope is [`REDUCTION_SCOPE`], which IS [`LAYER_ORDER`] (owner decision
+    D-4): every layer is walked, the verdict layer included. `out_of_scope`
+    stays in the schema and is empty — the member is what would carry a future
+    exclusion, and deleting it would make "no exclusions" and "the field was
+    dropped" the same document.
+
+    ## Why the verdict layer is walked by the same code as the others
+
+    The BR-V8 address `file:line:column:code` is a **pairing address**, not
+    object identity (owner decision D-7). Two findings that share it are the
+    same *place*, and every other member — `message`, `severity`, `related`,
+    `flow` — is compared as a value at that address, so a difference there is
+    `changed` with a minimal path rather than a pair of one-sided
+    observations. The duplicate-address `~<n>` suffix is part of the address,
+    which is why permuting two findings that share one address reports
+    `changed` on both and never `ordering-only`: the ordinal is not a position
+    the two engines are free to disagree about."""
     entries = traces.get("traces", [])
     if len(entries) < 2:
         return {
@@ -1177,10 +1354,11 @@ def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
             "case": traces.get("case"),
             "engines": [e.get("engine") for e in entries],
             "scope": list(REDUCTION_SCOPE),
-            "outcome": "single-engine",
+            "outcome": OUTCOME_SINGLE_ENGINE,
             "detail": ("only one engine captured this input, so there is "
                        "nothing to reduce"),
-            "classification": {}, "first": None, "out_of_scope": [],
+            "classification": {"by_kind": {}, "by_acceptance": {}},
+            "first": None, "observations": [], "out_of_scope": [],
         }
     left, right = entries[0], entries[1]
     observations: list[dict[str, Any]] = []
@@ -1189,32 +1367,45 @@ def reduce_traces(traces: dict[str, Any]) -> dict[str, Any]:
             continue
         a, b = _layer_of(left, name), _layer_of(right, name)
         if a is None or b is None:
-            observations.append({
-                "layer": name, "kind": KIND_UNEXPLAINED, "step": None,
-                "path": None, "left": a is not None, "right": b is not None,
-                "detail": "an engine did not report this layer at all",
-            })
+            observations.append(_observation(
+                name, KIND_MISSING_LAYER, None, None,
+                a is not None, b is not None,
+                "an engine did not report this layer at all"))
             continue
         observations += _reduce_layer(name, a, b)
-    counts = {kind: sum(1 for o in observations if o["kind"] == kind)
-              for kind in (KIND_LEFT_ONLY, KIND_RIGHT_ONLY, KIND_CHANGED,
-                           KIND_ORDERING_ONLY, KIND_STATUS, KIND_PROJECTION,
-                           KIND_UNEXPLAINED)}
+    by_kind = {kind: sum(1 for o in observations if o["kind"] == kind)
+               for kind in KINDS}
+    by_acceptance = {value: sum(1 for o in observations
+                                if o["acceptance"] == value)
+                     for value in ACCEPTANCES}
+    if not observations:
+        outcome = OUTCOME_IDENTICAL
+    elif by_acceptance[ACCEPTANCE_UNEXPLAINED]:
+        outcome = OUTCOME_DIVERGED
+    else:
+        outcome = OUTCOME_DECLARED
     return {
         "reduction_version": REDUCTION_VERSION,
         "case": traces.get("case"),
         "engines": [left.get("engine"), right.get("engine")],
         "scope": list(REDUCTION_SCOPE),
-        "outcome": "identical" if not observations else "diverged",
+        "outcome": outcome,
         "detail": None,
-        "classification": counts,
+        "classification": {"by_kind": by_kind, "by_acceptance": by_acceptance},
         "first": observations[0] if observations else None,
+        # The whole walk, in step order, beside the headline. The verdict layer
+        # entering scope is exactly when one document can differ at several
+        # findings at once, and a reduction that showed one at a time would
+        # make a reviewer re-run the reducer to see the second. `first` is
+        # still what a first-divergence reduction is FOR; this is what a
+        # divergence report needs.
+        "observations": observations,
+        # Empty, and kept (D-4). Every layer is in scope; the member is the
+        # slot a future exclusion would occupy, and dropping it would make
+        # "nothing is excluded" indistinguishable from "the field went away".
         "out_of_scope": [
             {"layer": name,
-             "reason": ("comparing final diagnostics is #260's ACCEPTANCE and "
-                        "is blocked by #259 (cp5 and 4b); this reducer refuses "
-                        "the layer rather than skipping it, so 'not compared' "
-                        "can never be read as 'compared and agreed'")}
+             "reason": "not in scope"}
             for name in LAYER_ORDER if name not in REDUCTION_SCOPE],
     }
 
@@ -1259,6 +1450,33 @@ def _verify_projection(projection: Any, at: str) -> list[str]:
     return problems
 
 
+def _verify_boundary(boundary: Any, status: Any, at: str) -> list[str]:
+    """A declared refusal boundary (owner decision D-5): `{"class", "detail"}`,
+    on a REFUSED layer only.
+
+    `class` is what the frozen policy matches on and must be a non-empty
+    string; `detail` is prose for a human and is never matched. Both are
+    required — a class with no detail is a token, and a detail with no class is
+    an error message wearing a structured field's name."""
+    problems: list[str] = []
+    if status != STATUS_REFUSED:
+        problems.append(f"{at}: a boundary is declared on a layer whose status "
+                        f"is {status!r} — only a REFUSAL has a boundary class")
+    if not isinstance(boundary, dict):
+        return [*problems, f"{at}.boundary is not an object"]
+    extra = sorted(set(boundary) - {"class", "detail"})
+    if extra:
+        problems.append(f"{at}.boundary: unknown member(s): {extra}")
+    if not isinstance(boundary.get("class"), str) or not boundary.get("class"):
+        problems.append(f"{at}.boundary: 'class' must be a non-empty string — it "
+                        f"is what the frozen policy matches on")
+    if not isinstance(boundary.get("detail"), str) or not boundary.get("detail"):
+        problems.append(f"{at}.boundary: 'detail' must be a non-empty string "
+                        f"saying WHAT was refused, for a human; it never "
+                        f"participates in the policy")
+    return problems
+
+
 def _verify_layers(layers: Any, where: str) -> list[str]:
     problems: list[str] = []
     if not isinstance(layers, list):
@@ -1274,7 +1492,7 @@ def _verify_layers(layers: Any, where: str) -> list[str]:
             problems.append(f"{at} is not an object")
             continue
         allowed = {"layer", "surface_version", "projection", "status",
-                   "document", "error"}
+                   "document", "error", "boundary"}
         extra = sorted(set(layer) - allowed)
         if extra:
             problems.append(f"{at}: unknown member(s): {extra}")
@@ -1297,4 +1515,6 @@ def _verify_layers(layers: Any, where: str) -> list[str]:
             problems.append(
                 f"{at}: status {status!r} is neither {STATUS_PRODUCED!r} nor "
                 f"{STATUS_REFUSED!r}")
+        if "boundary" in layer:
+            problems += _verify_boundary(layer.get("boundary"), status, at)
     return problems

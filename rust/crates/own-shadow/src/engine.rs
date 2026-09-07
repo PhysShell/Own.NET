@@ -104,6 +104,36 @@ fn refused(layer: &str, surface_version: Json, projection: Json, error: &str) ->
     ])
 }
 
+/// A refusal that DECLARES its boundary class (owner decision D-5).
+///
+/// Structured, not inferred: `class` is the token the frozen policy matches on
+/// and `detail` is the prose beside it. The declaration belongs here — to the
+/// engine that refused — because the alternative is a comparison tool reading
+/// this engine's error text and calling the result a contract. `detail`
+/// repeats the door's own words on purpose: `error` is this engine's free-form
+/// wording and may be rephrased, while `detail` is the human half of a
+/// structured record, and a reader of the reduction alone should not have to
+/// go back to the capture to learn what was refused.
+fn refused_at_boundary(
+    layer: &str,
+    surface_version: Json,
+    projection: Json,
+    error: &str,
+    class: &str,
+) -> Json {
+    let Json::Object(mut fields) = refused(layer, surface_version, projection, error) else {
+        return Json::Null;
+    };
+    fields.push((
+        "boundary".to_owned(),
+        object(vec![
+            ("class", Json::Str(class.to_owned())),
+            ("detail", Json::Str(error.to_owned())),
+        ]),
+    ));
+    Json::Object(fields)
+}
+
 /// A layer whose own surface stamps a version; the version is read back out of
 /// the produced document so the envelope cannot claim one the document does
 /// not carry.
@@ -138,9 +168,21 @@ pub fn capture(raw: &[u8]) -> Result<Json, String> {
         // ran, so all three report the door's refusal.
         Err(door) => {
             let text = format!("typed door: {door}");
+            // #294 OD-1, declared structurally rather than left to be inferred
+            // from the text. One refusal, three refused layer records — which
+            // is why the frozen policy carries one entry per layer rather than
+            // one per class.
             LAYER_ORDER
                 .iter()
-                .map(|layer| refused(layer, Json::Null, full_projection(), &text))
+                .map(|layer| {
+                    refused_at_boundary(
+                        layer,
+                        Json::Null,
+                        full_projection(),
+                        &text,
+                        crate::reduce::BOUNDARY_OD1,
+                    )
+                })
                 .collect()
         }
         Ok(facts) => vec![

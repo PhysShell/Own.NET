@@ -428,6 +428,7 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
                 "status",
                 "document",
                 "error",
+                "boundary",
             ],
             &at,
             problems,
@@ -465,6 +466,65 @@ fn verify_layers(layers: Option<&Json>, where_: &str, problems: &mut Vec<String>
                 "{at}: status {other:?} is neither {STATUS_PRODUCED:?} nor {STATUS_REFUSED:?}"
             )),
         }
+        if layer.has("boundary") {
+            verify_boundary(
+                layer.get("boundary"),
+                layer.get("status").and_then(Json::as_str),
+                &at,
+                problems,
+            );
+        }
+    }
+}
+
+/// A declared refusal boundary (owner decision D-5): `{"class", "detail"}`, on
+/// a REFUSED layer only.
+///
+/// `class` is what the frozen policy matches on and must be a non-empty string;
+/// `detail` is prose for a human and is never matched. Both are required — a
+/// class with no detail is a token, and a detail with no class is an error
+/// message wearing a structured field's name.
+fn verify_boundary(
+    boundary: Option<&Json>,
+    status: Option<&str>,
+    at: &str,
+    problems: &mut Vec<String>,
+) {
+    if status != Some(STATUS_REFUSED) {
+        problems.push(format!(
+            "{at}: a boundary is declared on a layer whose status is {status:?} — only a \
+             REFUSAL has a boundary class"
+        ));
+    }
+    let Some(boundary @ Json::Object(_)) = boundary else {
+        problems.push(format!("{at}.boundary is not an object"));
+        return;
+    };
+    unknown_members(
+        boundary,
+        &["class", "detail"],
+        &format!("{at}.boundary"),
+        problems,
+    );
+    if !boundary
+        .get("class")
+        .and_then(Json::as_str)
+        .is_some_and(|c| !c.is_empty())
+    {
+        problems.push(format!(
+            "{at}.boundary: 'class' must be a non-empty string — it is what the frozen policy \
+             matches on"
+        ));
+    }
+    if !boundary
+        .get("detail")
+        .and_then(Json::as_str)
+        .is_some_and(|d| !d.is_empty())
+    {
+        problems.push(format!(
+            "{at}.boundary: 'detail' must be a non-empty string saying WHAT was refused, for a \
+             human; it never participates in the policy"
+        ));
     }
 }
 

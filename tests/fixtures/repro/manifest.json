@@ -133,7 +133,16 @@
       "corpus": "verdicts",
       "pins": [
         "a document the port's TYPED DOOR refuses (#294 OD-1): the door is upstream of every layer, so all three layers report refused with the door's text while the reference captures all three in full",
-        "the shape a first-divergence reduction must not mistake for a layer-level disagreement"
+        "the shape a first-divergence reduction must not mistake for a layer-level disagreement",
+        "one of the two OD-1 door shapes: an effects[] dependency list whose members are not strings"
+      ]
+    },
+    {
+      "name": "verdict_door_service_unknown_lifetime",
+      "corpus": "verdicts",
+      "pins": [
+        "the SECOND #294 OD-1 door shape: a services[] record whose lifetime is outside the accepted vocabulary. The other door document exercises the same three declared boundaries through a different refusal, so the census can say the boundary is EXERCISED rather than merely declared",
+        "the boundary policy has one entry per layer because the typed door is upstream of all three; with only one door document in the corpus, the three entries were three claims about one observation"
       ]
     }
   ]

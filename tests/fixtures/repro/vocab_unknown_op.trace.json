@@ -1,9 +1,9 @@
 {
-  "trace_version": 1,
+  "trace_version": 2,
   "case": "vocab_unknown_op",
   "traces": [
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
@@ -19,6 +19,7 @@
           },
           "order": "significant",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "boundary": null,
           "steps": []
         },
         {
@@ -64,12 +65,13 @@
           },
           "order": "significant",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "boundary": null,
           "steps": []
         }
       ]
     },
     {
-      "trace_version": 1,
+      "trace_version": 2,
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",
@@ -85,6 +87,7 @@
           },
           "order": "significant",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "boundary": null,
           "steps": []
         },
         {
@@ -130,6 +133,7 @@
           },
           "order": "significant",
           "error": "unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; a new op must bump OWNIR_VERSION (see spec/OwnIR.md)",
+          "boundary": null,
           "steps": []
         }
       ]

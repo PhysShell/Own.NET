@@ -629,23 +629,29 @@ def render_shadow_census(c: ShadowCensus) -> str:
                              for case, layer, shown in c.status_differs)
                    or "| — | — | the two engines' statuses agree everywhere |")
     gate_rows = "\n".join(f"- `own-shadow/tests/{target}::{name}`" for target, name in c.gates)
+    boundary_rows = ("\n".join(f"| `{case}` | `{layer}` | {acceptance} | `{cls}` |"
+                                for case, layer, acceptance, cls in c.boundaries)
+                     or "| — | — | — | the reducer made no observation at all |")
     scope = list(c.scope)
     return f"""{_header("tests/fixtures/repro/ (artifacts, traces, reductions)")}
 # P-022 step 7a — shadow-mode infrastructure: census
 
-**Infrastructure for shadow mode, not shadow mode.** Nothing measured here
-compares two engines' end diagnostics — or any of their layer *contents*. That
-comparison is #260's acceptance and is blocked on #259 (cp5 and 4b). Nothing
-here is a parity claim either.
+**Compare mode over the committed corpus — not #260's acceptance.** What is
+measured here is every document this repository commits, at all three layers
+and on the derived SARIF surface, on byte-attested same input. #260's test
+matrix additionally names a five-repository sweep and large-solution controls;
+neither is run here, and nothing below may be read as shadow mode having been
+achieved, as P-022 being done, or as Rust being the default.
 
 This document is the **live view** of the slice as it stands; the recorded
 mutation campaigns are their own fragment
 ([`{SHADOW_MUTATIONS_MD}`]({SHADOW_MUTATIONS_MD})), each frozen at what it
-measured. Where the slice departed from the brief it was given — the checkpoint
-grouping, the `-0` domain decision, the `sha2` dependency — the departures are
-decisions on the record in
-[the owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md),
-which also states the byte-level boundary repeated in the unmeasured set below.
+measured. Every place the work departed from the brief it was given, and every
+decision it was blocked on, is on the record in
+[the owner-decision ledger](../notes/p022-shadow-infra-owner-decisions.md):
+the checkpoint grouping, the `-0` domain narrowing and the `sha2` dependency
+from the infrastructure slice, and D-4..D-7 / B-2 / B-3 / R-1 / R-2 for the
+acceptance work.
 
 ## The measured set — same-input capture (checkpoint 1)
 
@@ -656,10 +662,13 @@ which also states the byte-level boundary repeated in the unmeasured set below.
 
 Every one of those documents is canonicalized and hashed by the reference
 (`ownlang/repro.py`) and re-hashed from the same file by the port
-(`own-shadow`), which is what makes "both engines saw the same input" a
-checked fact rather than an assumption — **at the level of canonical document
-identity**. That is a weaker statement than #260's acceptance invariant, and
-the difference is named in the unmeasured set below.
+(`own-shadow`). Since artifact **v3** that claim is byte-level rather than
+canonical-level (owner decision B-2): the artifact carries `input.raw` — the
+byte-exact input — and every engine entry carries `consumed`, the identity of
+what THAT engine read, taken before any decode or parse. Verification walks the
+chain end to end, and every `consumed` comes from an execution of the engine
+that claims it (B-3): nothing computes one from `input.raw`, and the reference
+refuses to carry a foreign entry that has none rather than filling one in.
 
 | surface | count |
 |---|---|
@@ -689,14 +698,10 @@ moved with it: it now asserts a `full` claim against the complete Layer 3
 record too, because a `full` declared over a short document is the over-claim
 that became reachable the moment nothing was partial.
 
-**Still not shadow mode, and still not the verdict layer entering it.** The
-reducer REFUSES the verdict layer and records the refusal in every reduction;
-what changed above is one engine's declaration of what it puts in the
-envelope.
-
 **Layer envelopes where the two engines' status differs** — structural
-accounting, not a content comparison, and every one of them a boundary the port
-declares rather than a disagreement it stumbled into:
+accounting, not a content comparison. Every one of them is a boundary the port
+DECLARES, structurally, in its own capture (`boundary: {{"class", "detail"}}`
+on the refused layer record), rather than a disagreement it stumbled into:
 
 | case | layer | statuses |
 |---|---|---|
@@ -721,34 +726,55 @@ ids must not move** — while the lowered layer's step **order** must still
 change, because that difference is real. Both halves are asserted; a trace that
 hid the second would delete the defect the layer exists to expose.
 
-## First-divergence reduction (checkpoint 4), and the classification
+## First-divergence reduction, and the two-axis classification
 
-The reducer walks the pair in pipeline order over **{scope}** and names the
-first place they part company: the layer, the step address and the *minimal*
-difference inside it. The `verdicts` layer is **refused, not skipped** —
-comparing final diagnostics is #260's own acceptance, and crossing that line is
-its decision to take (#259's final acceptance is reached) — and the
-refusal is carried in every reduction, so "not compared" can never be read as
-"compared and agreed".
+The reducer walks the pair in pipeline order over **{scope}** — every layer,
+the verdict layer included (owner decision D-4) — and names the first place
+they part company: the layer, the step address and the *minimal* difference
+inside it. `REDUCTION_SCOPE` **is** `LAYER_ORDER`, aliased rather than copied,
+and `out_of_scope` stays in the schema and is empty: the member is the slot a
+future exclusion would occupy, so "nothing is excluded" stays distinguishable
+from "the field went away".
 
-Over the {c.reductions} committed reductions, {c.identical} are
-`identical`. The counters below are **computed** by the reducer, not implied by
-a green build:
+Over the {c.reductions} committed reductions, {c.identical} are `identical` and
+{c.declared} are `declared-boundary`. The counters below are **computed** by
+the reducer, not implied by a green build.
 
-| class | count |
+**By kind** — what was seen:
+
+| kind | count |
 |---|---|
 | Python-only (`left-only`) | **{c.by_class["left-only"]}** |
 | Rust-only (`right-only`) | **{c.by_class["right-only"]}** |
 | Changed | **{c.by_class["changed"]}** |
 | Ordering-only | **{c.by_class["ordering-only"]}** |
-| Unexplained | **{c.by_class["unexplained"]}** |
-| *status* (a layer-level disagreement, each a declared boundary) | {c.by_class["status"]} |
+| *status* (a layer-level disagreement about whether it produced) | {c.by_class["status"]} |
 | *projection* (surfaces not comparable member-for-member) | {c.by_class["projection"]} |
+| *missing-layer* (an engine did not report the layer) | {c.by_class["missing-layer"]} |
 
-`status` and `projection` are counted apart from the four content classes on
-purpose: neither is a difference in what an engine *computed*. Every `status`
-row in the table above is a boundary the port declares in its own error text —
-the unported obligation-protocol analysis, and the typed door.
+**By acceptance** — whether it is explained (owner decision D-5):
+
+| acceptance | count |
+|---|---|
+| `unexplained` | **{c.by_acceptance["unexplained"]}** |
+| `declared-boundary` | {c.by_acceptance["declared-boundary"]} |
+
+The two axes are separate fields because they are different questions, and
+neither is recoverable from the other. Every **content** observation — on every
+layer, `summaries` and `verdicts` included — is `unexplained` by construction:
+the frozen boundary policy is not consulted for one, so a known class attached
+to a `changed` cannot explain it even in principle. A `status` or `projection`
+observation is a `declared-boundary` only when its structured class and its
+`(layer, kind)` match an exact entry of the frozen policy, whose three entries
+are the OD-1 typed door on each of the three layers. `detail` never
+participates: matching on it would make the judgement depend on wording.
+
+**Every observation, with its judgement and the class the refusing engine
+declared:**
+
+| case | layer | acceptance | declared class |
+|---|---|---|---|
+{boundary_rows}
 
 The same-input layer carries its own counters, and those remain gate-enforced
 rather than computed: the port asserts per-document equality of the canonical
@@ -759,24 +785,11 @@ non-zero counter there is not representable as a passing build. The gates:
 
 ## The unmeasured set, named
 
-- **#260's raw-byte same-input invariant.** #260 asks that the `OwnIR`
-  document be produced or loaded exactly once, that the **raw bytes** be
-  hashed, and that *those exact bytes* reach both engines. What this slice
-  proves is shared **canonical document identity**: each engine parses the
-  file and agrees on the canonical form's digest. Canonical-equivalent input
-  is not byte-identical input — two files differing in whitespace, in object
-  key order, or in duplicate-key resolution share one canonical identity,
-  because ignoring exactly those differences is the canonical form's job.
-  Acceptance must therefore prove the byte-level invariant separately; until
-  it does, "same input" here means canonical identity and nothing stronger
-  ([owner decision B-1](../notes/p022-shadow-infra-owner-decisions.md)).
-- **End diagnostics compared as an acceptance surface** — #260's acceptance.
-  It was blocked by #259 while cp5, 4b and the coordinate-domain contract were
-  open; all three have landed, so what remains is this step's own decision to
-  cross the line. Not attempted, not approximated.
-- **The verdict layer.** Refused by the reducer, and recorded as refused in
-  every reduction. This is the same blocker as the row above, stated where a
-  tool could otherwise have quietly crossed it.
+- **The five-repository sweep and the large-solution controls.** #260's test
+  matrix names them, and nothing here runs them. What is measured is the
+  **committed corpus**; the sweep is separate work with its own commands and
+  its own recorded artifacts, and until it is taken this slice is not #260's
+  acceptance.
 - **Nested statement bodies as individual steps.** A `then`/`else`/`while` body
   is part of its enclosing statement's step, so a difference inside a branch is
   reported on that statement rather than on the branch's own address.

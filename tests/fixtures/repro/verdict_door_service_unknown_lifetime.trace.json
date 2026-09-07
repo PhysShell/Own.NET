@@ -1,14 +1,14 @@
 {
   "trace_version": 2,
-  "case": "verdict_door_effect_deps_not_strings",
+  "case": "verdict_door_service_unknown_lifetime",
   "traces": [
     {
       "trace_version": 2,
       "engine": "python-ownlang",
       "input": {
         "algorithm": "sha256",
-        "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
-        "bytes": 622
+        "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+        "bytes": 541
       },
       "layers": [
         {
@@ -168,29 +168,29 @@
               "value": 1
             },
             {
-              "id": "findings[Ok.tsx:9:None:EFF001]",
+              "id": "findings[reg.cs:5:None:DI001]",
               "value": {
-                "file": "Ok.tsx",
-                "line": 9,
-                "code": "EFF001",
-                "component": "Ok",
-                "event": "o",
+                "file": "reg.cs",
+                "line": 5,
+                "code": "DI001",
+                "component": "App",
+                "event": "Db",
                 "handler": "",
-                "message": "effect re-runs on every render: dependency 'o' is an object literal created in render scope, so its identity changes on every render; the effect performs IO, which can become a request storm — stabilise 'o' with useMemo/useCallback (or move it out of render)",
-                "kind": "react effect",
+                "message": "singleton 'App' captures scoped service 'Db' (captive dependency: App -> Db)",
+                "kind": "DI lifetime",
                 "advisory": false,
                 "severity": null,
                 "related": [],
                 "flow": [
                   [
-                    "Ok.tsx",
-                    9,
-                    "effect re-runs here on 'o'"
+                    "reg.cs",
+                    5,
+                    "singleton 'App' (captor)"
                   ],
                   [
-                    "Ok.tsx",
-                    8,
-                    "'o' gets a fresh identity here — stabilise with useMemo"
+                    "reg.cs",
+                    7,
+                    "captures scoped service 'Db'"
                   ]
                 ],
                 "ignore_reason": null,
@@ -206,8 +206,8 @@
       "engine": "rust-own-bridge",
       "input": {
         "algorithm": "sha256",
-        "digest": "9ac5b570e4a2956f2d771aa0cc5de5e1a7584683d0feefe453df6da4d5007c7b",
-        "bytes": 622
+        "digest": "f812c4f014338788c67b3e3f29f035d074d84714f048b0ff8b696b57432a3752",
+        "bytes": 541
       },
       "layers": [
         {
@@ -217,10 +217,10 @@
             "kind": "full"
           },
           "order": "significant",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
           "boundary": {
             "class": "OD-1",
-            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
           },
           "steps": []
         },
@@ -231,10 +231,10 @@
             "kind": "full"
           },
           "order": "canonical",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
           "boundary": {
             "class": "OD-1",
-            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
           },
           "steps": []
         },
@@ -245,10 +245,10 @@
             "kind": "full"
           },
           "order": "significant",
-          "error": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17",
+          "error": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29",
           "boundary": {
             "class": "OD-1",
-            "detail": "typed door: invalid type: string \"a\", expected a sequence at line 17 column 17"
+            "detail": "typed door: unknown variant `prototype`, expected one of `singleton`, `scoped`, `transient` at line 23 column 29"
           },
           "steps": []
         }

@@ -25,8 +25,9 @@
 use std::collections::BTreeSet;
 
 use own_shadow::{
-    parse, reduce_traces, Json, KIND_CHANGED, KIND_LEFT_ONLY, KIND_ORDERING_ONLY, KIND_RIGHT_ONLY,
-    REDUCTION_SCOPE, REDUCTION_VERSION,
+    judge, parse, reduce_traces, Json, ACCEPTANCE_DECLARED, ACCEPTANCE_UNEXPLAINED, BOUNDARY_OD1,
+    BOUNDARY_POLICY, KIND_CHANGED, KIND_LEFT_ONLY, KIND_MISSING_LAYER, KIND_ORDERING_ONLY,
+    KIND_PROJECTION, KIND_RIGHT_ONLY, KIND_STATUS, LAYER_ORDER, REDUCTION_SCOPE, REDUCTION_VERSION,
 };
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/fixtures");
@@ -77,28 +78,241 @@ fn every_reduction_golden_is_reproduced_byte_for_byte() {
     }
 }
 
+/// The pin, in its POSITIVE form (owner decision D-4).
+///
+/// It used to assert the verdict layer was OUT of scope, and the assertion was
+/// right at the time: comparing final diagnostics is #260's acceptance, and
+/// infrastructure that would quietly do it on request becomes an unearned
+/// shadow-mode claim the first time somebody widens a constant. The owner took
+/// the decision, so the same test now asserts the other side of it — and that
+/// the scope is the layer ORDER rather than a third copy of the list that could
+/// drift from it.
 #[test]
-fn the_verdict_layer_is_refused_not_silently_skipped() {
+fn the_reduction_scope_is_the_layer_order_and_nothing_is_excluded() {
+    assert_eq!(
+        REDUCTION_SCOPE, LAYER_ORDER,
+        "REDUCTION_SCOPE is not LAYER_ORDER — D-4 says the scope IS the layer order, because a \
+         third copy of one list is the one that drifts"
+    );
     assert!(
-        !REDUCTION_SCOPE.contains(&"verdicts"),
-        "the reduction scope now includes 'verdicts' — comparing final diagnostics is #260's \
-         acceptance and is blocked by #259; widening the scope is a contract decision, not a \
-         parameter"
+        REDUCTION_SCOPE.contains(&"verdicts"),
+        "the verdict layer is not in scope — owner decision D-4 put it there"
     );
     for case in artifact_names() {
         let reduction = reduce_traces(&traces_of(&case));
-        let refused = reduction
-            .get("out_of_scope")
-            .and_then(Json::as_array)
-            .expect("out_of_scope")
-            .iter()
-            .any(|e| e.get("layer").and_then(Json::as_str) == Some("verdicts"));
-        assert!(
-            refused,
-            "{case}: the reduction does not RECORD that it refused the verdict layer; a reader \
-             could take silence for agreement"
+        assert_eq!(
+            reduction.get("out_of_scope").and_then(Json::as_array),
+            Some(&[][..]),
+            "{case}: the reduction records a layer as out of scope. Every layer is walked now; \
+             the member stays and is EMPTY, so 'nothing is excluded' stays distinguishable from \
+             'the field went away'"
         );
     }
+}
+
+/// Owner decision D-5, driven through the production judgement.
+///
+/// Every rule the policy states needs a case that breaks exactly it, because
+/// the design is a set of *refusals to explain* — and a rule that only ever
+/// says "yes" is a rule no mutation can disturb.
+#[test]
+fn the_boundary_policy_explains_exactly_what_it_names() {
+    // 1. The policy IS the three OD-1 typed-door entries, exactly. Not a
+    //    superset, not a subset — widening it is an owner decision.
+    assert_eq!(
+        BOUNDARY_POLICY,
+        [
+            ("lowered", KIND_STATUS, BOUNDARY_OD1),
+            ("summaries", KIND_STATUS, BOUNDARY_OD1),
+            ("verdicts", KIND_STATUS, BOUNDARY_OD1),
+        ],
+        "the frozen boundary policy changed — widening it is an owner decision, not a patch"
+    );
+
+    let od1 = boundary(BOUNDARY_OD1, "typed door: whatever it said");
+    let other_detail = boundary(BOUNDARY_OD1, "an entirely different wording");
+    let wrong_class = boundary("OD-9", "typed door: whatever it said");
+
+    // 2. The door refuses every layer, so each layer's status observation is
+    //    explained by it.
+    for layer in LAYER_ORDER {
+        assert_eq!(
+            judge(layer, KIND_STATUS, Some(&od1)).0,
+            ACCEPTANCE_DECLARED,
+            "OD-1 on a {layer} status observation is not explained"
+        );
+    }
+
+    // 3. A known class on the WRONG KIND explains nothing. This is what the
+    //    (layer, kind, class) shape exists for: a class is not a token that
+    //    excuses whatever it is pinned to.
+    for kind in [KIND_CHANGED, KIND_MISSING_LAYER, KIND_PROJECTION] {
+        assert_eq!(
+            judge("verdicts", kind, Some(&od1)).0,
+            ACCEPTANCE_UNEXPLAINED,
+            "OD-1 attached to a {kind} observation was allowed to explain it"
+        );
+    }
+    // A content observation keeps no boundary at all — the policy is not
+    // consulted for one, and carrying the class would invite a later reader to
+    // treat it as an explanation.
+    assert_eq!(
+        judge("verdicts", KIND_CHANGED, Some(&od1)).1,
+        Json::Null,
+        "a content observation kept a boundary"
+    );
+
+    // 4. A known class on a layer the policy does not name explains nothing.
+    assert_eq!(
+        judge("renders", KIND_STATUS, Some(&od1)).0,
+        ACCEPTANCE_UNEXPLAINED,
+        "OD-1 explained a status observation on a layer the policy does not name"
+    );
+
+    // 5. `detail` never participates: the same class with different prose is
+    //    still explained, and a different class with the SAME prose is not.
+    assert_eq!(
+        judge("verdicts", KIND_STATUS, Some(&other_detail)).0,
+        ACCEPTANCE_DECLARED,
+        "the judgement depends on the boundary's prose"
+    );
+    assert_eq!(
+        judge("verdicts", KIND_STATUS, Some(&wrong_class)).0,
+        ACCEPTANCE_UNEXPLAINED,
+        "an unknown class wearing OD-1's detail was accepted — the policy matched on text"
+    );
+
+    // 6. A refusal with no declaration is unexplained, not unknown. Silence is
+    //    the one thing a policy may not accept.
+    for undeclared in [
+        None,
+        Some(Json::Object(Vec::new())),
+        Some(Json::Object(vec![(
+            "detail".to_owned(),
+            Json::Str("no class at all".to_owned()),
+        )])),
+    ] {
+        assert_eq!(
+            judge("verdicts", KIND_STATUS, undeclared.as_ref()).0,
+            ACCEPTANCE_UNEXPLAINED,
+            "a status observation with no declared class was explained anyway"
+        );
+    }
+}
+
+fn boundary(class: &str, detail: &str) -> Json {
+    Json::Object(vec![
+        ("class".to_owned(), Json::Str(class.to_owned())),
+        ("detail".to_owned(), Json::Str(detail.to_owned())),
+    ])
+}
+
+/// Owner decision D-7, driven adversarially and cross-engine.
+///
+/// The BR-V8 address `file:line:column:code` is a PAIRING address, not object
+/// identity, and a duplicate address takes a `~<n>` suffix that is **part of
+/// the address**. So two findings that share an address and swap their messages
+/// between the engines are two `changed` observations at `.message`, one per
+/// ordinal — never `ordering-only`, which would say the engines put the same
+/// things in a different sequence and licence a reader to shrug.
+///
+/// Built synthetically because no corpus document reaches it: the two engines
+/// agree on every finding, so the permutation has to be introduced on purpose.
+/// That is the point — a rule the corpus cannot exercise is a rule a mutation
+/// walks straight through.
+#[test]
+fn a_duplicate_address_permutation_is_changed_on_both_ordinals() {
+    const ADDRESS: &str = "A.cs:1:1:OWN001";
+    let finding = |message: &str| -> Json {
+        Json::Object(vec![
+            ("file".to_owned(), Json::Str("A.cs".to_owned())),
+            ("line".to_owned(), Json::Int(1)),
+            ("column".to_owned(), Json::Int(1)),
+            ("code".to_owned(), Json::Str("OWN001".to_owned())),
+            ("message".to_owned(), Json::Str(message.to_owned())),
+        ])
+    };
+    let side = |first: &str, second: &str| -> Json {
+        Json::Object(vec![
+            ("layer".to_owned(), Json::Str("verdicts".to_owned())),
+            ("status".to_owned(), Json::Str("produced".to_owned())),
+            (
+                "projection".to_owned(),
+                Json::Object(vec![("kind".to_owned(), Json::Str("full".to_owned()))]),
+            ),
+            ("order".to_owned(), Json::Str("significant".to_owned())),
+            (
+                "steps".to_owned(),
+                Json::Array(vec![
+                    Json::Object(vec![
+                        ("id".to_owned(), Json::Str(format!("findings[{ADDRESS}]"))),
+                        ("value".to_owned(), finding(first)),
+                    ]),
+                    Json::Object(vec![
+                        ("id".to_owned(), Json::Str(format!("findings[{ADDRESS}~1]"))),
+                        ("value".to_owned(), finding(second)),
+                    ]),
+                ]),
+            ),
+        ])
+    };
+
+    let base = traces_of("canonical_key_order");
+    let messages = [("X", "Y"), ("Y", "X")];
+    let forged = forge_layers(&base, "verdicts", |i, _layer| {
+        let (a, b) = messages.get(i).copied().unwrap_or(("X", "Y"));
+        side(a, b)
+    });
+    let result = reduce_traces(&forged);
+    let by_kind = result
+        .get("classification")
+        .and_then(|c| c.get("by_kind"))
+        .expect("by_kind");
+    assert_eq!(
+        by_kind.get(KIND_ORDERING_ONLY).and_then(Json::as_i64),
+        Some(0),
+        "a duplicate-address permutation was reported as ORDERING-ONLY — the `~<n>` ordinal is \
+         part of the address, so this is two findings whose values differ, not the same \
+         findings in another sequence"
+    );
+    let changed: Vec<&Json> = result
+        .get("observations")
+        .and_then(Json::as_array)
+        .expect("observations")
+        .iter()
+        .filter(|o| {
+            o.get("layer").and_then(Json::as_str) == Some("verdicts")
+                && o.get("kind").and_then(Json::as_str) == Some(KIND_CHANGED)
+        })
+        .collect();
+    let steps: Vec<Option<&str>> = changed
+        .iter()
+        .map(|o| o.get("step").and_then(Json::as_str))
+        .collect();
+    assert_eq!(
+        steps,
+        vec![
+            Some(format!("findings[{ADDRESS}]").as_str()),
+            Some(format!("findings[{ADDRESS}~1]").as_str()),
+        ],
+        "expected one `changed` per ordinal, in address order"
+    );
+    for observation in &changed {
+        assert_eq!(
+            observation.get("path").and_then(Json::as_str),
+            Some(".message"),
+            "the pairing address holds, so the difference is a VALUE at that address"
+        );
+        assert_eq!(
+            observation.get("acceptance").and_then(Json::as_str),
+            Some(ACCEPTANCE_UNEXPLAINED),
+            "a content difference on the verdict layer must be unexplained (D-5)"
+        );
+    }
+    assert_eq!(
+        result.get("outcome").and_then(Json::as_str),
+        Some("diverged")
+    );
 }
 
 /// Rebuild `traces` with `f` applied to the right engine's lowered layer.
@@ -363,7 +577,7 @@ fn the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence() {
 }
 
 /// Rebuild `traces` with `f` applied to BOTH engines' lowered layers.
-fn forge_layers(traces: &Json, f: impl Fn(usize, &Json) -> Json) -> Json {
+fn forge_layers(traces: &Json, name: &str, f: impl Fn(usize, &Json) -> Json) -> Json {
     let Json::Object(top) = traces else {
         panic!("traces is not an object")
     };
@@ -395,7 +609,7 @@ fn forge_layers(traces: &Json, f: impl Fn(usize, &Json) -> Json) -> Json {
                                         .iter()
                                         .map(|layer| {
                                             if layer.get("layer").and_then(Json::as_str)
-                                                == Some("lowered")
+                                                == Some(name)
                                             {
                                                 f(side, layer)
                                             } else {
@@ -426,7 +640,7 @@ fn forge_layers(traces: &Json, f: impl Fn(usize, &Json) -> Json) -> Json {
 #[test]
 fn two_engines_that_both_refused_a_layer_agree() {
     let base = traces_of("canonical_key_order");
-    let forged = forge_layers(&base, |side, layer| {
+    let forged = forge_layers(&base, "lowered", |side, layer| {
         let (error, projection) = if side == 0 {
             (
                 "the reference's own wording",
@@ -477,7 +691,7 @@ fn two_engines_that_both_refused_a_layer_agree() {
 #[test]
 fn the_same_fields_in_a_different_key_order_are_a_difference() {
     let base = traces_of("canonical_key_order");
-    let forged = forge_layers(&base, |side, layer| {
+    let forged = forge_layers(&base, "lowered", |side, layer| {
         if side != 1 {
             return layer.clone();
         }
