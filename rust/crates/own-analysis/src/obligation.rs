@@ -420,7 +420,7 @@ pub fn unmatched_scopes<'a>(
 )]
 mod tests {
     use super::{check_protocols, unmatched_scopes, Violation};
-    use own_ir::protocol::{parse_method, parse_protocol, MethodEvents, Protocol};
+    use own_ir::protocol::{parse_method, parse_protocol, Door, MethodEvents, Protocol};
     use serde_json::json;
 
     /// The canonical test protocol, in the document shape the grammar takes:
@@ -441,7 +441,11 @@ mod tests {
     }
 
     fn method(events: &serde_json::Value) -> MethodEvents {
-        parse_method(&json!({"name": "Ns.VM.Load", "file": "VM.cs", "events": events})).unwrap()
+        parse_method(
+            &json!({"name": "Ns.VM.Load", "file": "VM.cs", "events": events}),
+            Door::Strict,
+        )
+        .unwrap()
     }
 
     fn codes(vs: &[Violation]) -> Vec<(&'static str, bool, i64)> {

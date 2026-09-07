@@ -3,9 +3,8 @@
   "module": "Bound",
   "components": [],
   "_doc": [
-    "Declared #259 cp4 divergence family on the effect path: a negative effect",
-    "line is an EFF001 anchored at E.tsx:-3 for the reference; the Rust core",
-    "refuses."
+    "The promoted control on the effect path: a negative effect line degrades to",
+    "0 on both tolerant doors, so EFF001 anchors at E.tsx:0."
   ],
   "effects": [
     {

@@ -1,0 +1,48 @@
+{
+  "ownir_version": 0,
+  "module": "Dom",
+  "_doc": [
+    "The tolerant coordinate readers, where nothing else reaches them. The four",
+    "verdict_boundary_* controls pin the DEGRADE on paths that also pass through",
+    "the AST build, so a port whose raw fact readers kept an out-of-domain value",
+    "would still produce the right anchor. These three do not:",
+    "  * the DI registration line an escape slice's source hop reads is guarded",
+    "    on >= 1 and never narrowed again, so 2^31 degraded to 0 DROPS the hop",
+    "    while a pass-through keeps it at a coordinate nothing can point at;",
+    "  * the subscription column is read by the tolerant column reader alone, so",
+    "    a column past the domain must read as absent;",
+    "  * the in-domain twin beside each proves the readers still work."
+  ],
+  "components": [
+    {
+      "name": "Dom.View",
+      "file": "V.cs",
+      "subscriptions": [
+        {
+          "line": 5,
+          "column": 2147483648,
+          "event": "bus.Changed",
+          "handler": "OnChanged",
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "Bus"
+        },
+        {
+          "line": 6,
+          "column": 2147483647,
+          "event": "bus.Other",
+          "handler": "OnOther",
+          "released": false,
+          "resource": "subscription",
+          "source": "injected",
+          "source_type": "Ok"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {"name": "Bus", "lifetime": "singleton", "file": "reg.cs", "line": 2147483648, "deps": []},
+    {"name": "Ok", "lifetime": "singleton", "file": "reg.cs", "line": 12, "deps": []}
+  ]
+}

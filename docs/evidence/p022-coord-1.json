@@ -1,0 +1,351 @@
+{
+  "schema": 1,
+  "campaign": "p022-coord-1",
+  "description": "#259 final acceptance, the STRICT door: the coordinate domain of spec/OwnIR.md §4.2 in both implementations. Every rule is mutated twice — once in the reference (ownlang/ownir.py, ownlang/obligations.py) and once in its Rust mirror (own-ir/src/strict.rs, own-ir/src/protocol.rs) — because a domain that only one side enforces is a divergence the ledger would report as a category mismatch rather than as the missing rule it is. Both ends of both bounds are attacked, and off-by-one at each, since a domain checked only far outside cannot tell a correct limit from a narrow one; the two fields §4.2 used to record as validated NOWHERE are attacked at every nesting shape, because then/else/body are three separate recursion sites. Two mutations attack the CATEGORY and the message rather than the verdict: a domain violation filed as `shape` is the exact defect #326's census found in `column`, and it would leave every accept/reject green.",
+  "layers": [
+    {
+      "id": "py-limits",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_ownir_defensive_limits.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "py-ledger",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_ownir_validation_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust-door",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-ir",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "§4.2 line domain",
+      "description": "the strict door loses the domain's LOWER bound, so a negative line is accepted again",
+      "target": "ownlang/ownir.py",
+      "pattern": "    if not LINE_MIN <= v <= LINE_MAX:",
+      "replacement": "    if not v <= LINE_MAX:",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "§4.2 line domain",
+      "description": "…and the UPPER bound, so an int64 line is accepted again",
+      "target": "ownlang/ownir.py",
+      "pattern": "    if not LINE_MIN <= v <= LINE_MAX:\\n        raise OwnIRError\\(\\n            f\\\"\\{where\\} \\{field!r\\} must be a source line in \\\"",
+      "replacement": "    if not LINE_MIN <= v:\n        raise OwnIRError(\n            f\"{where} {field!r} must be a source line in \"",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "§4.2 line domain",
+      "description": "off-by-one at the bottom: 0 stops being legal, which would break the reference's own absent-line default",
+      "target": "ownlang/ownir.py",
+      "pattern": "    if not LINE_MIN <= v <= LINE_MAX:\\n        raise",
+      "replacement": "    if not LINE_MIN < v <= LINE_MAX:\n        raise",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "§4.2 line domain",
+      "description": "…and at the top: 2147483647 stops being legal",
+      "target": "ownlang/ownir.py",
+      "pattern": "    if not LINE_MIN <= v <= LINE_MAX:\\n        raise OwnIRError",
+      "replacement": "    if not LINE_MIN <= v < LINE_MAX:\n        raise OwnIRError",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "§4.2 message",
+      "description": "the domain diagnostic stops naming the domain",
+      "target": "ownlang/ownir.py",
+      "pattern": "f\"\\{where\\} \\{field!r\\} must be a source line in \"",
+      "replacement": "f\"{where} {field!r} must be a bad coordinate \"",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "§4.2 / D2",
+      "description": "the subscriptions walk stops checking its line — the field §4.2 used to record as validated nowhere",
+      "target": "ownlang/ownir.py",
+      "pattern": "            _check_line_domain\\(sln, \"subscription\"\\)",
+      "replacement": "            _ = sln",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "§4.2 / D2",
+      "description": "…and the flow-op walk stops checking its line",
+      "target": "ownlang/ownir.py",
+      "pattern": "        _check_line_domain\\(ln, what\\)",
+      "replacement": "        _ = ln",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "§4.2 / D2",
+      "description": "the flow walk stops recursing into one nesting shape, so a `while` body's line escapes",
+      "target": "ownlang/ownir.py",
+      "pattern": "        for key in \\(\"then\", \"else\", \"body\"\\):",
+      "replacement": "        for key in (\"then\", \"else\"):",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "§4.2 / D2",
+      "description": "the subscriptions line loses its bool guard, so `true` reads as line 1 — the bool-is-int trap the contract calls out by name",
+      "target": "ownlang/ownir.py",
+      "pattern": "            if not isinstance\\(sln, int\\) or isinstance\\(sln, bool\\):",
+      "replacement": "            if not isinstance(sln, int) or False:",
+      "expected_catchers": [
+        "py-limits::line-type",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "§4.2 line domain",
+      "description": "the root-resolve site array stops checking its coordinate",
+      "target": "ownlang/ownir.py",
+      "pattern": "            _check_line_domain\\(site\\.get\\(\"line\", 0\\), \"service root_resolve_site\"\\)",
+      "replacement": "            _ = site",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "§4.1 / §4.2 column",
+      "description": "the column loses its domain upper bound",
+      "target": "ownlang/ownir.py",
+      "pattern": "    if v > COLUMN_MAX:",
+      "replacement": "    if v > INT64_MAX:",
+      "expected_catchers": [
+        "py-limits::column-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "§4.1 column",
+      "description": "…and its 1-based lower bound, so `0` becomes a legal column",
+      "target": "ownlang/ownir.py",
+      "pattern": "or v < COLUMN_MIN:",
+      "replacement": "or v < COLUMN_MIN - 1:",
+      "expected_catchers": [
+        "py-limits::column-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "§4.2 two doors",
+      "description": "the strict door stops refusing an out-of-domain event line and degrades instead",
+      "target": "ownlang/obligations.py",
+      "pattern": "    if not strict:\\n        return 0",
+      "replacement": "    if True:\n        return 0",
+      "expected_catchers": [
+        "py-limits::line-domain",
+        "py-ledger::ledger-stale"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "§4.2 line domain",
+      "description": "the Rust door loses the domain's LOWER bound",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    LINE_MIN <= value && value <= LINE_MAX",
+      "replacement": "    value <= LINE_MAX",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "§4.2 line domain",
+      "description": "…and its UPPER bound",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    LINE_MIN <= value && value <= LINE_MAX\\n\\}",
+      "replacement": "    LINE_MIN <= value\n}",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "§4.2 line domain",
+      "description": "off-by-one at the bottom in the Rust door",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    LINE_MIN <= value && value <= LINE_MAX\\n\\}\\n",
+      "replacement": "    LINE_MIN < value && value <= LINE_MAX\n}\n",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "§4.2 line domain",
+      "description": "…and at the top",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    LINE_MIN <= value && value <= LINE_MAX\\n\\}\\n\\n",
+      "replacement": "    LINE_MIN <= value && value < LINE_MAX\n}\n\n",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "cp1 taxonomy",
+      "description": "the Rust domain rejection is filed as `shape` — the category read off the wrong axis, the exact defect #326's census found in `column`",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    Err\\(location\\(format!\\(\\n        \\\"\\{what\\} '\\{key\\}' must be a source line in",
+      "replacement": "    Err(shape(format!(\n        \"{what} '{key}' must be a source line in",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "§4.2 message",
+      "description": "the Rust domain diagnostic stops naming the domain",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "must be a source line in \\[\\{LINE_MIN\\}, \\{LINE_MAX\\}\\]",
+      "replacement": "must be a bad coordinate [{LINE_MIN}, {LINE_MAX}]",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M20",
+      "rule": "§4.2 / D2",
+      "description": "the Rust subscriptions walk stops checking its line",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "            defaulted_line\\(sub, \"line\", \"subscription\"\\)\\?;",
+      "replacement": "            let _ = &sub;",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language"
+      ]
+    },
+    {
+      "id": "M21",
+      "rule": "§4.2 / D2",
+      "description": "…and the Rust flow-op walk stops checking its line",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "        defaulted_line\\(op, \"line\", &label\\)\\?;",
+      "replacement": "        let _ = &label;",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M22",
+      "rule": "§4.2 / D2",
+      "description": "the Rust flow walk stops recursing into one nesting shape",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "        for key in \\[\"then\", \"else\", \"body\"\\] \\{",
+      "replacement": "        for key in [\"then\", \"else\"] {",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language"
+      ]
+    },
+    {
+      "id": "M23",
+      "rule": "§4.2 line domain",
+      "description": "the Rust site array stops checking its coordinate",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "            defaulted_line\\(obj, \\\"line\\\", &singular\\)\\?;",
+      "replacement": "            let _ = &singular;",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language"
+      ]
+    },
+    {
+      "id": "M24",
+      "rule": "§4.1 / §4.2 column",
+      "description": "the Rust column loses its domain upper bound",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    if n > COLUMN_MAX \\{",
+      "replacement": "    if n > i64::MAX {",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M25",
+      "rule": "§4.1 column",
+      "description": "…and its 1-based lower bound",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "    if n < COLUMN_MIN \\{",
+      "replacement": "    if n < COLUMN_MIN - 1 {",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/tests/validation_replay.rs::the_coordinate_rules_report_the_axis_they_are_on"
+      ]
+    },
+    {
+      "id": "M26",
+      "rule": "§4.2 two doors",
+      "description": "the Rust strict door stops refusing an out-of-domain event line and degrades instead",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "        Door::Strict => line_domain\\(value, what, \"line\"\\)\\.map\\(\\|\\(\\)\\| value\\),",
+      "replacement": "        Door::Strict => Ok(0),",
+      "expected_catchers": [
+        "rust-door/tests/validation_replay.rs::the_two_loaders_accept_the_same_language",
+        "rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door"
+      ]
+    }
+  ]
+}

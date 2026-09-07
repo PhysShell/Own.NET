@@ -1,0 +1,225 @@
+{
+  "schema": 1,
+  "campaign": "p022-coord-2",
+  "description": "#259 final acceptance, the TOLERANT door: `check_facts()` degrades an out-of-domain coordinate to 0 (absent) rather than raising, clamping or inventing, and the Rust bridge does the same. Three failure modes are attacked at every reader on both sides — degrade -> clamp, degrade -> pass-through, degrade -> raise — because they are three different wrong answers and only the clamp looks harmless: it moves a finding onto a REAL line the producer never named, which no golden comparing anchors can forgive but a reader might. The four promoted verdict_boundary_* goldens are the controls that make this measurable at all; before the promotion the Rust half of every one of these mutations was unreachable behind a refusal. One mutation attacks the LOWERING rather than the verdict, because a Layer 2 coordinate that disagrees with the reference is invisible at Layer 3 — the AST build degrades it a second time — and needed a control of its own.",
+  "layers": [
+    {
+      "id": "py-limits",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_ownir_defensive_limits.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "py-verdicts",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_verdict_fixtures.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "rust-door",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-ir",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    },
+    {
+      "id": "rust-bridge",
+      "cwd": "rust",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-bridge",
+        "--no-fail-fast"
+      ],
+      "parser": "cargo"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "§4.2 degrade, never clamp",
+      "description": "the reference's tolerant line reader CLAMPS to the domain instead of degrading, so a finding moves to a real line the producer never named",
+      "target": "ownlang/ownir.py",
+      "pattern": "    return \\(v if isinstance\\(v, int\\) and not isinstance\\(v, bool\\)\\n            and LINE_MIN <= v <= LINE_MAX else 0\\)",
+      "replacement": "    return (max(LINE_MIN, min(v, LINE_MAX)) if isinstance(v, int)\n            and not isinstance(v, bool) else 0)",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "§4.2 two doors",
+      "description": "…or passes the out-of-domain value straight through, which is the behaviour the domain replaced",
+      "target": "ownlang/ownir.py",
+      "pattern": "    return \\(v if isinstance\\(v, int\\) and not isinstance\\(v, bool\\)\\n            and LINE_MIN <= v <= LINE_MAX else 0\\)",
+      "replacement": "    return (v if isinstance(v, int) and not isinstance(v, bool) else 0)",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "§4.2 two doors",
+      "description": "…or REFUSES the record instead of degrading, dropping the finding entirely — which is what a raise would amount to for an embedder that catches OwnIRError around check_facts",
+      "target": "ownlang/ownir.py",
+      "pattern": "    return \\(v if isinstance\\(v, int\\) and not isinstance\\(v, bool\\)\\n            and LINE_MIN <= v <= LINE_MAX else 0\\)",
+      "replacement": "    if not (isinstance(v, int) and not isinstance(v, bool)\n            and LINE_MIN <= v <= LINE_MAX):\n        return -1\n    return v",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "§4.2 degrade to ABSENT",
+      "description": "the degrade lands on 1 instead of 0 — a fabricated coordinate rather than 'unknown'",
+      "target": "ownlang/ownir.py",
+      "pattern": "    return \\(v if isinstance\\(v, int\\) and not isinstance\\(v, bool\\)\\n            and LINE_MIN <= v <= LINE_MAX else 0\\)",
+      "replacement": "    return (v if isinstance(v, int) and not isinstance(v, bool)\n            and LINE_MIN <= v <= LINE_MAX else 1)",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "§4.1 / §4.2 column",
+      "description": "the reference's tolerant column reader loses the domain bound and emits a column the strict door would refuse",
+      "target": "ownlang/ownir.py",
+      "pattern": "    return \\(v if isinstance\\(v, int\\) and not isinstance\\(v, bool\\)\\n            and COLUMN_MIN <= v <= COLUMN_MAX else None\\)",
+      "replacement": "    return (v if isinstance(v, int) and not isinstance(v, bool)\n            and COLUMN_MIN <= v else None)",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "§4.2 two doors",
+      "description": "the reference's tolerant PROTOCOL door refuses instead of degrading, which drops the whole method's violations for one impossible coordinate",
+      "target": "ownlang/obligations.py",
+      "pattern": "    if not strict:\\n        return 0",
+      "replacement": "    if False:\n        return 0",
+      "expected_catchers": [
+        "py-limits::tolerant-degrade"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "§4.2 degrade, never clamp",
+      "description": "core_line CLAMPS to the domain's top instead of degrading to absent",
+      "target": "rust/crates/own-bridge/src/ast.rs",
+      "pattern": "        Ok\\(n\\) if n <= LINE_MAX => n,\\n        _ => 0,",
+      "replacement": "        Ok(n) if n <= LINE_MAX => n,\n        _ => LINE_MAX,",
+      "expected_catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "§4.2 two doors",
+      "description": "…or accepts the whole u32 range again, which is the core's representation deciding the contract — the reading this change exists to refuse",
+      "target": "rust/crates/own-bridge/src/ast.rs",
+      "pattern": "        Ok\\(n\\) if n <= LINE_MAX => n,\\n        _ => 0,",
+      "replacement": "        Ok(n) => n,\n        _ => 0,",
+      "expected_catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "§4.2 degrade to ABSENT",
+      "description": "…or degrades to 1, inventing a coordinate instead of admitting it has none",
+      "target": "rust/crates/own-bridge/src/ast.rs",
+      "pattern": "        Ok\\(n\\) if n <= LINE_MAX => n,\\n        _ => 0,",
+      "replacement": "        Ok(n) if n <= LINE_MAX => n,\n        _ => 1,",
+      "expected_catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "§4.2 two doors",
+      "description": "the bridge's tolerant line reader passes an out-of-domain fact coordinate through, so a slice the reference drops is kept and anchored where nothing is",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
+      "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n,\n        _ => 0,\n    }",
+      "expected_catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "§4.2 degrade, never clamp",
+      "description": "…or clamps it, moving a DI site anchor onto a real line the registration never named",
+      "target": "rust/crates/own-bridge/src/verdict.rs",
+      "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
+      "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n.clamp(0, 2_147_483_647),\n        _ => 0,\n    }",
+      "expected_catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "§4.2 at Layer 2",
+      "description": "the LOWERING's line reader passes an out-of-domain coordinate through, so the Layer 2 document disagrees with the reference at the seam the cp2 evidence is taken from — invisible at Layer 3, because the AST build degrades it again on the way in",
+      "target": "rust/crates/own-bridge/src/lower.rs",
+      "pattern": "    match v\\.and_then\\(Value::as_i64\\) \\{\\n        Some\\(n\\) if \\(0\\.\\.=2_147_483_647\\)\\.contains\\(&n\\) => n,\\n        _ => 0,\\n    \\}",
+      "replacement": "    match v.and_then(Value::as_i64) {\n        Some(n) => n,\n        _ => 0,\n    }",
+      "expected_catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "§4.2 two doors",
+      "description": "the Rust tolerant PROTOCOL door refuses instead of degrading",
+      "target": "rust/crates/own-ir/src/protocol.rs",
+      "pattern": "        Door::Tolerant => Ok\\(0\\),",
+      "replacement": "        Door::Tolerant => line_domain(value, what, \"line\").map(|()| value),",
+      "expected_catchers": [
+        "rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "BR-V9 / §4.2",
+      "description": "the rendered code-flow shifts every step line by one. The DROP this conversion replaced is an EQUIVALENT mutant now — §4.2 guarantees every flow-step line converts, so a filter_map that drops the unconvertible drops nothing — so the mutation is re-anchored onto the conversion itself, which is observable",
+      "target": "rust/crates/own-bridge/src/render.rs",
+      "pattern": "                line: u32::try_from\\(\\*line\\)\\.unwrap_or\\(0\\),",
+      "replacement": "                line: u32::try_from(*line).unwrap_or(0) + 1,",
+      "expected_catchers": [
+        "rust-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "§4.1 / §4.2 column",
+      "description": "the bridge's tolerant COLUMN reader loses the domain bound, so the port emits a column the strict door would refuse — the mirror of M05, and the one the four promoted goldens cannot reach either",
+      "target": "rust/crates/own-bridge/src/lower.rs",
+      "pattern": "    v\\.and_then\\(Value::as_i64\\)\\n        \\.filter\\(\\|c\\| \\(1\\.\\.=2_147_483_647\\)\\.contains\\(c\\)\\)",
+      "replacement": "    v.and_then(Value::as_i64).filter(|c| *c >= 1)",
+      "expected_catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ]
+    }
+  ]
+}

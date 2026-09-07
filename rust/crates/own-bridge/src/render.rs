@@ -271,10 +271,25 @@ fn related_locations(related: &[Step]) -> Vec<RelatedLocation> {
 fn code_flows(flow: &[Step]) -> Vec<own_diagnostics::CodeFlow> {
     let steps: Vec<CoreStep<'_>> = flow
         .iter()
-        .filter_map(|(file, line, label)| {
-            u32::try_from(*line)
-                .ok()
-                .map(|line| CoreStep { file, line, label })
+        .map(|(file, line, label)| {
+            // Every builder of a `flow` step reads its line through
+            // `as_line`, and §4.2 bounds that to `[0, 2147483647]`, so the
+            // conversion cannot fail. This was a `filter_map` that silently
+            // DROPPED a step it could not convert — a rule the reference does
+            // not have, unreachable only because the AST build refused such a
+            // document before a finding could carry one, and therefore a
+            // silent divergence from the moment that refusal went away. The
+            // assert is the tripwire: if a new builder ever skips `as_line`,
+            // a debug build says so instead of a step going missing.
+            debug_assert!(
+                (0..=2_147_483_647).contains(line),
+                "flow step line {line} is outside the spec/OwnIR.md §4.2 domain"
+            );
+            CoreStep {
+                file,
+                line: u32::try_from(*line).unwrap_or(0),
+                label,
+            }
         })
         .collect();
     code_flow(&steps)

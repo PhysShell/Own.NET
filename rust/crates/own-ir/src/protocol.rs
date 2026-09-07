@@ -60,7 +60,9 @@ use std::collections::BTreeSet;
 
 use serde_json::{Map, Value};
 
-use crate::strict::{defaulted_int_value, name_slot, optional_string, MAX_NESTING_DEPTH};
+use crate::strict::{
+    defaulted_int_value, in_line_domain, line_domain, name_slot, optional_string, MAX_NESTING_DEPTH,
+};
 use crate::{OwnIrError, OwnIrErrorKind};
 
 /// The closed event vocabulary of `protocol_functions[].events` — the `ev`
@@ -433,11 +435,47 @@ fn matcher(raw: &Value, what: &str, require_value: bool) -> Result<Matcher, OwnI
     })
 }
 
+/// Which door a protocol record is being parsed for (`spec/OwnIR.md` §4.2).
+///
+/// The grammar is one implementation with two consumers, and only ONE rule
+/// differs between them: an event `line` outside the coordinate domain is
+/// refused at the strict door and degrades to `0` at the tolerant one. Type and
+/// representability are grammar and fail loud either way — a malformed entry is
+/// skipped whole on the tolerant path, which is the obligation family's own
+/// rule (cp4b) and is untouched here.
+///
+/// The distinction is a parameter rather than two parsers because two readings
+/// of one grammar is precisely what cp4b collapsed into one, and re-splitting
+/// it for one rule would undo that.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Door {
+    /// `ownlang.ownir.load()` — refuse an out-of-domain coordinate.
+    Strict,
+    /// `check_facts()` on un-validated facts — degrade it to `0`.
+    Tolerant,
+}
+
+/// An event's line under `door`: refused, or degraded to `0` (absent).
+///
+/// Degrade, never clamp — `2^31` does not become `2^31 - 1`. A refusal here
+/// would be worse than it looks on the tolerant path: it makes the whole
+/// method unparseable, so one impossible coordinate would silently take a real
+/// violation with it.
+fn event_line(value: i64, what: &str, door: Door) -> Result<i64, OwnIrError> {
+    if in_line_domain(value) {
+        return Ok(value);
+    }
+    match door {
+        Door::Strict => line_domain(value, what, "line").map(|()| value),
+        Door::Tolerant => Ok(0),
+    }
+}
+
 /// Parse one `protocol_functions[]` record.
 ///
 /// # Errors
 /// [`OwnIrError`] on any violation in the record or its event tree.
-pub fn parse_method(raw: &Value) -> Result<MethodEvents, OwnIrError> {
+pub fn parse_method(raw: &Value, door: Door) -> Result<MethodEvents, OwnIrError> {
     let Some(obj) = raw.as_object() else {
         return Err(shape(format!(
             "a protocol function must be an object, got {raw}"
@@ -455,7 +493,7 @@ pub fn parse_method(raw: &Value) -> Result<MethodEvents, OwnIrError> {
             )))
         }
     };
-    let events = events(obj.get("events"), &what, 0)?;
+    let events = events(obj.get("events"), &what, 0, door)?;
     Ok(MethodEvents { name, file, events })
 }
 
@@ -479,7 +517,12 @@ pub fn parse_method(raw: &Value) -> Result<MethodEvents, OwnIrError> {
 /// `e.get("then", [])`, so an absent arm still descends a level, whereas the
 /// flow walker probes for a key that may not be there and must not count what
 /// it did not find. Two recursions, two contracts.
-fn events(raw: Option<&Value>, what: &str, depth: usize) -> Result<Vec<Event>, OwnIrError> {
+fn events(
+    raw: Option<&Value>,
+    what: &str,
+    depth: usize,
+    door: Door,
+) -> Result<Vec<Event>, OwnIrError> {
     if depth > MAX_NESTING_DEPTH {
         return Err(shape(format!(
             "{what}: events nested deeper than {MAX_NESTING_DEPTH} levels"
@@ -508,8 +551,9 @@ fn events(raw: Option<&Value>, what: &str, depth: usize) -> Result<Vec<Event>, O
                 "{what}: unknown protocol event {got} — the vocabulary is {EVENT_KINDS:?}"
             )));
         };
-        // The line is checked for every kind, before the per-kind fields.
-        let line = defaulted_int_value(obj, "line", what)?;
+        // The line is checked for every kind, before the per-kind fields:
+        // type and representability (grammar), then the domain (the door's).
+        let line = event_line(defaulted_int_value(obj, "line", what)?, what, door)?;
         let next = depth.saturating_add(1);
         out.push(match kind {
             "assign" => {
@@ -544,12 +588,12 @@ fn events(raw: Option<&Value>, what: &str, depth: usize) -> Result<Vec<Event>, O
             }
             "if" => Event::If {
                 line,
-                then: events(obj.get("then"), what, next)?,
-                orelse: events(obj.get("else"), what, next)?,
+                then: events(obj.get("then"), what, next, door)?,
+                orelse: events(obj.get("else"), what, next, door)?,
             },
             "while" => Event::While {
                 line,
-                body: events(obj.get("body"), what, next)?,
+                body: events(obj.get("body"), what, next, door)?,
             },
             "return" => Event::Return { line },
             // "throw" — EVENT_KINDS is closed, and checked above.
@@ -562,7 +606,8 @@ fn events(raw: Option<&Value>, what: &str, depth: usize) -> Result<Vec<Event>, O
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
-    use super::{parse_method, parse_protocol, Event, Matcher, MatcherKind};
+    use super::{parse_method, parse_protocol, Door, Event, Matcher, MatcherKind};
+    use crate::OwnIrErrorKind;
     use serde_json::json;
     use std::collections::BTreeSet;
 
@@ -677,16 +722,19 @@ mod tests {
     /// default the reference uses.
     #[test]
     fn a_method_record_becomes_its_event_tree() {
-        let m = parse_method(&json!({
-            "name": "VM.Load",
-            "events": [
-                {"ev": "assign", "target": "IsLoaded", "value": false, "line": 10},
-                {"ev": "if", "line": 20,
-                 "then": [{"ev": "call", "callee": "Notify", "arg": "Doc", "line": 21}],
-                 "else": [{"ev": "return", "line": 22}]},
-                {"ev": "while", "line": 30, "body": [{"ev": "throw", "line": 31}]}
-            ]
-        }))
+        let m = parse_method(
+            &json!({
+                "name": "VM.Load",
+                "events": [
+                    {"ev": "assign", "target": "IsLoaded", "value": false, "line": 10},
+                    {"ev": "if", "line": 20,
+                     "then": [{"ev": "call", "callee": "Notify", "arg": "Doc", "line": 21}],
+                     "else": [{"ev": "return", "line": 22}]},
+                    {"ev": "while", "line": 30, "body": [{"ev": "throw", "line": 31}]}
+                ]
+            }),
+            Door::Strict,
+        )
         .unwrap();
         assert_eq!(m.file, "?", "an absent 'file' defaults to '?'");
         let Some(Event::If { then, orelse, .. }) = m.events.get(1) else {
@@ -707,16 +755,54 @@ mod tests {
         assert_eq!(body.first(), Some(&Event::Throw { line: 31 }));
     }
 
-    /// An absent `line` reads as `0`, and a negative one travels: the protocol
-    /// path has no `u32` coordinate domain to clamp against.
+    /// An absent `line` reads as `0`, and an out-of-domain one is the door's
+    /// decision: refused at the strict door, degraded to `0` at the tolerant.
+    ///
+    /// A negative line used to TRAVEL here, because the protocol path had no
+    /// coordinate domain to answer to. `spec/OwnIR.md` §4.2 gave it one in
+    /// #259's final acceptance, and the two doors' answers are the contract:
+    /// `load()` refuses, `check_facts()` degrades — never clamps, so `2^31`
+    /// does not become `2^31 - 1`.
     #[test]
-    fn an_absent_line_is_zero_and_a_negative_one_survives() {
-        let m = parse_method(&json!({
+    fn an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door() {
+        let doc = json!({
             "name": "m",
             "events": [{"ev": "return"}, {"ev": "throw", "line": -3}]
-        }))
-        .unwrap();
-        assert_eq!(m.events.first(), Some(&Event::Return { line: 0 }));
-        assert_eq!(m.events.get(1), Some(&Event::Throw { line: -3 }));
+        });
+        let tolerant = parse_method(&doc, Door::Tolerant).unwrap();
+        assert_eq!(tolerant.events.first(), Some(&Event::Return { line: 0 }));
+        assert_eq!(tolerant.events.get(1), Some(&Event::Throw { line: 0 }));
+
+        let strict = parse_method(&doc, Door::Strict).expect_err("out of domain");
+        assert_eq!(strict.kind, OwnIrErrorKind::Location, "{}", strict.message);
+        assert!(
+            strict
+                .message
+                .contains("must be a source line in [0, 2147483647]"),
+            "{}",
+            strict.message
+        );
+
+        // The upper end, and the clamp control: `2^31` degrades to 0 rather
+        // than to `2^31 - 1`, which is a real line the producer did not mean.
+        let high = json!({"name": "m", "events": [{"ev": "throw", "line": 2_147_483_648i64}]});
+        let degraded = parse_method(&high, Door::Tolerant).unwrap();
+        assert_eq!(degraded.events.first(), Some(&Event::Throw { line: 0 }));
+
+        // …and the domain's own edges travel untouched at both doors.
+        let edges = json!({
+            "name": "m",
+            "events": [{"ev": "throw", "line": 0}, {"ev": "throw", "line": 2_147_483_647i64}]
+        });
+        for door in [Door::Strict, Door::Tolerant] {
+            let m = parse_method(&edges, door).unwrap();
+            assert_eq!(m.events.first(), Some(&Event::Throw { line: 0 }));
+            assert_eq!(
+                m.events.get(1),
+                Some(&Event::Throw {
+                    line: 2_147_483_647
+                })
+            );
+        }
     }
 }

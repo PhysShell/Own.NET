@@ -12,6 +12,16 @@ these generated fragments, computed from the evidence — never typed:
   checkpoint 4's, because that is where the fragment was introduced and two
   notes link it; what it DESCRIBES is the current comparison surface, which the
   document says in its own first paragraph.
+* `docs/generated/p022-cp1-census.md` — the checkpoint-1 strict-door ledger,
+  counted from the ledger itself by `tests/validation_census.py`: controls by
+  section, by verdict and by category, plus the coordinate family on its own.
+  Three numbers about that ledger used to be typed on the P-022 table.
+* `docs/generated/p022-coord-census.md` — every source coordinate the fixture
+  tree carries, classified against the §4.2 domain, from
+  `tests/coordinate_census.compute_coordinate_census()`. It is the measurement
+  the coordinate-domain decision was taken against and the one the churn budget
+  is checked with; it deliberately counts the GOLDENS too, because `0` staying
+  a legal line is a property of the outputs, not of the door.
 * `docs/generated/p022-cp5-inventory.md` — the checkpoint-5 SURFACE inventory,
   from `tests/verdict_surface_inventory.compute_surface_inventory()`: which
   BR-V4 wording branch, BR-V5 evidence family and BR-V9 rendered-surface rule
@@ -26,6 +36,8 @@ these generated fragments, computed from the evidence — never typed:
   `summarize()` as every other campaign in the tree.
 * `docs/generated/p022-cp4b-mutations.md` — checkpoint 4b's two campaigns (the
   obligation ANALYSIS and its BRIDGE half), rendered the same way.
+* `docs/generated/p022-coord-mutations.md` — final acceptance's two campaigns,
+  split by door (strict / tolerant) rather than by sub-checkpoint.
 * `docs/generated/p022-shadow-census.md` — the step-7a (#260/#269)
   shadow-mode INFRASTRUCTURE census, from
   `tests/shadow_census.compute_shadow_census()` over the committed
@@ -61,6 +73,11 @@ for _sub in ("tests", "scripts"):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from coordinate_census import (  # noqa: E402
+    CoordinateCensus,
+    CoordinateCensusError,
+    compute_coordinate_census,
+)
 from mutate_campaign import (  # noqa: E402  (sys.path set above)
     CampaignError,
     Definition,
@@ -72,6 +89,11 @@ from mutate_campaign import (  # noqa: E402  (sys.path set above)
     summarize,
 )
 from shadow_census import ShadowCensus, ShadowCensusError, compute_shadow_census  # noqa: E402
+from validation_census import (  # noqa: E402
+    ValidationCensus,
+    ValidationCensusError,
+    compute_validation_census,
+)
 from verdict_census import Census, CensusError, compute_verdict_census  # noqa: E402
 from verdict_render_census import (  # noqa: E402
     RenderCensus,
@@ -88,9 +110,12 @@ from verdict_surface_inventory import (  # noqa: E402
 GENERATED = os.path.join(ROOT, "docs", "generated")
 EVIDENCE = os.path.join(ROOT, "docs", "evidence")
 CENSUS_MD = "p022-cp4-census.md"
+COORD_CENSUS_MD = "p022-coord-census.md"
+CP1_CENSUS_MD = "p022-cp1-census.md"
 INVENTORY_MD = "p022-cp5-inventory.md"
 CP5_MUTATIONS_MD = "p022-cp5-mutations.md"
 CP4B_MUTATIONS_MD = "p022-cp4b-mutations.md"
+COORD_MUTATIONS_MD = "p022-coord-mutations.md"
 MUTATIONS_MD = "p022-cp4-mutations.md"
 SHADOW_CENSUS_MD = "p022-shadow-census.md"
 SHADOW_MUTATIONS_MD = "p022-shadow-mutations.md"
@@ -119,6 +144,14 @@ CP5_CAMPAIGNS = (
 CP4B_CAMPAIGNS = (
     ("checkpoint 4b.1 — the obligation analysis", "p022-cp4b-1"),
     ("checkpoint 4b.2 — the bridge mapping (BR-P3)", "p022-cp4b-2"),
+)
+# Final acceptance, split by DOOR rather than by sub-checkpoint: the strict
+# door refuses and the tolerant one degrades, they fail differently, and a
+# campaign that measured them together could not say which half a survivor
+# belonged to.
+COORD_CAMPAIGNS = (
+    ("the strict door — the coordinate domain, both implementations", "p022-coord-1"),
+    ("the tolerant door — the degrade, both implementations", "p022-coord-2"),
 )
 SELF = "scripts/render_checkpoint_status.py"
 
@@ -216,6 +249,167 @@ def render_census(c: Census, r: RenderCensus | None) -> str:
     lines += [f"| {'measure'.ljust(width)} | value |", f"|{'-' * (width + 2)}|------:|"]
     lines += [f"| {k.ljust(width)} | {v} |" for k, v in render_rows]
     lines.append("")
+    return "\n".join(lines)
+
+
+# --- checkpoint 1: the strict-door ledger census ---------------------------
+
+
+def render_validation_census(c: ValidationCensus) -> str:
+    """The cp1 ledger, counted from the ledger itself.
+
+    Three numbers about this ledger used to be typed on the P-022 table. They
+    were true when written and are the kind that stops being true quietly, so
+    the row links here instead."""
+    lines = [
+        _header("tests/fixtures/ownir_validation.json through tests/validation_census.py"),
+        "# P-022 #259 checkpoint 1 — the strict-door ledger, counted",
+        "",
+        "`tests/fixtures/ownir_validation.json` is the frozen BR-D1 acceptance language, "
+        "regenerated from the reference by "
+        "`python tests/test_ownir_validation_fixtures.py --write` and replayed with zero "
+        "Python by `own-ir/tests/validation_replay.rs`.",
+        "",
+        "**What the replay compares is accept/reject and, on a rejection, the CATEGORY — "
+        "never the message text.** The reference funnels every rejection through one "
+        "`OwnIRError` whose strings are a human-facing presentation aid, so byte-comparing "
+        "them across two languages would freeze a debug surface as a contract. The "
+        "`message` each record carries is Python's own, kept for the record rather than "
+        "for the comparison. The matrix the replay asserts — agreed accepts, agreed "
+        "rejects, Rust-only accepts, Rust-only rejects, kind mismatches — is a property "
+        "of a green `cargo test -p own-ir`, not a number reproduced here: all three "
+        "failure rows are zero or the build is red.",
+        "",
+        f"| {'measure'.ljust(30)} | value |",
+        f"|{'-' * 32}|------:|",
+        f"| {'controls'.ljust(30)} | {c.controls} |",
+        f"| {'… accepted'.ljust(30)} | {c.accepted} |",
+        f"| {'… rejected'.ljust(30)} | {c.rejected} |",
+        "",
+        "## By category",
+        "",
+        "Seven categories on two axes (`shape` is \"no representable primitive or "
+        "container form\"; `location` is \"a representable coordinate violating its "
+        "domain rule\"). The split is the one #326's census had to discover, and #259's "
+        "final acceptance moved a family across it — an `i64::MAX` line was an accept, is "
+        "now `location`, and `i64::MAX + 1` was and stays `shape`.",
+        "",
+        "| category | controls | what it means |",
+        "|---|---:|---|",
+    ]
+    counts = dict(c.by_category)
+    lines.append(f"| `accepted` | {counts.get('accepted', 0)} | the document is accepted |")
+    for name, meaning in c.categories:
+        lines.append(f"| `{name}` | {counts.get(name, 0)} | {meaning} |")
+    lines += [
+        "",
+        "## By section",
+        "",
+        "The ledger's own grouping, which is BR-D1's check order. A section with "
+        "acceptances and no rejections is a door nobody probed; one with rejections and "
+        "no acceptance twin is a rejection nothing discriminates.",
+        "",
+        "| section | accepted | rejected | by category |",
+        "|---|---:|---:|---|",
+    ]
+    for row in c.sections:
+        detail = ", ".join(f"`{k}` {n}" for k, n in row.by_category) or "—"
+        lines.append(f"| `{row.section}` | {row.accepted} | {row.rejected} | {detail} |")
+    lines += [
+        "",
+        "## The coordinate family",
+        "",
+        "Every control whose document carries a `line`, `ctor_line` or `column` at any "
+        "depth — the family #259's final acceptance moved, pulled out so a reviewer can "
+        "find it without reading every record. Each line-bearing field is pinned at four "
+        "points (`0` and `2147483647` accepted, `-1` and `2147483648` rejected), the two "
+        "fields §4.2 used to record as validated nowhere carry type controls as well, and "
+        "the flow-op line is pinned at every nesting shape because `then`/`else`/`body` "
+        "are three separate recursion sites.",
+        "",
+        f"| {'measure'.ljust(34)} | value |",
+        f"|{'-' * 36}|------:|",
+        f"| {'coordinate-bearing controls'.ljust(34)} | {c.coordinate_controls} |",
+        f"| {'… accepted'.ljust(34)} | {c.coordinate_accepted} |",
+    ]
+    for name, n in c.coordinate_by_category:
+        if name == "accepted":
+            continue
+        lines.append(f"| {('… rejected `' + name + '`').ljust(34)} | {n} |")
+    lines.append("")
+    return "\n".join(lines)
+
+# --- the coordinate census ------------------------------------------------
+
+
+def render_coordinate_census(c: CoordinateCensus) -> str:
+    """Every `line` / `column` slot in the fixture tree, by family, slot and
+    value class. Computed by `tests/coordinate_census.py`; nothing here is
+    typed, including the sentence about what did not move."""
+    lines = [
+        _header("tests/fixtures/**/*.json through tests/coordinate_census.py"),
+        "# P-022 #259 final acceptance — the source-coordinate census",
+        "",
+        "The measurement the coordinate-domain decision (`spec/OwnIR.md` §4.2) was "
+        "taken against: every `line`, `ctor_line` and `column` slot in every JSON file "
+        "under `tests/fixtures/`, at any depth and under any key.",
+        "",
+        "It is wider than the door on purpose. A **door slot** sits on an OwnIR "
+        "*document* and `load()` rules on it; every other row is an **observation** — "
+        "a golden, a ledger, a captured trace — which the door never sees and which "
+        "this change must therefore leave alone. `0` stays a legal line (the "
+        "reference's own default for an absent one), so the observation rows anchored "
+        "at zero are the records the decision must go on accepting, and a census that "
+        "read only the inputs could not see them at all.",
+        "",
+        "Value classes follow the cp1 taxonomy's axis rather than blurring it: "
+        "`outside-int64` has no representable integer form (`Shape`), while `negative` "
+        "and `above-int32` are representable coordinates violating the domain rule "
+        "(`Location`). `below-1` is the column's own 1-based rule.",
+        "",
+        f"| {'measure'.ljust(34)} | value |",
+        f"|{'-' * 36}|------:|",
+        f"| {'JSON files scanned'.ljust(34)} | {c.files} |",
+        f"| {'coordinate slots found'.ljust(34)} | {c.coordinates} |",
+        "",
+        "## By value class",
+        "",
+        "| value class | all slots | door slots |",
+        "|---|---:|---:|",
+    ]
+    door = dict(c.door_by_class)
+    for value_class, n in c.by_class:
+        lines.append(f"| `{value_class}` | {n} | {door.get(value_class, 0)} |")
+    lines += [
+        "",
+        "## By family and slot",
+        "",
+        "`door` marks a slot the strict door rules on. Examples are shown for every "
+        "class outside `in-domain` / `null` / `zero`, because those are the values a "
+        "reader needs to see rather than count.",
+        "",
+        "| family | slot | class | door | count | files | values |",
+        "|---|---|---|:--:|---:|---:|---|",
+    ]
+    for row in c.rows:
+        shown = ", ".join(f"`{e}`" for e in row.examples) or "—"
+        lines.append(
+            f"| `{row.family}` | `{row.path}` | `{row.value_class}` | "
+            f"{'yes' if row.door else '—'} | {row.count} | {row.files} | {shown} |")
+    lines += [
+        "",
+        "## Slot inventory reachability",
+        "",
+        "`tests/coordinate_census.SLOTS` is the door inventory, and it is asserted as "
+        "a set rather than spot-checked: a declared slot no fixture reaches is a "
+        "phantom claiming coverage it does not have.",
+        "",
+    ]
+    if c.unreachable_slots:
+        lines += [f"- **unreachable**: `{slot}`" for slot in c.unreachable_slots]
+        lines.append("")
+    else:
+        lines += ["Every declared slot is reached by at least one fixture.", ""]
     return "\n".join(lines)
 
 
@@ -532,7 +726,8 @@ hid the second would delete the defect the layer exists to expose.
 The reducer walks the pair in pipeline order over **{scope}** and names the
 first place they part company: the layer, the step address and the *minimal*
 difference inside it. The `verdicts` layer is **refused, not skipped** —
-comparing final diagnostics is #260's acceptance, blocked by #259 — and the
+comparing final diagnostics is #260's own acceptance, and crossing that line is
+its decision to take (#259's final acceptance is reached) — and the
 refusal is carried in every reduction, so "not compared" can never be read as
 "compared and agreed".
 
@@ -575,8 +770,10 @@ non-zero counter there is not representable as a passing build. The gates:
   Acceptance must therefore prove the byte-level invariant separately; until
   it does, "same input" here means canonical identity and nothing stronger
   ([owner decision B-1](../notes/p022-shadow-infra-owner-decisions.md)).
-- **End diagnostics compared as an acceptance surface** — #260's acceptance,
-  blocked by #259 (cp5 and 4b). Not attempted, not approximated.
+- **End diagnostics compared as an acceptance surface** — #260's acceptance.
+  It was blocked by #259 while cp5, 4b and the coordinate-domain contract were
+  open; all three have landed, so what remains is this step's own decision to
+  cross the line. Not attempted, not approximated.
 - **The verdict layer.** Refused by the reducer, and recorded as refused in
   every reduction. This is the same blocker as the row above, stated where a
   tool could otherwise have quietly crossed it.
@@ -621,6 +818,14 @@ def fragments() -> tuple[dict[str, str], list[str]]:
     except CensusError as e:
         problems.extend(f"verdict census: {p}" for p in e.problems)
     try:
+        out[CP1_CENSUS_MD] = render_validation_census(compute_validation_census())
+    except ValidationCensusError as e:
+        problems.extend(f"cp1 ledger census: {p}" for p in e.problems)
+    try:
+        out[COORD_CENSUS_MD] = render_coordinate_census(compute_coordinate_census())
+    except CoordinateCensusError as e:
+        problems.extend(f"coordinate census: {p}" for p in e.problems)
+    try:
         out[INVENTORY_MD] = render_inventory(compute_surface_inventory())
     except InventoryError as e:
         problems.extend(f"cp5 surface inventory: {p}" for p in e.problems)
@@ -661,6 +866,19 @@ def fragments() -> tuple[dict[str, str], list[str]]:
         CP4B_CAMPAIGNS)
     out[CP4B_MUTATIONS_MD] = cp4b
     problems.extend(f"mutation campaign {p}" for p in cp4b_problems)
+    coord, coord_problems = render_campaign_set(
+        "# P-022 #259 final acceptance — mutation campaigns",
+        "The coordinate-domain contract, measured in two halves because the two doors "
+        "fail differently: the STRICT door refuses an out-of-domain coordinate and the "
+        "TOLERANT one degrades it to absent. Every rule is mutated on BOTH sides — the "
+        "reference and its Rust mirror — since a domain only one implementation enforces "
+        "is a divergence, not a rule. Every mutation edits a **production** surface "
+        "(P-022 discipline 2) and every declared layer runs for every mutation "
+        "(discipline 3: no fail-fast); the counts are derived from the recorded runs by "
+        "`scripts/mutate_campaign.summarize()`, never typed.",
+        COORD_CAMPAIGNS)
+    out[COORD_MUTATIONS_MD] = coord
+    problems.extend(f"mutation campaign {p}" for p in coord_problems)
     return out, problems
 
 
@@ -704,9 +922,9 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     if argv:
-        print(f"checkpoint status fragments OK: {CENSUS_MD}, {INVENTORY_MD}, "
-              f"{MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {SHADOW_CENSUS_MD}, "
-              f"{SHADOW_MUTATIONS_MD} in sync with the evidence")
+        print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
+              f"{COORD_CENSUS_MD}, {INVENTORY_MD}, {MUTATIONS_MD}, {CP5_MUTATIONS_MD}, "
+              f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence")
     return 0
 
 

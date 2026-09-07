@@ -298,11 +298,17 @@ fn assert_exclusions_hold<'m>(
             e.name
         );
     }
+    // Two, and both are #294 OD-1: the reference's tolerant door skips a
+    // malformed entry where the typed Rust constructor refuses the document
+    // before the bridge's skip rule can run.
+    //
+    // Six until #259's final acceptance. The four `verdict_boundary_*` cases
+    // were the coordinate-representability family — refused because the core
+    // holds a line as `u32` and §4.2 admitted every signed-64 value — and they
+    // are PROMOTED, not waived: the reference's own domain moved to int32
+    // first (Python-first), so both doors now degrade an out-of-domain line to
+    // `0` and the four goldens are replayed like any other case.
     let expected_exclusions: BTreeSet<&str> = [
-        "verdict_boundary_line_negative",
-        "verdict_boundary_line_above_u32",
-        "verdict_boundary_service_line_negative",
-        "verdict_boundary_effect_line_negative",
         "verdict_door_effect_deps_not_strings",
         "verdict_door_service_unknown_lifetime",
     ]
@@ -348,6 +354,44 @@ fn assert_exclusions_hold<'m>(
     excluded
 }
 
+/// Every source coordinate a Layer 2 document carries, at any nesting depth.
+fn lowered_lines(doc: &own_lowered::LoweredDocument) -> Vec<i64> {
+    use own_lowered::Stmt;
+    fn walk(body: &[Stmt], out: &mut Vec<i64>) {
+        for stmt in body {
+            match stmt {
+                Stmt::Acquire { line, .. }
+                | Stmt::Release { line, .. }
+                | Stmt::Use { line, .. }
+                | Stmt::Overspan { line, .. }
+                | Stmt::Return { line, .. }
+                | Stmt::AliasJoin { line, .. }
+                | Stmt::Call { line, .. }
+                | Stmt::Subscribe { line, .. } => out.push(*line),
+                Stmt::If {
+                    then, r#else, line, ..
+                } => {
+                    out.push(*line);
+                    walk(then, out);
+                    walk(r#else, out);
+                }
+                Stmt::While { body, line, .. } => {
+                    out.push(*line);
+                    walk(body, out);
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    for f in &doc.functions {
+        for p in &f.params {
+            out.push(p.line);
+        }
+        walk(&f.body, &mut out);
+    }
+    out
+}
+
 /// Replay one case against its golden: `Ok((refused, finding count))`, or the
 /// divergence description.
 fn replay_case(name: &str, facts_path: &str) -> Result<(bool, usize), String> {
@@ -357,6 +401,23 @@ fn replay_case(name: &str, facts_path: &str) -> Result<(bool, usize), String> {
     let facts = construct(&read(facts_path)).unwrap_or_else(|e| {
         panic!("{name}: the typed door refused a case that is not in the exclusion ledger: {e}")
     });
+    // Layer 2 carries the §4.2 domain too, and it is asserted here rather
+    // than assumed. The reference builds its AST from `_as_line`-read
+    // coordinates, so a Layer 2 document it produces cannot hold a line
+    // outside `[0, 2147483647]`; the port must not either. Nothing else pins
+    // it: `ast::core_line` degrades on the way in, so a port that carried the
+    // raw value through the lowering would look identical at Layer 3 and
+    // disagree with the reference at the seam the cp2 evidence is taken from.
+    if let Ok(lowered) = own_bridge::lower(&facts) {
+        for line in lowered_lines(&lowered) {
+            assert!(
+                (0..=2_147_483_647).contains(&line),
+                "{name}: Layer 2 carries the coordinate {line}, outside the \
+                 spec/OwnIR.md §4.2 domain — the reference's lowering degrades \
+                 it to 0 and this one did not"
+            );
+        }
+    }
     let first = own_bridge::check_facts(&facts);
     let second = own_bridge::check_facts(&facts);
     assert_eq!(

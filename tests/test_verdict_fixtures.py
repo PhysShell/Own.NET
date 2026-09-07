@@ -30,10 +30,14 @@ Three case sources, one golden tree:
   view anchor, and the declared-boundary controls below.
 * **The Rust exclusion ledger** — `rust_replay_excluded` names the cases whose
   golden is Python's truth but which the Rust core REFUSES by a declared
-  boundary (a coordinate outside the core's `u32` line domain; a shape the
-  typed Rust door rejects before the bridge runs — #294 OD-1). It named a
-  third until #259 checkpoint 4b — a protocol-bearing document, refused while
-  the OBL analysis had no port — and both such documents are now promoted.
+  boundary. Two remain, both #294 OD-1: a shape the typed Rust door rejects
+  before the bridge's tolerant skip rule can run. Two families have been
+  promoted out of it, neither by waiving anything. Checkpoint 4b ported the
+  OBL analysis the protocol-bearing documents were refused for. #259's final
+  acceptance closed the coordinate family from the REFERENCE's side: §4.2 now
+  bounds a line to the int32 domain every consumer actually has, so both
+  tolerant doors degrade an out-of-domain coordinate to `0` and the four
+  `verdict_boundary_*` controls replay like any other case.
   Each entry carries its reason
   and an executable expectation (`rust_refusal`: `bridge` or `door`, plus an
   error substring) that the Rust replay asserts, so an exclusion cannot rot
@@ -127,7 +131,7 @@ def run() -> int:
             fails.extend(e.problems)
     if fails:
         for f_ in fails:
-            print(f"FAIL: verdict fixture {f_}")
+            print(f"FAIL[verdict-fixture]: {f_}")
         return 1
     print(f"verdicts (Layer 3) fixtures OK: {census.goldens} cases "
           f"({census.python_refusals} refusals, {census.python_findings} findings; "

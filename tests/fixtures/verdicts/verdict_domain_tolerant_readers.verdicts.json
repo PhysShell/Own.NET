@@ -1,0 +1,48 @@
+{
+  "verdicts_version": 1,
+  "findings": [
+    {
+      "file": "V.cs",
+      "line": 5,
+      "code": "OWN014",
+      "component": "Dom.View",
+      "event": "bus.Changed",
+      "handler": "OnChanged",
+      "message": "event 'bus.Changed' is subscribed (handler 'OnChanged') to 'Bus' — a DI singleton (application-lifetime) service that outlives 'Dom.View'; the strong subscription promotes 'Dom.View' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [],
+      "ignore_reason": null,
+      "column": null
+    },
+    {
+      "file": "V.cs",
+      "line": 6,
+      "code": "OWN014",
+      "component": "Dom.View",
+      "event": "bus.Other",
+      "handler": "OnOther",
+      "message": "event 'bus.Other' is subscribed (handler 'OnOther') to 'Ok' — a DI singleton (application-lifetime) service that outlives 'Dom.View'; the strong subscription promotes 'Dom.View' to the source's lifetime, so it can never be collected — a captive/region escape (leak, no release path)",
+      "kind": "subscription token",
+      "advisory": false,
+      "severity": null,
+      "related": [],
+      "flow": [
+        [
+          "V.cs",
+          6,
+          "'Dom.View' subscribes 'bus.Other' to 'Ok' here"
+        ],
+        [
+          "reg.cs",
+          12,
+          "source 'Ok' (singleton) registered here — outlives 'Dom.View'"
+        ]
+      ],
+      "ignore_reason": null,
+      "column": 2147483647
+    }
+  ]
+}

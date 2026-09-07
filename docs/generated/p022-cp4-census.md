@@ -6,21 +6,20 @@ Computed by `tests/verdict_census.py` and `tests/verdict_render_census.py` (the 
 
 **The surface this describes is checkpoint 5's**: the verdict replay compares EVERY `Finding` member (`message`, `related` and `flow` included) and every refusal in full, and the rendered-surface replay compares bytes. At checkpoint 4 the same ledger was compared on identity, anchor, kind and tiering only, and refusals up to their `message=` member; the counts below are the ledger's either way, which is why one fragment serves both and says which surface it means.
 
-| measure                                                                              | value |
-|--------------------------------------------------------------------------------------|------:|
-| goldens — Python's complete truth, one per planned case                              | 94 |
-| … swept from `tests/fixtures/ownir`                                                  | 22 |
-| … swept from `tests/fixtures/lowered`                                                | 27 |
-| … swept from `tests/fixtures/summaries`                                              | 9 |
-| … synthetic controls (`manifest.json` cases)                                         | 36 |
-| reference refusals over all goldens                                                  | 5 |
-| reference findings over all goldens                                                  | 180 |
-| declared Rust exclusions — the executable ledger `rust_replay_excluded`              | 6 |
-| … refused by `check_facts` with an error containing `outside the core's line domain` | 4 |
-| … refused at the typed `OwnIr` door (#294 OD-1)                                      | 2 |
-| replayed by Rust (goldens minus exclusions)                                          | 88 |
-| … reference refusals among them (compared in full)                                   | 5 |
-| … findings among them (compared on every `Finding` member)                           | 174 |
+| measure                                                                 | value |
+|-------------------------------------------------------------------------|------:|
+| goldens — Python's complete truth, one per planned case                 | 95 |
+| … swept from `tests/fixtures/ownir`                                     | 22 |
+| … swept from `tests/fixtures/lowered`                                   | 27 |
+| … swept from `tests/fixtures/summaries`                                 | 9 |
+| … synthetic controls (`manifest.json` cases)                            | 37 |
+| reference refusals over all goldens                                     | 5 |
+| reference findings over all goldens                                     | 182 |
+| declared Rust exclusions — the executable ledger `rust_replay_excluded` | 2 |
+| … refused at the typed `OwnIr` door (#294 OD-1)                         | 2 |
+| replayed by Rust (goldens minus exclusions)                             | 93 |
+| … reference refusals among them (compared in full)                      | 5 |
+| … findings among them (compared on every `Finding` member)              | 180 |
 
 The differential counts over the replayed set — Python-only, Rust-only, changed, ordering-only, unexplained — are asserted, not measured here: the Rust replay compares every replayed case's full ordered verdict list (or its refusal text) against the golden on every member, collects every divergence without fail-fast, and fails if one exists. A green `cargo test -p own-bridge --test verdicts` is 0 / 0 / 0 / 0 / 0 by construction; a non-zero count is a red build.
 

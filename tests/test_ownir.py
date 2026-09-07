@@ -428,9 +428,11 @@ def run() -> int:
 
     # --- #294 OD-3: `line` coercion must be uniform. Some finding-construction
     #     paths used strict int(sub.get("line", 0)) while others used the
-    #     non-throwing _as_int; a non-int `line` on the tolerant door crashed one
-    #     path and degraded the other. _as_int everywhere: a bad `line` degrades
-    #     to 0, never raises (load() still validates `line` on the strict door).
+    #     non-throwing reader; a non-int `line` on the tolerant door crashed one
+    #     path and degraded the other. `_as_line` everywhere: a bad `line`
+    #     degrades to 0, never raises (load() still validates `line` on the
+    #     strict door). Since #259's final acceptance `_as_line` also degrades a
+    #     line OUTSIDE the §4.2 domain, which is the same rule one axis over.
     for _bad in (None, "oops", 3.5):
         checks += 1
         tolerant_bad_line = {"ownir_version": OWNIR_VERSION, "module": "X",
@@ -444,7 +446,7 @@ def run() -> int:
                              f"[(OWN001, 0)], got {[(f.code, f.line) for f in _tl]} (#294 OD-3)")
         except (TypeError, ValueError) as _e:
             fails.append(f"non-int line {_bad!r} crashed a strict int() finding path "
-                         f"on the tolerant door — should degrade to 0 via _as_int "
+                         f"on the tolerant door — should degrade to 0 via _as_line "
                          f"(#294 OD-3): {type(_e).__name__}: {_e}")
     # control: a valid int `line` is preserved unchanged.
     checks += 1

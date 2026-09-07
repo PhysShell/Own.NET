@@ -3,9 +3,10 @@
   "module": "Bound",
   "components": [],
   "_doc": [
-    "Declared #259 cp4 divergence family on the DI path: a negative registration",
-    "line is a DI001 anchored at reg.cs:-5 for the reference; the Rust core",
-    "refuses (the anchor cannot be represented)."
+    "The promoted control on the DI path: a negative registration line degrades",
+    "to 0 on both tolerant doors, so DI001 anchors at reg.cs:0. The captor",
+    "evidence step is dropped by the >= 1 guard exactly as it was at -5, which",
+    "is why the slice does not move."
   ],
   "services": [
     {

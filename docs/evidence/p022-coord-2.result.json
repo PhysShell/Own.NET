@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-coord-2",
+  "definition": "docs/evidence/p022-coord-2.json",
+  "definition_sha256": "f033608e513b098baed9490305baa4f77c6a47728ddcb530097af8745416182b",
+  "source_commit": "3af8ead18d423d9de760ecbf180ed5ca0ef68dad",
+  "dirty": false,
+  "recorded_at": "2026-09-07T10:32:30Z",
+  "layers": [
+    "py-limits",
+    "py-verdicts",
+    "rust-door",
+    "rust-bridge"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 2.5
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ],
+      "elapsed_seconds": 0.9
+    },
+    {
+      "id": "M02",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ],
+      "elapsed_seconds": 2.2
+    },
+    {
+      "id": "M03",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ],
+      "elapsed_seconds": 2.3
+    },
+    {
+      "id": "M04",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ],
+      "elapsed_seconds": 2.2
+    },
+    {
+      "id": "M05",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade",
+        "py-verdicts::verdict-fixture"
+      ],
+      "elapsed_seconds": 2.1
+    },
+    {
+      "id": "M06",
+      "outcome": "caught",
+      "catchers": [
+        "py-limits::tolerant-degrade"
+      ],
+      "elapsed_seconds": 2.2
+    },
+    {
+      "id": "M07",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ],
+      "elapsed_seconds": 2.5
+    },
+    {
+      "id": "M08",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ],
+      "elapsed_seconds": 2.4
+    },
+    {
+      "id": "M09",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/src/lib.rs::ast::tests::core_line_degrades_the_domain_and_never_clamps"
+      ],
+      "elapsed_seconds": 2.5
+    },
+    {
+      "id": "M10",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 2.3
+    },
+    {
+      "id": "M11",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 2.3
+    },
+    {
+      "id": "M12",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 2.3
+    },
+    {
+      "id": "M13",
+      "outcome": "caught",
+      "catchers": [
+        "rust-door/src/lib.rs::protocol::tests::an_absent_line_is_zero_and_an_out_of_domain_one_follows_the_door"
+      ],
+      "elapsed_seconds": 2.5
+    },
+    {
+      "id": "M14",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte"
+      ],
+      "elapsed_seconds": 2.4
+    },
+    {
+      "id": "M15",
+      "outcome": "caught",
+      "catchers": [
+        "rust-bridge/tests/verdicts.rs::replays_every_case_to_its_golden"
+      ],
+      "elapsed_seconds": 2.4
+    }
+  ]
+}

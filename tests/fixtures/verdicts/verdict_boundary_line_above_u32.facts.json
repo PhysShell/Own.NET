@@ -2,8 +2,10 @@
   "ownir_version": 0,
   "module": "Bound",
   "_doc": [
-    "Declared #259 cp4 divergence family, upper edge: an acquire at line 2^32 is",
-    "a leak at that coordinate for the reference; the Rust core refuses."
+    "The upper edge of the same promoted control: an acquire at 2^32 is outside",
+    "the §4.2 domain, so the strict door refuses it and both tolerant doors",
+    "degrade to 0 — never clamped to 2147483647, which is a real line the",
+    "producer did not mean. The golden anchors the leak at B.cs:0."
   ],
   "functions": [
     {

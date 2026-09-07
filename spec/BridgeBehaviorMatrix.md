@@ -33,6 +33,8 @@
 | unknown flow op raises (via lowering guard) | `_lower_flow` | IR4, BR-L10 | L369, L508 | L1 |
 | optional per-record strings must be strings (`source_provenance`, `ignore_reason`) | `load` | BR-D1 | L246, L304 | L1 |
 | `services[]` shape: lifetime enum, name, line int-not-bool, dep/site arrays, ctor fields | `load` | BR-D1 | L1185–L1236 (9 checks) | L1 |
+| every `line` is in the int32 coordinate domain and every `column` in its 1-based one; the two fields §4.2 used to record as unchecked (`subscriptions[].line`, a flow op's `line`) are validated for type and domain at every nesting shape | `load` | §4.2, BR-D1 | `test_ownir_defensive_limits.py`, `ownir_validation.json` | L1 |
+| the tolerant door DEGRADES an out-of-domain coordinate — a line to `0`, a column to absent — and never clamps | `_as_line`, `_as_col`, `_opt_line` | §4.2, BR-D2 | `test_ownir_defensive_limits.py`, `verdict_domain_tolerant_readers` | L3 ✅ |
 | function `sig` present-but-non-string rejected (record side) | `load` | BR-D3 | L2306 | L1 |
 | schema↔code enum binding: `ownir_version`, `resourceKind`, `diLifetime`, `paramEffect`, `flowOp` (no gaps/dupes) | `ownir.schema.json` + authority sets | IR3/IR4 | L434–L480 (6 checks) | L1 |
 | every declared flow op actually lowers (no coverage gap) | `_FLOW_OPS` ↔ `_lower_flow` | BR-L10 | L485 | L2 |
@@ -151,7 +153,13 @@ protocol-bearing document rather than return an incomplete list. #259
 checkpoint 4b closed that — the analysis is `own-analysis`'s, the typed values
 come from the one grammar in `own-ir`, the bridge maps them, and both reference
 documents are promoted out of `rust_replay_excluded` and replayed against the
-goldens exactly as they were committed. What is still outside the replayed set,
-recorded in that ledger with an executable expectation, is the coordinate
-boundary (a decision #259 owes) and the tolerant-door coercions the typed Rust
+goldens exactly as they were committed. The **coordinate boundary** was the second, and #259's final
+acceptance closed it from the reference's side rather than the port's:
+[OwnIR.md §4.2](OwnIR.md) bounds every `line` to `[0, 2147483647]` and every
+`column` to `[1, 2147483647]` — the int32 domain every consumer this project
+feeds — the strict door refuses an out-of-domain coordinate as `Location`, and
+both tolerant doors degrade it to absent rather than refusing, so the four
+`verdict_boundary_*` controls are promoted and replayed like any other case.
+What is still outside the replayed set, recorded in that ledger with an
+executable expectation, is the tolerant-door coercions the typed Rust
 constructor cannot reach (OD-1).

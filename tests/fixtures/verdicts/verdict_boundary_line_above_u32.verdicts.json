@@ -3,7 +3,7 @@
   "findings": [
     {
       "file": "B.cs",
-      "line": 4294967296,
+      "line": 0,
       "code": "OWN001",
       "component": "Bound.G",
       "event": "x",

@@ -12,7 +12,7 @@ Definition: `docs/evidence/p022-cp5-1.json` (sha256 `2b4651e54f2862f5…`, 42 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `cdff105ca43ec5b1ced2bd25a8216f4f7b65deb3` |
+| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 42 |
 | caught                                                     | 42 |
@@ -76,7 +76,7 @@ Definition: `docs/evidence/p022-cp5-2.json` (sha256 `8641e3ff34598123…`, 10 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `2a7ff6d4ab2877b930f79f09bc6f55bfbffd094e` |
+| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 10 |
 | caught                                                     | 10 |
@@ -93,7 +93,7 @@ Definition: `docs/evidence/p022-cp5-2.json` (sha256 `8641e3ff34598123…`, 10 mu
 | M02 | BR-V3 | the resolver emits a message-less diagnostic again (the title stands in) | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M03 | BR-V3 | own-analysis ignores the message own-cfg carries and substitutes the title | caught | `own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M04 | BR-V3 | py_repr always single-quotes (cp4's placeholder, the bug cp5.2 found) | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
-| M05 | BR-V3 | py_repr's quote switch inverted (double unless a quote is present) | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
+| M05 | BR-V3 | py_repr's quote switch inverted (double unless a quote is present) | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/renders.rs::replays_every_rendered_surface_byte_for_byte`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
 | M06 | BR-V3 | py_repr leaves a backslash unescaped | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch` |
 | M07 | BR-V3 | py_repr leaves an ASCII control character raw | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch` |
 | M08 | BR-V3 | py_repr renders an absent subject as an empty string, not None | caught | `own-bridge/src/lib.rs::verdict::tests::py_repr_matches_cpython_including_the_quote_switch`<br>`own-bridge/tests/verdicts.rs::replays_every_case_to_its_golden`<br>`own-shadow/tests/engine.rs::this_engine_reproduces_its_committed_capture` |
@@ -108,7 +108,7 @@ Definition: `docs/evidence/p022-cp5-3.json` (sha256 `6b064c3d76eae07a…`, 29 mu
 
 | measure                                                    | value |
 |------------------------------------------------------------|---|
-| recorded at commit                                         | `ceb8521557128bddca96ea6addb817231fde4f56` |
+| recorded at commit                                         | `3af8ead18d423d9de760ecbf180ed5ca0ef68dad` |
 | packages tested (every workspace member, `--no-fail-fast`) | `own-analysis`, `own-bridge`, `own-cfg`, `own-diagnostics`, `own-ir`, `own-lowered`, `own-shadow`, `own-syntax` |
 | mutations                                                  | 29 |
 | caught                                                     | 29 |

@@ -11,14 +11,20 @@
 //! composes the checkpoint-2 evidence instead of re-deriving it: a lowering
 //! bug is visible at the Layer 2 seam before it can hide behind a verdict.
 //!
-//! **The one representability boundary lives here.** The core's line domain
-//! is `u32` (a parser-derived position), while a fact coordinate on the
-//! tolerant door is any integer the reference's `_as_int` passes through, and
-//! even the strict door admits every signed 64-bit value (`spec/OwnIR.md`
-//! §4.2). A coordinate outside `0..=u32::MAX` on a lowered node is therefore
-//! refused loudly — a Rust-only rejection of a document the reference
-//! analyzes, declared and measured as a cp4 divergence family (the verdict
-//! fixture ledger pins it), never clamped or silently dropped.
+//! **The coordinate boundary that used to live here is gone**, and it is worth
+//! saying how rather than just that. The core's line domain is `u32` (a
+//! parser-derived position); the reference's was every signed 64-bit integer,
+//! so a fact coordinate could be one the core could not hold, and this module
+//! refused the document — a declared, measured cp4 divergence family.
+//!
+//! #259's final acceptance closed it from the reference's side, not from
+//! this one: `spec/OwnIR.md` §4.2 now bounds every line to `[0, 2147483647]`,
+//! the int32 domain every consumer this project feeds actually has. So a
+//! document that passes the strict door is inside `u32` by construction, and
+//! the only remaining out-of-domain coordinate arrives through the TOLERANT
+//! door — where the reference degrades it to `0` and [`core_line`] does the
+//! same. Never "Rust holds `u32`, so the reference is wrong": the contract
+//! moved because of what its consumers are, and the port follows it.
 
 // `redundant_pub_crate` (nursery) conflicts with the workspace's DENY of
 // `unreachable_pub` for items in private modules; pub(crate) is the honest
@@ -33,17 +39,35 @@ use own_syntax::ast::{
     Subscribe, TypeRef, Use, VarRef, While,
 };
 
-/// `u32` or refuse: the declared coordinate boundary (see the module docs).
-pub(crate) fn core_line(line: i64, what: &str) -> Result<u32, BridgeError> {
-    u32::try_from(line).map_err(|_| {
-        BridgeError(format!(
-            "source line {line} on {what} is outside the core's line domain \
-             (0..=4294967295): the reference analyzes this coordinate, this core \
-             cannot represent it — a declared #259 cp4 divergence family, not a \
-             silent clamp (spec/OwnIR.md §4.2 bounds coordinates to signed 64 bits)"
-        ))
-    })
+/// A fact coordinate as a core line: in the §4.2 domain, or degraded to `0`.
+///
+/// This is the reference's `_as_line` (`ownlang/ownir.py`), member for member:
+/// a line outside `[0, 2147483647]` reads as `0` — "unknown / file-level", the
+/// value an absent line already reads as — and everything inside it travels
+/// unchanged.
+///
+/// **Degrade, never clamp.** `2147483648` does not become `2147483647` and
+/// `-1` does not become `1`: a clamp moves the finding to a REAL line the
+/// producer did not mean, which is worse than saying nothing. That is §4.1's
+/// never-invent rule for columns, applied to lines by §4.2.
+///
+/// It is INFALLIBLE, and the signature says so. It used to return a
+/// `BridgeError` naming the node, so every caller carried a `?` and the whole
+/// AST build was fallible for a reason that no longer exists; keeping the
+/// `Result` would leave a refusal path the ledger could no longer reach and
+/// no test could ever exercise.
+pub(crate) fn core_line(line: i64) -> u32 {
+    match u32::try_from(line) {
+        Ok(n) if n <= LINE_MAX => n,
+        _ => 0,
+    }
 }
+
+/// The top of the §4.2 line domain as the core holds it. Pinned as a literal
+/// beside the `u32` conversion rather than imported: this is the number the
+/// core's own type has to agree with, and a constant that moved with the
+/// contract could not detect that it stopped.
+const LINE_MAX: u32 = 2_147_483_647;
 
 fn type_ref(t: &TypeShape) -> TypeRef {
     TypeRef {
@@ -77,13 +101,13 @@ fn member_role(role: &str) -> Result<MemberRole, BridgeError> {
     }
 }
 
-fn param(p: &Param) -> Result<own_syntax::ast::Param, BridgeError> {
-    Ok(own_syntax::ast::Param {
+fn param(p: &Param) -> own_syntax::ast::Param {
+    own_syntax::ast::Param {
         name: p.handle.clone(),
         ty: type_ref(&p.type_shape),
-        line: core_line(p.line, &format!("param '{}'", p.handle))?,
+        line: core_line(p.line),
         lifetime: p.lifetime.clone(),
-    })
+    }
 }
 
 fn stmts(body: &[Stmt]) -> Result<Vec<AstStmt>, BridgeError> {
@@ -97,7 +121,7 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
             resource,
             line,
         } => {
-            let line = core_line(*line, &format!("acquire of '{handle}'"))?;
+            let line = core_line(*line);
             AstStmt::Let(Let {
                 name: handle.clone(),
                 rhs: Expr::Acquire(Acquire {
@@ -110,29 +134,29 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
         }
         Stmt::Release { handle, line } => AstStmt::Release(Release {
             var: handle.clone(),
-            line: core_line(*line, &format!("release of '{handle}'"))?,
+            line: core_line(*line),
         }),
         Stmt::Use { handle, line } => AstStmt::Use(Use {
             var: handle.clone(),
-            line: core_line(*line, &format!("use of '{handle}'"))?,
+            line: core_line(*line),
         }),
         Stmt::Overspan { handle, line } => AstStmt::Overspan(Overspan {
             var: handle.clone(),
-            line: core_line(*line, &format!("overspan of '{handle}'"))?,
+            line: core_line(*line),
         }),
         Stmt::Return { handle, line } => AstStmt::Return(Return {
             var: handle.clone(),
-            line: core_line(*line, "return")?,
+            line: core_line(*line),
         }),
         Stmt::AliasJoin { handle, src, line } => AstStmt::AliasJoin(AliasJoin {
             name: handle.clone(),
             src: src.clone(),
-            line: core_line(*line, &format!("alias_join of '{handle}'"))?,
+            line: core_line(*line),
         }),
         Stmt::Call { callee, args, line } => {
             // Python: `VarRef(localmap.get(a, a), line)` — every argument is a
             // name reference carrying the CALL's line.
-            let line = core_line(*line, &format!("call to '{callee}'"))?;
+            let line = core_line(*line);
             AstStmt::Call(Call {
                 callee: callee.clone(),
                 args: args
@@ -149,7 +173,7 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
         }
         Stmt::Subscribe { source, line } => AstStmt::Subscribe(Subscribe {
             source: source.clone(),
-            line: core_line(*line, &format!("subscribe to '{source}'"))?,
+            line: core_line(*line),
         }),
         Stmt::If {
             cond,
@@ -160,12 +184,12 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
             cond_text: cond.clone(),
             then_body: stmts(then)?,
             else_body: stmts(r#else)?,
-            line: core_line(*line, "if")?,
+            line: core_line(*line),
         }),
         Stmt::While { cond, body, line } => AstStmt::While(While {
             cond_text: cond.clone(),
             body: stmts(body)?,
-            line: core_line(*line, "while")?,
+            line: core_line(*line),
         }),
     })
 }
@@ -173,7 +197,7 @@ fn stmt(s: &Stmt) -> Result<AstStmt, BridgeError> {
 fn function(f: &Function) -> Result<FnDecl, BridgeError> {
     Ok(FnDecl {
         name: f.name.clone(),
-        params: f.params.iter().map(param).collect::<Result<_, _>>()?,
+        params: f.params.iter().map(param).collect(),
         ret: f.ret.as_ref().map(type_ref),
         body: stmts(&f.body)?,
         line: 0,
@@ -186,9 +210,11 @@ fn function(f: &Function) -> Result<FnDecl, BridgeError> {
 /// reference constructs them).
 ///
 /// # Errors
-/// [`BridgeError`] for a coordinate outside the core's `u32` line domain (the
-/// declared boundary above), or a Layer 2 vocabulary value with no core twin
-/// (unreachable for a document the lowering itself produced).
+/// [`BridgeError`] for a Layer 2 vocabulary value with no core twin
+/// (unreachable for a document the lowering itself produced). A coordinate
+/// outside the core's line domain is no longer among them — see [`core_line`]
+/// and the module docs: §4.2 gave the reference the same domain, and both
+/// tolerant doors now degrade rather than refuse.
 pub(crate) fn to_module(doc: &LoweredDocument) -> Result<Module, BridgeError> {
     let resources = doc
         .resources
@@ -259,4 +285,49 @@ pub(crate) fn to_module(doc: &LoweredDocument) -> Result<Module, BridgeError> {
         policies: Vec::new(),
         lifetimes,
     })
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::{core_line, LINE_MAX};
+
+    /// [`core_line`]'s contract, pinned directly — and the reason it is pinned
+    /// directly rather than through `check_facts` is worth stating, because a
+    /// unit test on the function under test is normally the weak kind of
+    /// evidence this project refuses.
+    ///
+    /// It cannot be reached from the outside any more. `lower` reads every
+    /// fact coordinate through `as_line`, so the Layer 2 document this builds
+    /// from is already inside the domain, and every out-of-domain value dies
+    /// one layer earlier. That makes this a SECOND line of defence over an
+    /// `i64` field wider than the domain — real (nothing in the type stops a
+    /// future caller handing it one) and unobservable end to end. A mutation
+    /// campaign proved exactly that: clamping here, or accepting the whole
+    /// `u32` range again, changed no golden. So the honest control is this
+    /// one, and the honest record is that it is not an end-to-end control.
+    #[test]
+    fn core_line_degrades_the_domain_and_never_clamps() {
+        assert_eq!(
+            core_line(0),
+            0,
+            "zero is the domain's bottom, not a degrade"
+        );
+        assert_eq!(core_line(1), 1);
+        assert_eq!(core_line(i64::from(LINE_MAX)), LINE_MAX, "the top travels");
+        // …and one step past each end degrades to ABSENT, not to the edge.
+        assert_eq!(core_line(-1), 0);
+        assert_eq!(
+            core_line(i64::from(LINE_MAX) + 1),
+            0,
+            "never clamped to the top"
+        );
+        assert_eq!(
+            core_line(i64::from(u32::MAX)),
+            0,
+            "the core's own u32 is not the domain"
+        );
+        assert_eq!(core_line(i64::MIN), 0);
+        assert_eq!(core_line(i64::MAX), 0);
+    }
 }

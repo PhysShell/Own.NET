@@ -148,8 +148,12 @@ from .effects import Effect as ReactEffect
 from .effects import find_effect_storms
 from .evidence import code_flow, di_path_steps
 from .obligations import (
+    COLUMN_MAX,
+    COLUMN_MIN,
     INT64_MAX,
     INT64_MIN,
+    LINE_MAX,
+    LINE_MIN,
     MAX_NESTING_DEPTH,
     MethodEvents,
     Protocol,
@@ -539,14 +543,22 @@ def build_sarif(findings: list[Finding], severity: str = "error") -> dict[str, A
     }
 
 
-def _check_int_range(v: int, where: str, field: str = "line") -> None:
-    """The representable range of an OwnIR source coordinate (spec/OwnIR.md §4.2).
+def _check_representable(v: int, where: str, field: str = "line") -> None:
+    """The representable FORM of an OwnIR source coordinate (spec/OwnIR.md §4.2).
 
     Python integers are unbounded; a consumer's are not. Without this bound the
     fact vocabulary is only implementable in a language with bignums, which is a
     contract accident rather than a decision — and it surfaces downstream as a
     port rejecting a document the reference accepted. Stated and enforced here
-    instead, Python-first.
+    instead, Python-first (#326).
+
+    This is the first of TWO axes and stays exactly what #326 made it: whether
+    the value has an integer form the contract can hold at all. What that form
+    is allowed to MEAN is `_check_line_domain` / `_check_column` below. Keeping
+    them apart is not tidiness — the #259 cp1 taxonomy classifies a failure by
+    its mechanism, and folding the two would report "no representable form" and
+    "outside the coordinate domain" as one category again, which is the exact
+    defect that census had to discover.
     """
     if not INT64_MIN <= v <= INT64_MAX:
         raise OwnIRError(
@@ -554,8 +566,28 @@ def _check_int_range(v: int, where: str, field: str = "line") -> None:
             f"(spec/OwnIR.md §4.2)")
 
 
+def _check_line_domain(v: int, where: str, field: str = "line") -> None:
+    """The DOMAIN of a source line: `[0, 2^31-1]` (spec/OwnIR.md §4.2).
+
+    int32 is the line type of every consumer this project feeds — Roslyn's
+    `LinePosition.Line`, LSP's `uinteger`, .NET diagnostics — so a line outside
+    it cannot reach the place it points at. `0` is legal and means "unknown /
+    file-level": it is this module's own default for an absent line, so the
+    bottom of the domain reads the reference rather than tightening it. A
+    negative line is refused; no producer emits one.
+
+    `load()` is fail-loud; `check_facts()` on un-validated facts degrades to `0`
+    through `_as_line`. Two entry points, two contracts, as with `column`.
+    """
+    _check_representable(v, where, field)
+    if not LINE_MIN <= v <= LINE_MAX:
+        raise OwnIRError(
+            f"{where} {field!r} must be a source line in "
+            f"[{LINE_MIN}, {LINE_MAX}], got {v} (spec/OwnIR.md §4.2)")
+
+
 def _check_column(v: Any, where: str) -> None:
-    """Fail-loud shape check for an optional source `column` (#317).
+    """Fail-loud shape check for an optional source `column` (#317, §4.2).
 
     A column is a 1-based coordinate or it is absent. `0` is rejected rather than
     treated as "unknown": SARIF columns start at 1, so a 0 is a producer bug, and
@@ -569,20 +601,34 @@ def _check_column(v: Any, where: str) -> None:
     """
     if v is None:
         return
-    if isinstance(v, bool) or not isinstance(v, int) or v < 1:
+    if isinstance(v, bool) or not isinstance(v, int) or v < COLUMN_MIN:
         raise OwnIRError(
             f"{where} 'column' must be a 1-based integer or absent, got {v!r}")
-    # …and bounded above, for the same reason `line` is (spec/OwnIR.md §4.2):
-    # a column no consumer can represent is not a usable coordinate.
-    _check_int_range(v, where, "column")
+    # …then the same two axes a line carries: a representable form, and a
+    # domain inside it. A column no consumer can hold is not a usable
+    # coordinate, whichever of the two bounds it passes (spec/OwnIR.md §4.2).
+    _check_representable(v, where, "column")
+    if v > COLUMN_MAX:
+        raise OwnIRError(
+            f"{where} 'column' must be a source column in "
+            f"[{COLUMN_MIN}, {COLUMN_MAX}], got {v} (spec/OwnIR.md §4.2)")
 
 
-def _check_flow_columns(nodes: Any, where: str, depth: int = 0) -> None:
-    """Validate `column` on every flow op, including inside `if`/`while` bodies,
-    and bound how deeply those bodies may nest.
+def _check_flow_coordinates(nodes: Any, where: str, depth: int = 0) -> None:
+    """Validate `line` and `column` on every flow op, including inside
+    `if`/`while` bodies, and bound how deeply those bodies may nest.
 
     Recursive because a hoisted branch acquire - the path most likely to be
     forgotten - lives inside a nested body, not at the top level.
+
+    `line` joined `column` here in #259's final acceptance. Until then a flow
+    op's `line` was checked NOWHERE — not for range and not even for type — and
+    §4.2 recorded that as an open contract question rather than a parity gap,
+    because both implementations agreed about it. The coordinate-domain
+    decision answers the question: a coordinate no rule reads must still be
+    well-formed, because the tolerant door DOES read it and anchors findings on
+    it. So the walk that already existed for columns now carries both, in the
+    record's own order — line, then column, on the same node (§4.1).
 
     `depth` counts enclosing bodies; the top-level list is 0. The bound is a
     defensive limit on external input (spec/OwnIR.md §4.2), not a property real
@@ -601,9 +647,14 @@ def _check_flow_columns(nodes: Any, where: str, depth: int = 0) -> None:
     for n in nodes:
         if not isinstance(n, dict):
             continue
-        _check_column(n.get("column"), f"{where} op {n.get('op')!r}")
+        what = f"{where} op {n.get('op')!r}"
+        ln = n.get("line", 0)
+        if not isinstance(ln, int) or isinstance(ln, bool):
+            raise OwnIRError(f"{what} 'line' must be an integer, got {ln!r}")
+        _check_line_domain(ln, what)
+        _check_column(n.get("column"), what)
         for key in ("then", "else", "body"):
-            _check_flow_columns(n.get(key), where, depth + 1)
+            _check_flow_coordinates(n.get(key), where, depth + 1)
 
 
 def load(path: str) -> dict[str, Any]:
@@ -654,8 +705,17 @@ def load(path: str) -> dict[str, Any]:
                 raise OwnIRError(
                     f"unknown resource kind {r!r} — a new kind is a vocabulary "
                     f"change that must bump OWNIR_VERSION (see spec/OwnIR.md §2)")
-            # The source COLUMN of the same node `line` anchors on (#317). Optional
-            # and additive: absent on every fact an older extractor emitted.
+            # The record's own source coordinate — line first, then the COLUMN
+            # of the same node it anchors on (#317, §4.1). The line was checked
+            # NOWHERE until #259's final acceptance, not even for type: §4.2
+            # recorded it as an open contract question, and the
+            # coordinate-domain decision answers it. Both are optional and
+            # additive: absent on every fact an older extractor emitted.
+            sln = s.get("line", 0)
+            if not isinstance(sln, int) or isinstance(sln, bool):
+                raise OwnIRError(
+                    f"subscription 'line' must be an integer, got {sln!r}")
+            _check_line_domain(sln, "subscription")
             _check_column(s.get("column"), "subscription")
             t = s.get("type")
             if t is not None and not isinstance(t, str):
@@ -714,14 +774,14 @@ def load(path: str) -> dict[str, Any]:
         ln = s.get("line", 0)
         if not isinstance(ln, int) or isinstance(ln, bool):
             raise OwnIRError("service 'line' must be an integer")
-        _check_int_range(ln, "service")
+        _check_line_domain(ln, "service")
         # the consuming-constructor location (optional, P-006 Q#1) is validated like file/line.
         if not isinstance(s.get("ctor_file", "?"), str):
             raise OwnIRError("service 'ctor_file' must be a string")
         cln = s.get("ctor_line", 0)
         if not isinstance(cln, int) or isinstance(cln, bool):
             raise OwnIRError("service 'ctor_line' must be an integer")
-        _check_int_range(cln, "service", "ctor_line")
+        _check_line_domain(cln, "service", "ctor_line")
         if not isinstance(s.get("ctor_type", ""), str):
             raise OwnIRError("service 'ctor_type' must be a string")
         # DI004 call-site metadata (optional): an array of {type, file, line} objects.
@@ -735,7 +795,7 @@ def load(path: str) -> dict[str, Any]:
                 "service 'root_resolve_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
         for site in sites:
-            _check_int_range(site.get("line", 0), "service root_resolve_site")
+            _check_line_domain(site.get("line", 0), "service root_resolve_site")
         # DI005 (scope-cached captive): types resolved from a self-created scope and cached
         # into a field, plus their field-store sites — validated like root_resolves / its sites.
         scope_cached = s.get("scope_cached", [])
@@ -752,7 +812,7 @@ def load(path: str) -> dict[str, Any]:
                 "service 'scope_cache_sites' must be an array of "
                 "{type:str, file:str, line:int} objects")
         for site in csites:
-            _check_int_range(site.get("line", 0), "service scope_cache_site")
+            _check_line_domain(site.get("line", 0), "service scope_cache_site")
     # Optional reactive-effect graph (EFF001 — effect storm, P-020). Additive and
     # optional: an older core simply ignores it. Each effect carries its render-scope
     # binding table; the core (ownlang/effects.py) decides identity stability.
@@ -769,7 +829,7 @@ def load(path: str) -> dict[str, Any]:
         eln = eff.get("line", 0)
         if not isinstance(eln, int) or isinstance(eln, bool):
             raise OwnIRError("effect 'line' must be an integer")
-        _check_int_range(eln, "effect")
+        _check_line_domain(eln, "effect")
         binds = eff.get("bindings", [])
         if not isinstance(binds, list) or not all(isinstance(b, dict) for b in binds):
             raise OwnIRError("effect 'bindings' must be a JSON array of objects")
@@ -784,7 +844,7 @@ def load(path: str) -> dict[str, Any]:
             bln = b.get("line", 0)
             if not isinstance(bln, int) or isinstance(bln, bool):
                 raise OwnIRError("binding 'line' must be an integer")
-            _check_int_range(bln, "binding")
+            _check_line_domain(bln, "binding")
     # Optional per-method flow bodies (P-016 B0b/B2 — local IDisposable
     # acquire/use/release over a CFG). Additive/optional; an older core ignores it.
     fns = result.get("functions", [])
@@ -805,7 +865,7 @@ def load(path: str) -> dict[str, Any]:
         # and optional — an older core just reads functions without contracts. An
         # omitted `effect` is INFERRED from the body (v1 contract inference), so the
         # field is a hint/override, not a requirement.
-        _check_flow_columns(f.get("body"), "function body")
+        _check_flow_coordinates(f.get("body"), "function body")
         ps = f.get("params", [])
         if not isinstance(ps, list) or not all(isinstance(p, dict) for p in ps):
             raise OwnIRError("a function's 'params' must be a JSON array of objects")
@@ -820,7 +880,7 @@ def load(path: str) -> dict[str, Any]:
             if not isinstance(pl, int) or isinstance(pl, bool):
                 raise OwnIRError(
                     f"parameter 'line' must be an integer, got {pl!r}")
-            _check_int_range(pl, "parameter")
+            _check_line_domain(pl, "parameter")
             _check_column(p.get("column"), "parameter")
             peff = p.get("effect")
             if peff is not None and peff not in _PARAM_EFFECTS:
@@ -1076,7 +1136,7 @@ def to_module(facts: dict[str, Any],
                 gid += 1
                 handles[handle] = {**sub, "component": cname,
                                    "file": comp.get("file", "?")}
-                line = _as_int(sub.get("line", 0))
+                line = _as_line(sub.get("line", 0))
                 params.append(Param(handle, TypeRef("EventSource", False, False, 0),
                                     0, lifetime=region))
                 body.append(Subscribe(handle, line))
@@ -1119,7 +1179,7 @@ def to_module(facts: dict[str, Any],
                     handles[handle] = {**sub, "component": cname,
                                        "file": comp.get("file", "?"),
                                        "di_source_life": src_life}
-                    line = _as_int(sub.get("line", 0))
+                    line = _as_line(sub.get("line", 0))
                     params.append(Param(handle,
                                         TypeRef("EventSource", False, False, 0),
                                         0, lifetime=_DI_REGION[src_life]))
@@ -1132,7 +1192,7 @@ def to_module(facts: dict[str, Any],
             handles[handle] = {**sub, "component": cname,
                                "file": comp.get("file", "?")}
             rtype, _ = _route_resource(rkind)
-            line = _as_int(sub.get("line", 0))
+            line = _as_line(sub.get("line", 0))
             body.append(Let(handle, Acquire(rtype, [], line), line))
             if sub.get("released"):
                 body.append(Release(handle, line))
@@ -1331,7 +1391,7 @@ def _unverified_transfer_calls(
                         if ps is not None and ps.transfer in (Transfer.MAY,
                                                               Transfer.UNKNOWN):
                             out.append((str(a), callee, ps.transfer.value,
-                                        _as_int(n.get("line", 0))))
+                                        _as_line(n.get("line", 0))))
             elif op == "if":
                 walk(n.get("then"))
                 walk(n.get("else"))
@@ -2221,7 +2281,7 @@ def _lower_fn_params(fn: dict[str, Any], ffile: str, fname: str,
             tref = TypeRef("int", False, False)   # a plain (non-owned) parameter
         sym = f"parg_{loc[0]}"
         loc[0] += 1
-        line = _as_int(p.get("line", 0))
+        line = _as_line(p.get("line", 0))
         localmap[cname] = sym
         handles[sym] = {"file": ffile, "line": line, "column": _as_col(p.get("column")),
                         "event": cname,
@@ -2334,7 +2394,7 @@ def _hoisted_branch_locals(nodes: Any,
             if not isinstance(n, dict):
                 continue
             op = n.get("op")
-            line = _as_int(n.get("line", 0))
+            line = _as_line(n.get("line", 0))
             acq = (str(n.get("var", "?")) if op == "acquire"
                    else fresh_result(n) if op == "call" else None)
             if acq is not None:
@@ -2421,7 +2481,7 @@ def _lower_flow(nodes: list[Any], ffile: str, fname: str,
         if not isinstance(n, dict):
             continue
         op = n.get("op")
-        line = _as_int(n.get("line", 0))
+        line = _as_line(n.get("line", 0))
         if op == "acquire":
             name = str(n.get("var", "?"))
             if name in hoisted:
@@ -2658,7 +2718,7 @@ def _flow_local_steps(sub: dict[str, Any], code: str, dline: int,
     point (the acquire itself) and gets no flow. Empty when a line is unknown or the two
     sites coincide (then the primary location already says it all)."""
     viol = _FLOW_LOCAL_VIOLATION.get(code)
-    acq = _as_int(sub.get("line", 0))
+    acq = _as_line(sub.get("line", 0))
     if viol is None or acq < 1 or dline < 1 or dline == acq:
         return ()
     f = str(sub.get("file", "?"))
@@ -2734,7 +2794,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     # registration site of each DI service, to anchor a subscription-escape slice's
     # source hop: the injected event SOURCE is a registered service (P-006 + P-004), so
     # the reachability slice can point at where that longer-lived source was registered.
-    svc_loc = {str(s.get("name", "")): (str(s.get("file", "?")), _as_int(s.get("line", 0)))
+    svc_loc = {str(s.get("name", "")): (str(s.get("file", "?")), _as_line(s.get("line", 0)))
                for s in (facts.get("services") or []) if isinstance(s, dict)}
 
     findings: list[Finding] = []
@@ -2839,7 +2899,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                     "OWN009": f"IDisposable local '{name}' may be used after disposal on some path",
                 }.get(d.code, f"IDisposable local '{name}': {d.message}")
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                file=sub["file"], line=_as_line(sub.get("line", 0)),
                 column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=name, handler="", message=msg,
                 kind="pooled buffer" if pool else "disposable",
@@ -2872,7 +2932,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
             # reachability slice: the subscribe site -> where the longer-lived source was
             # registered (its lifetime is why this escapes). The source hop is present only
             # when the registration site is known from the services graph.
-            sub_ln = _as_int(sub.get("line", 0))
+            sub_ln = _as_line(sub.get("line", 0))
             esc_flow: tuple[tuple[str, int, str], ...] = ()
             if sub_ln >= 1:
                 steps = [(str(sub["file"]), sub_ln,
@@ -2885,7 +2945,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                 if len(steps) >= 2:
                     esc_flow = tuple(steps)
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                file=sub["file"], line=_as_line(sub.get("line", 0)),
                 column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", flow=esc_flow,
@@ -2915,7 +2975,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                        f"lifetime, so it can never be collected — a region escape "
                        f"(leak, no release path{lam})")
             findings.append(Finding(
-                file=sub["file"], line=_as_int(sub.get("line", 0)),
+                file=sub["file"], line=_as_line(sub.get("line", 0)),
                 column=_as_col(sub.get("column")), code=d.code,
                 component=component, event=event, handler=handler,
                 message=message, kind="subscription token", ignore_reason=ir))
@@ -2979,7 +3039,7 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
                            f"but never unsubscribed — the source keeps "
                            f"'{component}' alive (leak{lam})")
         findings.append(Finding(
-            file=sub["file"], line=_as_int(sub.get("line", 0)),
+            file=sub["file"], line=_as_line(sub.get("line", 0)),
             column=_as_col(sub.get("column")), code=d.code,
             component=component, event=event, handler=handler,
             message=message, kind=kind, severity=fsev, ignore_reason=ir))
@@ -3054,11 +3114,25 @@ def check_facts(facts: dict[str, Any]) -> list[Finding]:
     return findings
 
 
-def _as_int(v: Any) -> int:
-    """A non-throwing int coercion: load() already validates `line`, but
-    check_facts may be called directly (tests, embedders) on un-validated facts,
-    so a bad `line` degrades to 0 rather than raising a bare ValueError."""
-    return v if isinstance(v, int) and not isinstance(v, bool) else 0
+def _as_line(v: Any) -> int:
+    """A non-throwing line coercion: `load()` already validates every `line`,
+    but `check_facts` may be called directly (tests, embedders) on un-validated
+    facts, so a line outside the §4.2 domain degrades to 0 — "unknown /
+    file-level", the same value an absent line reads as — rather than raising a
+    bare ValueError or anchoring a finding at a coordinate nothing can point at.
+
+    Degrade, never clamp: `2**31` does not become `2**31 - 1`, and `-1` does
+    not become `1`. A clamp would move the finding to a REAL line that is not
+    the one the producer meant, which is worse than saying nothing — the same
+    never-invent rule `_as_col` has carried for columns since #317.
+
+    This is the tolerant half of the two-entry-point contract in §4.2. The
+    strict door never reaches it: a document `load()` accepts has no
+    out-of-domain coordinate by construction, which
+    `tests/test_ownir_defensive_limits.py` asserts over the cp1 ledger rather
+    than stating in prose."""
+    return (v if isinstance(v, int) and not isinstance(v, bool)
+            and LINE_MIN <= v <= LINE_MAX else 0)
 
 
 def _as_col(v: Any) -> int | None:
@@ -3066,8 +3140,10 @@ def _as_col(v: Any) -> int | None:
     column; `check_facts` may be called directly on un-validated facts, so anything
     that is not a real 1-based coordinate degrades to None — absent, never invented.
     `bool` is excluded explicitly: `True` is an `int` in Python and would otherwise
-    read as column 1."""
-    return v if isinstance(v, int) and not isinstance(v, bool) and v >= 1 else None
+    read as column 1. The upper bound is the §4.2 domain's, so the tolerant door
+    cannot emit a column the strict door would refuse."""
+    return (v if isinstance(v, int) and not isinstance(v, bool)
+            and COLUMN_MIN <= v <= COLUMN_MAX else None)
 
 
 def _consumer_related(c: Any) -> tuple[tuple[str, int, str], ...]:
@@ -3129,7 +3205,7 @@ def _resolve_sites(raw: Any) -> tuple[tuple[str, str, int], ...]:
     if not isinstance(raw, list):
         return ()
     return tuple(
-        (str(x.get("type", "")), str(x.get("file", "?")), _as_int(x.get("line", 0)))
+        (str(x.get("type", "")), str(x.get("file", "?")), _as_line(x.get("line", 0)))
         for x in raw if isinstance(x, dict)
     )
 
@@ -3155,11 +3231,11 @@ def _di_findings(facts: dict[str, Any]) -> list[Finding]:
             # type from a non-extractor producer must not coerce to a disposable=True.
             disposable=s.get("disposable") is True,
             file=str(s.get("file", "?")),
-            line=_as_int(s.get("line", 0)),
+            line=_as_line(s.get("line", 0)),
             # the consuming constructor's location (where the capture is injected) — a
             # secondary anchor distinct from the registration site above (P-006 Q#1).
             ctor_file=str(s.get("ctor_file", "?")),
-            ctor_line=_as_int(s.get("ctor_line", 0)),
+            ctor_line=_as_line(s.get("ctor_line", 0)),
             # the IMPLEMENTATION type owning that ctor — named in the finding instead of the
             # (possibly interface) service name, which would point at a ctor-less type (Codex).
             ctor_type=str(s.get("ctor_type", "")),
@@ -3275,7 +3351,7 @@ def _effect_findings(facts: dict[str, Any]) -> list[Finding]:
                 break
             bindings.append(EffectBinding(
                 name=str(b.get("name", "?")), init=str(b.get("init", "unknown")),
-                refs=tuple(refs), line=_as_int(b.get("line", 0))))
+                refs=tuple(refs), line=_as_line(b.get("line", 0))))
         if malformed:
             continue
         effects.append(ReactEffect(
@@ -3284,7 +3360,7 @@ def _effect_findings(facts: dict[str, Any]) -> list[Finding]:
             io=io,
             bindings=tuple(bindings),
             file=str(e.get("file", "?")),
-            line=_as_int(e.get("line", 0)),
+            line=_as_line(e.get("line", 0)),
         ))
     out: list[Finding] = []
     for s in find_effect_storms(effects):
@@ -3362,7 +3438,12 @@ def _protocol_findings(facts: dict[str, Any]) -> list[Finding]:
     methods: list[MethodEvents] = []
     for fraw in raw_fns:
         try:
-            methods.append(parse_method(fraw))
+            # strict=False: this is the tolerant door, so an event `line`
+            # outside the §4.2 domain degrades to 0 rather than making the
+            # whole method unparseable and taking its real violations with it.
+            # Type and representability still fail loud and still skip the
+            # entry — those are grammar, not coordinate domain.
+            methods.append(parse_method(fraw, strict=False))
         except ProtocolFactsError:
             continue
     if not protocols:
@@ -3430,7 +3511,7 @@ def _unresolved_findings(facts: dict[str, Any]) -> list[Finding]:
                        f"unresolved reference (build the project or pass "
                        f"references); leakage analysis skipped")
             out.append(Finding(
-                file=cfile, line=_as_int(sub.get("line", 0)),
+                file=cfile, line=_as_line(sub.get("line", 0)),
                 column=_as_col(sub.get("column")), code="OWN050",
                 component=cname, event=event, handler=handler, message=message,
                 kind="unresolved reference", advisory=True))
