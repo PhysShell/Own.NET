@@ -27,9 +27,9 @@ implementation-status block; this table is the one-line orientation:
 | `own-analysis` | **done** (step 4) | The worklist/lattice solver plus ownership, lifetime, buffer-policy, effect and DI, with `(line, code)` parity on the `.own` corpus and the verdict `subject` the bridge maps through. |
 | `own-diagnostics` | **done** (steps 5a/5b) | `Diagnostic`/`Evidence` model, canonical render text, the SARIF 2.1.0 projection. |
 | `own-lowered` | **done** (#259) | The typed Layer 2 document + canonical emitter the bridge lowers into. |
-| `own-bridge` | **in progress** (#259: cp1–cp4 done, cp5 open) | The OwnIR bridge: facts → Layer 2 → core AST → analyses → verdicts (`lower`, `dump_summaries`, `check_facts`). |
+| `own-bridge` | **done** (#259 final acceptance reached, PR #341; the exclusion ledger names only the two #294 OD-1 door controls, a declared boundary) | The OwnIR bridge: facts → Layer 2 → core AST → analyses → verdicts (`lower`, `dump_summaries`, `check_facts`). |
 | `own-codegen` | not started (#257) | C# emission (`emit_*` templates), verdict-independent. |
-| `own-cli` | not started (#261) | The binary; `own-oracle` is the dev-only differential harness alongside it. |
+| `own-cli` | not started (#261 — decision packet ratified 2026-09-08; no code yet) | The entry-point binary. #261 builds it as the production OwnIR executable — `ownir` behind the existing `owen` launcher, one engine, no engine selection; the residual `.own`/dev subcommands (`cfg`, `summaries`, `explain`, `check`; `emit` after #257) are #345 and join the same binary. `own-oracle` is the dev-only differential harness alongside it. |
 
 ## Build & test
 
