@@ -1,0 +1,24 @@
+{
+  "ownir_version": 0,
+  "module": "NonAscii",
+  "_doc": [
+    "A component whose FILE carries non-ASCII (and an astral character):",
+    "the CLI's SARIF path is json.dumps(ensure_ascii=True), so these become",
+    "\\uXXXX escapes (a surrogate PAIR above the BMP) while the human/github/",
+    "msbuild lines carry the characters themselves."
+  ],
+  "components": [
+    {
+      "name": "Vm",
+      "file": "src/Ünïcødé/Вью_😀.cs",
+      "subscriptions": [
+        {
+          "event": "SystemEvents.Static",
+          "handler": "OnS",
+          "line": 4,
+          "source": "static"
+        }
+      ]
+    }
+  ]
+}
