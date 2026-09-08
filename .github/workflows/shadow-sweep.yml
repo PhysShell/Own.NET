@@ -166,14 +166,19 @@ jobs:
           fi
           echo "extracting: $input"
           scripts/own-check.sh --format sarif --severity warning \
-            --emit-facts "$RUNNER_TEMP/facts.json" -- "$input" \
+            --emit-facts "$RUNNER_TEMP/${{ matrix.id }}.facts.json" -- "$input" \
             > "$RUNNER_TEMP/findings.sarif.json"
-          ls -l "$RUNNER_TEMP/facts.json"
+          ls -l "$RUNNER_TEMP/${{ matrix.id }}.facts.json"
       - name: Describe the document
         run: |
           python - <<'PY'
           import hashlib, json, os
-          facts = os.path.join(os.environ["RUNNER_TEMP"], "facts.json")
+          # The manifest lives BESIDE the facts file and names it by a bare
+          # file name, so the assembled record carries no runner path; the
+          # name is the document's id, so `source` says which document it is
+          # rather than repeating one constant for every leg.
+          name = "${{ matrix.id }}.facts.json"
+          facts = os.path.join(os.environ["RUNNER_TEMP"], name)
           with open(facts, "rb") as f:
               digest = hashlib.sha256(f.read()).hexdigest()
           target = "${{ matrix.target }}"
@@ -184,7 +189,7 @@ jobs:
               "targets": [target],
               "documents": [{
                   "id": "${{ matrix.id }}",
-                  "source": facts,
+                  "source": name,
                   "target": target,
                   "target_commit": "${{ matrix.commit }}",
                   "extraction_mode": "${{ matrix.mode }}",
@@ -241,13 +246,15 @@ jobs:
       - name: Extract the OwnIR facts, exactly once
         run: |
           scripts/own-check.sh --format sarif --severity warning \
-            --emit-facts "$RUNNER_TEMP/facts.json" -- examples \
+            --emit-facts "$RUNNER_TEMP/examples.facts.json" -- examples \
             > "$RUNNER_TEMP/findings.sarif.json"
       - name: Describe the document
         run: |
           python - <<'PY'
           import hashlib, json, os
-          facts = os.path.join(os.environ["RUNNER_TEMP"], "facts.json")
+          # A bare file name, for the reason the document job states.
+          name = "examples.facts.json"
+          facts = os.path.join(os.environ["RUNNER_TEMP"], name)
           with open(facts, "rb") as f:
               digest = hashlib.sha256(f.read()).hexdigest()
           manifest = {
@@ -255,7 +262,7 @@ jobs:
               "targets": ["examples"],
               "documents": [{
                   "id": "examples",
-                  "source": facts,
+                  "source": name,
                   "target": "examples",
                   "target_commit": os.environ["GITHUB_SHA"],
                   "extraction_mode": "directory-walk",
