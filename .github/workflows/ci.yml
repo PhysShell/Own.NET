@@ -72,6 +72,42 @@ jobs:
       - name: cargo test
         run: cargo test
 
+  # P-022 step 7b (#261) — the production OwnIR executable's parity replay, on
+  # BOTH platforms. The Python half of this contract is gated by the `tests`
+  # matrix above (`tests/test_cli_ownir_fixtures.py` is auto-discovered like
+  # every other `test_*.py`, and re-verifies each `oracle: "python"` case
+  # against the reference on 3.11/3.12/3.13). This job is the other half and
+  # runs NO Python: it builds the binary and replays the frozen bytes.
+  #
+  # Windows is here because the fixture is authored on Linux and a byte
+  # contract that has only ever been replayed on its authoring platform has not
+  # been tested — path forms, line endings and the OS error text are exactly
+  # where a CLI port diverges. `rust-core` is deliberately NOT widened to
+  # Windows for every crate: that is a separate cost decision, and this is the
+  # crate whose contract is platform-shaped.
+  own-cli-parity:
+    name: own-cli (ownir parity replay)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master, 2026-07-10
+        with:
+          toolchain: stable
+      - name: cargo test -p own-cli (the frozen CLI contract, zero Python)
+        run: cargo test -p own-cli
+      # The forced-panic and forced-death controls are OFF in every production
+      # build, so they need their own invocation. They are what makes #261's
+      # panic ruling a measurement rather than a design claim.
+      - name: cargo test -p own-cli --features fault-injection (the failure-mode controls)
+        run: cargo test -p own-cli --features fault-injection --test faults
+
   # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
   # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
   # the large-solution controls and the examples tree are the scheduled/manual
