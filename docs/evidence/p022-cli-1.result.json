@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-cli-1",
   "definition": "docs/evidence/p022-cli-1.json",
-  "definition_sha256": "0bc8a08718b7ca2b6b2c5f6491bed2de26a0d6571d902b73153128a3cdecef82",
-  "source_commit": "1fc55dcea1239c844759696a275f8c1709dcc095",
+  "definition_sha256": "f86d83855bd7cd041cd7880370d3371142b9eff57b562061d44e9b2931fdb573",
+  "source_commit": "f932374ed8a5fc4731c37c3ce1cf5a071c1843a5",
   "dirty": false,
-  "recorded_at": "2026-09-08T09:29:36Z",
+  "recorded_at": "2026-09-08T11:36:04Z",
   "layers": [
     "own-cli",
     "own-cli-faults",
@@ -18,7 +18,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 3.0
+    "elapsed_seconds": 5.3
   },
   "mutations": [
     {
@@ -30,7 +30,7 @@
         "own-cli/src/main.rs::ownir::tests::sarif_carries_shown_plus_suppressed",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 3.0
+      "elapsed_seconds": 2.8
     },
     {
       "id": "M02",
@@ -39,7 +39,7 @@
         "own-cli/src/main.rs::ownir::tests::a_suppression_is_counted_but_does_not_fail_the_run",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 6.8
+      "elapsed_seconds": 5.6
     },
     {
       "id": "M03",
@@ -57,7 +57,7 @@
         "own-cli/src/main.rs::ownir::tests::sarif_carries_shown_plus_suppressed",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.8
+      "elapsed_seconds": 5.7
     },
     {
       "id": "M05",
@@ -69,7 +69,7 @@
         "own-cli/src/main.rs::ownir::tests::the_summary_pluralizes_on_anything_but_one",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 6.2
+      "elapsed_seconds": 6.0
     },
     {
       "id": "M06",
@@ -79,7 +79,7 @@
         "own-cli/src/main.rs::ownir::tests::sarif_carries_shown_plus_suppressed",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.9
+      "elapsed_seconds": 5.4
     },
     {
       "id": "M07",
@@ -88,7 +88,7 @@
         "own-cli/src/main.rs::ownir::tests::the_stream_split_is_per_format",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 6.0
+      "elapsed_seconds": 5.5
     },
     {
       "id": "M08",
@@ -96,7 +96,7 @@
       "catchers": [
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.5
+      "elapsed_seconds": 5.4
     },
     {
       "id": "M09",
@@ -105,7 +105,7 @@
         "own-cli/src/main.rs::ownir::tests::the_verbose_breakdown_counts_suppressed_findings_too",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.9
+      "elapsed_seconds": 5.8
     },
     {
       "id": "M10",
@@ -124,7 +124,7 @@
         "own-cli/src/main.rs::ownir::tests::a_missing_flag_value_is_its_own_message",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.7
+      "elapsed_seconds": 5.8
     },
     {
       "id": "M12",
@@ -133,7 +133,7 @@
         "own-cli-faults/tests/faults.rs::a_catchable_panic_is_one_diagnostic_and_exit_70",
         "own-cli-faults/tests/faults.rs::debug_mode_shows_the_backtrace_and_still_exits_70"
       ],
-      "elapsed_seconds": 5.6
+      "elapsed_seconds": 6.1
     },
     {
       "id": "M13",
@@ -142,7 +142,7 @@
         "own-cli-faults/tests/faults.rs::a_catchable_panic_is_one_diagnostic_and_exit_70",
         "own-cli-faults/tests/faults.rs::debug_mode_shows_the_backtrace_and_still_exits_70"
       ],
-      "elapsed_seconds": 5.4
+      "elapsed_seconds": 6.0
     },
     {
       "id": "M14",
@@ -150,7 +150,7 @@
       "catchers": [
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.7
+      "elapsed_seconds": 5.8
     },
     {
       "id": "M15",
@@ -159,23 +159,27 @@
         "own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 5.7
+      "elapsed_seconds": 5.9
     },
     {
       "id": "M16",
       "outcome": "caught",
       "catchers": [
-        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte",
+        "own-ir/tests/version_repr_census.rs::negative_zero_below_the_top_level_matches_the_reference",
+        "own-ir/tests/version_repr_census.rs::the_declared_divergences_are_exactly_the_declared_ones",
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
       ],
-      "elapsed_seconds": 7.8
+      "elapsed_seconds": 6.3
     },
     {
       "id": "M17",
       "outcome": "caught",
       "catchers": [
-        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte",
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
       ],
-      "elapsed_seconds": 7.8
+      "elapsed_seconds": 7.7
     },
     {
       "id": "M18",
@@ -184,7 +188,7 @@
         "own-cli/src/main.rs::ownir::tests::a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ],
-      "elapsed_seconds": 7.9
+      "elapsed_seconds": 7.8
     },
     {
       "id": "M19",
@@ -193,6 +197,52 @@
         "own-cli/src/main.rs::ownir::tests::a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2"
       ],
       "elapsed_seconds": 5.6
+    },
+    {
+      "id": "M20",
+      "outcome": "caught",
+      "catchers": [
+        "own-ir/src/lib.rs::pyrepr::tests::a_repeated_key_is_rebound_in_place",
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
+      ],
+      "elapsed_seconds": 7.3
+    },
+    {
+      "id": "M21",
+      "outcome": "caught",
+      "catchers": [
+        "own-ir/src/lib.rs::pyrepr::tests::an_oversized_integer_keeps_its_digits",
+        "own-ir/src/lib.rs::pyrepr::tests::matches_cpython_float_repr",
+        "own-ir/src/lib.rs::pyrepr::tests::the_exponent_padding_is_the_defect_r2_left",
+        "own-ir/src/lib.rs::pyrepr::tests::the_literal_decides_int_or_float",
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "M22",
+      "outcome": "caught",
+      "catchers": [
+        "own-ir/tests/version_repr_census.rs::negative_zero_below_the_top_level_matches_the_reference",
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
+      ],
+      "elapsed_seconds": 9.6
+    },
+    {
+      "id": "M23",
+      "outcome": "caught",
+      "catchers": [
+        "own-ir/tests/version_repr_census.rs::the_version_family_is_byte_exact_with_the_reference"
+      ],
+      "elapsed_seconds": 8.7
+    },
+    {
+      "id": "M24",
+      "outcome": "caught",
+      "catchers": [
+        "own-cli/tests/replay.rs::cli_b1_flips_on_the_facts_bytes_and_nothing_else"
+      ],
+      "elapsed_seconds": 6.2
     }
   ]
 }
