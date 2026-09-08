@@ -181,7 +181,6 @@
       "replacement": "const fn usage_error(message: String) -> Outcome {\n    Outcome::new(String::new(), message, 1)\n}",
       "expected_catchers": [
         "own-cli/src/main.rs::ownir::tests::a_missing_flag_value_is_its_own_message",
-        "own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ]
     },
@@ -217,6 +216,18 @@
       "pattern": "        Err\\(err\\) => return refusal\\(path, &format!\\(\"cannot read \\{path\\}: \\{err\\}\"\\)\\),",
       "replacement": "        Err(err) => {\n            let shown = std::fs::canonicalize(path)\n                .map_or_else(|_| path.to_owned(), |p| p.display().to_string());\n            return refusal(path, &format!(\"cannot read {shown}: {err}\"));\n        }",
       "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M15",
+      "rule": "docstring-on-stdout",
+      "description": "the docstring usage answer exits 1 instead of 2, and goes to stderr — the OTHER usage path, which builds its Outcome directly rather than through `usage_error` (M11 named a catcher on this path and could not reach it; this is that path, measured)",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "fn docstring_usage\\(\\) -> Outcome \\{\\n    Outcome::new\\(format!\\(\"\\{\\}\\\\n\", text::OWNLANG_DOCSTRING\\), String::new\\(\\), 2\\)\\n\\}",
+      "replacement": "fn docstring_usage() -> Outcome {\n    Outcome::new(String::new(), format!(\"{}\\n\", text::OWNLANG_DOCSTRING), 1)\n}",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
       ]
     }
