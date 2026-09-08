@@ -135,38 +135,50 @@ fn cli_b1_pinned_prefix(case: &Value) -> String {
     format!("{path}: error: {path} is not valid JSON: ")
 }
 
-/// Is this case ELIGIBLE for CLI-B1's relaxed tail? Proven, never assumed.
-///
-/// The boundary applies **iff** the strict door rejects with
-/// `OwnIrErrorKind::Json`, so the guard establishes exactly that, from the
-/// case's own facts bytes, before anything is relaxed:
-///
-/// 1. read the exact facts bytes the CLI case used;
-/// 2. decode them with `str::from_utf8`, no normalization;
-/// 3. the decode must SUCCEED — invalid UTF-8 is #261 ruling 1's declared
-///    reference defect and must never borrow this boundary;
-/// 4. `OwnIr::from_json` on that exact `&str` must REJECT;
-/// 5. the rejection's kind must be `Json`.
-///
-/// Any of those failing means the case is not eligible and the caller fails it.
-/// `Err(reason)` says which step, so a broken control names itself.
-fn cli_b1_eligible(case: &Value) -> Result<(), String> {
+/// Where a CLI-B1 case's facts live: its own `cwd` joined with its own single
+/// positional. Resolved in one place so the on-disk reading and the negative
+/// control cannot drift on to different paths.
+fn cli_b1_facts_path(case: &Value) -> Result<PathBuf, String> {
     let cwd = fixture_dir().join(field(case, "cwd").as_str().expect("cwd is a string"));
-    let argv = field(case, "argv").as_array().expect("argv is an array");
-    let path = argv
+    let path = field(case, "argv")
+        .as_array()
+        .expect("argv is an array")
         .get(1)
         .and_then(Value::as_str)
         .ok_or_else(|| "a CLI-B1 case needs a facts path as its only positional".to_owned())?;
-    let bytes = std::fs::read(cwd.join(path))
-        .map_err(|e| format!("cannot read the case's facts bytes {path:?}: {e}"))?;
-    // Step 3. Invalid UTF-8 belongs to ruling 1, never here.
-    let text = std::str::from_utf8(&bytes).map_err(|e| {
+    Ok(cwd.join(path))
+}
+
+/// Would CLI-B1's relaxed tail apply to **these bytes**? Proven, never assumed.
+///
+/// The boundary applies **iff** the strict door rejects with
+/// `OwnIrErrorKind::Json`, so the guard establishes exactly that before
+/// anything is relaxed:
+///
+/// 1. decode the supplied bytes with `str::from_utf8`, no normalization;
+/// 2. the decode must SUCCEED — invalid UTF-8 is #261 ruling 1's declared
+///    reference defect and must never borrow this boundary;
+/// 3. `OwnIr::from_json` on that exact `&str` must REJECT;
+/// 4. the rejection's kind must be `Json`.
+///
+/// Any of those failing means the bytes are not eligible and the caller fails
+/// the case. `Err(reason)` says which step, so a broken control names itself.
+///
+/// The bytes are a **parameter** rather than something this function fetches,
+/// and that is the whole design of the negative control (#261 R3b): the two
+/// runs there share one case, so one argv, one exact path and one decode
+/// route, and eligibility can only turn on the bytes. A version of this guard
+/// that reached for the file itself would make the control compare two
+/// different documents at two different paths and prove nothing about either.
+fn cli_b1_eligible_for(facts: &[u8]) -> Result<(), String> {
+    // Steps 1 and 2. Invalid UTF-8 belongs to ruling 1, never here.
+    let text = std::str::from_utf8(facts).map_err(|e| {
         format!(
             "the facts are not valid UTF-8 ({e}) — that is #261 ruling 1's \
              declared reference defect, never CLI-B1"
         )
     })?;
-    // Steps 4 and 5. The typed door is the authority on the kind; nothing here
+    // Steps 3 and 4. The typed door is the authority on the kind; nothing here
     // reads the message to decide.
     match OwnIr::from_json(text) {
         Ok(_) => {
@@ -179,6 +191,14 @@ fn cli_b1_eligible(case: &Value) -> Result<(), String> {
             refused.kind
         )),
     }
+}
+
+/// Is this case eligible for CLI-B1, judged on the facts it actually ran with?
+fn cli_b1_eligible(case: &Value) -> Result<(), String> {
+    let path = cli_b1_facts_path(case)?;
+    let bytes = std::fs::read(&path)
+        .map_err(|e| format!("cannot read the case's facts bytes {}: {e}", path.display()))?;
+    cli_b1_eligible_for(&bytes)
 }
 
 fn describe(label: &str, expected: &str, actual: &str) -> String {
@@ -390,39 +410,79 @@ fn the_help_text_the_binary_prints_is_the_one_the_manifest_carries() {
 }
 
 /// CLI-B1's NEGATIVE CONTROL: the guard is on the rejection KIND and nothing
-/// else, so a case that differs from a CLI-B1 control only in its kind must be
-/// refused by the relaxed matcher.
+/// else, so eligibility must flip on the **facts bytes alone**.
 ///
-/// The control is deliberately *not* a malformed mutation: malformed bytes
+/// That is why this control runs **one case** — one argv, one exact path
+/// string, one decode route, one fixture — twice, against two byte sequences.
+/// Everything a guard could accidentally be keyed on is held literally
+/// identical across the two runs, so the only variable left is the content:
+///
+/// | run | bytes | strict door | eligible |
+/// |---|---|---|---|
+/// | positive | the case's own facts, on disk | `Json` | yes |
+/// | negative | a valid document with a version mismatch | `Version` | no |
+///
+/// An earlier version of this control read a *different* case at a *different*
+/// path, which is exactly the hole it was meant to close: a guard keyed on the
+/// path, the extension, or the case name would have passed it. The bytes are
+/// still frozen fixture bytes rather than bytes invented here — inventing them
+/// would move the oracle into this file.
+///
+/// The control is also deliberately *not* a malformed mutation: malformed bytes
 /// could be refused by a different parser or decoder fork and "prove" the guard
-/// by accident. Same argv shape, same path shape, same valid UTF-8, same
-/// fixture machinery — only the content moved, from a JSON-syntax failure to a
-/// valid document with a `Version` rejection. If CLI-B1 could ever match it,
-/// the boundary would have widened from "the JSON parser's detail" into
-/// "strict-door wording may differ", which is exactly what #261 ruling 2b
-/// refuses.
+/// by accident. Same argv, same path, same valid UTF-8, same fixture machinery
+/// — only the content moves, from a JSON-syntax failure to a valid document
+/// with a `Version` rejection. If CLI-B1 could ever match it, the boundary
+/// would have widened from "the JSON parser's detail" into "strict-door wording
+/// may differ", which is exactly what #261 ruling 2b refuses.
 #[test]
-fn cli_b1_cannot_match_a_non_json_rejection() {
-    let case = read_json(&fixture_dir().join("refuse-version-mismatch.case.json"));
+fn cli_b1_flips_on_the_facts_bytes_and_nothing_else() {
+    // ONE case supplies the argv, the path and the decode route for both runs.
+    let case = read_json(&fixture_dir().join("refuse-json-truncated.case.json"));
     assert!(
-        case.get("boundary").is_none(),
-        "the negative control must carry NO boundary metadata — it is pinned \
-         byte-exact as a Version rejection (#261 ruling 2a)"
+        case.get("boundary").is_some(),
+        "the control's carrier must itself be a declared CLI-B1 case"
     );
-    let verdict = cli_b1_eligible(&case);
-    let reason = verdict.expect_err("a Version rejection must not be CLI-B1 eligible");
+    let path = cli_b1_facts_path(&case).expect("the carrier case has a facts path");
+
+    // Run 1 — the carrier's own bytes: a JSON-syntax failure, so eligible.
+    let json_failure = std::fs::read(&path).expect("the carrier's facts are readable");
+    assert_eq!(
+        cli_b1_eligible_for(&json_failure),
+        Ok(()),
+        "the carrier's own bytes must be CLI-B1 eligible, or the control has \
+         nothing to contrast against"
+    );
+
+    // Run 2 — the SAME case, the SAME path, different bytes: a valid document
+    // the strict door refuses on the version gate.
+    let version_rejection = std::fs::read(
+        fixture_dir()
+            .join("inputs")
+            .join("version_mismatch.facts.json"),
+    )
+    .expect("the frozen version-mismatch facts are readable");
+    let reason = cli_b1_eligible_for(&version_rejection)
+        .expect_err("a Version rejection must not be CLI-B1 eligible");
     assert!(
         reason.contains("Version"),
         "the refusal must name the kind that disqualified it, got: {reason}"
     );
 
-    // And the positive controls still are eligible, so the assertion above is
-    // about the kind rather than about the guard being broken outright.
-    for name in [
-        "refuse-json-empty-file",
-        "refuse-json-truncated",
-        "refuse-json-bom",
-    ] {
+    // The two runs really did differ only in content.
+    assert_ne!(
+        json_failure, version_rejection,
+        "the two runs must supply different bytes"
+    );
+    assert_eq!(
+        cli_b1_facts_path(&case).ok(),
+        Some(path),
+        "both runs must resolve the same path from the same case"
+    );
+
+    // And the other positives are eligible too, so the flip above is about the
+    // kind rather than about this one carrier being special.
+    for name in ["refuse-json-empty-file", "refuse-json-bom"] {
         let positive = read_json(&fixture_dir().join(format!("{name}.case.json")));
         assert_eq!(
             cli_b1_eligible(&positive),
@@ -430,6 +490,15 @@ fn cli_b1_cannot_match_a_non_json_rejection() {
             "{name} must be CLI-B1 eligible"
         );
     }
+
+    // The case the negative bytes came from is pinned byte-exact in its own
+    // right — it declares no boundary, and must not acquire one.
+    let pinned = read_json(&fixture_dir().join("refuse-version-mismatch.case.json"));
+    assert!(
+        pinned.get("boundary").is_none(),
+        "a Version rejection is pinned byte-exact (#261 ruling 2a) and must \
+         carry NO boundary metadata"
+    );
 }
 
 /// Every case that carries CLI-B1 metadata really does reject with `Json`, and
