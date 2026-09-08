@@ -202,15 +202,12 @@ Measured through all four formats:
   (`inputs/pa th ünïcødé/facts.json`): accepted, and the path is echoed
   verbatim in the `ok`/summary lines.
 
-**Not measured: the Windows reference's non-ASCII output (§4).** The reference
-`print`s through the console/pipe encoding, so a Windows run may emit different
-bytes or fail with `UnicodeEncodeError`. This environment is Linux-only. The
-fixture is therefore generated on Linux, its `oracle: "python"` cases are
-re-verified against the reference by the `tests` matrix on `ubuntu-latest`, and
-the Windows leg replays the **frozen bytes** against the Rust binary — which is
-what #261's acceptance asks for. A platform-dependent *reference* would be a
-Python-first question and a stop; this task did not have the platform to ask it
-on, and says so rather than normalizing it away.
+**The Windows reference was measured, and it diverges (§5.3).** This
+environment is Linux-only, so the measurement was taken on `windows-latest`
+through a temporary CI workflow and is recorded in §1.9. It is a **stop
+condition**: the reference is not byte-portable, and the divergence is far
+wider than the non-ASCII cases alone. The fixture stays Linux-generated, as the
+brief requires, and nothing about the Windows reference is normalized away.
 
 ### 1.7 SIGINT — measured, **not pinned**
 
@@ -227,11 +224,14 @@ catch-all never sees it: the reference dies by the signal rather than exiting
 70. A plain Rust binary installs no handler and dies the same way, so the two
 agree on the **exit disposition** on Linux without anything being written down.
 
-**Not pinned, and the reason:** the reference's stderr is a traceback whose text
-**changes between trials** (it names whichever line the interrupt landed on).
-The fixture writer refuses a non-deterministic case by construction, and pinning
-only half of a case would be pinning less than was measured. Windows was not
-measurable in this environment (§4). `130` is not invented anywhere.
+The Windows measurement is in §1.9, and it is a *different* answer.
+
+**Not pinned, and the reason:** the reference's stderr on Linux is a traceback
+whose text **changes between trials** (it names whichever line the interrupt
+landed on), and the two platforms do not agree on the exit status either. The
+fixture writer refuses a non-deterministic case by construction, and pinning
+only half of a case would be pinning less than was measured. `130` is not
+invented anywhere, and neither is a cross-platform interruption contract.
 
 ### 1.8 Closed stdout — measured, deterministic, **not expressible as a case**
 
@@ -249,6 +249,42 @@ two-line internal-error diagnostic — and is unit-covered for it. It is not a
 fixture case because the case format (`argv`/`cwd`/`env` → captured streams) has
 no way to close the consumer's pipe; recording it here is the alternative to
 pretending it was frozen.
+
+### 1.9 The Windows reference, measured
+
+Taken on `windows-latest` (Windows 10.0.26100, CPython 3.11.9) through a
+temporary CI workflow, because this implementing environment is Linux-only and
+#261 rules that interruption is measured on both platforms **before** anything
+is written down. The run:
+[actions/runs/34198702579](https://github.com/PhysShell/Own.NET/actions/runs/34198702579).
+The workflow and its script were deleted once these numbers landed here; the
+commit that added them is the record that the measurement was taken.
+
+`sys.stdout.encoding` on a piped Windows stdout is **`cp1252`**, and that one
+fact drives most of what follows.
+
+| case | Linux reference | Windows reference |
+|---|---|---|
+| non-ASCII `file`, `human` | exit 1, UTF-8 bytes | **exit 70** — `UnicodeEncodeError: 'charmap' codec can't encode characters in position 12-14: character maps to <undefined>` |
+| non-ASCII `file`, `github` | exit 1, UTF-8 bytes | **exit 70**, the same encoder failure |
+| non-ASCII `file`, `sarif` | exit 1, pure ASCII | exit 1, pure ASCII — the ASCII escaping saves this one |
+| the em dash in the `ok` line | `e2 80 94` (UTF-8) | **`97`** (cp1252) |
+| every line ending | `\n` | **`\r\n`** (text-mode `print` translates) |
+| a missing file | `[Errno 2] No such file or directory` | the same |
+| a directory | `[Errno 21] Is a directory` | `[Errno 13] Permission denied` |
+| closed stdout | exit 70, `BrokenPipeError`, 3/3 trials | **the same**, 3/3 trials |
+| interruption | killed by **SIGINT** (signal 2); stderr a `KeyboardInterrupt` traceback whose text varies per trial | **`0xC000013A`** (`STATUS_CONTROL_C_EXIT`, 3221225786); stdout 0 bytes; **stderr empty**, 3/3 trials |
+
+Two of these are worth naming out loud:
+
+* **the em dash is in almost every case.** It is in the `ok` line and in most
+  finding messages, so the CRLF/cp1252 pair means the Windows reference
+  produces different bytes for nearly every case in the fixture, not only the
+  ones with non-ASCII inputs;
+* **interruption is deterministic on Windows and not on Linux.** Windows gives
+  a fixed status and an empty stderr; Linux gives a fixed *disposition* and a
+  varying traceback. Neither is pinned, because a contract that held on one
+  platform and not the other would not be a contract.
 
 ---
 
@@ -330,6 +366,224 @@ Named existing surfaces, edited and nothing else:
 - `docs/proposals/README.md` — the index row;
 - `.github/workflows/ci.yml` — one new job;
 - `scripts/render_checkpoint_status.py`, `tests/test_checkpoint_status.py` —
-  the campaign registration.
+  the campaign registration;
+- `scripts/mutate_campaign.py` — one line and its docstring: the catcher
+  validator special-cased `src/lib.rs` and not `src/main.rs`, and `own-cli` is
+  the first binary crate whose unit tests a campaign names (§6);
+- `docs/generated/p022-coord-census.md` — **regenerated, not edited**: it sweeps
+  `tests/fixtures/**` for OwnIR documents and the four new inputs are four more
+  of them.
 
 **No existing fixture moves, and nothing under `ownlang/` is touched.**
+
+---
+
+## §3 — What landed
+
+`rust/crates/own-cli/` — a binary crate with one subcommand, and the shape
+#345's commands can join rather than a special case they would have to rewrite:
+one dispatch table, one help surface.
+
+* **the shell** answers the C-1 convention: an empty invocation is help on
+  stdout at exit 2, `--help`/`-h` the same help at exit 0, `--version` is
+  `own-cli <CARGO_PKG_VERSION>`, and an unknown command is one error line plus
+  the help on **stderr** at exit 2. The empty invocation and the unknown command
+  are distinct cases because `owen` makes them distinct;
+* **`ownir`** takes the reference's argv — one positional, `--format`,
+  `--severity`, `--verbosity`, both the `--flag V` and `--flag=V` spellings, no
+  `--` separator, no short flags — and answers every usage error exactly as the
+  reference does, the docstring on stdout included;
+* **the display policy** is a pure function of `&[Finding]` and the three
+  options, so every trap is a unit test rather than a process invocation. It
+  lives in the CLI crate because it is CLI logic: which findings are shown,
+  the `ok` and summary lines, the verbosity variants, the stream split, and
+  `1 if leaks else 0`;
+* **the renders are reused, never re-derived.** `own_bridge::check_facts` is the
+  analysis; `own_bridge::render_finding` and `own_bridge::build_sarif` are the
+  only renderers called. What the CLI adds is the *serialization*, because
+  `cmd_ownir` writes the SARIF document `json.dumps(indent=2)` does — ASCII
+  escaped — and the BR-V9 goldens are `ensure_ascii=False`. The builder is not
+  touched;
+* **the process contract** under `panic = "unwind"`: a hook installed first
+  thing in `main` suppresses the default panic output and records the payload,
+  and a top-level `catch_unwind` turns the unwind into one actionable stderr
+  diagnostic and exit 70. The hook alone would only *observe* the panic and the
+  process would still exit 101. Under `OWNLANG_DEBUG` the payload and a captured
+  backtrace print and the exit is still 70;
+* **an off-by-default `fault-injection` feature** gates two dev-only hooks that
+  force each failure mode, so both rulings are measured rather than asserted.
+  No production build carries them.
+
+The DAG gains exactly two edges — `own-cli -> own-ir` and `own-cli ->
+own-bridge` — registered in `own-diagnostics/tests/dag.rs`, where an
+unregistered member fails the whole `cargo test`. No `own-codegen`, no
+`own-shadow`, no `sha2`.
+
+**Nothing is wired.** `owen`, `own-check.sh`, `own-check.ps1`, `action.yml`,
+`own-shadow-engine` and `scripts/shadow_compare.py` are untouched; the binary
+knows nothing of Python and offers no engine selection, no compare mode and no
+fallback. Python remains the public engine.
+
+## §4 — The ledger, and where the numbers are
+
+* the fixture cases by rule and by oracle class:
+  [`docs/generated/p022-cli-census.md`](../generated/p022-cli-census.md);
+* the mutation campaign:
+  [`docs/generated/p022-cli-mutations.md`](../generated/p022-cli-mutations.md),
+  from [`docs/evidence/p022-cli-1.json`](../evidence/p022-cli-1.json) and its
+  recorded run.
+
+The campaign runs **three layers** rather than a workspace sweep, because the
+two failure-mode controls live behind the off-by-default feature and a campaign
+that cannot run the layer holding a catcher cannot see it catch. The third
+layer runs every *other* workspace member and is expected to catch nothing: a
+catcher appearing there would mean a mutation reached past its target.
+
+Two of the campaign's mutations exist as a pair because the first run said so.
+`usage_error` and the docstring answer are two different paths to exit 2, and a
+catcher named on one cannot see a mutation in the other. The wrong expectation
+was corrected **and** the path it had named became its own mutation, rather than
+the expectation being quietly dropped.
+
+## §5 — Measured, not pinned; and the stop conditions
+
+### 5.1 Invalid UTF-8 exits 70 on the reference — reported, not pinned
+
+`load()` converts `OSError` and `JSONDecodeError` and nothing else, so a
+`UnicodeDecodeError` escapes to `run()`'s catch-all:
+
+```text
+exit 70
+ownlang: internal error: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 45: invalid start byte
+  This is a bug in the analyzer, not in your code. Re-run with OWNLANG_DEBUG=1 for the full traceback and please report it.
+```
+
+**No fixture case freezes it and no refusal was invented for it.** Whether a
+crash on malformed input is a contract or a Python-first refusal to add is the
+owner's decision. The binary reproduces the *code and the shape* — exit 70 with
+its own two-line internal-error diagnostic — and claims no byte parity, because
+there is no oracle for a Python exception's `repr`.
+
+### 5.2 The strict door's message drifts between the implementations
+
+Two refusal classes cannot be reproduced by the Rust door as it stands. Exact
+bytes, both sides:
+
+**JSON syntax** (an empty file, a truncated document, a BOM):
+
+```text
+Python: <path>: error: <path> is not valid JSON: Expecting value: line 1 column 1 (char 0)
+Rust  : <path>: error: not valid JSON: EOF while parsing a value at line 1 column 0
+```
+
+**The version gate** — the same sentence, two words apart:
+
+```text
+Python: ... Build the Roslyn extractor and the Python core from the same commit ...
+Rust  : ... Build the extractor and the core from the same commit ...
+```
+
+The **shape and vocabulary** refusals agree byte for byte and are pinned:
+`OwnIR root must be a JSON object`, and the BR-V9-pinned
+`unknown OwnIR flow op 'try' (F.cs:2) — extractor/core vocabulary skew; ...`.
+
+This is not a new defect so much as a boundary #259 drew on purpose:
+`own-ir/tests/validation_replay.rs` says in its own docstring that what is
+compared is "the **kind**, never the message", because "the reference funnels
+every rejection into one `OwnIRError` whose strings are a human-facing
+presentation aid; freezing them would make this a byte-comparison of two
+languages' English." C-1 asks the CLI for the reference's message. The two
+cannot both be satisfied without deciding whether the strict door's *message*
+joins the byte-pinned surface — **which is the owner's call, on a #259
+surface**. Nothing here patched Python and nothing here patched `own-ir`; the
+affected classes are simply not in the fixture.
+
+### 5.3 The Windows reference is not byte-portable — the platform stop
+
+§1.9 has the table. The short form: on a piped Windows stdout the reference
+encodes with `cp1252` and translates line endings, so it emits `\r\n` where
+Linux emits `\n` and `97` where Linux emits `e2 80 94` — for the em dash that
+appears in the `ok` line and in most finding messages. On the two non-ASCII
+`file` cases it does not emit anything at all: it exits **70** with a
+`UnicodeEncodeError`, where the Linux reference exits 1 with a finding.
+
+The brief's instruction for this case is exact, and was followed: **a
+platform-dependent reference is a Python-first question, and the fixture is
+generated on Linux only until it is answered.** It was not normalized away, and
+no fixture case was weakened to accommodate it.
+
+What that leaves is worth stating plainly, because it is the useful half of the
+finding: **the Rust binary is byte-identical on both platforms where the
+reference is not.** It writes bytes through a locked handle with no encoding
+layer and no line-ending translation, so the Linux-authored fixture replays
+byte-for-byte on `windows-latest` — all cases, including the non-ASCII `file`
+ones the Windows reference cannot produce. The unicode-and-space directory name
+round-trips through a fresh Windows clone too.
+
+### 5.4 Recorded, deterministic, and not expressible as a case
+
+* **closed stdout** — exit 70 with the internal-error shape, 3/3 trials on both
+  platforms. Not a fixture case because the case format (`argv`/`cwd`/`env` →
+  captured streams) has no way to close the consumer's pipe; the binary matches
+  the shape and is unit-covered for it.
+* **interruption** — §1.7 and §1.9. Measured on both platforms, pinned on
+  neither, for the reasons given there.
+* **the uncatchable death** — `std::process::abort()` on Linux produced shell
+  status **134** (SIGABRT), zero stdout, zero stderr. The number is recorded
+  here and deliberately **not** asserted: #261 contracts no OS exit number for
+  this case. What the test asserts is that the outcome is non-zero, outside
+  `{0, 1, 2, 70}` and silent on stdout.
+* **a non-UTF-8 argv** — `std::env::args_os` is converted lossily rather than
+  with `std::env::args`, which panics on such an argument. A path that is not
+  valid Unicode is outside the measured contract (the reference round-trips it
+  through Python's `surrogateescape`, which has no fixture here) and fails with
+  an ordinary "cannot read" rather than a crash. Recorded as a known deferred
+  case.
+
+## §6 — Tails
+
+* **the `panic`-per-package design note** is corrected in `rust/Cargo.toml` and
+  its P-022 mirror: Cargo cannot set `panic` per package — a profile applies to
+  every target of a build — so "abort for `own-cli`, unwind for the LSP" was
+  never a plan Cargo could execute. Corrected as a design note; nothing about
+  the built artifacts moves.
+* **`py_repr` is carried twice.** The identical helper is `pub(crate)` in
+  `own-syntax`, and exporting it would need an `own-cli -> own-syntax` edge the
+  architecture does not admit. A shared `own-pyparity` leaf is the eventual
+  home, and #345 — which adds the commands whose errors interpolate far more
+  `repr()`s — is where it starts to pay.
+* **the campaign's catcher validator** special-cased `src/lib.rs` and not
+  `src/main.rs`. `own-cli` is the first binary crate whose unit tests a campaign
+  names, and without the fix every one of them read as "names a test that does
+  not exist" while pointing at a test that plainly did.
+* **for the owner to decide:** the docstring-on-stdout class (§1.1, four cases,
+  frozen and flagged); whether a crash on malformed input is a contract (§5.1);
+  whether the strict door's message joins the byte-pinned surface (§5.2); and
+  what a non-byte-portable reference means for the Windows half of parity
+  (§5.3).
+* **for #345 to inherit:** the dispatch table and the single help surface are
+  built to be joined rather than rewritten; the fixture family's format, its
+  writer and its oracle classes generalize to any subcommand; and the
+  `<OS_ERROR>` placeholder rule is already written down.
+
+## §7 — Reproducing this
+
+```bash
+# regenerate the fixture from the reference (Linux; the authoring platform)
+python tests/test_cli_ownir_fixtures.py --write
+
+# verify the frozen bytes are still the reference's
+python tests/test_cli_ownir_fixtures.py
+
+# the steady-state gate: build the binary and replay, zero Python
+cd rust && cargo test -p own-cli
+
+# the two failure-mode controls (off in every production build)
+cd rust && cargo test -p own-cli --features fault-injection --test faults
+
+# the mutation campaign, on a clean tree
+python scripts/mutate_campaign.py --campaign docs/evidence/p022-cli-1.json --run
+
+# the generated fragments
+python scripts/render_checkpoint_status.py --check
+```
