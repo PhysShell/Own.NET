@@ -59,6 +59,13 @@ CLI_OWNIR_VERSION = 1
 OS_ERROR = "<OS_ERROR>"
 _READ_MARK = "cannot read "
 
+
+class NonDeterministic(RuntimeError):
+    """Two runs of the reference disagreed. A case like that is not a contract,
+    so `--write` refuses to write it and `run()` reports it as a failure —
+    never as a `SystemExit`, which would end the aggregate runner at import
+    time (`tests/_preflight.py` forbids exactly that)."""
+
 # --------------------------------------------------------------------------
 # The `owen-convention` surface: authored ONCE, here, and carried in the
 # manifest. The binary holds the same two strings as consts and
@@ -318,11 +325,11 @@ def _usage_cases() -> list[Case]:
              oracle="python-docstring", rules=doc,
              pins=["two positionals: the same docstring"]),
         Case("usage-unknown-flag-with-path", ["ownir", "--bogus", _CLEAN],
-             oracle="python-docstring", rules=doc + ["unknown-flag-is-positional"],
+             oracle="python-docstring", rules=[*doc, "unknown-flag-is-positional"],
              pins=["an unknown flag is a POSITIONAL to the reference's parser, "
                    "so with a real path it is two positionals"]),
         Case("usage-double-dash-not-a-separator", ["ownir", "--", _CLEAN],
-             oracle="python-docstring", rules=doc + ["no-double-dash-separator"],
+             oracle="python-docstring", rules=[*doc, "no-double-dash-separator"],
              pins=["`--` is an ordinary positional; there is no separator"]),
 
         # The other half of the unknown-flag behaviour: alone it is ONE
@@ -495,9 +502,9 @@ def _expectation(case: Case) -> dict:
     first = _reference(case)
     second = _reference(case)
     if first != second:
-        raise SystemExit(
-            f"cli_ownir: case {case.name!r} is NOT deterministic — two runs of "
-            f"the reference disagreed, so it cannot be a contract.\n"
+        raise NonDeterministic(
+            f"case {case.name!r} is NOT deterministic — two runs of the "
+            f"reference disagreed, so it cannot be a contract.\n"
             f"  first : {first!r}\n  second: {second!r}")
     code, out, err = first
     err, tail = _placeholder(err)
@@ -522,8 +529,12 @@ def write() -> int:
     os.makedirs(FIXTURE_DIR, exist_ok=True)
     entries = []
     for case in cases():
-        expected = (case.expected if case.oracle == "owen-convention"
-                    else _expectation(case))
+        try:
+            expected = (case.expected if case.oracle == "owen-convention"
+                        else _expectation(case))
+        except NonDeterministic as exc:
+            print(f"cli_ownir: refusing to write — {exc}")
+            return 1
         _dump(_case_path(case.name), {
             "cli_ownir_version": CLI_OWNIR_VERSION,
             "argv": case.argv,
@@ -620,7 +631,11 @@ def run() -> int:
                 fails.append(f"{case.name}: the owen-convention expectation "
                              f"has drifted — run {hint}")
             continue
-        fresh = _expectation(case)
+        try:
+            fresh = _expectation(case)
+        except NonDeterministic as exc:
+            fails.append(str(exc))
+            continue
         if stored.get("expected") != fresh:
             fails.append(
                 f"{case.name}: the frozen bytes are no longer what the "
