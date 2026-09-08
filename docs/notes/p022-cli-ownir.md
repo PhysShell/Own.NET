@@ -474,10 +474,17 @@ exception's wording a cross-language contract**. Freezing that line would bind
 the Rust implementation to the spelling of a `UnicodeDecodeError`, which is a
 CPython implementation detail that no part of this project has decided to own.
 
-**Python-first hygiene tail, opened under #250/#262:** `UnicodeDecodeError` →
-`OwnIRError` → `rc 2`, so a file that is not UTF-8 is refused by the strict door
-like every other malformed input instead of crashing the run. To close **before
-public cutover**; #261 does not block on it.
+**Python-first hygiene tail.** `UnicodeDecodeError` → `OwnIRError` → `rc 2`, so
+a file that is not UTF-8 is refused by the strict door like every other
+malformed input instead of crashing the run. To close **before public cutover**;
+#261 does not block on it.
+
+**Tracker state, as it actually stands.** #262 is the tracker of record: the
+reviewer recorded this ruling there under *Known differences recorded ahead of
+the packet* (2026-09-08). The #250 roadmap mirror is **pending reconciliation**
+— queued, not yet written — so this note claims #262 and nothing more. An
+earlier draft said the tail was "opened under #250/#262", which asserted a
+tracker state this note is not the authority on and had not verified.
 
 ### 5.2 The strict door: one family **fixed**, one narrow boundary **declared**
 
@@ -550,6 +557,99 @@ Every Version control is now a **pinned** CLI fixture case, `oracle: "python"`.
 already carry — `own-ir` is the DAG leaf and may import neither. That is the
 `own-pyparity` tail getting more expensive, recorded in §6.
 
+##### The census above was too narrow, and here is what it missed (#261 R2b)
+
+Everything in it is still true. It is also the wrong shape of measurement, and
+the second review was right to say so. Each row picked a *value*; the oracle is
+about a *value class*, and the four scalars chosen happen to be the classes
+where a `serde_json::Value` and CPython's `json` agree. A `Value` is a **lossy**
+rendering of the document for `repr` purposes, and three defects were hiding in
+the loss:
+
+| what `Value` loses | `Value` says | CPython says | why the first census could not see it |
+|---|---|---|---|
+| object key **order** (`Map` is a `BTreeMap`; `dict` is insertion-ordered) | `{'a': 2, 'b': 1}` | `{'b': 1, 'a': 2}` | its only object control had **one key**, and one key is order-invariant |
+| float **spelling** (`Display` writes ryū's shortest form; `repr` pads the exponent) | `1e-6` | `1e-06` | its only float was `0.0`, which needs no exponent |
+| integer **precision** (no `arbitrary_precision`, so an oversized literal arrives as `f64`) | `1e+31`, wrong-type arm | `100000…000`, **mismatch** arm | its integers all fit `i64` |
+
+The third is not a spelling difference at all: a Python `int` has no width, so
+an oversized *integral* version clears the reference's type check and takes its
+**mismatch** branch (#261 ruling V3). Same document, different arm.
+
+**The fix is a raw re-read, not a feature flag.** `own-ir` now reads
+`json.loads(raw)["ownir_version"]` back out of the document text into a
+`PyValue` — insertion-ordered dicts with CPython's rebind-in-place semantics for
+a repeated key, arbitrary-precision integers kept as digits, and `int`/`float`
+decided by the literal. `serde_json/preserve_order` and `arbitrary_precision`
+would each fix a row by changing `Value` for **every crate in the workspace**
+— map iteration order, number equality, `to_value` output — and #260's
+canonical-domain evidence is measured against the current `Value`. So the
+re-read is scoped to the one value whose spelling is contractual and runs on the
+rejection path only. `serde_json` stays the only parser whose verdict decides
+accept/reject; the re-read decides only how an already-certain rejection is
+spelled.
+
+**Then the sweep found a fourth.** 200 000 doubles through the production path
+against CPython's `repr`: 7 mismatches, all the same shape. Where a double's
+exact value sits **exactly midway** between two candidates of the shortest
+round-trip length, CPython (David Gay's `dtoa`) rounds half to **even** and
+Rust's shortest formatter does not — `-1128910513108089.25` is
+`-1128910513108089.2` there and `...3` here, about one double in 3 000. The
+digits now come from Rust's *exact* formatter asked for the shortest formatter's
+length, which rounds half to even. Re-swept: **200 000 / 0**.
+
+**The re-measurement, in two groups.** The groups are separate so the declared
+divergences can never drift back into the byte denominator:
+
+*Group 1 — the byte denominator.* 24 value classes, **24/24 byte-identical**:
+the five float classes either side of both presentation boundaries, the
+round-half-to-even tie, out-of-order and repeated-key and nested and empty
+objects, quote-heavy and astral and plain strings, both bools, `null`, arrays,
+oversized integers of both signs, the `i64` boundary, and an ordinary mismatch.
+Then **20 000 randomized documents** — nested containers, repeated keys, the
+whole string surface, oversized integers — **0 mismatches**.
+
+*Group 2 — declared, and NOT in that denominator.*
+
+| ruling | class | reference | this core | why it is declared |
+|---|---|---|---|---|
+| V1 | `NaN`, `Infinity`, `-Infinity` | `got nan` / `inf` / `-inf` | `not valid JSON` | CPython `json` extensions, not JSON. Teaching the Rust parser non-standard JSON to match an error message would widen what the product accepts |
+| V2 | literal `-0` at the gate | **accepts** (an `int`) | `got -0.0` | the cross-parser encoding split #260 already froze. Emulating the acceptance is out of #261's scope, and reporting `0` would name a type we did not read and imply an acceptance we do not grant |
+| V4 | 15 097 code points | escaped | printed | **new**, below |
+
+`-0` *inside a container* is not V2 and is not declared: nothing there is being
+type-checked, so the reference's own spelling is free to be reproduced, and is
+(`[-0]` → `[0]` on both sides). That is why the stand-down is written as "the
+value the type check is about" rather than "any `-0` anywhere".
+
+**V4, found by this pass: the Unicode tables are independently versioned.**
+`str.isprintable()` is a general-category question, and each side answers it
+from the Unicode table it was **built** with. CPython 3.11.15 links Unicode
+14.0.0; `unicode-properties` 0.1.4 ships 17.0.0. A whole-plane sweep — all
+1 114 112 scalar values, both sides — puts the disagreement at exactly **15 097
+code points**, every one of them `Cn` (unassigned) in 14.0.0 and assigned since.
+This is not repairable from Rust and pinning is a false fix: the reference's
+table is a property of the *interpreter build*, so a pin would buy parity with
+one Python and silently lose it against another. Declared, measured, and out of
+the denominator. It predates this pass — `is_printable` shipped in R2 — and it
+has the same root cause as the other three: a control set chosen by hand.
+`own-syntax` carries the same helper and therefore the same boundary; that is a
+tail (§6), not a change #261 makes.
+
+Its practical reach here is **nil, and measured rather than assumed**: no file in
+the frozen CLI fixture family contains one of those 15 097 code points, which is
+why the `oracle: "python"` cases stay green on 3.11, 3.12 and 3.13 even though
+those interpreters link three different Unicode tables. The boundary is real; it
+is simply not something any case in this contract can reach.
+
+**The census is now a test, not a table.** `own-ir/tests/version_repr_census.rs`
+carries every group-1 row with the byte CPython produced for it, and group 2
+pinned to what this core does with the reference's own answer written beside
+each. Python authored those bytes once; the suite defends them with **zero
+Python** from here on, and a new value class has to be added to the table rather
+than merely not thought of. Campaign mutations M20–M23 attack the four defects
+directly.
+
 #### 5.2b CLI-B1 — the JSON parser detail, a named typed boundary (#261 ruling 2b)
 
 ```text
@@ -590,7 +690,7 @@ carries structured metadata — `"boundary": {"id": "CLI-B1", "expected_kind":
 "json"}` — and `replay.rs` proves eligibility *before* relaxing anything:
 
 ```text
-1. read the exact facts bytes the CLI case used
+1. take the facts bytes the CLI case ran with
 2. decode with str::from_utf8, NO normalization
 3. the decode must SUCCEED   — invalid UTF-8 is §5.1's defect alone, never CLI-B1
 4. OwnIr::from_json(that &str) must REJECT
@@ -599,16 +699,44 @@ carries structured metadata — `"boundary": {"id": "CLI-B1", "expected_kind":
    and only the bytes after it are relaxed (and must be non-empty)
 ```
 
-**The negative control** keeps everything constant but the rejection kind: the
-same argv shape, the same path shape, the same valid UTF-8, the same fixture
-machinery, and content that is *valid JSON with a Version rejection*
-(`{"ownir_version": 99}`). Deliberately **not** a malformed mutation — malformed
-bytes could be refused by some other parser or decoder fork and "prove" the
-guard by accident. The assertion is that CLI-B1 is **no longer eligible**, and
-that case is pinned byte-exact as a Version rejection per §5.2a instead. A sweep
-test additionally asserts that *every* case carrying CLI-B1 metadata really does
-reject with `Json`, so a future case cannot acquire the relaxed matcher by
-accident.
+**The negative control, and the hole it had (#261 R3b).** The first version of
+it read a *different case at a different path* from the positives it was
+contrasted against, and its own comment had quietly relaxed "same path" to "same
+path **shape**". That is the one thing a negative control exists to rule out: a
+guard keyed on the path, the extension or the case name would have passed it
+without ever consulting a rejection kind. The relaxation in the comment is the
+tell — a control whose own prose has to widen to stay true is not measuring what
+it says.
+
+The decision now takes the facts bytes as a **parameter**, so the control runs
+**one case** — one argv, one exact path string, one decode route, one fixture —
+twice, against two byte sequences:
+
+| run | bytes | strict door | eligible |
+|---|---|---|---|
+| positive | the case's own facts, on disk | `Json` | yes |
+| negative | a valid document with a version mismatch | `Version` | **no** |
+
+Everything a guard could accidentally be keyed on is held literally identical
+across the two runs, and the test asserts that both runs resolve the same path
+from the same case, so eligibility can only turn on the content. The bytes are
+still frozen fixture bytes rather than bytes invented in the replay — inventing
+them would move the oracle into the test. It is still deliberately **not** a
+malformed mutation: malformed bytes could be refused by some other parser or
+decoder fork and "prove" the guard by accident. The case those negative bytes
+come from is itself pinned byte-exact as a Version rejection per §5.2a, and the
+control asserts it carries no boundary metadata.
+
+A sweep test additionally asserts that *every* case carrying CLI-B1 metadata
+really does reject with `Json`, so a future case cannot acquire the relaxed
+matcher by accident.
+
+One honest limit: **a control's non-vacuity is a property of its construction,
+not something a mutation can prove.** No source mutation distinguishes "this
+control compares two documents" from "this control compares one document with
+itself" — running the suite cannot tell you a test asserted nothing. What M24
+does show is that the construction is load-bearing: make the guard reach for a
+file instead of judging the bytes it was handed, and the control fires.
 
 ### 5.3 Windows — three separate claims (#261 ruling 3)
 
@@ -641,12 +769,16 @@ Because the em dash appears in the `ok` line and in most finding messages, the
 Windows reference produces different bytes for nearly every case in the fixture,
 not only the ones with non-ASCII inputs. §1.9 has the full measurement.
 
-**Carried into #262 as a behavior change, not as parity.** Windows Python today
+**A behavior change, not parity — recorded in #262.** Windows Python today
 emits cp1252 / CRLF and can fail outright with `UnicodeEncodeError`; Rust
 tomorrow emits UTF-8 canonical bytes on both platforms. That is very likely an
 improvement — and it is still a **behavior change** for a Windows user whose
-tooling consumes those bytes, so it belongs in #262's *Known differences*
-rather than being folded into a parity claim.
+tooling consumes those bytes, so it belongs in *Known differences* rather than
+being folded into a parity claim.
+
+#262 is the tracker of record and carries it: the reviewer recorded it there
+under *Known differences recorded ahead of the packet* (2026-09-08). The #250
+roadmap mirror is **pending reconciliation**.
 
 ### 5.4 Recorded, deterministic, and not expressible as a case
 
@@ -689,18 +821,27 @@ rather than being folded into a parity claim.
   divergence. It is a #259 surface and outside #261's scope; the repair pass
   deliberately touched only the Version call site. Worth closing with the same
   helper when the `own-pyparity` leaf lands.
+* **the Unicode table skew is a boundary, not a bug (§5.2a, ruling V4).**
+  `str.isprintable()` is answered from the table each side was built with, and
+  the two are independently versioned — 15 097 code points apart on this tree.
+  `own-syntax` carries the same helper and inherits the same boundary. When the
+  `own-pyparity` leaf lands it should carry the measurement with it, so the
+  answer lives in one place rather than being re-derived per crate.
 * **the campaign's catcher validator** special-cased `src/lib.rs` and not
   `src/main.rs`. `own-cli` is the first binary crate whose unit tests a campaign
   names, and without the fix every one of them read as "names a test that does
   not exist" while pointing at a test that plainly did.
-* **Python-first hygiene, opened under #250/#262:** `UnicodeDecodeError` →
-  `OwnIRError` → `rc 2` in `ownlang/ownir.py`'s `load()`, so a file that is not
-  UTF-8 is refused by the strict door like any other malformed input rather
-  than crashing the run. To close **before public cutover**; #261 does not block
-  on it (§5.1).
-* **carried into #262 Known differences:** Windows Python emits cp1252 / CRLF
-  and can fail with `UnicodeEncodeError` where Rust emits UTF-8 canonical bytes
-  — an improvement, and a behavior change (§5.3 claim C).
+* **Python-first hygiene** — `UnicodeDecodeError` → `OwnIRError` → `rc 2` in
+  `ownlang/ownir.py`'s `load()`, so a file that is not UTF-8 is refused by the
+  strict door like any other malformed input rather than crashing the run. To
+  close **before public cutover**; #261 does not block on it (§5.1).
+  **Recorded in #262**, the tracker of record, under *Known differences recorded
+  ahead of the packet* (2026-09-08); the #250 roadmap mirror is **pending
+  reconciliation**.
+* **Windows byte differences** — Windows Python emits cp1252 / CRLF and can fail
+  with `UnicodeEncodeError` where Rust emits UTF-8 canonical bytes: an
+  improvement, and a behavior change (§5.3 claim C). **Recorded in #262** in the
+  same place; the #250 mirror is **pending reconciliation**.
 * **for the owner to decide:** the docstring-on-stdout class (§1.1, four cases,
   frozen and flagged) is the one class still awaiting a ruling.
 * **for #345 to inherit:** the dispatch table and the single help surface are
