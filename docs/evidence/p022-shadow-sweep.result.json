@@ -4,15 +4,15 @@
   "sweep": "p022-shadow-sweep",
   "definition": "docs/evidence/p022-shadow-sweep.json",
   "definition_sha256": "9edfaedd3ba1d1f918cd0f386f33b856f473fa5f2c1cbd4025265ecc06eacd74",
-  "source_commit": "565de6d49f3d38decbd9117723a39691dcb54aee",
-  "recorded_at": "2026-09-08T02:04:21Z",
-  "host": "Windows AMD64",
-  "workflow_run_url": null,
+  "source_commit": "321ab8b40e527f47423fa43a30c3535828e8e806",
+  "recorded_at": "2026-09-08T04:25:38Z",
+  "host": "Linux x86_64",
+  "workflow_run_url": "https://github.com/PhysShell/Own.NET/actions/runs/34186824607",
   "driver_version": 2,
   "adapters": [
     {
-      "sha256": "94eda8fa31dd8c09443d60904d25c85b2670b584fc732bd787a8ea0458f5d9ef",
-      "bytes": 1614336
+      "sha256": "1c937d122b0dcc4bf5b85660dd1c2b1a8796f83e737f791a7a572f9af80deaf5",
+      "bytes": 1895280
     }
   ],
   "documents": [
@@ -23,16 +23,16 @@
       "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
       "extraction_mode": "directory-walk",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit",
-      "facts_sha256": "f6e704f252f2dfcd421ab04e34abc301b1ca736965e7cc98ac81b92e1397a504",
+      "facts_sha256": "be8a026a2bbe35c6a6251d3476bb90c1a78a569b5f9c55814f8e975c4f69059b",
       "raw": {
         "algorithm": "sha256",
-        "digest": "f6e704f252f2dfcd421ab04e34abc301b1ca736965e7cc98ac81b92e1397a504",
-        "bytes": 34507
+        "digest": "be8a026a2bbe35c6a6251d3476bb90c1a78a569b5f9c55814f8e975c4f69059b",
+        "bytes": 31363
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "623af0f59c614bb28a78c02e83c7ccbdb3f6af3c9c493e17e5598f2ad76ec48a",
-        "bytes": 22130
+        "digest": "b214221fc03bf0b8a9f6b5fe02f74c6106eb5ba21e6435fa847a3d88d1726709",
+        "bytes": 20090
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -49,7 +49,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.016
+      "wall_clock_seconds": 0.042
     },
     {
       "id": "AvalonEdit.sln",
@@ -58,16 +58,16 @@
       "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
       "extraction_mode": "solution",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit/ICSharpCode.AvalonEdit.sln",
-      "facts_sha256": "a5f2e5b70ff154acbe9a800d291295e34992662d3998ce4f990483bb3cafda2c",
+      "facts_sha256": "07fbd8d3327d56bd54655284878c5a61f42a30ce8743b87c2422f2768757fade",
       "raw": {
         "algorithm": "sha256",
-        "digest": "a5f2e5b70ff154acbe9a800d291295e34992662d3998ce4f990483bb3cafda2c",
-        "bytes": 34507
+        "digest": "07fbd8d3327d56bd54655284878c5a61f42a30ce8743b87c2422f2768757fade",
+        "bytes": 31363
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "c3515fceb38647a4e1b335221b54e3a04e76e860ac4188d06e14229c598c24fa",
-        "bytes": 22130
+        "digest": "e6a23f1fe276a92ecd3aad3e5b37581ef2c1404365953244624a7c846abc4c82",
+        "bytes": 20090
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -84,7 +84,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.016
+      "wall_clock_seconds": 0.041
     },
     {
       "id": "ClosedXML.repo",
@@ -93,16 +93,16 @@
       "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
       "extraction_mode": "directory-walk",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML",
-      "facts_sha256": "bbefbfb2089ea0b1ebb2f8a7144c8cbc294ba859fdae6335a72aea58ab8bfc63",
+      "facts_sha256": "8647eebb3aa0cca8f7b7cdcbf1d02bc1bd10fdcd44454d45bb23f80cc5d254da",
       "raw": {
         "algorithm": "sha256",
-        "digest": "bbefbfb2089ea0b1ebb2f8a7144c8cbc294ba859fdae6335a72aea58ab8bfc63",
-        "bytes": 201623
+        "digest": "8647eebb3aa0cca8f7b7cdcbf1d02bc1bd10fdcd44454d45bb23f80cc5d254da",
+        "bytes": 181023
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "4599cfe379cde82307f10a869d778f11abc56eaedbe0d35aeff680dce81778ed",
-        "bytes": 109227
+        "digest": "9d7baa8ba18b306bc0720924ac97b577cdefe3159dca13771ebf78f8d25bccd7",
+        "bytes": 96531
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -119,7 +119,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.109
+      "wall_clock_seconds": 0.196
     },
     {
       "id": "ClosedXML.sln",
@@ -128,16 +128,16 @@
       "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
       "extraction_mode": "solution",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML/ClosedXML.sln",
-      "facts_sha256": "ec045c96b3940790ca7a80a3a772f9a831abe98b9834a87b1273f83660dbeb52",
+      "facts_sha256": "93522a717ca1ce37a69532ed9ced5e55b4a9c27c3a3b16410ab07b32e456556c",
       "raw": {
         "algorithm": "sha256",
-        "digest": "ec045c96b3940790ca7a80a3a772f9a831abe98b9834a87b1273f83660dbeb52",
-        "bytes": 201623
+        "digest": "93522a717ca1ce37a69532ed9ced5e55b4a9c27c3a3b16410ab07b32e456556c",
+        "bytes": 181023
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "c6aabbe11592ff7d41723098df9b663bae08052f8cbb70d33a2bfd91ffb61317",
-        "bytes": 109227
+        "digest": "7ca58a5c37cf879e6188fc856502b77b6fcfd0d51032eb6cd4ef5e5ea371ecea",
+        "bytes": 96531
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -154,7 +154,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.109
+      "wall_clock_seconds": 0.128
     },
     {
       "id": "MahApps.Metro.repo",
@@ -163,16 +163,16 @@
       "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
       "extraction_mode": "directory-walk",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro",
-      "facts_sha256": "f6a22fecf1bbb63eac26d72cdcce6db620206c32da90f78ef96fa038c81333b8",
+      "facts_sha256": "b9e24898f818b7b1fb85698d880a32017178e83096670dfb79937bf5495fa3bc",
       "raw": {
         "algorithm": "sha256",
-        "digest": "f6a22fecf1bbb63eac26d72cdcce6db620206c32da90f78ef96fa038c81333b8",
-        "bytes": 44712
+        "digest": "b9e24898f818b7b1fb85698d880a32017178e83096670dfb79937bf5495fa3bc",
+        "bytes": 41578
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "a1f0d30bcad70d8267fc9d9abfa1688a8406c2955f59ed789e2ac3e9fb539021",
-        "bytes": 28765
+        "digest": "6d5442713b57e78c422a67d85f735eb14b8261b84c6e0c30cb0a714480858a8b",
+        "bytes": 27017
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -189,7 +189,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.031
+      "wall_clock_seconds": 0.046
     },
     {
       "id": "MahApps.Metro.sln",
@@ -198,16 +198,16 @@
       "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
       "extraction_mode": "solution",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro/src/MahApps.Metro.sln",
-      "facts_sha256": "97f644b3b58a3eea26aa39d1a1d8aa22917e4e7317d4bd20a08ee657eb16d0e3",
+      "facts_sha256": "b50509db92311bd329d45475f525d5ac39dace3834c9afe56f300ccf86239c6a",
       "raw": {
         "algorithm": "sha256",
-        "digest": "97f644b3b58a3eea26aa39d1a1d8aa22917e4e7317d4bd20a08ee657eb16d0e3",
-        "bytes": 44712
+        "digest": "b50509db92311bd329d45475f525d5ac39dace3834c9afe56f300ccf86239c6a",
+        "bytes": 41578
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "d9ffd61f879be57026e145239d6d90dfa5ac506635afd575990d2940ef9fd8ca",
-        "bytes": 28765
+        "digest": "14c2ad831613239af53fab0d6c19db82cfa7ddbfb3b425fbb8d72ea141a36ef2",
+        "bytes": 27017
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -224,7 +224,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.016
+      "wall_clock_seconds": 0.046
     },
     {
       "id": "MaterialDesignInXamlToolkit.repo",
@@ -233,16 +233,16 @@
       "target_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
       "extraction_mode": "directory-walk",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MaterialDesignInXamlToolkit",
-      "facts_sha256": "c0fa752cbe2dc0ce73d49ae8df56ebf676f844c3bb409e897405b36811c83ad3",
+      "facts_sha256": "05f0354706539dc0990527f8807eef5c5853c72a3c9b48e79c0f18673974926c",
       "raw": {
         "algorithm": "sha256",
-        "digest": "c0fa752cbe2dc0ce73d49ae8df56ebf676f844c3bb409e897405b36811c83ad3",
-        "bytes": 53007
+        "digest": "05f0354706539dc0990527f8807eef5c5853c72a3c9b48e79c0f18673974926c",
+        "bytes": 48513
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "3fd3416e502adff71f07de87489351cb2d3b7faf599ee879b1dd2b7c475c0c18",
-        "bytes": 35466
+        "digest": "0cd808188b9a394872b1a92bb09b903a82ac40f228d79cec50ccc22581b0b25f",
+        "bytes": 32546
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -259,7 +259,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.031
+      "wall_clock_seconds": 0.047
     },
     {
       "id": "ShareX.repo",
@@ -268,16 +268,16 @@
       "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
       "extraction_mode": "directory-walk",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX",
-      "facts_sha256": "8d94ea78b8ff26a45e41f5341d678de9912a1ea401a7d702451f4f1fa2a91f8a",
+      "facts_sha256": "055d8b4bb4126e1e539b96a131855b2ae9133c22cb44fc1172bd7dd4f2967f57",
       "raw": {
         "algorithm": "sha256",
-        "digest": "8d94ea78b8ff26a45e41f5341d678de9912a1ea401a7d702451f4f1fa2a91f8a",
-        "bytes": 249448
+        "digest": "055d8b4bb4126e1e539b96a131855b2ae9133c22cb44fc1172bd7dd4f2967f57",
+        "bytes": 232591
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "f3a30f10ac17dd830e756f751110e732d17898e6f0f6307fa9a436d6a5d1a851",
-        "bytes": 128850
+        "digest": "68acb3b245b11618355aa72f326039da9eaca1c1ebf34f9b08337b3a40417382",
+        "bytes": 120570
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -294,7 +294,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.187
+      "wall_clock_seconds": 0.199
     },
     {
       "id": "ShareX.sln",
@@ -303,16 +303,16 @@
       "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
       "extraction_mode": "solution",
       "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX/ShareX.sln",
-      "facts_sha256": "f01fa1d3d9ef4ae9a08e45890ff5f8d49dc6d05730edfa58018a581a912601de",
+      "facts_sha256": "f3555bb8f86deeb63ef3d928b44baeba0c7083f10508c9e3b01e36455331cbf1",
       "raw": {
         "algorithm": "sha256",
-        "digest": "f01fa1d3d9ef4ae9a08e45890ff5f8d49dc6d05730edfa58018a581a912601de",
-        "bytes": 249448
+        "digest": "f3555bb8f86deeb63ef3d928b44baeba0c7083f10508c9e3b01e36455331cbf1",
+        "bytes": 232591
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "3a2c3c5eea1cebd612b22bbc1a30cb46a8db39787f6b80c30a5d9d048561c8db",
-        "bytes": 128850
+        "digest": "d14138d99358e7e315001e42984940e8b0e796426610d2dba57b982f6d993a67",
+        "bytes": 120570
       },
       "outcome": "agreed",
       "timeout_seconds": 600.0,
@@ -329,24 +329,24 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.094
+      "wall_clock_seconds": 0.184
     },
     {
       "id": "examples",
       "source": "examples.facts.json",
       "target": "examples",
-      "target_commit": "565de6d49f3d38decbd9117723a39691dcb54aee",
+      "target_commit": "321ab8b40e527f47423fa43a30c3535828e8e806",
       "extraction_mode": "directory-walk",
       "extraction_command": "scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- examples",
-      "facts_sha256": "01e617d820d76af1f78057494db4cf065e2d845a84f683b9ce1d574f288f0050",
+      "facts_sha256": "624df0fe52c4ffc06cb93224f1370b7374a1ab92f2a283f55914eb58c8e4ec40",
       "raw": {
         "algorithm": "sha256",
-        "digest": "01e617d820d76af1f78057494db4cf065e2d845a84f683b9ce1d574f288f0050",
-        "bytes": 13291
+        "digest": "624df0fe52c4ffc06cb93224f1370b7374a1ab92f2a283f55914eb58c8e4ec40",
+        "bytes": 12721
       },
       "canonical": {
         "algorithm": "sha256",
-        "digest": "322523ad9073af842ebcb0a0f8480abfb267f22404de47dc55f37eb01808bf71",
+        "digest": "17cf2d6c48af9f3aeee470b9a5ef7b9242fc297b1bf4fe55f0fbb8428f2948f5",
         "bytes": 6705
       },
       "outcome": "agreed",
@@ -364,7 +364,7 @@
       "declared_boundary_observations": 0,
       "acceptance_unexplained_observations": 0,
       "derived_outcome": "equal",
-      "wall_clock_seconds": 0.016
+      "wall_clock_seconds": 0.024
     }
   ],
   "targets": [

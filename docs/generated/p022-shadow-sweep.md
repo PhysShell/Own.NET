@@ -21,10 +21,10 @@ nothing reached.
 
 | what | value |
 |---|---|
-| Own.NET commit | `565de6d49f3d38decbd9117723a39691dcb54aee` |
-| recorded at | 2026-09-08T02:04:21Z |
-| host | Windows AMD64 |
-| where | a local run (no workflow run URL) |
+| Own.NET commit | `321ab8b40e527f47423fa43a30c3535828e8e806` |
+| recorded at | 2026-09-08T04:25:38Z |
+| host | Linux x86_64 |
+| where | [the workflow run](https://github.com/PhysShell/Own.NET/actions/runs/34186824607) |
 | driver | `shadow_compare_version` 2 |
 
 The adapter each leg executed, by digest — a path is not an identity, so a
@@ -32,22 +32,22 @@ stale build cannot stand in for the engine that was meant:
 
 | `own-shadow-engine` sha256 | bytes |
 |---|---:|
-| `94eda8fa31dd8c09443d60904d25c85b2670b584fc732bd787a8ea0458f5d9ef` | 1614336 |
+| `1c937d122b0dcc4bf5b85660dd1c2b1a8796f83e737f791a7a572f9af80deaf5` | 1895280 |
 
 ## The documents
 
 | document | target | mode | pin | raw bytes | raw sha256 | canonical sha256 | reduction | derived SARIF | declared-boundary | unexplained | wall clock (s) | timeout (s) |
 |---|---|---|---|---:|---|---|---|---|---:|---:|---:|---:|
-| `AvalonEdit.repo` | `AvalonEdit` | directory-walk | `ed0bd1490594` | 34507 | `f6e704f252f2` | `623af0f59c61` | identical | equal | 0 | 0 | 0.02 | 600 |
-| `AvalonEdit.sln` | `AvalonEdit` | solution | `ed0bd1490594` | 34507 | `a5f2e5b70ff1` | `c3515fceb386` | identical | equal | 0 | 0 | 0.02 | 600 |
-| `ClosedXML.repo` | `ClosedXML` | directory-walk | `4e89dcedd83c` | 201623 | `bbefbfb2089e` | `4599cfe379cd` | identical | equal | 0 | 0 | 0.11 | 600 |
-| `ClosedXML.sln` | `ClosedXML` | solution | `4e89dcedd83c` | 201623 | `ec045c96b394` | `c6aabbe11592` | identical | equal | 0 | 0 | 0.11 | 600 |
-| `MahApps.Metro.repo` | `MahApps.Metro` | directory-walk | `72099e310bac` | 44712 | `f6a22fecf1bb` | `a1f0d30bcad7` | identical | equal | 0 | 0 | 0.03 | 600 |
-| `MahApps.Metro.sln` | `MahApps.Metro` | solution | `72099e310bac` | 44712 | `97f644b3b58a` | `d9ffd61f879b` | identical | equal | 0 | 0 | 0.02 | 600 |
-| `MaterialDesignInXamlToolkit.repo` | `MaterialDesignInXamlToolkit` | directory-walk | `ef3a5ea434e3` | 53007 | `c0fa752cbe2d` | `3fd3416e502a` | identical | equal | 0 | 0 | 0.03 | 600 |
-| `ShareX.repo` | `ShareX` | directory-walk | `0df9ca4d83ee` | 249448 | `8d94ea78b8ff` | `f3a30f10ac17` | identical | equal | 0 | 0 | 0.19 | 600 |
-| `ShareX.sln` | `ShareX` | solution | `0df9ca4d83ee` | 249448 | `f01fa1d3d9ef` | `3a2c3c5eea1c` | identical | equal | 0 | 0 | 0.09 | 600 |
-| `examples` | `examples` | directory-walk | `565de6d49f3d` | 13291 | `01e617d820d7` | `322523ad9073` | identical | equal | 0 | 0 | 0.02 | 600 |
+| `AvalonEdit.repo` | `AvalonEdit` | directory-walk | `ed0bd1490594` | 31363 | `be8a026a2bbe` | `b214221fc03b` | identical | equal | 0 | 0 | 0.04 | 600 |
+| `AvalonEdit.sln` | `AvalonEdit` | solution | `ed0bd1490594` | 31363 | `07fbd8d3327d` | `e6a23f1fe276` | identical | equal | 0 | 0 | 0.04 | 600 |
+| `ClosedXML.repo` | `ClosedXML` | directory-walk | `4e89dcedd83c` | 181023 | `8647eebb3aa0` | `9d7baa8ba18b` | identical | equal | 0 | 0 | 0.20 | 600 |
+| `ClosedXML.sln` | `ClosedXML` | solution | `4e89dcedd83c` | 181023 | `93522a717ca1` | `7ca58a5c37cf` | identical | equal | 0 | 0 | 0.13 | 600 |
+| `MahApps.Metro.repo` | `MahApps.Metro` | directory-walk | `72099e310bac` | 41578 | `b9e24898f818` | `6d5442713b57` | identical | equal | 0 | 0 | 0.05 | 600 |
+| `MahApps.Metro.sln` | `MahApps.Metro` | solution | `72099e310bac` | 41578 | `b50509db9231` | `14c2ad831613` | identical | equal | 0 | 0 | 0.05 | 600 |
+| `MaterialDesignInXamlToolkit.repo` | `MaterialDesignInXamlToolkit` | directory-walk | `ef3a5ea434e3` | 48513 | `05f035470653` | `0cd808188b9a` | identical | equal | 0 | 0 | 0.05 | 600 |
+| `ShareX.repo` | `ShareX` | directory-walk | `0df9ca4d83ee` | 232591 | `055d8b4bb412` | `68acb3b245b1` | identical | equal | 0 | 0 | 0.20 | 600 |
+| `ShareX.sln` | `ShareX` | solution | `0df9ca4d83ee` | 232591 | `f3555bb8f86d` | `d14138d99358` | identical | equal | 0 | 0 | 0.18 | 600 |
+| `examples` | `examples` | directory-walk | `321ab8b40e52` | 12721 | `624df0fe52c4` | `17cf2d6c48af` | identical | equal | 0 | 0 | 0.02 | 600 |
 
 ## The denominators, per target
 
