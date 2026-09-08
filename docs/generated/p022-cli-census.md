@@ -6,7 +6,7 @@
 
 | measure                            | value |
 |------------------------------------|------:|
-| frozen cases                       | 80 |
+| frozen cases                       | 88 |
 
 ## By oracle
 
@@ -15,7 +15,7 @@ The oracle boundary is #261's C-1, and it is the SURFACE rather than the referen
 | oracle | cases | what authored the bytes |
 |---|------:|---|
 | `owen-convention` | 7 | no Python byte oracle exists: the top-level shell, authored once from the `owen` convention and shared with the binary |
-| `python` | 69 | an executed `python -m ownlang ownir` run |
+| `python` | 77 | an executed `python -m ownlang ownir` run |
 | `python-docstring` | 4 | the same, where the bytes are the WHOLE module docstring on stdout — frozen as measured and flagged, so the owner can declare that class a defect knowing what was frozen |
 
 ## By rule
@@ -25,6 +25,8 @@ A case may be the control for more than one rule, so these do not sum to the cas
 | rule | cases |
 |---|------:|
 | `advisory-never-fails-the-run` | 3 |
+| `cli-b1-json-parser-detail` | 3 |
+| `cli-b1-negative-control` | 1 |
 | `debug-env-is-inert-when-nothing-crashes` | 1 |
 | `declared-defect` | 1 |
 | `docstring-on-stdout` | 4 |
@@ -48,9 +50,10 @@ A case may be the control for more than one rule, so these do not sum to the cas
 | `sarif-carries-shown-plus-suppressed` | 7 |
 | `stdin-out-of-contract` | 1 |
 | `stream-split` | 36 |
-| `strict-door` | 4 |
+| `strict-door` | 12 |
 | `summary-suppressed-tail` | 26 |
 | `unknown-flag-is-positional` | 2 |
 | `usage-owen-shape` | 7 |
 | `verbose-counts-every-finding` | 13 |
+| `version-byte-parity` | 5 |
 | `windows-path-form` | 2 |

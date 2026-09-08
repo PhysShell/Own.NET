@@ -6,16 +6,16 @@ The production OwnIR executable's contract: the display policy the reference's `
 
 ## 261.B — `own-cli ownir`: the display policy, the CLI's SARIF bytes, the usage exit codes and the process contract
 
-Campaign `p022-cli-1` — #261 261.B, the production OwnIR executable `own-cli ownir`: the display policy the reference's cmd_ownir defines (which findings are shown, the summary and `ok` lines, the verbosity variants, the stream split), the CLI's own SARIF serialization conventions (ASCII escaping, and the suppressed findings that ride in the results), the usage-error exit codes, and the process contract (a catchable panic is one diagnostic and exit 70, never 101). Every mutation is a plausible misreading of the reference rather than a syntactic accident: each one would pass a reviewer who had read the docstring instead of the code.
+Campaign `p022-cli-1` — #261 261.B, the production OwnIR executable `own-cli ownir`: the display policy the reference's cmd_ownir defines (which findings are shown, the summary and `ok` lines, the verbosity variants, the stream split), the CLI's own SARIF serialization conventions (ASCII escaping, and the suppressed findings that ride in the results), the usage-error exit codes, and the process contract (a catchable panic is one diagnostic and exit 70, never 101). Every mutation is a plausible misreading of the reference rather than a syntactic accident: each one would pass a reviewer who had read the docstring instead of the code. The repair pass (#261 R2/R3) adds the strict-door families: the Version messages, which ruling 2a FIXED to byte parity rather than declaring, and the CLI-B1 boundary, whose CLI-owned wrapper is pinned and whose guard must fail onto rc 70 rather than swallow its own structural drift as the declared tail.
 
-Definition: `docs/evidence/p022-cli-1.json` (sha256 `247729c142d608b2…`, 15 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cli-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
+Definition: `docs/evidence/p022-cli-1.json` (sha256 `0bc8a08718b7ca2b…`, 19 mutations). Replay on a clean tree with `python scripts/mutate_campaign.py --campaign docs/evidence/p022-cli-1.json --run`; the recorded run is raw outcomes and provenance, the counts below are derived from it.
 
 | measure                                          | value |
 |--------------------------------------------------|---|
-| recorded at commit                               | `7bc33d2eb9d34f2061d036c0002609e2039139bf` |
-| layers run (every one, for every mutation)       | `own-cli`, `own-cli-faults`, `rust-rest` |
-| mutations                                        | 15 |
-| caught                                           | 15 |
+| recorded at commit                               | `1fc55dcea1239c844759696a275f8c1709dcc095` |
+| layers run (every one, for every mutation)       | `own-cli`, `own-cli-faults`, `own-ir`, `rust-rest` |
+| mutations                                        | 19 |
+| caught                                           | 19 |
 | survived                                         | 0 |
 | compile-error (no evidence either way)           | 0 |
 | invalid-mutation                                 | 0 |
@@ -40,3 +40,7 @@ Definition: `docs/evidence/p022-cli-1.json` (sha256 `247729c142d608b2…`, 15 mu
 | M13 | panic-is-caught-at-all | the panic hook is installed but nothing catches the unwind — the case #261 calls out by name: a hook alone only OBSERVES a panic, and the process still exits 101 | caught | `own-cli-faults/tests/faults.rs::a_catchable_panic_is_one_diagnostic_and_exit_70`<br>`own-cli-faults/tests/faults.rs::debug_mode_shows_the_backtrace_and_still_exits_70` |
 | M14 | os-error-line-is-contract | the refusal resolves the path instead of echoing argv — a user-visible path silently stops being the one they typed | caught | `own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte` |
 | M15 | docstring-on-stdout | the docstring usage answer exits 1 instead of 2, and goes to stderr — the OTHER usage path, which builds its Outcome directly rather than through `usage_error` (M11 named a catcher on this path and could not reach it; this is that path, measured) | caught | `own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator`<br>`own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte` |
+| M16 | version-byte-parity | the Version wrong-type message reverts to serde_json Display — a string regains double quotes, a bool goes lowercase and null becomes `null`, exactly the divergence ruling 2a called a Rust bug | caught | `own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte` |
+| M17 | version-byte-parity | the schema-mismatch wording drops `Roslyn` and `Python`, the two words that differed from the reference | caught | `own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte` |
+| M18 | cli-b1-json-parser-detail | the CLI-owned JSON wrapper loses the second path — the `{path} is` half the reference bakes in inside `load()`, which is pinned and NOT part of the declared tail | caught | `own-cli/src/main.rs::ownir::tests::a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2`<br>`own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte` |
+| M19 | cli-b1-json-parser-detail | the boundary guard swallows its own structural drift: a Json rejection that lost `own-ir`'s internal prefix is passed through as rc 2 instead of failing onto the internal-error path — the lock left out of the door | caught | `own-cli/src/main.rs::ownir::tests::a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2` |
