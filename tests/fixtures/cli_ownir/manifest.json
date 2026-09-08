@@ -6,6 +6,15 @@
   "ownir_usage": "own-cli ownir — check OwnIR facts extracted from C# by the Roslyn frontend.\n\nUsage:\n  own-cli ownir <facts.json> [--format F] [--severity S] [--verbosity V]\n\nOptions:\n  --format {human|github|msbuild|sarif}  human is the default CLI line, github\n                                         a CI annotation, msbuild the VS Error\n                                         List line, sarif a SARIF 2.1.0 log\n  --severity {error|warning}             how the host shows a finding; it never\n                                         changes the exit code\n  --verbosity {quiet|normal|verbose}     quiet hides the advisory notes\n                                         (OWN050/051/052, OBL005); verbose adds\n                                         a per-code breakdown over every\n                                         finding, suppressed ones included\n\nBoth `--flag value` and `--flag=value` are accepted. Exactly one positional\nargument; there is no `--` separator and there are no short flags.\n\nExit codes:\n  0  no leaks\n  1  at least one non-advisory, unsuppressed finding\n  2  usage error, or a facts document the strict door refuses\n  70 internal error — a bug in the analyzer, never silence\n",
   "unknown_command_line": "own-cli: unknown command {name!r}\n",
   "os_error_placeholder": "<OS_ERROR>",
+  "declared_boundaries": {
+    "CLI-B1": {
+      "name": "JSON_PARSER_DETAIL",
+      "applies_iff": "OwnIrErrorKind == Json",
+      "pinned": "exit 2, stderr, kind == Json, and the full CLI-owned wrapper byte-exact: '{path}: error: {path} is not valid JSON: '",
+      "declared": "only the bytes AFTER that prefix — the parser library's own text",
+      "guard": "rust/crates/own-cli/tests/replay.rs proves valid UTF-8, then OwnIr::from_json rejecting, then kind == Json, BEFORE relaxing anything"
+    }
+  },
   "cases": [
     {
       "name": "shell-empty-invocation",
@@ -285,6 +294,107 @@
       "pins": [
         "the vocabulary refusal, already byte-pinned by BR-V9"
       ]
+    },
+    {
+      "name": "refuse-version-wrong-type-string",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a string version: repr single-quotes it, `got '0'`"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-bool",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a bool version: repr capitalizes it, `got True`"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-float",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a float version: the one wrong-type value that already agreed, kept so the agreement is asserted rather than assumed"
+      ]
+    },
+    {
+      "name": "refuse-version-wrong-type-null",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity"
+      ],
+      "pins": [
+        "a null version: repr writes `got None`, not `null` — the divergence the ruling's own list did not enumerate"
+      ]
+    },
+    {
+      "name": "refuse-version-mismatch",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "version-byte-parity",
+        "cli-b1-negative-control"
+      ],
+      "pins": [
+        "the schema-mismatch wording, byte-exact including 'Roslyn extractor' and 'Python core'; and the negative control that CLI-B1 cannot match a non-Json rejection"
+      ]
+    },
+    {
+      "name": "refuse-json-empty-file",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "an empty file: the wrapper is pinned, the parser detail (CPython 'Expecting value...' vs serde 'EOF while...') is the declared tail"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
+    },
+    {
+      "name": "refuse-json-truncated",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "a truncated document: the same wrapper, a different tail"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
+    },
+    {
+      "name": "refuse-json-bom",
+      "oracle": "python",
+      "rules": [
+        "strict-door",
+        "cli-b1-json-parser-detail"
+      ],
+      "pins": [
+        "a UTF-8 BOM: valid UTF-8, invalid JSON — it must reach CLI-B1 and not R4's invalid-UTF-8 defect"
+      ],
+      "boundary": {
+        "id": "CLI-B1",
+        "expected_kind": "json"
+      }
     },
     {
       "name": "stdin-dash-is-out-of-contract",

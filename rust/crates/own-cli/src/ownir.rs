@@ -24,7 +24,7 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 use own_bridge::{build_sarif, check_facts, render_finding, Finding};
-use own_ir::OwnIr;
+use own_ir::{OwnIr, OwnIrError, OwnIrErrorKind};
 
 use crate::{pyrepr::py_repr, sarif, text, Outcome};
 
@@ -163,6 +163,63 @@ fn refusal(path: &str, message: &str) -> Outcome {
     Outcome::new(String::new(), format!("{path}: error: {message}\n"), 2)
 }
 
+/// The internal prefix `own-ir` puts on every `Json`-kind rejection. It is an
+/// invariant of that crate, and this module treats it as one: see
+/// [`strict_door_refusal`].
+const RUST_JSON_PREFIX: &str = "not valid JSON: ";
+
+/// The CLI-owned half of a JSON-syntax refusal, byte-exact with the reference.
+///
+/// The reference bakes the path into the message inside `load()` and prints it
+/// again in `cmd_ownir`, so the line carries the path **twice**:
+/// `{path}: error: {path} is not valid JSON: <detail>`. `own-ir` cannot write
+/// that half — `from_json(&str)` has no path — so the CLI supplies it.
+fn json_wrapper(path: &str, detail: &str) -> String {
+    format!("{path}: error: {path} is not valid JSON: {detail}\n")
+}
+
+/// A strict-door rejection, rendered.
+///
+/// # CLI-B1 — `JSON_PARSER_DETAIL`, and its guard
+///
+/// One boundary is declared here and it is typed, not a licence for
+/// strict-door wording to differ:
+///
+/// ```text
+/// CLI-B1  JSON_PARSER_DETAIL   (applies iff OwnIrErrorKind == Json)
+///   pinned:   exit 2 · stderr · kind == Json · the FULL CLI-owned wrapper,
+///             byte-exact: "{path}: error: {path} is not valid JSON: "
+///   declared: only the bytes AFTER that prefix — the parser library's own
+///             text (CPython "Expecting value: line 1 column 1 (char 0)"
+///             vs serde_json "EOF while parsing a value at line 1 column 0")
+/// ```
+///
+/// Every other rejection family — Version, Shape, Vocabulary, Identity,
+/// Location — is byte-exact and never reaches the relaxed matcher. #261 ruling
+/// 2a made Version byte-exact rather than declaring it (see
+/// `own_ir::pyrepr`); this boundary covers the parser detail alone.
+///
+/// **The guard has a lock in it.** A `Json` rejection whose message does not
+/// start with `own-ir`'s own [`RUST_JSON_PREFIX`] is a broken internal
+/// invariant of the Rust implementation, not a JSON rejection to pass through.
+/// Letting the adapter swallow its own structural drift as "the tail" is the
+/// failure mode a guard on `kind` alone would hide, so that case takes the
+/// **internal-error path — rc 70, one actionable diagnostic — and CLI-B1 does
+/// NOT apply**. Never rc 2, and never the whole message as the detail.
+fn strict_door_refusal(path: &str, refused: &OwnIrError) -> Outcome {
+    if refused.kind != OwnIrErrorKind::Json {
+        return refusal(path, &refused.message);
+    }
+    match refused.message.strip_prefix(RUST_JSON_PREFIX) {
+        Some(detail) => Outcome::new(String::new(), json_wrapper(path, detail), 2),
+        None => Outcome::internal_error(&format!(
+            "the strict door returned a Json rejection whose message does not begin \
+             with {RUST_JSON_PREFIX:?}: {:?}",
+            refused.message
+        )),
+    }
+}
+
 fn check(parsed: &Parsed) -> Outcome {
     let path = parsed.path.as_str();
     // Read ONCE, as bytes, and decode once: `OwnIr::from_json` takes `&str` and
@@ -175,18 +232,21 @@ fn check(parsed: &Parsed) -> Outcome {
     };
     let text = match std::str::from_utf8(&bytes) {
         Ok(text) => text,
-        // MEASURED, NOT PINNED (see docs/notes/p022-cli-ownir.md §1.4): the
+        // A DECLARED REFERENCE DEFECT (#261 ruling 1; note §5.1): the
         // reference's `load()` converts OSError and JSONDecodeError and nothing
-        // else, so a UnicodeDecodeError escapes to its exit-70 catch-all. This
-        // reproduces the CODE and the SHAPE and nothing claims byte parity —
-        // there is no oracle for a Python exception's repr. Whether a crash on
-        // malformed input is a contract or a refusal to add is a Python-first
-        // decision, so no fixture case freezes it and none was invented.
+        // else, so a UnicodeDecodeError escapes to its exit-70 catch-all — a
+        // quirk of the reference rather than a designed refusal. rc 70 with the
+        // internal-error shape is sufficient for #261 and no fixture case
+        // freezes the bytes: an oracle exists (Python printed one), and we
+        // DECLINE to make a CPython exception's wording a cross-language
+        // contract. The Python-first repair — UnicodeDecodeError -> OwnIRError
+        // -> rc 2 — is a hygiene tail under #250/#262, to close before public
+        // cutover.
         Err(err) => return Outcome::internal_error(&format!("{path}: {err}")),
     };
     let facts = match OwnIr::from_json(text) {
         Ok(facts) => facts,
-        Err(refused) => return refusal(path, &refused.message),
+        Err(refused) => return strict_door_refusal(path, &refused),
     };
     match check_facts(&facts) {
         Err(refused) => refusal(path, &refused.to_string()),
@@ -331,8 +391,9 @@ fn display(
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::indexing_slicing)]
 mod tests {
-    use super::{display, parse, Parsed};
+    use super::{display, parse, strict_door_refusal, Parsed};
     use own_bridge::Finding;
+    use own_ir::{OwnIrError, OwnIrErrorKind};
 
     fn finding(code: &str, advisory: bool, ignore: Option<&str>) -> Finding {
         Finding {
@@ -528,6 +589,70 @@ mod tests {
             assert_eq!(outcome.exit, 2);
             assert_eq!(outcome.stderr, format!("{flag} requires a value\n"));
             assert_eq!(outcome.stdout, "");
+        }
+    }
+
+    /// CLI-B1's lock. A `Json` rejection whose message has lost `own-ir`'s own
+    /// `not valid JSON: ` prefix is a broken internal invariant of the Rust
+    /// implementation, not a JSON rejection to pass through — so it takes the
+    /// internal-error path, rc 70, and CLI-B1 does NOT apply. A guard on the
+    /// kind that then let the adapter eat its own structural drift as "the
+    /// declared tail" would be a door built with the lock left out.
+    #[test]
+    fn a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2() {
+        let drifted = OwnIrError {
+            kind: OwnIrErrorKind::Json,
+            message: "something else entirely".to_owned(),
+        };
+        let out = strict_door_refusal("f.json", &drifted);
+        assert_eq!(
+            out.exit, 70,
+            "never rc 2, and never the whole message as the tail"
+        );
+        assert_eq!(out.stdout, "");
+        assert!(
+            out.stderr.starts_with("own-cli: internal error: "),
+            "{}",
+            out.stderr
+        );
+        assert!(
+            !out.stderr.contains("is not valid JSON"),
+            "the wrapper must not be emitted for a message that failed the invariant"
+        );
+
+        // The well-formed case still takes the ordinary CLI-B1 path.
+        let ok = OwnIrError {
+            kind: OwnIrErrorKind::Json,
+            message: "not valid JSON: EOF while parsing a value at line 1 column 0".to_owned(),
+        };
+        let out = strict_door_refusal("f.json", &ok);
+        assert_eq!(out.exit, 2);
+        assert_eq!(
+            out.stderr,
+            "f.json: error: f.json is not valid JSON: EOF while parsing a value at line 1 \
+             column 0\n"
+        );
+    }
+
+    /// Every non-Json family goes through the plain, byte-exact refusal — the
+    /// boundary is typed and cannot reach them.
+    #[test]
+    fn a_non_json_rejection_never_takes_the_boundary_path() {
+        for kind in [
+            OwnIrErrorKind::Version,
+            OwnIrErrorKind::Shape,
+            OwnIrErrorKind::Vocabulary,
+        ] {
+            let refused = OwnIrError {
+                kind,
+                message: "OwnIR 'ownir_version' must be an integer, got None".to_owned(),
+            };
+            let out = strict_door_refusal("f.json", &refused);
+            assert_eq!(out.exit, 2, "{kind:?}");
+            assert_eq!(
+                out.stderr, "f.json: error: OwnIR 'ownir_version' must be an integer, got None\n",
+                "{kind:?}: the path appears ONCE and the message is verbatim"
+            );
         }
     }
 

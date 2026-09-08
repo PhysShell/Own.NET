@@ -59,6 +59,21 @@ CLI_OWNIR_VERSION = 1
 OS_ERROR = "<OS_ERROR>"
 _READ_MARK = "cannot read "
 
+# The one declared cross-implementation boundary, named so it is machine-
+# recognizable and cannot quietly widen into "strict-door wording may differ".
+#
+#   CLI-B1  JSON_PARSER_DETAIL   (applies iff OwnIrErrorKind == Json)
+#     pinned:   exit 2 · stderr · kind == Json · the FULL CLI-owned wrapper,
+#               byte-exact: "{path}: error: {path} is not valid JSON: "
+#     declared: only the bytes AFTER that prefix — the parser library's text
+#               (CPython "Expecting value: line 1 column 1 (char 0)" vs
+#                serde_json "EOF while parsing a value at line 1 column 0")
+#
+# Every other rejection family is byte-exact. Version in particular was FIXED
+# to byte parity (#261 ruling 2a) rather than declared, and its cases below
+# double as the negative control proving CLI-B1 cannot reach a non-Json kind.
+CLI_B1 = {"id": "CLI-B1", "expected_kind": "json"}
+
 
 class NonDeterministic(RuntimeError):
     """Two runs of the reference disagreed. A case like that is not a contract,
@@ -156,6 +171,19 @@ _NONASCII = "inputs/nonascii_file.facts.json"
 _EMPTY_REASON = "inputs/empty_ignore_reason.facts.json"
 _SPACED = "inputs/pa th ünïcødé/facts.json"
 _NOT_OBJECT = "inputs/not_an_object.facts.json"
+# Deliberately NOT JSON, and named so. The `.broken` suffix is not cosmetic:
+# `tests/coordinate_census.py` sweeps every `.json` under `tests/fixtures/` and
+# would (rightly) call an unparseable one a broken fixture. A file whose whole
+# job is to be invalid JSON should not claim the extension — the CLI reads the
+# path it is given and never looks at the suffix.
+_JSON_EMPTY = "inputs/not_json_empty.facts.broken"
+_JSON_TRUNCATED = "inputs/not_json_truncated.facts.broken"
+_JSON_BOM = "inputs/not_json_bom.facts.broken"
+_VER_MISMATCH = "inputs/version_mismatch.facts.json"
+_VER_STRING = "inputs/version_wrong_type_string.facts.json"
+_VER_BOOL = "inputs/version_wrong_type_bool.facts.json"
+_VER_FLOAT = "inputs/version_wrong_type_float.facts.json"
+_VER_NULL = "inputs/version_wrong_type_null.facts.json"
 
 
 class Case:
@@ -169,7 +197,8 @@ class Case:
     def __init__(self, name: str, argv: list[str], *, oracle: str,
                  rules: list[str], pins: list[str], cwd: str = ".",
                  env: dict[str, str] | None = None,
-                 expected: dict | None = None) -> None:
+                 expected: dict | None = None,
+                 boundary: dict | None = None) -> None:
         self.name = name
         self.argv = argv
         self.oracle = oracle
@@ -178,6 +207,12 @@ class Case:
         self.cwd = cwd
         self.env = env or {}
         self.expected = expected
+        # Structured boundary metadata, NOT a second placeholder. A case that
+        # carries one names the declared boundary by id and the rejection kind
+        # the replay must PROVE before it relaxes anything (#261 ruling 2b).
+        # One strictly-bounded placeholder (`<OS_ERROR>`) is the whole budget;
+        # a second would turn this format into a little language of excuses.
+        self.boundary = boundary
 
 
 def _display_cases() -> list[Case]:
@@ -396,6 +431,55 @@ def _refusal_cases() -> list[Case]:
         Case("refuse-unknown-flow-op", ["ownir", _REFUSAL], oracle="python",
              rules=["strict-door"],
              pins=["the vocabulary refusal, already byte-pinned by BR-V9"]),
+        # #261 ruling 2a — the Version family is FIXED to byte parity, not
+        # declared. The text is ours on both sides, so a divergence was a Rust
+        # bug: `serde_json::Value`'s Display spelled a string with double
+        # quotes, a bool lowercase and null as `null`, where the reference
+        # interpolates a Python `repr`. One case per ledger value variant.
+        Case("refuse-version-wrong-type-string", ["ownir", _VER_STRING],
+             oracle="python", rules=["strict-door", "version-byte-parity"],
+             pins=["a string version: repr single-quotes it, `got '0'`"]),
+        Case("refuse-version-wrong-type-bool", ["ownir", _VER_BOOL],
+             oracle="python", rules=["strict-door", "version-byte-parity"],
+             pins=["a bool version: repr capitalizes it, `got True`"]),
+        Case("refuse-version-wrong-type-float", ["ownir", _VER_FLOAT],
+             oracle="python", rules=["strict-door", "version-byte-parity"],
+             pins=["a float version: the one wrong-type value that already "
+                   "agreed, kept so the agreement is asserted rather than "
+                   "assumed"]),
+        Case("refuse-version-wrong-type-null", ["ownir", _VER_NULL],
+             oracle="python", rules=["strict-door", "version-byte-parity"],
+             pins=["a null version: repr writes `got None`, not `null` — the "
+                   "divergence the ruling's own list did not enumerate"]),
+        # Also CLI-B1's NEGATIVE CONTROL: same argv shape, same path shape,
+        # same valid UTF-8, same fixture machinery — only the rejection KIND
+        # moved, Json -> Version. The replay asserts the relaxed matcher
+        # refuses it, so the guard is proven to be on the kind and nothing else.
+        Case("refuse-version-mismatch", ["ownir", _VER_MISMATCH],
+             oracle="python",
+             rules=["strict-door", "version-byte-parity", "cli-b1-negative-control"],
+             pins=["the schema-mismatch wording, byte-exact including "
+                   "'Roslyn extractor' and 'Python core'; and the negative "
+                   "control that CLI-B1 cannot match a non-Json rejection"]),
+
+        # #261 ruling 2b — CLI-B1. The CLI-owned wrapper is pinned byte-exact
+        # and ONLY the parser library's own detail after it is declared.
+        Case("refuse-json-empty-file", ["ownir", _JSON_EMPTY], oracle="python",
+             rules=["strict-door", "cli-b1-json-parser-detail"],
+             boundary=CLI_B1,
+             pins=["an empty file: the wrapper is pinned, the parser detail "
+                   "(CPython 'Expecting value...' vs serde 'EOF while...') is "
+                   "the declared tail"]),
+        Case("refuse-json-truncated", ["ownir", _JSON_TRUNCATED],
+             oracle="python", rules=["strict-door", "cli-b1-json-parser-detail"],
+             boundary=CLI_B1,
+             pins=["a truncated document: the same wrapper, a different tail"]),
+        Case("refuse-json-bom", ["ownir", _JSON_BOM], oracle="python",
+             rules=["strict-door", "cli-b1-json-parser-detail"],
+             boundary=CLI_B1,
+             pins=["a UTF-8 BOM: valid UTF-8, invalid JSON — it must reach "
+                   "CLI-B1 and not R4's invalid-UTF-8 defect"]),
+
         # The stdin ruling, recorded EXPLICITLY rather than silently: `-` is not
         # a stdin marker to the reference, it is a file name.
         Case("stdin-dash-is-out-of-contract", ["ownir", "-"], oracle="python",
@@ -535,15 +619,21 @@ def write() -> int:
         except NonDeterministic as exc:
             print(f"cli_ownir: refusing to write — {exc}")
             return 1
-        _dump(_case_path(case.name), {
+        payload = {
             "cli_ownir_version": CLI_OWNIR_VERSION,
             "argv": case.argv,
             "cwd": case.cwd,
             "env": case.env,
             "expected": expected,
-        })
-        entries.append({"name": case.name, "oracle": case.oracle,
-                        "rules": case.rules, "pins": case.pins})
+        }
+        if case.boundary is not None:
+            payload["boundary"] = case.boundary
+        _dump(_case_path(case.name), payload)
+        entry = {"name": case.name, "oracle": case.oracle,
+                 "rules": case.rules, "pins": case.pins}
+        if case.boundary is not None:
+            entry["boundary"] = case.boundary
+        entries.append(entry)
     _dump(MANIFEST, {
         "comment": (
             "The frozen `own-cli ownir` CLI contract (#261 261.B). Authoritative "
@@ -561,6 +651,20 @@ def write() -> int:
         "ownir_usage": OWNIR_USAGE,
         "unknown_command_line": _UNKNOWN_COMMAND,
         "os_error_placeholder": OS_ERROR,
+        "declared_boundaries": {
+            "CLI-B1": {
+                "name": "JSON_PARSER_DETAIL",
+                "applies_iff": "OwnIrErrorKind == Json",
+                "pinned": "exit 2, stderr, kind == Json, and the full CLI-owned "
+                          "wrapper byte-exact: '{path}: error: {path} is not "
+                          "valid JSON: '",
+                "declared": "only the bytes AFTER that prefix — the parser "
+                            "library's own text",
+                "guard": "rust/crates/own-cli/tests/replay.rs proves valid "
+                         "UTF-8, then OwnIr::from_json rejecting, then "
+                         "kind == Json, BEFORE relaxing anything",
+            },
+        },
         "cases": entries,
     })
     print(f"cli_ownir fixtures written: {len(entries)} cases -> {FIXTURE_DIR}")
@@ -623,6 +727,10 @@ def run() -> int:
         if stored.get("argv") != case.argv or stored.get("cwd") != case.cwd:
             fails.append(f"{case.name}: argv/cwd differ from the declaration "
                          f"— run {hint}")
+            continue
+        if stored.get("boundary") != case.boundary:
+            fails.append(f"{case.name}: the declared boundary differs from the "
+                         f"declaration — run {hint}")
             continue
         if case.oracle == "owen-convention":
             # No Python to consult: the stored bytes must still be the ones

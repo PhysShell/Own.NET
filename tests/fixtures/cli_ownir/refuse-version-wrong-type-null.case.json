@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/version_wrong_type_null.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/version_wrong_type_null.facts.json: error: OwnIR 'ownir_version' must be an integer, got None\n",
+    "os_error_tail": null
+  }
+}

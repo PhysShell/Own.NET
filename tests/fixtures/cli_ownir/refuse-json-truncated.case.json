@@ -1,0 +1,19 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/not_json_truncated.facts.broken"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/not_json_truncated.facts.broken: error: inputs/not_json_truncated.facts.broken is not valid JSON: Expecting value: line 1 column 37 (char 36)\n",
+    "os_error_tail": null
+  },
+  "boundary": {
+    "id": "CLI-B1",
+    "expected_kind": "json"
+  }
+}

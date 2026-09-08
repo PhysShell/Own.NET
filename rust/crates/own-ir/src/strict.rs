@@ -440,7 +440,17 @@ fn version(obj: &Map<String, Value>) -> Checked {
     let Some(ver) = ver else {
         return Err(OwnIrError::new(
             OwnIrErrorKind::Version,
-            format!("OwnIR 'ownir_version' must be an integer, got {v}"),
+            // `{v}` would be `Value`'s Display, which spells a string with
+            // double quotes, a bool lowercase and null as `null`. The reference
+            // interpolates a Python `repr`; #261 ruling 2a makes that the
+            // contract for this family, so the repr is reproduced rather than
+            // approximated. NOTE the sibling `defaulted_int_value` message (the
+            // `line` family) still uses Display — that is a #259 surface and
+            // out of #261's scope, recorded as a tail.
+            format!(
+                "OwnIR 'ownir_version' must be an integer, got {}",
+                crate::pyrepr::py_repr_value(v)
+            ),
         ));
     };
     if ver != crate::OWNIR_VERSION {
@@ -448,7 +458,8 @@ fn version(obj: &Map<String, Value>) -> Checked {
             OwnIrErrorKind::Version,
             format!(
                 "OwnIR facts are schema v{ver}, but this core understands \
-                 v{}. Build the extractor and the core from the same commit — \
+                 v{}. Build the Roslyn extractor and the Python core from the \
+                 same commit — \
                  the OwnIR fact vocabulary changed between the version that \
                  produced this file and the one reading it.",
                 crate::OWNIR_VERSION

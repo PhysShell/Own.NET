@@ -2,7 +2,7 @@
   "schema": 1,
   "comment": "Mutation campaign definition for #261 261.B (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cli-1.json --run",
   "campaign": "p022-cli-1",
-  "description": "#261 261.B, the production OwnIR executable `own-cli ownir`: the display policy the reference's cmd_ownir defines (which findings are shown, the summary and `ok` lines, the verbosity variants, the stream split), the CLI's own SARIF serialization conventions (ASCII escaping, and the suppressed findings that ride in the results), the usage-error exit codes, and the process contract (a catchable panic is one diagnostic and exit 70, never 101). Every mutation is a plausible misreading of the reference rather than a syntactic accident: each one would pass a reviewer who had read the docstring instead of the code.",
+  "description": "#261 261.B, the production OwnIR executable `own-cli ownir`: the display policy the reference's cmd_ownir defines (which findings are shown, the summary and `ok` lines, the verbosity variants, the stream split), the CLI's own SARIF serialization conventions (ASCII escaping, and the suppressed findings that ride in the results), the usage-error exit codes, and the process contract (a catchable panic is one diagnostic and exit 70, never 101). Every mutation is a plausible misreading of the reference rather than a syntactic accident: each one would pass a reviewer who had read the docstring instead of the code. The repair pass (#261 R2/R3) adds the strict-door families: the Version messages, which ruling 2a FIXED to byte parity rather than declaring, and the CLI-B1 boundary, whose CLI-owned wrapper is pinned and whose guard must fail onto rc 70 rather than swallow its own structural drift as the declared tail.",
   "layers": [
     {
       "id": "own-cli",
@@ -33,6 +33,18 @@
       ]
     },
     {
+      "id": "own-ir",
+      "cwd": "rust",
+      "parser": "cargo",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-ir",
+        "--no-fail-fast"
+      ]
+    },
+    {
       "id": "rust-rest",
       "cwd": "rust",
       "parser": "cargo",
@@ -42,11 +54,13 @@
         "--workspace",
         "--exclude",
         "own-cli",
+        "--exclude",
+        "own-ir",
         "--no-fail-fast"
       ]
     }
   ],
-  "layers_comment": "Three layers rather than `workspace`, because the two failure-mode controls live behind the off-by-default `fault-injection` feature and a campaign that cannot run the layer holding a catcher cannot see it catch. `rust-rest` runs every OTHER member so discipline 3's no-fail-fast holds across layers: it is expected to catch nothing (own-cli is a binary crate no other crate compiles against), and a catcher appearing there would mean a mutation reached further than its target.",
+  "layers_comment": "Four layers rather than `workspace`, because the two failure-mode controls live behind the off-by-default `fault-injection` feature and a campaign that cannot run the layer holding a catcher cannot see it catch. `own-ir` joined with #261's repair pass: ruling 2a moved the Version messages into byte parity, so that crate is now a mutable production surface of this contract. `rust-rest` runs every OTHER member so discipline 3's no-fail-fast holds across layers: it is expected to catch nothing, and a catcher appearing there would mean a mutation reached further than its target.",
   "control": {
     "id": "M00",
     "description": "no mutation — the unmutated tree must pass (harness honesty control)"
@@ -229,6 +243,50 @@
       "expected_catchers": [
         "own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator",
         "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M16",
+      "rule": "version-byte-parity",
+      "description": "the Version wrong-type message reverts to serde_json Display — a string regains double quotes, a bool goes lowercase and null becomes `null`, exactly the divergence ruling 2a called a Rust bug",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "format!\\(\\n                \"OwnIR 'ownir_version' must be an integer, got \\{\\}\",\\n                crate::pyrepr::py_repr_value\\(v\\)\\n            \\),",
+      "replacement": "format!(\"OwnIR 'ownir_version' must be an integer, got {v}\"),",
+      "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M17",
+      "rule": "version-byte-parity",
+      "description": "the schema-mismatch wording drops `Roslyn` and `Python`, the two words that differed from the reference",
+      "target": "rust/crates/own-ir/src/strict.rs",
+      "pattern": "v\\{\\}\\. Build the Roslyn extractor and the Python core from the \\\\\\n                 same commit",
+      "replacement": "v{}. Build the extractor and the core from the same commit",
+      "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M18",
+      "rule": "cli-b1-json-parser-detail",
+      "description": "the CLI-owned JSON wrapper loses the second path — the `{path} is` half the reference bakes in inside `load()`, which is pinned and NOT part of the declared tail",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "format!\\(\"\\{path\\}: error: \\{path\\} is not valid JSON: \\{detail\\}\\\\n\"\\)",
+      "replacement": "format!(\"{path}: error: not valid JSON: {detail}\\n\")",
+      "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M19",
+      "rule": "cli-b1-json-parser-detail",
+      "description": "the boundary guard swallows its own structural drift: a Json rejection that lost `own-ir`'s internal prefix is passed through as rc 2 instead of failing onto the internal-error path — the lock left out of the door",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "        None => Outcome::internal_error\\(&format!\\(\\n            \"the strict door returned a Json rejection whose message does not begin \\\\\\n             with \\{RUST_JSON_PREFIX:\\?\\}: \\{:\\?\\}\",\\n            refused\\.message\\n        \\)\\),",
+      "replacement": "        None => refusal(path, &refused.message),",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::a_json_rejection_that_lost_its_prefix_is_an_internal_error_not_rc2"
       ]
     }
   ]

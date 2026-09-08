@@ -29,6 +29,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use own_ir::{OwnIr, OwnIrErrorKind};
 use serde_json::Value;
 
 const FIXTURE_DIR: &str = concat!(
@@ -109,6 +110,77 @@ fn matches(expected: &str, actual: &str) -> bool {
     !consumed.is_empty() && remainder == tail
 }
 
+/// The prefix CLI-B1 pins, built from the case's own argv rather than from the
+/// expectation it is about to relax — deriving it from the thing under test
+/// would make the check circular.
+///
+/// A CLI-B1 case is required to be exactly `["ownir", <path>]`: no flags, one
+/// positional. That is not a limitation worth working around, it is what makes
+/// the prefix unambiguous, and a case that grows a flag fails here rather than
+/// silently relaxing more than it declared.
+fn cli_b1_pinned_prefix(case: &Value) -> String {
+    let argv: Vec<&str> = field(case, "argv")
+        .as_array()
+        .expect("argv is an array")
+        .iter()
+        .map(|a| a.as_str().expect("argv entries are strings"))
+        .collect();
+    assert_eq!(
+        argv.len(),
+        2,
+        "a CLI-B1 case must be exactly [ownir, <path>], got {argv:?}"
+    );
+    assert_eq!(argv.first().copied(), Some("ownir"), "{argv:?}");
+    let path = argv.get(1).copied().unwrap_or_default();
+    format!("{path}: error: {path} is not valid JSON: ")
+}
+
+/// Is this case ELIGIBLE for CLI-B1's relaxed tail? Proven, never assumed.
+///
+/// The boundary applies **iff** the strict door rejects with
+/// `OwnIrErrorKind::Json`, so the guard establishes exactly that, from the
+/// case's own facts bytes, before anything is relaxed:
+///
+/// 1. read the exact facts bytes the CLI case used;
+/// 2. decode them with `str::from_utf8`, no normalization;
+/// 3. the decode must SUCCEED — invalid UTF-8 is #261 ruling 1's declared
+///    reference defect and must never borrow this boundary;
+/// 4. `OwnIr::from_json` on that exact `&str` must REJECT;
+/// 5. the rejection's kind must be `Json`.
+///
+/// Any of those failing means the case is not eligible and the caller fails it.
+/// `Err(reason)` says which step, so a broken control names itself.
+fn cli_b1_eligible(case: &Value) -> Result<(), String> {
+    let cwd = fixture_dir().join(field(case, "cwd").as_str().expect("cwd is a string"));
+    let argv = field(case, "argv").as_array().expect("argv is an array");
+    let path = argv
+        .get(1)
+        .and_then(Value::as_str)
+        .ok_or_else(|| "a CLI-B1 case needs a facts path as its only positional".to_owned())?;
+    let bytes = std::fs::read(cwd.join(path))
+        .map_err(|e| format!("cannot read the case's facts bytes {path:?}: {e}"))?;
+    // Step 3. Invalid UTF-8 belongs to ruling 1, never here.
+    let text = std::str::from_utf8(&bytes).map_err(|e| {
+        format!(
+            "the facts are not valid UTF-8 ({e}) — that is #261 ruling 1's \
+             declared reference defect, never CLI-B1"
+        )
+    })?;
+    // Steps 4 and 5. The typed door is the authority on the kind; nothing here
+    // reads the message to decide.
+    match OwnIr::from_json(text) {
+        Ok(_) => {
+            Err("the strict door ACCEPTED these facts; CLI-B1 needs a Json rejection".to_owned())
+        }
+        Err(refused) if refused.kind == OwnIrErrorKind::Json => Ok(()),
+        Err(refused) => Err(format!(
+            "the strict door rejected with kind {:?}, not Json — CLI-B1 applies \
+             iff the kind is Json, and every other family is pinned byte-exact",
+            refused.kind
+        )),
+    }
+}
+
 fn describe(label: &str, expected: &str, actual: &str) -> String {
     format!("\n  {label} expected: {expected:?}\n  {label} actual  : {actual:?}")
 }
@@ -173,6 +245,47 @@ fn replays_the_whole_cli_contract_byte_for_byte() {
         let got_out = String::from_utf8_lossy(&output.stdout);
         let got_err = String::from_utf8_lossy(&output.stderr);
         let got_exit = output.status.code();
+
+        // CLI-B1: prove the kind BEFORE relaxing anything, then relax only
+        // the parser detail after the pinned, byte-exact CLI-owned wrapper.
+        if let Some(boundary) = case.get("boundary") {
+            let id = field(boundary, "id").as_str().unwrap_or("?");
+            assert_eq!(id, "CLI-B1", "{name}: unknown declared boundary {id:?}");
+            assert_eq!(
+                field(boundary, "expected_kind").as_str(),
+                Some("json"),
+                "{name}: CLI-B1 applies iff the kind is Json"
+            );
+            if let Err(reason) = cli_b1_eligible(&case) {
+                failures.push(format!("{name} [CLI-B1 NOT eligible]: {reason}"));
+                replayed = replayed.saturating_add(1);
+                continue;
+            }
+            let prefix = cli_b1_pinned_prefix(&case);
+            let mut why = String::new();
+            if got_exit != Some(2) {
+                why.push_str(&format!("\n  exit expected: 2, actual: {got_exit:?}"));
+            }
+            if !got_out.is_empty() {
+                why.push_str(&describe("stdout", "", &got_out));
+            }
+            // The wrapper is pinned byte-exact; only what follows is declared.
+            if got_err.starts_with(&prefix) {
+                if got_err.len() <= prefix.len() {
+                    why.push_str("\n  the declared parser detail was empty");
+                }
+            } else {
+                why.push_str(&format!(
+                    "\n  the CLI-owned wrapper is pinned and did not match\n  \
+                     expected prefix: {prefix:?}\n  actual stderr  : {got_err:?}"
+                ));
+            }
+            if !why.is_empty() {
+                failures.push(format!("{name} [boundary: CLI-B1]{why}"));
+            }
+            replayed = replayed.saturating_add(1);
+            continue;
+        }
 
         let mut why = String::new();
         if got_exit != Some(want_exit.try_into().unwrap_or(i32::MAX)) {
@@ -273,6 +386,77 @@ fn the_help_text_the_binary_prints_is_the_one_the_manifest_carries() {
         field(&manifest, "own_cli_version").as_str(),
         Some(env!("CARGO_PKG_VERSION")),
         "the manifest's own_cli_version and Cargo.toml have drifted"
+    );
+}
+
+/// CLI-B1's NEGATIVE CONTROL: the guard is on the rejection KIND and nothing
+/// else, so a case that differs from a CLI-B1 control only in its kind must be
+/// refused by the relaxed matcher.
+///
+/// The control is deliberately *not* a malformed mutation: malformed bytes
+/// could be refused by a different parser or decoder fork and "prove" the guard
+/// by accident. Same argv shape, same path shape, same valid UTF-8, same
+/// fixture machinery — only the content moved, from a JSON-syntax failure to a
+/// valid document with a `Version` rejection. If CLI-B1 could ever match it,
+/// the boundary would have widened from "the JSON parser's detail" into
+/// "strict-door wording may differ", which is exactly what #261 ruling 2b
+/// refuses.
+#[test]
+fn cli_b1_cannot_match_a_non_json_rejection() {
+    let case = read_json(&fixture_dir().join("refuse-version-mismatch.case.json"));
+    assert!(
+        case.get("boundary").is_none(),
+        "the negative control must carry NO boundary metadata — it is pinned \
+         byte-exact as a Version rejection (#261 ruling 2a)"
+    );
+    let verdict = cli_b1_eligible(&case);
+    let reason = verdict.expect_err("a Version rejection must not be CLI-B1 eligible");
+    assert!(
+        reason.contains("Version"),
+        "the refusal must name the kind that disqualified it, got: {reason}"
+    );
+
+    // And the positive controls still are eligible, so the assertion above is
+    // about the kind rather than about the guard being broken outright.
+    for name in [
+        "refuse-json-empty-file",
+        "refuse-json-truncated",
+        "refuse-json-bom",
+    ] {
+        let positive = read_json(&fixture_dir().join(format!("{name}.case.json")));
+        assert_eq!(
+            cli_b1_eligible(&positive),
+            Ok(()),
+            "{name} must be CLI-B1 eligible"
+        );
+    }
+}
+
+/// Every case that carries CLI-B1 metadata really does reject with `Json`, and
+/// every case that does NOT carry it is pinned byte-exact. Stated as a sweep so
+/// a future case cannot acquire the relaxed matcher by accident.
+#[test]
+fn only_json_rejections_carry_the_declared_boundary() {
+    let manifest = manifest();
+    let mut declared = 0_usize;
+    for entry in field(&manifest, "cases")
+        .as_array()
+        .expect("cases is an array")
+    {
+        let name = field(entry, "name").as_str().expect("a case name");
+        let case = read_json(&fixture_dir().join(format!("{name}.case.json")));
+        if case.get("boundary").is_some() {
+            assert_eq!(
+                cli_b1_eligible(&case),
+                Ok(()),
+                "{name} declares CLI-B1 but is not a Json rejection"
+            );
+            declared = declared.saturating_add(1);
+        }
+    }
+    assert!(
+        declared > 0,
+        "no case declares CLI-B1 — the boundary would be untested"
     );
 }
 
