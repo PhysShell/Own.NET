@@ -615,7 +615,7 @@ whole string surface, oversized integers — **0 mismatches**.
 |---|---|---|---|---|
 | V1 | `NaN`, `Infinity`, `-Infinity` | `got nan` / `inf` / `-inf` | `not valid JSON` | CPython `json` extensions, not JSON. Teaching the Rust parser non-standard JSON to match an error message would widen what the product accepts |
 | V2 | literal `-0` at the gate | **accepts** (an `int`) | `got -0.0` | the cross-parser encoding split #260 already froze. Emulating the acceptance is out of #261's scope, and reporting `0` would name a type we did not read and imply an acceptance we do not grant |
-| V4 | 15 097 code points | escaped | printed | **new**, below |
+| V4 | Unicode table skew (see below) | escaped | printed | **new**, below |
 
 `-0` *inside a container* is not V2 and is not declared: nothing there is being
 type-checked, so the reference's own spelling is free to be reproduced, and is
@@ -628,16 +628,18 @@ from the Unicode table it was **built** with. CPython 3.11.15 links Unicode
 14.0.0; `unicode-properties` 0.1.4 ships 17.0.0. A whole-plane sweep — all
 1 114 112 scalar values, both sides — puts the disagreement at exactly **15 097
 code points**, every one of them `Cn` (unassigned) in 14.0.0 and assigned since.
-This is not repairable from Rust and pinning is a false fix: the reference's
-table is a property of the *interpreter build*, so a pin would buy parity with
-one Python and silently lose it against another. Declared, measured, and out of
+No single static Unicode-property table can be byte-identical to every supported
+CPython reference version on the code points whose classification differs
+between them, so a pin is a reference-contract choice rather than a fix: the
+reference's table is a property of the *interpreter build*, and a pin would buy
+parity with one Python and silently lose it against another. Declared, measured, and out of
 the denominator. It predates this pass — `is_printable` shipped in R2 — and it
 has the same root cause as the other three: a control set chosen by hand.
 `own-syntax` carries the same helper and therefore the same boundary; that is a
 tail (§6), not a change #261 makes.
 
 Its practical reach here is **nil, and measured rather than assumed**: no file in
-the frozen CLI fixture family contains one of those 15 097 code points, which is
+the frozen CLI fixture family contains one of those code points, which is
 why the `oracle: "python"` cases stay green on 3.11, 3.12 and 3.13 even though
 those interpreters link three different Unicode tables. The boundary is real; it
 is simply not something any case in this contract can reach.
@@ -823,7 +825,9 @@ roadmap mirror is **pending reconciliation**.
   helper when the `own-pyparity` leaf lands.
 * **the Unicode table skew is a boundary, not a bug (§5.2a, ruling V4).**
   `str.isprintable()` is answered from the table each side was built with, and
-  the two are independently versioned — 15 097 code points apart on this tree.
+  the two are independently versioned — the gap is a specific two-version
+  measurement (CPython 3.11.15 / UCD 14.0.0 vs unicode-properties 0.1.4 /
+  UCD 17.0.0; see §5.2a), not a fixed size of V4.
   `own-syntax` carries the same helper and inherits the same boundary. When the
   `own-pyparity` leaf lands it should carry the measurement with it, so the
   answer lives in one place rather than being re-derived per crate.

@@ -176,8 +176,10 @@ fn the_declared_divergences_are_exactly_the_declared_ones() {
             // U+088F is unassigned and so escapes; `unicode-properties` 0.1.4
             // ships 17.0.0, where it is assigned Arabic and prints. 15 097
             // code points differ across that gap (measured, whole plane sweep).
-            // Not repairable from Rust — the reference's table is a property of
-            // the interpreter BUILD, so pinning this crate's table would buy
+            // No single static Unicode table can match every supported CPython
+            // reference version at once — the table is a property of the interpreter
+            // BUILD (CPython 3.11 -> UCD 14.0.0, CPython 3.12 -> UCD 15.0.0,
+            // CPython 3.13 -> UCD 15.1.0), so pinning this crate's table would buy
             // parity with one Python and silently lose it against another.
             "V4 unicode table skew" => assert_eq!(
                 got, "OwnIR 'ownir_version' must be an integer, got '\u{88f}'",
