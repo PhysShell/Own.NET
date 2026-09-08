@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "comment": "Mutation campaign definition for #261 261.B (P-022 discipline rules 2 and 3). Each entry is a source mutation: a regex that must match `target` exactly once, its replacement, the rule it attacks, and the tests expected to fail. Replay: python scripts/mutate_campaign.py --campaign docs/evidence/p022-cli-1.json --run",
+  "campaign": "p022-cli-1",
+  "description": "#261 261.B, the production OwnIR executable `own-cli ownir`: the display policy the reference's cmd_ownir defines (which findings are shown, the summary and `ok` lines, the verbosity variants, the stream split), the CLI's own SARIF serialization conventions (ASCII escaping, and the suppressed findings that ride in the results), the usage-error exit codes, and the process contract (a catchable panic is one diagnostic and exit 70, never 101). Every mutation is a plausible misreading of the reference rather than a syntactic accident: each one would pass a reviewer who had read the docstring instead of the code.",
+  "layers": [
+    {
+      "id": "own-cli",
+      "cwd": "rust",
+      "parser": "cargo",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-cli",
+        "--no-fail-fast"
+      ]
+    },
+    {
+      "id": "own-cli-faults",
+      "cwd": "rust",
+      "parser": "cargo",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "own-cli",
+        "--features",
+        "fault-injection",
+        "--test",
+        "faults",
+        "--no-fail-fast"
+      ]
+    },
+    {
+      "id": "rust-rest",
+      "cwd": "rust",
+      "parser": "cargo",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--exclude",
+        "own-cli",
+        "--no-fail-fast"
+      ]
+    }
+  ],
+  "layers_comment": "Three layers rather than `workspace`, because the two failure-mode controls live behind the off-by-default `fault-injection` feature and a campaign that cannot run the layer holding a catcher cannot see it catch. `rust-rest` runs every OTHER member so discipline 3's no-fail-fast holds across layers: it is expected to catch nothing (own-cli is a binary crate no other crate compiles against), and a catcher appearing there would mean a mutation reached further than its target.",
+  "control": {
+    "id": "M00",
+    "description": "no mutation — the unmutated tree must pass (harness honesty control)"
+  },
+  "mutations": [
+    {
+      "id": "M01",
+      "rule": "exit-independent-of-severity",
+      "description": "an advisory-only document exits 1 — the docstring's 'non-zero if any error-level diagnostic' read as the contract, instead of `1 if leaks else 0`",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let leaks: Vec<&Finding> = active\\.iter\\(\\)\\.copied\\(\\)\\.filter\\(\\|f\\| !f\\.advisory\\)\\.collect\\(\\);",
+      "replacement": "let leaks: Vec<&Finding> = active.iter().copied().collect();",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::an_advisory_alone_never_fails_the_run",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M02",
+      "rule": "suppression-is-counted-not-a-verdict",
+      "description": "a suppressed finding fails the run — `[OwnIgnore]` counted in the exit code instead of only in the tally",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let exit = u8::from\\(!leaks\\.is_empty\\(\\)\\);",
+      "replacement": "let exit = u8::from(!leaks.is_empty() || !suppressed.is_empty());",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::a_suppression_is_counted_but_does_not_fail_the_run",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M03",
+      "rule": "exit-independent-of-severity",
+      "description": "`--severity warning` flips the exit to 0 — a presentation choice mistaken for a verdict",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let exit = u8::from\\(!leaks\\.is_empty\\(\\)\\);",
+      "replacement": "let exit = u8::from(!leaks.is_empty() && severity != \"warning\");",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::exit_is_independent_of_severity_and_verbosity",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M04",
+      "rule": "sarif-carries-shown-plus-suppressed",
+      "description": "SARIF drops the suppressed findings — the human stream's rule applied to a machine document, losing what a consumer is meant to count",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let listed: Vec<Finding> = shown\\n            \\.iter\\(\\)\\n            \\.chain\\(suppressed\\.iter\\(\\)\\)\\n            \\.map\\(\\|f\\| \\(\\*f\\)\\.clone\\(\\)\\)\\n            \\.collect\\(\\);",
+      "replacement": "let listed: Vec<Finding> = shown.iter().map(|f| (*f).clone()).collect();",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::sarif_carries_shown_plus_suppressed",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M05",
+      "rule": "summary-pluralization",
+      "description": "the summary pluralizes on `> 1` instead of `!= 1`, so a clean run reads '0 finding'",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let plural = if leak_count == 1 \\{ \"\" \\} else \\{ \"s\" \\};",
+      "replacement": "let plural = if leak_count > 1 { \"s\" } else { \"\" };",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::the_summary_pluralizes_on_anything_but_one",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M06",
+      "rule": "quiet-hides-advisory",
+      "description": "`quiet` stops hiding the advisory notes — the verbosity option silently becomes a no-op",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "let shown: &\\[&Finding\\] = if verbosity == \"quiet\" \\{\\n        &leaks\\n    \\} else \\{\\n        &active\\n    \\};",
+      "replacement": "let shown: &[&Finding] = &active;",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::quiet_hides_the_advisory_and_leaves_the_exit_alone",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M07",
+      "rule": "stream-split",
+      "description": "the machine formats' summary lands on stdout — the human summary pollutes the stream a host parses",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "if matches!\\(format, \"github\" \\| \"msbuild\" \\| \"sarif\"\\) \\{\\n        Outcome::new\\(payload, summary, exit\\)\\n    \\} else \\{",
+      "replacement": "if false {\n        Outcome::new(payload, summary, exit)\n    } else {",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::the_stream_split_is_per_format",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M08",
+      "rule": "ok-line-with-suppressed",
+      "description": "the `ok` line fires on `leaks.is_empty()` instead of `shown.is_empty()`, so an advisory-only run claims 'no subscription leaks found' while printing one",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "if shown\\.is_empty\\(\\) \\{\\n        let _ = writeln!\\(summary, \"\\{path\\}: ok",
+      "replacement": "if leaks.is_empty() && notes.is_empty() {\n        let _ = writeln!(summary, \"{path}: ok",
+      "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M09",
+      "rule": "verbose-counts-every-finding",
+      "description": "the verbose breakdown counts only what was SHOWN — the suppressed and hidden findings vanish from the one line that exists to tally them",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "for finding in findings \\{\\n            let slot = by_code\\.entry",
+      "replacement": "for finding in shown.iter().copied() {\n            let slot = by_code.entry",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::the_verbose_breakdown_counts_suppressed_findings_too",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M10",
+      "rule": "sarif-ascii-escape",
+      "description": "the ASCII escaper is disabled — the CLI's SARIF stdout becomes the BR-V9 goldens' byte shape (ensure_ascii=False) instead of json.dumps' default",
+      "target": "rust/crates/own-cli/src/sarif.rs",
+      "pattern": "        if ch\\.is_ascii\\(\\) \\{\\n            out\\.push\\(ch\\);\\n            continue;\\n        \\}",
+      "replacement": "        {\n            out.push(ch);\n            continue;\n        }",
+      "expected_catchers": [
+        "own-cli/src/main.rs::sarif::tests::escapes_exactly_as_json_dumps_does",
+        "own-cli/src/main.rs::sarif::tests::hex_is_lowercase_and_padded",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M11",
+      "rule": "usage-error-exit-code",
+      "description": "an invalid flag value exits 1 instead of 2 — a usage error a caller would read as findings",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "const fn usage_error\\(message: String\\) -> Outcome \\{\\n    Outcome::new\\(String::new\\(\\), message, 2\\)\\n\\}",
+      "replacement": "const fn usage_error(message: String) -> Outcome {\n    Outcome::new(String::new(), message, 1)\n}",
+      "expected_catchers": [
+        "own-cli/src/main.rs::ownir::tests::a_missing_flag_value_is_its_own_message",
+        "own-cli/src/main.rs::ownir::tests::there_is_no_double_dash_separator",
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    },
+    {
+      "id": "M12",
+      "rule": "panic-is-exit-70",
+      "description": "the caught panic exits 101, Rust's default — #262's launcher maps only 70 onto its internal-error path, so 101 would arrive as an unexpected child status",
+      "target": "rust/crates/own-cli/src/main.rs",
+      "pattern": "            // Under OWNLANG_DEBUG the hook has already printed the payload and\\n            // the backtrace; the reference prints the traceback INSTEAD of the\\n            // polite line, not as well as it\\. The exit is 70 either way\\.\\n            70",
+      "replacement": "            // Under OWNLANG_DEBUG the hook has already printed the payload and\n            // the backtrace; the reference prints the traceback INSTEAD of the\n            // polite line, not as well as it. The exit is 70 either way.\n            101",
+      "expected_catchers": [
+        "own-cli-faults/tests/faults.rs::a_catchable_panic_is_one_diagnostic_and_exit_70",
+        "own-cli-faults/tests/faults.rs::debug_mode_shows_the_backtrace_and_still_exits_70"
+      ]
+    },
+    {
+      "id": "M13",
+      "rule": "panic-is-caught-at-all",
+      "description": "the panic hook is installed but nothing catches the unwind — the case #261 calls out by name: a hook alone only OBSERVES a panic, and the process still exits 101",
+      "target": "rust/crates/own-cli/src/main.rs",
+      "pattern": "    let code = match std::panic::catch_unwind\\(run\\) \\{",
+      "replacement": "    let code = match Ok::<u8, Box<dyn std::any::Any + Send>>(run()) {",
+      "expected_catchers": [
+        "own-cli-faults/tests/faults.rs::a_catchable_panic_is_one_diagnostic_and_exit_70",
+        "own-cli-faults/tests/faults.rs::debug_mode_shows_the_backtrace_and_still_exits_70"
+      ]
+    },
+    {
+      "id": "M14",
+      "rule": "os-error-line-is-contract",
+      "description": "the refusal resolves the path instead of echoing argv — a user-visible path silently stops being the one they typed",
+      "target": "rust/crates/own-cli/src/ownir.rs",
+      "pattern": "        Err\\(err\\) => return refusal\\(path, &format!\\(\"cannot read \\{path\\}: \\{err\\}\"\\)\\),",
+      "replacement": "        Err(err) => {\n            let shown = std::fs::canonicalize(path)\n                .map_or_else(|_| path.to_owned(), |p| p.display().to_string());\n            return refusal(path, &format!(\"cannot read {shown}: {err}\"));\n        }",
+      "expected_catchers": [
+        "own-cli/tests/replay.rs::replays_the_whole_cli_contract_byte_for_byte"
+      ]
+    }
+  ]
+}
