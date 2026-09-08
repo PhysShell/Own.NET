@@ -57,9 +57,10 @@ compared *an* engine, not *the* engine.
 ### 1.2 What this environment is
 
 This environment **can** run the whole matrix, so it does: the G.0 fallback
-(take the measurement through the workflow and read its artifacts back) is not
-used, and the recorded run is a local one whose commands, commits and artifact
-identities are on the record. What made that possible, measured rather than
+(take the measurement through the workflow and read its artifacts back) was not
+needed for the FIRST record, a local run whose commands, commits and artifact
+identities were on the record; the record now on file is the CI run of §3, which
+replaced it whole. What made that possible, measured rather than
 assumed:
 
 | capability | what is present |
@@ -299,7 +300,11 @@ goes through. **A re-run replaces the result whole; it is never patched.**
 
 ## §3 — What ran, and what it found
 
-One run, taken locally at `565de6d`, recorded whole in
+One run, taken in CI at `321ab8b` ([run 34186824607](https://github.com/PhysShell/Own.NET/actions/runs/34186824607),
+a dispatch of `.github/workflows/shadow-sweep.yml` by the branch ref of
+PR #344, after that PR's first commit taught each leg to name its document by
+id; every leg on `ubuntu-latest` and the path-form leg on `windows-latest`),
+recorded whole in
 [`docs/evidence/p022-shadow-sweep.result.json`](../evidence/p022-shadow-sweep.result.json)
 and interpreted into
 [`docs/generated/p022-shadow-sweep.md`](../generated/p022-shadow-sweep.md),
@@ -309,6 +314,11 @@ size, the outcome, the derived-SARIF outcome, the wall clock and the timeout
 that was in force. Per **target** it names the denominators: documents
 extracted, documents compared, and the outcome breakdown — so a target that had
 been skipped would appear at zero rather than not appear at all.
+
+It replaces the first record, a local run taken on a Windows host at the branch
+commit the note below still describes; a re-run replaces the result whole and
+never patches it, and the local run's identities are in the history of this
+file, not on it.
 
 **The environment, exactly as §1.2 promised and with the two differences from
 the 2026-07-12 remeasure on the record.** The extractor is the pinned
@@ -465,25 +475,30 @@ Two measured facts about the matrix itself, neither of them a defect:
   the committed-corpus gate compares clean over every committed document, the
   driver's own controls run and pass under `OWN_SHADOW_COMPARE_REQUIRED=1`, and
   the sweep's own ten documents were compared on the same host with paths on a
-  different drive from the checkout. What is **not** claimed: anything about
-  GitHub's `windows-latest` runner. The job is wired in
-  `.github/workflows/shadow-sweep.yml` and has not run, because a
-  `workflow_dispatch` workflow is only dispatchable once it is on the default
-  branch.
-* **Linux path forms.** Not exercised by this run. They are exercised by the
-  fast gate that already exists — `shadow compare (committed corpus)` and
-  `shadow compare (C# samples)` are `ubuntu-latest` jobs in `ci.yml` — and the
-  sweep workflow's own legs are `ubuntu-latest` too, unrun for the reason
-  above.
+  different drive from the checkout. The `windows-latest` leg of the sweep workflow
+  has since run green in the recorded CI run: the committed-corpus gate and the
+  driver's controls under `OWN_SHADOW_COMPARE_REQUIRED=1`, with an adapter built
+  on that runner.
+* **Linux path forms.** Exercised by the recorded CI run: every document leg is
+  `ubuntu-latest`, so the ten documents were extracted and compared on Linux
+  path forms; the fast gate in `ci.yml` has been `ubuntu-latest` since PR #342.
 * **The C# samples.** Not re-measured here: that leg is a CI job fed by the
   `wpf-extractor` job's own OwnIR through one upload-artifact handshake, and it
   compared clean on `main` when PR #342 landed it. This branch's CI re-measures
   it; nothing in this note stands in for that result.
-* **The sweep workflow itself.** Written and committed, never executed. The
-  recorded run is a **local** one, which is what #260 allows ("the
-  five-repository sweep may use a local/corpus-capable agent, but its commands,
-  commits and output artifacts must be recorded"), and the record carries
-  `workflow_run_url: null` rather than pretending otherwise.
+* **The sweep workflow itself.** Executed: the recorded run is run
+  34186824607, dispatched by the branch ref of PR #344 at `321ab8b` so that it
+  executed the workflow as amended by that PR's first commit; every leg green,
+  the aggregation assembled the record from the legs' artifacts and checked it
+  against the committed definition, and `workflow_run_url` names it. The
+  workflow's first execution, run 34181417914 on `main` at `4520a54`, agreed on
+  every document but recorded each document's `source` as the runner's temp
+  path — a constant dressed as provenance — and is superseded by the recorded
+  run; it is not on file. The first record was a local run, which #260 allowed;
+  it was superseded whole. A `workflow_dispatch` workflow is dispatchable only
+  once it is on the default branch, which is why the first record could not be a
+  CI run; once the file is there, a dispatch by branch ref runs the branch's
+  version of it.
 * **Precision.** This sweep does not re-measure it. The finding counts the
   extractor produced over the five targets are not compared with #243's, and
   they would not be comparable: many analyses have landed since, and two
@@ -497,7 +512,10 @@ Two measured facts about the matrix itself, neither of them a defect:
   can never stand in for the engine that was meant" — and it is emphatically not
   a content hash of the port: two legs of one sweep on two runners will name two
   digests, which is why the record carries the SET of adapters a run executed
-  rather than asserting one.
+  rather than asserting one. The recorded CI run measures the other side of
+  that: its `ubuntu-latest` legs each built the adapter independently and
+  produced one distinct digest between them, so irreproducibility is a
+  property of a build environment rather than of the port.
 * **The five repositories' facts documents are not in the repository.** Their
   identities are: the raw digest and byte length of each, and the canonical
   identity both engines derived from it, are in the recorded run. They are
@@ -556,7 +574,7 @@ OWN_SHADOW_ENGINE=<the adapter just built> \
 OWN_SHADOW_ENGINE=<the adapter just built> OWN_SHADOW_COMPARE_REQUIRED=1 \
   python tests/test_shadow_compare.py
 
-# the sweep in CI, once this workflow is on the default branch
+# the sweep in CI (on the default branch)
 gh workflow run "shadow sweep (#260)"
 
 # the campaigns re-run in this branch, and the new one
