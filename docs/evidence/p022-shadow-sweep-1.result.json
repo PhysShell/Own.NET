@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
+  "campaign": "p022-shadow-sweep-1",
+  "definition": "docs/evidence/p022-shadow-sweep-1.json",
+  "definition_sha256": "2edb73d9e343b70f2be00f5e041d6431e61fa058048d73d5d083f6286ae8a42d",
+  "source_commit": "565de6d49f3d38decbd9117723a39691dcb54aee",
+  "dirty": false,
+  "recorded_at": "2026-09-08T02:03:50Z",
+  "layers": [
+    "python-compare",
+    "python-sweep"
+  ],
+  "command": "every layer the definition declares, for every mutation",
+  "control": {
+    "id": "M00",
+    "outcome": "survived",
+    "catchers": [],
+    "elapsed_seconds": 8.8
+  },
+  "mutations": [
+    {
+      "id": "S01",
+      "outcome": "caught",
+      "catchers": [
+        "python-compare::compare-adapter-identity",
+        "python-compare::compare-summary"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S02",
+      "outcome": "caught",
+      "catchers": [
+        "python-compare::compare-manifest-digest"
+      ],
+      "elapsed_seconds": 9.0
+    },
+    {
+      "id": "S03",
+      "outcome": "caught",
+      "catchers": [
+        "python-compare::compare-empty-set"
+      ],
+      "elapsed_seconds": 8.9
+    },
+    {
+      "id": "S04",
+      "outcome": "caught",
+      "catchers": [
+        "python-compare::compare-summary"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S05",
+      "outcome": "caught",
+      "catchers": [
+        "python-compare::compare-skipped-target"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S06",
+      "outcome": "caught",
+      "catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S07",
+      "outcome": "caught",
+      "catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S08",
+      "outcome": "caught",
+      "catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S09",
+      "outcome": "caught",
+      "catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ],
+      "elapsed_seconds": 8.8
+    },
+    {
+      "id": "S10",
+      "outcome": "caught",
+      "catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ],
+      "elapsed_seconds": 8.8
+    }
+  ]
+}

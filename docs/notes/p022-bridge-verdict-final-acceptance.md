@@ -1,9 +1,10 @@
 # P-022 step 6b (#259) — final acceptance: the coordinate-domain contract
 
-> Status: **in execution.** final.0 the inventory (this note's §1–§2), final.1
-> the Python-first contract change, final.2 the Rust mirror and the promotion
-> of the four boundary controls, final.3 the campaigns and the status surfaces.
-> This note is both the plan and the completeness ledger. Counts are not typed
+> Status: **final acceptance reached** (§7). The checkpoints it was executed
+> in are on the record: final.0 the inventory (this note's §1–§2), final.1 the
+> Python-first contract change, final.2 the Rust mirror and the promotion of the
+> four boundary controls, final.3 the campaigns and the status surfaces. This
+> note is both the plan and the completeness ledger. Counts are not typed
 > here — they live in the generated fragments
 > ([coordinate census](../generated/p022-coord-census.md),
 > [cp1 census](../generated/p022-cp1-census.md),

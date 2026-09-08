@@ -4,9 +4,9 @@
   "campaign": "p022-shadow-acc-1",
   "definition": "docs/evidence/p022-shadow-acc-1.json",
   "definition_sha256": "031ec599db9edd3e7be1cbfd8e99f582550c291c43acbe8197a6846d95153e39",
-  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
+  "source_commit": "1c6a611f1ed8f3a7883896c497c2f443fd0f174c",
   "dirty": false,
-  "recorded_at": "2026-09-07T14:47:36Z",
+  "recorded_at": "2026-09-08T01:58:34Z",
   "layers": [
     "python",
     "python-variants",
@@ -18,7 +18,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 7.7
+    "elapsed_seconds": 19.7
   },
   "mutations": [
     {
@@ -27,10 +27,11 @@
       "catchers": [
         "python-compare::compare-control",
         "python-compare::compare-one-read",
+        "python-compare::compare-summary",
         "python::artifact-golden",
         "python::capture-verify"
       ],
-      "elapsed_seconds": 6.1
+      "elapsed_seconds": 8.9
     },
     {
       "id": "A02",
@@ -38,7 +39,7 @@
       "catchers": [
         "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 10.8
     },
     {
       "id": "A03",
@@ -46,7 +47,7 @@
       "catchers": [
         "python::carry-foreign"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 10.9
     },
     {
       "id": "A04",
@@ -54,7 +55,7 @@
       "catchers": [
         "python::carry-foreign"
       ],
-      "elapsed_seconds": 7.0
+      "elapsed_seconds": 10.9
     },
     {
       "id": "A05",
@@ -62,7 +63,7 @@
       "catchers": [
         "python::structural-control"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 10.7
     },
     {
       "id": "A06",
@@ -70,7 +71,7 @@
       "catchers": [
         "rust/src/lib.rs::base64::tests::a_non_canonical_encoding_is_refused"
       ],
-      "elapsed_seconds": 7.5
+      "elapsed_seconds": 10.8
     },
     {
       "id": "A07",
@@ -83,7 +84,7 @@
         "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture",
         "rust/tests/repro.rs::every_committed_artifact_round_trips_and_verifies"
       ],
-      "elapsed_seconds": 7.7
+      "elapsed_seconds": 10.6
     },
     {
       "id": "A08",
@@ -91,7 +92,7 @@
       "catchers": [
         "python::structural-control"
       ],
-      "elapsed_seconds": 7.6
+      "elapsed_seconds": 10.9
     },
     {
       "id": "A09",
@@ -99,7 +100,7 @@
       "catchers": [
         "rust/tests/repro.rs::verify_refuses_each_structural_violation"
       ],
-      "elapsed_seconds": 7.6
+      "elapsed_seconds": 10.8
     },
     {
       "id": "A10",
@@ -108,7 +109,7 @@
         "python-compare::compare-control",
         "python::structural-control"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 10.8
     },
     {
       "id": "A11",
@@ -116,7 +117,7 @@
       "catchers": [
         "rust/tests/repro.rs::verify_refuses_each_structural_violation"
       ],
-      "elapsed_seconds": 7.9
+      "elapsed_seconds": 10.7
     },
     {
       "id": "A12",
@@ -124,7 +125,7 @@
       "catchers": [
         "python-variants::variant-ledger"
       ],
-      "elapsed_seconds": 7.6
+      "elapsed_seconds": 10.8
     }
   ]
 }

@@ -3,10 +3,13 @@
 > **Scope of this note.** It records the work that lands the owner decisions
 > ratified for #260's acceptance — D-4..D-7, B-2, B-3, R-1, R-2 in the
 > [owner-decision ledger](p022-shadow-infra-owner-decisions.md) — **over the
-> committed corpus**. It is *not* #260's acceptance: the five-repository sweep
-> and the large-solution controls are still owed, and nothing here may be read
-> as shadow mode having been achieved, as P-022 being done, or as Rust being
-> the default.
+> committed corpus**. It was not, on its own, #260's acceptance: the
+> five-repository sweep and the large-solution controls were owed, and they were
+> taken afterwards and recorded in [the sweep
+> note](p022-shadow-sweep.md) — which is where #260's final acceptance is
+> claimed, and where the first two bullets of §6 below were discharged. Nothing
+> in THIS note may be read as shadow mode having been achieved, as P-022 being
+> done, or as Rust being the default.
 
 The infrastructure this builds on is checkpoints 1–4 (PR #338), and #259's
 final acceptance (PR #341) is what removed the last excuse for the verdict
@@ -403,13 +406,19 @@ Six defects, none of them found by review, and each is a shape worth naming.
 ## §6 — Measured, not claimed
 
 * **The C# samples' OwnIR compares clean** — not measured here. This environment
-  has no .NET SDK; the gate is wired to take the measurement where one exists
-  (§2.5), and its result is reported rather than predicted.
-* **The five-repository sweep and the large-solution controls** — not run.
-  #260's test matrix names them and they are separate work.
-* **Windows and Linux path forms** — not exercised. The driver never sees a path
-  it did not read from, and the corpus is POSIX; the invariant it does prove is
-  byte-level and platform-independent, which is not the same claim.
+  had no .NET SDK; the gate is wired to take the measurement where one exists
+  (§2.5), and its result is reported rather than predicted. It has compared
+  clean on every pull request since.
+* **The five-repository sweep and the large-solution controls** — not run *here*.
+  #260's test matrix names them and they were separate work; they have since
+  been run and recorded in [the sweep note](p022-shadow-sweep.md), whose §3
+  names ten documents over six targets with their denominators.
+* **Windows and Linux path forms** — not exercised *here*. The driver never sees
+  a path it did not read from, and the corpus is POSIX; the invariant this note
+  proves is byte-level and platform-independent, which is not the same claim.
+  The Windows leg was taken later, on a Windows host with an adapter built
+  there, and it found three defects in the driver and its controls before it
+  found agreement — [the sweep note's §5](p022-shadow-sweep.md).
 * **Rendered-byte parity of the three layer surfaces** — still each layer's own
   fixture family. The artifact carries layer outputs as JSON *values*, so a
   rendering difference there is invisible to this comparison. The **derived**
@@ -425,8 +434,11 @@ Six defects, none of them found by review, and each is a shape worth naming.
 
 > Compare mode over the committed corpus: zero acceptance-unexplained at all
 > three layers and on the derived SARIF, on byte-attested same input, with the
-> two OD-1 typed-door boundaries declared by policy. **Not #260's acceptance**:
-> the five-repository sweep and the large-solution controls are still owed.
+> two OD-1 typed-door boundaries declared by policy. **Not, on its own, #260's
+> acceptance**: the five-repository sweep and the large-solution controls were
+> owed, and they were taken separately — [the sweep
+> note](p022-shadow-sweep.md) is where #260's final acceptance is claimed, and
+> this note is the committed-corpus half beneath it.
 
 Not "shadow mode achieved". Not "P-022 done". Not "Rust is the default", which
 is #261/#262's cutover and is untouched — Python remains the public engine, no
