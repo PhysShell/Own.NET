@@ -72,10 +72,11 @@ jobs:
       - name: cargo test
         run: cargo test
 
-  # P-022 step 7a (#260) — COMPARE MODE over the committed corpus. Not #260's
-  # acceptance: the five-repository sweep and the large-solution controls are
-  # separate work, and nothing here may be read as shadow mode having been
-  # achieved.
+  # P-022 step 7a (#260) — COMPARE MODE over the committed corpus: the FAST half
+  # of #260's test matrix, and one leg of it. The five pinned OSS repositories,
+  # the large-solution controls and the examples tree are the scheduled/manual
+  # half and live in `.github/workflows/shadow-sweep.yml`. Nothing here may be
+  # read as shadow mode having been achieved.
   #
   # What it gates: every committed facts document through BOTH engines on
   # byte-attested same input, failing on any acceptance-`unexplained`

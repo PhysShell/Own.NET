@@ -7,7 +7,8 @@ every recorded mutation campaign can still be replayed.
 `scripts/render_checkpoint_status.py` (the verdict ledger census through
 `tests/verdict_census.py`; the cp5 surface inventory through
 `tests/verdict_surface_inventory.py`; the step-7a
-census through `tests/shadow_census.py`; every recorded mutation campaign
+census through `tests/shadow_census.py`; #260's final-acceptance sweep through
+`tests/shadow_sweep.py`; every recorded mutation campaign
 through `scripts/mutate_campaign.py`). This module runs its `--check`
 in-process, so a change to the evidence without regenerating the fragments — or
 a campaign result that no longer matches its definition, was taken on a dirty
@@ -56,6 +57,7 @@ from render_checkpoint_status import (  # noqa: E402
     SHADOW_CAMPAIGNS,
     SHADOW_CENSUS_MD,
     SHADOW_MUTATIONS_MD,
+    SHADOW_SWEEP_MD,
     check,
 )
 
@@ -97,7 +99,8 @@ def run() -> int:
     print(f"checkpoint status fragments OK: {CENSUS_MD}, {CP1_CENSUS_MD}, "
           f"{COORD_CENSUS_MD}, {INVENTORY_MD}, "
           f"{MUTATIONS_MD}, {CP4B_MUTATIONS_MD}, {CP5_MUTATIONS_MD}, {COORD_MUTATIONS_MD}, "
-          f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD} in sync with the evidence; "
+          f"{SHADOW_CENSUS_MD}, {SHADOW_MUTATIONS_MD}, {SHADOW_SWEEP_MD} in sync "
+          f"with the evidence; "
           f"{len(DEFINITIONS)} campaign definitions still anchor")
     return 0
 

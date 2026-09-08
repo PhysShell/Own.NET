@@ -2,12 +2,13 @@
 
 # P-022 step 7a — shadow-mode infrastructure: census
 
-**Compare mode over the committed corpus — not #260's acceptance.** What is
-measured here is every document this repository commits, at all three layers
-and on the derived SARIF surface, on byte-attested same input. #260's test
-matrix additionally names a five-repository sweep and large-solution controls;
-neither is run here, and nothing below may be read as shadow mode having been
-achieved, as P-022 being done, or as Rust being the default.
+**Compare mode over the committed corpus — one leg of #260's test matrix.**
+What is measured here is every document this repository commits, at all three
+layers and on the derived SARIF surface, on byte-attested same input. The five
+pinned OSS repositories, the large-solution controls and the examples tree are
+the OTHER legs and have their own record
+([`p022-shadow-sweep.md`](p022-shadow-sweep.md)); nothing below may be read as shadow
+mode having been achieved, as P-022 being done, or as Rust being the default.
 
 This document is the **live view** of the slice as it stands; the recorded
 mutation campaigns are their own fragment

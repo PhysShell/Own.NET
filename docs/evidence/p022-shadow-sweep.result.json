@@ -1,0 +1,455 @@
+{
+  "schema": 1,
+  "comment": "One recorded run of the #260 sweep, assembled by tests/shadow_sweep.py --collect from what scripts/shadow_compare.py wrote. Raw facts only: identities, outcomes, denominators, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the sweep, never by hand.",
+  "sweep": "p022-shadow-sweep",
+  "definition": "docs/evidence/p022-shadow-sweep.json",
+  "definition_sha256": "9edfaedd3ba1d1f918cd0f386f33b856f473fa5f2c1cbd4025265ecc06eacd74",
+  "source_commit": "565de6d49f3d38decbd9117723a39691dcb54aee",
+  "recorded_at": "2026-09-08T02:04:21Z",
+  "host": "Windows AMD64",
+  "workflow_run_url": null,
+  "driver_version": 2,
+  "adapters": [
+    {
+      "sha256": "94eda8fa31dd8c09443d60904d25c85b2670b584fc732bd787a8ea0458f5d9ef",
+      "bytes": 1614336
+    }
+  ],
+  "documents": [
+    {
+      "id": "AvalonEdit.repo",
+      "source": "AvalonEdit.repo.facts.json",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit",
+      "facts_sha256": "f6e704f252f2dfcd421ab04e34abc301b1ca736965e7cc98ac81b92e1397a504",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "f6e704f252f2dfcd421ab04e34abc301b1ca736965e7cc98ac81b92e1397a504",
+        "bytes": 34507
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "623af0f59c614bb28a78c02e83c7ccbdb3f6af3c9c493e17e5598f2ad76ec48a",
+        "bytes": 22130
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.016
+    },
+    {
+      "id": "AvalonEdit.sln",
+      "source": "AvalonEdit.sln.facts.json",
+      "target": "AvalonEdit",
+      "target_commit": "ed0bd149059469ac9bd39b13cf8a341b12a6c1da",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/AvalonEdit/ICSharpCode.AvalonEdit.sln",
+      "facts_sha256": "a5f2e5b70ff154acbe9a800d291295e34992662d3998ce4f990483bb3cafda2c",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "a5f2e5b70ff154acbe9a800d291295e34992662d3998ce4f990483bb3cafda2c",
+        "bytes": 34507
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c3515fceb38647a4e1b335221b54e3a04e76e860ac4188d06e14229c598c24fa",
+        "bytes": 22130
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.016
+    },
+    {
+      "id": "ClosedXML.repo",
+      "source": "ClosedXML.repo.facts.json",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML",
+      "facts_sha256": "bbefbfb2089ea0b1ebb2f8a7144c8cbc294ba859fdae6335a72aea58ab8bfc63",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "bbefbfb2089ea0b1ebb2f8a7144c8cbc294ba859fdae6335a72aea58ab8bfc63",
+        "bytes": 201623
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "4599cfe379cde82307f10a869d778f11abc56eaedbe0d35aeff680dce81778ed",
+        "bytes": 109227
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.109
+    },
+    {
+      "id": "ClosedXML.sln",
+      "source": "ClosedXML.sln.facts.json",
+      "target": "ClosedXML",
+      "target_commit": "4e89dcedd83cad553e84d2d97f77fc3d7deb630f",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ClosedXML/ClosedXML.sln",
+      "facts_sha256": "ec045c96b3940790ca7a80a3a772f9a831abe98b9834a87b1273f83660dbeb52",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "ec045c96b3940790ca7a80a3a772f9a831abe98b9834a87b1273f83660dbeb52",
+        "bytes": 201623
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "c6aabbe11592ff7d41723098df9b663bae08052f8cbb70d33a2bfd91ffb61317",
+        "bytes": 109227
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.109
+    },
+    {
+      "id": "MahApps.Metro.repo",
+      "source": "MahApps.Metro.repo.facts.json",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro",
+      "facts_sha256": "f6a22fecf1bbb63eac26d72cdcce6db620206c32da90f78ef96fa038c81333b8",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "f6a22fecf1bbb63eac26d72cdcce6db620206c32da90f78ef96fa038c81333b8",
+        "bytes": 44712
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "a1f0d30bcad70d8267fc9d9abfa1688a8406c2955f59ed789e2ac3e9fb539021",
+        "bytes": 28765
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.031
+    },
+    {
+      "id": "MahApps.Metro.sln",
+      "source": "MahApps.Metro.sln.facts.json",
+      "target": "MahApps.Metro",
+      "target_commit": "72099e310bac2d12ac98fd7560b69679252519f5",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MahApps.Metro/src/MahApps.Metro.sln",
+      "facts_sha256": "97f644b3b58a3eea26aa39d1a1d8aa22917e4e7317d4bd20a08ee657eb16d0e3",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "97f644b3b58a3eea26aa39d1a1d8aa22917e4e7317d4bd20a08ee657eb16d0e3",
+        "bytes": 44712
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "d9ffd61f879be57026e145239d6d90dfa5ac506635afd575990d2940ef9fd8ca",
+        "bytes": 28765
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.016
+    },
+    {
+      "id": "MaterialDesignInXamlToolkit.repo",
+      "source": "MaterialDesignInXamlToolkit.repo.facts.json",
+      "target": "MaterialDesignInXamlToolkit",
+      "target_commit": "ef3a5ea434e39182b1848f5e11aaea6b3890581f",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/MaterialDesignInXamlToolkit",
+      "facts_sha256": "c0fa752cbe2dc0ce73d49ae8df56ebf676f844c3bb409e897405b36811c83ad3",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "c0fa752cbe2dc0ce73d49ae8df56ebf676f844c3bb409e897405b36811c83ad3",
+        "bytes": 53007
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "3fd3416e502adff71f07de87489351cb2d3b7faf599ee879b1dd2b7c475c0c18",
+        "bytes": 35466
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.031
+    },
+    {
+      "id": "ShareX.repo",
+      "source": "ShareX.repo.facts.json",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX",
+      "facts_sha256": "8d94ea78b8ff26a45e41f5341d678de9912a1ea401a7d702451f4f1fa2a91f8a",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "8d94ea78b8ff26a45e41f5341d678de9912a1ea401a7d702451f4f1fa2a91f8a",
+        "bytes": 249448
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "f3a30f10ac17dd830e756f751110e732d17898e6f0f6307fa9a436d6a5d1a851",
+        "bytes": 128850
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.187
+    },
+    {
+      "id": "ShareX.sln",
+      "source": "ShareX.sln.facts.json",
+      "target": "ShareX",
+      "target_commit": "0df9ca4d83eed9d2489048c539d7d1fc2860fdec",
+      "extraction_mode": "solution",
+      "extraction_command": "OWN_EXTRA_REF_DIRS=<WindowsDesktop ref pack net8.0> scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- targets/ShareX/ShareX.sln",
+      "facts_sha256": "f01fa1d3d9ef4ae9a08e45890ff5f8d49dc6d05730edfa58018a581a912601de",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "f01fa1d3d9ef4ae9a08e45890ff5f8d49dc6d05730edfa58018a581a912601de",
+        "bytes": 249448
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "3a2c3c5eea1cebd612b22bbc1a30cb46a8db39787f6b80c30a5d9d048561c8db",
+        "bytes": 128850
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.094
+    },
+    {
+      "id": "examples",
+      "source": "examples.facts.json",
+      "target": "examples",
+      "target_commit": "565de6d49f3d38decbd9117723a39691dcb54aee",
+      "extraction_mode": "directory-walk",
+      "extraction_command": "scripts/own-check.sh --format sarif --severity warning --emit-facts <FACTS> -- examples",
+      "facts_sha256": "01e617d820d76af1f78057494db4cf065e2d845a84f683b9ce1d574f288f0050",
+      "raw": {
+        "algorithm": "sha256",
+        "digest": "01e617d820d76af1f78057494db4cf065e2d845a84f683b9ce1d574f288f0050",
+        "bytes": 13291
+      },
+      "canonical": {
+        "algorithm": "sha256",
+        "digest": "322523ad9073af842ebcb0a0f8480abfb267f22404de47dc55f37eb01808bf71",
+        "bytes": 6705
+      },
+      "outcome": "agreed",
+      "timeout_seconds": 600.0,
+      "reduction_outcome": "identical",
+      "by_kind": {
+        "left-only": 0,
+        "right-only": 0,
+        "changed": 0,
+        "ordering-only": 0,
+        "status": 0,
+        "projection": 0,
+        "missing-layer": 0
+      },
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0,
+      "derived_outcome": "equal",
+      "wall_clock_seconds": 0.016
+    }
+  ],
+  "targets": [
+    {
+      "target": "AvalonEdit",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "ClosedXML",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "MahApps.Metro",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "MaterialDesignInXamlToolkit",
+      "documents_extracted": 1,
+      "compare_attempted": 1,
+      "agreed": 1,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "ShareX",
+      "documents_extracted": 2,
+      "compare_attempted": 2,
+      "agreed": 2,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    },
+    {
+      "target": "examples",
+      "documents_extracted": 1,
+      "compare_attempted": 1,
+      "agreed": 1,
+      "diverged": 0,
+      "execution_failures": 0,
+      "input_refusals": 0,
+      "input_disagreements": 0,
+      "declared_boundary_observations": 0,
+      "acceptance_unexplained_observations": 0
+    }
+  ],
+  "totals": {
+    "documents_extracted": 10,
+    "compare_attempted": 10,
+    "agreed": 10,
+    "diverged": 0,
+    "execution_failures": 0,
+    "input_refusals": 0,
+    "input_disagreements": 0,
+    "declared_boundary_observations": 0,
+    "acceptance_unexplained_observations": 0
+  }
+}

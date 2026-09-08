@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "campaign": "p022-shadow-sweep-1",
+  "description": "The mutation campaign for #260's FINAL-ACCEPTANCE sweep: the compare driver's version-2 surfaces (the adapter's identity, the manifest run with its provenance and denominators, the empty-set rule) and tests/shadow_sweep.py, the one interpreter that decides whether a recorded run is evidence. Every mutation edits a production surface — the driver or the interpreter — never a test, and both layers run for every mutation (discipline 3: no fail-fast). The mutations are chosen to be exactly the ways a sweep could report agreement it never measured: an identity taken from the wrong file, a stale digest waved through, an empty run called agreement, unexplained counted as agreed, and a skipped target that fails nothing. M00 is the harness-honesty control.",
+  "layers": [
+    {
+      "id": "python-compare",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_shadow_compare.py"
+      ],
+      "parser": "python-fail"
+    },
+    {
+      "id": "python-sweep",
+      "cwd": ".",
+      "command": [
+        "python3",
+        "tests/test_shadow_sweep.py"
+      ],
+      "parser": "python-fail"
+    }
+  ],
+  "control": {
+    "id": "M00",
+    "description": "harness-honesty control: no mutation at all, which must report zero failing layers"
+  },
+  "mutations": [
+    {
+      "id": "S01",
+      "description": "the adapter's identity is taken from a file other than the one that runs",
+      "rule": "a recorded comparison names the ENGINE THAT RAN, by digest",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "        with open\\(binary, \"rb\"\\) as f:\n            raw = f\\.read\\(\\)",
+      "replacement": "        with open(__file__, \"rb\") as f:\n            raw = f.read()",
+      "expected_catchers": [
+        "python-compare::compare-adapter-identity"
+      ]
+    },
+    {
+      "id": "S02",
+      "description": "a manifest whose facts_sha256 does not match the file is waved through",
+      "rule": "every document is verified against the manifest BEFORE any engine runs",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "        if digest != doc\\.facts_sha256:",
+      "replacement": "        if False and digest != doc.facts_sha256:",
+      "expected_catchers": [
+        "python-compare::compare-manifest-digest"
+      ]
+    },
+    {
+      "id": "S03",
+      "description": "an empty manifest is no longer refused where the rule is stated",
+      "rule": "#250's fifth failure mode: a run that compared zero documents FAILS",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "    if not documents:\n        problems\\.append\\(\"the manifest lists no documents, so this run compared \"\n                        \"ZERO of them — a failure, never agreement\"\\)",
+      "replacement": "    if not documents:\n        pass",
+      "expected_catchers": [
+        "python-compare::compare-empty-set"
+      ]
+    },
+    {
+      "id": "S04",
+      "description": "the run summary counts every document as agreed, whatever it was",
+      "rule": "the denominators are derived from the OUTCOMES, never from the entries",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "        row\\[_TALLY_FIELD\\[outcome\\]\\] \\+= 1",
+      "replacement": "        row[\"agreed\"] += 1",
+      "expected_catchers": [
+        "python-compare::compare-summary"
+      ]
+    },
+    {
+      "id": "S05",
+      "description": "the driver stops failing a run for a declared target it never reached",
+      "rule": "a target with compare-attempted 0 is a FAILED target, never a passed repository",
+      "target": "scripts/shadow_compare.py",
+      "pattern": "    empty = \\[t for t, row in sorted\\(per_target\\.items\\(\\)\\)\n             if row\\[\"compare_attempted\"\\] == 0\\]",
+      "replacement": "    empty: list[str] = []",
+      "expected_catchers": [
+        "python-compare::compare-skipped-target"
+      ]
+    },
+    {
+      "id": "S06",
+      "description": "the aggregation stops failing for a declared target missing from the run",
+      "rule": "the DEFINITION is the denominator; a target nobody measured did not pass",
+      "target": "tests/shadow_sweep.py",
+      "pattern": "        if row is None:\n            problems\\.append\\(\n                f\"target \\{target!r\\} is declared by the definition and missing \"\n                f\"from the run — a skipped target is not a passed repository\"\\)\n            continue",
+      "replacement": "        if row is None:\n            continue",
+      "expected_catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ]
+    },
+    {
+      "id": "S07",
+      "description": "the aggregation accepts a document outcome other than agreed",
+      "rule": "only 'agreed' is an outcome this sweep may report",
+      "target": "tests/shadow_sweep.py",
+      "pattern": "        if outcome != OUTCOME_AGREED:",
+      "replacement": "        if False and outcome != OUTCOME_AGREED:",
+      "expected_catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ]
+    },
+    {
+      "id": "S08",
+      "description": "the aggregation stops seeing an unexplained observation inside an agreed document",
+      "rule": "an outcome that contradicts its own observations is a finding, not a rounding",
+      "target": "tests/shadow_sweep.py",
+      "pattern": "        if unexplained:",
+      "replacement": "        if False and unexplained:",
+      "expected_catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ]
+    },
+    {
+      "id": "S09",
+      "description": "the aggregation stops noticing a document the definition never declared",
+      "rule": "the definition may not be a subset of what happened to be measured",
+      "target": "tests/shadow_sweep.py",
+      "pattern": "    for doc_id in sorted\\(set\\(measured\\) - set\\(declared\\)\\):",
+      "replacement": "    for doc_id in sorted(set() - set(declared)):",
+      "expected_catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ]
+    },
+    {
+      "id": "S10",
+      "description": "the aggregation stops checking that the totals are the sum of their parts",
+      "rule": "a total that is not the sum of its rows is a number somebody typed",
+      "target": "tests/shadow_sweep.py",
+      "pattern": "        if totals\\[name\\] != recomputed\\[name\\]:",
+      "replacement": "        if False and totals[name] != recomputed[name]:",
+      "expected_catchers": [
+        "python-sweep::shadow-sweep-interpreter"
+      ]
+    }
+  ]
+}

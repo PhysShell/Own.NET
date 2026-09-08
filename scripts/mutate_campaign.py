@@ -135,6 +135,11 @@ class Layer:
 
 PARSERS = ("cargo", "python-fail")
 
+# Line endings, named rather than spelled inline: a source is matched against
+# patterns written with LF and written back with the ending it arrived with.
+LF = "\n"
+CRLF = "\r\n"
+
 
 @dataclass(frozen=True)
 class Definition:
@@ -473,7 +478,8 @@ def workspace_packages(workspace: str) -> list[str]:
     """Every workspace member, from cargo itself — never a typed list."""
     out = subprocess.run(
         ["cargo", "metadata", "--no-deps", "--format-version", "1"],
-        cwd=os.path.join(ROOT, workspace), check=True, capture_output=True, text=True,
+        cwd=os.path.join(ROOT, workspace), check=True, capture_output=True,
+        text=True, encoding="utf-8", errors="replace",
     ).stdout
     meta = json.loads(out)
     members = {str(m) for m in meta.get("workspace_members", [])}
@@ -490,7 +496,15 @@ def parse_test_output(package: str, out: str) -> tuple[list[str], bool]:
     for line in out.splitlines():
         m = _RUNNING.match(line)
         if m:
-            target = m.group(1)
+            # cargo prints the target with the host's separator, so on
+            # Windows it says `tests\repro.rs` where every campaign
+            # definition and every recorded result says `tests/repro.rs`.
+            # A catcher name is an IDENTITY, and one that depends on the
+            # platform that produced it makes `expected_catchers` silently
+            # unmatchable there — measured: five acc-1 mutations reported
+            # "expected catchers MISSED" while naming exactly the test
+            # that had been expected.
+            target = m.group(1).replace('\\', "/")
             continue
         m = _DOCTESTS.match(line)
         if m:
@@ -520,8 +534,16 @@ def _run_layer(layer: Layer) -> tuple[list[str], bool, list[str]]:
     if layer.parser == "python-fail":
         # Never leave a .pyc behind: see the cache note in the module docstring.
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+    # UTF-8 explicitly, and never the console codepage: `text=True` decodes with
+    # the locale encoding, so on a machine whose console is cp1251 a single
+    # non-ASCII byte anywhere in cargo's output raised UnicodeDecodeError and
+    # killed the campaign mid-run — measured, at mutation B03 of
+    # p022-shadow-acc-2. cargo and this repository's harnesses both emit UTF-8,
+    # and `errors="replace"` means a stray byte costs one character rather than
+    # the whole run.
     r = subprocess.run(list(layer.command), cwd=os.path.join(ROOT, layer.cwd), env=env,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                       text=True, encoding="utf-8", errors="replace")
     if layer.parser == "cargo":
         found, ce = parse_test_output(layer.id, r.stdout)
     else:
@@ -565,15 +587,32 @@ def _layers_of(definition: Definition) -> tuple[Layer, ...]:
         for pkg in workspace_packages(workspace))
 
 
-def write_source(target: str, text: str) -> None:
+def read_source(target: str) -> tuple[str, str]:
+    """A source's text with LF endings, and the ending the file actually uses.
+
+    A campaign's patterns are written with LF, so the text they are matched
+    against is normalized; the ENDING is carried beside it so that writing the
+    file back — mutated or restored — reproduces the bytes that were there.
+
+    Without that pair the harness round-tripped every target through the
+    platform's newline translation, and on a checkout whose working copy is
+    CRLF each campaign rewrote its targets and then correctly refused its own
+    result because the tree had changed. The tree HAD changed; what changed it
+    was the harness."""
+    with open(os.path.join(ROOT, target), "rb") as f:
+        text = f.read().decode("utf-8")
+    return text.replace(CRLF, LF), (CRLF if CRLF in text else LF)
+
+
+def write_source(target: str, text: str, ending: str = LF) -> None:
     """Write a mutated (or restored) source and drop any cached bytecode for it.
 
     CPython validates a `.pyc` by the source's integer mtime and size, so a
     same-size rewrite inside the same second leaves the stale bytecode valid
     and the interpreter runs the file that is no longer on disk."""
     path = os.path.join(ROOT, target)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
+    with open(path, "wb") as f:
+        f.write(text.replace(LF, ending).encode("utf-8"))
     if not target.endswith(".py"):
         return
     directory, name = os.path.split(path)
@@ -792,13 +831,13 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
     packages = [] if definition.layers else [x.id for x in layers]
     targets = sorted({m.target for m in definition.mutations})
     pristine: dict[str, str] = {}
+    endings: dict[str, str] = {}
     for t in targets:
-        with open(os.path.join(ROOT, t), encoding="utf-8") as f:
-            pristine[t] = f.read()
+        pristine[t], endings[t] = read_source(t)
 
     def restore() -> None:
         for t, text in pristine.items():
-            write_source(t, text)
+            write_source(t, text, endings[t])
 
     print(f"{definition.control_id}: {definition.control_description}", flush=True)
     print(f"  layers: {', '.join(x.id for x in layers)}", flush=True)
@@ -830,7 +869,7 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
                 outcomes.append(Outcome(m.id, "compile-error", (), 0.0, broken))
                 print(f"  -> compile-error: {broken}", flush=True)
                 continue
-            write_source(m.target, mutated)
+            write_source(m.target, mutated, endings[m.target])
             t0 = time.monotonic()
             try:
                 catchers, ce, unparsed = run_tests(definition)
@@ -851,9 +890,8 @@ def run_campaign(definition: Definition, allow_dirty: bool) -> Result:
     finally:
         restore()
     for t, text in pristine.items():
-        with open(os.path.join(ROOT, t), encoding="utf-8") as f:
-            if f.read() != text:
-                raise CampaignError(f"{t} was not restored to its pristine content")
+        if read_source(t) != (text, endings[t]):
+            raise CampaignError(f"{t} was not restored to its pristine content")
     assert_tree_unchanged(baseline, "before recording the result")
     return Result(
         campaign=definition.campaign,

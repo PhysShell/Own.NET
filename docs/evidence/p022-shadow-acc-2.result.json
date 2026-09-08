@@ -3,10 +3,10 @@
   "comment": "Recorded mutation-campaign run (scripts/mutate_campaign.py --run). Raw facts only: outcomes, catchers, provenance. Counts are derived by scripts/render_checkpoint_status.py; regenerate this file by re-running the campaign, never by hand.",
   "campaign": "p022-shadow-acc-2",
   "definition": "docs/evidence/p022-shadow-acc-2.json",
-  "definition_sha256": "a7cb74b7bb120c34a6d139d067f55fee738e3eb00b15b023604de964d392e223",
-  "source_commit": "4c1c9d81972171c3d9c8c1d814debb73a4e471f5",
+  "definition_sha256": "49ba5fbd28b7e0ab3b0829aa1e82ae2ac11840926e6c30546f6d458d3c3b8cee",
+  "source_commit": "1c6a611f1ed8f3a7883896c497c2f443fd0f174c",
   "dirty": false,
-  "recorded_at": "2026-09-07T14:49:53Z",
+  "recorded_at": "2026-09-08T02:01:52Z",
   "layers": [
     "python",
     "python-compare",
@@ -17,7 +17,7 @@
     "id": "M00",
     "outcome": "survived",
     "catchers": [],
-    "elapsed_seconds": 7.3
+    "elapsed_seconds": 10.7
   },
   "mutations": [
     {
@@ -28,7 +28,7 @@
         "python::reduction-scope",
         "python::verdict-pairing"
       ],
-      "elapsed_seconds": 5.8
+      "elapsed_seconds": 8.8
     },
     {
       "id": "B02",
@@ -36,7 +36,7 @@
       "catchers": [
         "python::reduction-golden"
       ],
-      "elapsed_seconds": 6.9
+      "elapsed_seconds": 10.5
     },
     {
       "id": "B03",
@@ -44,7 +44,7 @@
       "catchers": [
         "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte"
       ],
-      "elapsed_seconds": 7.1
+      "elapsed_seconds": 10.7
     },
     {
       "id": "B04",
@@ -52,7 +52,7 @@
       "catchers": [
         "python::boundary-policy"
       ],
-      "elapsed_seconds": 7.2
+      "elapsed_seconds": 10.7
     },
     {
       "id": "B05",
@@ -60,7 +60,7 @@
       "catchers": [
         "python::boundary-policy"
       ],
-      "elapsed_seconds": 7.0
+      "elapsed_seconds": 10.8
     },
     {
       "id": "B06",
@@ -69,7 +69,7 @@
         "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte",
         "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
       ],
-      "elapsed_seconds": 7.7
+      "elapsed_seconds": 10.6
     },
     {
       "id": "B07",
@@ -78,7 +78,7 @@
         "python::boundary-policy",
         "python::reduction-golden"
       ],
-      "elapsed_seconds": 7.4
+      "elapsed_seconds": 10.6
     },
     {
       "id": "B08",
@@ -87,7 +87,7 @@
         "rust/tests/reduce.rs::every_reduction_golden_is_reproduced_byte_for_byte",
         "rust/tests/reduce.rs::the_boundary_policy_explains_exactly_what_it_names"
       ],
-      "elapsed_seconds": 7.4
+      "elapsed_seconds": 10.8
     },
     {
       "id": "B09",
@@ -97,7 +97,7 @@
         "python::reduction-control",
         "python::verdict-pairing"
       ],
-      "elapsed_seconds": 7.4
+      "elapsed_seconds": 10.7
     },
     {
       "id": "B10",
@@ -108,7 +108,7 @@
         "rust/tests/reduce.rs::the_reducer_is_silent_on_unchanged_data_and_names_a_synthetic_divergence",
         "rust/tests/reduce.rs::the_same_fields_in_a_different_key_order_are_a_difference"
       ],
-      "elapsed_seconds": 7.4
+      "elapsed_seconds": 10.6
     },
     {
       "id": "B11",
@@ -117,7 +117,7 @@
         "python::trace-golden",
         "python::trace-shape"
       ],
-      "elapsed_seconds": 7.6
+      "elapsed_seconds": 10.6
     },
     {
       "id": "B12",
@@ -125,16 +125,18 @@
       "catchers": [
         "rust/tests/trace.rs::every_trace_golden_is_reproduced_byte_for_byte"
       ],
-      "elapsed_seconds": 7.8
+      "elapsed_seconds": 10.7
     },
     {
       "id": "B13",
       "outcome": "caught",
       "catchers": [
+        "python-compare::compare-control",
         "python-compare::compare-one-read",
+        "python-compare::compare-summary",
         "python::artifact-golden"
       ],
-      "elapsed_seconds": 7.1
+      "elapsed_seconds": 10.5
     },
     {
       "id": "B14",
@@ -142,7 +144,7 @@
       "catchers": [
         "rust/tests/engine.rs::this_engine_reproduces_its_committed_capture"
       ],
-      "elapsed_seconds": 7.4
+      "elapsed_seconds": 10.9
     },
     {
       "id": "B15",
@@ -151,24 +153,26 @@
         "python-compare::<non-zero exit with no reported failure>",
         "python::derived-control"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 7.8
     },
     {
       "id": "B16",
       "outcome": "caught",
       "catchers": [
+        "python-compare::compare-adapter-identity",
         "python-compare::compare-control"
       ],
-      "elapsed_seconds": 7.0
+      "elapsed_seconds": 10.7
     },
     {
       "id": "B17",
       "outcome": "caught",
       "catchers": [
         "python-compare::compare-control",
-        "python-compare::compare-one-read"
+        "python-compare::compare-one-read",
+        "python-compare::compare-summary"
       ],
-      "elapsed_seconds": 7.3
+      "elapsed_seconds": 10.6
     },
     {
       "id": "B18",
@@ -176,7 +180,7 @@
       "catchers": [
         "python-compare::compare-control"
       ],
-      "elapsed_seconds": 7.5
+      "elapsed_seconds": 10.5
     }
   ]
 }

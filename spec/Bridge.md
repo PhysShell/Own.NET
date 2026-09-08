@@ -439,7 +439,7 @@ identifiers and each engine's per-layer output; the `AnalysisTrace` (#269)
 that normalizes those outputs into a walkable shape; and a reducer that names
 the first place two engines part company.
 
-Seven points belong to this spec rather than to those notes.
+Eight points belong to this spec rather than to those notes.
 
 1. Every layer in an artifact is projected through the **tolerant** door on one
    in-memory document — mixing doors across layers would mean the three entries
@@ -491,12 +491,30 @@ Seven points belong to this spec rather than to those notes.
    divergence`, `not-comparable` — are distinct because "the renderers
    disagree" and "there was nothing to compare" are different findings.
 
-Nothing there is shadow mode. What compare mode measures is the **committed
-corpus**: zero acceptance-unexplained at all three layers and on the derived
-SARIF, on byte-attested same input, with the two OD-1 typed-door boundaries
-declared by policy. #260's acceptance additionally requires the five-repository
-sweep and the large-solution controls, neither of which is taken —
-see [the acceptance note](../docs/notes/p022-shadow-acceptance.md).
+Nothing there is shadow mode. What compare mode measures is a **named set of
+documents**, and #260's final acceptance is the point at which that set became
+its whole test matrix: the committed corpus, the C# samples, the `examples/`
+tree, the five pinned OSS repositories of #243 at their verified pins, and the
+largest solution of every one of them that has one — zero acceptance-unexplained
+at all three layers and on the derived SARIF, on byte-attested same input, with
+the two OD-1 typed-door boundaries declared by policy. An eighth point belongs
+to this spec because it is what makes that sentence checkable rather than
+believed:
+
+8. **A comparison is only evidence over a set somebody wrote down first.** A
+   repository is not covered because its extraction succeeded, and a solution is
+   not covered because some project inside it emitted OwnIR. A sweep therefore
+   carries a **definition** — the targets with their pins, the documents with
+   their extraction mode and verbatim command — and one **recorded run**; the
+   run is checked against the definition, so a run that is short, long, or
+   measured at another commit is refused. A run that compared zero documents
+   fails, and so does a declared target it never reached. The denominators are
+   part of what a run reports, per target and in total. Every engine a run
+   executed is named by `sha256` and byte length, not by path.
+
+See [the sweep note](../docs/notes/p022-shadow-sweep.md) for what was measured
+and [the acceptance note](../docs/notes/p022-shadow-acceptance.md) for the
+committed-corpus half beneath it.
 
 Regeneration: each layer gets a `--write` mode mirroring
 `tests/test_cfg_fixtures.py`; a stale committed fixture is a red build; the
