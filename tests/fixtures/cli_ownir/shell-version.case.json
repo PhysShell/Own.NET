@@ -1,0 +1,14 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "--version"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "own-cli 0.1.0\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

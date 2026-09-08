@@ -1,0 +1,19 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_columns.facts.json",
+    "--format",
+    "github",
+    "--severity",
+    "warning"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 1,
+    "stdout": "::warning file=Vm.cs,line=9,title=OWN001::[OWN001] event 'bus.Anchored' is subscribed (handler 'OnA') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]\n::warning file=Vm.cs,line=10,title=OWN001::[OWN001] event 'bus.Bare' is subscribed (handler 'OnB') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]\n",
+    "stderr": "\n2 findings.\n",
+    "os_error_tail": null
+  }
+}

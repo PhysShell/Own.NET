@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/not_an_object.facts.json"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "inputs/not_an_object.facts.json: error: OwnIR root must be a JSON object\n",
+    "os_error_tail": null
+  }
+}

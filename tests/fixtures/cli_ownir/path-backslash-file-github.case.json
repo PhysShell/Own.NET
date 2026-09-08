@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_escaping.facts.json",
+    "--format",
+    "github"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 1,
+    "stdout": "::error file=src\\gen%3Aa%2Cb.cs,line=7,title=OWN001::[OWN001] event 'bus.50%25 off%0D%0Anext' is subscribed (handler 'OnE') but never unsubscribed — the source keeps 'Vm' alive (leak) [resource: subscription token]\n",
+    "stderr": "\n1 finding.\n",
+    "os_error_tail": null
+  }
+}

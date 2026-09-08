@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "../verdict_renders/render_empty.facts.json",
+    "--verbosity",
+    "x"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 2,
+    "stdout": "",
+    "stderr": "unknown --verbosity 'x' (choose: normal, quiet, verbose)\n",
+    "os_error_tail": null
+  }
+}

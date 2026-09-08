@@ -1,0 +1,17 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "inputs/suppressed_only.facts.json",
+    "--verbosity",
+    "normal"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "inputs/suppressed_only.facts.json: ok — no subscription leaks found\n\n0 findings, 1 suppressed ([OwnIgnore]).\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}

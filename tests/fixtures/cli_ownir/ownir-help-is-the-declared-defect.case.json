@@ -1,0 +1,15 @@
+{
+  "cli_ownir_version": 1,
+  "argv": [
+    "ownir",
+    "--help"
+  ],
+  "cwd": ".",
+  "env": {},
+  "expected": {
+    "exit": 0,
+    "stdout": "own-cli ownir — check OwnIR facts extracted from C# by the Roslyn frontend.\n\nUsage:\n  own-cli ownir <facts.json> [--format F] [--severity S] [--verbosity V]\n\nOptions:\n  --format {human|github|msbuild|sarif}  human is the default CLI line, github\n                                         a CI annotation, msbuild the VS Error\n                                         List line, sarif a SARIF 2.1.0 log\n  --severity {error|warning}             how the host shows a finding; it never\n                                         changes the exit code\n  --verbosity {quiet|normal|verbose}     quiet hides the advisory notes\n                                         (OWN050/051/052, OBL005); verbose adds\n                                         a per-code breakdown over every\n                                         finding, suppressed ones included\n\nBoth `--flag value` and `--flag=value` are accepted. Exactly one positional\nargument; there is no `--` separator and there are no short flags.\n\nExit codes:\n  0  no leaks\n  1  at least one non-advisory, unsuppressed finding\n  2  usage error, or a facts document the strict door refuses\n  70 internal error — a bug in the analyzer, never silence\n",
+    "stderr": "",
+    "os_error_tail": null
+  }
+}
