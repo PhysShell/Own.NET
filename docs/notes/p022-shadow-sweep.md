@@ -301,8 +301,10 @@ goes through. **A re-run replaces the result whole; it is never patched.**
 ## §3 — What ran, and what it found
 
 One run, taken in CI at `321ab8b` ([run 34186824607](https://github.com/PhysShell/Own.NET/actions/runs/34186824607),
-the first execution of `.github/workflows/shadow-sweep.yml`, every leg on
-`ubuntu-latest` and the path-form leg on `windows-latest`), recorded whole in
+a dispatch of `.github/workflows/shadow-sweep.yml` by the branch ref of
+PR #344, after that PR's first commit taught each leg to name its document by
+id; every leg on `ubuntu-latest` and the path-form leg on `windows-latest`),
+recorded whole in
 [`docs/evidence/p022-shadow-sweep.result.json`](../evidence/p022-shadow-sweep.result.json)
 and interpreted into
 [`docs/generated/p022-shadow-sweep.md`](../generated/p022-shadow-sweep.md),
@@ -484,13 +486,19 @@ Two measured facts about the matrix itself, neither of them a defect:
   `wpf-extractor` job's own OwnIR through one upload-artifact handshake, and it
   compared clean on `main` when PR #342 landed it. This branch's CI re-measures
   it; nothing in this note stands in for that result.
-* **The sweep workflow itself.** Executed: the recorded run IS its first
-  execution, on `main` at `4520a54`; every leg green, the aggregation assembled
-  the record from the legs' artifacts and checked it against the committed
-  definition, and `workflow_run_url` names it. The first record was a local run,
-  which #260 allowed; it was superseded whole by this one. A `workflow_dispatch`
-  workflow is dispatchable only once it is on the default branch, which is why
-  the first record could not be a CI run.
+* **The sweep workflow itself.** Executed: the recorded run is run
+  34186824607, dispatched by the branch ref of PR #344 at `321ab8b` so that it
+  executed the workflow as amended by that PR's first commit; every leg green,
+  the aggregation assembled the record from the legs' artifacts and checked it
+  against the committed definition, and `workflow_run_url` names it. The
+  workflow's first execution, run 34181417914 on `main` at `4520a54`, agreed on
+  every document but recorded each document's `source` as the runner's temp
+  path — a constant dressed as provenance — and is superseded by the recorded
+  run; it is not on file. The first record was a local run, which #260 allowed;
+  it was superseded whole. A `workflow_dispatch` workflow is dispatchable only
+  once it is on the default branch, which is why the first record could not be a
+  CI run; once the file is there, a dispatch by branch ref runs the branch's
+  version of it.
 * **Precision.** This sweep does not re-measure it. The finding counts the
   extractor produced over the five targets are not compared with #243's, and
   they would not be comparable: many analyses have landed since, and two
