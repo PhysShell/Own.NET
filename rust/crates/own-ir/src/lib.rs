@@ -624,7 +624,7 @@ impl OwnIr {
                 "OwnIR root must be a JSON object",
             ));
         };
-        strict::validate_document(obj)?;
+        strict::validate_document(obj, Some(text))?;
         // serde is the CONSTRUCTOR, not the arbiter: the document has already
         // been accepted, so a failure here is a hole in the validator rather
         // than a rejection. Marked with a sentinel the replay test asserts no
@@ -658,7 +658,11 @@ impl OwnIr {
                 "OwnIR root must be a JSON object",
             ));
         };
-        strict::validate_document(obj)
+        // No raw text here by construction — this door's input is a value
+        // built in memory, so the Version message falls back to the `Value`
+        // spelling. Reachable only through an `extra` key colliding with the
+        // typed `ownir_version` field, since the field itself is `Option<i64>`.
+        strict::validate_document(obj, None)
     }
 
     /// Serialize back to a JSON value. Together with `from_json` this is the
